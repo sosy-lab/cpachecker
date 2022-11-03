@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -266,7 +267,7 @@ public class SMGTransferRelation
       String callerFunctionName)
       throws CPATransferException {
 
-    Collection<SMGState> successors = handleFunctionReturn(functionReturnEdge, fnkCall);
+    Collection<SMGState> successors = handleFunctionReturn(functionReturnEdge);
     if (options.isCheckForMemLeaksAtEveryFrameDrop()) {
       ImmutableList.Builder<SMGState> prunedSuccessors = ImmutableList.builder();
       for (SMGState successor : successors) {
@@ -279,7 +280,7 @@ public class SMGTransferRelation
   }
 
   private List<SMGState> handleFunctionReturn(
-      CFunctionReturnEdge functionReturnEdge, CFAEdge cfaEdge) throws CPATransferException {
+      CFunctionReturnEdge functionReturnEdge) throws CPATransferException {
     CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
     CFunctionCall summaryExpr = summaryEdge.getExpression();
 
@@ -308,7 +309,7 @@ public class SMGTransferRelation
         // Now we can drop the stack frame as we left the function and have the return value
         SMGState currentState = readValueAndState.getState().dropStackFrame();
         // The memory on the left hand side might not exist because of CEGAR
-        for (SMGState stateWithNewVar : createVariableOnTheSpot(leftValue, cfaEdge, currentState)) {
+        for (SMGState stateWithNewVar : createVariableOnTheSpot(leftValue, currentState)) {
           stateBuilder.addAll(
               evaluator.writeValueToExpression(
                   summaryEdge, leftValue, readValueAndState.getValue(), stateWithNewVar));
@@ -326,13 +327,12 @@ public class SMGTransferRelation
    * scope variables that are declared again)
    *
    * @param leftHandSideExpr some left hand side {@link CExpression}.
-   * @param cfaEdge the {@link CFAEdge}
    * @param pState current {@link SMGState}
    * @return a new SMGState with the variable added.
    * @throws CPATransferException for errors and unhandled cases
    */
   private List<SMGState> createVariableOnTheSpot(
-      CExpression leftHandSideExpr, CFAEdge cfaEdge, SMGState pState) throws CPATransferException {
+      CExpression leftHandSideExpr, SMGState pState) throws CPATransferException {
     if (leftHandSideExpr instanceof CIdExpression) {
       CIdExpression leftCIdExpr = (CIdExpression) leftHandSideExpr;
       CSimpleDeclaration decl = leftCIdExpr.getDeclaration();
@@ -344,37 +344,35 @@ public class SMGTransferRelation
       }
       if (!currentState.isLocalOrGlobalVariablePresent(varName)) {
         if (decl instanceof CVariableDeclaration) {
-          List<SMGState> statesWithVar =
+          return
               evaluator.handleVariableDeclarationWithoutInizializer(
                   currentState, (CVariableDeclaration) decl);
-          return statesWithVar;
         } else if (decl instanceof CParameterDeclaration) {
-          List<SMGState> statesWithVar =
+          return
               evaluator.handleVariableDeclarationWithoutInizializer(
                   currentState, ((CParameterDeclaration) decl).asVariableDeclaration());
-          return statesWithVar;
         }
       }
       return ImmutableList.of(pState);
 
     } else if (leftHandSideExpr instanceof CArraySubscriptExpression) {
       CExpression arrayExpr = ((CArraySubscriptExpression) leftHandSideExpr).getArrayExpression();
-      return createVariableOnTheSpot(arrayExpr, cfaEdge, pState);
+      return createVariableOnTheSpot(arrayExpr, pState);
 
     } else if (leftHandSideExpr instanceof CFieldReference) {
       CExpression fieldOwn = ((CFieldReference) leftHandSideExpr).getFieldOwner();
-      return createVariableOnTheSpot(fieldOwn, cfaEdge, pState);
+      return createVariableOnTheSpot(fieldOwn, pState);
 
     } else if (leftHandSideExpr instanceof CPointerExpression) {
       CExpression operand = ((CPointerExpression) leftHandSideExpr).getOperand();
-      return createVariableOnTheSpot(operand, cfaEdge, pState);
+      return createVariableOnTheSpot(operand, pState);
 
     } else if (leftHandSideExpr instanceof CUnaryExpression) {
       CExpression operand = ((CUnaryExpression) leftHandSideExpr).getOperand();
-      return createVariableOnTheSpot(operand, cfaEdge, pState);
+      return createVariableOnTheSpot(operand, pState);
     } else if (leftHandSideExpr instanceof CCastExpression) {
       CExpression operand = ((CCastExpression) leftHandSideExpr).getOperand();
-      return createVariableOnTheSpot(operand, cfaEdge, pState);
+      return createVariableOnTheSpot(operand, pState);
     }
     return ImmutableList.of(pState);
   }
@@ -403,7 +401,7 @@ public class SMGTransferRelation
    * Creates a new stack frame for the function call, then creates the local variables for the
    * parameters and fills them using the value visitor with the values given. This should only be
    * called if the number of arguments and paramDecls entered match. This function also checks for
-   * variable arguments and saves them in a array in the order they appear.
+   * variable arguments and saves them in an array in the order they appear.
    *
    * @param initialState the current state.
    * @param callEdge the edge of the function call.
@@ -488,7 +486,7 @@ public class SMGTransferRelation
       CType cParamType = SMGCPAExpressionEvaluator.getCanonicalType(paramDecl.get(i));
 
       currentState =
-          handleFunctionParamterAssignments(
+          handleFunctionParameterAssignments(
               varName, valueType, paramValue, cParamType, callEdge, currentState);
     }
     return currentState;
@@ -498,7 +496,7 @@ public class SMGTransferRelation
    * Assigns the value with type valueType to the variable behind the name given with the type cParamType.
    * Note: the action depends on the types. See method for more details.
    */
-  private SMGState handleFunctionParamterAssignments(
+  private SMGState handleFunctionParameterAssignments(
       String varName,
       CType valueType,
       Value paramValue,
@@ -510,10 +508,10 @@ public class SMGTransferRelation
     if (valueType instanceof CArrayType && cParamType instanceof CArrayType) {
       // Take the pointer to the local array and get the memory area, then associate this memory
       // area with the variable name
-      List<SMGStateAndOptionalSMGObjectAndOffset> knownMemorysAndStates =
+      List<SMGStateAndOptionalSMGObjectAndOffset> knownMemoriesAndStates =
           currentState.dereferencePointer(paramValue);
-      Preconditions.checkArgument(knownMemorysAndStates.size() == 1);
-      SMGStateAndOptionalSMGObjectAndOffset knownMemoryAndState = knownMemorysAndStates.get(0);
+      Preconditions.checkArgument(knownMemoriesAndStates.size() == 1);
+      SMGStateAndOptionalSMGObjectAndOffset knownMemoryAndState = knownMemoriesAndStates.get(0);
       currentState = knownMemoryAndState.getSMGState();
       if (!knownMemoryAndState.hasSMGObjectAndOffset()) {
         throw new SMG2Exception("Could not associate a local array in a new function.");
@@ -584,7 +582,7 @@ public class SMGTransferRelation
     return handleAssumption(expression, cfaEdge, truthAssumption);
   }
 
-  private Collection<SMGState> handleAssumption(
+  private @Nullable Collection<SMGState> handleAssumption(
       AExpression expression, CFAEdge cfaEdge, boolean truthValue) throws CPATransferException {
 
     if (stats != null) {
@@ -674,7 +672,7 @@ public class SMGTransferRelation
       CExpression lValue = cAssignment.getLeftHandSide();
       CRightHandSide rValue = cAssignment.getRightHandSide();
       ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
-      for (SMGState currentState : createVariableOnTheSpot(lValue, pCfaEdge, state)) {
+      for (SMGState currentState : createVariableOnTheSpot(lValue, state)) {
         stateBuilder.addAll(handleAssignment(currentState, pCfaEdge, lValue, rValue));
       }
       return stateBuilder.build();
@@ -717,9 +715,9 @@ public class SMGTransferRelation
         String errorMSG =
             "Calling " + functionName + " and not using the return value results in a memory leak.";
         logger.logf(Level.INFO, "Error in %s: %s", errorMSG, pCfaEdge.getFileLocation());
-        List<ValueAndSMGState> uselessValuesAndnewStates =
+        List<ValueAndSMGState> uselessValuesAndNewStates =
             builtins.evaluateConfigurableAllocationFunction(cFCExpression, pState, pCfaEdge);
-        for (ValueAndSMGState valueAndState : uselessValuesAndnewStates) {
+        for (ValueAndSMGState valueAndState : uselessValuesAndNewStates) {
           newStatesBuilder.add(
               valueAndState
                   .getState()
@@ -745,7 +743,7 @@ public class SMGTransferRelation
   protected List<SMGState> handleDeclarationEdge(CDeclarationEdge edge, CDeclaration cDecl)
       throws CPATransferException {
     SMGState currentState = state;
-    // CEGAR checks inside of the ifs! Else we check every typedef!
+    // CEGAR checks inside the ifs! Else we check every typedef!
 
     if (cDecl instanceof CFunctionDeclaration) {
       CFunctionDeclaration cFuncDecl = (CFunctionDeclaration) cDecl;
@@ -848,11 +846,7 @@ public class SMGTransferRelation
       }
     }
 
-    if (newStates == null) {
-      return ImmutableList.of();
-    } else {
-      return newStates;
-    }
+    return Objects.requireNonNullElseGet(newStates, ImmutableList::of);
   }
 
   /*
@@ -870,7 +864,7 @@ public class SMGTransferRelation
     ImmutableList.Builder<SMGState> returnStateBuilder = ImmutableList.builder();
     SMGState currentState = pState;
     for (SMGStateAndOptionalSMGObjectAndOffset targetAndOffsetAndState :
-        lValue.accept(new SMGCPAAddressVisitor(evaluator, pState, cfaEdge, logger))) {
+        lValue.accept(new SMGCPAAddressVisitor(evaluator, currentState, cfaEdge, logger))) {
       currentState = targetAndOffsetAndState.getSMGState();
 
       if (!targetAndOffsetAndState.hasSMGObjectAndOffset()) {
@@ -1041,92 +1035,6 @@ public class SMGTransferRelation
       // hand side!
       return currentState.writeValueTo(
           addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite, leftHandSideType);
-    }
-  }
-
-  /*
-   * options. Copied and modified from value + old SMG CPA + some new ones!
-   */
-  @Options(prefix = "cpa.smg2")
-  public static class ValueTransferOptions {
-
-    @Option(
-        secure = true,
-        description =
-            "if there is an assumption like (x!=0), "
-                + "this option sets unknown (uninitialized) variables to 1L, "
-                + "when the true-branch is handled.")
-    private boolean initAssumptionVars = false;
-
-    @Option(
-        secure = true,
-        description =
-            "Assume that variables used only in a boolean context are either zero or one.")
-    private boolean optimizeBooleanVariables = true;
-
-    @Option(secure = true, description = "Track or not function pointer values")
-    private boolean ignoreFunctionValue = true;
-
-    @Option(
-        secure = true,
-        description =
-            "If 'ignoreFunctionValue' is set to true, this option allows to provide a fixed set of"
-                + " values in the TestComp format. It is used for function-calls to calls of"
-                + " VERIFIER_nondet_*. The file is provided via the option"
-                + " functionValuesForRandom ")
-    private boolean ignoreFunctionValueExceptRandom = false;
-
-    @Option(
-        secure = true,
-        description =
-            "Fixed set of values for function calls to VERIFIER_nondet_*. Does only work, if"
-                + " ignoreFunctionValueExceptRandom is enabled ")
-    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-    private Path functionValuesForRandom = null;
-
-    @Option(
-        secure = true,
-        description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
-    private boolean assignEqualityAssumptions = true;
-
-    @Option(
-        secure = true,
-        description =
-            "Allow the given extern functions and interpret them as pure functions"
-                + " although the value analysis does not support their semantics"
-                + " and this can produce wrong results.")
-    private Set<String> allowedUnsupportedFunctions = ImmutableSet.of();
-
-    public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
-      config.inject(this);
-    }
-
-    boolean isInitAssumptionVars() {
-      return initAssumptionVars;
-    }
-
-    boolean isAssignEqualityAssumptions() {
-      return assignEqualityAssumptions;
-    }
-
-    boolean isOptimizeBooleanVariables() {
-      return optimizeBooleanVariables;
-    }
-
-    boolean isIgnoreFunctionValue() {
-      return ignoreFunctionValue;
-    }
-
-    public boolean isIgnoreFunctionValueExceptRandom() {
-      return ignoreFunctionValueExceptRandom;
-    }
-
-    public Path getFunctionValuesForRandom() {
-      return functionValuesForRandom;
-    }
-
-    boolean isAllowedUnsupportedOption(String func) {
-      return allowedUnsupportedFunctions.contains(func);
     }
   }
 }
