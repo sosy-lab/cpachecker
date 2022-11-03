@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetOrSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -44,9 +43,9 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /**
  * This visitor is only meant to get the memory (SMGObject) of the entered expression. This is
  * needed in allocations i.e. a = b; and the & operator. This class returns a list of optionals with
- * the target memory region + offset inside if one is found. If a expression is given to this
+ * the target memory region + offset inside if one is found. If an expression is given to this
  * visitor with no memory region the optional will be empty; i.e. SMGCPAAddressVisitor(3); with 3
- * being a int for example. (this is done such that the method asking for the memory region can have
+ * being an int for example. (this is done such that the method asking for the memory region can have
  * a dedicated error without exception catching).
  */
 public class SMGCPAAddressVisitor
@@ -104,7 +103,7 @@ public class SMGCPAAddressVisitor
       throws CPATransferException {
     // Array subscript is default Java array usage. Example: array[5]
     // In C this can be translated to *(array + 5), but the array may be on the stack/heap (or
-    // global, but be throw global and stack together when reading). Note: this is commutative!
+    // global, but we throw global and stack together when reading). Note: this is commutative!
 
     // The expression is split into array and subscript expression
     // Use the array expression in the visitor again to get the array address
@@ -130,7 +129,7 @@ public class SMGCPAAddressVisitor
 
         Value subscriptValue = subscriptValueAndState.getValue();
         currentState = subscriptValueAndState.getState();
-        // If the subscript is a unknown value, we can't read anything and return unknown
+        // If the subscript is an unknown value, we can't read anything and return unknown
         if (!subscriptValue.isNumericValue()) {
           logger.log(
               Level.FINE,
@@ -163,7 +162,6 @@ public class SMGCPAAddressVisitor
   private SMGStateAndOptionalSMGObjectAndOffset handleSubscriptExpression(
       Value arrayValue, BigInteger subscriptOffset, SMGState pCurrentState) throws SMG2Exception {
 
-    SMGState currentState = pCurrentState;
     if ((arrayValue instanceof AddressExpression)) {
       AddressExpression arrayAddr = (AddressExpression) arrayValue;
       Value addrOffset = arrayAddr.getOffset();
@@ -173,25 +171,25 @@ public class SMGCPAAddressVisitor
             "A offset value was found to be non concrete when trying to find a memory"
                 + " location in an array. No memory region could be returned.");
         return SMGStateAndOptionalSMGObjectAndOffset.of(
-            currentState.withUnknownOffsetMemoryAccess());
+            pCurrentState.withUnknownOffsetMemoryAccess());
       }
       BigInteger baseOffset = addrOffset.asNumericValue().bigInteger();
       BigInteger finalOffset = baseOffset.add(subscriptOffset);
 
       List<SMGStateAndOptionalSMGObjectAndOffset> targets =
           evaluator.getTargetObjectAndOffset(
-              currentState, arrayAddr.getMemoryAddress(), finalOffset);
+              pCurrentState, arrayAddr.getMemoryAddress(), finalOffset);
       Preconditions.checkArgument(targets.size() == 1);
       return targets.get(0);
 
     } else if (pCurrentState.getMemoryModel().isPointer(arrayValue)) {
       // Local array
-      List<SMGStateAndOptionalSMGObjectAndOffset> maybeTargetMemorysAndOffsets =
-          currentState.dereferencePointer(arrayValue);
+      List<SMGStateAndOptionalSMGObjectAndOffset>maybeTargetMemoriesAndOffsets =
+          pCurrentState.dereferencePointer(arrayValue);
       // If this ever fails, handle the list.
-      Preconditions.checkArgument(maybeTargetMemorysAndOffsets.size() == 1);
+      Preconditions.checkArgument(maybeTargetMemoriesAndOffsets.size() == 1);
       SMGStateAndOptionalSMGObjectAndOffset maybeTargetMemoryAndOffset =
-          maybeTargetMemorysAndOffsets.get(0);
+          maybeTargetMemoriesAndOffsets.get(0);
       if (!maybeTargetMemoryAndOffset.hasSMGObjectAndOffset()) {
         return maybeTargetMemoryAndOffset;
       }
@@ -199,16 +197,16 @@ public class SMGCPAAddressVisitor
       BigInteger finalOffset = baseOffset.add(subscriptOffset);
 
       return SMGStateAndOptionalSMGObjectAndOffset.of(
-          maybeTargetMemoryAndOffset.getSMGObject(), finalOffset, currentState);
+          maybeTargetMemoryAndOffset.getSMGObject(), finalOffset, pCurrentState);
 
     } else {
       // Might be numeric 0 (0 object). All else cases are basically invalid requests.
       if (arrayValue.isNumericValue()
           && arrayValue.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
         return SMGStateAndOptionalSMGObjectAndOffset.of(
-            SMGObject.nullInstance(), subscriptOffset, currentState);
+            SMGObject.nullInstance(), subscriptOffset, pCurrentState);
       } else {
-        return SMGStateAndOptionalSMGObjectAndOffset.of(currentState);
+        return SMGStateAndOptionalSMGObjectAndOffset.of(pCurrentState);
       }
     }
   }
@@ -222,8 +220,8 @@ public class SMGCPAAddressVisitor
   @Override
   public List<SMGStateAndOptionalSMGObjectAndOffset> visit(CFieldReference e)
       throws CPATransferException {
-    // This is the field of a struct/union, so smth like struct.field or struct->field.
-    // In the later case its a pointer dereference.
+    // This is the field of a struct/union, so something like struct.field or struct->field.
+    // In the later case it's a pointer dereference.
     // Get the object of the field with its offset
 
     // First we transform x->f into (*x).f per default
@@ -286,7 +284,6 @@ public class SMGCPAAddressVisitor
         // Might be numeric 0 (0 object). All else cases are basically invalid requests.
         if (structValue.isNumericValue()
             && structValue.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
-          SMGObjectAndOffsetOrSMGState.of(currentState);
           resultBuilder.add(
               SMGStateAndOptionalSMGObjectAndOffset.of(
                   SMGObject.nullInstance(), fieldOffset, currentState));
@@ -322,7 +319,7 @@ public class SMGCPAAddressVisitor
   @Override
   public List<SMGStateAndOptionalSMGObjectAndOffset> visit(CPointerExpression e)
       throws CPATransferException {
-    // This should subavaluate to a AddressExpression in the visit call in the beginning as we
+    // This should sub-evaluate to a AddressExpression in the visit call in the beginning as we
     // always evaluate to the address
 
     // Get the type of the target
@@ -330,7 +327,7 @@ public class SMGCPAAddressVisitor
     // Get the expression that is dereferenced
     CExpression expr = e.getOperand();
     // Evaluate the expression to a Value; this should return a Symbolic Value with the address of
-    // the target and a offset. If this fails this returns a UnknownValue.
+    // the target and an offset. If this fails this returns a UnknownValue.
 
     ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> resultBuilder =
         ImmutableList.builder();
@@ -349,7 +346,7 @@ public class SMGCPAAddressVisitor
       // The offset part of the pointer; its either numeric or we can't get a concrete value
       Value offset = pointerValue.getOffset();
       if (!offset.isNumericValue()) {
-        // If the offset is not numericly known we can't read a value, return
+        // If the offset is not numerically known we can't read a value, return
         resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
         continue;
       }
