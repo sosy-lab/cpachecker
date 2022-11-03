@@ -2227,6 +2227,11 @@ public class SMGCPAValueVisitor
     final CType expressionType = pExpression.getExpressionType();
     final CType calculationType = pExpression.getCalculationType();
 
+    // Evaluate == symbolics if possible
+    if (operator.equals(BinaryOperator.EQUALS) && pLValue.equals(pRValue)) {
+      return new NumericValue(1);
+    }
+
     return createSymbolicExpression(
         pLValue,
         leftOperandType,
