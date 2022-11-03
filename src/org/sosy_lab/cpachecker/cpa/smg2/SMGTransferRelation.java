@@ -811,8 +811,7 @@ public class SMGTransferRelation
         throw new CPATransferException("Don't use the pointer CPA with the SMGCPA!");
       }
     }
-    toStrengthen.addAll(result);
-    // Do post processing
+    // Do post-processing
     final Collection<AbstractState> postProcessedResult = new ArrayList<>(result.size());
     for (SMGState rawResult : result) {
       // The original state has already been post-processed
@@ -829,7 +828,7 @@ public class SMGTransferRelation
   }
 
   /*
-   * Not really needed. Just to keep track of statistics.
+   * Used e.g. for witness validation through this CPA.
    */
   private @NonNull Collection<SMGState> strengthenWithAssumptions(
       AbstractStateWithAssumptions pStateWithAssumptions, SMGState pState, CFAEdge pCfaEdge)
