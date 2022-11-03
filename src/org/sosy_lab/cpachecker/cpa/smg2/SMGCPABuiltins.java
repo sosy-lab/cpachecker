@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
@@ -672,7 +673,7 @@ public class SMGCPABuiltins {
           continue;
         } else {
 
-          throw new UnsupportedOperationException(
+          throw new SMG2Exception(
               "An allocation function was called with a symbolic size. This is not supported"
                   + " currently by the SMG2 analysis. Try GuessSizeOfUnknownMemorySize.");
         }

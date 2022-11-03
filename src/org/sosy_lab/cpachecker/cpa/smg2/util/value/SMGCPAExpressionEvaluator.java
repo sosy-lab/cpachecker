@@ -1547,7 +1547,7 @@ public class SMGCPAExpressionEvaluator {
           && e.getMessage().contains("Could not determine variable array length for length")) {
         return newState;
       }
-      throw e;
+      throw new SMG2Exception(e.getMessage());
     }
     if (cType instanceof CArrayType
         && ((CArrayType) cType).getLength() == null
