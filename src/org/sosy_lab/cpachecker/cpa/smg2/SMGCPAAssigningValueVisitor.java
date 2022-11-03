@@ -37,13 +37,13 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
-  private SMGOptions options;
+  private final SMGOptions options;
 
-  private boolean truthValue;
+  private final boolean truthValue;
 
   // Tracked boolean variables for non-equal assumptions where we assume these tracked variables as
   // true if the other compared variable is already known as false
-  private Collection<String> booleans;
+  private final Collection<String> booleans;
 
   public SMGCPAAssigningValueVisitor(
       SMGCPAExpressionEvaluator pEvaluator,
@@ -122,9 +122,9 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     // was chosen)
     // Never assume values for addresses!! Address equality is only truly checkable
     // by the areNonEqualAddresses() method in the state, which is done by the value visitor.
-    for (ValueAndSMGState uselessValueAndupdatedState :
+    for (ValueAndSMGState uselessValueAndUpdatedState :
         updateNested(lVarInBinaryExp, leftValue, rVarInBinaryExp, rightValue, currentState)) {
-      currentState = uselessValueAndupdatedState.getState();
+      currentState = uselessValueAndUpdatedState.getState();
 
       if (isEligibleForAssignment(leftValue)
           && rightValue.isExplicitlyKnown()
@@ -264,7 +264,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
     LogManagerWithoutDuplicates logger = super.getInitialVisitorLogger();
     CFAEdge edge = super.getInitialVisitorCFAEdge();
-    // Just use the current state as base case (with a unknown value that we wont use)
+    // Just use the current state as base case (with an unknown value that we won't use)
     List<ValueAndSMGState> updatedStates =
         ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
     // if (true == (unknown == concrete_value)) we set the value (for true left and right)
@@ -315,7 +315,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
    *
    * @param expression {@link CExpression}
    * @param currentState {@link SMGState}
-   * @return a list of non-empty Optionals in the case of a assignable expression.
+   * @return a list of non-empty Optionals in the case of an assignable expression.
    * @throws CPATransferException in case of a critical error i.e. uninitialized variable used.
    */
   private List<SMGStateAndOptionalSMGObjectAndOffset> getAssignable(
@@ -330,7 +330,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               currentState,
               super.getInitialVisitorCFAEdge(),
               super.getInitialVisitorLogger());
-      // The exception is only thrown if a invalid statement is detected i.e. usage of undeclared
+      // The exception is only thrown if an invalid statement is detected i.e. usage of undeclared
       // variable. Invalid input like constants are returned as empty optional
       return expression.accept(av);
     }
@@ -375,12 +375,12 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     if (expr instanceof CIdExpression) {
       return ((CIdExpression) expr).getName();
     } else if (expr instanceof CArraySubscriptExpression) {
-      return ((CArraySubscriptExpression) expr).toQualifiedASTString();
+      return expr.toQualifiedASTString();
     } else if (expr instanceof CFieldReference) {
       return ((CFieldReference) expr).getFieldOwner().toQualifiedASTString()
           + ((CFieldReference) expr).getFieldName();
     } else if (expr instanceof CPointerExpression) {
-      return ((CPointerExpression) expr).toQualifiedASTString();
+      return expr.toQualifiedASTString();
     }
     throw new SMG2Exception("Internal error when getting the qualified name of a CExpression.");
   }
