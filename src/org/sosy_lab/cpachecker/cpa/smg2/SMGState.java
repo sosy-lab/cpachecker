@@ -391,8 +391,11 @@ public class SMGState
    */
   public boolean isLocalOrGlobalVariableValid(String qualifiedName) {
     if (isGlobalVariablePresent(qualifiedName) || isLocalVariablePresentAnywhere(qualifiedName)) {
-      return memoryModel.isObjectValid(
-          memoryModel.getObjectForVisibleVariable(qualifiedName).orElseThrow());
+      Optional<SMGObject> memRegion = memoryModel.getObjectForVisibleVariable(qualifiedName);
+      if (memRegion.isPresent()) {
+        return memoryModel.isObjectValid(
+            memRegion.orElseThrow());
+      }
     }
     return false;
   }
@@ -2151,7 +2154,7 @@ public class SMGState
     if (sanitizedAddressToFree.isNumericValue()
         && sanitizedAddressToFree.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
       logger.log(
-          Level.INFO,
+          Level.FINE,
           pFunctionCall.getFileLocation(),
           ":",
           "The argument of a free invocation:",
@@ -2167,7 +2170,7 @@ public class SMGState
       if (!maybeRegion.hasSMGObjectAndOffset()) {
         // If there is no region the deref failed, which means we can't evaluate the free
         logger.log(
-            Level.INFO,
+            Level.FINE,
             "Free on expression ",
             pFunctionCall.getParameterExpressions().get(0).toASTString(),
             " is invalid, because the target of the address could not be calculated.");
@@ -2185,7 +2188,7 @@ public class SMGState
       // free(0) is a nop in C
       if (regionToFree.isZero()) {
         logger.log(
-            Level.INFO,
+            Level.FINE,
             pFunctionCall.getFileLocation(),
             ":",
             "The argument of a free invocation:",
