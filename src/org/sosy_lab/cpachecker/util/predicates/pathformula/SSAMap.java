@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.Serializable;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map;
@@ -117,12 +118,18 @@ public final class SSAMap implements Serializable {
     }
 
     @SuppressWarnings("CheckReturnValue")
+    @CanIgnoreReturnValue
     public SSAMapBuilder setIndex(String name, CType type, int idx) {
       Preconditions.checkArgument(
-          idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);
+          idx > 0, "Non-positive index %s for variable %s with type %s", idx, name, type);
       int oldIdx = getIndex(name);
       Preconditions.checkArgument(
-          idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx);
+          idx >= oldIdx,
+          "Non-monotonic SSAMap update for variable %s with type %s from %s to %s",
+          name,
+          type,
+          oldIdx,
+          idx);
 
       type = type.getCanonicalType();
       assert !(type instanceof CFunctionType) : "Variable " + name + " has function type " + type;
@@ -153,6 +160,7 @@ public final class SSAMap implements Serializable {
       freshValueProvider = freshValueProvider.merge(fvp);
     }
 
+    @CanIgnoreReturnValue
     public SSAMapBuilder deleteVariable(String variable) {
       int index = getIndex(variable);
       if (index != ssa.defaultValue) {

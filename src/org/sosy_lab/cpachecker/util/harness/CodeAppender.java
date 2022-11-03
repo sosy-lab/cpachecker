@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.harness;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +58,7 @@ class CodeAppender implements Appendable {
     return appendable.toString();
   }
 
+  @CanIgnoreReturnValue
   private CodeAppender appendVectorIndexDeclaration(String pInputFunctionVectorIndexName)
       throws IOException {
     appendable.append("  static unsigned int ");
@@ -65,12 +67,14 @@ class CodeAppender implements Appendable {
     return this;
   }
 
+  @CanIgnoreReturnValue
   public CodeAppender appendDeclaration(Type pType, String pName) throws IOException {
     appendable.append(pType.toASTString(pName));
     appendln(";");
     return this;
   }
 
+  @CanIgnoreReturnValue
   public CodeAppender appendAssignment(String pRetvalName, ARightHandSide pValue)
       throws IOException {
     appendable.append(pRetvalName);
@@ -79,10 +83,12 @@ class CodeAppender implements Appendable {
     return this;
   }
 
+  @CanIgnoreReturnValue
   CodeAppender appendAssignment(String pRetvalName, TestValue pValue) throws IOException {
     return appendAssignment(pRetvalName, pValue, true);
   }
 
+  @CanIgnoreReturnValue
   private CodeAppender appendAssignment(String pRetvalName, TestValue pValue, boolean pEnclose)
       throws IOException {
     boolean hasAuxiliaryStatmenets = !pValue.getAuxiliaryStatements().isEmpty();
@@ -109,35 +115,41 @@ class CodeAppender implements Appendable {
     return this;
   }
 
+  @CanIgnoreReturnValue
   public CodeAppender appendln(String pLine) throws IOException {
     appendable.append(pLine);
     appendln();
     return this;
   }
 
+  @CanIgnoreReturnValue
   public Appendable appendln() throws IOException {
     appendable.append(System.lineSeparator());
     return this;
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CodeAppender append(CharSequence pCsq) throws IOException {
     appendable.append(pCsq);
     return this;
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CodeAppender append(char pChar) throws IOException {
     appendable.append(pChar);
     return this;
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CodeAppender append(CharSequence pCsq, int pStart, int pEnd) throws IOException {
     appendable.append(pCsq, pStart, pEnd);
     return this;
   }
 
+  @CanIgnoreReturnValue
   public CodeAppender append(TestVector pVector) throws IOException {
     for (AVariableDeclaration inputVariable : pVector.getInputVariables()) {
       InitializerTestValue inputValue = pVector.getInputValue(inputVariable);
@@ -225,6 +237,7 @@ class CodeAppender implements Appendable {
     return this;
   }
 
+  @CanIgnoreReturnValue
   public CodeAppender append(AFunctionDeclaration pInputFunction) throws IOException {
     return append(enforceParameterNames(pInputFunction).toASTString(pInputFunction.getName()));
   }
