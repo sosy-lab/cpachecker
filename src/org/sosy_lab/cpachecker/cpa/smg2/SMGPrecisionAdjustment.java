@@ -113,7 +113,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         secure = true,
         name = "abstractProgramVariables",
         description = "Abstraction of program variables via CEGAR.")
-    private boolean abstractProgramVariables = true;
+    private boolean abstractProgramVariables = false;
 
     @Option(
         secure = true,
