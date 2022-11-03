@@ -48,10 +48,10 @@ import org.sosy_lab.cpachecker.util.smg.util.SMGandValue;
  * and labelling functions (to get the kind, nesting level, size etc. of objects etc.)
  */
 public class SMG {
-  // TODO I don't like using utility implementations of the old SMG analysis
-  // Some ideas: Implement a PathCopying Map with multiple nested Maps that uses object, offset and
-  // size as keys?
-  // Save the SMGHasValueEdges with a zero value and null-objects separately.
+  // TODO: build something like a union-find that tracks sub-SMGs and gives a common source that
+  //  reaches all children such that we only need to update a sub-SMG compared to the entire
+  //  SMG as we do currently. Then rework utility functions for this and re-implement removal
+  //  of unnecessary edges/nodes.
 
   // The bool is the validity of the SMGObject, not being in the map -> not valid (false)
   private final PersistentMap<SMGObject, Boolean> smgObjects;
@@ -198,7 +198,7 @@ public class SMG {
   public SMG copyAndAddPTEdge(SMGPointsToEdge edge, SMGValue source) {
 
     if (pointsToEdges.containsKey(source)) {
-      if (pointsToEdges.get(source).equals(edge)) {
+      if (Objects.equals(pointsToEdges.get(source), edge)) {
         return this;
       }
       throw new RuntimeException("A SMG-points-to-edge can have only 1 target!");
@@ -524,7 +524,7 @@ public class SMG {
     }
     PersistentSet<SMGValue> values = smgValues;
     for (SMGValue valueToRem : toRemove) {
-      // TODO: check if this is correct!
+      // check if this is correct!
       if (!valueToRem.isZero()) {
         values = values.removeAndCopy(valueToRem);
       }
@@ -666,8 +666,7 @@ public class SMG {
    */
   public Optional<SMGHasValueEdge> getHasValueEdgeByPredicate(
       SMGObject object, Predicate<SMGHasValueEdge> filter) {
-    // TODO: Are multiple values possible for the same filter? If yes, create another method to
-    // return all of them.
+    // There should only ever be 1 edge per offset, and they should not overlap
     return hasValueEdges.getOrDefault(object, PersistentSet.of()).stream().filter(filter).findAny();
   }
 
@@ -842,15 +841,14 @@ public class SMG {
 
   /**
    * Calculates bit precise the size of new SMGHasValueEdges. This is needed as sizes used by us are
-   * bit precise and we need bit precision! Bit fields exist! This is only ok for 0 values!
+   * bit precise, and we need bit precision! Bit fields exist! This is only ok for 0 values!
    *
    * @param first The precision in bits that will be subtracted upon.
    * @param second The precision that will be subtracted from first.
    * @return (first - second) bit precise.
    */
   private BigInteger calculateBitPreciseSize(BigInteger first, BigInteger second) {
-    BigInteger subtracted = first.subtract(second);
-    return subtracted;
+    return first.subtract(second);
   }
 
   /**
