@@ -195,8 +195,7 @@ public final class StackFrame {
     if (variableArguments.isPresent()) {
       builder.append("variable arguments:");
       for (Value value : variableArguments.orElseThrow()) {
-        builder.append(" "
-         + value);
+        builder.append(" " + value);
       }
     }
     if (returnValueObject.isPresent()) {

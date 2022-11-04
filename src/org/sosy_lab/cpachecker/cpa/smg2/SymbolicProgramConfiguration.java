@@ -1257,12 +1257,20 @@ public class SymbolicProgramConfiguration {
         SMGValue smgValue = valueEdge.hasValue();
         Preconditions.checkArgument(valueMapping.containsValue(smgValue));
         Value value = valueMapping.inverse().get(smgValue).get();
+        Preconditions.checkNotNull(value);
         String pointerInfo = "";
         if (smg.isPointer(smgValue)) {
           pointerInfo = " -> " + smg.getPTEdge(smgValue);
         }
-        builder.append(qualifiedName).append(": ").append(value).append("(").append(smgValue)
-            .append(pointerInfo).append(")").append(memoryString);
+        builder
+            .append(qualifiedName)
+            .append(": ")
+            .append(value)
+            .append("(")
+            .append(smgValue)
+            .append(pointerInfo)
+            .append(")")
+            .append(memoryString);
         builder.append("\n");
       }
     }
@@ -1280,6 +1288,7 @@ public class SymbolicProgramConfiguration {
           SMGValue smgValue = valueEdge.hasValue();
           Preconditions.checkArgument(valueMapping.containsValue(smgValue));
           Value value = valueMapping.inverse().get(smgValue).get();
+          Preconditions.checkNotNull(value);
           String memoryString = " in ";
           if (smg.isValid(stackframe.getReturnObject().orElseThrow())) {
             memoryString = memoryString + stackframe.getReturnObject().orElseThrow();
@@ -1291,9 +1300,18 @@ public class SymbolicProgramConfiguration {
             pointerInfo = " -> " + smg.getPTEdge(smgValue);
           }
           builder.append("\n");
-          builder.append("Function ").append(funName).append(" return value ")
-              .append(memLoc.getQualifiedName()).append(": ").append(value).append("(")
-              .append(smgValue).append(pointerInfo).append(")").append(memoryString);
+          builder
+              .append("Function ")
+              .append(funName)
+              .append(" return value ")
+              .append(memLoc.getQualifiedName())
+              .append(": ")
+              .append(value)
+              .append("(")
+              .append(smgValue)
+              .append(pointerInfo)
+              .append(")")
+              .append(memoryString);
           builder.append("\n");
         }
       } else {
@@ -1315,12 +1333,20 @@ public class SymbolicProgramConfiguration {
           SMGValue smgValue = valueEdge.hasValue();
           Preconditions.checkArgument(valueMapping.containsValue(smgValue));
           Value value = valueMapping.inverse().get(smgValue).get();
+          Preconditions.checkNotNull(value);
           String pointerInfo = "";
           if (smg.isPointer(smgValue)) {
             pointerInfo = " -> " + smg.getPTEdge(smgValue);
           }
-          builder.append(qualifiedName).append(": ").append(value).append("(").append(smgValue)
-              .append(pointerInfo).append(")").append(memoryString);
+          builder
+              .append(qualifiedName)
+              .append(": ")
+              .append(value)
+              .append("(")
+              .append(smgValue)
+              .append(pointerInfo)
+              .append(")")
+              .append(memoryString);
           builder.append("\n");
         }
       }
@@ -1330,7 +1356,10 @@ public class SymbolicProgramConfiguration {
     builder.append("\n");
 
     for (Entry<SMGValue, SMGPointsToEdge> entry : smg.getPTEdgeMapping().entrySet()) {
-      builder.append(entry.getKey()).append(" -> ").append(entry.getValue())
+      builder
+          .append(entry.getKey())
+          .append(" -> ")
+          .append(entry.getValue())
           .append(smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true));
       builder.append("\n");
     }
