@@ -8,14 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
@@ -87,7 +86,7 @@ public final class StackFrame {
   }
 
   /**
-   * Adds a SMG object pObj to a stack frame, representing variable pVariableName
+   * Adds an SMG object pObj to a stack frame, representing variable pVariableName
    *
    * <p>Throws {@link IllegalArgumentException} when some object is already present with the name
    * pVariableName
@@ -121,16 +120,6 @@ public final class StackFrame {
   /* ********************************************* */
   /* Non-modifying functions: getters and the like */
   /* ********************************************* */
-
-  /** Return string representation of the stack frame */
-  @Override
-  public String toString() {
-    Iterable<SMGObject> values = stackVariables.values();
-    if (returnValueObject.isPresent()) {
-      values = Iterables.concat(values, ImmutableSet.of(returnValueObject.orElseThrow()));
-    }
-    return String.format("%s=[%s]", stackFunction.getName(), Joiner.on(", ").join(values));
-  }
 
   public CFunctionDeclaration getFunctionDefinition() {
     return stackFunction;
@@ -195,6 +184,25 @@ public final class StackFrame {
   /** returns true if stack contains the given variable, else false. */
   public boolean hasVariable(String var) {
     return stackVariables.containsKey(var);
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    for (Entry<String, SMGObject> entry : stackVariables.entrySet()) {
+      builder.append(entry.getKey() + " -> " + entry.getValue());
+    }
+    if (variableArguments.isPresent()) {
+      builder.append("variable arguments:");
+      for (Value value : variableArguments.orElseThrow()) {
+        builder.append(" "
+         + value);
+      }
+    }
+    if (returnValueObject.isPresent()) {
+      builder.append(" return object:" + " -> " + returnValueObject.orElseThrow());
+    }
+    return builder.toString();
   }
 
   @Override
