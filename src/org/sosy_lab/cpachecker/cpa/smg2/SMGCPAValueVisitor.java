@@ -20,8 +20,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -88,7 +88,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * This visitor visits values mostly on the right hand side to get values (SMG or not) (but also on
  * the left hand side, for example concrete values used in array access) Important: we need to reuse
  * the state given back by other visitors and use the state in this class just to give it to the
- * next/innermost visitor! Read operations have side effects, hence why using the most up to date
+ * next/innermost visitor! Read operations have side effects, hence why using the most up-to-date
  * state is important.
  */
 public class SMGCPAValueVisitor
@@ -138,11 +138,7 @@ public class SMGCPAValueVisitor
     ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
     for (ValueAndSMGState uncastedValueAndState : uncastedValuesAndStates) {
       Value castedValue =
-          castCValue(
-              uncastedValueAndState.getValue(),
-              pTargetType,
-              evaluator.getMachineModel(),
-              pExp.getFileLocation());
+          castCValue(uncastedValueAndState.getValue(), pTargetType, evaluator.getMachineModel());
       result.add(ValueAndSMGState.of(castedValue, uncastedValueAndState.getState()));
     }
     return result.build();
@@ -173,7 +169,7 @@ public class SMGCPAValueVisitor
   public List<ValueAndSMGState> visit(CArraySubscriptExpression e) throws CPATransferException {
     // Array subscript is default Java array usage. Example: array[5]
     // In C this can be translated to *(array + 5), but the array may be on the stack/heap (or
-    // global, but be throw global and stack together when reading). Note: this is commutative!
+    // global, but we throw global and stack together when reading). Note: this is commutative!
 
     // The expression is split into array and subscript expression
     // Use the array expression in the visitor again to get the array address
@@ -188,7 +184,7 @@ public class SMGCPAValueVisitor
     for (ValueAndSMGState arrayValueAndState : arrayExpr.accept(this)) {
       // The arrayValue is either AddressExpression for pointer + offset
       // SymbolicIdentifier with MemoryLocation for variable name + offset
-      // Or a invalid value
+      // Or an invalid value
       Value arrayValue = arrayValueAndState.getValue();
       SMGState currentState = arrayValueAndState.getState();
 
@@ -212,7 +208,7 @@ public class SMGCPAValueVisitor
       for (ValueAndSMGState subscriptValueAndState : subscriptValueAndStates) {
         Value subscriptValue = subscriptValueAndState.getValue();
         SMGState newState = subscriptValueAndState.getState();
-        // If the subscript is a unknown value, we can't read anything and return unknown
+        // If the subscript is an unknown value, we can't read anything and return unknown
         // We also overapproximate the access and assume unsafe
         if (!subscriptValue.isNumericValue()) {
           resultBuilder.add(
@@ -274,7 +270,7 @@ public class SMGCPAValueVisitor
                 arrayAddr.copyWithNewOffset(new NumericValue(finalOffset)), newState));
 
       } else if (returnType instanceof CPointerType) {
-        // This of course does not need to be a pointer value! If this is a unknown we just
+        // This of course does not need to be a pointer value! If this is an unknown we just
         // return unknown.
         // All else gets wrapped and the final read/deref will throw an error
         ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
@@ -282,13 +278,14 @@ public class SMGCPAValueVisitor
             evaluator.readValueWithPointerDereference(
                 newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits, returnType)) {
 
+          newState = readPointerAndState.getState();
           if (readPointerAndState.getValue().isUnknown()) {
-            returnBuilder.add(ValueAndSMGState.ofUnknownValue(readPointerAndState.getState()));
+            returnBuilder.add(ValueAndSMGState.ofUnknownValue(newState));
           } else {
             returnBuilder.add(
                 ValueAndSMGState.of(
                     AddressExpression.withZeroOffset(readPointerAndState.getValue(), returnType),
-                    readPointerAndState.getState()));
+                    newState));
           }
         }
         return returnBuilder.build();
@@ -315,20 +312,22 @@ public class SMGCPAValueVisitor
                 newState));
 
       } else if (returnType instanceof CPointerType) {
-        // This of course does not need to be a pointer value! If this is a unknown we just
+        // This of course does not need to be a pointer value! If this is an unknown we just
         // return unknown.
         // All else gets wrapped and the final read/deref will throw an error
         ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
         for (ValueAndSMGState readPointerAndState :
             evaluator.readStackOrGlobalVariable(
                 newState, qualifiedVarName, finalOffset, typeSizeInBits, returnType)) {
+
+          newState = readPointerAndState.getState();
           if (readPointerAndState.getValue().isUnknown()) {
-            returnBuilder.add(ValueAndSMGState.ofUnknownValue(readPointerAndState.getState()));
+            returnBuilder.add(ValueAndSMGState.ofUnknownValue(newState));
           } else {
             returnBuilder.add(
                 ValueAndSMGState.of(
                     AddressExpression.withZeroOffset(readPointerAndState.getValue(), returnType),
-                    readPointerAndState.getState()));
+                    newState));
           }
         }
         return returnBuilder.build();
@@ -595,7 +594,7 @@ public class SMGCPAValueVisitor
           castSymbolicValue(value, targetType, Optional.of(machineModel)), currentState);
     }
 
-    // We only use numeric/symbolic/unknown values anyway and we can't cast unknowns
+    // We only use numeric/symbolic/unknown values anyway, and we can't cast unknowns
     if (!value.isNumericValue()) {
       logger.logf(
           Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
@@ -620,7 +619,7 @@ public class SMGCPAValueVisitor
   @Override
   public List<ValueAndSMGState> visit(CFieldReference e) throws CPATransferException {
     // This is the field of a struct/union, so smth like struct.field or struct->field.
-    // In the later case its a pointer dereference.
+    // In the later case it's a pointer dereference.
     // Read the value of the field from the object.
 
     // First we transform x->f into (*x).f per default. This might fail for non pointer x.
@@ -634,7 +633,7 @@ public class SMGCPAValueVisitor
         SMGCPAExpressionEvaluator.getCanonicalType(explicitReference.getExpressionType());
 
     // For (*pointer).field case or struct.field case the visitor returns the Value as
-    // AddressExpression. For struct.field its a SymbolicIdentifier with MemoryLocation
+    // AddressExpression. For struct.field it's a SymbolicIdentifier with MemoryLocation
     ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
     for (ValueAndSMGState valueAndState : ownerExpression.accept(this)) {
       SMGState currentState = valueAndState.getState();
@@ -679,10 +678,10 @@ public class SMGCPAValueVisitor
   public List<ValueAndSMGState> visit(CIdExpression e) throws CPATransferException {
     // essentially stack or global variables
     // Either CEnumerator, CVariableDeclaration, CParameterDeclaration
-    // Could also be a type/function declaration, one if which is malloc().
+    // Could also be a type/function declaration, one of which is malloc().
     // We either read the stack/global variable for non pointer and non struct/unions, or package it
     // in a AddressExpression for pointers
-    // or SymbolicValue with a memory location and the name of the variable inside of that.
+    // or SymbolicValue with a memory location and the name of the variable inside.
 
     CSimpleDeclaration varDecl = e.getDeclaration();
     CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(e.getExpressionType());
@@ -715,7 +714,7 @@ public class SMGCPAValueVisitor
       if (returnType instanceof CArrayType) {
         // If the variable is a pointer to an array, deref that and return the array
 
-        // if the variable is a array, create/search new pointer to the array and return that
+        // if the variable is an array, create/search new pointer to the array and return that
         finalStatesBuilder.add(
             evaluator.createAddressForLocalOrGlobalVariable(variableName, currentState));
         continue;
@@ -724,7 +723,7 @@ public class SMGCPAValueVisitor
         // Struct/Unions on the stack/global; return the memory location in a
         // SymbolicIdentifier. This is then used as interpretation such that the Value
         // of the memory location (on the stack) is used. This is used by assignments only as far as
-        // i know, i.e. when assigning a complete struct to a new variable.
+        // I know, i.e. when assigning a complete struct to a new variable.
         finalStatesBuilder.add(
             ValueAndSMGState.of(
                 SymbolicValueFactory.getInstance()
@@ -736,7 +735,7 @@ public class SMGCPAValueVisitor
         // Pointer/Array/Function types should return a Value that internally can be translated into
         // a
         // SMGValue that leads to a SMGPointsToEdge that leads to the correct object (with potential
-        // offsets inside of the points to edge). These have to be packaged into a AddressExpression
+        // offsets inside the points to edge). These have to be packaged into a AddressExpression
         // with an 0 offset. Modifications of the offset of the address can be done by subsequent
         // methods. (The check is fine because we already filtered out structs/unions)
         BigInteger sizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
@@ -755,7 +754,7 @@ public class SMGCPAValueVisitor
           if (evaluator.isPointerValue(readValue, newState)) {
             addressValue = AddressExpression.withZeroOffset(readValue, returnType);
           } else {
-            // Not a known pointer value, most likely a unknown value as symbolic identifier
+            // Not a known pointer value, most likely an unknown value as symbolic identifier
             addressValue = readValue;
           }
 
@@ -877,7 +876,6 @@ public class SMGCPAValueVisitor
     }
 
     ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
-    loop:
     for (ValueAndSMGState valueAndState : unaryOperand.accept(this)) {
       SMGState currentState = valueAndState.getState();
       Value value = valueAndState.getValue();
@@ -898,12 +896,12 @@ public class SMGCPAValueVisitor
       switch (unaryOperator) {
         case MINUS:
           builder.add(ValueAndSMGState.of(numericValue.negate(), currentState));
-          continue loop;
+          continue;
 
         case TILDE:
           builder.add(
               ValueAndSMGState.of(new NumericValue(~numericValue.longValue()), currentState));
-          continue loop;
+          continue;
 
         default:
           throw new AssertionError("Unknown unary operator: " + unaryOperator);
@@ -916,7 +914,7 @@ public class SMGCPAValueVisitor
   public List<ValueAndSMGState> visit(CPointerExpression e) throws CPATransferException {
     // This should subevaluate to a AddressExpression in the visit call in the beginning as we
     // always evaluate to the address, but only
-    // dereference and read it if its not a struct/union as those will be dereferenced
+    // dereference and read it if it's not a struct/union as those will be dereferenced
     // by the field expression
 
     // Get the type of the target
@@ -924,7 +922,7 @@ public class SMGCPAValueVisitor
     // Get the expression that is dereferenced
     CExpression expr = e.getOperand();
     // Evaluate the expression to a Value; this should return a Symbolic Value with the address of
-    // the target and a offset. If this fails this returns a UnknownValue.
+    // the target and an offset. If this fails this returns a UnknownValue.
     ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
     for (ValueAndSMGState valueAndState : expr.accept(this)) {
       SMGState currentState = valueAndState.getState();
@@ -959,7 +957,7 @@ public class SMGCPAValueVisitor
         builder.add(ValueAndSMGState.of(value, currentState));
 
       } else if (returnType instanceof CArrayType) {
-        // For arrays we want to actually read the values at the addresses
+        // For arrays, we want to actually read the values at the addresses
         // Dereference the Value and return it. The read checks for validity etc.
         // The precondition is a precondition for get(0) because of no state split
         Preconditions.checkArgument(
@@ -973,7 +971,6 @@ public class SMGCPAValueVisitor
                     sizeInBits,
                     returnType)
                 .get(0);
-        currentState = readArray.getState();
         builder.add(readArray);
 
       } else {
@@ -1421,8 +1418,8 @@ public class SMGCPAValueVisitor
 
         if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
           /*
-           * Problem: this method needs a AbstractExpressionValueVisitor as input (the this)
-           * but this class is not correctly abstracted such that i can inherit it here
+           * Problem: this method needs a AbstractExpressionValueVisitor as input (this)
+           * but this class is not correctly abstracted such that we can inherit it here
            * (because it essentially is the same except for 1 method that would need to be
            * abstract)
            *
@@ -2024,7 +2021,7 @@ public class SMGCPAValueVisitor
    * @param calculationType {@link CType} of the calculation. (Should be int for pointers)
    * @param currentState current {@link SMGState}
    * @return {@link ValueAndSMGState} with the result Value that may be {@link AddressExpression} /
-   *     {@link UnknownValue} or a symbolic/numeric one depending on input + the new up to date
+   *     {@link UnknownValue} or a symbolic/numeric one depending on input + the new up-to-date
    *     state.
    * @throws SMG2Exception in case of critical errors when materilizing abstract memory.
    */
@@ -2069,7 +2066,7 @@ public class SMGCPAValueVisitor
                 BinaryOperator.MULTIPLY,
                 evaluator.getMachineModel().getPointerEquivalentSimpleType());
       } else {
-        // If its a casted pointer, i.e. ((unsigned int) pointer) + 8;
+        // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
         // then this is just the numeric value * 8 and then the operation.
         correctlyTypedOffset =
             arithmeticOperation(
@@ -2108,7 +2105,7 @@ public class SMGCPAValueVisitor
                 BinaryOperator.MULTIPLY,
                 evaluator.getMachineModel().getPointerEquivalentSimpleType());
       } else {
-        // If its a casted pointer, i.e. ((unsigned int) pointer) + 8;
+        // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
         // then this is just the numeric value * 8 and then the operation.
         correctlyTypedOffset =
             arithmeticOperation(
@@ -2155,7 +2152,7 @@ public class SMGCPAValueVisitor
       }
 
       ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
-      // Our offsets are in bits here! This also checks that its the same underlying memory object.
+      // Our offsets are in bits here! This also checks that it's the same underlying memory object.
       for (ValueAndSMGState distanceInBitsAndState :
           evaluator.calculateAddressDistance(
               currentState, addressLeft.getMemoryAddress(), addressRight.getMemoryAddress())) {
@@ -2688,22 +2685,17 @@ public class SMGCPAValueVisitor
   }
 
   /**
-   * This method returns the input-value, casted to match the type. If the value matches the type,
-   * it is returned unchanged. This method handles overflows and print warnings for the user.
-   * Example: This method is called, when an value of type 'integer' is assigned to a variable of
-   * type 'char'.
+   * This method returns the input-value, cast to match the type. If the value matches the type, it
+   * is returned unchanged. This method handles overflows and print warnings for the user. Example:
+   * This method is called, when a value of type 'integer' is assigned to a variable of type 'char'.
    *
-   * @param value will be casted.
-   * @param targetType value will be casted to targetType.
+   * @param value will be cast.
+   * @param targetType value will be cast to targetType.
    * @param machineModel contains information about types
-   * @param fileLocation the location of the corresponding code in the source file
-   * @return the casted Value
+   * @return the cast Value
    */
   public Value castCValue(
-      @NonNull final Value value,
-      final CType targetType,
-      final MachineModel machineModel,
-      final FileLocation fileLocation) {
+      @NonNull final Value value, final CType targetType, final MachineModel machineModel) {
 
     if (!value.isExplicitlyKnown()) {
       if (value instanceof AddressExpression
@@ -2782,7 +2774,7 @@ public class SMGCPAValueVisitor
    *
    * @param type the input type
    */
-  public CSimpleType getArithmeticType(CType type) {
+  public @Nullable CSimpleType getArithmeticType(CType type) {
     type = type.getCanonicalType();
     if (type instanceof CPointerType) {
       return CNumericTypes.INT;
