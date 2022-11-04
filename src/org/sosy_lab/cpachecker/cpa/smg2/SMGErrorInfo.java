@@ -177,7 +177,6 @@ public class SMGErrorInfo {
     return hasMemoryLeak;
   }
 
-
   public Property getPropertyViolated() {
     if (invalidFree) {
       return Property.INVALID_FREE;

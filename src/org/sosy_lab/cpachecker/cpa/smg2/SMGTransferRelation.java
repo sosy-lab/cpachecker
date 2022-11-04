@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.math.BigInteger;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -25,11 +24,6 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.Collections3;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -144,7 +138,7 @@ public class SMGTransferRelation
       SMGCPAExportOptions pExportSMGOptions,
       MachineModel pMachineModel,
       Collection<String> pBooleanVariables,
-      ConstraintsStrengthenOperator pConstraintsStrengthenOperator) {
+      @Nullable ConstraintsStrengthenOperator pConstraintsStrengthenOperator) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
     exportSMGOptions = pExportSMGOptions;
@@ -279,8 +273,8 @@ public class SMGTransferRelation
     return successors;
   }
 
-  private List<SMGState> handleFunctionReturn(
-      CFunctionReturnEdge functionReturnEdge) throws CPATransferException {
+  private List<SMGState> handleFunctionReturn(CFunctionReturnEdge functionReturnEdge)
+      throws CPATransferException {
     CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
     CFunctionCall summaryExpr = summaryEdge.getExpression();
 
@@ -331,8 +325,8 @@ public class SMGTransferRelation
    * @return a new SMGState with the variable added.
    * @throws CPATransferException for errors and unhandled cases
    */
-  private List<SMGState> createVariableOnTheSpot(
-      CExpression leftHandSideExpr, SMGState pState) throws CPATransferException {
+  private List<SMGState> createVariableOnTheSpot(CExpression leftHandSideExpr, SMGState pState)
+      throws CPATransferException {
     if (leftHandSideExpr instanceof CIdExpression) {
       CIdExpression leftCIdExpr = (CIdExpression) leftHandSideExpr;
       CSimpleDeclaration decl = leftCIdExpr.getDeclaration();
@@ -344,13 +338,11 @@ public class SMGTransferRelation
       }
       if (!currentState.isLocalOrGlobalVariablePresent(varName)) {
         if (decl instanceof CVariableDeclaration) {
-          return
-              evaluator.handleVariableDeclarationWithoutInizializer(
-                  currentState, (CVariableDeclaration) decl);
+          return evaluator.handleVariableDeclarationWithoutInizializer(
+              currentState, (CVariableDeclaration) decl);
         } else if (decl instanceof CParameterDeclaration) {
-          return
-              evaluator.handleVariableDeclarationWithoutInizializer(
-                  currentState, ((CParameterDeclaration) decl).asVariableDeclaration());
+          return evaluator.handleVariableDeclarationWithoutInizializer(
+              currentState, ((CParameterDeclaration) decl).asVariableDeclaration());
         }
       }
       return ImmutableList.of(pState);

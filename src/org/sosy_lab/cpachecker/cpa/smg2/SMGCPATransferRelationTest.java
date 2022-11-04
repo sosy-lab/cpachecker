@@ -754,7 +754,7 @@ public class SMGCPATransferRelationTest {
   @Test
   public void localVariableDeclarationWithAssignmentMallocTest() throws CPATransferException {
     String variableName = "variableName";
-// Pointer size == int size
+    // Pointer size == int size
     CType sizeType = INT_TYPE;
     for (int i = 0; i < 5000; i = i + TEST_ARRAY_LENGTH.intValue()) {
       BigInteger sizeInBytes = BigInteger.valueOf(i);
@@ -1595,7 +1595,8 @@ public class SMGCPATransferRelationTest {
       Collection<SMGState> statesAfter = transferRelation.handleAssumption(null, equality, true);
 
       // The truth assumption is false -> the true assumption gets turned to false -> null return
-      // The reason is that these are 2 distinct addresses, and it's not allowed to assume them equal!
+      // The reason is that these are 2 distinct addresses, and it's not allowed to assume them
+      // equal!
       assertThat(statesAfter).isNull();
     }
   }
@@ -1662,7 +1663,8 @@ public class SMGCPATransferRelationTest {
       Collection<SMGState> statesAfter = transferRelation.handleAssumption(null, equality, true);
 
       // The truth assumption is false -> null return (because true truth assumption)
-      // The reason is that these are 2 distinct addresses, and it's not allowed to assume them equal!
+      // The reason is that these are 2 distinct addresses, and it's not allowed to assume them
+      // equal!
       assertThat(statesAfter).isNull();
     }
   }

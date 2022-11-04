@@ -45,8 +45,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * needed in allocations i.e. a = b; and the & operator. This class returns a list of optionals with
  * the target memory region + offset inside if one is found. If an expression is given to this
  * visitor with no memory region the optional will be empty; i.e. SMGCPAAddressVisitor(3); with 3
- * being an int for example. (this is done such that the method asking for the memory region can have
- * a dedicated error without exception catching).
+ * being an int for example. (this is done such that the method asking for the memory region can
+ * have a dedicated error without exception catching).
  */
 public class SMGCPAAddressVisitor
     extends DefaultCExpressionVisitor<
@@ -184,7 +184,7 @@ public class SMGCPAAddressVisitor
 
     } else if (pCurrentState.getMemoryModel().isPointer(arrayValue)) {
       // Local array
-      List<SMGStateAndOptionalSMGObjectAndOffset>maybeTargetMemoriesAndOffsets =
+      List<SMGStateAndOptionalSMGObjectAndOffset> maybeTargetMemoriesAndOffsets =
           pCurrentState.dereferencePointer(arrayValue);
       // If this ever fails, handle the list.
       Preconditions.checkArgument(maybeTargetMemoriesAndOffsets.size() == 1);

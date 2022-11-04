@@ -65,7 +65,11 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         description = "restrict abstraction computations to function calls/returns")
     private boolean alwaysAtFunction = false;
 
-    @Option(secure = true, description = "If enabled, abstraction computations at loop-heads are enabled. List abstraction has to be enabled for this.")
+    @Option(
+        secure = true,
+        description =
+            "If enabled, abstraction computations at loop-heads are enabled. List abstraction has"
+                + " to be enabled for this.")
     private boolean alwaysAtLoop = false;
 
     @Option(secure = true, description = "toggle liveness abstraction")
@@ -306,8 +310,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   /**
-   * This method decides whether to perform abstraction computations. These are computed if
-   * the iteration threshold is deactivated, or if the level of determinism ever gets below the
+   * This method decides whether to perform abstraction computations. These are computed if the
+   * iteration threshold is deactivated, or if the level of determinism ever gets below the
    * threshold for the level of determinism.
    *
    * @return true, if abstractions should be computed, else false
