@@ -141,7 +141,7 @@ public class SMGCPAValueVisitorTest {
   public void init() throws InvalidConfigurationException {
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
 
-    // null null is fine as long as builtin functions are not used!
+    // null, null is fine as long as builtin functions are not used!
     evaluator = new SMGCPAExpressionEvaluator(MACHINE_MODEL, logger, null, null);
 
     currentState =
@@ -585,7 +585,7 @@ public class SMGCPAValueVisitorTest {
    * 0000 0001
    * Now read int, we read:
    * 0000 0001 0000 0000
-   * which is 256 as a int
+   * which is 256 as an int
    * Currently we read by type exactly and this means that we can only read types
    * with the exact size of the value last written. 0 always works!
    */
@@ -877,7 +877,7 @@ public class SMGCPAValueVisitorTest {
         writeToHeapObjectByAddress(
             addressValueArray, sizeOfCurrentTypeInBits * k, sizeOfCurrentTypeInBits, arrayValue);
       }
-      // Now that we have a filled value array, we create another array whos pointer is in a stack
+      // Now that we have a filled value array, we create another array whose pointer is in a stack
       // variable and that is filled with pointers. Each pointer simply corrosponds to the same
       // position in the value array. so pointerArray[0] -> valueArray[0]
       // Stack variable holding the address (the pointer)
@@ -889,7 +889,7 @@ public class SMGCPAValueVisitorTest {
       addHeapVariableToMemoryModel(
           0, POINTER_SIZE_IN_BITS * TEST_ARRAY_LENGTH, addressPointerArray);
       // now fill the array with pointers
-      // Note: we should reuse the pointer for index 0 from above, but i am lazy and it does not
+      // Note: we should reuse the pointer for index 0 from above, but I am lazy and it does not
       // matter in a test
       SMGObject objectForAddressValue =
           currentState.dereferencePointer(addressValueArray).get(0).getSMGObject();
@@ -991,7 +991,7 @@ public class SMGCPAValueVisitorTest {
   }
 
   /*
-   * Read an array thats behind 2 pointers.
+   * Read an array that's behind 2 pointers.
    * Example: **array or *(*array + 1).
    * Creation could be int * arrayP = malloc(); int ** array = &arrayP;
    */
@@ -1207,7 +1207,7 @@ public class SMGCPAValueVisitorTest {
       for (int k = 0; k < 2; k++) {
         for (int pointerNum = 0; pointerNum < TEST_ARRAY_LENGTH; pointerNum++) {
           for (int index = -pointerNum; index < TEST_ARRAY_LENGTH - pointerNum; index++) {
-            // We start with negatives because its easier to make them + again (We need minus 1 and
+            // We start with negatives because it's easier to make them + again (We need minus 1 and
             // plus 1 etc. in most tests, the binary operation is what makes the minus however, so
             // minus -1 is +1, but this way we can keep track of where we are in relation to the
             // pointer)
@@ -1301,7 +1301,7 @@ public class SMGCPAValueVisitorTest {
       for (int k = 0; k < 2; k++) {
         for (int pointerNum = -1; pointerNum <= TEST_ARRAY_LENGTH; pointerNum++) {
           for (int index = -TEST_ARRAY_LENGTH; index <= TEST_ARRAY_LENGTH; index++) {
-            // We start with negatives because its easier to make them + again (We need minus 1 and
+            // We start with negatives because it's easier to make them + again (We need minus 1 and
             // plus 1 etc. in most tests, the binary operation is what makes the minus however, so
             // minus -1 is +1, but this way we can keep track of where we are in relation to the
             // pointer)
@@ -1337,7 +1337,7 @@ public class SMGCPAValueVisitorTest {
             // Error state + unknown value
             assertThat(visitedValueAndState.getValue()).isEqualTo(Value.UnknownValue.getInstance());
             // There are 2 errors. 1 read and 1 write error. The read error is first however and
-            // its the one we are interested in.
+            // it's the one we are interested in.
             assertThat(visitedValueAndState.getState().getErrorInfo()).hasSize(1);
             SMGErrorInfo error = visitedValueAndState.getState().getErrorInfo().get(0);
 
@@ -1438,7 +1438,7 @@ public class SMGCPAValueVisitorTest {
       for (int k = 0; k < 2; k++) {
         for (int pointerNum = 0; pointerNum < TEST_ARRAY_LENGTH; pointerNum++) {
           for (int index = -pointerNum; index < TEST_ARRAY_LENGTH - pointerNum; index++) {
-            // We start with negatives because its easier to make them + again (We need minus 1 and
+            // We start with negatives because it's easier to make them + again (We need minus 1 and
             // plus 1 etc. in most tests, the binary operation is what makes the minus however, so
             // minus -1 is +1, but this way we can keep track of where we are in relation to the
             // pointer)
@@ -2832,7 +2832,7 @@ public class SMGCPAValueVisitorTest {
    */
 
   /**
-   * Wraps the entered expression into a amper (&) expression.
+   * Wraps the entered expression into an amper (&) expression.
    *
    * @param exprToWrap the {@link CExpression} you want to wrap.
    * @return {@link CUnaryExpression} wrapping the entered expr into a &.
@@ -3239,7 +3239,7 @@ public class SMGCPAValueVisitorTest {
    */
   private void setupIndexVariables(String indexVariableName) throws SMG2Exception {
     for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
-      // create length stack variables holding the indices to access i.e. a array
+      // create length stack variables holding the indices to access i.e. an array
       addStackVariableToMemoryModel(
           indexVariableName + k, MACHINE_MODEL.getSizeof(INT_TYPE).intValue() * 8);
       writeToStackVariableInMemoryModel(
@@ -3383,7 +3383,7 @@ public class SMGCPAValueVisitorTest {
 
   /**
    * Writes to the memory of the dereferenced addressValue. Note: the offset entered is always
-   * taken! If the address points to a offset, this is ignored!
+   * taken! If the address points to an offset, this is ignored!
    *
    * @param addressValue address that dereferences to the object written to.
    * @param writeOffsetInBits offset where to begin write. This is the total offset used in the
@@ -3466,7 +3466,7 @@ public class SMGCPAValueVisitorTest {
   }
 
   /**
-   * Access a array thats on the stack via subscript. The index used is also a variable on the
+   * Access an array thats on the stack via subscript. The index used is also a variable on the
    * stack. Example: array[index]
    *
    * @param arrayVariableName qualified name of the array on the stack.
@@ -3518,7 +3518,7 @@ public class SMGCPAValueVisitorTest {
   }
 
   /**
-   * CArraySubscriptExpression for a array on the heap via a pointer like:
+   * CArraySubscriptExpression for an array on the heap via a pointer like:
    * arrayPointer[subscriptIndexInt] access and element type elementType.
    *
    * @param variableName qualified name of the pointer to the array.
@@ -3551,7 +3551,7 @@ public class SMGCPAValueVisitorTest {
   }
 
   /**
-   * Access a array on the heap via a pointer and subscript. Example: arrayP[index] with index as a
+   * Access an array on the heap via a pointer and subscript. Example: arrayP[index] with index as a
    * variable.
    *
    * @param variableName name of the array pointer variable.
@@ -3658,9 +3658,9 @@ public class SMGCPAValueVisitorTest {
    *
    * @param variableName Name of the innermost pointer stack variable.
    * @param elementType final return {@link CType}.
-   * @param innerIndiceInt index for the inner pointer deref. If negative, if will be transformed
+   * @param innerIndiceInt index for the inner pointer deref. If negative, it will be transformed
    *     into pointer - abs(input).
-   * @param outerindiceInt index for outer pointer deref. If negative, if will be transformed into
+   * @param outerindiceInt index for outer pointer deref. If negative, it will be transformed into
    *     pointer - abs(input).
    * @return {@link CPointerExpression} with the described properties.
    */
@@ -3704,7 +3704,7 @@ public class SMGCPAValueVisitorTest {
   }
 
   /**
-   * Access of an pointer on the heap with a pointer binary expr, i.e. *(*pointerOfPointer + 1) with
+   * Access of a pointer on the heap with a pointer binary expr, i.e. *(*pointerOfPointer + 1) with
    * pointerOfPointer typed **.
    *
    * @param outerVariableName name of the pointer variable on the stack (qualified name!).
@@ -3768,7 +3768,7 @@ public class SMGCPAValueVisitorTest {
 
   /**
    * Access of an int array on the heap with a pointer binary expr, i.e. *(arrayP + index) with
-   * arrayP as a array pointer and index as a variable.
+   * arrayP as an array pointer and index as a variable.
    *
    * @param arrayVariableName name of the array pointer variable on the stack (qualified name!).
    * @param indexVariableName name of the index variable. Qualified name! Should be a variable that

@@ -195,7 +195,7 @@ public class SMGCPATransferRelationTest {
     CType type =
         makeElaboratedTypeFor(
             structName, ComplexTypeKind.STRUCT, STRUCT_UNION_TEST_TYPES, STRUCT_UNION_FIELD_NAMES);
-    // Make a non global and not external variable with the current type
+    // Make a non-global and not external variable with the current type
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
             null, declareVariableWithoutInitializer(variableName, type, false, false));
@@ -217,7 +217,7 @@ public class SMGCPATransferRelationTest {
               (CCompositeType) ((CElaboratedType) type).getRealType(),
               STRUCT_UNION_FIELD_NAMES.get(i));
       BigInteger sizeInBits = MACHINE_MODEL.getSizeofInBits(STRUCT_UNION_TEST_TYPES.get(i));
-      // further, this memory is not written at all, meaning we can read it and it returns UNKNOWN
+      // further, this memory is not written at all, meaning we can read it, and it returns UNKNOWN
       List<ValueAndSMGState> readValueAndState =
           state.readValue(memoryObject, offsetInBits, sizeInBits, null);
       Preconditions.checkArgument(readValueAndState.size() == 1);
@@ -255,7 +255,7 @@ public class SMGCPATransferRelationTest {
       value = value.add(BigInteger.ONE);
     }
     CInitializer initList = makeCInitializerListFor(listOfInitsBuilder.build());
-    // Make a non global and not external variable with the current type
+    // Make a non-global and not external variable with the current type
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
             null, declareVariableWithInitializer(variableName, type, false, false, initList));
@@ -277,7 +277,7 @@ public class SMGCPATransferRelationTest {
               (CCompositeType) ((CElaboratedType) type).getRealType(),
               STRUCT_UNION_FIELD_NAMES.get(i));
       BigInteger sizeInBits = MACHINE_MODEL.getSizeofInBits(STRUCT_UNION_TEST_TYPES.get(i));
-      // further, this memory is not written at all, meaning we can read it and it returns the
+      // further, this memory is not written at all, meaning we can read it, and it returns the
       // numeric values assigned, starting from 1 and incrementing after each field once
       List<ValueAndSMGState> readValueAndState =
           state.readValue(memoryObject, offsetInBits, sizeInBits, null);
@@ -317,7 +317,7 @@ public class SMGCPATransferRelationTest {
             structName + "Nested",
             STRUCT_UNION_TEST_TYPES,
             STRUCT_UNION_TEST_TYPES);
-    // Make a non global and not external variable with the current type
+    // Make a non-global and not external variable with the current type
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
             null, declareVariableWithoutInitializer(variableName, type, false, false));
@@ -341,7 +341,7 @@ public class SMGCPATransferRelationTest {
               (CCompositeType) ((CElaboratedType) type).getRealType(),
               STRUCT_UNION_FIELD_NAMES.get(i));
       BigInteger sizeInBits = MACHINE_MODEL.getSizeofInBits(STRUCT_UNION_TEST_TYPES.get(i));
-      // further, this memory is not written at all, meaning we can read it and it returns UNKNOWN
+      // further, this memory is not written at all, meaning we can read it, and it returns UNKNOWN
       List<ValueAndSMGState> readValueAndState =
           state.readValue(memoryObject, offsetInBits, sizeInBits, null);
       Preconditions.checkArgument(readValueAndState.size() == 1);
@@ -363,7 +363,7 @@ public class SMGCPATransferRelationTest {
                   STRUCT_UNION_FIELD_NAMES.get(i))
               .add(baseOffsetNestedStruct);
       BigInteger sizeInBits = MACHINE_MODEL.getSizeofInBits(STRUCT_UNION_TEST_TYPES.get(i));
-      // further, this memory is not written at all, meaning we can read it and it returns UNKNOWN
+      // further, this memory is not written at all, meaning we can read it, and it returns UNKNOWN
       List<ValueAndSMGState> readValueAndState =
           state.readValue(memoryObject, offsetInBits, sizeInBits, null);
       Preconditions.checkArgument(readValueAndState.size() == 1);
@@ -440,7 +440,7 @@ public class SMGCPATransferRelationTest {
             structName + "Nested",
             STRUCT_UNION_TEST_TYPES,
             STRUCT_UNION_TEST_TYPES);
-    // Make a non global and not external variable with the current type
+    // Make a non-global and not external variable with the current type
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
             null, declareVariableWithInitializer(variableName, type, false, false, initList));
@@ -466,7 +466,7 @@ public class SMGCPATransferRelationTest {
               (CCompositeType) ((CElaboratedType) type).getRealType(),
               STRUCT_UNION_FIELD_NAMES.get(i));
       BigInteger sizeInBits = MACHINE_MODEL.getSizeofInBits(STRUCT_UNION_TEST_TYPES.get(i));
-      // further, this memory is not written at all, meaning we can read it and it returns UNKNOWN
+      // further, this memory is not written at all, meaning we can read it, and it returns UNKNOWN
       List<ValueAndSMGState> readValueAndState =
           state.readValue(memoryObject, offsetInBits, sizeInBits, null);
       Preconditions.checkArgument(readValueAndState.size() == 1);
@@ -491,7 +491,7 @@ public class SMGCPATransferRelationTest {
                   STRUCT_UNION_FIELD_NAMES.get(i))
               .add(baseOffsetNestedStruct);
       BigInteger sizeInBits = MACHINE_MODEL.getSizeofInBits(STRUCT_UNION_TEST_TYPES.get(i));
-      // further, this memory is not written at all, meaning we can read it and it returns UNKNOWN
+      // further, this memory is not written at all, meaning we can read it, and it returns UNKNOWN
       List<ValueAndSMGState> readValueAndState =
           state.readValue(memoryObject, offsetInBits, sizeInBits, null);
       Preconditions.checkArgument(readValueAndState.size() == 1);
@@ -571,7 +571,7 @@ public class SMGCPATransferRelationTest {
   public void localVariableDeclarationArrayTypesTest() throws CPATransferException {
     String variableName = "variableName";
     for (CType type : ARRAY_TEST_TYPES) {
-      // Make a non global and not external variable with the current type
+      // Make a non-global and not external variable with the current type
       List<SMGState> statesAfterDecl =
           transferRelation.handleDeclarationEdge(
               null,
@@ -591,7 +591,7 @@ public class SMGCPATransferRelationTest {
       BigInteger typeSize = MACHINE_MODEL.getSizeofInBits(type);
       BigInteger expectedSize = typeSize.multiply(TEST_ARRAY_LENGTH);
       assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
-      // further, this memory is not written at all, meaning we can read it and it returns UNKNOWN
+      // further, this memory is not written at all, meaning we can read it, and it returns UNKNOWN
       // Since this is an array, we read only the type size, but length times
       for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
         BigInteger offset = BigInteger.valueOf(i).multiply(typeSize);
@@ -626,7 +626,7 @@ public class SMGCPATransferRelationTest {
         listOfInitsBuilder.add(makeCInitializerExpressionFor(exprToInit));
       }
       CInitializer initList = makeCInitializerListFor(listOfInitsBuilder.build());
-      // Make a non global and not external variable with the current type
+      // Make a non-global and not external variable with the current type
       List<SMGState> statesAfterDecl =
           transferRelation.handleDeclarationEdge(
               null,
@@ -670,7 +670,7 @@ public class SMGCPATransferRelationTest {
   public void localVariableDeclarationSimpleTypesTest() throws CPATransferException {
     String variableName = "variableName";
     for (CType type : TEST_TYPES) {
-      // Make a non global and not external variable with the current type
+      // Make a non-global and not external variable with the current type
       List<SMGState> statesAfterDecl =
           transferRelation.handleDeclarationEdge(
               null, declareVariableWithoutInitializer(variableName, type, false, false));
@@ -686,7 +686,7 @@ public class SMGCPATransferRelationTest {
       // SMG sizes are in bits!
       BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(type);
       assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
-      // further, this memory is not written at all, meaning we can read it and it returns UNKNOWN
+      // further, this memory is not written at all, meaning we can read it, and it returns UNKNOWN
       List<ValueAndSMGState> readValueAndState =
           state.readValue(memoryObject, BigInteger.ZERO, expectedSize, null);
       Preconditions.checkArgument(readValueAndState.size() == 1);
@@ -713,7 +713,7 @@ public class SMGCPATransferRelationTest {
       }
       CInitializer initializer = makeCInitializerExpressionFor(exprToInit);
 
-      // Make a non global and not external variable with the current type
+      // Make a non-global and not external variable with the current type
       List<SMGState> statesAfterDecl =
           transferRelation.handleDeclarationEdge(
               null, declareVariableWithInitializer(variableName, type, false, false, initializer));
@@ -754,7 +754,7 @@ public class SMGCPATransferRelationTest {
   @Test
   public void localVariableDeclarationWithAssignmentMallocTest() throws CPATransferException {
     String variableName = "variableName";
-
+// Pointer size == int size
     CType sizeType = INT_TYPE;
     for (int i = 0; i < 5000; i = i + TEST_ARRAY_LENGTH.intValue()) {
       BigInteger sizeInBytes = BigInteger.valueOf(i);
@@ -762,7 +762,7 @@ public class SMGCPATransferRelationTest {
       for (CType type : TEST_TYPES) {
         CType pointerType = new CPointerType(false, false, type);
 
-        // Make a non global and not external variable with the current type
+        // Make a non-global and not external variable with the current type
         List<SMGState> statesAfterDecl =
             transferRelation.handleDeclarationEdge(
                 null, declareVariableWithoutInitializer(variableName, pointerType, false, false));
@@ -910,7 +910,7 @@ public class SMGCPATransferRelationTest {
                       CUnaryExpression.UnaryOperator.SIZEOF),
                   BinaryOperator.MULTIPLY);
 
-          // Make a non global and not external variable with the current type
+          // Make a non-global and not external variable with the current type
           List<SMGState> statesAfterDecl =
               transferRelation.handleDeclarationEdge(
                   null, declareVariableWithoutInitializer(variableName, pointerType, false, false));
@@ -1529,7 +1529,7 @@ public class SMGCPATransferRelationTest {
 
   /*
    * Tests the equality of 2 struct addresses which are distinct!
-   * Which means the == is false and it may never learn that the 2 symbolic
+   * Which means the == is false, and it may never learn that the 2 symbolic
    * expressions are equal as addresses only change through SMG merges.
    */
   @Test
@@ -1595,14 +1595,14 @@ public class SMGCPATransferRelationTest {
       Collection<SMGState> statesAfter = transferRelation.handleAssumption(null, equality, true);
 
       // The truth assumption is false -> the true assumption gets turned to false -> null return
-      // The reason is that these are 2 distinct addresses and its not allowed to assume them equal!
+      // The reason is that these are 2 distinct addresses, and it's not allowed to assume them equal!
       assertThat(statesAfter).isNull();
     }
   }
 
   /*
    * Tests the equality of 2 array addresses which are distinct!
-   * Which means the == is false and it may never learn that the 2 symbolic
+   * Which means the == is false, and it may never learn that the 2 symbolic
    * expressions are equal as addresses only change through SMG merges.
    */
   @Test
@@ -1662,7 +1662,7 @@ public class SMGCPATransferRelationTest {
       Collection<SMGState> statesAfter = transferRelation.handleAssumption(null, equality, true);
 
       // The truth assumption is false -> null return (because true truth assumption)
-      // The reason is that these are 2 distinct addresses and its not allowed to assume them equal!
+      // The reason is that these are 2 distinct addresses, and it's not allowed to assume them equal!
       assertThat(statesAfter).isNull();
     }
   }
@@ -1777,7 +1777,7 @@ public class SMGCPATransferRelationTest {
     }
     CInitializer initializer = makeCInitializerExpressionFor(exprToInit);
 
-    // Make a non global and not external variable with the current type
+    // Make a non-global and not external variable with the current type
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
             null, declareVariableWithInitializer(variableName, type, false, false, initializer));
@@ -1787,7 +1787,7 @@ public class SMGCPATransferRelationTest {
     // frame)
     // The state should not have any errors
     SMGState state = statesAfterDecl.get(0);
-    // Technically the Edge is always wrong. This influences only error detection however.
+    // Technically the Edge is always wrong. This influences only error detection, however.
     transferRelation.setInfo(
         state,
         null,
@@ -1797,7 +1797,7 @@ public class SMGCPATransferRelationTest {
   }
 
   /*
-   * Declare an array with the type and size entered, the values entered in the order entered and
+   * Declare an array with the type and size entered, the values entered the order entered and
    * the variableName entered on the stack.
    * Returns the last state acquired, but also sets the transfer
    * relation with this state, so it can be ignored.
@@ -1821,7 +1821,7 @@ public class SMGCPATransferRelationTest {
       listOfInitsBuilder.add(makeCInitializerExpressionFor(exprToInit));
     }
     CInitializer initList = makeCInitializerListFor(listOfInitsBuilder.build());
-    // Make a non global and not external variable with the current type
+    // Make a non-global and not external variable with the current type
     CType arrayType = makeArrayTypeFor(type, BigInteger.valueOf(size));
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
@@ -1832,7 +1832,7 @@ public class SMGCPATransferRelationTest {
     // frame)
     // The state should not have any errors
     SMGState state = statesAfterDecl.get(0);
-    // Technically the Edge is always wrong. This influences only error detection however.
+    // Technically the Edge is always wrong. This influences only error detection, however.
     transferRelation.setInfo(
         state,
         null,
@@ -1887,7 +1887,7 @@ public class SMGCPATransferRelationTest {
       for (SMGState stateAS : statesAfterAssign) {
         newState = stateAS;
       }
-      // Technically the Edge is always wrong. This influences only error detection however.
+      // Technically the Edge is always wrong. This influences only error detection, however.
       transferRelation.setInfo(
           newState,
           null,
@@ -1917,7 +1917,7 @@ public class SMGCPATransferRelationTest {
             INT_TYPE,
             BigInteger.valueOf(size).multiply(MACHINE_MODEL.getSizeof(type)));
 
-    // Make a non global and not external variable with the current type
+    // Make a non-global and not external variable with the current type
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
             null, declareVariableWithoutInitializer(variableName, pointerType, false, false));
@@ -2034,7 +2034,7 @@ public class SMGCPATransferRelationTest {
       for (SMGState stateAS : statesAfterAssign) {
         newState = stateAS;
       }
-      // Technically the Edge is always wrong. This influences only error detection however.
+      // Technically the Edge is always wrong. This influences only error detection, however.
       transferRelation.setInfo(
           newState,
           null,
@@ -2071,7 +2071,7 @@ public class SMGCPATransferRelationTest {
       value = value.add(BigInteger.ONE);
     }
     CInitializer initList = makeCInitializerListFor(listOfInitsBuilder.build());
-    // Make a non global and not external variable with the current type
+    // Make a non-global and not external variable with the current type
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
             null, declareVariableWithInitializer(variableName, structType, false, false, initList));
@@ -2080,7 +2080,7 @@ public class SMGCPATransferRelationTest {
     // This state must have a local variable the size of the type used (on the current stack frame)
     // The state should not have any errors
     SMGState state = statesAfterDecl.get(0);
-    // Technically the Edge is always wrong. This influences only error detection however.
+    // Technically the Edge is always wrong. This influences only error detection, however.
     transferRelation.setInfo(
         state,
         null,
@@ -2104,7 +2104,7 @@ public class SMGCPATransferRelationTest {
     CExpression sizeExpression =
         new CIntegerLiteralExpression(FileLocation.DUMMY, INT_TYPE, MACHINE_MODEL.getSizeof(type));
 
-    // Make a non global and not external variable with the current type
+    // Make a non-global and not external variable with the current type
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
             null, declareVariableWithoutInitializer(variableName, pointerType, false, false));
