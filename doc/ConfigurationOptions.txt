@@ -2928,7 +2928,8 @@ cpa.smg2.abstraction.alwaysAtFunction = false
 # restrict abstraction computations to join points
 cpa.smg2.abstraction.alwaysAtJoin = false
 
-# restrict abstraction computations to loop heads
+# If enabled, abstraction computations at loop-heads are enabled. List
+# abstraction has to be enabled for this.
 cpa.smg2.abstraction.alwaysAtLoop = false
 
 # threshold for level of determinism, in percent, up-to which abstraction
@@ -2953,11 +2954,6 @@ cpa.smg2.abstraction.onlyAtNonLinearCFA = false
 
 # Allocate memory on declaration of external variable
 cpa.smg2.allocateExternalVariables = true
-
-# Allow the given extern functions and interpret them as pure functions
-# although the value analysis does not support their semantics and this can
-# produce wrong results.
-cpa.smg2.allowedUnsupportedFunctions = {}
 
 # Array allocation functions
 cpa.smg2.arrayAllocationFunctions = {"calloc"}
@@ -2997,10 +2993,6 @@ cpa.smg2.externalAllocationFunction = {"ext_allocation"}
 # Default size of externally allocated memory
 cpa.smg2.externalAllocationSize = Integer.MAX_VALUE
 
-# Fixed set of values for function calls to VERIFIER_nondet_*. Does only
-# work, if ignoreFunctionValueExceptRandom is enabled 
-cpa.smg2.functionValuesForRandom = no default value
-
 # Allocation size of memory that cannot be calculated.
 cpa.smg2.guessSize = BigInteger.valueOf(2)
 
@@ -3022,15 +3014,6 @@ cpa.smg2.handleUnknownDereferenceAsSafe = false
 # Sets how unknown functions are handled.
 cpa.smg2.handleUnknownFunctions = STRICT
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
-
-# Track or not function pointer values
-cpa.smg2.ignoreFunctionValue = true
-
-# If 'ignoreFunctionValue' is set to true, this option allows to provide a
-# fixed set of values in the TestComp format. It is used for function-calls
-# to calls of VERIFIER_nondet_*. The file is provided via the option
-# functionValuesForRandom 
-cpa.smg2.ignoreFunctionValueExceptRandom = false
 
 # If this option is enabled, a memory allocation (e.g. malloc or array
 # declaration) for unknown memory sizes does not abort, but also does not
