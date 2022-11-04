@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
 import java.util.Map.Entry;
@@ -64,7 +65,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         description = "restrict abstraction computations to function calls/returns")
     private boolean alwaysAtFunction = false;
 
-    @Option(secure = true, description = "restrict abstraction computations to loop heads")
+    @Option(secure = true, description = "If enabled, abstraction computations at loop-heads are enabled. List abstraction has to be enabled for this.")
     private boolean alwaysAtLoop = false;
 
     @Option(secure = true, description = "toggle liveness abstraction")
@@ -121,7 +122,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         description = "Abstraction of all detected linked lists at loop heads.")
     private boolean abstractLinkedLists = true;
 
-    private final ImmutableSet<CFANode> loopHeads;
+    private final @Nullable ImmutableSet<CFANode> loopHeads;
 
     public PrecAdjustmentOptions(Configuration config, CFA pCfa)
         throws InvalidConfigurationException {
@@ -139,7 +140,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     /**
-     * This method determines whether or not to abstract at each location.
+     * This method determines whether to abstract at each location.
      *
      * @return true, if an abstraction should be computed at each location, else false
      */
@@ -275,7 +276,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       totalEnforcePath.stop();
     }
 
-    if (options.abstractLinkedLists && isLoopHead(location)) {
+    if (options.abstractLinkedLists && checkAbstractListAt(location)) {
       // Abstract Lists at loop heads
       try {
         resultState =
@@ -297,8 +298,15 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
     return false;
   }
 
+  private boolean checkAbstractListAt(LocationState location) {
+    if (options.abstractAtFunction(location) || isLoopHead(location)) {
+      return true;
+    }
+    return false;
+  }
+
   /**
-   * This method decides whether or not to perform abstraction computations. These are computed if
+   * This method decides whether to perform abstraction computations. These are computed if
    * the iteration threshold is deactivated, or if the level of determinism ever gets below the
    * threshold for the level of determinism.
    *
