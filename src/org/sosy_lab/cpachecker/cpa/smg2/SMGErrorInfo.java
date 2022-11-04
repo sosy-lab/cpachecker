@@ -10,12 +10,9 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 /**
  * Simple flags are not enough, this class contains more about the nature of the error.
@@ -110,43 +107,6 @@ public class SMGErrorInfo {
     return invalidWrite || invalidRead || invalidFree || hasMemoryLeak;
   }
 
-  SMGErrorInfo withClearChain() {
-    return new SMGErrorInfo(
-        invalidWrite,
-        invalidRead,
-        invalidFree,
-        hasMemoryLeak,
-        errorDescription,
-        PersistentLinkedList.of(),
-        PersistentLinkedList.of());
-  }
-
-  SMGErrorInfo moveCurrentChainToInvalidChain() {
-    return new SMGErrorInfo(
-        invalidWrite,
-        invalidRead,
-        invalidFree,
-        hasMemoryLeak,
-        errorDescription,
-        invalidChain.withAll(currentChain),
-        currentChain);
-  }
-
-  public SMGErrorInfo withObject(Object o) {
-    return new SMGErrorInfo(
-        invalidWrite,
-        invalidRead,
-        invalidFree,
-        hasMemoryLeak,
-        errorDescription,
-        invalidChain,
-        currentChain.with(o));
-  }
-
-  SMGErrorInfo withInvalidObject(SMGObject pSmgObject) {
-    return withInvalidObjects(Collections.singleton(pSmgObject));
-  }
-
   public SMGErrorInfo withInvalidObjects(Collection<?> pObjects) {
     return new SMGErrorInfo(
         invalidWrite,
@@ -217,13 +177,6 @@ public class SMGErrorInfo {
     return hasMemoryLeak;
   }
 
-  List<Object> getCurrentChain() {
-    return currentChain;
-  }
-
-  List<Object> getInvalidChain() {
-    return invalidChain;
-  }
 
   public Property getPropertyViolated() {
     if (invalidFree) {
