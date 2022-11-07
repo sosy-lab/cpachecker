@@ -82,11 +82,15 @@ public class MemoryAccessExtractor {
           CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
           CInitializer initializer = variableDeclaration.getInitializer();
           CType type = variableDeclaration.getType();
-          // TODO: Anything to do here when a new pointer is declared?
           MemoryLocation location =
               MemoryLocation.fromQualifiedName(variableDeclaration.getQualifiedName());
-          OverapproximatingMemoryLocation declaredVariable =
-              new OverapproximatingMemoryLocation(ImmutableSet.of(location), type, false, true);
+          OverapproximatingMemoryLocation declaredVariable;
+          if (type instanceof CPointerType) {
+            declaredVariable = new OverapproximatingMemoryLocation(type);
+          } else {
+            declaredVariable =
+                new OverapproximatingMemoryLocation(ImmutableSet.of(location), type, false, true);
+          }
           newAccessBuilder.add(
               new MemoryAccess(
                   activeThread, declaredVariable, initializer != null, locks, edge, epoch));
