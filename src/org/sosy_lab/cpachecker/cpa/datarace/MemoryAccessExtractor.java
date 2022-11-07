@@ -8,13 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -43,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -61,8 +55,6 @@ public class MemoryAccessExtractor {
           "pthread_rwlock_timedwrlock",
           "pthread_rwlock_wrlock");
 
-  private final Multimap<CType, MemoryLocation> targets = HashMultimap.create();
-
   /**
    * Collects the memory locations accessed by the given CFA edge and builds the corresponding
    * {@link MemoryAccess}es.
@@ -73,14 +65,14 @@ public class MemoryAccessExtractor {
       throws CPATransferException {
     String activeThread = activeThreadInfo.getThreadId();
     int epoch = activeThreadInfo.getEpoch();
-    Map<MemoryLocation, CType> readLocationBuilder = new HashMap<>();
-    Map<MemoryLocation, CType> writeLocationBuilder = new HashMap<>();
+    Set<OverapproximatingMemoryLocation> readLocationBuilder = new HashSet<>();
+    Set<OverapproximatingMemoryLocation> writeLocationBuilder = new HashSet<>();
     ImmutableSet.Builder<MemoryAccess> newAccessBuilder = ImmutableSet.builder();
 
     switch (edge.getEdgeType()) {
       case AssumeEdge:
         AssumeEdge assumeEdge = (AssumeEdge) edge;
-        readLocationBuilder.putAll(
+        readLocationBuilder.addAll(
             getInvolvedVariableTypes(assumeEdge.getExpression(), assumeEdge));
         break;
       case DeclarationEdge:
@@ -94,12 +86,12 @@ public class MemoryAccessExtractor {
           MemoryLocation location =
               MemoryLocation.fromQualifiedName(variableDeclaration.getQualifiedName());
           OverapproximatingMemoryLocation declaredVariable =
-              new OverapproximatingMemoryLocation(ImmutableSet.of(location), type);
+              new OverapproximatingMemoryLocation(ImmutableSet.of(location), type, false, true);
           newAccessBuilder.add(
               new MemoryAccess(
                   activeThread, declaredVariable, initializer != null, locks, edge, epoch));
           if (initializer != null) {
-            readLocationBuilder.putAll(getInvolvedVariableTypes(initializer, declarationEdge));
+            readLocationBuilder.addAll(getInvolvedVariableTypes(initializer, declarationEdge));
           }
         }
         break;
@@ -112,18 +104,18 @@ public class MemoryAccessExtractor {
         if (functionCallEdge.getFunctionCall() instanceof AFunctionCallAssignmentStatement) {
           AFunctionCallAssignmentStatement functionCallAssignmentStatement =
               (AFunctionCallAssignmentStatement) functionCallEdge.getFunctionCall();
-          readLocationBuilder.putAll(
+          readLocationBuilder.addAll(
               getInvolvedVariableTypes(
                   functionCallAssignmentStatement.getLeftHandSide(), functionCallEdge));
           for (AExpression expression :
               functionCallAssignmentStatement
                   .getFunctionCallExpression()
                   .getParameterExpressions()) {
-            readLocationBuilder.putAll(getInvolvedVariableTypes(expression, functionCallEdge));
+            readLocationBuilder.addAll(getInvolvedVariableTypes(expression, functionCallEdge));
           }
         } else {
           for (AExpression argument : functionCallEdge.getArguments()) {
-            readLocationBuilder.putAll(getInvolvedVariableTypes(argument, functionCallEdge));
+            readLocationBuilder.addAll(getInvolvedVariableTypes(argument, functionCallEdge));
           }
         }
         break;
@@ -131,7 +123,7 @@ public class MemoryAccessExtractor {
         AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) edge;
         if (returnStatementEdge.getExpression().isPresent()) {
           AExpression returnExpression = returnStatementEdge.getExpression().get();
-          readLocationBuilder.putAll(
+          readLocationBuilder.addAll(
               getInvolvedVariableTypes(returnExpression, returnStatementEdge));
         }
         break;
@@ -141,15 +133,14 @@ public class MemoryAccessExtractor {
         if (statement instanceof AExpressionAssignmentStatement) {
           AExpressionAssignmentStatement expressionAssignmentStatement =
               (AExpressionAssignmentStatement) statement;
-          Map<MemoryLocation, CType> leftHandVariables =
+          writeLocationBuilder.addAll(
               getInvolvedVariableTypes(
-                  expressionAssignmentStatement.getLeftHandSide(), statementEdge);
-          writeLocationBuilder.putAll(leftHandVariables);
-          readLocationBuilder.putAll(
+                  expressionAssignmentStatement.getLeftHandSide(), statementEdge));
+          readLocationBuilder.addAll(
               getInvolvedVariableTypes(
                   expressionAssignmentStatement.getRightHandSide(), statementEdge));
         } else if (statement instanceof AExpressionStatement) {
-          readLocationBuilder.putAll(
+          readLocationBuilder.addAll(
               getInvolvedVariableTypes(
                   ((AExpressionStatement) statement).getExpression(), statementEdge));
         } else if (statement instanceof AFunctionCallAssignmentStatement) {
@@ -159,14 +150,13 @@ public class MemoryAccessExtractor {
           if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
             throw new CPATransferException("DataRaceCPA does not support function " + functionName);
           }
-          Map<MemoryLocation, CType> leftHandVariables =
+          writeLocationBuilder.addAll(
               getInvolvedVariableTypes(
-                  functionCallAssignmentStatement.getLeftHandSide(), statementEdge);
-          writeLocationBuilder.putAll(leftHandVariables);
+                  functionCallAssignmentStatement.getLeftHandSide(), statementEdge));
           AFunctionCallExpression functionCallExpression =
               functionCallAssignmentStatement.getFunctionCallExpression();
           for (AExpression expression : functionCallExpression.getParameterExpressions()) {
-            readLocationBuilder.putAll(getInvolvedVariableTypes(expression, statementEdge));
+            readLocationBuilder.addAll(getInvolvedVariableTypes(expression, statementEdge));
           }
         } else if (statement instanceof AFunctionCallStatement) {
           AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
@@ -176,7 +166,7 @@ public class MemoryAccessExtractor {
           }
           for (AExpression expression :
               functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
-            readLocationBuilder.putAll(getInvolvedVariableTypes(expression, statementEdge));
+            readLocationBuilder.addAll(getInvolvedVariableTypes(expression, statementEdge));
           }
         }
         break;
@@ -188,36 +178,15 @@ public class MemoryAccessExtractor {
         throw new AssertionError("Unhandled edge type: " + edge.getEdgeType());
     }
 
-    for (Entry<MemoryLocation, CType> entry : readLocationBuilder.entrySet()) {
-      OverapproximatingMemoryLocation possibleLocations =
-          followPointers(entry.getKey(), entry.getValue());
+    for (OverapproximatingMemoryLocation possibleLocations : readLocationBuilder) {
       newAccessBuilder.add(
           new MemoryAccess(activeThread, possibleLocations, false, locks, edge, epoch));
     }
-    for (Entry<MemoryLocation, CType> entry : writeLocationBuilder.entrySet()) {
-      OverapproximatingMemoryLocation possibleLocations =
-          followPointers(entry.getKey(), entry.getValue());
+    for (OverapproximatingMemoryLocation possibleLocations : writeLocationBuilder) {
       newAccessBuilder.add(
           new MemoryAccess(activeThread, possibleLocations, true, locks, edge, epoch));
     }
     return newAccessBuilder.build();
-  }
-
-  private OverapproximatingMemoryLocation followPointers(MemoryLocation origin, CType type) {
-    targets.put(type, origin);
-    // TODO: e.g. data[4] can also be manipulated by data[*]
-    if (!(type instanceof CPointerType)) {
-      return new OverapproximatingMemoryLocation(ImmutableSet.of(origin), type);
-    }
-    CPointerType pointerType = (CPointerType) type;
-    ImmutableSet.Builder<MemoryLocation> potentialLocations = ImmutableSet.builder();
-    for (Entry<CType, MemoryLocation> entry : targets.entries()) {
-      if (CTypes.areTypesCompatible(entry.getKey(), pointerType.getType())) {
-        potentialLocations.add(entry.getValue());
-      }
-    }
-    potentialLocations.add(origin);
-    return new OverapproximatingMemoryLocation(potentialLocations.build(), type);
   }
 
   /**
@@ -227,13 +196,13 @@ public class MemoryAccessExtractor {
    * @param pEdge the CFA edge to obtain the function name from, if required.
    * @return the variables involved in the given expression.
    */
-  private Map<MemoryLocation, CType> getInvolvedVariableTypes(
+  private Set<OverapproximatingMemoryLocation> getInvolvedVariableTypes(
       AExpression pExpression, CFAEdge pEdge) throws CPATransferException {
     if (!(pExpression instanceof CExpression)) {
-      return ImmutableMap.of();
+      return ImmutableSet.of();
     }
     if (isAddressAccess(pExpression)) {
-      return ImmutableMap.of();
+      return ImmutableSet.of();
     }
     CExpression expression = (CExpression) pExpression;
     MemoryLocationExtractingVisitor visitor =
@@ -245,7 +214,7 @@ public class MemoryAccessExtractor {
     }
   }
 
-  private Map<MemoryLocation, CType> getInvolvedVariableTypes(
+  private Set<OverapproximatingMemoryLocation> getInvolvedVariableTypes(
       CInitializer pCInitializer, CFAEdge pCfaEdge) throws CPATransferException {
     if (pCInitializer instanceof CDesignatedInitializer) {
       return getInvolvedVariableTypes(
@@ -254,11 +223,11 @@ public class MemoryAccessExtractor {
       return getInvolvedVariableTypes(
           ((CInitializerExpression) pCInitializer).getExpression(), pCfaEdge);
     } else if (pCInitializer instanceof CInitializerList) {
-      ImmutableMap.Builder<MemoryLocation, CType> resultBuilder = ImmutableMap.builder();
+      ImmutableSet.Builder<OverapproximatingMemoryLocation> resultBuilder = ImmutableSet.builder();
       for (CInitializer initializer : ((CInitializerList) pCInitializer).getInitializers()) {
-        resultBuilder.putAll(getInvolvedVariableTypes(initializer, pCfaEdge));
+        resultBuilder.addAll(getInvolvedVariableTypes(initializer, pCfaEdge));
       }
-      return resultBuilder.buildOrThrow();
+      return resultBuilder.build();
     } else {
       throw new AssertionError("Unhandled C initializer:" + pCInitializer);
     }

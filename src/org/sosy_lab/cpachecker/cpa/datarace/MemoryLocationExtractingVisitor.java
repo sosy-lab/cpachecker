@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
-import com.google.common.collect.ImmutableMap;
-import java.util.Map;
+import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -31,14 +33,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class MemoryLocationExtractingVisitor
-    implements CExpressionVisitor<Map<MemoryLocation, CType>, UnrecognizedCodeException> {
+    implements CExpressionVisitor<Set<OverapproximatingMemoryLocation>, UnrecognizedCodeException> {
 
   private final String functionName;
 
@@ -47,153 +48,178 @@ public class MemoryLocationExtractingVisitor
   }
 
   @Override
-  public Map<MemoryLocation, CType> visit(CBinaryExpression pBinaryExpression)
+  public Set<OverapproximatingMemoryLocation> visit(CBinaryExpression pBinaryExpression)
       throws UnrecognizedCodeException {
-    Map<MemoryLocation, CType> leftLocations = pBinaryExpression.getOperand1().accept(this);
-    Map<MemoryLocation, CType> rightLocations = pBinaryExpression.getOperand2().accept(this);
     // TODO: Handle pointer, e.g. "&x + 1"
-    return ImmutableMap.<MemoryLocation, CType>builder()
-        .putAll(leftLocations)
-        .putAll(rightLocations)
-        .buildOrThrow();
+    return ImmutableSet.<OverapproximatingMemoryLocation>builder()
+        .addAll(pBinaryExpression.getOperand1().accept(this))
+        .addAll(pBinaryExpression.getOperand2().accept(this))
+        .build();
   }
 
   @Override
-  public Map<MemoryLocation, CType> visit(CCastExpression pCastExpression)
+  public Set<OverapproximatingMemoryLocation> visit(CCastExpression pCastExpression)
       throws UnrecognizedCodeException {
     // TODO: Might have to handle cast to a pointer type
     return pCastExpression.getOperand().accept(this);
   }
 
   @Override
-  public Map<MemoryLocation, CType> visit(CCharLiteralExpression pCharLiteralExpression)
+  public Set<OverapproximatingMemoryLocation> visit(CCharLiteralExpression pCharLiteralExpression)
       throws UnrecognizedCodeException {
-    return ImmutableMap.of();
+    return ImmutableSet.of();
   }
 
   @Override
-  public Map<MemoryLocation, CType> visit(CFloatLiteralExpression pFloatLiteralExpression)
+  public Set<OverapproximatingMemoryLocation> visit(CFloatLiteralExpression pFloatLiteralExpression)
       throws UnrecognizedCodeException {
-    return ImmutableMap.of();
+    return ImmutableSet.of();
   }
 
   @Override
-  public Map<MemoryLocation, CType> visit(CIntegerLiteralExpression pIntegerLiteralExpression)
-      throws UnrecognizedCodeException {
-    return ImmutableMap.of();
+  public Set<OverapproximatingMemoryLocation> visit(
+      CIntegerLiteralExpression pIntegerLiteralExpression) throws UnrecognizedCodeException {
+    return ImmutableSet.of();
   }
 
   @Override
-  public Map<MemoryLocation, CType> visit(CStringLiteralExpression pStringLiteralExpression)
-      throws UnrecognizedCodeException {
-    return ImmutableMap.of();
+  public Set<OverapproximatingMemoryLocation> visit(
+      CStringLiteralExpression pStringLiteralExpression) throws UnrecognizedCodeException {
+    return ImmutableSet.of();
   }
 
   @Override
-  public Map<MemoryLocation, CType> visit(CTypeIdExpression pTypeIdExpression)
+  public Set<OverapproximatingMemoryLocation> visit(CTypeIdExpression pTypeIdExpression)
       throws UnrecognizedCodeException {
-    return ImmutableMap.of();
+    return ImmutableSet.of();
   }
 
   @Override
-  public Map<MemoryLocation, CType> visit(CUnaryExpression pUnaryExpression)
+  public Set<OverapproximatingMemoryLocation> visit(CUnaryExpression pUnaryExpression)
       throws UnrecognizedCodeException {
-    Map<MemoryLocation, CType> memoryLocations = pUnaryExpression.getOperand().accept(this);
-    if (pUnaryExpression.getOperator() != UnaryOperator.AMPER) {
-      return memoryLocations;
-    }
     // TODO: Handle pointer
-    return memoryLocations;
+    return pUnaryExpression.getOperand().accept(this);
   }
 
   @Override
-  public Map<MemoryLocation, CType> visit(CImaginaryLiteralExpression pImaginaryLiteralExpression)
-      throws UnrecognizedCodeException {
+  public Set<OverapproximatingMemoryLocation> visit(
+      CImaginaryLiteralExpression pImaginaryLiteralExpression) throws UnrecognizedCodeException {
     return pImaginaryLiteralExpression.getValue().accept(this);
   }
 
   @Override
-  public Map<MemoryLocation, CType> visit(CAddressOfLabelExpression pAddressOfLabelExpression)
-      throws UnrecognizedCodeException {
-    return ImmutableMap.of();
+  public Set<OverapproximatingMemoryLocation> visit(
+      CAddressOfLabelExpression pAddressOfLabelExpression) throws UnrecognizedCodeException {
+    return ImmutableSet.of();
   }
 
   @Override
-  public Map<MemoryLocation, CType> visit(CArraySubscriptExpression pArraySubscriptExpression)
-      throws UnrecognizedCodeException {
-    return ImmutableMap.of(
-        getMemoryLocation(pArraySubscriptExpression),
-        pArraySubscriptExpression.getExpressionType());
+  public Set<OverapproximatingMemoryLocation> visit(
+      CArraySubscriptExpression pArraySubscriptExpression) throws UnrecognizedCodeException {
+    return ImmutableSet.of(getMemoryLocation(pArraySubscriptExpression));
   }
 
   @Override
-  public Map<MemoryLocation, CType> visit(CFieldReference pFieldReference)
+  public Set<OverapproximatingMemoryLocation> visit(CFieldReference pFieldReference)
       throws UnrecognizedCodeException {
-    return ImmutableMap.of(getMemoryLocation(pFieldReference), pFieldReference.getExpressionType());
+    return ImmutableSet.of(getMemoryLocation(pFieldReference));
   }
 
   @Override
-  public Map<MemoryLocation, CType> visit(CIdExpression pIdExpression)
+  public Set<OverapproximatingMemoryLocation> visit(CIdExpression pIdExpression)
       throws UnrecognizedCodeException {
-    return ImmutableMap.of(getMemoryLocation(pIdExpression), pIdExpression.getExpressionType());
+    return ImmutableSet.of(getMemoryLocation(pIdExpression));
   }
 
   @Override
-  public Map<MemoryLocation, CType> visit(CPointerExpression pPointerExpression)
+  public Set<OverapproximatingMemoryLocation> visit(CPointerExpression pPointerExpression)
       throws UnrecognizedCodeException {
-    CType pointerType = pPointerExpression.getExpressionType();
-    if (pPointerExpression.getOperand() instanceof CIdExpression) {
-      CIdExpression idExpression = (CIdExpression) pPointerExpression.getOperand();
-      pointerType = idExpression.getDeclaration().getType();
-    }
-    return ImmutableMap.of(getMemoryLocation(pPointerExpression), pointerType);
+    return ImmutableSet.of(getMemoryLocation(pPointerExpression));
   }
 
   @Override
-  public Map<MemoryLocation, CType> visit(CComplexCastExpression pComplexCastExpression)
+  public Set<OverapproximatingMemoryLocation> visit(CComplexCastExpression pComplexCastExpression)
       throws UnrecognizedCodeException {
     return pComplexCastExpression.getOperand().accept(this);
   }
 
-  public MemoryLocation getMemoryLocation(AExpression pExpression)
+  public OverapproximatingMemoryLocation getMemoryLocation(AExpression pExpression)
       throws UnrecognizedCodeException {
+    if (!(pExpression instanceof CExpression)) {
+      throw new AssertionError("Only C expressions are supported");
+    }
+    CExpression expression = (CExpression) pExpression;
+    CType type = expression.getExpressionType();
+    Set<MemoryLocation> potentialLocations = new HashSet<>();
+
     if (pExpression instanceof CIdExpression) {
       CIdExpression var = (CIdExpression) pExpression;
       String varName = var.getName();
+      boolean isLocal = false;
       if (var.getDeclaration() != null) {
         CSimpleDeclaration decl = var.getDeclaration();
         if (!((decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal())
             || decl instanceof CEnumerator)) {
-          return MemoryLocation.forLocalVariable(functionName, varName);
+          isLocal = true;
         }
       }
-      return MemoryLocation.parseExtendedQualifiedName(varName);
+      if (isLocal) {
+        potentialLocations.add(MemoryLocation.forLocalVariable(functionName, varName));
+      } else {
+        potentialLocations.add(MemoryLocation.parseExtendedQualifiedName(varName));
+      }
     } else if (pExpression instanceof CFieldReference) {
       CFieldReference fieldRef = (CFieldReference) pExpression;
       String varName = fieldRef.getFieldName();
       CExpression owner = fieldRef.getFieldOwner();
-      if (owner != null) {
-        varName =
-            getMemoryLocation(owner) + (fieldRef.isPointerDereference() ? "->" : ".") + varName;
+      if (fieldRef.isPointerDereference()) {
+        return new OverapproximatingMemoryLocation(type);
+      } else {
+        OverapproximatingMemoryLocation ownerLocation = getMemoryLocation(owner);
+        if (ownerLocation.isAmbiguous()) {
+          return new OverapproximatingMemoryLocation(type);
+        } else {
+          varName = ownerLocation.getMemoryLocations().iterator().next() + "." + varName;
+          potentialLocations.add(MemoryLocation.fromQualifiedName(varName));
+        }
       }
-      return MemoryLocation.fromQualifiedName(varName);
     } else if (pExpression instanceof CArraySubscriptExpression) {
       CArraySubscriptExpression arraySubscript = (CArraySubscriptExpression) pExpression;
       CExpression owner = arraySubscript.getArrayExpression();
-      return MemoryLocation.parseExtendedQualifiedName(
-          String.format("%s[*]", getMemoryLocation(owner)));
+      OverapproximatingMemoryLocation ownerLocation = getMemoryLocation(owner);
+      if (ownerLocation.isAmbiguous()) {
+        return new OverapproximatingMemoryLocation(type);
+      } else {
+        MemoryLocation ownerVar = ownerLocation.getMemoryLocations().iterator().next();
+        potentialLocations.add(
+            MemoryLocation.parseExtendedQualifiedName(String.format("%s[*]", ownerVar)));
+        if (arraySubscript.getSubscriptExpression() instanceof CIntegerLiteralExpression) {
+          BigInteger index =
+              ((CIntegerLiteralExpression) arraySubscript.getSubscriptExpression()).getValue();
+          potentialLocations.add(
+              MemoryLocation.parseExtendedQualifiedName(String.format("%s[%s]", ownerVar, index)));
+        }
+      }
     } else if (pExpression instanceof CPointerExpression) {
       CPointerExpression pe = (CPointerExpression) pExpression;
+
+      if (pe.getOperand() instanceof CIdExpression) {
+        CIdExpression idExpression = (CIdExpression) pe.getOperand();
+        type = idExpression.getDeclaration().getType();
+      }
+
       if (pe.getOperand() instanceof CLeftHandSide) {
         return getMemoryLocation(pe.getOperand());
       }
-      // TODO
-      return MemoryLocation.forLocalVariable(functionName, pExpression.toString());
+      potentialLocations.add(MemoryLocation.forLocalVariable(functionName, pExpression.toString()));
     } else if (pExpression instanceof CCastExpression) {
       CCastExpression cast = (CCastExpression) pExpression;
       return getMemoryLocation(cast.getOperand());
     } else {
-      return MemoryLocation.forLocalVariable(functionName, pExpression.toString());
+      potentialLocations.add(MemoryLocation.forLocalVariable(functionName, pExpression.toString()));
     }
+    assert !potentialLocations.isEmpty();
+    return new OverapproximatingMemoryLocation(
+        potentialLocations, type, potentialLocations.size() > 1, true);
   }
 }

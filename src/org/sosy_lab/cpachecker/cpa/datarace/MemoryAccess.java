@@ -55,8 +55,8 @@ class MemoryAccess {
     return accessEpoch;
   }
 
-  boolean isAmbiguous() {
-    return memoryLocation.getMemoryLocations().size() > 1;
+  boolean isOverapproximating() {
+    return memoryLocation.isAmbiguous() || !memoryLocation.isPrecise();
   }
 
   boolean mightAccessSameLocationAs(MemoryAccess other) {

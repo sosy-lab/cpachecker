@@ -100,7 +100,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           memoryAccessExtractor.getNewAccesses(
               threadInfo.get(activeThread), cfaEdge, activeThreadLocks);
       for (MemoryAccess newAccess : newMemoryAccesses) {
-        if (newAccess.isAmbiguous()) {
+        if (newAccess.isOverapproximating()) {
           throw new CPATransferException("DataRaceCPA does not support pointer analysis");
         }
       }
