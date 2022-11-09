@@ -1141,6 +1141,11 @@ counterexample.removeInfeasibleErrorState = true
 # but is unsound
 counterexample.removeInfeasibleErrors = false
 
+# If true, the counterexample checker will not assume a counterexample as
+# infeasible because of unsupported code. But will try different paths
+# anyway.
+counterexample.skipCounterexampleForUnsupportedCode = false
+
 # Compute and export information about the verification coverage?
 coverage.enabled = true
 
