@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -332,8 +333,9 @@ public class SMGTransferRelation
       CSimpleDeclaration decl = leftCIdExpr.getDeclaration();
       String varName = decl.getQualifiedName();
       SMGState currentState = pState;
+      // The orElse(true) skips the call on purpose!
       if (pState.isLocalOrGlobalVariablePresent(varName)
-          && !pState.isLocalOrGlobalVariableValid(varName)) {
+          && !pState.isLocalOrGlobalVariableValid(varName).orElse(true)) {
         currentState = pState.copyAndRemoveStackVariable(varName);
       }
       if (!currentState.isLocalOrGlobalVariablePresent(varName)) {
@@ -756,8 +758,14 @@ public class SMGTransferRelation
     } else if (cDecl instanceof CTypeDefDeclaration) {
       // don't handle, just let pass through
     } else if (cDecl instanceof CVariableDeclaration) {
-      return evaluator.handleVariableDeclaration(currentState, (CVariableDeclaration) cDecl, edge);
-    }
+      try {
+        return evaluator.handleVariableDeclaration(currentState, (CVariableDeclaration) cDecl,
+            edge);
+      } catch (UnsupportedOperationException e) {
+        // Since we lose the cfa edge (and the CExpression for other cases) we can not throw this in the method directly
+        throw new UnsupportedCodeException(e.getMessage(), edge);
+      }
+      }
     // Fall through
     return ImmutableList.of(currentState);
   }

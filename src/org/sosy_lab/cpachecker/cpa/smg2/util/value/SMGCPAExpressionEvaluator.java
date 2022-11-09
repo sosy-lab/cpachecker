@@ -1430,8 +1430,9 @@ public class SMGCPAExpressionEvaluator {
 
     SMGState currentState = pState;
     // Remove previously invalidated objects and create them anew
+    // orElse(true) skips the call for non-local variables
     if (pState.isLocalOrGlobalVariablePresent(varName)
-        && !pState.isLocalOrGlobalVariableValid(varName)) {
+        && !pState.isLocalOrGlobalVariableValid(varName).orElse(true)) {
       currentState = pState.copyAndRemoveStackVariable(varName);
     }
 
@@ -1494,7 +1495,7 @@ public class SMGCPAExpressionEvaluator {
           && e.getMessage().contains("Could not determine variable array length for length")) {
         return newState;
       }
-      throw new SMG2Exception(e.getMessage());
+      throw e;
     }
     if (cType instanceof CArrayType
         && ((CArrayType) cType).getLength() == null

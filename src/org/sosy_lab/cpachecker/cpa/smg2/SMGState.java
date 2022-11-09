@@ -380,23 +380,23 @@ public class SMGState
   }
 
   public boolean isLocalOrGlobalVariablePresent(String qualifiedName) {
-    return isGlobalVariablePresent(qualifiedName) || isLocalVariablePresentAnywhere(qualifiedName);
+    return isGlobalVariablePresent(qualifiedName) || isLocalVariablePresent(qualifiedName);
   }
 
   /**
-   * We might have invalidated a local variable. This checks that.
+   * We might have invalidated a local variable. This checks for that. If a variable is not visible, empty is returned.
    *
    * @param qualifiedName name of the variable.
-   * @return true if valid, flase if invalid.
+   * @return true if valid, flase if invalid, empty for variable not found.
    */
-  public boolean isLocalOrGlobalVariableValid(String qualifiedName) {
+  public Optional<Boolean> isLocalOrGlobalVariableValid(String qualifiedName) {
     if (isGlobalVariablePresent(qualifiedName) || isLocalVariablePresentAnywhere(qualifiedName)) {
       Optional<SMGObject> memRegion = memoryModel.getObjectForVisibleVariable(qualifiedName);
       if (memRegion.isPresent()) {
-        return memoryModel.isObjectValid(memRegion.orElseThrow());
+        return Optional.of(memoryModel.isObjectValid(memRegion.orElseThrow()));
       }
     }
-    return false;
+    return Optional.empty();
   }
 
   public SMGState copyAndRemoveStackVariable(String qualifiedName) {
@@ -734,6 +734,25 @@ public class SMGState
         return true;
       }
     }
+    return false;
+  }
+
+  /**
+   * Checks if a local variable exists for the name given. Note: this checks only the topmost stack frames.
+   *
+   * @param pVarName Name of the local variable.
+   * @return true if the var exists, false else.
+   */
+  private boolean isLocalVariablePresent(String pVarName) {
+    PersistentStack<StackFrame> frames = memoryModel.getStackFrames();
+    if (frames == null) {
+      return false;
+    }
+    StackFrame stackframe = frames.peek();
+      if (stackframe.getVariables().containsKey(pVarName)) {
+        return true;
+      }
+
     return false;
   }
 
