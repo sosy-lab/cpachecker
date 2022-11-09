@@ -283,6 +283,8 @@ public class SymbolicProgramConfiguration {
   public SymbolicProgramConfiguration copyAndAddStackObject(
       SMGObject pNewObject, String pVarName, CType type) {
     StackFrame currentFrame = stackVariableMapping.peek();
+    String functionName = pVarName.substring(0, pVarName.indexOf(":"));
+    Preconditions.checkArgument(currentFrame.getFunctionDefinition().getQualifiedName().equals(functionName));
     PersistentStack<StackFrame> tmpStack = stackVariableMapping.popAndCopy();
     currentFrame = currentFrame.copyAndAddStackVariable(pVarName, pNewObject);
     return of(
@@ -401,13 +403,13 @@ public class SymbolicProgramConfiguration {
    * @return Copy of the SPC with the variable removed.
    */
   public SymbolicProgramConfiguration copyAndRemoveStackVariable(String pIdentifier) {
-    // If a stack variable becomes out of scope, there are not more than one frames which could
+    // If a stack variable moves out of scope, there is not more than one frames which could
     // contain the variable
     if (stackVariableMapping.isEmpty()) {
       return this;
     }
 
-    for (StackFrame frame : stackVariableMapping) {
+    StackFrame frame = stackVariableMapping.peek();
       if (frame.containsVariable(pIdentifier)) {
         SMGObject objToRemove = frame.getVariable(pIdentifier);
         StackFrame newFrame = frame.copyAndRemoveVariable(pIdentifier);
@@ -423,7 +425,6 @@ public class SymbolicProgramConfiguration {
             valueMapping,
             variableToTypeMap.removeAndCopy(pIdentifier));
       }
-    }
     return this;
   }
 
@@ -1127,7 +1128,6 @@ public class SymbolicProgramConfiguration {
 
   public CType getTypeOfVariable(MemoryLocation memLoc) {
     CType type = variableToTypeMap.get(memLoc.getQualifiedName());
-    Preconditions.checkNotNull(type);
     return type;
   }
 
@@ -1281,6 +1281,18 @@ public class SymbolicProgramConfiguration {
       if (stackframe.getReturnObject().isPresent()) {
         String funName = stackframe.getFunctionDefinition().getQualifiedName();
         // There is a return object!
+        String retObjString = "";
+        if (smg.isValid(stackframe.getReturnObject().orElseThrow())) {
+          retObjString = retObjString + stackframe.getReturnObject().orElseThrow();
+        } else {
+          retObjString = retObjString + " invalid " + stackframe.getReturnObject().orElseThrow();
+        }
+        builder.append("\n");
+        builder
+            .append("Function ")
+            .append(funName)
+            .append(" return object ")
+            .append(":" + retObjString + " with values: ");
         for (SMGHasValueEdge valueEdge : smg.getEdges(stackframe.getReturnObject().orElseThrow())) {
           MemoryLocation memLoc =
               MemoryLocation.fromQualifiedName(
@@ -1290,29 +1302,20 @@ public class SymbolicProgramConfiguration {
           Value value = valueMapping.inverse().get(smgValue).get();
           Preconditions.checkNotNull(value);
           String memoryString = " in ";
-          if (smg.isValid(stackframe.getReturnObject().orElseThrow())) {
-            memoryString = memoryString + stackframe.getReturnObject().orElseThrow();
-          } else {
-            memoryString = memoryString + " invalid " + stackframe.getReturnObject().orElseThrow();
-          }
+
           String pointerInfo = "";
           if (smg.isPointer(smgValue)) {
             pointerInfo = " -> " + smg.getPTEdge(smgValue);
           }
           builder.append("\n");
           builder
-              .append("Function ")
-              .append(funName)
-              .append(" return value ")
               .append(memLoc.getQualifiedName())
               .append(": ")
               .append(value)
               .append("(")
               .append(smgValue)
               .append(pointerInfo)
-              .append(")")
-              .append(memoryString);
-          builder.append("\n");
+              .append(")");
         }
       } else {
         builder.append("\n");
@@ -1339,7 +1342,7 @@ public class SymbolicProgramConfiguration {
             pointerInfo = " -> " + smg.getPTEdge(smgValue);
           }
           builder
-              .append(qualifiedName)
+              .append("  " + qualifiedName)
               .append(": ")
               .append(value)
               .append("(")
@@ -1347,20 +1350,24 @@ public class SymbolicProgramConfiguration {
               .append(pointerInfo)
               .append(")")
               .append(memoryString);
-          builder.append("\n");
         }
       }
+      builder.append("\n");
     }
     builder.append("\n");
     builder.append("Pointers and targets with values:");
     builder.append("\n");
 
     for (Entry<SMGValue, SMGPointsToEdge> entry : smg.getPTEdgeMapping().entrySet()) {
+      String validity = "";
+      if (!smg.isValid(entry.getValue().pointsTo())) {
+        validity = " (invalid object)";
+      }
       builder
           .append(entry.getKey())
           .append(" -> ")
           .append(entry.getValue())
-          .append(smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true));
+          .append(smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true)).append(validity);
       builder.append("\n");
     }
 
@@ -1369,7 +1376,7 @@ public class SymbolicProgramConfiguration {
     builder.append("\n");
 
     for (Entry<Wrapper<Value>, SMGValue> entry : valueMapping.entrySet()) {
-      builder.append(entry.getValue()).append(" -> ").append(entry.getKey().get());
+      builder.append(entry.getValue()).append(" <- ").append(entry.getKey().get());
       builder.append("\n");
     }
 
