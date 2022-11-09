@@ -759,13 +759,14 @@ public class SMGTransferRelation
       // don't handle, just let pass through
     } else if (cDecl instanceof CVariableDeclaration) {
       try {
-        return evaluator.handleVariableDeclaration(currentState, (CVariableDeclaration) cDecl,
-            edge);
+        return evaluator.handleVariableDeclaration(
+            currentState, (CVariableDeclaration) cDecl, edge);
       } catch (UnsupportedOperationException e) {
-        // Since we lose the cfa edge (and the CExpression for other cases) we can not throw this in the method directly
+        // Since we lose the cfa edge (and the CExpression for other cases) we can not throw this in
+        // the method directly
         throw new UnsupportedCodeException(e.getMessage(), edge);
       }
-      }
+    }
     // Fall through
     return ImmutableList.of(currentState);
   }

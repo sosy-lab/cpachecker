@@ -384,7 +384,8 @@ public class SMGState
   }
 
   /**
-   * We might have invalidated a local variable. This checks for that. If a variable is not visible, empty is returned.
+   * We might have invalidated a local variable. This checks for that. If a variable is not visible,
+   * empty is returned.
    *
    * @param qualifiedName name of the variable.
    * @return true if valid, flase if invalid, empty for variable not found.
@@ -738,7 +739,8 @@ public class SMGState
   }
 
   /**
-   * Checks if a local variable exists for the name given. Note: this checks only the topmost stack frames.
+   * Checks if a local variable exists for the name given. Note: this checks only the topmost stack
+   * frames.
    *
    * @param pVarName Name of the local variable.
    * @return true if the var exists, false else.
@@ -749,9 +751,9 @@ public class SMGState
       return false;
     }
     StackFrame stackframe = frames.peek();
-      if (stackframe.getVariables().containsKey(pVarName)) {
-        return true;
-      }
+    if (stackframe.getVariables().containsKey(pVarName)) {
+      return true;
+    }
 
     return false;
   }

@@ -284,7 +284,8 @@ public class SymbolicProgramConfiguration {
       SMGObject pNewObject, String pVarName, CType type) {
     StackFrame currentFrame = stackVariableMapping.peek();
     String functionName = pVarName.substring(0, pVarName.indexOf(":"));
-    Preconditions.checkArgument(currentFrame.getFunctionDefinition().getQualifiedName().equals(functionName));
+    Preconditions.checkArgument(
+        currentFrame.getFunctionDefinition().getQualifiedName().equals(functionName));
     PersistentStack<StackFrame> tmpStack = stackVariableMapping.popAndCopy();
     currentFrame = currentFrame.copyAndAddStackVariable(pVarName, pNewObject);
     return of(
@@ -410,21 +411,21 @@ public class SymbolicProgramConfiguration {
     }
 
     StackFrame frame = stackVariableMapping.peek();
-      if (frame.containsVariable(pIdentifier)) {
-        SMGObject objToRemove = frame.getVariable(pIdentifier);
-        StackFrame newFrame = frame.copyAndRemoveVariable(pIdentifier);
-        PersistentStack<StackFrame> newStack =
-            stackVariableMapping.replace(f -> f == frame, newFrame);
-        SMG newSmg = smg.copyAndInvalidateObject(objToRemove);
-        return of(
-            newSmg,
-            globalVariableMapping,
-            newStack,
-            heapObjects,
-            externalObjectAllocation,
-            valueMapping,
-            variableToTypeMap.removeAndCopy(pIdentifier));
-      }
+    if (frame.containsVariable(pIdentifier)) {
+      SMGObject objToRemove = frame.getVariable(pIdentifier);
+      StackFrame newFrame = frame.copyAndRemoveVariable(pIdentifier);
+      PersistentStack<StackFrame> newStack =
+          stackVariableMapping.replace(f -> f == frame, newFrame);
+      SMG newSmg = smg.copyAndInvalidateObject(objToRemove);
+      return of(
+          newSmg,
+          globalVariableMapping,
+          newStack,
+          heapObjects,
+          externalObjectAllocation,
+          valueMapping,
+          variableToTypeMap.removeAndCopy(pIdentifier));
+    }
     return this;
   }
 
@@ -1301,7 +1302,6 @@ public class SymbolicProgramConfiguration {
           Preconditions.checkArgument(valueMapping.containsValue(smgValue));
           Value value = valueMapping.inverse().get(smgValue).get();
           Preconditions.checkNotNull(value);
-          String memoryString = " in ";
 
           String pointerInfo = "";
           if (smg.isPointer(smgValue)) {
@@ -1367,7 +1367,8 @@ public class SymbolicProgramConfiguration {
           .append(entry.getKey())
           .append(" -> ")
           .append(entry.getValue())
-          .append(smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true)).append(validity);
+          .append(smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true))
+          .append(validity);
       builder.append("\n");
     }
 

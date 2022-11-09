@@ -93,7 +93,8 @@ public class CounterexampleCheckAlgorithm
       secure = true,
       name = "skipCounterexampleForUnsupportedCode",
       description =
-          "If true, the counterexample checker will not assume a counterexample as infeasible because of unsupported code. But will try different paths anyway.")
+          "If true, the counterexample checker will not assume a counterexample as infeasible"
+              + " because of unsupported code. But will try different paths anyway.")
   private boolean skipCounterexampleForUnsupportedCode = false;
 
   public CounterexampleCheckAlgorithm(
