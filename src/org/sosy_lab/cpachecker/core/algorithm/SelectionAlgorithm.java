@@ -158,6 +158,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     private boolean requiresArrayHandling = false;
     private boolean requiresFloatHandling = false;
     private boolean requiresRecursionHandling = false;
+    private boolean requiresConcurrencyHandling = false;
     private boolean hasSingleLoop = false;
 
     SelectionAlgorithmStatistics(LogManager pLogger) {
@@ -192,6 +193,9 @@ public class SelectionAlgorithm extends NestingAlgorithm {
           "Requires float handling:                       " + (requiresFloatHandling ? 1 : 0));
       out.println(
           "Requires recursion handling:                   " + (requiresRecursionHandling ? 1 : 0));
+      out.println(
+          "Requires concurrency handling:                   "
+              + (requiresConcurrencyHandling ? 1 : 0));
       out.println(
           String.format(
               "Relevant addressed vars / relevant vars ratio: %.4f", relevantAddressedRatio));
@@ -344,6 +348,10 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     for (String name : visitor.functionNames) {
       if (!cfa.getAllFunctionNames().contains(name)) {
         stats.containsExternalFunctionCalls = true;
+      }
+      if (name.contains("pthread_create")) {
+        // we only need to be concerned about concurrency if function `pthread_create` is called
+        stats.requiresConcurrencyHandling = true;
       }
     }
     stats.numberOfAllRightFunctions = visitor.functionNames.size();
