@@ -283,9 +283,15 @@ public class SymbolicProgramConfiguration {
   public SymbolicProgramConfiguration copyAndAddStackObject(
       SMGObject pNewObject, String pVarName, CType type) {
     StackFrame currentFrame = stackVariableMapping.peek();
-    String functionName = pVarName.substring(0, pVarName.indexOf(":"));
-    Preconditions.checkArgument(
-        currentFrame.getFunctionDefinition().getQualifiedName().equals(functionName));
+
+    // Sanity check for correct stack frames
+    // Restriction because of tests that don't emulate stack frames
+    if (pVarName.contains(":")) {
+      String functionName = pVarName.substring(0, pVarName.indexOf(":"));
+      Preconditions.checkArgument(
+          currentFrame.getFunctionDefinition().getQualifiedName().equals(functionName));
+    }
+
     PersistentStack<StackFrame> tmpStack = stackVariableMapping.popAndCopy();
     currentFrame = currentFrame.copyAndAddStackVariable(pVarName, pNewObject);
     return of(
