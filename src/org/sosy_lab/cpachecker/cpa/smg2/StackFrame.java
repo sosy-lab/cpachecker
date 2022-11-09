@@ -190,16 +190,16 @@ public final class StackFrame {
   public String toString() {
     StringBuilder builder = new StringBuilder();
     for (Entry<String, SMGObject> entry : stackVariables.entrySet()) {
-      builder.append(entry.getKey() + " -> " + entry.getValue());
+      builder.append(entry.getKey() + " -> " + entry.getValue() + "  ");
     }
     if (variableArguments.isPresent()) {
       builder.append("variable arguments:");
       for (Value value : variableArguments.orElseThrow()) {
-        builder.append(" " + value);
+        builder.append(" " + value + "  ");
       }
     }
     if (returnValueObject.isPresent()) {
-      builder.append(" return object:" + " -> " + returnValueObject.orElseThrow());
+      builder.append(" return object:" + " -> " + returnValueObject.orElseThrow() + "  ");
     }
     return builder.toString();
   }
