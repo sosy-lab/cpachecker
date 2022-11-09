@@ -194,7 +194,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
       out.println(
           "Requires recursion handling:                   " + (requiresRecursionHandling ? 1 : 0));
       out.println(
-          "Requires concurrency handling:                   "
+          "Requires concurrency handling:                 "
               + (requiresConcurrencyHandling ? 1 : 0));
       out.println(
           String.format(
