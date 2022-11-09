@@ -349,7 +349,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
       if (!cfa.getAllFunctionNames().contains(name)) {
         stats.containsExternalFunctionCalls = true;
       }
-      if (name.contains("pthread_create")) {
+      if (name.equals("pthread_create")) {
         // we only need to be concerned about concurrency if function `pthread_create` is called
         stats.requiresConcurrencyHandling = true;
       }
