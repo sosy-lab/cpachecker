@@ -1365,7 +1365,6 @@ public class SMGCPAAbstractionTest {
   private Value[] buildConcreteList(boolean dll, BigInteger sizeOfSegment, int listLength)
       throws SMG2Exception {
     Value[] pointerArray = new Value[listLength];
-    Value prevNextPointer = null;
     SMGObject prevObject = null;
 
     for (int i = 0; i < listLength; i++) {
@@ -1380,23 +1379,21 @@ public class SMGCPAAbstractionTest {
                 new NumericValue(j),
                 null);
       }
-      if (prevNextPointer != null) {
-        currentState =
-            currentState.createAndAddPointer(prevNextPointer, listSegment, BigInteger.ZERO);
-      }
 
-      // Pointer to the next list segment
-      Value nextPointer = SymbolicValueFactory.getInstance().newIdentifier(null);
+      // Pointer to the next list segment (from the prev to this, except for the last)
       if (i == listLength - 1) {
-        nextPointer = new NumericValue(0);
-      } else {
-        nextPointer = SymbolicValueFactory.getInstance().newIdentifier(null);
-        SMGValueAndSMGState valueAndState = currentState.copyAndAddValue(nextPointer);
-        currentState = valueAndState.getSMGState();
+        Value nextPointer = new NumericValue(0);
+        currentState =
+            currentState.writeValueTo(listSegment, nfo, pointerSizeInBits, nextPointer, null);
       }
-
-      currentState =
-          currentState.writeValueTo(listSegment, nfo, pointerSizeInBits, nextPointer, null);
+      if (prevObject != null) {
+        ValueAndSMGState pointerAndState =
+            currentState.searchOrCreateAddress(listSegment, BigInteger.ZERO);
+        currentState = pointerAndState.getState();
+        currentState =
+            currentState.writeValueTo(
+                prevObject, nfo, pointerSizeInBits, pointerAndState.getValue(), null);
+      }
 
       if (dll) {
         // Pointer to the prev list segment
@@ -1404,19 +1401,21 @@ public class SMGCPAAbstractionTest {
         if (i == 0) {
           prevPointer = new NumericValue(0);
         } else {
-          prevPointer = SymbolicValueFactory.getInstance().newIdentifier(null);
-          currentState = currentState.createAndAddPointer(prevPointer, prevObject, BigInteger.ZERO);
+          ValueAndSMGState pointerAndState =
+              currentState.searchOrCreateAddress(prevObject, BigInteger.ZERO);
+          prevPointer = pointerAndState.getValue();
+          currentState = pointerAndState.getState();
         }
         currentState =
             currentState.writeValueTo(listSegment, pfo, pointerSizeInBits, prevPointer, null);
       }
       // Pointer to the list segment
-      Value pointer = SymbolicValueFactory.getInstance().newIdentifier(null);
-      pointerArray[i] = pointer;
-      currentState = currentState.createAndAddPointer(pointer, listSegment, BigInteger.ZERO);
+      ValueAndSMGState pointerAndState =
+          currentState.searchOrCreateAddress(listSegment, BigInteger.ZERO);
+      pointerArray[i] = pointerAndState.getValue();
+      currentState = pointerAndState.getState();
 
       prevObject = listSegment;
-      prevNextPointer = nextPointer;
     }
     return pointerArray;
   }
