@@ -196,7 +196,7 @@ public class SMG {
    * @return A modified copy of the SMG.
    */
   public SMG copyAndAddPTEdge(SMGPointsToEdge edge, SMGValue source) {
-
+    assert (verifyPointsToEdgeSanity());
     if (pointsToEdges.containsKey(source)) {
       if (Objects.equals(pointsToEdges.get(source), edge)) {
         return this;
@@ -207,8 +207,15 @@ public class SMG {
     ImmutableMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder = ImmutableMap.builder();
     pointsToEdgesBuilder.putAll(pointsToEdges);
     pointsToEdgesBuilder.put(source, edge);
-    return new SMG(
-        smgObjects, smgValues, hasValueEdges, pointsToEdgesBuilder.buildOrThrow(), sizeOfPointer);
+    SMG newSMG =
+        new SMG(
+            smgObjects,
+            smgValues,
+            hasValueEdges,
+            pointsToEdgesBuilder.buildOrThrow(),
+            sizeOfPointer);
+    assert (newSMG.verifyPointsToEdgeSanity());
+    return newSMG;
   }
 
   /**
@@ -1204,9 +1211,13 @@ public class SMG {
   // Replace the pointer behind value with a new pointer with the new SMGObject target
   public SMG replaceAllPointersTowardsWith(SMGValue pointerValue, SMGObject newTarget) {
     SMGPointsToEdge oldEdge = getPTEdge(pointerValue).orElseThrow();
-    return copyAndSetPTEdges(
-        new SMGPointsToEdge(newTarget, oldEdge.getOffset(), oldEdge.targetSpecifier()),
-        pointerValue);
+    assert (verifyPointsToEdgeSanity());
+    SMG newSMG =
+        copyAndSetPTEdges(
+            new SMGPointsToEdge(newTarget, oldEdge.getOffset(), oldEdge.targetSpecifier()),
+            pointerValue);
+    assert (newSMG.verifyPointsToEdgeSanity());
+    return newSMG;
   }
 
   /**
@@ -1218,6 +1229,7 @@ public class SMG {
    * @return a new SMG with the replacement.
    */
   public SMG replaceAllPointersTowardsWith(SMGObject oldObj, SMGObject newTarget) {
+    assert (verifyPointsToEdgeSanity());
     SMG newSMG = this;
     if (newTarget.isZero() || oldObj.isZero()) {
       throw new AssertionError("Can't replace a 0 value!");
@@ -1234,7 +1246,27 @@ public class SMG {
                 value);
       }
     }
+    assert (newSMG.verifyPointsToEdgeSanity());
     return newSMG;
+  }
+
+  /**
+   * @return false if there is more than 1 value with the exact same points-to-edge pointing to the
+   *     same object/offset with the same nesting level.
+   */
+  private boolean verifyPointsToEdgeSanity() {
+    for (Entry<SMGValue, SMGPointsToEdge> pointsToEntry2 : pointsToEdges.entrySet()) {
+      for (Entry<SMGValue, SMGPointsToEdge> pointsToEntry3 : pointsToEdges.entrySet()) {
+        if (pointsToEntry2.getValue().equals(pointsToEntry3.getValue())
+            && !pointsToEntry2.getKey().equals(pointsToEntry3.getKey())
+            && !pointsToEntry2.getKey().isZero()
+            && pointsToEntry2.getKey().getNestingLevel()
+                == pointsToEntry3.getKey().getNestingLevel()) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   /**
@@ -1248,6 +1280,7 @@ public class SMG {
    */
   public SMG replaceAllPointersTowardsWithAndIncrementNestingLevel(
       SMGObject oldObj, SMGObject newTarget, int incrementAmount) {
+    assert (verifyPointsToEdgeSanity());
     int min = 0;
     if (newTarget instanceof SMGSinglyLinkedListSegment) {
       min = ((SMGSinglyLinkedListSegment) newTarget).getMinLength();
@@ -1269,6 +1302,7 @@ public class SMG {
                     pointsToEntry.getValue().getOffset(),
                     pointsToEntry.getValue().targetSpecifier()),
                 value.withNestingLevelAndCopy(value.getNestingLevel() + incrementAmount));
+        assert (newSMG.verifyPointsToEdgeSanity());
 
         if (min <= value.getNestingLevel() + incrementAmount) {
           Preconditions.checkArgument(min > value.getNestingLevel() + incrementAmount);
@@ -1323,6 +1357,7 @@ public class SMG {
    */
   public SMG replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
       SMGObject oldObj, SMGObject newTarget, int replacementLevel) {
+    assert (verifyPointsToEdgeSanity());
     SMG newSMG = this;
     if (newTarget.isZero() || oldObj.isZero()) {
       throw new AssertionError("Can't replace a 0 value!");
@@ -1343,6 +1378,7 @@ public class SMG {
                   value.withNestingLevelAndCopy(0));
           // Remember the values to change the nesting level
           valuesToDecrementBuilder.add(value);
+          assert (newSMG.verifyPointsToEdgeSanity());
         }
       }
     }
@@ -1379,6 +1415,7 @@ public class SMG {
   // Needed for tests
   public SMG replaceSMGValueNestingLevel(SMGValue value, int replacementLevel) {
     SMG newSMG = this;
+    assert (verifyPointsToEdgeSanity());
     for (Entry<SMGValue, SMGPointsToEdge> pointsToEntry : pointsToEdges.entrySet()) {
       if (pointsToEntry.getKey().equals(value)) {
         // Since we decrement the nesting level afterwards, we check for 1 instead of 0
@@ -1390,6 +1427,7 @@ public class SMG {
                     pointsToEntry.getValue().getOffset(),
                     pointsToEntry.getValue().targetSpecifier()),
                 value.withNestingLevelAndCopy(replacementLevel));
+        assert (newSMG.verifyPointsToEdgeSanity());
       }
     }
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHasValueEdges = hasValueEdges;
