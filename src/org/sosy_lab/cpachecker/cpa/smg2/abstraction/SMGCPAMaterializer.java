@@ -196,6 +196,13 @@ public class SMGCPAMaterializer {
 
     // Add all values. next pointer is wrong here!
     currentState = currentState.copyAllValuesFromObjToObj(pListSeg, newConcreteRegion);
+
+    // Create the now smaller abstracted list
+    SMGSinglyLinkedListSegment newAbsListSeg =
+        (SMGSinglyLinkedListSegment) pListSeg.decrementLengthAndCopy();
+    // Now replace the abstract list element with a new abstract list element with length - 1
+    currentState = currentState.copyAndAddObjectToHeap(newAbsListSeg);
+    currentState = currentState.copyAllValuesFromObjToObj(pListSeg, newAbsListSeg);
     // Replace the pointer behind the value pointing to the abstract region with a pointer to the
     // new object.
     // We don't change the nesting level of the pointers! We switch only those with new nesting
@@ -211,11 +218,16 @@ public class SMGCPAMaterializer {
                     Integer.max(pListSeg.getMinLength() - 1, MINIMUM_LIST_LENGTH)));
 
     Preconditions.checkArgument(pListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
+    // Now we can safely switch all remaining pointers to the new abstract segment
+    currentState =
+        currentState.copyAndReplaceMemoryModel(
+            currentState.getMemoryModel().replaceAllPointersTowardsWith(pListSeg, newAbsListSeg));
 
-    // Make the new value a pointer to the correct location and object
+    // Remove the old abstract list segment
+    currentState = currentState.copyAndRemoveObjectFromHeap(pListSeg);
 
-    SMGSinglyLinkedListSegment newAbsListSeg =
-        (SMGSinglyLinkedListSegment) pListSeg.decrementLengthAndCopy();
+    Preconditions.checkArgument(newAbsListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
+
     ValueAndSMGState newAddressAndState =
         currentState.createAndAddPointerWithNestingLevel(
             newAbsListSeg,
@@ -238,17 +250,6 @@ public class SMGCPAMaterializer {
         currentState.writeValue(
             newConcreteRegion, nfo, pointerSize, newValuePointingToWardsAbstractList);
 
-    // Now replace the abstract list element with a new abstract list element with length - 1
-    currentState = currentState.copyAndAddObjectToHeap(newAbsListSeg);
-    currentState = currentState.copyAllValuesFromObjToObj(pListSeg, newAbsListSeg);
-    currentState =
-        currentState.copyAndReplaceMemoryModel(
-            currentState.getMemoryModel().replaceAllPointersTowardsWith(pListSeg, newAbsListSeg));
-
-    // Remove the old abstract list segment
-    currentState = currentState.copyAndRemoveObjectFromHeap(pListSeg);
-
-    Preconditions.checkArgument(newAbsListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
     assert checkPointersOfMaterializedSLL(newConcreteRegion, nfo, currentState);
     // Note: valueOfPointerToAbstractObject is now pointing to the materialized object!
     return SMGValueAndSMGState.of(currentState, initialPointer);
