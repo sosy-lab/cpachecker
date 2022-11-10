@@ -201,17 +201,11 @@ public class MemoryLocationExtractingVisitor
         }
       }
     } else if (pExpression instanceof CPointerExpression) {
-      CPointerExpression pe = (CPointerExpression) pExpression;
-
-      if (pe.getOperand() instanceof CIdExpression) {
-        CIdExpression idExpression = (CIdExpression) pe.getOperand();
-        type = idExpression.getDeclaration().getType();
+      CPointerExpression pointerExpression = (CPointerExpression) pExpression;
+      if (pointerExpression.getOperand() instanceof CIdExpression) {
+        type = ((CIdExpression) pointerExpression.getOperand()).getDeclaration().getType();
       }
-
-      if (pe.getOperand() instanceof CLeftHandSide) {
-        return getMemoryLocation(pe.getOperand());
-      }
-      potentialLocations.add(MemoryLocation.forLocalVariable(functionName, pExpression.toString()));
+      return new OverapproximatingMemoryLocation(type);
     } else if (pExpression instanceof CCastExpression) {
       CCastExpression cast = (CCastExpression) pExpression;
       return getMemoryLocation(cast.getOperand());
