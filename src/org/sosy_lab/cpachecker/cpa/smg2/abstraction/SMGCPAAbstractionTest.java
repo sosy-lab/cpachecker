@@ -133,12 +133,12 @@ public class SMGCPAAbstractionTest {
   @Ignore
   @Test
   public void correctZeroPlusAbsorptionSLLTest()
-      throws InvalidConfigurationException, SMG2Exception {
-    int sizeOfList = 10;
+      throws InvalidConfigurationException {
+    // int sizeOfList = 10;
     resetSMGStateAndVisitor();
-    Value[] pointers = buildConcreteList(false, sllSize, sizeOfList);
-    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, sizeOfList - 1);
-    currentState = absFinder.findAndAbstractLists();
+    // Value[] pointers = buildConcreteList(false, sllSize, sizeOfList);
+    // SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, sizeOfList - 1);
+    // currentState = absFinder.findAndAbstractLists();
     // Now we have a 10+SLS
     // Deref a pointer not in the beginning or end, check that the list is consistent with the
     // pointers and the nesting level and materialization is correct afterwards
