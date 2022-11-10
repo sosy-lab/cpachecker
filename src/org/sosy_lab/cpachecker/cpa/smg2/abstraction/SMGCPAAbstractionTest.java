@@ -132,12 +132,12 @@ public class SMGCPAAbstractionTest {
   @SuppressWarnings("unused")
   @Ignore
   @Test
-  public void correctZeroPlusAbsorptionSLLTest()
-      throws InvalidConfigurationException {
+  public void correctZeroPlusAbsorptionSLLTest() throws InvalidConfigurationException {
     // int sizeOfList = 10;
     resetSMGStateAndVisitor();
     // Value[] pointers = buildConcreteList(false, sllSize, sizeOfList);
-    // SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, sizeOfList - 1);
+    // SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, sizeOfList -
+    // 1);
     // currentState = absFinder.findAndAbstractLists();
     // Now we have a 10+SLS
     // Deref a pointer not in the beginning or end, check that the list is consistent with the
