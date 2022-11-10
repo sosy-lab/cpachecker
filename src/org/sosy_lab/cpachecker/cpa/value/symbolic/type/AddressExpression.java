@@ -84,4 +84,12 @@ public class AddressExpression extends SymbolicExpression {
   public boolean isTrivial() {
     return offset instanceof SymbolicExpression;
   }
+
+  @Override
+  public String toString() {
+    if (addressType != null) {
+      return "Address " + addressValue + " at offset: " + offset + " | type: " + addressType;
+    }
+    return "Address " + addressValue + " at offset " + offset;
+  }
 }
