@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -3325,7 +3326,6 @@ public class SMGCPAValueVisitorTest {
   }
 
   /**
-   * @param pAddress the {@link Value} that doubles as address for the created pointer.
    * @param pTarget pointer target {@link SMGObject}
    * @param offset offset in bits of the pointer.
    * @throws InvalidConfigurationException should never be thrown
@@ -3343,8 +3343,6 @@ public class SMGCPAValueVisitorTest {
 
   private Value addPointerToExistingHeapObject(int offset, Value addressOfTargetWith0Offset)
       throws InvalidConfigurationException, SMG2Exception {
-    SymbolicProgramConfiguration spc = currentState.getMemoryModel();
-
     // Get the pte for the objects 0 position via the original malloc pointer (always the value in
     // the addressExpr)
     SMGStateAndOptionalSMGObjectAndOffset objectAndOffset =
@@ -3908,7 +3906,7 @@ public class SMGCPAValueVisitorTest {
    *     resulting Value == input! Only check with checkValue().
    * @return some Value for the type and input value.
    */
-  private Value transformInputIntoValue(CType valueType, int numValue) {
+  private @Nullable Value transformInputIntoValue(CType valueType, int numValue) {
     if (valueType instanceof CSimpleType) {
       if (((CSimpleType) valueType).isSigned()) {
         // Make every second number negative
