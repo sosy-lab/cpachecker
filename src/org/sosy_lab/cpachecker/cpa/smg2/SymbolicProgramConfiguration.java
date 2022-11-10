@@ -1397,6 +1397,7 @@ public class SymbolicProgramConfiguration {
       }
       builder
           .append(entry.getKey())
+          .append(" (" + entry.getKey().getNestingLevel() + ")")
           .append(" -> ")
           .append(entry.getValue())
           .append(smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true))
