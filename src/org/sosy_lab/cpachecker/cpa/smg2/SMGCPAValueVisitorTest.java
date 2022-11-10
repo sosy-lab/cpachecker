@@ -898,9 +898,7 @@ public class SMGCPAValueVisitorTest {
         // a SMGPointsToEdge (modeling the pointer). We simply use numeric values for this. We
         // remember the pointer values such that the index is the same as the location of the
         // pointer in the array.
-        Value address = SymbolicValueFactory.getInstance().newIdentifier(null);
-
-        addPointerToMemory(address, objectForAddressValue, j * sizeOfCurrentTypeInBits);
+        Value address = addPointerToMemory(objectForAddressValue, j * sizeOfCurrentTypeInBits);
         // Write the pointer to the heap array
         writeToHeapObjectByAddress(
             addressPointerArray, POINTER_SIZE_IN_BITS * j, POINTER_SIZE_IN_BITS, address);
@@ -1006,8 +1004,6 @@ public class SMGCPAValueVisitorTest {
       int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
       // address to the heap where the array starts
       Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
-      // address for addressValue
-      Value addressForAddressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
       // Stack variable holding the address (the pointer) to the array
@@ -1015,14 +1011,14 @@ public class SMGCPAValueVisitorTest {
       writeToStackVariableInMemoryModel(arrayVariableName, 0, POINTER_SIZE_IN_BITS, addressValue);
       // Stack variable holding the address (the pointer) to the address of the array
       addStackVariableToMemoryModel(addressToAddressVariableName, POINTER_SIZE_IN_BITS);
-      writeToStackVariableInMemoryModel(
-          addressToAddressVariableName, 0, POINTER_SIZE_IN_BITS, addressForAddressValue);
       // We need a mapping from addressForAddressValue to a SMGValue that is mapped to a
       // SMGPointsToEdge (modeling the pointer)
       SMGObject objectForAddressValue =
           currentState.getMemoryModel().getStackFrames().peek().getVariable(arrayVariableName);
+      Value addressForAddressValue = addPointerToMemory(objectForAddressValue, 0);
 
-      addPointerToMemory(addressForAddressValue, objectForAddressValue, 0);
+      writeToStackVariableInMemoryModel(
+          addressToAddressVariableName, 0, POINTER_SIZE_IN_BITS, addressForAddressValue);
 
       // Now write some distinct values into the array, for signed we want to test negatives!
       for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
@@ -1195,11 +1191,11 @@ public class SMGCPAValueVisitorTest {
 
       // Pointers
       for (int j = 0; j < TEST_ARRAY_LENGTH; j++) {
-        Value newPointer = SymbolicValueFactory.getInstance().newIdentifier(null);
+        Value newPointer =
+            addPointerToExistingHeapObject(j * sizeOfCurrentTypeInBits, addressValue);
         addStackVariableToMemoryModel(arrayVariableName + j, POINTER_SIZE_IN_BITS);
         writeToStackVariableInMemoryModel(
             arrayVariableName + j, 0, POINTER_SIZE_IN_BITS, newPointer);
-        addPointerToExistingHeapObject(j * sizeOfCurrentTypeInBits, addressValue, newPointer);
       }
 
       // Now we read the entire array twice for every valid combination of pointers and variables.
@@ -1290,11 +1286,11 @@ public class SMGCPAValueVisitorTest {
 
       // Pointers to all valid positions but also invalid in -1 and length
       for (int j = -1; j <= TEST_ARRAY_LENGTH; j++) {
-        Value newPointer = new ConstantSymbolicExpression(new UnknownValue(), null);
+        Value newPointer =
+            addPointerToExistingHeapObject(j * sizeOfCurrentTypeInBits, addressValue);
         addStackVariableToMemoryModel(arrayVariableName + j, POINTER_SIZE_IN_BITS);
         writeToStackVariableInMemoryModel(
             arrayVariableName + j, 0, POINTER_SIZE_IN_BITS, newPointer);
-        addPointerToExistingHeapObject(j * sizeOfCurrentTypeInBits, addressValue, newPointer);
       }
 
       // Read only invalid
@@ -1426,11 +1422,11 @@ public class SMGCPAValueVisitorTest {
 
       // Pointers
       for (int j = 0; j < TEST_ARRAY_LENGTH; j++) {
-        Value newPointer = SymbolicValueFactory.getInstance().newIdentifier(null);
+        Value newPointer =
+            addPointerToExistingHeapObject(j * sizeOfCurrentTypeInBits, addressValue);
         addStackVariableToMemoryModel(arrayVariableName + j, POINTER_SIZE_IN_BITS);
         writeToStackVariableInMemoryModel(
             arrayVariableName + j, 0, POINTER_SIZE_IN_BITS, newPointer);
-        addPointerToExistingHeapObject(j * sizeOfCurrentTypeInBits, addressValue, newPointer);
       }
 
       // Now we read the entire array twice for every valid combination of pointers and variables.
@@ -1566,11 +1562,11 @@ public class SMGCPAValueVisitorTest {
 
       // Now create a lot of pointers pointing to the same structure but different offsets
       for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
-        Value newPointer = SymbolicValueFactory.getInstance().newIdentifier(null);
+        Value newPointer =
+            addPointerToExistingHeapObject(k * sizeOfCurrentTypeInBits, addressValue);
         addStackVariableToMemoryModel(arrayVariableName + k, POINTER_SIZE_IN_BITS);
         writeToStackVariableInMemoryModel(
             arrayVariableName + k, 0, POINTER_SIZE_IN_BITS, newPointer);
-        addPointerToExistingHeapObject(k * sizeOfCurrentTypeInBits, addressValue, newPointer);
       }
 
       // Now we read the entire array twice.(twice because values may change when reading in SMGs,
@@ -3334,27 +3330,18 @@ public class SMGCPAValueVisitorTest {
    * @param offset offset in bits of the pointer.
    * @throws InvalidConfigurationException should never be thrown
    */
-  private void addPointerToMemory(Value pAddress, SMGObject pTarget, int offset)
+  private Value addPointerToMemory(SMGObject pTarget, int offset)
       throws InvalidConfigurationException {
-    SymbolicProgramConfiguration spc = currentState.getMemoryModel();
 
-    // Mapping to the smg points to edge
-    spc = spc.copyAndAddPointerFromAddressToRegion(pAddress, pTarget, BigInteger.valueOf(offset));
+    ValueAndSMGState addressAndState =
+        currentState.searchOrCreateAddress(pTarget, BigInteger.valueOf(offset));
 
-    // This state now has the stack variable that is the pointer to the struct and the struct with a
-    // value in the second int, and none in the first
-    currentState =
-        SMGState.of(
-            MachineModel.LINUX64,
-            spc,
-            logger,
-            new SMGOptions(Configuration.defaultConfiguration()),
-            currentState.getErrorInfo());
+    currentState = addressAndState.getState();
     visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
+    return addressAndState.getValue();
   }
 
-  private void addPointerToExistingHeapObject(
-      int offset, Value addressOfTargetWith0Offset, Value newPointerValue)
+  private Value addPointerToExistingHeapObject(int offset, Value addressOfTargetWith0Offset)
       throws InvalidConfigurationException, SMG2Exception {
     SymbolicProgramConfiguration spc = currentState.getMemoryModel();
 
@@ -3365,20 +3352,15 @@ public class SMGCPAValueVisitorTest {
     Preconditions.checkArgument(objectAndOffset.getOffsetForObject().longValue() == 0);
 
     // Mapping to the smg points to edge
-    spc =
-        spc.copyAndAddPointerFromAddressToRegion(
-            newPointerValue, objectAndOffset.getSMGObject(), BigInteger.valueOf(offset));
+    ValueAndSMGState newPointerValueAndState =
+        currentState.searchOrCreateAddress(
+            objectAndOffset.getSMGObject(), BigInteger.valueOf(offset));
+    currentState = newPointerValueAndState.getState();
 
     // This state now has the stack variable that is the pointer to the struct and the struct with a
     // value in the second int, and none in the first
-    currentState =
-        SMGState.of(
-            MachineModel.LINUX64,
-            spc,
-            logger,
-            new SMGOptions(Configuration.defaultConfiguration()),
-            currentState.getErrorInfo());
     visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
+    return newPointerValueAndState.getValue();
   }
 
   /**
