@@ -86,10 +86,15 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
 
   @Override
   public int hashCode() {
-    return super.hashCode();
+    return super.hashCode() + 31 * pointsToObject.hashCode() + 41 * offset.intValue();
   }
 
   public void setTargetSpecifier(SMGTargetSpecifier pTargetSpecifier) {
     targetSpecifier = pTargetSpecifier;
+  }
+
+  @Override
+  public String toString() {
+    return " -> [" + offset + "] " + pointsToObject;
   }
 }
