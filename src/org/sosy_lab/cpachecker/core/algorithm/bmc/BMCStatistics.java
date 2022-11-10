@@ -16,35 +16,49 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 public class BMCStatistics implements Statistics {
 
+  // General BMC operations
   final Timer bmcPreparation = new Timer();
   final Timer satCheck = new Timer();
   final Timer errorPathCreation = new Timer();
   final Timer errorPathProcessing = new Timer();
   final Timer assertionsCheck = new Timer();
 
+  // k-Induction operations
   final Timer inductionPreparation = new Timer();
   final Timer inductionCheck = new Timer();
+
+  // IMC/ISMC operations
+  final Timer interpolationPreparation = new Timer();
+  final Timer fixedPointComputation = new Timer();
+  int numOfIMCInnerIterations = -1;
 
   @Override
   public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
     if (bmcPreparation.getNumberOfIntervals() > 0) {
-      out.println("Time for BMC formula creation:       " + bmcPreparation);
+      out.println("Time for BMC formula creation:                   " + bmcPreparation);
     }
     if (satCheck.getNumberOfIntervals() > 0) {
-      out.println("Time for final sat check:            " + satCheck);
+      out.println("Time for final sat check:                        " + satCheck);
     }
     if (errorPathCreation.getNumberOfIntervals() > 0) {
-      out.println("Time for error-path creation:        " + errorPathCreation);
+      out.println("Time for error-path creation:                    " + errorPathCreation);
     }
     if (errorPathProcessing.getNumberOfIntervals() > 0) {
-      out.println("Time for error-path post-processing: " + errorPathProcessing);
+      out.println("Time for error-path post-processing:             " + errorPathProcessing);
     }
     if (assertionsCheck.getNumberOfIntervals() > 0) {
-      out.println("Time for bounding assertions check:  " + assertionsCheck);
+      out.println("Time for bounding assertions check:              " + assertionsCheck);
     }
     if (inductionCheck.getNumberOfIntervals() > 0) {
-      out.println("Time for induction formula creation: " + inductionPreparation);
-      out.println("Time for induction check:            " + inductionCheck);
+      out.println("Time for induction formula creation:             " + inductionPreparation);
+      out.println("Time for induction check:                        " + inductionCheck);
+    }
+    if (fixedPointComputation.getNumberOfIntervals() > 0) {
+      out.println("Time for collecting formulas for interpolation:  " + interpolationPreparation);
+      out.println("Time for computing fixed point by interpolation: " + fixedPointComputation);
+    }
+    if (numOfIMCInnerIterations >= 0) {
+      out.println("Number of IMC inner iterations:                  " + numOfIMCInnerIterations);
     }
   }
 

@@ -94,6 +94,9 @@ public final class InterpolationManager {
   private int reusedFormulasOnSolverStack = 0;
 
   public void printStatistics(StatisticsWriter w0) {
+    if (cexAnalysisTimer.getNumberOfIntervals() == 0) {
+      return;
+    }
     w0.put(
         "Counterexample analysis",
         cexAnalysisTimer
