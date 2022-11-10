@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -64,7 +65,6 @@ import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeType;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
-import org.sosy_lab.cpachecker.util.graph.dominance.DominanceUtils;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
@@ -727,7 +727,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         continue;
       }
 
-      DomTree<CFANode> domTree = DominanceUtils.createFunctionDomTree(entryNode);
+      DomTree<CFANode> domTree = DomTree.forGraph(CfaNetwork.forFunction(entryNode), entryNode);
 
       insertFunctionDeclarationEdge(functionDeclarationEdges, entryNode);
 

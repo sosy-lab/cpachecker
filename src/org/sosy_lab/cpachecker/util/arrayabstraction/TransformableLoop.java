@@ -15,6 +15,7 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
+import com.google.common.graph.Graphs;
 import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Optional;
@@ -24,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
@@ -40,18 +42,19 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
-import org.sosy_lab.cpachecker.util.graph.dominance.DominanceUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /** Represents a loop that can be transformed by an array abstraction. */
 final class TransformableLoop {
 
+  private final CFA cfa;
   private final LoopStructure.Loop loop;
   private final CFANode loopNode;
   private final Index index;
 
-  private TransformableLoop(Loop pLoop, CFANode pLoopNode, Index pIndex) {
+  private TransformableLoop(CFA pCfa, Loop pLoop, CFANode pLoopNode, Index pIndex) {
+    cfa = pCfa;
     loop = pLoop;
     loopNode = pLoopNode;
     index = pIndex;
@@ -84,7 +87,7 @@ final class TransformableLoop {
   }
 
   private static ImmutableSet<CFAEdge> getDominatedInnerLoopEdges(
-      CFAEdge pEdge, LoopStructure.Loop pLoop, CFANode pLoopStart) {
+      CFA pCfa, CFAEdge pEdge, LoopStructure.Loop pLoop, CFANode pLoopStart) {
 
     checkArgument(pLoop.getLoopNodes().contains(pLoopStart));
     checkArgument(allInnerLoopEdges(pLoop).contains(pEdge));
@@ -92,8 +95,9 @@ final class TransformableLoop {
     ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
 
     CFANode startNode = pEdge.getSuccessor();
-    DomTree<CFANode> domTree =
-        DominanceUtils.createFunctionDomTree(startNode, ImmutableSet.of(pLoopStart));
+    CfaNetwork innerLoopNodesCfaNetwork =
+        CfaNetwork.wrap(pCfa).filterNodes(node -> !node.equals(pLoopStart));
+    DomTree<CFANode> domTree = DomTree.forGraph(innerLoopNodesCfaNetwork, startNode);
 
     for (CFANode node : domTree) {
       if (node.equals(startNode) || domTree.isAncestorOf(startNode, node)) {
@@ -105,7 +109,7 @@ final class TransformableLoop {
   }
 
   private static ImmutableSet<CFAEdge> getPostDominatedInnerLoopEdges(
-      CFAEdge pEdge, LoopStructure.Loop pLoop, CFANode pLoopStart) {
+      CFA pCfa, CFAEdge pEdge, LoopStructure.Loop pLoop, CFANode pLoopStart) {
 
     checkArgument(pLoop.getLoopNodes().contains(pLoopStart));
     checkArgument(allInnerLoopEdges(pLoop).contains(pEdge));
@@ -113,8 +117,10 @@ final class TransformableLoop {
     ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
 
     CFANode startNode = pEdge.getPredecessor();
+    CfaNetwork innerLoopNodesCfaNetwork =
+        CfaNetwork.wrap(pCfa).filterNodes(node -> !node.equals(pLoopStart));
     DomTree<CFANode> postDomTree =
-        DominanceUtils.createFunctionPostDomTree(startNode, ImmutableSet.of(pLoopStart));
+        DomTree.forGraph(Graphs.transpose(innerLoopNodesCfaNetwork), startNode);
 
     for (CFANode node : postDomTree) {
       if (node.equals(startNode) || postDomTree.isAncestorOf(startNode, node)) {
@@ -126,12 +132,12 @@ final class TransformableLoop {
   }
 
   private static boolean isExecutedEveryIteration(
-      CFAEdge pEdge, LoopStructure.Loop pLoop, CFANode pLoopNode) {
+      CFA pCfa, CFAEdge pEdge, LoopStructure.Loop pLoop, CFANode pLoopNode) {
 
     Set<CFAEdge> dominatedEdges = new HashSet<>();
     dominatedEdges.add(pEdge);
-    dominatedEdges.addAll(getDominatedInnerLoopEdges(pEdge, pLoop, pLoopNode));
-    dominatedEdges.addAll(getPostDominatedInnerLoopEdges(pEdge, pLoop, pLoopNode));
+    dominatedEdges.addAll(getDominatedInnerLoopEdges(pCfa, pEdge, pLoop, pLoopNode));
+    dominatedEdges.addAll(getPostDominatedInnerLoopEdges(pCfa, pEdge, pLoop, pLoopNode));
 
     return Sets.difference(allInnerLoopEdges(pLoop), dominatedEdges).isEmpty();
   }
@@ -301,7 +307,7 @@ final class TransformableLoop {
             && updateAssign.getDeclaration().equals(indexVariableDeclaration)) {
 
           // the index must be updated every loop iteration
-          if (!isExecutedEveryIteration(innerLoopEdge, pLoop, loopNode)) {
+          if (!isExecutedEveryIteration(pCfa, innerLoopEdge, pLoop, loopNode)) {
             return Optional.empty();
           }
 
@@ -367,7 +373,7 @@ final class TransformableLoop {
             updateIndexOperation,
             loopCondition);
 
-    return Optional.of(new TransformableLoop(pLoop, loopNode, index));
+    return Optional.of(new TransformableLoop(pCfa, pLoop, loopNode, index));
   }
 
   /** Returns all transformable loops in the specified CFA. */
@@ -409,15 +415,15 @@ final class TransformableLoop {
   }
 
   public ImmutableSet<CFAEdge> getDominatedInnerLoopEdges(CFAEdge pEdge) {
-    return getDominatedInnerLoopEdges(pEdge, loop, loopNode);
+    return getDominatedInnerLoopEdges(cfa, pEdge, loop, loopNode);
   }
 
   public ImmutableSet<CFAEdge> getPostDominatedInnerLoopEdges(CFAEdge pEdge) {
-    return getPostDominatedInnerLoopEdges(pEdge, loop, loopNode);
+    return getPostDominatedInnerLoopEdges(cfa, pEdge, loop, loopNode);
   }
 
   public boolean isExecutedEveryIteration(CFAEdge pEdge) {
-    return isExecutedEveryIteration(pEdge, loop, loopNode);
+    return isExecutedEveryIteration(cfa, pEdge, loop, loopNode);
   }
 
   public boolean hasOutgoingUses(CSimpleDeclaration pDeclaration) {

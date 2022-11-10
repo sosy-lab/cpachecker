@@ -12,10 +12,12 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.graph.Graphs;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -31,7 +33,6 @@ import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeTy
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
-import org.sosy_lab.cpachecker.util.graph.dominance.DominanceUtils;
 
 /**
  * Class for computing control dependencies and inserting them into a {@link SystemDependenceGraph}.
@@ -82,7 +83,9 @@ final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdg
     ControlDependenceBuilder<?> controlDependenceBuilder =
         new ControlDependenceBuilder<>(pBuilder, pEntryNode);
 
-    DomTree<CFANode> postDomTree = DominanceUtils.createFunctionPostDomTree(pEntryNode);
+    DomTree<CFANode> postDomTree =
+        DomTree.forGraph(
+            Graphs.transpose(CfaNetwork.forFunction(pEntryNode)), pEntryNode.getExitNode());
     Set<CFANode> postDomTreeNodes = new HashSet<>();
     Iterators.addAll(postDomTreeNodes, postDomTree.iterator());
 
