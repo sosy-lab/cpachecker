@@ -2663,11 +2663,28 @@ public class SMGState
   /*
    * Same as createAndAddPointer but with a specific nesting level in the SMGObject
    */
-  public SMGState createAndAddPointerWithNestingLevel(
-      Value addressValue, SMGObject target, BigInteger offsetInBits, int nestingLevel) {
-    return copyAndReplaceMemoryModel(
-        memoryModel.copyAndAddPointerFromAddressToRegionWithNestingLevel(
-            addressValue, target, offsetInBits, nestingLevel));
+  public ValueAndSMGState createAndAddPointerWithNestingLevel(
+      SMGObject target, BigInteger offsetInBits, int nestingLevel) {
+    // search for existing pointer first and return if found
+    Optional<SMGValue> maybeAddressValue =
+        getMemoryModel()
+            .getAddressValueForPointsToTargetWithNestingLevel(target, offsetInBits, nestingLevel);
+
+    if (maybeAddressValue.isPresent()) {
+      Optional<Value> valueForSMGValue =
+          getMemoryModel().getValueFromSMGValue(maybeAddressValue.orElseThrow());
+      if (maybeAddressValue.orElseThrow().getNestingLevel() != nestingLevel) {
+        Preconditions.checkArgument(
+            maybeAddressValue.orElseThrow().getNestingLevel() == nestingLevel);
+      }
+      return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), this);
+    }
+    Value newAddressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    return ValueAndSMGState.of(
+        newAddressValue,
+        copyAndReplaceMemoryModel(
+            memoryModel.copyAndAddPointerFromAddressToRegionWithNestingLevel(
+                newAddressValue, target, offsetInBits, nestingLevel)));
   }
 
   /**

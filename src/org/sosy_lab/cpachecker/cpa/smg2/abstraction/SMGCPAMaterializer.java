@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
@@ -214,15 +213,16 @@ public class SMGCPAMaterializer {
     Preconditions.checkArgument(pListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
 
     // Make the new value a pointer to the correct location and object
-    Value newPointerValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+
     SMGSinglyLinkedListSegment newAbsListSeg =
         (SMGSinglyLinkedListSegment) pListSeg.decrementLengthAndCopy();
-    currentState =
+    ValueAndSMGState newAddressAndState =
         currentState.createAndAddPointerWithNestingLevel(
-            newPointerValue,
             newAbsListSeg,
             BigInteger.ZERO,
             Integer.max(newAbsListSeg.getMinLength() - 1, MINIMUM_LIST_LENGTH));
+    currentState = newAddressAndState.getState();
+    Value newPointerValue = newAddressAndState.getValue();
     // Create a new value and map the old pointer towards the abstract region on it
     // Create a Value mapping for the new Value representing a pointer
     SMGValueAndSMGState newValuePointingToWardsAbstractListAndState =
@@ -316,8 +316,7 @@ public class SMGCPAMaterializer {
       Preconditions.checkArgument(
           maybePointsToEdgeToConcreteRegion.orElseThrow().pointsTo().equals(newConcreteRegion));
     }
-    // Make the new value a pointer to the correct location and object
-    Value newPointerValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+
     SMGDoublyLinkedListSegment newAbsListSeg =
         (SMGDoublyLinkedListSegment) pListSeg.decrementLengthAndCopy();
     currentState = currentState.copyAndAddObjectToHeap(newAbsListSeg);
@@ -329,12 +328,13 @@ public class SMGCPAMaterializer {
     // length - 1
     currentState = currentState.copyAllValuesFromObjToObj(pListSeg, newAbsListSeg);
     // Create the new pointer to the new abstract list segment with the correct nesting level
-    currentState =
+    ValueAndSMGState pointerAndState =
         currentState.createAndAddPointerWithNestingLevel(
-            newPointerValue,
             newAbsListSeg,
             BigInteger.ZERO,
             Integer.max(newAbsListSeg.getMinLength() - 1, MINIMUM_LIST_LENGTH));
+    currentState = pointerAndState.getState();
+    Value newPointerValue = pointerAndState.getValue();
 
     // Create a new value and map the old pointer towards the abstract region on it
     // Create a Value mapping for the new Value representing a pointer
