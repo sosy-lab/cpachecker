@@ -3342,7 +3342,7 @@ public class SMGCPAValueVisitorTest {
   }
 
   private Value addPointerToExistingHeapObject(int offset, Value addressOfTargetWith0Offset)
-      throws InvalidConfigurationException, SMG2Exception {
+      throws SMG2Exception {
     // Get the pte for the objects 0 position via the original malloc pointer (always the value in
     // the addressExpr)
     SMGStateAndOptionalSMGObjectAndOffset objectAndOffset =
