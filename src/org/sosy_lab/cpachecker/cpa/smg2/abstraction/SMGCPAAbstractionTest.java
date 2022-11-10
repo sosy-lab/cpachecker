@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -108,16 +109,39 @@ public class SMGCPAAbstractionTest {
    * point to the correct segments.
    */
   @Test
-  public void correctPointerNestingSLLTest() throws InvalidConfigurationException {
-    // int sizeOfList = 10;
+  public void correctPointerNestingSLLTest() throws InvalidConfigurationException, SMG2Exception {
+    int sizeOfList = 10;
     resetSMGStateAndVisitor();
-    // Value[] pointers = buildConcreteList(false, sllSize, sizeOfList);
-    // SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, sizeOfList);
-    // currentState = absFinder.findAndAbstractLists();
+    Value[] pointers = buildConcreteList(false, sllSize, sizeOfList);
+    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, sizeOfList - 1);
+    currentState = absFinder.findAndAbstractLists();
     // Now we have a 10+SLS
     // Deref a pointer not in the beginning or end, check that the list is consistent with the
     // pointers and the nesting level and materialization is correct afterwards
-    // TODO:
+    // Deref at position 2, 3, 5, 9 and 10 and check pointers
+    // We leave some space to check behaviour for automatic moving on for later pointers!!!
+    derefPointersAtAndCheckListMaterialization(
+        sizeOfList, pointers, new int[] {1, 2, 4, 8, 9}, false);
+  }
+
+  /**
+   * Test that a list is correctly materialized to 0+ in the end and then correctly reabsorbed to
+   * the original abstracted list with all pointers being correctly nested and no extra segments or
+   * states added.
+   */
+  @SuppressWarnings("unused")
+  @Ignore
+  @Test
+  public void correctZeroPlusAbsorptionSLLTest()
+      throws InvalidConfigurationException, SMG2Exception {
+    int sizeOfList = 10;
+    resetSMGStateAndVisitor();
+    Value[] pointers = buildConcreteList(false, sllSize, sizeOfList);
+    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, sizeOfList - 1);
+    currentState = absFinder.findAndAbstractLists();
+    // Now we have a 10+SLS
+    // Deref a pointer not in the beginning or end, check that the list is consistent with the
+    // pointers and the nesting level and materialization is correct afterwards
   }
 
   /**
@@ -1418,5 +1442,210 @@ public class SMGCPAAbstractionTest {
       prevObject = listSegment;
     }
     return pointerArray;
+  }
+
+  /**
+   * Checks the integrity of list pointers and nesting levels.
+   *
+   * @param totalSizeOfList size of list.
+   * @param pointers array of all the pointers to the (former) concrete list elements in order.
+   *     Expected to be as large as totalSizeOfList.
+   * @param derefPositions ordered array of deref positions, min: 0, max: totalSizeOfList - 1.
+   * @param dll true if dlls tested.
+   * @throws SMG2Exception indicates errors
+   */
+  private void derefPointersAtAndCheckListMaterialization(
+      int totalSizeOfList, Value[] pointers, int[] derefPositions, boolean dll)
+      throws SMG2Exception {
+    int tmp = 0;
+    assertThat(derefPositions[0] >= 0).isTrue();
+    for (int num : derefPositions) {
+      assertThat(tmp <= num).isTrue();
+      tmp = num;
+    }
+    assertThat(derefPositions[derefPositions.length - 1]).isLessThan(totalSizeOfList);
+    for (int k : derefPositions) {
+      List<SMGStateAndOptionalSMGObjectAndOffset> derefAtList =
+          currentState.dereferencePointer(pointers[k]);
+      assertThat(derefAtList).hasSize(1);
+      SMGStateAndOptionalSMGObjectAndOffset derefAt = derefAtList.get(0);
+      currentState = derefAt.getSMGState();
+      assertThat(derefAt.getSMGObject() instanceof SMGSinglyLinkedListSegment).isFalse();
+      // pointers 0 ... k-1 are now pointing to non-abstracted segments w nesting level 0
+      for (int i = 0; i <= k; i++) {
+        Optional<SMGStateAndOptionalSMGObjectAndOffset> derefWConcreteTarget =
+            currentState.dereferencePointerWithoutMaterilization(pointers[i]);
+        assertThat(derefWConcreteTarget.isPresent()).isTrue();
+        SMGObject currentObj = derefWConcreteTarget.orElseThrow().getSMGObject();
+        assertThat(currentObj instanceof SMGSinglyLinkedListSegment).isFalse();
+        ValueAndSMGState addressAndState =
+            currentState.searchOrCreateAddress(
+                derefWConcreteTarget.orElseThrow().getSMGObject(), BigInteger.ZERO);
+        currentState = addressAndState.getState();
+        Value address = addressAndState.getValue();
+        assertThat(address).isEqualTo(pointers[i]);
+        assertThat(
+                currentState
+                        .getMemoryModel()
+                        .getSMGValueFromValue(address)
+                        .orElseThrow()
+                        .getNestingLevel()
+                    == 0)
+            .isTrue();
+        if (dll && i > 0) {
+          // has a back pointer w nesting level 0 that points to the prev object
+          ValueAndSMGState backPointerRead =
+              currentState.readValueWithoutMaterialization(
+                  currentObj, pfo, pointerSizeInBits, null);
+          currentState = backPointerRead.getState();
+          Value backPointer = backPointerRead.getValue();
+          // Get prev obj from this read back pointer
+          Optional<SMGStateAndOptionalSMGObjectAndOffset> derefPrevFromRead =
+              currentState.dereferencePointerWithoutMaterilization(backPointer);
+          assertThat(derefPrevFromRead.isPresent()).isTrue();
+          SMGObject prevObjFromRead = derefPrevFromRead.orElseThrow().getSMGObject();
+          assertThat(prevObjFromRead instanceof SMGSinglyLinkedListSegment).isFalse();
+
+          // Get prev obj from pointers
+          Optional<SMGStateAndOptionalSMGObjectAndOffset> derefPrevWConcreteTarget =
+              currentState.dereferencePointerWithoutMaterilization(pointers[i - 1]);
+          assertThat(derefPrevWConcreteTarget.isPresent()).isTrue();
+          SMGObject prevObj = derefPrevWConcreteTarget.orElseThrow().getSMGObject();
+          assertThat(prevObj instanceof SMGSinglyLinkedListSegment).isFalse();
+
+          // Should be the same obj and pointer
+          assertThat(prevObjFromRead).isEqualTo(prevObj);
+          assertThat(pointers[i - 1]).isEqualTo(backPointer);
+          assertThat(
+                  currentState.getMemoryModel().getSMGValueFromValue(pointers[i - 1]).orElseThrow())
+              .isEqualTo(
+                  currentState.getMemoryModel().getSMGValueFromValue(backPointer).orElseThrow());
+          // Nesting level 0
+          assertThat(
+                  currentState
+                      .getMemoryModel()
+                      .getSMGValueFromValue(backPointer)
+                      .orElseThrow()
+                      .getNestingLevel())
+              .isEqualTo(0);
+        }
+      }
+      // The others are pointing to the abstracted segment w nesting level accordingly
+      for (int i = k + 1; i < totalSizeOfList; i++) {
+        Optional<SMGStateAndOptionalSMGObjectAndOffset> derefWOConcreteTarget =
+            currentState.dereferencePointerWithoutMaterilization(pointers[i]);
+        assertThat(derefWOConcreteTarget.isPresent()).isTrue();
+        assertThat(
+                derefWOConcreteTarget.orElseThrow().getSMGObject()
+                    instanceof SMGSinglyLinkedListSegment)
+            .isTrue();
+        if (dll && i > 0) {
+          // has a back pointer w nesting level 0 that points to the previous concrete object
+          SMGObject currentObj = derefWOConcreteTarget.orElseThrow().getSMGObject();
+          Optional<SMGStateAndOptionalSMGObjectAndOffset> derefWConcreteTarget =
+              currentState.dereferencePointerWithoutMaterilization(pointers[k]);
+          assertThat(derefWConcreteTarget.isPresent()).isTrue();
+          SMGObject prevConcreteObj = derefWConcreteTarget.orElseThrow().getSMGObject();
+          ValueAndSMGState backPointerRead =
+              currentState.readValueWithoutMaterialization(
+                  currentObj, pfo, pointerSizeInBits, null);
+          currentState = backPointerRead.getState();
+          Value backPointer = backPointerRead.getValue();
+          // Get prev obj from this read back pointer
+          Optional<SMGStateAndOptionalSMGObjectAndOffset> derefPrevFromRead =
+              currentState.dereferencePointerWithoutMaterilization(backPointer);
+          assertThat(derefPrevFromRead.isPresent()).isTrue();
+          SMGObject prevObjFromRead = derefPrevFromRead.orElseThrow().getSMGObject();
+          assertThat(prevObjFromRead instanceof SMGSinglyLinkedListSegment).isFalse();
+          assertThat(prevConcreteObj instanceof SMGSinglyLinkedListSegment).isFalse();
+
+          // Should be the same obj and pointer
+          assertThat(prevObjFromRead).isEqualTo(prevConcreteObj);
+          assertThat(pointers[k]).isEqualTo(backPointer);
+          assertThat(currentState.getMemoryModel().getSMGValueFromValue(pointers[k]).orElseThrow())
+              .isEqualTo(
+                  currentState.getMemoryModel().getSMGValueFromValue(backPointer).orElseThrow());
+          // Nesting level 0
+          assertThat(
+                  currentState
+                      .getMemoryModel()
+                      .getSMGValueFromValue(backPointer)
+                      .orElseThrow()
+                      .getNestingLevel())
+              .isEqualTo(0);
+        }
+      }
+      // there are currently sizeOfList + 3 ZERO pointers total and not more or less
+      if (k + 1 < totalSizeOfList) {
+        assertThat(currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet())
+            .hasSize(totalSizeOfList + 3);
+      } else {
+        // The last one has an additional pointer to 0+
+        assertThat(currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet())
+            .hasSize(totalSizeOfList + 4);
+      }
+      int zeros = 0;
+      int found0Plus = 0;
+      int foundNum = 0;
+      for (Entry<SMGValue, SMGPointsToEdge> entry :
+          currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet()) {
+        // The pointers are not ordered, filter out the 3 zeros and confirm that each pointer from
+        // pointers is present w correct nesting level
+        if (entry.getKey().isZero()) {
+          zeros++;
+        } else {
+          boolean found = false;
+          for (int i = 0; i < pointers.length; i++) {
+            Value pointer = pointers[i];
+            SMGValue pointerSMGValue =
+                currentState.getMemoryModel().getSMGValueFromValue(pointer).orElseThrow();
+            if (pointerSMGValue.equals(entry.getKey())) {
+              // check that no 2 pointers exist
+              assertThat(found).isFalse();
+              found = true;
+              foundNum++;
+              // check nesting level
+              if (i < k + 1) {
+                assertThat(entry.getKey().getNestingLevel()).isEqualTo(0);
+              } else {
+                assertThat(entry.getKey().getNestingLevel()).isEqualTo(totalSizeOfList - i - 1);
+              }
+            }
+          }
+          if (k + 1 == totalSizeOfList) {
+            // next from last to 0+ is special as it is an added pointer
+            ValueAndSMGState nextPointerToZeroPlusWithoutMaterialization =
+                currentState.readValueWithoutMaterialization(
+                    currentState
+                        .dereferencePointer(pointers[totalSizeOfList - 1])
+                        .get(0)
+                        .getSMGObject(),
+                    nfo,
+                    pointerSizeInBits,
+                    null);
+            currentState = nextPointerToZeroPlusWithoutMaterialization.getState();
+            if (entry
+                .getKey()
+                .equals(
+                    currentState
+                        .getMemoryModel()
+                        .getSMGValueFromValue(
+                            nextPointerToZeroPlusWithoutMaterialization.getValue())
+                        .orElseThrow())) {
+              // The lone next pointer from the last segment to 0+
+              assertThat(entry.getKey().getNestingLevel()).isEqualTo(0);
+              assertThat(found0Plus).isEqualTo(0);
+              assertThat(found).isFalse();
+              found0Plus++;
+            }
+          }
+        }
+      }
+      if (k + 1 == totalSizeOfList) {
+        assertThat(found0Plus).isEqualTo(1);
+      }
+      assertThat(foundNum).isEqualTo(totalSizeOfList);
+      assertThat(zeros == 3).isTrue();
+    }
   }
 }
