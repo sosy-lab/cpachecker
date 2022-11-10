@@ -80,7 +80,8 @@ public class ConfigurationFileChecks {
               + " requires exactly one specification automaton, but none were given.*|.*Could not"
               + " read precision from file.*|.*The SMT solver MATHSAT5 is not available on this"
               + " machine because of missing libraries \\(no optimathsat5j in"
-              + " java\\.library\\.path.*",
+              + " java\\.library\\.path.*|.*The SMT solver Z3 is not available on this machine"
+              + " because of missing libraries .* version `GLIBCXX_3.4.26' not found.*",
           Pattern.DOTALL);
 
   private static final Pattern ALLOWED_WARNINGS =

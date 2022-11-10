@@ -25,8 +25,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * This class provides a unified formula representation for {@link IMCAlgorithm} and {@link
- * ISMCAlgorithm}. It stores the following formulas.
+ * This class provides a formula representation for {@link IMCAlgorithm}. It stores the following
+ * formulas.
  *
  * <ul>
  *   <li>{@link PartitionedFormulas#prefixFormula} (*I): the block formula from root to the first

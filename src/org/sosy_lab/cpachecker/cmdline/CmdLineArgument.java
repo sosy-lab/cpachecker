@@ -12,6 +12,7 @@ import static org.sosy_lab.cpachecker.cmdline.CmdLineArguments.putIfNotExistent;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -27,6 +28,7 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     names = ImmutableSet.copyOf(pNames);
   }
 
+  @CanIgnoreReturnValue
   CmdLineArgument withDescription(String pDescription) {
     description = pDescription;
     return this;
@@ -129,11 +131,13 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
       super(pName);
     }
 
+    @CanIgnoreReturnValue
     PropertyAddingCmdLineArgument settingProperty(String pName, String pValue) {
       additionalIfNotExistentArgs.put(pName, pValue);
       return this;
     }
 
+    @CanIgnoreReturnValue
     PropertyAddingCmdLineArgument overridingProperty(String pName, String pValue) {
       additionalArgs.put(pName, pValue);
       return this;

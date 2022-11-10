@@ -253,7 +253,7 @@ public class ToBitvectorFormulaVisitor
       if (sourceSize < targetSize) {
         return bvfmgr.extend(sourceFormula, targetSize - sourceSize, targetInfo.isSigned());
       }
-      return bvfmgr.extract(sourceFormula, targetSize - 1, 0, targetInfo.isSigned());
+      return bvfmgr.extract(sourceFormula, targetSize - 1, 0);
     }
     return null;
   }

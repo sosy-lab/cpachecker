@@ -610,7 +610,7 @@ public class CtoFormulaConverter {
       if (sourceSize > targetSize) {
         formula =
             fmgr.getBitvectorFormulaManager()
-                .extract((BitvectorFormula) formula, targetSize - 1, 0, false);
+                .extract((BitvectorFormula) formula, targetSize - 1, 0);
       } else if (sourceSize < targetSize) {
         return null; // TODO extend with nondet bits
       }
@@ -633,7 +633,7 @@ public class CtoFormulaConverter {
       if (sourceSize > targetSize) {
         formula =
             fmgr.getBitvectorFormulaManager()
-                .extract((BitvectorFormula) formula, targetSize - 1, 0, false);
+                .extract((BitvectorFormula) formula, targetSize - 1, 0);
 
       } else if (sourceSize < targetSize) {
         return null; // TODO extend with nondet bits
@@ -884,7 +884,7 @@ public class CtoFormulaConverter {
         ret = bfmgr.ifThenElse(fmgr.makeEqual(zeroFromSize, pFormula), zeroToSize, oneToSize);
       } else {
         if (fromSize > toSize) {
-          ret = fmgr.makeExtract(pFormula, toSize - 1, 0, isSigned.test(pFromCType));
+          ret = fmgr.makeExtract(pFormula, toSize - 1, 0);
         } else if (fromSize < toSize) {
           ret = fmgr.makeExtend(pFormula, (toSize - fromSize), isSigned.test(pFromCType));
         } else {
@@ -893,13 +893,18 @@ public class CtoFormulaConverter {
       }
     } else if (fromType.isFloatingPointType()) {
       if (toType.isFloatingPointType()) {
-        ret = fmgr.getFloatingPointFormulaManager().castTo((FloatingPointFormula) pFormula, toType);
+        ret =
+            fmgr.getFloatingPointFormulaManager()
+                .castTo((FloatingPointFormula) pFormula, isSigned.test(pToCType), toType);
       } else {
         // Cf. C-Standard 6.3.1.4 (1).
         ret =
             fmgr.getFloatingPointFormulaManager()
                 .castTo(
-                    (FloatingPointFormula) pFormula, toType, FloatingPointRoundingMode.TOWARD_ZERO);
+                    (FloatingPointFormula) pFormula,
+                    isSigned.test(pToCType),
+                    toType,
+                    FloatingPointRoundingMode.TOWARD_ZERO);
       }
 
     } else if (toType.isFloatingPointType()) {
@@ -1833,8 +1838,7 @@ public class CtoFormulaConverter {
   /** Creates a Formula which accesses the given bits. */
   private BitvectorFormula accessField(
       Triple<Integer, Integer, Boolean> msb_Lsb_signed, BitvectorFormula f) {
-    return fmgr.makeExtract(
-        f, msb_Lsb_signed.getFirst(), msb_Lsb_signed.getSecond(), msb_Lsb_signed.getThird());
+    return fmgr.makeExtract(f, msb_Lsb_signed.getFirst(), msb_Lsb_signed.getSecond());
   }
 
   /** Creates a Formula which accesses the given Field */
@@ -1875,7 +1879,7 @@ public class CtoFormulaConverter {
     List<Formula> parts = new ArrayList<>(3);
 
     if (msb_Lsb.getFirst() + 1 < size) {
-      parts.add(fmgr.makeExtract(pLVar, size - 1, msb_Lsb.getFirst() + 1, msb_Lsb.getThird()));
+      parts.add(fmgr.makeExtract(pLVar, size - 1, msb_Lsb.getFirst() + 1));
     }
 
     if (pRightVariable.isPresent()) {
@@ -1886,7 +1890,7 @@ public class CtoFormulaConverter {
     }
 
     if (msb_Lsb.getSecond() > 0) {
-      parts.add(fmgr.makeExtract(pLVar, msb_Lsb.getSecond() - 1, 0, msb_Lsb.getThird()));
+      parts.add(fmgr.makeExtract(pLVar, msb_Lsb.getSecond() - 1, 0));
     }
 
     if (parts.isEmpty()) {

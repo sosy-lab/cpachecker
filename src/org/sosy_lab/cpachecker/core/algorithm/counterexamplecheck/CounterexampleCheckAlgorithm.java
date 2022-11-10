@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 @Options(prefix = "counterexample")
@@ -87,6 +88,14 @@ public class CounterexampleCheckAlgorithm
               + " the ARG\n"
               + "do not form a tree!")
   private boolean ambigiousARG = false;
+
+  @Option(
+      secure = true,
+      name = "skipCounterexampleForUnsupportedCode",
+      description =
+          "If true, the counterexample checker will not assume a counterexample as infeasible"
+              + " because of unsupported code. But will try different paths anyway.")
+  private boolean skipCounterexampleForUnsupportedCode = false;
 
   public CounterexampleCheckAlgorithm(
       Algorithm algorithm,
@@ -187,13 +196,21 @@ public class CounterexampleCheckAlgorithm
   }
 
   private boolean checkCounterexample(ARGState errorState, ReachedSet reached)
-      throws InterruptedException {
+      throws InterruptedException, UnsupportedCodeException {
 
     logger.log(
         Level.INFO, "Error path found, starting counterexample check with " + checkerType + ".");
     final boolean feasibility;
     try {
       feasibility = checkErrorPaths(checker, errorState, reached);
+    } catch (UnsupportedCodeException e) {
+      if (skipCounterexampleForUnsupportedCode) {
+        throw e;
+      }
+      logger.logUserException(
+          Level.WARNING, e, "Counterexample found, but feasibility could not be verified");
+      return false;
+
     } catch (CPAException e) {
       logger.logUserException(
           Level.WARNING, e, "Counterexample found, but feasibility could not be verified");

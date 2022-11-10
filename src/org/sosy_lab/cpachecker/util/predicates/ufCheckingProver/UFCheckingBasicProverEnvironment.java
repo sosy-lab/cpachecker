@@ -121,6 +121,11 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   }
 
   @Override
+  public int size() {
+    return delegate.size();
+  }
+
+  @Override
   public boolean isUnsat() throws SolverException, InterruptedException {
     boolean unsat = delegate.isUnsat();
     int additionalConstraints = 0;

@@ -141,7 +141,7 @@ class SMTHeapWithByteArray implements SMTHeap {
     BitvectorFormula result = afmgr.select(arrayFormula, address);
 
     if (bitLength < 8) {
-      return bfmgr.extract(result, bitLength - 1, 0, false);
+      return bfmgr.extract(result, bitLength - 1, 0);
     } else if (bitLength == 8) {
       return result;
     } else {
@@ -175,7 +175,7 @@ class SMTHeapWithByteArray implements SMTHeap {
     ImmutableList<BitvectorFormula> bytes;
     if (bitLength < 8) {
       BitvectorFormula remainingBits =
-          bfmgr.extract(afmgr.select(oldFormula, address), 7, bitLength, false);
+          bfmgr.extract(afmgr.select(oldFormula, address), 7, bitLength);
       bytes = ImmutableList.of(bfmgr.concat(remainingBits, value));
     } else if (bitLength == 8) {
       bytes = ImmutableList.of(value);
@@ -200,7 +200,7 @@ class SMTHeapWithByteArray implements SMTHeap {
     checkArgument(bitLength % 8 == 0, "Bitvector size %s is not a multiple of 8!", bitLength);
     ImmutableList.Builder<BitvectorFormula> builder = ImmutableList.builder();
     for (int bitOffset = 0; bitOffset < bitLength; bitOffset += 8) {
-      builder.add(bfmgr.extract(bitvector, bitOffset + 7, bitOffset, true));
+      builder.add(bfmgr.extract(bitvector, bitOffset + 7, bitOffset));
     }
     return (endianness == ByteOrder.BIG_ENDIAN) ? builder.build().reverse() : builder.build();
   }

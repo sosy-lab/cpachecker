@@ -8,15 +8,63 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.util.value;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
+/**
+ * This represents either a unknown value of a certain type, a address to a SMGObject/offset pair, a
+ * concrete value that may be numeric (BigInt or BigDecimal) or boolean in nature. TODO: this is
+ * obviously not good enough, just better than before. I will replace this!
+ */
 public class CValue implements Comparable<CValue> {
 
-  private static final CValue unknownValue = new CValue(BigInteger.valueOf(Integer.MIN_VALUE));
-  private final BigInteger value;
+  private static final CValue unknownCValue = new CValue();
+
+  // true for unknown values; all other values are null in this case!
+  private final boolean unknownValue;
+
+  // Address + offset of the address; null both if no address
+  private final @Nullable SMGObject address;
+  private final @Nullable BigInteger offset;
+
+  // The value if its a non decimal value; null for address/unknown etc.
+  private final @Nullable BigInteger value;
+
+  // The value if its a decimal value; null for address/unknown/value etc.
+  private final @Nullable BigDecimal decValue;
 
   private CValue(BigInteger pValue) {
     value = pValue;
+    address = null;
+    unknownValue = false;
+    offset = null;
+    decValue = null;
+  }
+
+  private CValue() {
+    value = null;
+    address = null;
+    unknownValue = true;
+    offset = null;
+    decValue = null;
+  }
+
+  private CValue(SMGObject pAdressTarget, BigInteger pOffset) {
+    value = null;
+    address = pAdressTarget;
+    unknownValue = false;
+    offset = pOffset;
+    decValue = null;
+  }
+
+  private CValue(BigDecimal decimalValue) {
+    value = null;
+    address = null;
+    unknownValue = false;
+    offset = null;
+    decValue = decimalValue;
   }
 
   public static CValue zero() {
@@ -27,12 +75,54 @@ public class CValue implements Comparable<CValue> {
     return new CValue(val);
   }
 
+  public static CValue valueOf(BigDecimal val) {
+    return new CValue(val);
+  }
+
+  // TODO: Bool = int; 0 = false, else true
+
   @Override
   public int compareTo(CValue other) {
-    if (isUnknown()) {
+    if (unknownValue) {
       return other.isUnknown() ? 0 : -1;
+    } else if (isAddressValue()) {
+      if (other.isAddressValue()) {
+        int compareAddresses = address.compareTo(other.getAddress());
+        if (compareAddresses == 0) {
+          return offset.compareTo(other.getOffset());
+        }
+        return compareAddresses;
+      }
+    } else if (isDecimalValue()) {
+      if (other.isDecimalValue()) {
+        return decValue.compareTo(other.getDecimalValue());
+      }
+    } else {
+      return value.compareTo(other.value);
     }
-    return value.compareTo(other.value);
+    return -1;
+  }
+
+  public boolean isAddressValue() {
+    return address != null && offset != null;
+  }
+
+  public BigDecimal getDecimalValue() {
+    return decValue;
+  }
+
+  public boolean isDecimalValue() {
+    return decValue == null;
+  }
+
+  @Nullable
+  public SMGObject getAddress() {
+    return address;
+  }
+
+  @Nullable
+  public BigInteger getOffset() {
+    return offset;
   }
 
   @Override
@@ -53,11 +143,11 @@ public class CValue implements Comparable<CValue> {
   }
 
   public boolean isUnknown() {
-    return unknownValue == this;
+    return unknownValue;
   }
 
   public static CValue getUnknownValue() {
-    return unknownValue;
+    return unknownCValue;
   }
 
   public boolean isZero() {
@@ -105,7 +195,7 @@ public class CValue implements Comparable<CValue> {
 
   public CValue add(CValue other) {
     if (isUnknown() || other.isUnknown()) {
-      return CValue.unknownValue;
+      return CValue.unknownCValue;
     }
     if (isZero()) {
       return other;

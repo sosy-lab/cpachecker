@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.type.MapType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.google.common.collect.ForwardingMap;
 import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -65,6 +66,7 @@ public class BlockSummaryMessagePayload extends ForwardingMap<String, Object> {
 
   public static class Builder extends ImmutableMap.Builder<String, Object> {
 
+    @CanIgnoreReturnValue
     public Builder addEntriesFromJSON(String json) throws JsonProcessingException {
       TypeFactory factory = TypeFactory.defaultInstance();
       MapType type = factory.constructMapType(HashMap.class, String.class, Object.class);
@@ -74,11 +76,13 @@ public class BlockSummaryMessagePayload extends ForwardingMap<String, Object> {
       return this;
     }
 
+    @CanIgnoreReturnValue
     public Builder addEntry(String key, Object value) {
       put(key, value);
       return this;
     }
 
+    @CanIgnoreReturnValue
     public Builder addAllEntries(Map<String, Object> entries) {
       putAll(entries);
       return this;
