@@ -961,6 +961,32 @@ public class SymbolicProgramConfiguration {
     return Optional.empty();
   }
 
+  /**
+   * Checks if a {@link SMGPointsToEdge} exists for the entered target object and offset and nesting
+   * level and returns a {@link Optional} that is filled with the SMGValue leading to the
+   * points-to-edge, empty if there is none. (This always assumes SMGTargetSpecifier.IS_REGION)
+   *
+   * @param target {@link SMGObject} that is the target of the points-to-edge.
+   * @param offset {@link BigInteger} offset in bits in the target.
+   * @param nestingLevel {@link int} nesting level
+   * @return either an empty {@link Optional} if there is no such edge, but the {@link SMGValue}
+   *     within if there is such a points-to-edge.
+   */
+  public Optional<SMGValue> getAddressValueForPointsToTargetWithNestingLevel(
+      SMGObject target, BigInteger offset, int nestingLevel) {
+    Map<SMGValue, SMGPointsToEdge> pteMapping = getSmg().getPTEdgeMapping();
+    SMGPointsToEdge searchedForEdge =
+        new SMGPointsToEdge(target, offset, SMGTargetSpecifier.IS_REGION);
+
+    for (Entry<SMGValue, SMGPointsToEdge> entry : pteMapping.entrySet()) {
+      if (entry.getValue().compareTo(searchedForEdge) == 0
+          && entry.getKey().getNestingLevel() == nestingLevel) {
+        return Optional.of(entry.getKey());
+      }
+    }
+    return Optional.empty();
+  }
+
   /* This expects the Value to be a valid pointer! */
   SMGTargetSpecifier getPointerSpecifier(Value pointer) {
     SMGValue smgValueAddress = valueMapping.get(valueWrapper.wrap(pointer));
