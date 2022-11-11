@@ -35,11 +35,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class MemoryLocationExtractingVisitor
-    implements CExpressionVisitor<Set<OverapproximatingMemoryLocation>, UnrecognizedCodeException> {
+    implements CExpressionVisitor<Set<OverapproximatingMemoryLocation>, NoException> {
 
   private final String functionName;
 
@@ -48,8 +48,7 @@ public class MemoryLocationExtractingVisitor
   }
 
   @Override
-  public Set<OverapproximatingMemoryLocation> visit(CBinaryExpression pBinaryExpression)
-      throws UnrecognizedCodeException {
+  public Set<OverapproximatingMemoryLocation> visit(CBinaryExpression pBinaryExpression) {
     return ImmutableSet.<OverapproximatingMemoryLocation>builder()
         .addAll(pBinaryExpression.getOperand1().accept(this))
         .addAll(pBinaryExpression.getOperand2().accept(this))
@@ -57,91 +56,82 @@ public class MemoryLocationExtractingVisitor
   }
 
   @Override
-  public Set<OverapproximatingMemoryLocation> visit(CCastExpression pCastExpression)
-      throws UnrecognizedCodeException {
+  public Set<OverapproximatingMemoryLocation> visit(CCastExpression pCastExpression) {
     return pCastExpression.getOperand().accept(this);
   }
 
   @Override
-  public Set<OverapproximatingMemoryLocation> visit(CCharLiteralExpression pCharLiteralExpression)
-      throws UnrecognizedCodeException {
+  public Set<OverapproximatingMemoryLocation> visit(CCharLiteralExpression pCharLiteralExpression) {
     return ImmutableSet.of();
   }
 
   @Override
   public Set<OverapproximatingMemoryLocation> visit(CFloatLiteralExpression pFloatLiteralExpression)
-      throws UnrecognizedCodeException {
+      throws NoException {
     return ImmutableSet.of();
   }
 
   @Override
   public Set<OverapproximatingMemoryLocation> visit(
-      CIntegerLiteralExpression pIntegerLiteralExpression) throws UnrecognizedCodeException {
+      CIntegerLiteralExpression pIntegerLiteralExpression) {
     return ImmutableSet.of();
   }
 
   @Override
   public Set<OverapproximatingMemoryLocation> visit(
-      CStringLiteralExpression pStringLiteralExpression) throws UnrecognizedCodeException {
+      CStringLiteralExpression pStringLiteralExpression) {
     return ImmutableSet.of();
   }
 
   @Override
-  public Set<OverapproximatingMemoryLocation> visit(CTypeIdExpression pTypeIdExpression)
-      throws UnrecognizedCodeException {
+  public Set<OverapproximatingMemoryLocation> visit(CTypeIdExpression pTypeIdExpression) {
     return ImmutableSet.of();
   }
 
   @Override
-  public Set<OverapproximatingMemoryLocation> visit(CUnaryExpression pUnaryExpression)
-      throws UnrecognizedCodeException {
+  public Set<OverapproximatingMemoryLocation> visit(CUnaryExpression pUnaryExpression) {
     return pUnaryExpression.getOperand().accept(this);
   }
 
   @Override
   public Set<OverapproximatingMemoryLocation> visit(
-      CImaginaryLiteralExpression pImaginaryLiteralExpression) throws UnrecognizedCodeException {
+      CImaginaryLiteralExpression pImaginaryLiteralExpression) {
     return pImaginaryLiteralExpression.getValue().accept(this);
   }
 
   @Override
   public Set<OverapproximatingMemoryLocation> visit(
-      CAddressOfLabelExpression pAddressOfLabelExpression) throws UnrecognizedCodeException {
+      CAddressOfLabelExpression pAddressOfLabelExpression) {
     return ImmutableSet.of();
   }
 
   @Override
   public Set<OverapproximatingMemoryLocation> visit(
-      CArraySubscriptExpression pArraySubscriptExpression) throws UnrecognizedCodeException {
+      CArraySubscriptExpression pArraySubscriptExpression) {
     return ImmutableSet.of(getMemoryLocation(pArraySubscriptExpression));
   }
 
   @Override
-  public Set<OverapproximatingMemoryLocation> visit(CFieldReference pFieldReference)
-      throws UnrecognizedCodeException {
+  public Set<OverapproximatingMemoryLocation> visit(CFieldReference pFieldReference) {
     return ImmutableSet.of(getMemoryLocation(pFieldReference));
   }
 
   @Override
-  public Set<OverapproximatingMemoryLocation> visit(CIdExpression pIdExpression)
-      throws UnrecognizedCodeException {
+  public Set<OverapproximatingMemoryLocation> visit(CIdExpression pIdExpression) {
     return ImmutableSet.of(getMemoryLocation(pIdExpression));
   }
 
   @Override
-  public Set<OverapproximatingMemoryLocation> visit(CPointerExpression pPointerExpression)
-      throws UnrecognizedCodeException {
+  public Set<OverapproximatingMemoryLocation> visit(CPointerExpression pPointerExpression) {
     return ImmutableSet.of(getMemoryLocation(pPointerExpression));
   }
 
   @Override
-  public Set<OverapproximatingMemoryLocation> visit(CComplexCastExpression pComplexCastExpression)
-      throws UnrecognizedCodeException {
+  public Set<OverapproximatingMemoryLocation> visit(CComplexCastExpression pComplexCastExpression) {
     return pComplexCastExpression.getOperand().accept(this);
   }
 
-  public OverapproximatingMemoryLocation getMemoryLocation(AExpression pExpression)
-      throws UnrecognizedCodeException {
+  public OverapproximatingMemoryLocation getMemoryLocation(AExpression pExpression) {
     if (!(pExpression instanceof CExpression)) {
       throw new AssertionError("Only C expressions are supported");
     }

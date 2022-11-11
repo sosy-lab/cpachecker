@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class MemoryAccessExtractor {
@@ -201,7 +200,7 @@ public class MemoryAccessExtractor {
    * @return the variables involved in the given expression.
    */
   private Set<OverapproximatingMemoryLocation> getInvolvedVariableTypes(
-      AExpression pExpression, CFAEdge pEdge) throws CPATransferException {
+      AExpression pExpression, CFAEdge pEdge) {
     if (!(pExpression instanceof CExpression)) {
       return ImmutableSet.of();
     }
@@ -211,15 +210,11 @@ public class MemoryAccessExtractor {
     CExpression expression = (CExpression) pExpression;
     MemoryLocationExtractingVisitor visitor =
         new MemoryLocationExtractingVisitor(pEdge.getSuccessor().getFunctionName());
-    try {
-      return expression.accept(visitor);
-    } catch (UnrecognizedCodeException e) {
-      throw new CPATransferException("Could not handle expression", e);
-    }
+    return expression.accept(visitor);
   }
 
   private Set<OverapproximatingMemoryLocation> getInvolvedVariableTypes(
-      CInitializer pCInitializer, CFAEdge pCfaEdge) throws CPATransferException {
+      CInitializer pCInitializer, CFAEdge pCfaEdge) {
     if (pCInitializer instanceof CDesignatedInitializer) {
       return getInvolvedVariableTypes(
           ((CDesignatedInitializer) pCInitializer).getRightHandSide(), pCfaEdge);
