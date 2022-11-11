@@ -35,6 +35,17 @@ public class LockRelease {
   }
 
   @Override
+  public String toString() {
+    return "LockRelease{threadId='"
+        + threadId
+        + "', lockId="
+        + lockId
+        + ", accessEpoch="
+        + accessEpoch
+        + '}';
+  }
+
+  @Override
   public boolean equals(Object pO) {
     if (this == pO) {
       return true;

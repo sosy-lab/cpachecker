@@ -41,6 +41,11 @@ public class ThreadSynchronization {
   }
 
   @Override
+  public String toString() {
+    return String.format("%s[%d] ---> %s[%d]", writeThread, writeEpoch, readThread, readEpoch);
+  }
+
+  @Override
   public boolean equals(Object pO) {
     if (this == pO) {
       return true;

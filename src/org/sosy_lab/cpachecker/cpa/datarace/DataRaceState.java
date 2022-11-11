@@ -114,6 +114,17 @@ public class DataRaceState implements AbstractQueryableState {
   }
 
   @Override
+  public String toString() {
+    return memoryAccesses.size()
+        + " memory access"
+        + (memoryAccesses.size() == 1 ? "" : "es")
+        + ", "
+        + threadSynchronizations.size()
+        + " thread synchronization"
+        + (threadSynchronizations.size() == 1 ? "" : "s");
+  }
+
+  @Override
   public boolean equals(Object pO) {
     if (this == pO) {
       return true;
