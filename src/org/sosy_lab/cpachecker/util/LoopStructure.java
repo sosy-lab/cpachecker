@@ -540,31 +540,31 @@ public final class LoopStructure implements Serializable {
       // For performance reasons, we use loop-free sections instead of individual nodes for loop
       // detection.
       LoopFreeSectionFinder loopFreeSectionFinder =
-          new LoopFreeSectionFinder(nodeAfterInitialChain);
-      CFANode sectionStart = loopFreeSectionFinder.loopFreeSectionStart(n);
-      CFANode sectionEnd = loopFreeSectionFinder.loopFreeSectionEnd(n);
-      int sectionStartIndex = arrayIndexForNode.apply(sectionStart);
-      int sectionEndIndex = arrayIndexForNode.apply(sectionEnd);
-      if (sectionStartIndex != sectionEndIndex
-          && edges[sectionStartIndex][sectionEndIndex] == null) {
+          new LoopFreeSkipBranchingFinder(nodeAfterInitialChain);
+      CFANode sectionEntry = loopFreeSectionFinder.entryNode(n);
+      CFANode sectionExit = loopFreeSectionFinder.exitNode(n);
+      int sectionEntryIndex = arrayIndexForNode.apply(sectionEntry);
+      int sectionExitIndex = arrayIndexForNode.apply(sectionExit);
+      if (sectionEntryIndex != sectionExitIndex
+          && edges[sectionEntryIndex][sectionExitIndex] == null) {
         // insert an edge for the loop-free section, if it doesn't already exist
-        edges[sectionStartIndex][sectionEndIndex] = new Edge();
+        edges[sectionEntryIndex][sectionExitIndex] = new Edge();
       }
-      if (i != sectionStartIndex && i != sectionEndIndex) {
-        // handle node that is between loop-free section start and end
-        edges[sectionStartIndex][sectionEndIndex].add(n);
+      if (i != sectionEntryIndex && i != sectionExitIndex) {
+        // handle node that is between loop-free section entry and exit
+        edges[sectionEntryIndex][sectionExitIndex].add(n);
         nodeIterator.remove();
       }
 
-      if (i == sectionEndIndex) {
-        // We only care about out-edges of the loop-free section end as other out-edges are part of
+      if (i == sectionExitIndex) {
+        // We only care about out-edges of the loop-free section exit as other out-edges are part of
         // the loop-free section.
-        for (CFANode sectionSuccessor : CFAUtils.successorsOf(sectionEnd)) {
+        for (CFANode sectionSuccessor : CFAUtils.successorsOf(sectionExit)) {
           int sectionSuccessorIndex = arrayIndexForNode.apply(sectionSuccessor);
-          edges[sectionEndIndex][sectionSuccessorIndex] = new Edge();
+          edges[sectionExitIndex][sectionSuccessorIndex] = new Edge();
 
-          if (sectionEndIndex == sectionSuccessorIndex) {
-            assert i == sectionStartIndex && sectionStartIndex == sectionEndIndex;
+          if (sectionExitIndex == sectionSuccessorIndex) {
+            assert i == sectionEntryIndex && sectionEntryIndex == sectionExitIndex;
             // self-edge
             handleLoop(n, i, edges, loops);
           }
@@ -991,40 +991,84 @@ public final class LoopStructure implements Serializable {
     return result;
   }
 
-  // TODO: performance can be improved by caching
-  private static final class LoopFreeSectionFinder {
-
-    // ignore predecessors of this node
-    private final @Nullable CFANode startNode;
-
-    private final Map<CFANode, Optional<CFANode>> branchNodeToMergeNode;
-    private final Map<CFANode, Optional<CFANode>> mergeNodeToBranchNode;
-
-    private LoopFreeSectionFinder(@Nullable CFANode pStartNode) {
-      startNode = pStartNode;
-      branchNodeToMergeNode = new HashMap<>();
-      mergeNodeToBranchNode = new HashMap<>();
-    }
+  /**
+   * Implementations of this interface find loop-free sections in a CFA.
+   *
+   * <p>A loop-free section is defined by its entry and exit node and must not contain any loops,
+   * but can itself be inside a loop body. The entry node must dominate all nodes in a loop-free
+   * section and the exit node must post-dominate all nodes in a loop-free section. The entry and
+   * exit are not part of a loop-free section, so a back-edge from the exit node to the entry node
+   * is permitted. A loop-free section is empty if entry and exit are the same node.
+   */
+  private static interface LoopFreeSectionFinder {
 
     /**
-     * Returns the start node of the chain that contains the specified node.
+     * Returns the entry node of the loop-free section that the specified node belongs to or the
+     * node itself if it doesn't belong to any loop free section.
      *
-     * <p>A chain can be represented by the following diagram:
-     *
-     * <pre>{@code
-     * (multiple in-edges) [start] ---> [ ] --- ... ---> [ ] ---> [end] (multiple out-edges)
-     * }</pre>
-     *
-     * <p>A chain that consists of a single node can be represented by the following diagram:
-     *
-     * <pre>{@code
-     * (multiple in-edges) [start == end] (multiple out-edges)
-     * }</pre>
-     *
-     * @param pNode the node to get the chain start for
-     * @return the start node of the chain that contains the specified node
+     * @param pNode the node to get the loop-free section entry node for
+     * @return If the specified node belongs to a loop-free section, the entry node of the loop free
+     *     section is returned. Otherwise, if the specified node doesn't belong to a loop-free
+     *     section, the specified node is returned.
+     * @throws NullPointerException if {@code pNode == null}
      */
-    private CFANode chainStart(CFANode pNode) {
+    CFANode entryNode(CFANode pNode);
+
+    /**
+     * Returns the exit node of the loop-free section that the specified node belongs to or the node
+     * itself if it doesn't belong to any loop free section.
+     *
+     * @param pNode the node to get the loop-free section exit node for
+     * @return If the specified node belongs to a loop-free section, the exit node of the loop free
+     *     section is returned. Otherwise, if the specified node doesn't belong to a loop-free
+     *     section, the specified node is returned.
+     * @throws NullPointerException if {@code pNode == null}
+     */
+    CFANode exitNode(CFANode pNode);
+  }
+
+  /**
+   * Returns empty sections that are trivially loop-free (self-loops are considered outside the
+   * loop-free section because entry and exit are not part of a loop-free section).
+   */
+  private static final class EmptyLoopFreeSectionFinder implements LoopFreeSectionFinder {
+
+    @Override
+    public CFANode entryNode(CFANode pNode) {
+      return pNode;
+    }
+
+    @Override
+    public CFANode exitNode(CFANode pNode) {
+      return pNode;
+    }
+  }
+
+  /**
+   * A {@link LoopFreeSectionFinder} that finds chains of nodes.
+   *
+   * <p>A chain of nodes can be represented by the following diagram:
+   *
+   * <pre>{@code
+   * (multiple in-edges) [entry] ---> [ ] --- ... ---> [ ] ---> [exit] (multiple out-edges)
+   * }</pre>
+   *
+   * <p>A chain that is empty can be represented by the following diagram:
+   *
+   * <pre>{@code
+   * (multiple in-edges) [entry == exit] (multiple out-edges)
+   * }</pre>
+   */
+  private static final class NodeChainFinder implements LoopFreeSectionFinder {
+
+    private final @Nullable CFANode ignoreNode;
+
+    private NodeChainFinder(@Nullable CFANode pIgnoreNode) {
+      ignoreNode = pIgnoreNode;
+    }
+
+    @Override
+    public CFANode entryNode(CFANode pNode) {
 
       CFANode currentNode = pNode;
 
@@ -1033,7 +1077,7 @@ public final class LoopStructure implements Serializable {
         return currentNode;
       }
 
-      if (currentNode.equals(startNode)) {
+      if (currentNode.equals(ignoreNode)) {
         return currentNode;
       }
 
@@ -1041,7 +1085,7 @@ public final class LoopStructure implements Serializable {
       CFANode nextNode = currentNode.getEnteringEdge(0).getPredecessor();
       while (nextNode.getNumEnteringEdges() == 1 && nextNode.getNumLeavingEdges() == 1) {
         currentNode = nextNode;
-        if (nextNode.equals(startNode)) {
+        if (nextNode.equals(ignoreNode)) {
           break;
         }
         nextNode = nextNode.getEnteringEdge(0).getPredecessor();
@@ -1051,25 +1095,8 @@ public final class LoopStructure implements Serializable {
       return nextNode.getNumLeavingEdges() == 1 ? nextNode : currentNode;
     }
 
-    /**
-     * Returns the end node of the chain that contains the specified node.
-     *
-     * <p>A chain can be represented by the following diagram:
-     *
-     * <pre>{@code
-     * (multiple in-edges) [start] ---> [ ] --- ... ---> [ ] ---> [end] (multiple out-edges)
-     * }</pre>
-     *
-     * <p>A chain that consists of a single node can be represented by the following diagram:
-     *
-     * <pre>{@code
-     * (multiple in-edges) [start == end] (multiple out-edges)
-     * }</pre>
-     *
-     * @param pNode the node to get the chain end for
-     * @return the end node of the chain that contains the specified node
-     */
-    private CFANode chainEnd(CFANode pNode) {
+    @Override
+    public CFANode exitNode(CFANode pNode) {
 
       CFANode currentNode = pNode;
 
@@ -1078,34 +1105,60 @@ public final class LoopStructure implements Serializable {
         return currentNode;
       }
 
+      if (currentNode.equals(ignoreNode)) {
+        return currentNode;
+      }
+
       // nodes between chain start and end must have a single in-edge and a single out-edge
       CFANode nextNode = currentNode.getLeavingEdge(0).getSuccessor();
       while (nextNode.getNumEnteringEdges() == 1 && nextNode.getNumLeavingEdges() == 1) {
         currentNode = nextNode;
+        if (nextNode.equals(ignoreNode)) {
+          break;
+        }
         nextNode = nextNode.getLeavingEdge(0).getSuccessor();
       }
 
       // the end can have multiple out-edges, but only a single in-edge if it's a multi-node chain
       return nextNode.getNumEnteringEdges() == 1 ? nextNode : currentNode;
     }
+  }
+
+  private static final class LoopFreeSkipBranchingFinder implements LoopFreeSectionFinder {
+
+    private final @Nullable CFANode ignoreNode;
+    private final NodeChainFinder nodeChainFinder;
+
+    private final Map<CFANode, Optional<CFANode>> branchNodeToMergeNode;
+    private final Map<CFANode, Optional<CFANode>> mergeNodeToBranchNode;
+
+    private LoopFreeSkipBranchingFinder(@Nullable CFANode pIgnoreNode) {
+      ignoreNode = pIgnoreNode;
+      nodeChainFinder = new NodeChainFinder(pIgnoreNode);
+      branchNodeToMergeNode = new HashMap<>();
+      mergeNodeToBranchNode = new HashMap<>();
+    }
 
     private @Nullable CFANode loopFreeBranchingMergeNodeCandidate(CFANode pBranch) {
 
       @Nullable CFANode loopFreeBranchEnd =
-          pBranch.getNumEnteringEdges() == 1 ? chainEnd(pBranch) : null;
+          pBranch.getNumEnteringEdges() == 1 ? nodeChainFinder.exitNode(pBranch) : null;
       // handle inner branching
       if (loopFreeBranchEnd != null && loopFreeBranchEnd.getNumLeavingEdges() == 2) {
         loopFreeBranchEnd =
-            loopFreeBranchingMergeNode(loopFreeBranchEnd).map(this::chainEnd).orElse(null);
+            loopFreeBranchingMergeNode(loopFreeBranchEnd)
+                .map(nodeChainFinder::exitNode)
+                .orElse(null);
       }
 
       if (loopFreeBranchEnd == null) {
         return pBranch;
-      } else if (loopFreeBranchEnd.getNumLeavingEdges() == 1) {
+      } else if (loopFreeBranchEnd.getNumLeavingEdges() == 1
+          && !loopFreeBranchEnd.equals(ignoreNode)) {
         return loopFreeBranchEnd.getLeavingEdge(0).getSuccessor();
-      } else {
-        return null;
       }
+
+      return null;
     }
 
     /**
@@ -1121,6 +1174,10 @@ public final class LoopStructure implements Serializable {
 
       checkArgument(
           pBranchNode.getNumLeavingEdges() == 2, "Node is not a branch node: %s", pBranchNode);
+
+      if (pBranchNode.equals(ignoreNode)) {
+        return Optional.empty();
+      }
 
       if (branchNodeToMergeNode.containsKey(pBranchNode)) {
         return branchNodeToMergeNode.get(pBranchNode);
@@ -1147,17 +1204,19 @@ public final class LoopStructure implements Serializable {
     private @Nullable CFANode loopFreeBranchingBranchNodeCandidate(CFANode pBranch) {
 
       @Nullable CFANode loopFreeBranchStart =
-          pBranch.getNumLeavingEdges() == 1 ? chainStart(pBranch) : null;
+          pBranch.getNumLeavingEdges() == 1 ? nodeChainFinder.entryNode(pBranch) : null;
       // handle inner branching
       if (loopFreeBranchStart != null && loopFreeBranchStart.getNumEnteringEdges() == 2) {
         loopFreeBranchStart =
-            loopFreeBranchingBranchNode(loopFreeBranchStart).map(this::chainStart).orElse(null);
+            loopFreeBranchingBranchNode(loopFreeBranchStart)
+                .map(nodeChainFinder::entryNode)
+                .orElse(null);
       }
 
       if (loopFreeBranchStart == null) {
         return pBranch;
       } else if (loopFreeBranchStart.getNumEnteringEdges() == 1
-          && !loopFreeBranchStart.equals(startNode)) {
+          && !loopFreeBranchStart.equals(ignoreNode)) {
         return loopFreeBranchStart.getEnteringEdge(0).getPredecessor();
       }
 
@@ -1178,7 +1237,7 @@ public final class LoopStructure implements Serializable {
       checkArgument(
           pMergeNode.getNumEnteringEdges() == 2, "Node is not a merge node: %s", pMergeNode);
 
-      if (pMergeNode.equals(startNode)) {
+      if (pMergeNode.equals(ignoreNode)) {
         return Optional.empty();
       }
 
@@ -1204,81 +1263,74 @@ public final class LoopStructure implements Serializable {
       return branchNode;
     }
 
-    /**
-     * Returns the start node of the loop-free section that contains the specified node.
-     *
-     * @param pNode the start node the get the loop-free section start for
-     * @return the start node of the loop-free section that contains the specified node
-     */
-    private CFANode loopFreeSectionStart(CFANode pNode) {
+    @Override
+    public CFANode entryNode(CFANode pNode) {
 
-      CFANode sectionStart = chainStart(pNode);
+      CFANode sectionEntry = nodeChainFinder.entryNode(pNode);
 
       boolean changed;
       do {
         changed = false;
-        if (sectionStart.getNumEnteringEdges() == 1) {
-          if (sectionStart.equals(startNode)) {
-            return sectionStart;
+        if (sectionEntry.getNumEnteringEdges() == 1) {
+          if (sectionEntry.equals(ignoreNode)) {
+            return sectionEntry;
           }
-          CFAEdge enteringEdge = sectionStart.getEnteringEdge(0);
+          CFAEdge enteringEdge = sectionEntry.getEnteringEdge(0);
           CFANode predecessor = enteringEdge.getPredecessor();
           if (predecessor.getNumLeavingEdges() == 2
               && loopFreeBranchingMergeNode(predecessor).isPresent()) {
             // leave branching
-            sectionStart = chainStart(predecessor);
+            sectionEntry = nodeChainFinder.entryNode(predecessor);
             changed = true;
           } else {
             break;
           }
-        } else if (sectionStart.getNumEnteringEdges() == 2) {
-          Optional<CFANode> branchNode = loopFreeBranchingBranchNode(sectionStart);
+        } else if (sectionEntry.getNumEnteringEdges() == 2) {
+          Optional<CFANode> branchNode = loopFreeBranchingBranchNode(sectionEntry);
           if (branchNode.isPresent()) {
             // skip branching
-            sectionStart = branchNode.map(this::chainStart).orElseThrow();
+            sectionEntry = branchNode.map(nodeChainFinder::entryNode).orElseThrow();
             changed = true;
           }
         }
       } while (changed);
 
-      return sectionStart;
+      return sectionEntry;
     }
 
-    /**
-     * Returns the end node of the loop-free section that contains the specified node.
-     *
-     * @param pNode the start node the get the loop-free section start for
-     * @return the end node of the loop-free section that contains the specified node
-     */
-    private CFANode loopFreeSectionEnd(CFANode pNode) {
+    @Override
+    public CFANode exitNode(CFANode pNode) {
 
-      CFANode sectionEnd = chainEnd(pNode);
+      CFANode sectionExit = nodeChainFinder.exitNode(pNode);
 
       boolean changed;
       do {
         changed = false;
-        if (sectionEnd.getNumLeavingEdges() == 1) {
-          CFAEdge leavingEdge = sectionEnd.getLeavingEdge(0);
+        if (sectionExit.getNumLeavingEdges() == 1) {
+          if (sectionExit.equals(ignoreNode)) {
+            return sectionExit;
+          }
+          CFAEdge leavingEdge = sectionExit.getLeavingEdge(0);
           CFANode successor = leavingEdge.getSuccessor();
           if (successor.getNumEnteringEdges() == 2
               && loopFreeBranchingBranchNode(successor).isPresent()) {
             // leave branching
-            sectionEnd = chainEnd(successor);
+            sectionExit = nodeChainFinder.exitNode(successor);
             changed = true;
           } else {
             break;
           }
-        } else if (sectionEnd.getNumLeavingEdges() == 2) {
-          Optional<CFANode> mergeNode = loopFreeBranchingMergeNode(sectionEnd);
+        } else if (sectionExit.getNumLeavingEdges() == 2) {
+          Optional<CFANode> mergeNode = loopFreeBranchingMergeNode(sectionExit);
           if (mergeNode.isPresent()) {
             // skip branching
-            sectionEnd = mergeNode.map(this::chainEnd).orElseThrow();
+            sectionExit = mergeNode.map(nodeChainFinder::exitNode).orElseThrow();
             changed = true;
           }
         }
       } while (changed);
 
-      return sectionEnd;
+      return sectionExit;
     }
   }
 }
