@@ -449,7 +449,7 @@ public final class LoopStructure implements Serializable {
     ImmutableListMultimap.Builder<String, Loop> loops = ImmutableListMultimap.builder();
     for (String functionName : cfa.getAllFunctionNames()) {
       NavigableSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
-      loops.putAll(functionName, findLoops(nodes, cfa.getLanguage()));
+      loops.putAll(functionName, findLoops(nodes, cfa.getLanguage(), null));
     }
     return new LoopStructure(loops.build());
   }
@@ -458,11 +458,17 @@ public final class LoopStructure implements Serializable {
    * Find all loops inside a given set of CFA nodes. The nodes in the given set may not be connected
    * with any nodes outside of this set. This method tries to differentiate nested loops.
    *
-   * @param nodes The set of nodes to look for loops in.
+   * @param pNodes the set of nodes to look for loops in
    * @param language The source language.
+   * @param pLoopFreeSectionFinder the {@link LoopFreeSectionFinder} to use to speed up loop finding
+   *     (if {@code pLoopFreeSectionFinder == null}, a default {@link LoopFreeSectionFinder} is used
+   *     by this method)
    * @return A collection of found loops.
    */
-  private static Collection<Loop> findLoops(NavigableSet<CFANode> nodes, Language language)
+  private static Collection<Loop> findLoops(
+      NavigableSet<CFANode> pNodes,
+      Language language,
+      @Nullable LoopFreeSectionFinder pLoopFreeSectionFinder)
       throws ParserException {
 
     // Two optimizations:
@@ -474,7 +480,7 @@ public final class LoopStructure implements Serializable {
     List<CFANode> initialChain = new ArrayList<>();
     @Nullable CFANode nodeAfterInitialChain = null;
     {
-      CFANode functionExitNode = nodes.first(); // The function exit node is always the first
+      CFANode functionExitNode = pNodes.first(); // The function exit node is always the first
       if (functionExitNode instanceof FunctionExitNode) {
         CFANode startNode = ((FunctionExitNode) functionExitNode).getEntryNode();
         while (startNode.getNumLeavingEdges() == 1 && startNode.getNumEnteringEdges() <= 1) {
@@ -496,7 +502,8 @@ public final class LoopStructure implements Serializable {
       }
     }
 
-    nodes = new TreeSet<>(nodes); // copy nodes because we change it, it is our working set
+    NavigableSet<CFANode> nodes =
+        new TreeSet<>(pNodes); // copy nodes because we change it, it is our working set
     nodes.removeAll(initialChain);
 
     // We need to store some information per pair of CFANodes.
@@ -540,7 +547,9 @@ public final class LoopStructure implements Serializable {
       // For performance reasons, we use loop-free sections instead of individual nodes for loop
       // detection.
       LoopFreeSectionFinder loopFreeSectionFinder =
-          new LoopFreeSkipBranchingFinder(nodeAfterInitialChain);
+          pLoopFreeSectionFinder != null
+              ? pLoopFreeSectionFinder
+              : new LoopFreeSkipBranchingFinder(nodeAfterInitialChain);
       CFANode sectionEntry = loopFreeSectionFinder.entryNode(n);
       CFANode sectionExit = loopFreeSectionFinder.exitNode(n);
       int sectionEntryIndex = arrayIndexForNode.apply(sectionEntry);
@@ -663,7 +672,11 @@ public final class LoopStructure implements Serializable {
       }
     } while (!toRemove.isEmpty());
 
-    return ImmutableList.copyOf(loops);
+    ImmutableList<Loop> result = ImmutableList.copyOf(loops);
+    assert result.equals(findLoops(pNodes, language, new EmptyLoopFreeSectionFinder()))
+        : "Using `LoopFreeSectionFinder` changes the found loops!";
+
+    return result;
   }
 
   private static boolean identifyLoops(
