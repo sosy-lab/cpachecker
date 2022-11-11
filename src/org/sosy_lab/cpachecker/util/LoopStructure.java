@@ -533,7 +533,7 @@ public final class LoopStructure implements Serializable {
     LoopFreeSectionFinder loopFreeSectionFinder =
         pLoopFreeSectionFinder != null
             ? pLoopFreeSectionFinder
-            : new LoopFreeSkipBranchingFinder(nodeAfterInitialChain);
+            : new BranchSkippingLoopFreeSectionFinder(nodeAfterInitialChain);
 
     // FIRST step: initialize arrays
     for (Iterator<CFANode> nodeIterator = nodes.iterator(); nodeIterator.hasNext(); ) {
@@ -1075,11 +1075,11 @@ public final class LoopStructure implements Serializable {
    * (multiple in-edges) [entry == exit] (multiple out-edges)
    * }</pre>
    */
-  private static final class NodeChainFinder implements LoopFreeSectionFinder {
+  private static final class NodeChainLoopFreeSectionFinder implements LoopFreeSectionFinder {
 
     private final @Nullable CFANode ignoreNode;
 
-    private NodeChainFinder(@Nullable CFANode pIgnoreNode) {
+    private NodeChainLoopFreeSectionFinder(@Nullable CFANode pIgnoreNode) {
       ignoreNode = pIgnoreNode;
     }
 
@@ -1140,17 +1140,17 @@ public final class LoopStructure implements Serializable {
     }
   }
 
-  private static final class LoopFreeSkipBranchingFinder implements LoopFreeSectionFinder {
+  private static final class BranchSkippingLoopFreeSectionFinder implements LoopFreeSectionFinder {
 
     private final @Nullable CFANode ignoreNode;
-    private final NodeChainFinder nodeChainFinder;
+    private final NodeChainLoopFreeSectionFinder nodeChainFinder;
 
     private final Map<CFANode, Optional<CFANode>> branchNodeToMergeNode;
     private final Map<CFANode, Optional<CFANode>> mergeNodeToBranchNode;
 
-    private LoopFreeSkipBranchingFinder(@Nullable CFANode pIgnoreNode) {
+    private BranchSkippingLoopFreeSectionFinder(@Nullable CFANode pIgnoreNode) {
       ignoreNode = pIgnoreNode;
-      nodeChainFinder = new NodeChainFinder(pIgnoreNode);
+      nodeChainFinder = new NodeChainLoopFreeSectionFinder(pIgnoreNode);
       branchNodeToMergeNode = new HashMap<>();
       mergeNodeToBranchNode = new HashMap<>();
     }
