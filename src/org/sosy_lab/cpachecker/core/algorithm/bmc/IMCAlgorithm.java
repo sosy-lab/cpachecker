@@ -622,6 +622,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             && isPropertyInductive(partitionedFormulas)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           logger.log(Level.FINE, "The safety property is inductive");
+          // unlinke IMC/ISMC, we cannot obtain a more precise fixed point here
+          finalFixedPoint = bfmgr.makeTrue();
+          InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
+              pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
         // interpolation
