@@ -566,8 +566,8 @@ public final class LoopStructure implements Serializable {
       }
 
       if (i == sectionExitIndex) {
-        // We only care about out-edges of the loop-free section exit as other out-edges are part of
-        // the loop-free section.
+        // We only care about out-edges of a loop-free section exit node as other out-edges are part
+        // of a loop-free section and skipped.
         for (CFANode sectionSuccessor : CFAUtils.successorsOf(sectionExit)) {
           int sectionSuccessorIndex = arrayIndexForNode.apply(sectionSuccessor);
           edges[sectionExitIndex][sectionSuccessorIndex] = new Edge();
@@ -1020,7 +1020,7 @@ public final class LoopStructure implements Serializable {
 
     /**
      * Returns the entry node of the loop-free section that the specified node belongs to or the
-     * node itself if it doesn't belong to any loop free section.
+     * node itself if it doesn't belong to a loop free section.
      *
      * @param pNode the node to get the loop-free section entry node for
      * @return If the specified node belongs to a loop-free section, the entry node of the loop free
@@ -1032,7 +1032,7 @@ public final class LoopStructure implements Serializable {
 
     /**
      * Returns the exit node of the loop-free section that the specified node belongs to or the node
-     * itself if it doesn't belong to any loop free section.
+     * itself if it doesn't belong to a loop free section.
      *
      * @param pNode the node to get the loop-free section exit node for
      * @return If the specified node belongs to a loop-free section, the exit node of the loop free
@@ -1044,8 +1044,9 @@ public final class LoopStructure implements Serializable {
   }
 
   /**
-   * Returns empty sections that are trivially loop-free (self-loops are considered outside the
-   * loop-free section because entry and exit are not part of a loop-free section).
+   * Finds empty sections that contain no nodes and are trivially loop-free (self-loops are
+   * considered outside a loop-free section because entry and exit are not part of a loop-free
+   * section).
    */
   private static final class EmptyLoopFreeSectionFinder implements LoopFreeSectionFinder {
 
@@ -1069,7 +1070,7 @@ public final class LoopStructure implements Serializable {
    * (multiple in-edges) [entry] ---> [ ] --- ... ---> [ ] ---> [exit] (multiple out-edges)
    * }</pre>
    *
-   * <p>A chain that is empty can be represented by the following diagram:
+   * <p>An empty chain can be represented by the following diagram:
    *
    * <pre>{@code
    * (multiple in-edges) [entry == exit] (multiple out-edges)
@@ -1079,6 +1080,12 @@ public final class LoopStructure implements Serializable {
 
     private final @Nullable CFANode ignoreNode;
 
+    /**
+     * Creates a new {@link NodeChainLoopFreeSectionFinder} instance.
+     *
+     * @param pIgnoreNode if {@code pIgnoreNode != null}, we stop CFA traversal at this node, so no
+     *     section found by this {@link LoopFreeSectionFinder} contains the node
+     */
     private NodeChainLoopFreeSectionFinder(@Nullable CFANode pIgnoreNode) {
       ignoreNode = pIgnoreNode;
     }
@@ -1088,7 +1095,7 @@ public final class LoopStructure implements Serializable {
 
       CFANode currentNode = pNode;
 
-      // the end can have multiple out-edges, but only a single in-edge if it's a multi-node chain
+      // the exit can have multiple out-edges, but only a single in-edge if the chain isn't empty
       if (currentNode.getNumEnteringEdges() != 1) {
         return currentNode;
       }
@@ -1097,7 +1104,7 @@ public final class LoopStructure implements Serializable {
         return currentNode;
       }
 
-      // nodes between chain start and end must have a single in-edge and a single out-edge
+      // nodes between chain entry and exit must have a single in-edge and a single out-edge
       CFANode nextNode = currentNode.getEnteringEdge(0).getPredecessor();
       while (nextNode.getNumEnteringEdges() == 1 && nextNode.getNumLeavingEdges() == 1) {
         currentNode = nextNode;
@@ -1107,7 +1114,7 @@ public final class LoopStructure implements Serializable {
         nextNode = nextNode.getEnteringEdge(0).getPredecessor();
       }
 
-      // the start can have multiple in-edges, but only a single out-edge if it's a multi-node chain
+      // the entry can have multiple in-edges, but only a single out-edge if the chain isn't empty
       return nextNode.getNumLeavingEdges() == 1 ? nextNode : currentNode;
     }
 
@@ -1116,7 +1123,7 @@ public final class LoopStructure implements Serializable {
 
       CFANode currentNode = pNode;
 
-      // the start can have multiple in-edges, but only a single out-edge if it's a multi-node chain
+      // the entry can have multiple in-edges, but only a single out-edge if the chain ins't empty
       if (currentNode.getNumLeavingEdges() != 1) {
         return currentNode;
       }
@@ -1125,7 +1132,7 @@ public final class LoopStructure implements Serializable {
         return currentNode;
       }
 
-      // nodes between chain start and end must have a single in-edge and a single out-edge
+      // nodes between chain entry and exit must have a single in-edge and a single out-edge
       CFANode nextNode = currentNode.getLeavingEdge(0).getSuccessor();
       while (nextNode.getNumEnteringEdges() == 1 && nextNode.getNumLeavingEdges() == 1) {
         currentNode = nextNode;
@@ -1135,19 +1142,31 @@ public final class LoopStructure implements Serializable {
         nextNode = nextNode.getLeavingEdge(0).getSuccessor();
       }
 
-      // the end can have multiple out-edges, but only a single in-edge if it's a multi-node chain
+      // the exit can have multiple out-edges, but only a single in-edge if the chain isn't empty
       return nextNode.getNumEnteringEdges() == 1 ? nextNode : currentNode;
     }
   }
 
+  /** Finds loop-free sections that may contain (nested) branchings. */
   private static final class BranchSkippingLoopFreeSectionFinder implements LoopFreeSectionFinder {
+
+    // TODO: use `CfaNetwork` and transposed `CfaNetwork` to basically halve the amount of code
 
     private final @Nullable CFANode ignoreNode;
     private final NodeChainLoopFreeSectionFinder nodeChainFinder;
 
+    // Maps branch/merge nodes to their corresponding merge/branch nodes, so we can skip a
+    // branching. `Optional.empty()` means that there is no corresponding merge/branch node or the
+    // branching isn't loop-free.
     private final Map<CFANode, Optional<CFANode>> branchNodeToMergeNode;
     private final Map<CFANode, Optional<CFANode>> mergeNodeToBranchNode;
 
+    /**
+     * Creates a new {@link BranchSkippingLoopFreeSectionFinder} instance.
+     *
+     * @param pIgnoreNode if {@code pIgnoreNode != null}, we stop CFA traversal at this node, so no
+     *     section found by this {@link LoopFreeSectionFinder} contains the node
+     */
     private BranchSkippingLoopFreeSectionFinder(@Nullable CFANode pIgnoreNode) {
       ignoreNode = pIgnoreNode;
       nodeChainFinder = new NodeChainLoopFreeSectionFinder(pIgnoreNode);
@@ -1183,8 +1202,11 @@ public final class LoopStructure implements Serializable {
      *
      * @param pBranchNode the branch node to get the merge node for
      * @return If both branches are loop-free, an optional containing the merge node for the
-     *     specified branch node is returned. Otherwise, if both branches are not loop-free or we
-     *     are unable to determine whether they are loop-free, an empty optional is returned.
+     *     specified branch node is returned. Otherwise, if at least one of the branches is not
+     *     loop-free or we are unable to determine whether they are both loop-free, an empty
+     *     optional is returned.
+     * @throws IllegalArgumentException if {@code pBranchNode} is not a branch node
+     * @throws NullPointerException if {@code pBranchNode == null}
      */
     private Optional<CFANode> loopFreeBranchingMergeNode(CFANode pBranchNode) {
 
@@ -1245,8 +1267,11 @@ public final class LoopStructure implements Serializable {
      *
      * @param pMergeNode the merge node to get the branch node for
      * @return If both branches are loop-free, an optional containing the branch node for the
-     *     specified merge node is returned. Otherwise, if both branches are not loop-free or we are
-     *     unable to determine whether they are loop-free, an empty optional is returned.
+     *     specified merge node is returned. Otherwise, if at least one of the branches is not
+     *     loop-free or we are unable to determine whether both branches are loop-free, an empty
+     *     optional is returned.
+     * @throws IllegalArgumentException if {@code pMergeNode} is not a merge node
+     * @throws NullPointerException if {@code pMergeNode == null}
      */
     private Optional<CFANode> loopFreeBranchingBranchNode(CFANode pMergeNode) {
 
