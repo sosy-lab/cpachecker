@@ -72,6 +72,11 @@ public final class CTypedefType implements CType, Serializable {
   }
 
   @Override
+  public boolean hasKnownConstantSize() {
+    return realType.hasKnownConstantSize();
+  }
+
+  @Override
   public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
     return pVisitor.visit(this);
   }

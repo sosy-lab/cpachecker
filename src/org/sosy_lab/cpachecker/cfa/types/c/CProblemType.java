@@ -44,6 +44,11 @@ public final class CProblemType implements CType {
   }
 
   @Override
+  public boolean hasKnownConstantSize() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public String toASTString(String pDeclarator) {
     checkNotNull(pDeclarator);
     return typeName + " " + pDeclarator;
