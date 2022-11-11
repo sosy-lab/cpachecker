@@ -968,7 +968,7 @@ public class SymbolicProgramConfiguration {
    *
    * @param target {@link SMGObject} that is the target of the points-to-edge.
    * @param offset {@link BigInteger} offset in bits in the target.
-   * @param nestingLevel {@link int} nesting level
+   * @param nestingLevel nesting level to search for.
    * @return either an empty {@link Optional} if there is no such edge, but the {@link SMGValue}
    *     within if there is such a points-to-edge.
    */
@@ -1397,6 +1397,7 @@ public class SymbolicProgramConfiguration {
       }
       builder
           .append(entry.getKey())
+          .append(" (" + entry.getKey().getNestingLevel() + ")")
           .append(" -> ")
           .append(entry.getValue())
           .append(smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true))
