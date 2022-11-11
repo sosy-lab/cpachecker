@@ -528,6 +528,12 @@ public final class LoopStructure implements Serializable {
     final Edge[][] edges = new Edge[size][size];
 
     List<Loop> loops = new ArrayList<>();
+    // For performance reasons, we use loop-free sections instead of individual nodes for loop
+    // detection.
+    LoopFreeSectionFinder loopFreeSectionFinder =
+        pLoopFreeSectionFinder != null
+            ? pLoopFreeSectionFinder
+            : new LoopFreeSkipBranchingFinder(nodeAfterInitialChain);
 
     // FIRST step: initialize arrays
     for (Iterator<CFANode> nodeIterator = nodes.iterator(); nodeIterator.hasNext(); ) {
@@ -544,12 +550,6 @@ public final class LoopStructure implements Serializable {
               + nodesArray[i];
       nodesArray[i] = n;
 
-      // For performance reasons, we use loop-free sections instead of individual nodes for loop
-      // detection.
-      LoopFreeSectionFinder loopFreeSectionFinder =
-          pLoopFreeSectionFinder != null
-              ? pLoopFreeSectionFinder
-              : new LoopFreeSkipBranchingFinder(nodeAfterInitialChain);
       CFANode sectionEntry = loopFreeSectionFinder.entryNode(n);
       CFANode sectionExit = loopFreeSectionFinder.exitNode(n);
       int sectionEntryIndex = arrayIndexForNode.apply(sectionEntry);
