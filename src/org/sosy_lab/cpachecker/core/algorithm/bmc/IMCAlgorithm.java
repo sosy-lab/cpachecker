@@ -611,13 +611,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
-      // Interpolation
-      if (isInterpolationEnabled()
-          && loopBoundMgr.getCurrentMaxLoopIterations() > 1
+      if (loopBoundMgr.getCurrentMaxLoopIterations() > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
         stats.interpolationPreparation.start();
         partitionedFormulas.collectFormulasFromARG(pReachedSet);
         stats.interpolationPreparation.stop();
+        // k-induction
         if (checkPropertyInductiveness
             && loopBoundMgr.performKIAtCurrentIteration()
             && isPropertyInductive(partitionedFormulas)) {
@@ -625,7 +624,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           logger.log(Level.FINE, "The safety property is inductive");
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
-        if (reachFixedPoint(partitionedFormulas, reachVector)) {
+        // interpolation
+        if (isInterpolationEnabled() && reachFixedPoint(partitionedFormulas, reachVector)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
               pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
