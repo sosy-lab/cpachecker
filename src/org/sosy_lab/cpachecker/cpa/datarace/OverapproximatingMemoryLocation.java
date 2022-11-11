@@ -59,6 +59,6 @@ public class OverapproximatingMemoryLocation {
     if (isPrecise) {
       return memoryLocations.toString();
     }
-    return "OverapproximatingMemoryLocation{" + type.toString() + "}";
+    return "OverapproximatingMemoryLocation{" + type + "}";
   }
 }
