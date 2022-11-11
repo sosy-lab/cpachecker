@@ -611,7 +611,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
-      if (loopBoundMgr.getCurrentMaxLoopIterations() > 1
+      if (isInterpolationEnabled()
+          && loopBoundMgr.getCurrentMaxLoopIterations() > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
         stats.interpolationPreparation.start();
         partitionedFormulas.collectFormulasFromARG(pReachedSet);
@@ -628,8 +629,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
-        // interpolation
-        if (isInterpolationEnabled() && reachFixedPoint(partitionedFormulas, reachVector)) {
+        // Interpolation
+        if (reachFixedPoint(partitionedFormulas, reachVector)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
               pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
