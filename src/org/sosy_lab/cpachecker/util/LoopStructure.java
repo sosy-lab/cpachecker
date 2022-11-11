@@ -673,7 +673,8 @@ public final class LoopStructure implements Serializable {
     } while (!toRemove.isEmpty());
 
     ImmutableList<Loop> result = ImmutableList.copyOf(loops);
-    assert result.equals(findLoops(pNodes, language, new EmptyLoopFreeSectionFinder()))
+    assert ((List<Loop>) findLoops(pNodes, language, new EmptyLoopFreeSectionFinder()))
+            .equals(result)
         : "Using `LoopFreeSectionFinder` changes the found loops!";
 
     return result;
