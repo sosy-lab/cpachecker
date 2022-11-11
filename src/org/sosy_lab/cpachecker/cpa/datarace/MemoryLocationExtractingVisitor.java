@@ -27,13 +27,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -50,7 +50,6 @@ public class MemoryLocationExtractingVisitor
   @Override
   public Set<OverapproximatingMemoryLocation> visit(CBinaryExpression pBinaryExpression)
       throws UnrecognizedCodeException {
-    // TODO: Handle pointer, e.g. "&x + 1"
     return ImmutableSet.<OverapproximatingMemoryLocation>builder()
         .addAll(pBinaryExpression.getOperand1().accept(this))
         .addAll(pBinaryExpression.getOperand2().accept(this))
@@ -60,7 +59,6 @@ public class MemoryLocationExtractingVisitor
   @Override
   public Set<OverapproximatingMemoryLocation> visit(CCastExpression pCastExpression)
       throws UnrecognizedCodeException {
-    // TODO: Might have to handle cast to a pointer type
     return pCastExpression.getOperand().accept(this);
   }
 
@@ -97,7 +95,6 @@ public class MemoryLocationExtractingVisitor
   @Override
   public Set<OverapproximatingMemoryLocation> visit(CUnaryExpression pUnaryExpression)
       throws UnrecognizedCodeException {
-    // TODO: Handle pointer
     return pUnaryExpression.getOperand().accept(this);
   }
 
@@ -211,6 +208,9 @@ public class MemoryLocationExtractingVisitor
       return getMemoryLocation(cast.getOperand());
     } else {
       potentialLocations.add(MemoryLocation.forLocalVariable(functionName, pExpression.toString()));
+    }
+    if (type instanceof CPointerType) {
+      return new OverapproximatingMemoryLocation(type);
     }
     assert !potentialLocations.isEmpty();
     return new OverapproximatingMemoryLocation(
