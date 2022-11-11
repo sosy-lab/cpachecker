@@ -20,7 +20,8 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="feature">
     <option name="-setprop">analysis.selectAnalysisHeuristically=true</option>
-    <option name="-setprop">heuristicSelection.loopConfig=config/generateCFA.properties</option>
+    <option name="-setprop">heuristicSelection.preAnalysisAlgorithmConfig=config/valueAnalysis-NoCegar.properties</option>
+    <option name="-setprop">heuristicSelection.loopConfig=config/valueAnalysis-NoCegar.properties</option>
   </rundefinition>
 
   <tasks name="ReachSafety-Arrays">
