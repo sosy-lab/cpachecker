@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.datarace;
 
 import com.google.common.collect.ImmutableSet;
-import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -171,22 +170,7 @@ public class MemoryLocationExtractingVisitor
         }
       }
     } else if (pExpression instanceof CArraySubscriptExpression) {
-      CArraySubscriptExpression arraySubscript = (CArraySubscriptExpression) pExpression;
-      CExpression owner = arraySubscript.getArrayExpression();
-      OverapproximatingMemoryLocation ownerLocation = getMemoryLocation(owner);
-      if (ownerLocation.isAmbiguous()) {
-        return new OverapproximatingMemoryLocation(type);
-      } else {
-        MemoryLocation ownerVar = ownerLocation.getMemoryLocations().iterator().next();
-        potentialLocations.add(
-            MemoryLocation.parseExtendedQualifiedName(String.format("%s[*]", ownerVar)));
-        if (arraySubscript.getSubscriptExpression() instanceof CIntegerLiteralExpression) {
-          BigInteger index =
-              ((CIntegerLiteralExpression) arraySubscript.getSubscriptExpression()).getValue();
-          potentialLocations.add(
-              MemoryLocation.parseExtendedQualifiedName(String.format("%s[%s]", ownerVar, index)));
-        }
-      }
+      return new OverapproximatingMemoryLocation(type);
     } else if (pExpression instanceof CPointerExpression) {
       CPointerExpression pointerExpression = (CPointerExpression) pExpression;
       if (pointerExpression.getOperand() instanceof CIdExpression) {
