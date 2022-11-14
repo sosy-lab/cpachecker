@@ -103,9 +103,9 @@ public class SMGCPAAbstractionTest {
   }
 
   /**
-   * Creates a concrete list, then saves a pointer to a nested list in EACH segment.
-   * The top list is then abstracted and checked.
-   * This works if we correctly check equality by shape and not pointer identity.
+   * Creates a concrete list, then saves a pointer to a nested list in EACH segment. The top list is
+   * then abstracted and checked. This works if we correctly check equality by shape and not pointer
+   * identity.
    */
   @Test
   public void nestedListSLLTest() throws InvalidConfigurationException {
@@ -114,9 +114,9 @@ public class SMGCPAAbstractionTest {
   }
 
   /**
-   * Creates a concrete list, then saves a pointer to a nested list in EACH segment.
-   * The top list is then abstracted and checked.
-   * This works if we correctly check equality by shape and not pointer identity.
+   * Creates a concrete list, then saves a pointer to a nested list in EACH segment. The top list is
+   * then abstracted and checked. This works if we correctly check equality by shape and not pointer
+   * identity.
    */
   @Test
   public void nestedListDLLTest() throws InvalidConfigurationException {
@@ -125,9 +125,8 @@ public class SMGCPAAbstractionTest {
   }
 
   /**
-   * Creates a concrete list, then saves a pointer to a nested list in EACH segment.
-   * The nested lists are then abstracted and checked.
-   * Following this the top list is abstracted and checked.
+   * Creates a concrete list, then saves a pointer to a nested list in EACH segment. The nested
+   * lists are then abstracted and checked. Following this the top list is abstracted and checked.
    * This works if we correctly check equality by shape and not pointer identity.
    */
   @Test
@@ -137,9 +136,8 @@ public class SMGCPAAbstractionTest {
   }
 
   /**
-   * Creates a concrete list, then saves a pointer to a nested list in EACH segment.
-   * The nested lists are then abstracted and checked.
-   * Following this the top list is abstracted and checked.
+   * Creates a concrete list, then saves a pointer to a nested list in EACH segment. The nested
+   * lists are then abstracted and checked. Following this the top list is abstracted and checked.
    * This works if we correctly check equality by shape and not pointer identity.
    */
   @Test
