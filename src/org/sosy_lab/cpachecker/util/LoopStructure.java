@@ -672,14 +672,18 @@ public final class LoopStructure implements Serializable {
       }
     } while (!toRemove.isEmpty());
 
-    ImmutableList<Loop> result = ImmutableList.copyOf(loops);
     if (!(loopFreeSectionFinder instanceof EmptyLoopFreeSectionFinder)) {
-      assert ((List<Loop>) findLoops(pNodes, language, new EmptyLoopFreeSectionFinder()))
-              .equals(result)
+      // Assert that we find the same loops with and without using loop-free sections
+      // (with `EmptyLoopFreeSectionFinder`, there are no sections that contain multiple nodes and
+      // all nodes are handled separately).
+      // We need to use sets because their `equals` methods are well defined and we may find loops
+      // in a different order.
+      assert (new HashSet<>(findLoops(pNodes, language, new EmptyLoopFreeSectionFinder())))
+              .equals(new HashSet<>(loops))
           : "Using `LoopFreeSectionFinder` changes the found loops!";
     }
 
-    return result;
+    return ImmutableList.copyOf(loops);
   }
 
   private static boolean identifyLoops(
