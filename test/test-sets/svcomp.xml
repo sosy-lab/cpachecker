@@ -176,12 +176,8 @@ SPDX-License-Identifier: Apache-2.0
 </rundefinition>
 
 <rundefinition name="SV-COMP23_no-overflow">
-  <tasks name="NoOverflows-BitVectors">
-    <includesfile>../programs/benchmarks/NoOverflows-BitVectors.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
-  </tasks>
-  <tasks name="NoOverflows-Other">
-    <includesfile>../programs/benchmarks/NoOverflows-Other.set</includesfile>
+  <tasks name="NoOverflows-Main">
+    <includesfile>../programs/benchmarks/NoOverflows-Main.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
 
