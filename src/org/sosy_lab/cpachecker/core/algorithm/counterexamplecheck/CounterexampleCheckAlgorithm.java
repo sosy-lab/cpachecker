@@ -196,7 +196,7 @@ public class CounterexampleCheckAlgorithm
   }
 
   private boolean checkCounterexample(ARGState errorState, ReachedSet reached)
-      throws InterruptedException, UnsupportedCodeException {
+      throws InterruptedException {
 
     logger.log(
         Level.INFO, "Error path found, starting counterexample check with " + checkerType + ".");
