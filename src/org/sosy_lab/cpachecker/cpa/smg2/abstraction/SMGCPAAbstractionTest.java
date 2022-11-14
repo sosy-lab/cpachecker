@@ -26,6 +26,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager.SMGCandidate;
@@ -110,10 +111,10 @@ public class SMGCPAAbstractionTest {
    */
   @Test
   public void correctPointerNestingSLLTest() throws InvalidConfigurationException, SMG2Exception {
-    int sizeOfList = 10;
+    int lengthOfList = 10;
     resetSMGStateAndVisitor();
-    Value[] pointers = buildConcreteList(false, sllSize, sizeOfList);
-    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, sizeOfList - 1);
+    Value[] pointers = buildConcreteList(false, sllSize, lengthOfList);
+    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, lengthOfList - 1);
     currentState = absFinder.findAndAbstractLists();
     // Now we have a 10+SLS
     // Deref a pointer not in the beginning or end, check that the list is consistent with the
@@ -121,7 +122,28 @@ public class SMGCPAAbstractionTest {
     // Deref at position 2, 3, 5, 9 and 10 and check pointers
     // We leave some space to check behaviour for automatic moving on for later pointers!!!
     derefPointersAtAndCheckListMaterialization(
-        sizeOfList, pointers, new int[] {1, 2, 4, 8, 9}, false);
+        lengthOfList, pointers, new int[] {1, 2, 4, 8, 9}, false);
+  }
+
+  /**
+   * Tests that pointers are correctly nested in SLL segments and dereferencing them correctly
+   * materializes the list up to that memory, and all pointers are still valid, correctly nested and
+   * point to the correct segments.
+   */
+  @Test
+  public void correctPointerNestingDLLTest() throws InvalidConfigurationException, SMG2Exception {
+    int lengthOfList = 10;
+    resetSMGStateAndVisitor();
+    Value[] pointers = buildConcreteList(true, dllSize, lengthOfList);
+    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, lengthOfList - 1);
+    currentState = absFinder.findAndAbstractLists();
+    // Now we have a 10+SLS
+    // Deref a pointer not in the beginning or end, check that the list is consistent with the
+    // pointers and the nesting level and materialization is correct afterwards
+    // Deref at position 2, 3, 5, 9 and 10 and check pointers
+    // We leave some space to check behaviour for automatic moving on for later pointers!!!
+    derefPointersAtAndCheckListMaterialization(
+        lengthOfList, pointers, new int[] {1, 2, 4, 8, 9}, true);
   }
 
   /**
@@ -129,19 +151,120 @@ public class SMGCPAAbstractionTest {
    * the original abstracted list with all pointers being correctly nested and no extra segments or
    * states added.
    */
-  @SuppressWarnings("unused")
-  @Ignore
   @Test
-  public void correctZeroPlusAbsorptionSLLTest() throws InvalidConfigurationException {
-    // int sizeOfList = 10;
-    resetSMGStateAndVisitor();
-    // Value[] pointers = buildConcreteList(false, sllSize, sizeOfList);
-    // SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, sizeOfList -
-    // 1);
-    // currentState = absFinder.findAndAbstractLists();
-    // Now we have a 10+SLS
-    // Deref a pointer not in the beginning or end, check that the list is consistent with the
-    // pointers and the nesting level and materialization is correct afterwards
+  public void correctZeroPlusAbsorptionSLLTest() throws InvalidConfigurationException,
+                                                        SMG2Exception {
+    int lengthOfList = 10;
+    nfo = BigInteger.ZERO;
+    sllSize = pointerSizeInBits;
+    // We start with no data and add int size space each iteration for data, moving the nfo
+    for (int i = 0; i < 3; i++) {
+      resetSMGStateAndVisitor();
+      Value[] pointers = buildConcreteList(false, sllSize, lengthOfList);
+      SMGCPAAbstractionManager absFinder =
+          new SMGCPAAbstractionManager(currentState, lengthOfList - 1);
+      currentState = absFinder.findAndAbstractLists();
+      // Now we have a 10+SLS
+      // Deref a pointer not in the beginning or end, check that the list is consistent with the
+      // pointers and the nesting level and materialization is correct afterwards
+      derefPointersAtAndCheckListMaterialization(
+          lengthOfList, pointers, new int[]{lengthOfList - 1}, false);
+      // Now only the 0+ trails, re-merge
+      currentState = absFinder.findAndAbstractLists();
+      // Now there should be only 1 non-zero valid object left that is a 10+ list (and 1 null obj)
+      assertAbstractedList(pointers, lengthOfList, false);
+      // Increase num of data and position of nfo
+      nfo = nfo.add(pointerSizeInBits);
+      sllSize = sllSize.add(pointerSizeInBits);
+    }
+  }
+
+  /**
+   * Test that a list is correctly materialized to 0+ in the end and then correctly reabsorbed to
+   * the original abstracted list with all pointers being correctly nested and no extra segments or
+   * states added.
+   */
+  @Test
+  public void correctZeroPlusAbsorptionDLLTest() throws InvalidConfigurationException,
+                                                        SMG2Exception {
+    int lengthOfList = 10;
+    nfo = BigInteger.ZERO;
+    pfo = nfo.add(pointerSizeInBits);
+    dllSize = pointerSizeInBits.multiply(BigInteger.TWO);
+    // We start with no data and add int size space each iteration for data, moving the nfo
+    for (int i = 0; i < 3; i++) {
+      resetSMGStateAndVisitor();
+      Value[] pointers = buildConcreteList(true, dllSize, lengthOfList);
+      SMGCPAAbstractionManager absFinder =
+          new SMGCPAAbstractionManager(currentState, lengthOfList - 1);
+      currentState = absFinder.findAndAbstractLists();
+      // Now we have a 10+SLS
+      // Deref a pointer not in the beginning or end, check that the list is consistent with the
+      // pointers and the nesting level and materialization is correct afterwards
+      derefPointersAtAndCheckListMaterialization(
+          lengthOfList, pointers, new int[]{lengthOfList - 1}, true);
+      // Now only the 0+ trails, re-merge
+      currentState = absFinder.findAndAbstractLists();
+      // Now there should be only 1 non-zero valid object left that is a 10+ list (and 1 null obj)
+      assertAbstractedList(pointers, lengthOfList, true);
+      // Data is intact
+      checkListDataIntegrity(pointers, true);
+      // Increase num of data and position of nfo
+      nfo = nfo.add(pointerSizeInBits);
+      dllSize = dllSize.add(pointerSizeInBits);
+      pfo = nfo.add(pointerSizeInBits);
+    }
+  }
+
+  /**
+   * Asserts that the only valid existing object is a SLL or DLL equaling the length given and nfo and pfo both being 0.
+   *
+   * @param pointers
+   * @param lengthOfList
+   */
+  private void assertAbstractedList(Value[] pointers, int lengthOfList, boolean dll) {
+    assertThat(currentState.getMemoryModel().getHeapObjects()).hasSize(2);
+    int numOfValidObjects = 0;
+    for (SMGObject obj : currentState.getMemoryModel().getSmg().getObjects()) {
+      // This includes invalid objects (null obj is invalid)!
+      if (currentState.getMemoryModel().isObjectValid(obj)) {
+        numOfValidObjects++;
+        assertThat(obj instanceof SMGSinglyLinkedListSegment).isTrue();
+        assertThat(((SMGSinglyLinkedListSegment) obj).getMinLength()).isEqualTo(lengthOfList);
+        // Assert that the next pointer has the correct value
+        // next from last to 0+ is special as it is an added pointer
+        // (We can deref any of the pointers here)
+        SMGObject derefedAbstractedObj = currentState
+            .dereferencePointerWithoutMaterilization(pointers[lengthOfList - 1])
+            .orElseThrow()
+            .getSMGObject();
+        assertThat(obj).isEqualTo(derefedAbstractedObj);
+        ValueAndSMGState readNfoWithoutMaterialization =
+            currentState.readValueWithoutMaterialization(obj
+                ,
+                nfo,
+                pointerSizeInBits,
+                null);
+        currentState = readNfoWithoutMaterialization.getState();
+        assertThat(readNfoWithoutMaterialization.getValue().isNumericValue()).isTrue();
+        assertThat(readNfoWithoutMaterialization.getValue().asNumericValue()
+            .bigInteger()).isEquivalentAccordingToCompareTo(BigInteger.ZERO);
+        if (dll) {
+          assertThat(obj instanceof SMGDoublyLinkedListSegment).isTrue();
+          ValueAndSMGState readPfoWithoutMaterialization =
+              currentState.readValueWithoutMaterialization(obj
+                  ,
+                  pfo,
+                  pointerSizeInBits,
+                  null);
+          currentState = readPfoWithoutMaterialization.getState();
+          assertThat(readPfoWithoutMaterialization.getValue().isNumericValue()).isTrue();
+          assertThat(readPfoWithoutMaterialization.getValue().asNumericValue()
+              .bigInteger()).isEquivalentAccordingToCompareTo(BigInteger.ZERO);
+        }
+      }
+    }
+    assertThat(numOfValidObjects).isEqualTo(1);
   }
 
   /**
@@ -1394,7 +1517,7 @@ public class SMGCPAAbstractionTest {
     for (int i = 0; i < listLength; i++) {
       SMGObject listSegment = SMGObject.of(0, sizeOfSegment, BigInteger.ZERO);
       currentState = currentState.copyAndAddObjectToHeap(listSegment);
-      for (int j = 0; j < sizeOfSegment.intValueExact() % 32; j++) {
+      for (int j = 0; j < sizeOfSegment.divide(pointerSizeInBits).intValue(); j++) {
         currentState =
             currentState.writeValueTo(
                 listSegment,
@@ -1441,6 +1564,7 @@ public class SMGCPAAbstractionTest {
 
       prevObject = listSegment;
     }
+    checkListDataIntegrity(pointerArray, dll);
     return pointerArray;
   }
 
@@ -1646,6 +1770,36 @@ public class SMGCPAAbstractionTest {
       }
       assertThat(foundNum).isEqualTo(totalSizeOfList);
       assertThat(zeros == 3).isTrue();
+    }
+  }
+
+  /**
+   * Checks that all pointers given have data that is located in the beginning of the list as 32bit integers with the first being 0, then +1 for each after that in the same list.
+   *
+   * @param pointers a array of pointers pointing to a list with the default data scheme.
+   */
+  private void checkListDataIntegrity(Value[] pointers, boolean dll) {
+    int toCheckData = sllSize.divide(pointerSizeInBits).subtract(BigInteger.ONE).intValue();
+    if (dll) {
+      toCheckData = sllSize.divide(pointerSizeInBits).subtract(BigInteger.ONE).subtract(BigInteger.ONE).intValue();
+    }
+    for (Value pointer : pointers) {
+      for (int j = 0; j < toCheckData;
+           j++) {
+        ValueAndSMGState readDataWithoutMaterialization =
+            currentState.readValueWithoutMaterialization(
+                currentState
+                    .dereferencePointerWithoutMaterilization(pointer)
+                    .orElseThrow()
+                    .getSMGObject(),
+                BigInteger.valueOf(j).multiply(pointerSizeInBits),
+                pointerSizeInBits,
+                null);
+        currentState = readDataWithoutMaterialization.getState();
+        assertThat(readDataWithoutMaterialization.getValue().isNumericValue()).isTrue();
+        assertThat(readDataWithoutMaterialization.getValue().asNumericValue()
+            .bigInteger()).isEquivalentAccordingToCompareTo(BigInteger.valueOf(j));
+      }
     }
   }
 }
