@@ -449,13 +449,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
       Formula elementSize =
           getSizeExpression(
-              arrayType.getType(),
-              edge,
-              function,
-              ssa,
-              pts,
-              constraints,
-              errorConditions);
+              arrayType.getType(), edge, function, ssa, pts, constraints, errorConditions);
 
       Formula elementCount =
           buildTerm(arrayType.getLength(), edge, function, ssa, pts, constraints, errorConditions);

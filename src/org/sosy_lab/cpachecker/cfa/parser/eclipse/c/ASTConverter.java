@@ -2280,8 +2280,8 @@ class ASTConverter {
                     BigInteger c =
                         evaluateIntegerConstantExpression(
                             ((CASTArrayRangeDesignator) designator).getRangeCeiling());
-                      position = c.add(BigInteger.ONE);
-                      length = Comparators.max(length, position);
+                    position = c.add(BigInteger.ONE);
+                    length = Comparators.max(length, position);
 
                   } else if (designator instanceof CASTArrayDesignator) {
                     BigInteger s =
