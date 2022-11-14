@@ -103,14 +103,45 @@ public class SMGCPAAbstractionTest {
   }
 
   /**
-   * Creates a concrete list, then saves a pointer to a nested list in EACH segment. The top list is
+   * Creates a concrete list, then saves a pointer to a nested list in EACH segment. The lists are
    * then abstracted and checked. This works if we correctly check equality by shape and not pointer
    * identity.
    */
   @Test
-  public void nestedListSLLTest() throws InvalidConfigurationException {
+  public void nestedListSLLTest() throws InvalidConfigurationException, SMG2Exception {
     resetSMGStateAndVisitor();
-    // TODO:
+    // Smaller lengths are fine here, else this runs a while!
+    int listLength = 10;
+    resetSMGStateAndVisitor();
+    Value[] pointers = buildConcreteList(false, sllSize, listLength);
+    for (Value pointer : pointers) {
+      // Generate the same list for each top list segment and save the first pointer as data
+      Value[] pointersNested = buildConcreteList(false, sllSize, listLength);
+      // We care only about the first pointer here
+      SMGStateAndOptionalSMGObjectAndOffset topListSegmentAndState = currentState.dereferencePointerWithoutMaterilization(pointer).orElseThrow();
+      currentState = topListSegmentAndState.getSMGState();
+      SMGObject topListSegment = topListSegmentAndState.getSMGObject();
+      currentState = currentState.writeValue(topListSegment, hfo, pointerSizeInBits, currentState.getMemoryModel().getSMGValueFromValue(pointersNested[0]).orElseThrow());
+    }
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, listLength - 1);
+    currentState = absFinder.findAndAbstractLists();
+    // Now we have abstracted all lists in the state, including the nested ones
+    SMGObject abstractedTopListSegment = null;
+    for (Value pointer : pointers) {
+      SMGStateAndOptionalSMGObjectAndOffset topListSegmentAndState = currentState.dereferencePointerWithoutMaterilization(pointer).orElseThrow();
+      currentState = topListSegmentAndState.getSMGState();
+      SMGObject currentTopListSegment = topListSegmentAndState.getSMGObject();
+      // This is now always the same abstracted object
+      if (abstractedTopListSegment != null) {
+        assertThat(abstractedTopListSegment).isEqualTo(currentTopListSegment);
+        abstractedTopListSegment = currentTopListSegment;
+      } else {
+        abstractedTopListSegment = currentTopListSegment;
+      }
+      // assertThat(currentTopListSegment instanceof SMGSinglyLinkedListSegment).isTrue();
+      // assertThat(((SMGSinglyLinkedListSegment) currentTopListSegment).getMinLength()).isEqualTo(listLength);
+    }
   }
 
   /**
