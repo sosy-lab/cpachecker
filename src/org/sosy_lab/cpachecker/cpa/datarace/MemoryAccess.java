@@ -9,16 +9,16 @@
 package org.sosy_lab.cpachecker.cpa.datarace;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 class MemoryAccess {
 
   private final String threadId;
-  private final MemoryLocation memoryLocation;
+  private final OverapproximatingMemoryLocation memoryLocation;
   private final boolean isWrite;
   private final ImmutableSet<String> locks;
   private final CFAEdge edge;
@@ -26,7 +26,7 @@ class MemoryAccess {
 
   MemoryAccess(
       String pThreadId,
-      MemoryLocation pMemoryLocation,
+      OverapproximatingMemoryLocation pMemoryLocation,
       boolean pIsWrite,
       Set<String> pLocks,
       CFAEdge pEdge,
@@ -43,10 +43,6 @@ class MemoryAccess {
     return threadId;
   }
 
-  MemoryLocation getMemoryLocation() {
-    return memoryLocation;
-  }
-
   boolean isWrite() {
     return isWrite;
   }
@@ -57,6 +53,16 @@ class MemoryAccess {
 
   int getAccessEpoch() {
     return accessEpoch;
+  }
+
+  boolean isOverapproximating() {
+    return memoryLocation.isAmbiguous() || !memoryLocation.isPrecise();
+  }
+
+  boolean mightAccessSameLocationAs(MemoryAccess other) {
+    return !Sets.intersection(
+            memoryLocation.getMemoryLocations(), other.memoryLocation.getMemoryLocations())
+        .isEmpty();
   }
 
   boolean happensBefore(MemoryAccess other, Set<ThreadSynchronization> threadSynchronizations) {
@@ -123,17 +129,16 @@ class MemoryAccess {
       return false;
     }
     MemoryAccess access = (MemoryAccess) pO;
-    return isWrite() == access.isWrite()
-        && getAccessEpoch() == access.getAccessEpoch()
-        && getThreadId().equals(access.getThreadId())
-        && getMemoryLocation().equals(access.getMemoryLocation())
-        && getLocks().equals(access.getLocks())
+    return isWrite == access.isWrite
+        && accessEpoch == access.accessEpoch
+        && threadId.equals(access.threadId)
+        && memoryLocation.equals(access.memoryLocation)
+        && locks.equals(access.locks)
         && edge.equals(access.edge);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(
-        getThreadId(), getMemoryLocation(), isWrite(), getLocks(), edge, getAccessEpoch());
+    return Objects.hash(threadId, memoryLocation, isWrite, locks, edge, accessEpoch);
   }
 }

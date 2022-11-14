@@ -35,6 +35,17 @@ public class LockRelease {
   }
 
   @Override
+  public String toString() {
+    return "LockRelease{threadId='"
+        + threadId
+        + "', lockId="
+        + lockId
+        + ", accessEpoch="
+        + accessEpoch
+        + '}';
+  }
+
+  @Override
   public boolean equals(Object pO) {
     if (this == pO) {
       return true;
@@ -43,13 +54,13 @@ public class LockRelease {
       return false;
     }
     LockRelease release = (LockRelease) pO;
-    return getAccessEpoch() == release.getAccessEpoch()
-        && getLockId().equals(release.getLockId())
-        && getThreadId().equals(release.getThreadId());
+    return accessEpoch == release.accessEpoch
+        && lockId.equals(release.lockId)
+        && threadId.equals(release.threadId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getLockId(), getThreadId(), getAccessEpoch());
+    return Objects.hash(lockId, threadId, accessEpoch);
   }
 }

@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Objects;
@@ -83,13 +81,15 @@ class TraceAbstractionState extends AbstractSingleWrapperState implements Grapha
       return super.toString() + "\n_empty_preds_";
     }
 
-    return FluentIterable.from(activePredicates.entrySet())
-        .transform(x -> x.getKey() + ":" + x.getValue())
-        .join(Joiner.on("; "));
+    return createString();
   }
 
   @Override
   public String toDOTLabel() {
+    return createString();
+  }
+
+  private String createString() {
     StringBuilder sb = new StringBuilder();
 
     AbstractState wrappedState = getWrappedState();

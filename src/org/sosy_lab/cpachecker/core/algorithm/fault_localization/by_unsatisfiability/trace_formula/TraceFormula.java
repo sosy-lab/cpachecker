@@ -165,6 +165,10 @@ public class TraceFormula {
     return trace;
   }
 
+  public FormulaContext getContext() {
+    return context;
+  }
+
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this).add("size", trace.size()).toString();

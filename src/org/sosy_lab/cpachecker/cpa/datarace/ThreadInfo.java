@@ -48,13 +48,11 @@ public class ThreadInfo {
       return false;
     }
     ThreadInfo that = (ThreadInfo) pO;
-    return getEpoch() == that.getEpoch()
-        && isRunning() == that.isRunning()
-        && getThreadId().equals(that.getThreadId());
+    return epoch == that.epoch && running == that.running && threadId.equals(that.threadId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getThreadId(), getEpoch(), isRunning());
+    return Objects.hash(threadId, epoch, running);
   }
 }

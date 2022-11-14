@@ -14,6 +14,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Supplier;
@@ -99,6 +100,7 @@ public final class CompositeCPA
       throw new UnsupportedOperationException("Use CompositeCPA to wrap several CPAs!");
     }
 
+    @CanIgnoreReturnValue
     @Override
     public CPAFactory setChildren(List<ConfigurableProgramAnalysis> pChildren) {
       Preconditions.checkNotNull(pChildren);

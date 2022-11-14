@@ -14,6 +14,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -114,31 +115,37 @@ class AutomatonTransition {
       followState = pFollowState;
     }
 
+    @CanIgnoreReturnValue
     Builder withAssertion(AutomatonBoolExpr pAssertion) {
       assertions = ImmutableList.of(pAssertion);
       return this;
     }
 
+    @CanIgnoreReturnValue
     Builder withAssertions(List<AutomatonBoolExpr> pAssertions) {
       assertions = pAssertions;
       return this;
     }
 
+    @CanIgnoreReturnValue
     Builder withAssumptions(List<AExpression> pAssumptions) {
       assumptions = pAssumptions;
       return this;
     }
 
+    @CanIgnoreReturnValue
     Builder withActions(List<AutomatonAction> pActions) {
       actions = pActions;
       return this;
     }
 
+    @CanIgnoreReturnValue
     Builder withCandidateInvariants(ExpressionTree<AExpression> pCandidateInvariants) {
       candidateInvariants = pCandidateInvariants;
       return this;
     }
 
+    @CanIgnoreReturnValue
     Builder withTargetInformation(StringExpression pTargetInformation) {
       targetInformation = pTargetInformation;
       return this;

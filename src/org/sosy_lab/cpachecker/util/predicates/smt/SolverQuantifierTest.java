@@ -99,7 +99,7 @@ public class SolverQuantifierTest extends SolverViewBasedTest0 {
                 + " INCONCLUSIVE",
             solverToUse())
         .that(solverUnderTest)
-        .isNoneOf(Solvers.PRINCESS, Solvers.CVC4);
+        .isNoneOf(Solvers.PRINCESS, Solvers.CVC4, Solvers.CVC5);
 
     BooleanFormula f;
 
@@ -158,7 +158,7 @@ public class SolverQuantifierTest extends SolverViewBasedTest0 {
                 + " INCONCLUSIVE",
             solverToUse())
         .that(solverUnderTest)
-        .isNoneOf(Solvers.PRINCESS, Solvers.CVC4);
+        .isNoneOf(Solvers.PRINCESS, Solvers.CVC4, Solvers.CVC5);
 
     BooleanFormula f;
 

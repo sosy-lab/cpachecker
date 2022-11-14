@@ -41,6 +41,11 @@ public class ThreadSynchronization {
   }
 
   @Override
+  public String toString() {
+    return String.format("%s[%d] ---> %s[%d]", writeThread, writeEpoch, readThread, readEpoch);
+  }
+
+  @Override
   public boolean equals(Object pO) {
     if (this == pO) {
       return true;
@@ -49,14 +54,14 @@ public class ThreadSynchronization {
       return false;
     }
     ThreadSynchronization that = (ThreadSynchronization) pO;
-    return getWriteEpoch() == that.getWriteEpoch()
-        && getReadEpoch() == that.getReadEpoch()
-        && getWriteThread().equals(that.getWriteThread())
-        && getReadThread().equals(that.getReadThread());
+    return writeEpoch == that.writeEpoch
+        && readEpoch == that.readEpoch
+        && writeThread.equals(that.writeThread)
+        && readThread.equals(that.readThread);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getWriteThread(), getReadThread(), getWriteEpoch(), getReadEpoch());
+    return Objects.hash(writeThread, readThread, writeEpoch, readEpoch);
   }
 }
