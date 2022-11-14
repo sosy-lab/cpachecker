@@ -3803,6 +3803,9 @@ imc.assertTargetsAtEveryIteration = false
 # toggle checking forward conditions
 imc.checkForwardConditions = true
 
+# toggle checking whether the safety property is inductive
+imc.checkPropertyInductiveness = false
+
 # toggle falling back if interpolation or forward-condition is disabled
 imc.fallBack = true
 
@@ -3831,8 +3834,19 @@ imc.loopBoundIncrementStrategyForBMC = CONST
 imc.loopBoundIncrementStrategyForIMC = CONST
   enum:     [CONST, EAGER]
 
+# toggle the strategy to determine the next loop iteration
+# to execute k-inductive check if "checkPropertyInductiveness" is enabled
+# CONST: increased by by a constant (specified via
+# loopBoundIncrementValueForKI)
+# EAGER: skip all iterations where a bug cannot be found
+imc.loopBoundIncrementStrategyForKI = CONST
+  enum:     [CONST, EAGER]
+
 # toggle the value to increment the loop bound by at each step for IMC
 imc.loopBoundIncrementValueForIMC = 1
+
+# toggle the value to increment the loop bound by at each step for KI
+imc.loopBoundIncrementValueForKI = 1
 
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false
