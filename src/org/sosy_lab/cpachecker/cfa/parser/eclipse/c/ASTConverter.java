@@ -2277,27 +2277,16 @@ class ASTConverter {
                 for (ICASTDesignator designator :
                     ((ICASTDesignatedInitializer) x).getDesignators()) {
                   if (designator instanceof CASTArrayRangeDesignator) {
-                    CAstNode ceil =
-                        convertExpressionWithSideEffects(
+                    BigInteger c =
+                        evaluateIntegerConstantExpression(
                             ((CASTArrayRangeDesignator) designator).getRangeCeiling());
-                    if (ceil instanceof CIntegerLiteralExpression) {
-                      BigInteger c = ((CIntegerLiteralExpression) ceil).getValue();
                       position = c.add(BigInteger.ONE);
                       length = Comparators.max(length, position);
 
-                      // we need distinct numbers for the range bounds, if they
-                      // are not there we cannot calculate the length of the array
-                      // correctly
-                    } else {
-                      length = null;
-                      break;
-                    }
-
                   } else if (designator instanceof CASTArrayDesignator) {
-                    CAstNode subscript =
-                        convertExpressionWithSideEffects(
+                    BigInteger s =
+                        evaluateIntegerConstantExpression(
                             ((CASTArrayDesignator) designator).getSubscriptExpression());
-                    BigInteger s = ((CIntegerLiteralExpression) subscript).getValue();
                     position = s.add(BigInteger.ONE);
                     length = Comparators.max(length, position);
 
