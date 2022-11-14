@@ -653,6 +653,27 @@ class ASTConverter {
     return false;
   }
 
+  /**
+   * Evaluate a constant expression into an integer literal. This method is for cases where the
+   * frontend really needs to know the resulting int value, so we simplify the expression and force
+   * it to be evaluated even if otherwise we would not. So call this only if necessary.
+   */
+  private BigInteger evaluateIntegerConstantExpression(IASTExpression exp) {
+    CAstNode n = convertExpressionWithSideEffectsNotSimplified(exp);
+    if (!(n instanceof CExpression)) {
+      throw parseContext.parseError("Constant expression with side effect", exp);
+    }
+
+    CExpression e = simplifyExpressionRecursively((CExpression) n);
+    if (e instanceof CIntegerLiteralExpression) {
+      return ((CIntegerLiteralExpression) e).getValue();
+    } else if (e instanceof CCharLiteralExpression) {
+      return BigInteger.valueOf(((CCharLiteralExpression) e).getCharacter());
+    } else {
+      throw parseContext.parseError("Integer constant expression could not be evaluated", n);
+    }
+  }
+
   private CAstNode convert(IGNUASTCompoundStatementExpression e) {
     CIdExpression tmp = createTemporaryVariable(e);
     sideAssignmentStack.addConditionalExpression(e, tmp);
@@ -2695,50 +2716,9 @@ class ASTConverter {
     if (e.getValue() == null && lastValue != null) {
       value = lastValue + 1;
     } else {
-      CExpression v = convertExpressionWithoutSideEffects(e.getValue());
-
-      // for enums we always expect constants and simplify them,
-      // even if 'cfa.simplifyConstExpressions is disabled.
-      // Lets assume that there is never a signed integer overflow or another property violation.
-      v = simplifyExpressionRecursively(v);
-
-      boolean negate = false;
-      boolean complement = false;
-
-      if (v instanceof CUnaryExpression
-          && ((CUnaryExpression) v).getOperator() == UnaryOperator.MINUS) {
-        CUnaryExpression u = (CUnaryExpression) v;
-        negate = true;
-        v = u.getOperand();
-      } else if (v instanceof CUnaryExpression
-          && ((CUnaryExpression) v).getOperator() == UnaryOperator.TILDE) {
-        CUnaryExpression u = (CUnaryExpression) v;
-        complement = true;
-        v = u.getOperand();
-      }
-      assert !(v instanceof CUnaryExpression) : v;
-
-      if (v instanceof CIntegerLiteralExpression) {
-        value = ((CIntegerLiteralExpression) v).asLong();
-      } else if (v instanceof CCharLiteralExpression) {
-        value = (long) ((CCharLiteralExpression) v).getCharacter();
-      } else {
-        // ignore unsupported enum value and set it to NULL.
-        // TODO bug? constant enums are ignored, if 'cfa.simplifyConstExpressions' is disabled.
-        logger.logf(
-            Level.WARNING,
-            "enum constant '%s = %s' was not simplified and will be ignored in the following.",
-            e.getName(),
-            v.toQualifiedASTString());
-      }
-
-      if (value != null) {
-        if (negate) {
-          value = -value;
-        } else if (complement) {
-          value = ~value;
-        }
-      }
+      // TODO Because we fully evaluate the expression here and never add e.getValue() itself
+      // to the AST, any overflows in it will not be detectable by the analysis.
+      value = evaluateIntegerConstantExpression(e.getValue()).longValueExact();
     }
 
     String name = convert(e.getName());
