@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -107,6 +108,7 @@ public class SMGCPAAbstractionTest {
    * then abstracted and checked. This works if we correctly check equality by shape and not pointer
    * identity.
    */
+  @Ignore
   @Test
   public void nestedListSLLTest() throws InvalidConfigurationException, SMG2Exception {
     resetSMGStateAndVisitor();
@@ -145,9 +147,9 @@ public class SMGCPAAbstractionTest {
       } else {
         abstractedTopListSegment = currentTopListSegment;
       }
-      // assertThat(currentTopListSegment instanceof SMGSinglyLinkedListSegment).isTrue();
-      // assertThat(((SMGSinglyLinkedListSegment)
-      // currentTopListSegment).getMinLength()).isEqualTo(listLength);
+      assertThat(currentTopListSegment instanceof SMGSinglyLinkedListSegment).isTrue();
+      assertThat(((SMGSinglyLinkedListSegment) currentTopListSegment).getMinLength())
+          .isEqualTo(listLength);
     }
   }
 
