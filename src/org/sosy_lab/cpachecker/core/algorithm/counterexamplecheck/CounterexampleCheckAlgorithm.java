@@ -196,7 +196,7 @@ public class CounterexampleCheckAlgorithm
   }
 
   private boolean checkCounterexample(ARGState errorState, ReachedSet reached)
-      throws InterruptedException, UnsupportedCodeException {
+      throws InterruptedException {
 
     logger.log(
         Level.INFO, "Error path found, starting counterexample check with " + checkerType + ".");
@@ -205,7 +205,9 @@ public class CounterexampleCheckAlgorithm
       feasibility = checkErrorPaths(checker, errorState, reached);
     } catch (UnsupportedCodeException e) {
       if (skipCounterexampleForUnsupportedCode) {
-        throw e;
+        logger.logUserException(
+            Level.WARNING, e, "Counterexample could not be verified due to unsupported features.");
+        return true;
       }
       logger.logUserException(
           Level.WARNING, e, "Counterexample found, but feasibility could not be verified");
