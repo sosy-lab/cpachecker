@@ -103,6 +103,52 @@ public class SMGCPAAbstractionTest {
   }
 
   /**
+   * Creates a concrete list, then saves a pointer to a nested list in EACH segment.
+   * The top list is then abstracted and checked.
+   * This works if we correctly check equality by shape and not pointer identity.
+   */
+  @Test
+  public void nestedListSLLTest() throws InvalidConfigurationException {
+    resetSMGStateAndVisitor();
+    // TODO:
+  }
+
+  /**
+   * Creates a concrete list, then saves a pointer to a nested list in EACH segment.
+   * The top list is then abstracted and checked.
+   * This works if we correctly check equality by shape and not pointer identity.
+   */
+  @Test
+  public void nestedListDLLTest() throws InvalidConfigurationException {
+    resetSMGStateAndVisitor();
+    // TODO:
+  }
+
+  /**
+   * Creates a concrete list, then saves a pointer to a nested list in EACH segment.
+   * The nested lists are then abstracted and checked.
+   * Following this the top list is abstracted and checked.
+   * This works if we correctly check equality by shape and not pointer identity.
+   */
+  @Test
+  public void nestedListAbstractionSLLTest() throws InvalidConfigurationException {
+    resetSMGStateAndVisitor();
+    // TODO:
+  }
+
+  /**
+   * Creates a concrete list, then saves a pointer to a nested list in EACH segment.
+   * The nested lists are then abstracted and checked.
+   * Following this the top list is abstracted and checked.
+   * This works if we correctly check equality by shape and not pointer identity.
+   */
+  @Test
+  public void nestedListAbstractionDLLTest() throws InvalidConfigurationException {
+    resetSMGStateAndVisitor();
+    // TODO:
+  }
+
+  /**
    * Tests that pointers are correctly nested in SLL segments and dereferencing them correctly
    * materializes the list up to that memory, and all pointers are still valid, correctly nested and
    * point to the correct segments.
