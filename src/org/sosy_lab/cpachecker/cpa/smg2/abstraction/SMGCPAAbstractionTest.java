@@ -19,14 +19,12 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager.SMGCandidate;
@@ -114,7 +112,8 @@ public class SMGCPAAbstractionTest {
     int lengthOfList = 10;
     resetSMGStateAndVisitor();
     Value[] pointers = buildConcreteList(false, sllSize, lengthOfList);
-    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, lengthOfList - 1);
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, lengthOfList - 1);
     currentState = absFinder.findAndAbstractLists();
     // Now we have a 10+SLS
     // Deref a pointer not in the beginning or end, check that the list is consistent with the
@@ -135,7 +134,8 @@ public class SMGCPAAbstractionTest {
     int lengthOfList = 10;
     resetSMGStateAndVisitor();
     Value[] pointers = buildConcreteList(true, dllSize, lengthOfList);
-    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, lengthOfList - 1);
+    SMGCPAAbstractionManager absFinder =
+        new SMGCPAAbstractionManager(currentState, lengthOfList - 1);
     currentState = absFinder.findAndAbstractLists();
     // Now we have a 10+SLS
     // Deref a pointer not in the beginning or end, check that the list is consistent with the
@@ -152,8 +152,8 @@ public class SMGCPAAbstractionTest {
    * states added.
    */
   @Test
-  public void correctZeroPlusAbsorptionSLLTest() throws InvalidConfigurationException,
-                                                        SMG2Exception {
+  public void correctZeroPlusAbsorptionSLLTest()
+      throws InvalidConfigurationException, SMG2Exception {
     int lengthOfList = 10;
     nfo = BigInteger.ZERO;
     sllSize = pointerSizeInBits;
@@ -168,7 +168,7 @@ public class SMGCPAAbstractionTest {
       // Deref a pointer not in the beginning or end, check that the list is consistent with the
       // pointers and the nesting level and materialization is correct afterwards
       derefPointersAtAndCheckListMaterialization(
-          lengthOfList, pointers, new int[]{lengthOfList - 1}, false);
+          lengthOfList, pointers, new int[] {lengthOfList - 1}, false);
       // Now only the 0+ trails, re-merge
       currentState = absFinder.findAndAbstractLists();
       // Now there should be only 1 non-zero valid object left that is a 10+ list (and 1 null obj)
@@ -185,8 +185,8 @@ public class SMGCPAAbstractionTest {
    * states added.
    */
   @Test
-  public void correctZeroPlusAbsorptionDLLTest() throws InvalidConfigurationException,
-                                                        SMG2Exception {
+  public void correctZeroPlusAbsorptionDLLTest()
+      throws InvalidConfigurationException, SMG2Exception {
     int lengthOfList = 10;
     nfo = BigInteger.ZERO;
     pfo = nfo.add(pointerSizeInBits);
@@ -202,7 +202,7 @@ public class SMGCPAAbstractionTest {
       // Deref a pointer not in the beginning or end, check that the list is consistent with the
       // pointers and the nesting level and materialization is correct afterwards
       derefPointersAtAndCheckListMaterialization(
-          lengthOfList, pointers, new int[]{lengthOfList - 1}, true);
+          lengthOfList, pointers, new int[] {lengthOfList - 1}, true);
       // Now only the 0+ trails, re-merge
       currentState = absFinder.findAndAbstractLists();
       // Now there should be only 1 non-zero valid object left that is a 10+ list (and 1 null obj)
@@ -217,10 +217,12 @@ public class SMGCPAAbstractionTest {
   }
 
   /**
-   * Asserts that the only valid existing object is a SLL or DLL equaling the length given and nfo and pfo both being 0.
+   * Asserts that the only valid existing object is a SLL or DLL equaling the length given and nfo
+   * and pfo both being 0.
    *
-   * @param pointers
-   * @param lengthOfList
+   * @param pointers an array of all pointers to check that the properties hold.
+   * @param lengthOfList length of the total list
+   * @param dll true if dll
    */
   private void assertAbstractedList(Value[] pointers, int lengthOfList, boolean dll) {
     assertThat(currentState.getMemoryModel().getHeapObjects()).hasSize(2);
@@ -234,33 +236,26 @@ public class SMGCPAAbstractionTest {
         // Assert that the next pointer has the correct value
         // next from last to 0+ is special as it is an added pointer
         // (We can deref any of the pointers here)
-        SMGObject derefedAbstractedObj = currentState
-            .dereferencePointerWithoutMaterilization(pointers[lengthOfList - 1])
-            .orElseThrow()
-            .getSMGObject();
+        SMGObject derefedAbstractedObj =
+            currentState
+                .dereferencePointerWithoutMaterilization(pointers[lengthOfList - 1])
+                .orElseThrow()
+                .getSMGObject();
         assertThat(obj).isEqualTo(derefedAbstractedObj);
         ValueAndSMGState readNfoWithoutMaterialization =
-            currentState.readValueWithoutMaterialization(obj
-                ,
-                nfo,
-                pointerSizeInBits,
-                null);
+            currentState.readValueWithoutMaterialization(obj, nfo, pointerSizeInBits, null);
         currentState = readNfoWithoutMaterialization.getState();
         assertThat(readNfoWithoutMaterialization.getValue().isNumericValue()).isTrue();
-        assertThat(readNfoWithoutMaterialization.getValue().asNumericValue()
-            .bigInteger()).isEquivalentAccordingToCompareTo(BigInteger.ZERO);
+        assertThat(readNfoWithoutMaterialization.getValue().asNumericValue().bigInteger())
+            .isEquivalentAccordingToCompareTo(BigInteger.ZERO);
         if (dll) {
           assertThat(obj instanceof SMGDoublyLinkedListSegment).isTrue();
           ValueAndSMGState readPfoWithoutMaterialization =
-              currentState.readValueWithoutMaterialization(obj
-                  ,
-                  pfo,
-                  pointerSizeInBits,
-                  null);
+              currentState.readValueWithoutMaterialization(obj, pfo, pointerSizeInBits, null);
           currentState = readPfoWithoutMaterialization.getState();
           assertThat(readPfoWithoutMaterialization.getValue().isNumericValue()).isTrue();
-          assertThat(readPfoWithoutMaterialization.getValue().asNumericValue()
-              .bigInteger()).isEquivalentAccordingToCompareTo(BigInteger.ZERO);
+          assertThat(readPfoWithoutMaterialization.getValue().asNumericValue().bigInteger())
+              .isEquivalentAccordingToCompareTo(BigInteger.ZERO);
         }
       }
     }
@@ -1774,18 +1769,23 @@ public class SMGCPAAbstractionTest {
   }
 
   /**
-   * Checks that all pointers given have data that is located in the beginning of the list as 32bit integers with the first being 0, then +1 for each after that in the same list.
+   * Checks that all pointers given have data that is located in the beginning of the list as 32bit
+   * integers with the first being 0, then +1 for each after that in the same list.
    *
    * @param pointers a array of pointers pointing to a list with the default data scheme.
    */
   private void checkListDataIntegrity(Value[] pointers, boolean dll) {
     int toCheckData = sllSize.divide(pointerSizeInBits).subtract(BigInteger.ONE).intValue();
     if (dll) {
-      toCheckData = sllSize.divide(pointerSizeInBits).subtract(BigInteger.ONE).subtract(BigInteger.ONE).intValue();
+      toCheckData =
+          sllSize
+              .divide(pointerSizeInBits)
+              .subtract(BigInteger.ONE)
+              .subtract(BigInteger.ONE)
+              .intValue();
     }
     for (Value pointer : pointers) {
-      for (int j = 0; j < toCheckData;
-           j++) {
+      for (int j = 0; j < toCheckData; j++) {
         ValueAndSMGState readDataWithoutMaterialization =
             currentState.readValueWithoutMaterialization(
                 currentState
@@ -1797,8 +1797,8 @@ public class SMGCPAAbstractionTest {
                 null);
         currentState = readDataWithoutMaterialization.getState();
         assertThat(readDataWithoutMaterialization.getValue().isNumericValue()).isTrue();
-        assertThat(readDataWithoutMaterialization.getValue().asNumericValue()
-            .bigInteger()).isEquivalentAccordingToCompareTo(BigInteger.valueOf(j));
+        assertThat(readDataWithoutMaterialization.getValue().asNumericValue().bigInteger())
+            .isEquivalentAccordingToCompareTo(BigInteger.valueOf(j));
       }
     }
   }
