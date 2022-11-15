@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
+import org.sosy_lab.cpachecker.util.faultlocalization.explanation.NoContextExplanation;
+
 /**
  * Every reason needs a description. If there is a similar way to map Faults to a description a
  * FaultExplanation can be created. After processing a Fault it returns a String on why this Fault
@@ -22,7 +25,16 @@ public interface FaultExplanation {
    *
    * @param subset set to find a reason for
    * @return explanation as string
-   * @see org.sosy_lab.cpachecker.util.faultlocalization.ranking.NoContextExplanation
+   * @see NoContextExplanation
    */
   String explanationFor(Fault subset);
+
+  static void explain(Fault pFault, FaultExplanation... pExplanations) {
+    for (FaultExplanation explanation : pExplanations) {
+      String explanationString = explanation.explanationFor(pFault);
+      if (!explanationString.isBlank()) {
+        pFault.addInfo(FaultInfo.fix(explanationString));
+      }
+    }
+  }
 }

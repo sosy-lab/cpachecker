@@ -69,6 +69,7 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
     errorSet = new LinkedHashSet<>(pContribs);
     infos = new ArrayList<>();
     score = pScore;
+    intendedIndex = -1;
   }
 
   /**

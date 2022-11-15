@@ -950,7 +950,7 @@ compositionAlgorithm.writeIntermediateOutputFiles = true
 # configuration of the residual program generator
 conditional.verifier.generatorConfig = no default value
 
-# configuration for the verification of the residual program which is
+# configuration for the verification of the residual program which ise
 # constructed from another verifier's condition
 conditional.verifier.verifierConfig = no default value
 

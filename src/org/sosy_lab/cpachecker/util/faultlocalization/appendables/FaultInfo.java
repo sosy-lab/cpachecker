@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.util.faultlocalization.appendables;
 import java.util.Comparator;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
-import org.sosy_lab.cpachecker.util.faultlocalization.ranking.NoContextExplanation;
+import org.sosy_lab.cpachecker.util.faultlocalization.explanation.NoContextExplanation;
 
 public abstract class FaultInfo implements Comparable<FaultInfo> {
 

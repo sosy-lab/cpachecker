@@ -2,11 +2,11 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
+package org.sosy_lab.cpachecker.util.faultlocalization.explanation;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -37,7 +37,7 @@ public class NoContextExplanation implements FaultExplanation {
    */
   @Override
   public String explanationFor(Fault subset) {
-    return Joiner.on("\n\n").join(FluentIterable.from(subset).transform(this::explain));
+    return Joiner.on(" ").join(FluentIterable.from(subset).transform(this::explain).toSet());
   }
 
   private String explain(FaultContribution faultContribution) {
@@ -58,8 +58,7 @@ public class NoContextExplanation implements FaultExplanation {
               + op
               + "\" in \""
               + description
-              + "\" with another boolean operator (<, >, <=, !=, ==, >=). This line may be prone to"
-              + " off-by-one errors!";
+              + "\" with another boolean operator (<, >, <=, !=, ==, >=).";
         }
       case StatementEdge:
         {

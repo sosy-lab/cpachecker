@@ -57,6 +57,8 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfoExporter;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 
@@ -73,6 +75,12 @@ public class CEXExporter {
       name = "compressWitness",
       description = "compress the produced error-witness automata using GZIP compression.")
   private boolean compressWitness = true;
+
+  @Option(
+      secure = true,
+      description =
+          "exports a JSON file describing found faults, if fault localization is activated")
+  private boolean exportFaults = true;
 
   @Option(
       secure = true,
@@ -99,6 +107,7 @@ public class CEXExporter {
   private final WitnessExporter witnessExporter;
   private final ExtendedWitnessExporter extendedWitnessExporter;
   private final HarnessExporter harnessExporter;
+  private final FaultLocalizationInfoExporter faultExporter;
   private TestCaseExporter testExporter;
 
   public CEXExporter(
@@ -121,10 +130,12 @@ public class CEXExporter {
           CounterexampleFilter.createCounterexampleFilter(config, pLogger, cpa, cexFilterClasses);
       harnessExporter = new HarnessExporter(config, pLogger, cfa);
       testExporter = new TestCaseExporter(cfa, logger, config);
+      faultExporter = new FaultLocalizationInfoExporter(config);
     } else {
       cexFilter = null;
       harnessExporter = null;
       testExporter = null;
+      faultExporter = null;
     }
   }
 
@@ -158,8 +169,23 @@ public class CEXExporter {
       final ARGState targetState, final CounterexampleInfo counterexample) {
     checkNotNull(targetState);
     checkNotNull(counterexample);
+
     if (options.disabledCompletely()) {
       return;
+    }
+
+    if (exportFaults && counterexample instanceof FaultLocalizationInfo && faultExporter != null) {
+      try {
+        faultExporter.export(
+            ((FaultLocalizationInfo) counterexample).getRankedList(),
+            counterexample
+                .getCFAPathWithAssignments()
+                .get(counterexample.getCFAPathWithAssignments().size() - 1)
+                .getCFAEdge());
+      } catch (IOException | IndexOutOfBoundsException pE) {
+        logger.logUserException(Level.WARNING, pE, "Could not export faults as JSON.");
+        throw new AssertionError(pE);
+      }
     }
 
     final ARGPath targetPath = counterexample.getTargetPath();
