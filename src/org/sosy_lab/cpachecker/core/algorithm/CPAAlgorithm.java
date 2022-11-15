@@ -180,6 +180,12 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
             "Do not report 'False' result, return UNKNOWN instead. "
                 + " Useful for incomplete analysis with no counterexample checking.")
     private boolean reportFalseAsUnknown = false;
+    
+    @Option(
+        secure = true,
+        description =
+        "Limit for Algorithm Iterations used by CPAchecker (-1 for infinite)")
+    private int iterationCountLimit = -1;
 
     private final ForcedCovering forcedCovering;
 
@@ -232,10 +238,10 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     @Override
     public CPAAlgorithm newInstance() {
       if(shutdownManager != null) {
-        return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, reportFalseAsUnknown, shutdownManager);
+        return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, reportFalseAsUnknown, iterationCountLimit, shutdownManager);
       }
       else {
-        return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, reportFalseAsUnknown);
+        return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, reportFalseAsUnknown, iterationCountLimit);
       }
       }
   }
@@ -274,6 +280,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private final ShutdownNotifier shutdownNotifier;
   private final @Nullable ShutdownManager shutdownManager;
+  
+  private final int iterationCountLimit;
 
   private final AlgorithmStatus status;
 
@@ -282,8 +290,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       LogManager logger,
       ShutdownNotifier pShutdownNotifier,
       ForcedCovering pForcedCovering,
-      boolean pIsImprecise) {
-    this(cpa, logger, pShutdownNotifier, pForcedCovering, pIsImprecise, null);
+      boolean pIsImprecise,
+      int pIterationCountLimit) {
+    this(cpa, logger, pShutdownNotifier, pForcedCovering, pIsImprecise, pIterationCountLimit, null);
   }
   
   private CPAAlgorithm(
@@ -292,6 +301,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       ShutdownNotifier pShutdownNotifier,
       ForcedCovering pForcedCovering,
       boolean pIsImprecise,
+      int pIterationCountLimit,
       ShutdownManager pShutdownManager) {
 
     transferRelation = cpa.getTransferRelation();
@@ -303,6 +313,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     shutdownManager = pShutdownManager;
     forcedCovering = pForcedCovering;
     status = AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(!pIsImprecise);
+    iterationCountLimit = pIterationCountLimit;
   }
 
   @Override
@@ -322,15 +333,16 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     while (reachedSet.hasWaitingState()) {
       
       //Hack to try IterationCountLimit
-      if(shutdownManager != null) {
-        IterationCountLimit limit = new IterationCountLimit(5);
-        final long currentValue = stats.countIterations;
-        if (limit.isExceeded(currentValue)) {
-          //updateCurrentValuesOfAllLimits();
-          String reason = String.format("The %s has elapsed.", limit.getName());
-          shutdownManager.requestShutdown(reason);
+        if(iterationCountLimit >= 0) {
+          IterationCountLimit limit = new IterationCountLimit(iterationCountLimit);
+          final long currentValue = stats.countIterations;
+          if (limit.isExceeded(currentValue)) {
+            //updateCurrentValuesOfAllLimits();
+            String reason = String.format("The %s has elapsed.", limit.getName());
+            throw new InterruptedException(reason);
+            //shutdownManager.requestShutdown(reason);
+          }
         }
-      }
       shutdownNotifier.shutdownIfNecessary();
       
       stats.countIterations++;
