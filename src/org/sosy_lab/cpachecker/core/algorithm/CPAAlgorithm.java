@@ -21,7 +21,6 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -192,8 +191,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private final ConfigurableProgramAnalysis cpa;
     private final LogManager logger;
     private final ShutdownNotifier shutdownNotifier;
-    private final @Nullable ShutdownManager shutdownManager;
-
+    
     public CPAAlgorithmFactory(
         ConfigurableProgramAnalysis cpa,
         LogManager logger,
@@ -205,28 +203,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       this.cpa = cpa;
       this.logger = logger;
       shutdownNotifier = pShutdownNotifier;
-      shutdownManager = null;
-
-      if (forcedCoveringClass != null) {
-        forcedCovering = forcedCoveringClass.create(config, logger, cpa);
-      } else {
-        forcedCovering = null;
-      }
-    }
-    
-    public CPAAlgorithmFactory(
-        ConfigurableProgramAnalysis cpa,
-        LogManager logger,
-        Configuration config,
-        ShutdownNotifier pShutdownNotifier,
-        ShutdownManager pShutdownManager)
-        throws InvalidConfigurationException {
-
-      config.inject(this);
-      this.cpa = cpa;
-      this.logger = logger;
-      shutdownNotifier = pShutdownNotifier;
-      shutdownManager = pShutdownManager;
 
       if (forcedCoveringClass != null) {
         forcedCovering = forcedCoveringClass.create(config, logger, cpa);
@@ -237,12 +213,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
     @Override
     public CPAAlgorithm newInstance() {
-      if(shutdownManager != null) {
-        return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, reportFalseAsUnknown, iterationCountLimit, shutdownManager);
-      }
-      else {
         return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, reportFalseAsUnknown, iterationCountLimit);
-      }
       }
   }
 
@@ -254,17 +225,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException {
 
     return new CPAAlgorithmFactory(cpa, logger, config, pShutdownNotifier).newInstance();
-  }
-  
-  public static CPAAlgorithm createWithShutdownAbility(
-      ConfigurableProgramAnalysis cpa,
-      LogManager logger,
-      Configuration config,
-      ShutdownNotifier pShutdownNotifier,
-      ShutdownManager pShutdownManager)
-      throws InvalidConfigurationException {
-
-    return new CPAAlgorithmFactory(cpa, logger, config, pShutdownNotifier, pShutdownManager).newInstance();
   }
 
   private final ForcedCovering forcedCovering;
@@ -279,12 +239,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   private final LogManager logger;
 
   private final ShutdownNotifier shutdownNotifier;
-  private final @Nullable ShutdownManager shutdownManager;
   
   private final int iterationCountLimit;
 
   private final AlgorithmStatus status;
-
+  
   private CPAAlgorithm(
       ConfigurableProgramAnalysis cpa,
       LogManager logger,
@@ -292,17 +251,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       ForcedCovering pForcedCovering,
       boolean pIsImprecise,
       int pIterationCountLimit) {
-    this(cpa, logger, pShutdownNotifier, pForcedCovering, pIsImprecise, pIterationCountLimit, null);
-  }
-  
-  private CPAAlgorithm(
-      ConfigurableProgramAnalysis cpa,
-      LogManager logger,
-      ShutdownNotifier pShutdownNotifier,
-      ForcedCovering pForcedCovering,
-      boolean pIsImprecise,
-      int pIterationCountLimit,
-      ShutdownManager pShutdownManager) {
 
     transferRelation = cpa.getTransferRelation();
     mergeOperator = cpa.getMergeOperator();
@@ -310,7 +258,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     precisionAdjustment = cpa.getPrecisionAdjustment();
     this.logger = logger;
     shutdownNotifier = pShutdownNotifier;
-    shutdownManager = pShutdownManager;
     forcedCovering = pForcedCovering;
     status = AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(!pIsImprecise);
     iterationCountLimit = pIterationCountLimit;

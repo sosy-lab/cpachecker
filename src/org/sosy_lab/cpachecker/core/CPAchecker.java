@@ -295,7 +295,7 @@ public class CPAchecker {
     config.inject(this);
     factory =
         new CoreComponentsFactory(
-            pConfiguration, pLogManager, shutdownNotifier, AggregatedReachedSets.empty(), shutdownManager);
+            pConfiguration, pLogManager, shutdownNotifier, AggregatedReachedSets.empty());
   }
 
   public CPAcheckerResult run(List<String> programDenotation) {

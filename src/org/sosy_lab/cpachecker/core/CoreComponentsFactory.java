@@ -411,16 +411,6 @@ public class CoreComponentsFactory {
       ShutdownNotifier pShutdownNotifier,
       AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException {
-    this(pConfig,pLogger,pShutdownNotifier,pAggregatedReachedSets,null);
-  }
-  
-  public CoreComponentsFactory(
-      Configuration pConfig,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      AggregatedReachedSets pAggregatedReachedSets,
-      ShutdownManager pShutdownManager)
-      throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
 
@@ -430,7 +420,7 @@ public class CoreComponentsFactory {
         shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
         shutdownNotifier = shutdownManager.getNotifier();
       } else {
-        shutdownManager = pShutdownManager;
+        shutdownManager = null;
         shutdownNotifier = pShutdownNotifier;
       }
       
@@ -553,7 +543,7 @@ public class CoreComponentsFactory {
       algorithm =
           new RandomTestGeneratorAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else {
-      algorithm = CPAAlgorithm.createWithShutdownAbility(cpa, logger, config, shutdownNotifier, shutdownManager);
+      algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
       if (testGoalConverter) {
         algorithm =
