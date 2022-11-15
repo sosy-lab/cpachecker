@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.threading.locks.ConditionVariable;
 import org.sosy_lab.cpachecker.cpa.threading.locks.LockInfo;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -76,8 +77,9 @@ public class ThreadingState
   // CallstackState +  LocationState :: thread-position
   private final PersistentMap<String, ThreadState> threads;
 
-  // String :: lock-id  -->  LockInfo
+  // Using id as keys for easy access
   private final PersistentMap<String, LockInfo> locks;
+  private final PersistentMap<String, ConditionVariable> conditionVariables;
 
   /**
    * Thread-id of last active thread that produced this exact {@link ThreadingState}. This value
@@ -119,6 +121,7 @@ public class ThreadingState
   public ThreadingState() {
     threads = PathCopyingPersistentTreeMap.of();
     locks = PathCopyingPersistentTreeMap.of();
+    conditionVariables = PathCopyingPersistentTreeMap.of();
     activeThread = null;
     entryFunction = null;
     threadIdsForWitness = PathCopyingPersistentTreeMap.of();
@@ -128,12 +131,14 @@ public class ThreadingState
   private ThreadingState(
       PersistentMap<String, ThreadState> pThreads,
       PersistentMap<String, LockInfo> pLocks,
+      PersistentMap<String, ConditionVariable> pConditionVariables,
       String pActiveThread,
       FunctionCallEdge pEntryFunction,
       PersistentMap<String, Integer> pThreadIdsForWitness,
       ThreadFunctionReturnValue pLastThreadFunctionResult) {
     threads = pThreads;
     locks = pLocks;
+    conditionVariables = pConditionVariables;
     activeThread = pActiveThread;
     entryFunction = pEntryFunction;
     threadIdsForWitness = pThreadIdsForWitness;
@@ -144,6 +149,7 @@ public class ThreadingState
     return new ThreadingState(
         pThreads,
         locks,
+        conditionVariables,
         activeThread,
         entryFunction,
         threadIdsForWitness,
@@ -154,6 +160,19 @@ public class ThreadingState
     return new ThreadingState(
         threads,
         pLocks,
+        conditionVariables,
+        activeThread,
+        entryFunction,
+        threadIdsForWitness,
+        lastThreadFunctionResult);
+  }
+
+  private ThreadingState withConditionVariables(
+      PersistentMap<String, ConditionVariable> pConditionVariables) {
+    return new ThreadingState(
+        threads,
+        locks,
+        pConditionVariables,
         activeThread,
         entryFunction,
         threadIdsForWitness,
@@ -165,6 +184,7 @@ public class ThreadingState
     return new ThreadingState(
         threads,
         locks,
+        conditionVariables,
         activeThread,
         entryFunction,
         pThreadIdsForWitness,
@@ -251,6 +271,7 @@ public class ThreadingState
 
   /** Returns whether a lock with the given id exists. */
   public boolean hasLock(String lockId) {
+    Preconditions.checkNotNull(lockId);
     return locks.containsKey(lockId);
   }
 
@@ -281,6 +302,40 @@ public class ThreadingState
         .filter(lock -> lock.isHeldByThread(threadId))
         .transform(LockInfo::getLockId)
         .toSet();
+  }
+
+  public boolean hasCondVar(String condVarName) {
+    Preconditions.checkNotNull(condVarName);
+    return conditionVariables.containsKey(condVarName);
+  }
+
+  public ConditionVariable getCondVar(String condVarName) {
+    Preconditions.checkNotNull(condVarName);
+    Preconditions.checkArgument(conditionVariables.containsKey(condVarName));
+    return conditionVariables.get(condVarName);
+  }
+
+  /**
+   * Returns the condition variable a thread is waiting on or null if the thread is not waiting on
+   * any condition variable.
+   *
+   * <p>If a non-null condition variable is returned, the thread may already have been signalled but
+   * has not yet resumed computation.
+   */
+  public ConditionVariable getCondVarForThread(String threadId) {
+    Preconditions.checkNotNull(threadId);
+    for (ConditionVariable condVar : conditionVariables.values()) {
+      if (condVar.getWaitingThreads().contains(threadId)
+          || condVar.getSignalledThreads().contains(threadId)) {
+        return condVar;
+      }
+    }
+    return null;
+  }
+
+  public ThreadingState updateCondVarAndCopy(ConditionVariable condVar) {
+    Preconditions.checkNotNull(condVar);
+    return withConditionVariables(conditionVariables.putAndCopy(condVar.getName(), condVar));
   }
 
   @Override
@@ -565,6 +620,7 @@ public class ThreadingState
     return new ThreadingState(
         threads,
         locks,
+        conditionVariables,
         pActiveThread,
         entryFunction,
         threadIdsForWitness,
@@ -580,6 +636,7 @@ public class ThreadingState
     return new ThreadingState(
         threads,
         locks,
+        conditionVariables,
         activeThread,
         pEntryFunction,
         threadIdsForWitness,
@@ -598,6 +655,7 @@ public class ThreadingState
     return new ThreadingState(
         threads,
         locks,
+        conditionVariables,
         activeThread,
         entryFunction,
         threadIdsForWitness,

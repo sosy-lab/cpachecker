@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.threading.locks.ConditionVariable;
 import org.sosy_lab.cpachecker.cpa.threading.locks.LockInfo;
 import org.sosy_lab.cpachecker.cpa.threading.locks.LockInfo.LockType;
 import org.sosy_lab.cpachecker.cpa.threading.locks.MutexLock;
@@ -125,6 +126,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String THREAD_MUTEX_TRYLOCK = "pthread_mutex_trylock";
   private static final String RW_MUTEX_READLOCK = "pthread_rwlock_rdlock";
   private static final String RW_MUTEX_WRITELOCK = "pthread_rwlock_wrlock";
+  private static final String THREAD_COND_WAIT = "pthread_cond_wait";
+  private static final String THREAD_COND_SIGNAL = "pthread_cond_signal";
+  private static final String THREAD_COND_BC = "pthread_cond_broadcast";
   private static final String VERIFIER_ATOMIC = "__VERIFIER_atomic_";
   private static final String VERIFIER_ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
   private static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
@@ -135,7 +139,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final ImmutableSet<String> UNSUPPORTED_THREAD_FUNCTIONS =
       ImmutableSet.of(
           // https://gitlab.com/sosy-lab/software/cpachecker/-/issues/929
-          "pthread_cond_wait", "pthread_cond_timedwait");
+          "pthread_cond_timedwait");
 
   private static final ImmutableSet<String> THREAD_FUNCTIONS =
       ImmutableSet.of(
@@ -145,6 +149,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           THREAD_MUTEX_TRYLOCK,
           RW_MUTEX_READLOCK,
           RW_MUTEX_WRITELOCK,
+          THREAD_COND_WAIT,
+          THREAD_COND_SIGNAL,
+          THREAD_COND_BC,
           THREAD_JOIN,
           THREAD_EXIT,
           VERIFIER_ATOMIC_BEGIN,
@@ -194,6 +201,25 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       if (threadingState == null) {
         return ImmutableSet.of();
       }
+    }
+
+    // check if the active thread is waiting on some condition variable
+    ConditionVariable condVar = threadingState.getCondVarForThread(activeThread);
+    if (condVar != null) {
+      // we do not need to check whether the thread has already been signalled, because even if not
+      // spurious wakeups may happen, i.e. the thread might erroneously try to continue computation
+      // instead of waiting (cf. man pthread_cond_wait)
+
+      // try to acquire the lock before continuing
+      String lockId = condVar.getLockId();
+      if (threadingState.isLockHeld(lockId)) {
+        // some other thread already has the lock
+        return ImmutableSet.of();
+      }
+      threadingState =
+          threadingState
+              .updateLockAndCopy(threadingState.getLock(lockId).acquire(activeThread))
+              .updateCondVarAndCopy(condVar.removeThread(activeThread));
     }
 
     // check, if we can abort the complete analysis of all other threads after this edge.
@@ -278,6 +304,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
                 case RW_MUTEX_WRITELOCK:
                   return addWriteLock(
                       threadingState, activeThread, extractLockId(statement), results);
+                case THREAD_COND_WAIT:
+                  return addCondition(
+                      threadingState, activeThread, (AFunctionCall) statement, results, cfaEdge);
+                case THREAD_COND_SIGNAL:
+                case THREAD_COND_BC:
+                  return removeCondition(threadingState, (AFunctionCall) statement, results);
                 case THREAD_JOIN:
                   return joinThread(threadingState, statement, results);
                 case THREAD_EXIT:
@@ -714,6 +746,61 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     }
 
     return transform(results, ts -> ts.updateLockAndCopy(lock.addWriter(activeThread)));
+  }
+
+  private Collection<ThreadingState> addCondition(
+      ThreadingState threadingState,
+      String activeThread,
+      AFunctionCall statement,
+      Collection<ThreadingState> results,
+      CFAEdge edge)
+      throws UnrecognizedCodeException {
+    List<? extends AExpression> params =
+        statement.getFunctionCallExpression().getParameterExpressions();
+    if (!(params.size() == 2
+        && params.get(0) instanceof CUnaryExpression
+        && params.get(1) instanceof CUnaryExpression)) {
+      throw new UnrecognizedCodeException("unsupported use of condition variables", statement);
+    }
+    String condVarName = ((CUnaryExpression) params.get(0)).getOperand().toString();
+    String lockId = ((CUnaryExpression) params.get(1)).getOperand().toString();
+
+    if (!threadingState.isLockHeld(activeThread, lockId)) {
+      // Undefined behavior
+      throw new UnrecognizedCodeException(
+          "pthread_cond_wait called without holding specified mutex", edge);
+    }
+
+    ConditionVariable condVar;
+    if (threadingState.hasCondVar(condVarName)) {
+      condVar = threadingState.getCondVar(condVarName);
+    } else {
+      condVar = new ConditionVariable(condVarName);
+    }
+    return transform(
+        results,
+        ts ->
+            ts.updateCondVarAndCopy(condVar.wait(activeThread, lockId))
+                .releaseLockAndCopy(activeThread, lockId));
+  }
+
+  private Collection<ThreadingState> removeCondition(
+      ThreadingState threadingState, AFunctionCall statement, Collection<ThreadingState> results)
+      throws UnrecognizedCodeException {
+    List<? extends AExpression> params =
+        statement.getFunctionCallExpression().getParameterExpressions();
+    if (!(params.size() == 1 && params.get(0) instanceof CUnaryExpression)) {
+      throw new UnrecognizedCodeException("unsupported use of condition variables", statement);
+    }
+    String condVarName = ((CUnaryExpression) params.get(0)).getOperand().toString();
+
+    if (!threadingState.hasCondVar(condVarName)) {
+      // No effect when no thread is waiting on the condition variable
+      return results;
+    }
+
+    ConditionVariable condVar = threadingState.getCondVar(condVarName).signal();
+    return transform(results, ts -> ts.updateCondVarAndCopy(condVar));
   }
 
   /** get the name (lockId) of the new lock at the given edge, or NULL if no lock is required. */

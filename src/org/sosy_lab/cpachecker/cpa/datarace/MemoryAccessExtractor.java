@@ -51,7 +51,11 @@ public class MemoryAccessExtractor {
           "pthread_rwlock_rdlock",
           "pthread_rwlock_timedrdlock",
           "pthread_rwlock_timedwrlock",
-          "pthread_rwlock_wrlock");
+          "pthread_rwlock_wrlock",
+          // TODO: Need to add synchronizations (broadcast synchronizes-with all signalled waiting
+          //  threads, signal synchronizes-with ?)
+          "pthread_cond_wait",
+          "pthread_cond_timedwait");
 
   /**
    * Collects the memory locations accessed by the given CFA edge and builds the corresponding
