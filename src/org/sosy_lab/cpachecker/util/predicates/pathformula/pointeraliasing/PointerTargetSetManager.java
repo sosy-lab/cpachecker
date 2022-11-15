@@ -569,7 +569,9 @@ class PointerTargetSetManager {
     }
 
     final int typeSize =
-        pType.isIncomplete() ? options.defaultAllocationSize() : typeHandler.getSizeof(pType);
+        pType.hasKnownConstantSize()
+            ? typeHandler.getSizeof(pType)
+            : options.defaultAllocationSize();
     final Formula typeSizeF = formulaManager.makeNumber(pointerType, typeSize);
     final Formula newBasePlusTypeSize = formulaManager.makePlus(newBaseFormula, typeSizeF);
 

@@ -63,6 +63,11 @@ public final class CEnumType implements CComplexType {
     return false;
   }
 
+  @Override
+  public boolean hasKnownConstantSize() {
+    return true;
+  }
+
   public ImmutableList<CEnumerator> getEnumerators() {
     return enumerators;
   }
