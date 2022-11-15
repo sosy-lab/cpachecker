@@ -214,6 +214,7 @@ class ASTConverter {
             .put("externally_visible", Optional.empty())
             .put("flatten", Optional.empty())
             .put("format", Optional.empty())
+            .put("format_arg", Optional.empty())
             .put("gnu_inline", Optional.empty())
             .put("hot", Optional.empty())
             .put("ifunc", Optional.empty())
