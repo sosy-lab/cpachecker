@@ -12,7 +12,6 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;

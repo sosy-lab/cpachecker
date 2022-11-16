@@ -216,8 +216,7 @@ public class TraceFormula {
       List<CFAEdge> pCounterexample,
       FormulaContext pContext,
       TraceFormulaOptions pOptions)
-      throws CPAException, SolverException, InterruptedException, InvalidConfigurationException,
-          InvalidCounterexampleException {
+      throws CPAException, SolverException, InterruptedException, InvalidCounterexampleException {
     List<CFAEdge> remainingCounterexample = pCounterexample;
     PreCondition precondition = pPreConditionType.extractPreCondition(remainingCounterexample);
     remainingCounterexample = precondition.getRemainingCounterexample();
