@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization.explanation;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
@@ -37,7 +39,7 @@ public class NoContextExplanation implements FaultExplanation {
    */
   @Override
   public String explanationFor(Fault subset) {
-    return Joiner.on(" ").join(FluentIterable.from(subset).transform(this::explain).toSet());
+    return Joiner.on(" ").join(transformedImmutableSetCopy(subset, this::explain));
   }
 
   private String explain(FaultContribution faultContribution) {

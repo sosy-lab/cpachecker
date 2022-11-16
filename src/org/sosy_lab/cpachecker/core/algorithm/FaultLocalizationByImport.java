@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
@@ -372,9 +373,7 @@ public class FaultLocalizationByImport implements Algorithm {
         throws IOException {
       Predicate<CFAEdge> nextFilter;
       while (pRemaining.size() > 1) {
-        if (!pFilter.hasNext()) {
-          throw new IllegalArgumentException("Not enough filters...");
-        }
+        checkArgument(pFilter.hasNext(), "Not enough filters...");
         nextFilter = pFilter.next();
         pRemaining = pRemaining.stream().filter(nextFilter).collect(ImmutableSet.toImmutableSet());
       }
