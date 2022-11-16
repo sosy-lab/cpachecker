@@ -1095,9 +1095,12 @@ public class SMG {
         .map(entry -> entry.getKey());
   }
 
-  public ImmutableSet<SMGObject> findAllAddressesForTargetObject(
+  /*
+   * Returns a map of objects that have a pointer to the targetObject and the offset used.
+   */
+  public ImmutableMap<SMGObject, BigInteger> findAllObjectsWithPointersToTargetObject(
       SMGObject targetObject, Collection<SMGObject> heapObjects) {
-    ImmutableSet.Builder<SMGObject> ret = ImmutableSet.builder();
+    ImmutableMap.Builder<SMGObject, BigInteger> ret = ImmutableMap.builder();
     for (Entry<SMGValue, SMGPointsToEdge> entry : pointsToEdges.entrySet()) {
       if (targetObject.equals(entry.getValue().pointsTo())) {
         SMGValue pointerValue = entry.getKey();
@@ -1107,13 +1110,13 @@ public class SMG {
           }
           for (SMGHasValueEdge hve : hasValueEdges.getOrDefault(heapObj, PersistentSet.of())) {
             if (hve.hasValue() == pointerValue) {
-              ret.add(heapObj);
+              ret.put(heapObj, hve.getOffset());
             }
           }
         }
       }
     }
-    return ret.build();
+    return ret.buildOrThrow();
   }
 
   /**
