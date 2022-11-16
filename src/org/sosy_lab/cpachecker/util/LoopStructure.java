@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableCollection;
@@ -20,12 +21,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
@@ -631,6 +635,36 @@ public final class LoopStructure implements Serializable {
       }
     }
 
+    // In the third step, strange goto-loops are merged together. This is order dependent, so we
+    // want to first merge strange goto-loops that have the same loop heads, as this likely merges
+    // loops together that intuitively should be merged together.
+    // FIXME: This heuristic was added because we want to find the exact same loops with and without
+    //        using loop-free sections. Without this heuristic, we may merge loops in a different
+    //        order (result is order dependent) because we may find loops in a different order.
+    //        We should think of a better solution as this heuristic still doesn't fully solve our
+    //        problem. At least in theory, there could still be differences in the overall result.
+    Multimap<CFANode, Loop> loopHeadToLoops = ArrayListMultimap.create();
+    for (Loop loop : loops) {
+      // loops have not been merged yet, so they have only a single loop head
+      loopHeadToLoops.put(Iterables.getOnlyElement(loop.getLoopHeads()), loop);
+    }
+    Collections.sort(
+        loops,
+        (someLoop, otherLoop) -> {
+          CFANode someLoopHead = Iterables.getOnlyElement(someLoop.getLoopHeads());
+          CFANode otherLoopHead = Iterables.getOnlyElement(otherLoop.getLoopHeads());
+          // if a loop head appears more often, its loops should come first
+          int loopCountCmp =
+              Integer.compare(
+                  loopHeadToLoops.get(otherLoopHead).size(),
+                  loopHeadToLoops.get(someLoopHead).size());
+          if (loopCountCmp != 0) {
+            return loopCountCmp;
+          } else {
+            return otherLoop.compareTo(someLoop);
+          }
+        });
+
     // THIRD step:
     // check all pairs of loops if one is an inner loop of the other
     // the check is symmetric, so we need to check only (i1, i2) with i1 < i2
@@ -639,6 +673,11 @@ public final class LoopStructure implements Serializable {
       toRemove.clear();
       for (int i1 = 0; i1 < loops.size(); i1++) {
         Loop l1 = loops.get(i1);
+
+        if (toRemove.contains(i1)) {
+          // we are going to remove `l1`, so we ignore it here
+          continue;
+        }
 
         for (int i2 = i1 + 1; i2 < loops.size(); i2++) {
           Loop l2 = loops.get(i2);
