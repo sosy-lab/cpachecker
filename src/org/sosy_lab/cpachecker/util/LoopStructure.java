@@ -536,6 +536,8 @@ public final class LoopStructure implements Serializable {
             : new BranchSkippingLoopFreeSectionFinder(nodeAfterInitialChain);
 
     // FIRST step: initialize arrays
+    // We also summarize loop-free sections by adding an edge to `edges` between the entry and
+    // exit of a loop-free section, because it's faster than if we let `identifyLoops` do this.
     for (Iterator<CFANode> nodeIterator = nodes.iterator(); nodeIterator.hasNext(); ) {
       CFANode n = nodeIterator.next();
       int i = arrayIndexForNode.apply(n);
@@ -1018,8 +1020,9 @@ public final class LoopStructure implements Serializable {
    * but can itself be inside a loop body. Edges from the exit node to the entry node of a loop-free
    * section are not considered inside the loop-free section. The entry node must dominate all nodes
    * in a loop-free section and the exit node must post-dominate all nodes in a loop-free section.
-   * The smallest possible loop-free section contains a single node, which is also automatically the
-   * entry and exit node of the loop-free section.
+   * This guarantees that all paths from the entry always lead to the exit and all backwards paths
+   * from the exit always lead to the entry. The smallest possible loop-free section contains a
+   * single node, which is also automatically the entry and exit node of the loop-free section.
    */
   private static interface LoopFreeSectionFinder {
 
@@ -1141,7 +1144,20 @@ public final class LoopStructure implements Serializable {
     }
   }
 
-  /** Finds loop-free sections that may contain (nested) branchings. */
+  /**
+   * Finds loop-free sections that may contain (nested) branchings.
+   *
+   * <p>This approach only works for branchings if there is a clear correspondence between a
+   * branching point (multiple branches leaving a node) and a merging point (multiple branches
+   * entering a node). Other branchings where such clear correspondence is missing (with gotos for
+   * example there is no such correspondence) are not combined into loop-free sections by this
+   * approach.
+   *
+   * <p>This approach also works for nested branchings as long as all branchings have a clear
+   * correspondence between a branching point and a merging point. This approach also tries to
+   * combine as many nodes as possible, so the outermost branching that can be combined into a
+   * loop-free section is considered.
+   */
   private static final class BranchSkippingLoopFreeSectionFinder implements LoopFreeSectionFinder {
 
     // TODO: use `CfaNetwork` and transposed `CfaNetwork` to basically halve the amount of code
@@ -1180,7 +1196,7 @@ public final class LoopStructure implements Serializable {
           // `firstNode` is a merge node, so we try to skip the branching
           @Nullable CFANode branchNode = branchNode(firstNode).orElse(null);
           if (branchNode != null && branchNode.getNumLeavingEdges() == branchingFactor) {
-            // skip branching
+            // skip inner branching
             firstNode = nodeChainFinder.entryNode(branchNode);
             changed = true;
           }
@@ -1202,7 +1218,7 @@ public final class LoopStructure implements Serializable {
           // `lastNode` is a branch node, so we try to skip the branching
           @Nullable CFANode mergeNode = mergeNode(lastNode).orElse(null);
           if (mergeNode != null && mergeNode.getNumEnteringEdges() == branchingFactor) {
-            // skip branching
+            // skip inner branching
             lastNode = nodeChainFinder.exitNode(mergeNode);
             changed = true;
           }
@@ -1371,7 +1387,7 @@ public final class LoopStructure implements Serializable {
           if (branchingFactor > 1) {
             @Nullable CFANode mergeNode = mergeNode(predecessor).orElse(null);
             if (mergeNode != null && mergeNode.getNumEnteringEdges() == branchingFactor) {
-              // leave branching
+              // go to outer branching
               sectionEntry = branchFirstNode(predecessor);
               changed = true;
             }
@@ -1396,7 +1412,7 @@ public final class LoopStructure implements Serializable {
           if (branchingFactor > 1) {
             @Nullable CFANode branchNode = branchNode(successor).orElse(null);
             if (branchNode != null && branchNode.getNumLeavingEdges() == branchingFactor) {
-              // leave branching
+              // go to outer branching
               sectionExit = branchLastNode(successor);
               changed = true;
             }
