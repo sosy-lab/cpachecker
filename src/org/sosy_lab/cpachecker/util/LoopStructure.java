@@ -1082,16 +1082,16 @@ public final class LoopStructure implements Serializable {
    */
   private static final class NodeChainLoopFreeSectionFinder implements LoopFreeSectionFinder {
 
-    private final @Nullable CFANode ignoreNode;
+    private final @Nullable CFANode startNode;
 
     /**
      * Creates a new {@link NodeChainLoopFreeSectionFinder} instance.
      *
-     * @param pIgnoreNode if {@code pIgnoreNode != null}, we stop CFA traversal at this node, so no
-     *     section found by this {@link LoopFreeSectionFinder} contains the node
+     * @param pStartNode If {@code pStartNode != null}, we ignore all its predecessors during CFA
+     *     traversal. This can be used to ignore linear chains of nodes at the function start.
      */
-    private NodeChainLoopFreeSectionFinder(@Nullable CFANode pIgnoreNode) {
-      ignoreNode = pIgnoreNode;
+    private NodeChainLoopFreeSectionFinder(@Nullable CFANode pStartNode) {
+      startNode = pStartNode;
     }
 
     @Override
@@ -1104,7 +1104,7 @@ public final class LoopStructure implements Serializable {
         return currentNode;
       }
 
-      if (currentNode.equals(ignoreNode)) {
+      if (currentNode.equals(startNode)) {
         return currentNode;
       }
 
@@ -1112,7 +1112,7 @@ public final class LoopStructure implements Serializable {
       CFANode nextNode = currentNode.getEnteringEdge(0).getPredecessor();
       while (nextNode.getNumEnteringEdges() == 1 && nextNode.getNumLeavingEdges() == 1) {
         currentNode = nextNode;
-        if (nextNode.equals(ignoreNode)) {
+        if (nextNode.equals(startNode)) {
           break;
         }
         nextNode = nextNode.getEnteringEdge(0).getPredecessor();
@@ -1132,17 +1132,10 @@ public final class LoopStructure implements Serializable {
         return currentNode;
       }
 
-      if (currentNode.equals(ignoreNode)) {
-        return currentNode;
-      }
-
       // nodes between chain entry and exit must have a single in-edge and a single out-edge
       CFANode nextNode = currentNode.getLeavingEdge(0).getSuccessor();
       while (nextNode.getNumEnteringEdges() == 1 && nextNode.getNumLeavingEdges() == 1) {
         currentNode = nextNode;
-        if (nextNode.equals(ignoreNode)) {
-          break;
-        }
         nextNode = nextNode.getLeavingEdge(0).getSuccessor();
       }
 
@@ -1156,7 +1149,7 @@ public final class LoopStructure implements Serializable {
 
     // TODO: use `CfaNetwork` and transposed `CfaNetwork` to basically halve the amount of code
 
-    private final @Nullable CFANode ignoreNode;
+    private final @Nullable CFANode startNode;
     private final NodeChainLoopFreeSectionFinder nodeChainFinder;
 
     // Maps branch/merge nodes to their corresponding merge/branch nodes, so we can skip a
@@ -1168,12 +1161,12 @@ public final class LoopStructure implements Serializable {
     /**
      * Creates a new {@link BranchSkippingLoopFreeSectionFinder} instance.
      *
-     * @param pIgnoreNode if {@code pIgnoreNode != null}, we stop CFA traversal at this node, so no
-     *     section found by this {@link LoopFreeSectionFinder} contains the node
+     * @param pStartNode If {@code pStartNode != null}, we ignore all its predecessors during CFA
+     *     traversal. This can be used to ignore linear chains of nodes at the function start.
      */
-    private BranchSkippingLoopFreeSectionFinder(@Nullable CFANode pIgnoreNode) {
-      ignoreNode = pIgnoreNode;
-      nodeChainFinder = new NodeChainLoopFreeSectionFinder(pIgnoreNode);
+    private BranchSkippingLoopFreeSectionFinder(@Nullable CFANode pStartNode) {
+      startNode = pStartNode;
+      nodeChainFinder = new NodeChainLoopFreeSectionFinder(pStartNode);
       branchNodeToMergeNode = new HashMap<>();
       mergeNodeToBranchNode = new HashMap<>();
     }
@@ -1192,8 +1185,7 @@ public final class LoopStructure implements Serializable {
 
       if (loopFreeBranchEnd == null) {
         return pBranch;
-      } else if (loopFreeBranchEnd.getNumLeavingEdges() == 1
-          && !loopFreeBranchEnd.equals(ignoreNode)) {
+      } else if (loopFreeBranchEnd.getNumLeavingEdges() == 1) {
         return loopFreeBranchEnd.getLeavingEdge(0).getSuccessor();
       }
 
@@ -1216,10 +1208,6 @@ public final class LoopStructure implements Serializable {
 
       checkArgument(
           pBranchNode.getNumLeavingEdges() == 2, "Node is not a branch node: %s", pBranchNode);
-
-      if (pBranchNode.equals(ignoreNode)) {
-        return Optional.empty();
-      }
 
       if (branchNodeToMergeNode.containsKey(pBranchNode)) {
         return branchNodeToMergeNode.get(pBranchNode);
@@ -1258,7 +1246,7 @@ public final class LoopStructure implements Serializable {
       if (loopFreeBranchStart == null) {
         return pBranch;
       } else if (loopFreeBranchStart.getNumEnteringEdges() == 1
-          && !loopFreeBranchStart.equals(ignoreNode)) {
+          && !loopFreeBranchStart.equals(startNode)) {
         return loopFreeBranchStart.getEnteringEdge(0).getPredecessor();
       }
 
@@ -1282,7 +1270,7 @@ public final class LoopStructure implements Serializable {
       checkArgument(
           pMergeNode.getNumEnteringEdges() == 2, "Node is not a merge node: %s", pMergeNode);
 
-      if (pMergeNode.equals(ignoreNode)) {
+      if (pMergeNode.equals(startNode)) {
         return Optional.empty();
       }
 
@@ -1317,7 +1305,7 @@ public final class LoopStructure implements Serializable {
       do {
         changed = false;
         if (sectionEntry.getNumEnteringEdges() == 1) {
-          if (sectionEntry.equals(ignoreNode)) {
+          if (sectionEntry.equals(startNode)) {
             return sectionEntry;
           }
           CFAEdge enteringEdge = sectionEntry.getEnteringEdge(0);
@@ -1352,9 +1340,6 @@ public final class LoopStructure implements Serializable {
       do {
         changed = false;
         if (sectionExit.getNumLeavingEdges() == 1) {
-          if (sectionExit.equals(ignoreNode)) {
-            return sectionExit;
-          }
           CFAEdge leavingEdge = sectionExit.getLeavingEdge(0);
           CFANode successor = leavingEdge.getSuccessor();
           if (successor.getNumEnteringEdges() == 2
