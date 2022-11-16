@@ -533,7 +533,7 @@ public final class LoopStructure implements Serializable {
     LoopFreeSectionFinder loopFreeSectionFinder =
         pLoopFreeSectionFinder != null
             ? pLoopFreeSectionFinder
-            : new BranchSkippingLoopFreeSectionFinder(nodeAfterInitialChain);
+            : new BranchingLoopFreeSectionFinder(nodeAfterInitialChain);
 
     // FIRST step: initialize arrays
     // We also summarize loop-free sections by adding an edge to `edges` between the entry and
@@ -1158,7 +1158,7 @@ public final class LoopStructure implements Serializable {
    * combine as many nodes as possible, so the outermost branching that can be combined into a
    * loop-free section is considered.
    */
-  private static final class BranchSkippingLoopFreeSectionFinder implements LoopFreeSectionFinder {
+  private static final class BranchingLoopFreeSectionFinder implements LoopFreeSectionFinder {
 
     // TODO: use `CfaNetwork` and transposed `CfaNetwork` to basically halve the amount of code
 
@@ -1172,12 +1172,12 @@ public final class LoopStructure implements Serializable {
     private final Map<CFANode, Optional<CFANode>> mergeNodeToBranchNode;
 
     /**
-     * Creates a new {@link BranchSkippingLoopFreeSectionFinder} instance.
+     * Creates a new {@link BranchingLoopFreeSectionFinder} instance.
      *
      * @param pStartNode If {@code pStartNode != null}, we ignore all its predecessors during CFA
      *     traversal. This can be used to ignore linear chains of nodes at the function start.
      */
-    private BranchSkippingLoopFreeSectionFinder(@Nullable CFANode pStartNode) {
+    private BranchingLoopFreeSectionFinder(@Nullable CFANode pStartNode) {
       startNode = pStartNode;
       nodeChainFinder = new NodeChainLoopFreeSectionFinder(pStartNode);
       branchNodeToMergeNode = new HashMap<>();
