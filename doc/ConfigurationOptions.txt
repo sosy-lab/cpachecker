@@ -226,6 +226,9 @@ analysis.algorithm.faultLocalization.by_traceformula = false
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
+# Distribute predicate analysis to multiple workers
+analysis.algorithm.importFaults = false
+
 # use nontermination witness validator to check a violation witness for
 # termination
 analysis.algorithm.nonterminationWitnessCheck = false
@@ -950,7 +953,7 @@ compositionAlgorithm.writeIntermediateOutputFiles = true
 # configuration of the residual program generator
 conditional.verifier.generatorConfig = no default value
 
-# configuration for the verification of the residual program which ise
+# configuration for the verification of the residual program which is
 # constructed from another verifier's condition
 conditional.verifier.verifierConfig = no default value
 
@@ -1074,6 +1077,10 @@ counterexample.export.exportCounterexampleCoverage = false
 
 # Export extended witness in addition to regular witness
 counterexample.export.exportExtendedWitness = false
+
+# exports a JSON file describing found faults, if fault localization is
+# activated
+counterexample.export.exportFaults = true
 
 # export test harness
 counterexample.export.exportHarness = false
@@ -3625,6 +3632,10 @@ faultLocalization.by_distance.metric = ADM
 # available.
 faultLocalization.by_distance.stopAfter = 40
 
+# whether to include variables beginning with
+# __FAULT_LOCALIZATION_precondition
+faultLocalization.by_traceformula.includeDeclared = true
+
 # Do not show faults that contain a certain variable. Use, e.g., 'main::x' to
 # ban variable 'x' in the main function. Use, e.g., '::x' to ban all
 # variables named 'x'. This is especially useful to filter specific faults if
@@ -3638,14 +3649,32 @@ faultLocalization.by_traceformula.postConditionType = LAST_ASSUME_EDGES_ON_SAME_
              LAST_ASSUME_EDGE_CLUSTER]
 
 # By default, the precondition only contains the failing variable assignment
-# of all nondet variables. Choose INITIAL_ASSIGNMENT to assignments like
+# of all nondet variables. Choose INITIAL_ASSIGNMENT to add assignments like
 # '<datatype> <variable-name> = <value>' to the precondition.
-faultLocalization.by_traceformula.preconditionType = NONDETERMINISTIC_VARIABLES_ONLY
+faultLocalization.by_traceformula.preconditionType = INITIAL_ASSIGNMENT
   enum:     [NONDETERMINISTIC_VARIABLES_ONLY, INITIAL_ASSIGNMENT, ALWAYS_TRUE]
 
 # which algorithm to use
 faultLocalization.by_traceformula.type = UNSAT
   enum:     [UNSAT, MAXSAT, MAXORG, ERRINV]
+
+# Whether to zip the resulting JSON file.
+faultLocalization.export.compressed = false
+
+# Where to write machine readable faults.
+faultLocalization.export.outputFile = "faultlocalization.json"
+
+# Whether to run specified analysis
+faultLocalization.import.algorithmActivated = false
+
+# which explanations to use
+faultLocalization.import.explanations = []
+
+# path to the input json file with faults
+faultLocalization.import.importFile = no default value
+
+# which scoring functions to use
+faultLocalization.import.scorings = []
 
 # Configuration for programs containing more than @Option adressedRatio
 # addressed vars.
@@ -4616,6 +4645,9 @@ traceformula.filter = ["main"]
 # e.g., main::x,doStuff::y. Make sure to add the function in which the
 # variable is used as prefix, separated by two ':'
 traceformula.ignore = []
+
+# if enabled, nondet declarations get a selector, otherwise they don't
+traceformula.inlinePrecondition = true
 
 # Make trace formula flow-sensitive, i.e., assume edges imply the edges that
 # are only reachable through the assume edge. Flow-sensitive traces remove
