@@ -19,7 +19,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -108,12 +107,12 @@ public class SMGCPAAbstractionTest {
    * then abstracted and checked. This works if we correctly check equality by shape and not pointer
    * identity.
    */
-  @Ignore
   @Test
   public void nestedListSLLTest() throws InvalidConfigurationException, SMG2Exception {
     resetSMGStateAndVisitor();
     // Smaller lengths are fine here, else this runs a while!
-    int listLength = 10;
+    // Increasing this is a good test for the overall performance of the SMGs!
+    int listLength = 15;
     resetSMGStateAndVisitor();
     Value[] pointers = buildConcreteList(false, sllSize, listLength);
     for (Value pointer : pointers) {
@@ -133,6 +132,8 @@ public class SMGCPAAbstractionTest {
     }
     SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
     currentState = absFinder.findAndAbstractLists();
+    // 1 null obj + 1 top list + listLength nested
+    assertThat(currentState.getMemoryModel().getHeapObjects()).hasSize(2 + listLength);
     // Now we have abstracted all lists in the state, including the nested ones
     SMGObject abstractedTopListSegment = null;
     for (Value pointer : pointers) {
@@ -148,6 +149,7 @@ public class SMGCPAAbstractionTest {
         abstractedTopListSegment = currentTopListSegment;
       }
       assertThat(currentTopListSegment instanceof SMGSinglyLinkedListSegment).isTrue();
+      assertThat(currentTopListSegment instanceof SMGDoublyLinkedListSegment).isFalse();
       assertThat(((SMGSinglyLinkedListSegment) currentTopListSegment).getMinLength())
           .isEqualTo(listLength);
     }
