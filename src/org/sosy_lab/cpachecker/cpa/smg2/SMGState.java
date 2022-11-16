@@ -859,20 +859,6 @@ public class SMGState
   }
 
   /**
-   * Copy SMGState with a newly created anonymous object and put it into the current stack frame.
-   * Used for string initilizers as function arguments.
-   *
-   * <p>Keeps consistency: yes
-   *
-   * @param pTypeSize Size of the type the new local variable
-   * @return Newly created object
-   * @throws SMG2Exception thrown if there is no stack frame to add the var to.
-   */
-  public SMGState copyAndAddAnonymousVariable(int pTypeSize, CType type) throws SMG2Exception {
-    return copyAndAddLocalVariable(pTypeSize, makeAnonymousVariableName(), type);
-  }
-
-  /**
    * Returns true if there exists a variable on the stack with the name entered.
    *
    * @param pState state to check the memory model for.
@@ -1197,54 +1183,62 @@ public class SMGState
     return false;
   }
 
-  // Compare 2 values, but do not compare the exempt offsets. Needed for lists and their next/prev
-  // pointers.
-  private boolean checkEqualValuesForTwoStatesWithExemptions(
+  /**
+   * Compare 2 values, but do not compare the exempt offsets. Compares pointers by shape of the
+   * memory they point to. Needed for lists and their next/prev pointers. TODO: add caching
+   * abilities based on states or external
+   *
+   * @param thisObject object of the this state to compare.
+   * @param otherObject object of the other state to compare.
+   * @param exemptOffsets exempt offsets, e.g. nfo, pfo offsets.
+   * @param thisState the state to which the this object belongs.
+   * @param otherState the state to which the other object belongs.
+   * @param thisAlreadyChecked basic value check cache.
+   * @return true if the 2 memory sections given are equal. False else.
+   * @throws SMG2Exception for critical errors.
+   */
+  public boolean checkEqualValuesForTwoStatesWithExemptions(
       SMGObject thisObject,
       SMGObject otherObject,
-      ImmutableList<BigInteger> excemptOffsets,
+      ImmutableList<BigInteger> exemptOffsets,
       SMGState thisState,
       SMGState otherState,
       Set<Value> thisAlreadyChecked)
       throws SMG2Exception {
-    FluentIterable<SMGHasValueEdge> thisHVEs;
-    FluentIterable<SMGHasValueEdge> otherHVEs;
-    if (excemptOffsets.isEmpty()) {
-      thisHVEs = thisState.memoryModel.getSmg().getHasValueEdgesByPredicate(thisObject, hv -> true);
-      otherHVEs =
-          otherState.memoryModel.getSmg().getHasValueEdgesByPredicate(otherObject, e -> true);
-    } else {
-      thisHVEs =
-          thisState
-              .memoryModel
-              .getSmg()
-              .getHasValueEdgesByPredicate(
-                  thisObject, e -> !excemptOffsets.contains(e.getOffset()));
-      otherHVEs =
-          otherState
-              .memoryModel
-              .getSmg()
-              .getHasValueEdgesByPredicate(
-                  otherObject, e -> !excemptOffsets.contains(e.getOffset()));
-    }
 
     Map<BigInteger, SMGHasValueEdge> otherOffsetToHVEdgeMap = new HashMap<>();
-    for (SMGHasValueEdge hve : otherHVEs) {
-      otherOffsetToHVEdgeMap.put(hve.getOffset(), hve);
+    for (SMGHasValueEdge hve :
+        otherState
+            .memoryModel
+            .getSmg()
+            .getSMGObjectsWithSMGHasValueEdges()
+            .getOrDefault(otherObject, PersistentSet.of())) {
+      if (!exemptOffsets.contains(hve.getOffset())) {
+        otherOffsetToHVEdgeMap.put(hve.getOffset(), hve);
+      }
     }
 
     Map<BigInteger, SMGHasValueEdge> thisOffsetToHVEdgeMap = new HashMap<>();
-    for (SMGHasValueEdge hve : thisHVEs) {
-      thisOffsetToHVEdgeMap.put(hve.getOffset(), hve);
-      if (this.memoryModel.getSmg().isPointer(hve.hasValue())) {
-        // Pointers are necessary!!!!
-        if (otherOffsetToHVEdgeMap.get(hve.getOffset()) == null) {
-          return false;
+    for (SMGHasValueEdge hve :
+        thisState
+            .memoryModel
+            .getSmg()
+            .getSMGObjectsWithSMGHasValueEdges()
+            .getOrDefault(thisObject, PersistentSet.of())) {
+      if (!exemptOffsets.contains(hve.getOffset())) {
+        thisOffsetToHVEdgeMap.put(hve.getOffset(), hve);
+        if (this.memoryModel.getSmg().isPointer(hve.hasValue())) {
+          // Pointers are necessary!!!!
+          if (otherOffsetToHVEdgeMap.get(hve.getOffset()) == null) {
+            return false;
+          }
         }
       }
     }
-    for (SMGHasValueEdge otherHVE : otherHVEs) {
-      BigInteger otherOffset = otherHVE.getOffset();
+
+    for (Entry<BigInteger, SMGHasValueEdge> otherHVEAndOffset : otherOffsetToHVEdgeMap.entrySet()) {
+      BigInteger otherOffset = otherHVEAndOffset.getKey();
+      SMGHasValueEdge otherHVE = otherHVEAndOffset.getValue();
       SMGHasValueEdge thisHVE = thisOffsetToHVEdgeMap.get(otherOffset);
       if (thisHVE == null || thisHVE.getSizeInBits().compareTo(otherHVE.getSizeInBits()) != 0) {
         return false;
@@ -1258,11 +1252,14 @@ public class SMGState
       if (!areValuesEqual(thisState, thisHVEValue, otherState, otherHVEValue, thisAlreadyChecked)) {
         return false;
       }
+      // They are equal, we don't need to check it again later
+      thisOffsetToHVEdgeMap.remove(otherOffset);
     }
     // At this point we know that from the perspective of other, this is equal or greater
     // Now we need to know if it is reverse also
-    for (SMGHasValueEdge thisHVE : thisHVEs) {
-      BigInteger thisOffset = thisHVE.getOffset();
+    for (Entry<BigInteger, SMGHasValueEdge> thisHVEAndOffset : thisOffsetToHVEdgeMap.entrySet()) {
+      BigInteger thisOffset = thisHVEAndOffset.getKey();
+      SMGHasValueEdge thisHVE = thisHVEAndOffset.getValue();
       SMGHasValueEdge otherHVE = otherOffsetToHVEdgeMap.get(thisOffset);
       if (otherHVE == null || thisHVE.getSizeInBits().compareTo(thisHVE.getSizeInBits()) != 0) {
         return false;
@@ -3188,6 +3185,7 @@ public class SMGState
    */
   public SMGState abstractIntoSLL(SMGObject root, BigInteger nfo, Set<SMGObject> alreadyVisited)
       throws SMG2Exception {
+
     // Check that the next object exists, is valid, has the same size and the same value in head
     Optional<SMGObject> maybeNext = getValidNextSLL(root, nfo);
     if (maybeNext.isEmpty()
@@ -3196,12 +3194,14 @@ public class SMGState
       return this;
     }
     SMGObject nextObj = maybeNext.orElseThrow();
+
     // Values not equal, continue traverse
     if (!checkEqualValuesForTwoStatesWithExemptions(
         root, nextObj, ImmutableList.of(nfo), this, this, ImmutableSet.of())) {
       return abstractIntoSLL(
           nextObj, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(root).build());
     }
+
     // If it does, create a new SLL with the correct stuff
     // Copy the edges from the next object to the SLL
     SMGSinglyLinkedListSegment newSLL;
@@ -3274,6 +3274,7 @@ public class SMGState
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.copyAndRemoveObjectFromHeap(root));
+
     return currentState.abstractIntoSLL(
         newSLL, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build());
   }
