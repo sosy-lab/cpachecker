@@ -672,13 +672,13 @@ public final class LoopStructure implements Serializable {
       }
     } while (!toRemove.isEmpty());
 
-    if (!(loopFreeSectionFinder instanceof EmptyLoopFreeSectionFinder)) {
+    if (!(loopFreeSectionFinder instanceof SingleNodeLoopFreeSectionFinder)) {
       // Assert that we find the same loops with and without using loop-free sections
-      // (with `EmptyLoopFreeSectionFinder`, there are no sections that contain multiple nodes and
-      // all nodes are handled separately).
-      // We need to use sets because their `equals` methods are well defined and we may find loops
+      // (with `SingleNodeLoopFreeSectionFinder`, there are no sections that contain multiple nodes
+      // and all nodes are handled separately).
+      // We need to use sets because their `equals` methods are well-defined and we may find loops
       // in a different order.
-      assert new HashSet<>(findLoops(pNodes, language, new EmptyLoopFreeSectionFinder()))
+      assert new HashSet<>(findLoops(pNodes, language, new SingleNodeLoopFreeSectionFinder()))
               .equals(new HashSet<>(loops))
           : "Using `LoopFreeSectionFinder` changes the found loops!";
     }
@@ -1015,44 +1015,41 @@ public final class LoopStructure implements Serializable {
    * Implementations of this interface find loop-free sections in a CFA.
    *
    * <p>A loop-free section is defined by its entry and exit node and must not contain any loops,
-   * but can itself be inside a loop body. The entry node must dominate all nodes in a loop-free
-   * section and the exit node must post-dominate all nodes in a loop-free section. The entry and
-   * exit are not part of a loop-free section, so a back-edge from the exit node to the entry node
-   * is permitted. A loop-free section is empty if entry and exit are the same node.
+   * but can itself be inside a loop body. Edges from the exit node to the entry node of a loop-free
+   * section are not considered inside the loop-free section. The entry node must dominate all nodes
+   * in a loop-free section and the exit node must post-dominate all nodes in a loop-free section.
+   * The smallest possible loop-free section contains a single node, which is also automatically the
+   * entry and exit node of the loop-free section.
    */
   private static interface LoopFreeSectionFinder {
 
     /**
-     * Returns the entry node of the loop-free section that the specified node belongs to or the
-     * node itself if it doesn't belong to a loop free section.
+     * Returns the entry node of the loop-free section that the specified node belongs to.
      *
      * @param pNode the node to get the loop-free section entry node for
-     * @return If the specified node belongs to a loop-free section, the entry node of the loop free
-     *     section is returned. Otherwise, if the specified node doesn't belong to a loop-free
-     *     section, the specified node is returned.
+     * @return the entry node of the loop-free section that the specified node belongs to according
+     *     to this loop-free section finder
      * @throws NullPointerException if {@code pNode == null}
      */
     CFANode entryNode(CFANode pNode);
 
     /**
-     * Returns the exit node of the loop-free section that the specified node belongs to or the node
-     * itself if it doesn't belong to a loop free section.
+     * Returns the exit node of the loop-free section that the specified node belongs to.
      *
      * @param pNode the node to get the loop-free section exit node for
-     * @return If the specified node belongs to a loop-free section, the exit node of the loop free
-     *     section is returned. Otherwise, if the specified node doesn't belong to a loop-free
-     *     section, the specified node is returned.
+     * @return the exit node of the loop-free section that the specified node belongs to according
+     *     to this loop-free section finder
      * @throws NullPointerException if {@code pNode == null}
      */
     CFANode exitNode(CFANode pNode);
   }
 
   /**
-   * Finds empty sections that contain no nodes and are trivially loop-free (self-loops are
-   * considered outside a loop-free section because entry and exit are not part of a loop-free
-   * section).
+   * Finds sections that contain a single node and trivially loop-free (self-loops are considered
+   * outside a loop-free section because edges from the exit node to the entry node are not inside
+   * the loop-free section).
    */
-  private static final class EmptyLoopFreeSectionFinder implements LoopFreeSectionFinder {
+  private static final class SingleNodeLoopFreeSectionFinder implements LoopFreeSectionFinder {
 
     @Override
     public CFANode entryNode(CFANode pNode) {
@@ -1074,7 +1071,7 @@ public final class LoopStructure implements Serializable {
    * (multiple in-edges) [entry] ---> [ ] --- ... ---> [ ] ---> [exit] (multiple out-edges)
    * }</pre>
    *
-   * <p>An empty chain can be represented by the following diagram:
+   * <p>A chain that contains a single node can be represented by the following diagram:
    *
    * <pre>{@code
    * (multiple in-edges) [entry == exit] (multiple out-edges)
@@ -1099,7 +1096,7 @@ public final class LoopStructure implements Serializable {
 
       CFANode currentNode = pNode;
 
-      // the exit can have multiple out-edges, but only a single in-edge if the chain isn't empty
+      // the exit can have multiple out-edges, but only a single in-edge for a multi-node chain
       if (currentNode.getNumEnteringEdges() != 1) {
         return currentNode;
       }
@@ -1118,7 +1115,7 @@ public final class LoopStructure implements Serializable {
         nextNode = nextNode.getEnteringEdge(0).getPredecessor();
       }
 
-      // the entry can have multiple in-edges, but only a single out-edge if the chain isn't empty
+      // the entry can have multiple in-edges, but only a single out-edge for a multi-node chain
       return nextNode.getNumLeavingEdges() == 1 ? nextNode : currentNode;
     }
 
@@ -1127,7 +1124,7 @@ public final class LoopStructure implements Serializable {
 
       CFANode currentNode = pNode;
 
-      // the entry can have multiple in-edges, but only a single out-edge if the chain ins't empty
+      // the entry can have multiple in-edges, but only a single out-edge for a multi-node chain
       if (currentNode.getNumLeavingEdges() != 1) {
         return currentNode;
       }
@@ -1139,7 +1136,7 @@ public final class LoopStructure implements Serializable {
         nextNode = nextNode.getLeavingEdge(0).getSuccessor();
       }
 
-      // the exit can have multiple out-edges, but only a single in-edge if the chain isn't empty
+      // the exit can have multiple out-edges, but only a single in-edge for a multi-node chain
       return nextNode.getNumEnteringEdges() == 1 ? nextNode : currentNode;
     }
   }
