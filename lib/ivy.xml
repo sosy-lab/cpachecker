@@ -102,8 +102,8 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="4.8.1" conf="test->default"/>
-        <dependency org="org.mockito" name="mockito-errorprone" rev="4.8.1" conf="build->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="4.9.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-errorprone" rev="4.9.0" conf="build->default"/>
 
         <!-- Antlr
              Parser generator. -->
