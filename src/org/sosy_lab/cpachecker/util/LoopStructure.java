@@ -1171,135 +1171,196 @@ public final class LoopStructure implements Serializable {
       mergeNodeToBranchNode = new HashMap<>();
     }
 
-    private @Nullable CFANode loopFreeBranchingMergeNodeCandidate(CFANode pBranch) {
+    private CFANode branchFirstNode(CFANode pNode) {
 
-      @Nullable CFANode loopFreeBranchEnd =
-          pBranch.getNumEnteringEdges() == 1 ? nodeChainFinder.exitNode(pBranch) : null;
-      // handle inner branching
-      if (loopFreeBranchEnd != null && loopFreeBranchEnd.getNumLeavingEdges() == 2) {
-        loopFreeBranchEnd =
-            loopFreeBranchingMergeNode(loopFreeBranchEnd)
-                .map(nodeChainFinder::exitNode)
-                .orElse(null);
-      }
+      CFANode firstNode = nodeChainFinder.entryNode(pNode);
 
-      if (loopFreeBranchEnd == null) {
-        return pBranch;
-      } else if (loopFreeBranchEnd.getNumLeavingEdges() == 1) {
-        return loopFreeBranchEnd.getLeavingEdge(0).getSuccessor();
-      }
+      boolean changed;
+      do {
+        changed = false;
+        int branchingFactor = firstNode.getNumEnteringEdges();
+        if (branchingFactor > 1) {
+          // `firstNode` is a merge node, so we try to skip the branching
+          @Nullable CFANode branchNode = branchNode(firstNode).orElse(null);
+          if (branchNode != null && branchNode.getNumLeavingEdges() == branchingFactor) {
+            // skip branching
+            firstNode = nodeChainFinder.entryNode(branchNode);
+            changed = true;
+          }
+        }
+      } while (changed);
 
-      return null;
+      return firstNode;
+    }
+
+    private CFANode branchLastNode(CFANode pNode) {
+
+      CFANode lastNode = nodeChainFinder.exitNode(pNode);
+
+      boolean changed;
+      do {
+        changed = false;
+        int branchingFactor = lastNode.getNumLeavingEdges();
+        if (branchingFactor > 1) {
+          // `lastNode` is a branch node, so we try to skip the branching
+          @Nullable CFANode mergeNode = mergeNode(lastNode).orElse(null);
+          if (mergeNode != null && mergeNode.getNumEnteringEdges() == branchingFactor) {
+            // skip branching
+            lastNode = nodeChainFinder.exitNode(mergeNode);
+            changed = true;
+          }
+        }
+      } while (changed);
+
+      return lastNode;
     }
 
     /**
-     * Returns the corresponding merge node for the specified branch node, if both branches are
-     * loop-free.
-     *
-     * @param pBranchNode the branch node to get the merge node for
-     * @return If both branches are loop-free, an optional containing the merge node for the
-     *     specified branch node is returned. Otherwise, if at least one of the branches is not
-     *     loop-free or we are unable to determine whether they are both loop-free, an empty
-     *     optional is returned.
-     * @throws IllegalArgumentException if {@code pBranchNode} is not a branch node
-     * @throws NullPointerException if {@code pBranchNode == null}
-     */
-    private Optional<CFANode> loopFreeBranchingMergeNode(CFANode pBranchNode) {
-
-      checkArgument(
-          pBranchNode.getNumLeavingEdges() == 2, "Node is not a branch node: %s", pBranchNode);
-
-      if (branchNodeToMergeNode.containsKey(pBranchNode)) {
-        return branchNodeToMergeNode.get(pBranchNode);
-      }
-
-      branchNodeToMergeNode.put(pBranchNode, Optional.empty());
-
-      CFANode fstBranch = pBranchNode.getLeavingEdge(0).getSuccessor();
-      CFANode sndBranch = pBranchNode.getLeavingEdge(1).getSuccessor();
-
-      @Nullable CFANode fstMergeNodeCandidate = loopFreeBranchingMergeNodeCandidate(fstBranch);
-      @Nullable CFANode sndMergeNodeCandidate = loopFreeBranchingMergeNodeCandidate(sndBranch);
-
-      Optional<CFANode> mergeNode = Optional.empty();
-      if (fstMergeNodeCandidate != null && fstMergeNodeCandidate.equals(sndMergeNodeCandidate)) {
-        mergeNode = Optional.of(fstMergeNodeCandidate);
-      }
-
-      branchNodeToMergeNode.put(pBranchNode, mergeNode);
-
-      return mergeNode;
-    }
-
-    private @Nullable CFANode loopFreeBranchingBranchNodeCandidate(CFANode pBranch) {
-
-      @Nullable CFANode loopFreeBranchStart =
-          pBranch.getNumLeavingEdges() == 1 ? nodeChainFinder.entryNode(pBranch) : null;
-      // handle inner branching
-      if (loopFreeBranchStart != null && loopFreeBranchStart.getNumEnteringEdges() == 2) {
-        loopFreeBranchStart =
-            loopFreeBranchingBranchNode(loopFreeBranchStart)
-                .map(nodeChainFinder::entryNode)
-                .orElse(null);
-      }
-
-      if (loopFreeBranchStart == null) {
-        return pBranch;
-      } else if (loopFreeBranchStart.getNumEnteringEdges() == 1
-          && !loopFreeBranchStart.equals(startNode)) {
-        return loopFreeBranchStart.getEnteringEdge(0).getPredecessor();
-      }
-
-      return null;
-    }
-
-    /**
-     * Returns the corresponding branch node for the specified merge node, if both branches are
+     * Returns the corresponding branch node for the specified merge node, if all branches are
      * loop-free.
      *
      * @param pMergeNode the merge node to get the branch node for
-     * @return If both branches are loop-free, an optional containing the branch node for the
+     * @return If all branches are loop-free, an optional containing the branch node for the
      *     specified merge node is returned. Otherwise, if at least one of the branches is not
-     *     loop-free or we are unable to determine whether both branches are loop-free, an empty
+     *     loop-free or we are unable to determine whether all branches are loop-free, an empty
      *     optional is returned.
      * @throws IllegalArgumentException if {@code pMergeNode} is not a merge node
      * @throws NullPointerException if {@code pMergeNode == null}
      */
-    private Optional<CFANode> loopFreeBranchingBranchNode(CFANode pMergeNode) {
+    private Optional<CFANode> branchNode(CFANode pMergeNode) {
 
-      checkArgument(
-          pMergeNode.getNumEnteringEdges() == 2, "Node is not a merge node: %s", pMergeNode);
-
-      if (pMergeNode.equals(startNode)) {
-        return Optional.empty();
-      }
+      int branchingFactor = pMergeNode.getNumEnteringEdges();
+      checkArgument(branchingFactor > 1, "Node is not a merge node: %s", pMergeNode);
 
       if (mergeNodeToBranchNode.containsKey(pMergeNode)) {
+        // we already know the branch node for the merge node
         return mergeNodeToBranchNode.get(pMergeNode);
       }
 
       mergeNodeToBranchNode.put(pMergeNode, Optional.empty());
 
-      CFANode fstBranch = pMergeNode.getEnteringEdge(0).getPredecessor();
-      CFANode sndBranch = pMergeNode.getEnteringEdge(1).getPredecessor();
-
-      @Nullable CFANode fstBranchNodeCandidate = loopFreeBranchingBranchNodeCandidate(fstBranch);
-      @Nullable CFANode sndBranchNodeCandidate = loopFreeBranchingBranchNodeCandidate(sndBranch);
-
-      Optional<CFANode> branchNode = Optional.empty();
-      if (fstBranchNodeCandidate != null && fstBranchNodeCandidate.equals(sndBranchNodeCandidate)) {
-        branchNode = Optional.of(fstBranchNodeCandidate);
+      CFANode[] lastNodes = new CFANode[branchingFactor];
+      for (int i = 0; i < branchingFactor; i++) {
+        lastNodes[i] = pMergeNode.getEnteringEdge(i).getPredecessor();
       }
 
-      mergeNodeToBranchNode.put(pMergeNode, branchNode);
+      // find branch nodes for branches
+      CFANode[] branchNodeCandidates = new CFANode[branchingFactor];
+      for (int i = 0; i < branchingFactor; i++) {
+        CFANode branchLastNode = lastNodes[i];
+        if (branchLastNode.getNumLeavingEdges() >= branchingFactor) {
+          // we are already at a branch node
+          branchNodeCandidates[i] = branchLastNode;
+        } else {
+          CFANode branchFirstNode = branchFirstNode(branchLastNode);
+          if (branchFirstNode.getNumEnteringEdges() == 1) {
+            // the sole predecessor of the first branch node is the branch node candidate
+            CFANode branchNode = branchFirstNode.getEnteringEdge(0).getPredecessor();
+            if (branchNode.getNumLeavingEdges() >= branchingFactor) {
+              branchNodeCandidates[i] = branchNode;
+            }
+          }
+        }
+      }
+
+      // check whether all branch node candidates are equal and not `null`
+      boolean acceptCandidates = true;
+      for (int i = 0; i < branchingFactor; i++) {
+        CFANode branchNodeCandidate = branchNodeCandidates[i];
+        if (branchNodeCandidate == null) {
+          acceptCandidates = false;
+          break;
+        }
+        if (i > 0 && !branchNodeCandidates[i - 1].equals(branchNodeCandidate)) {
+          acceptCandidates = false;
+          break;
+        }
+      }
+
+      Optional<CFANode> branchNode = Optional.empty();
+      if (acceptCandidates) {
+        branchNode = Optional.of(branchNodeCandidates[0]);
+        mergeNodeToBranchNode.put(pMergeNode, branchNode);
+      }
 
       return branchNode;
+    }
+
+    /**
+     * Returns the corresponding merge node for the specified branch node, if all branches are
+     * loop-free.
+     *
+     * @param pBranchNode the branch node to get the merge node for
+     * @return If all branches are loop-free, an optional containing the merge node for the
+     *     specified branch node is returned. Otherwise, if at least one of the branches is not
+     *     loop-free or we are unable to determine whether they are all loop-free, an empty optional
+     *     is returned.
+     * @throws IllegalArgumentException if {@code pBranchNode} is not a branch node
+     * @throws NullPointerException if {@code pBranchNode == null}
+     */
+    private Optional<CFANode> mergeNode(CFANode pBranchNode) {
+
+      int branchingFactor = pBranchNode.getNumLeavingEdges();
+      checkArgument(branchingFactor > 1, "Node is not a branch node: %s", pBranchNode);
+
+      if (branchNodeToMergeNode.containsKey(pBranchNode)) {
+        // we already know the merge node for the branch node
+        return branchNodeToMergeNode.get(pBranchNode);
+      }
+
+      branchNodeToMergeNode.put(pBranchNode, Optional.empty());
+
+      CFANode[] firstNodes = new CFANode[branchingFactor];
+      for (int i = 0; i < branchingFactor; i++) {
+        firstNodes[i] = pBranchNode.getLeavingEdge(i).getSuccessor();
+      }
+
+      // find merge nodes for branches
+      CFANode[] mergeNodeCandidates = new CFANode[branchingFactor];
+      for (int i = 0; i < branchingFactor; i++) {
+        CFANode branchFirstNode = firstNodes[i];
+        if (branchFirstNode.getNumEnteringEdges() >= branchingFactor) {
+          // we are already at a merge node
+          mergeNodeCandidates[i] = branchFirstNode;
+        } else {
+          CFANode branchLastNode = branchLastNode(branchFirstNode);
+          if (branchLastNode.getNumLeavingEdges() == 1) {
+            // the sole successor of the last branch node is the merge node candidate
+            CFANode mergeNode = branchLastNode.getLeavingEdge(0).getSuccessor();
+            if (mergeNode.getNumEnteringEdges() >= branchingFactor) {
+              mergeNodeCandidates[i] = mergeNode;
+            }
+          }
+        }
+      }
+
+      // check whether all merge node candidates are equal and not `null`
+      boolean acceptCandidates = true;
+      for (int i = 0; i < branchingFactor; i++) {
+        CFANode mergeNodeCandidate = mergeNodeCandidates[i];
+        if (mergeNodeCandidate == null) {
+          acceptCandidates = false;
+          break;
+        }
+        if (i > 0 && !mergeNodeCandidates[i - 1].equals(mergeNodeCandidate)) {
+          acceptCandidates = false;
+          break;
+        }
+      }
+
+      Optional<CFANode> mergeNode = Optional.empty();
+      if (acceptCandidates) {
+        mergeNode = Optional.of(mergeNodeCandidates[0]);
+        branchNodeToMergeNode.put(pBranchNode, mergeNode);
+      }
+
+      return mergeNode;
     }
 
     @Override
     public CFANode entryNode(CFANode pNode) {
 
-      CFANode sectionEntry = nodeChainFinder.entryNode(pNode);
+      CFANode sectionEntry = branchFirstNode(pNode);
 
       boolean changed;
       do {
@@ -1308,22 +1369,15 @@ public final class LoopStructure implements Serializable {
           if (sectionEntry.equals(startNode)) {
             return sectionEntry;
           }
-          CFAEdge enteringEdge = sectionEntry.getEnteringEdge(0);
-          CFANode predecessor = enteringEdge.getPredecessor();
-          if (predecessor.getNumLeavingEdges() == 2
-              && loopFreeBranchingMergeNode(predecessor).isPresent()) {
-            // leave branching
-            sectionEntry = nodeChainFinder.entryNode(predecessor);
-            changed = true;
-          } else {
-            break;
-          }
-        } else if (sectionEntry.getNumEnteringEdges() == 2) {
-          Optional<CFANode> branchNode = loopFreeBranchingBranchNode(sectionEntry);
-          if (branchNode.isPresent()) {
-            // skip branching
-            sectionEntry = branchNode.map(nodeChainFinder::entryNode).orElseThrow();
-            changed = true;
+          CFANode predecessor = sectionEntry.getEnteringEdge(0).getPredecessor();
+          int branchingFactor = predecessor.getNumLeavingEdges();
+          if (branchingFactor > 1) {
+            @Nullable CFANode mergeNode = mergeNode(predecessor).orElse(null);
+            if (mergeNode != null && mergeNode.getNumEnteringEdges() == branchingFactor) {
+              // leave branching
+              sectionEntry = branchFirstNode(predecessor);
+              changed = true;
+            }
           }
         }
       } while (changed);
@@ -1334,28 +1388,21 @@ public final class LoopStructure implements Serializable {
     @Override
     public CFANode exitNode(CFANode pNode) {
 
-      CFANode sectionExit = nodeChainFinder.exitNode(pNode);
+      CFANode sectionExit = branchLastNode(pNode);
 
       boolean changed;
       do {
         changed = false;
         if (sectionExit.getNumLeavingEdges() == 1) {
-          CFAEdge leavingEdge = sectionExit.getLeavingEdge(0);
-          CFANode successor = leavingEdge.getSuccessor();
-          if (successor.getNumEnteringEdges() == 2
-              && loopFreeBranchingBranchNode(successor).isPresent()) {
-            // leave branching
-            sectionExit = nodeChainFinder.exitNode(successor);
-            changed = true;
-          } else {
-            break;
-          }
-        } else if (sectionExit.getNumLeavingEdges() == 2) {
-          Optional<CFANode> mergeNode = loopFreeBranchingMergeNode(sectionExit);
-          if (mergeNode.isPresent()) {
-            // skip branching
-            sectionExit = mergeNode.map(nodeChainFinder::exitNode).orElseThrow();
-            changed = true;
+          CFANode successor = sectionExit.getLeavingEdge(0).getSuccessor();
+          int branchingFactor = successor.getNumEnteringEdges();
+          if (branchingFactor > 1) {
+            @Nullable CFANode branchNode = branchNode(successor).orElse(null);
+            if (branchNode != null && branchNode.getNumLeavingEdges() == branchingFactor) {
+              // leave branching
+              sectionExit = branchLastNode(successor);
+              changed = true;
+            }
           }
         }
       } while (changed);
