@@ -13,29 +13,31 @@ import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
 public interface AddressEvaluator {
 
-  Collection<CValueAndSMGState> evaluateArraySubscriptAddress(
+  public Collection<ValueAndSMGState> evaluateArraySubscriptAddress(
       SMGState pInitialSmgState, CExpression pExp);
 
-  Collection<CValueAndSMGState> evaluateAddress(SMGState pInitialSmgState, CExpression pOperand);
-
-  Collection<CValueAndSMGState> evaluateArrayAddress(
+  public Collection<ValueAndSMGState> evaluateAddress(
       SMGState pInitialSmgState, CExpression pOperand);
 
-  Collection<CValueAndSMGState> createAddress(SMGState pState, CValue pValue);
+  public Collection<ValueAndSMGState> evaluateArrayAddress(
+      SMGState pInitialSmgState, CExpression pOperand);
 
-  Collection<CValueAndSMGState> getAddressOfField(
+  public Collection<ValueAndSMGState> createAddress(SMGState pState, Value pValue);
+
+  public Collection<ValueAndSMGState> getAddressOfField(
       SMGState pInitialSmgState, CFieldReference pFieldReference);
 
-  CValueAndSMGState handleUnknownDereference(SMGState pInitialSmgState);
+  public ValueAndSMGState handleUnknownDereference(SMGState pInitialSmgState);
 
-  CValueAndSMGState readValue(SMGState pState, CValue value, CExpression pExp);
+  public ValueAndSMGState readValue(SMGState pState, Value value, CExpression pExp);
 
-  CValueAndSMGState readValue(
+  public ValueAndSMGState readValue(
       SMGState pSmgState, SMGObject pVariableObject, CExpression pIdExpression);
 
-  BigInteger getBitSizeof(SMGState pInitialSmgState, CExpression pUnaryOperand);
+  public BigInteger getBitSizeof(SMGState pInitialSmgState, CExpression pUnaryOperand);
 }

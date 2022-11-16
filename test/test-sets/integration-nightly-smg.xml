@@ -55,18 +55,6 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/MemSafety-Other.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
-  <!-- 
-    Benchmark client is currently not able to benchmark duplicate files, even
-    with different properties. This leads to Buildbot constantly failing the 
-    build for this test-set.
-    c.f. verifiercloud issue 597; buildbot issue 26
-  -->
-  <!--
-  <tasks name="MemSafety-MemCleanup">
-    <includesfile>../programs/benchmarks/MemSafety-MemCleanup.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
-  </tasks>
-  -->
   <tasks name="MemSafety-Juliet">
     <includesfile>../programs/benchmarks/MemSafety-Juliet.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>

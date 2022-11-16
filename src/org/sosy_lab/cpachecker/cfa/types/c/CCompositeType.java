@@ -111,6 +111,28 @@ public final class CCompositeType implements CComplexType {
   }
 
   @Override
+  public boolean hasKnownConstantSize() {
+    // forbidden by C standard, but a GCC extension:
+    // https://gcc.gnu.org/onlinedocs/gcc/Variable-Length.html
+    for (Iterator<CCompositeTypeMemberDeclaration> it = getMembers().iterator(); it.hasNext(); ) {
+      CCompositeTypeMemberDeclaration member = it.next();
+      if (!member.getType().hasKnownConstantSize()) {
+        // special case: if this is a "flexible array member" as last member, then size is known
+        if (it.hasNext() || !isFlexibleArray(member.getType())) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  private static boolean isFlexibleArray(CType type) {
+    type = type.getCanonicalType();
+    return type instanceof CArrayType && ((CArrayType) type).getLength() == null;
+  }
+
+  @Override
   public String toString() {
     StringBuilder result = new StringBuilder();
 

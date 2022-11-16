@@ -98,7 +98,7 @@ public class TerminationState extends AbstractSingleWrapperState
    * @return the created {@link TerminationState}
    */
   public TerminationState enterLoop(CFANode pHondaLocation) {
-    checkArgument(isPartOfStem(), "% is entered the lasso's loop at %s", this, hondaLocation);
+    checkArgument(isPartOfStem(), "%s is entered the lasso's loop at %s", this, hondaLocation);
     return new TerminationState(getWrappedState(), pHondaLocation, dummyLocation, enteringEdges);
   }
 

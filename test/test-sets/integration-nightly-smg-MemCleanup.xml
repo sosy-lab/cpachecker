@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="150 s" hardtimelimit="200 s" memlimit="7 GB" cpuCores="2">
+
+  <rundefinition>
+    <option name="-smg"/>
+  </rundefinition>
+
+  <resultfiles>**.graphml*</resultfiles>
+
+  <option name="-noout"/>
+  <option name="-heap">6000M</option>
+
+  <option name="-setprop">cpa.arg.compressWitness=true</option>
+  <option name="-setprop">counterexample.export.compressWitness=true</option>
+  <option name="-setprop">counterexample.export.graphml=witness.graphml</option>
+  <option name="-setprop">cpa.arg.proofWitness=witness.graphml</option>
+  <option name="-setprop">termination.violation.witness=witness.graphml</option>
+
+  <tasks name="MemSafety-MemCleanup">
+    <includesfile>../programs/benchmarks/MemSafety-MemCleanup.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+  </tasks>
+
+</benchmark>

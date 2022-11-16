@@ -42,7 +42,9 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/ntdrivers/kbfiltr.i.cil-2.yml</exclude> <!-- flapping timeout/error -->
+    <exclude>../programs/benchmarks/ntdrivers/parport.i.cil-1.yml</exclude> <!-- flapping timeout/error -->
     <exclude>../programs/benchmarks/openssl/s3_srvr.blast.06.i.cil-1.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/openssl/s3_srvr.blast.06.i.cil-2.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/openssl/s3_srvr.blast.07.i.cil-1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/openssl/s3_srvr.blast.07.i.cil-2.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/openssl/s3_srvr.blast.09.i.cil-1.yml</exclude> <!-- flapping timeout -->
@@ -62,6 +64,7 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/forester-heap/**</exclude> <!-- only timeouts -->
     <exclude>../programs/benchmarks/list-ext2-properties/simple_search_value-2.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/ldv-sets/test_mutex_unlock_at_exit.yml</exclude> <!-- flapping timeout -->
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
@@ -74,13 +77,18 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loops/vogal-1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-new/gauss_sum.i.*-reducer.yml</exclude> <!-- flapping timeouts -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/bresenham-ll_unwindbound2.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/cohencu-ll_unwindbound10.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/cohendiv-ll_unwindbound2.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/cohendiv-ll_valuebound5.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/cohendiv-ll_valuebound10.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/cohendiv-ll_valuebound2.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/cohendiv-ll_valuebound20.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/freire2_valuebound1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/geo3-ll_valuebound10.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/hard2_unwindbound20.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/prod4br-ll_valuebound1.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/prodbin-ll_valuebound1.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/prodbin-ll_valuebound20.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/ps4-ll_unwindbound20.yml</exclude> <!-- flapping timeout -->
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>

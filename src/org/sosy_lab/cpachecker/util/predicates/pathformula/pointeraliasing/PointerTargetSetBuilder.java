@@ -177,9 +177,8 @@ public interface PointerTargetSetBuilder {
       }
 
       // Add base to prevent adding spurious targets when merging.
-      // If type is incomplete, we can use a dummy size here because it is only used for the fake
-      // base.
-      int size = type.isIncomplete() ? 0 : typeHandler.getSizeof(type);
+      // If size is not known, we can use a dummy size because it is only used for the fake base.
+      int size = type.hasKnownConstantSize() ? typeHandler.getSizeof(type) : 0;
       bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(size));
 
       makeNextBaseAddressInequality(name, type, sizeExp, constraints);

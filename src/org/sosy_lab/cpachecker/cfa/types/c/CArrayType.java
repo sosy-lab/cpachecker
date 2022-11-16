@@ -91,6 +91,12 @@ public final class CArrayType extends AArrayType implements CType {
   }
 
   @Override
+  public boolean hasKnownConstantSize() {
+    // C standard § 6.7.6.2 (4)
+    return length instanceof CIntegerLiteralExpression && getType().hasKnownConstantSize();
+  }
+
+  @Override
   public String toString() {
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
