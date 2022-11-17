@@ -1096,10 +1096,10 @@ public class SMG {
   }
 
   /*
-   * Returns a map of objects that have a pointer to the targetObject and the offset used.
+   * Checks if there are valid heap objects that point to the given target object and might be lists (== size and fitting nfo).
    */
-  public ImmutableMap<SMGObject, BigInteger> findAllObjectsWithPointersToTargetObject(
-      SMGObject targetObject, Collection<SMGObject> heapObjects) {
+  public boolean hasPotentialListObjectsWithPointersToObject(
+      SMGObject targetObject, BigInteger suspectedNfo, Collection<SMGObject> heapObjects) {
     ImmutableMap.Builder<SMGObject, BigInteger> ret = ImmutableMap.builder();
     for (Entry<SMGValue, SMGPointsToEdge> entry : pointsToEdges.entrySet()) {
       if (targetObject.equals(entry.getValue().pointsTo())) {
@@ -1110,13 +1110,20 @@ public class SMG {
           }
           for (SMGHasValueEdge hve : hasValueEdges.getOrDefault(heapObj, PersistentSet.of())) {
             if (hve.hasValue() == pointerValue) {
-              ret.put(heapObj, hve.getOffset());
+              if (heapObj.getSize().compareTo(targetObject.getSize()) == 0) {
+                if (hve.getOffset().compareTo(suspectedNfo) == 0) {
+                  return false;
+                }
+                // maybePreviousObj -> potentialRoot might be a back pointer, this is fine however
+                // as we
+                // will eliminate those by traversing along the NFOs
+              }
             }
           }
         }
       }
     }
-    return ret.buildOrThrow();
+    return true;
   }
 
   /**

@@ -590,13 +590,10 @@ public class SMGCPAAbstractionManager {
       // Check that reached object has a pointer at the same offset
       if (followupHasNextPointerToValid(reachedObject, nfo, pInputSmg, thisAlreadyVisited)) {
         // Valid candidate found!
-        // Make sure its a "root" by checking all pointers towards this root
+        // Make sure it's a "root" by checking all pointers towards this root
         // The only valid pointers towards this root are from the followup or non heap objects
-        ImmutableMap<SMGObject, BigInteger> pointerFromHeapToPotentialRoot =
-            pInputSmg.findAllObjectsWithPointersToTargetObject(potentialRoot, heapObjects);
-        // TODO: check that the "root" does have the correct offset for the next pointer and the
-        // current candidate is not a nested list
-        if (hasNoPreviousListSegment(pointerFromHeapToPotentialRoot, potentialRoot, nfo)) {
+        if (pInputSmg.hasPotentialListObjectsWithPointersToObject(
+            potentialRoot, nfo, heapObjects)) {
           pAlreadyVisited.add(potentialRoot);
           return Optional.of(new SMGCandidate(potentialRoot, nfo));
         }
