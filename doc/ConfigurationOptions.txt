@@ -2551,6 +2551,10 @@ cpa.predicate.refinement.timelimit = 0ms
 # different options instead of giving up immediately.
 cpa.predicate.refinement.tryAgainOnInterpolationError = true
 
+# When interpolation query fails, attempt to check feasibility of the current
+# counterexample without interpolation
+cpa.predicate.refinement.tryWithoutInterpolation = true
+
 # Use BDDs to simplify interpolants (removing irrelevant predicates)
 cpa.predicate.refinement.useBddInterpolantSimplification = false
 
