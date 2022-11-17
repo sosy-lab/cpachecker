@@ -18,14 +18,12 @@ public class SuspiciousCalculationExplanation implements FaultExplanation {
   @Override
   public String explanationFor(Fault subset) {
     String offByOne =
-        Joiner.on(", ")
-            .join(
-                FluentIterable.from(subset)
+        FluentIterable.from(subset)
                     .filter(
                         fc ->
                             fc.correspondingEdge().getDescription().contains("+ 1")
                                 || fc.correspondingEdge().getDescription().contains("- 1"))
-                    .transform(fc -> fc.correspondingEdge().getDescription()));
+                    .transform(fc -> fc.correspondingEdge().getDescription()).join(Joiner.on(", "));
     if (offByOne.isBlank()) {
       return "";
     }
