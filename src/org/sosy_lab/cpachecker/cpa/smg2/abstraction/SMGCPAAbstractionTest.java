@@ -79,17 +79,10 @@ public class SMGCPAAbstractionTest {
     pfo = nfo.add(pointerSizeInBits);
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
 
-    // null null is fine as long as builtin functions are not used!
-    // evaluator = new SMGCPAValueExpressionEvaluator(machineModel, logger, null, null,
-    // ImmutableList.of());
-
     materializer = new SMGCPAMaterializer(logger);
 
     currentState =
         SMGState.of(machineModel, logger, new SMGOptions(Configuration.defaultConfiguration()));
-
-    // visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null),
-    // logger);
   }
 
   // Resets state and visitor to an empty state
@@ -97,9 +90,39 @@ public class SMGCPAAbstractionTest {
   public void resetSMGStateAndVisitor() throws InvalidConfigurationException {
     currentState =
         SMGState.of(machineModel, logger, new SMGOptions(Configuration.defaultConfiguration()));
+  }
 
-    // visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null),
-    // logger);
+  /**
+   * Creates and tests lists that are barely not abstractable because of 1 value not being equal for
+   * the given threshold.
+   */
+  @Test
+  public void listNotAbstractableSLLTest() throws InvalidConfigurationException {
+    resetSMGStateAndVisitor();
+    // TODO: this and DLL version
+  }
+
+  /**
+   * Creates a concrete list, then saves the start pointer to a nested list in EACH segment. Then
+   * change 1 value in all the nested lists at different positions and check that no list is
+   * abstractable.
+   */
+  @Test
+  public void notEqualNestedListSLLTest() throws InvalidConfigurationException {
+    resetSMGStateAndVisitor();
+    // TODO: this and DLL version
+  }
+
+  /**
+   * Creates a concrete list, then saves a pointer to a nested list in EACH segment. The pointers
+   * saved however don't necessarily point to the beginning of the nested list! The lists are then
+   * abstracted and checked. The top list is NOT supposed to be abstractable as the nested lists are
+   * not equal as their subjective lengths differ for each element of the top list.
+   */
+  @Test
+  public void nestedListMovingPointerSLLTest() throws InvalidConfigurationException {
+    resetSMGStateAndVisitor();
+    // TODO: this and DLL version
   }
 
   /**
@@ -109,11 +132,9 @@ public class SMGCPAAbstractionTest {
    */
   @Test
   public void nestedListSLLTest() throws InvalidConfigurationException, SMG2Exception {
-    resetSMGStateAndVisitor();
     // Smaller lengths are fine here, else this runs a while!
     // Increasing this is a good test for the overall performance of the SMGs!
     int listLength = 15;
-    resetSMGStateAndVisitor();
     Value[] pointers = buildConcreteList(false, sllSize, listLength);
     for (Value pointer : pointers) {
       // Generate the same list for each top list segment and save the first pointer as data
