@@ -104,33 +104,7 @@ public class SMGCPAAbstractionManager {
                         0))
             .collect(ImmutableSet.toImmutableSet());
 
-    Map<SMGObject, Integer> nestingMap = new HashMap<>();
-    Map<SMGObject, SMGCandidate> objToCandidateMap = new HashMap<>();
-    List<Set<SMGCandidate>> currentOrdering = new ArrayList<>();
-    for (SMGCandidate candidate : trueListStarts) {
-      nestingMap.put(candidate.getObject(), 0);
-      objToCandidateMap.put(candidate.getObject(), candidate);
-    }
-    for (SMGCandidate candidate : trueListStarts) {
-      findNestingOfCandidates(
-          candidate,
-          candidate.getObject(),
-          candidate.getSuspectedNfo(),
-          candidate.getSuspectedPfo(),
-          new HashSet<>(),
-          nestingMap);
-    }
-    for (Entry<SMGObject, Integer> objToNestingLevel : nestingMap.entrySet()) {
-      SMGObject obj = objToNestingLevel.getKey();
-      int nesting = objToNestingLevel.getValue();
-      while (currentOrdering.size() <= nesting) {
-        currentOrdering.add(new HashSet<>());
-      }
-      // Add to correct
-      currentOrdering.get(nesting).add(objToCandidateMap.get(obj));
-    }
-
-    return currentOrdering;
+    return findNestingOfCandidates(trueListStarts);
   }
 
   /*
@@ -144,7 +118,7 @@ public class SMGCPAAbstractionManager {
     for (SMGCandidate candidate : refinedCandidates) {
       Optional<BigInteger> maybePFO = isDLL(candidate, state.getMemoryModel().getSmg());
       if (maybePFO.isPresent()) {
-        noNestingCandidates.add(candidate.withPfo(maybePFO.orElseThrow()));
+        noNestingCandidates.add(SMGCandidate.withPfo(maybePFO.orElseThrow(), candidate));
       } else {
         noNestingCandidates.add(candidate);
       }
@@ -153,14 +127,51 @@ public class SMGCPAAbstractionManager {
     return noNestingCandidates;
   }
 
-  // TODO: do this also for non-candidates
+  private List<Set<SMGCandidate>> findNestingOfCandidates(Set<SMGCandidate> trueListStarts) {
+    Map<SMGCandidate, Integer> nestingMap = new HashMap<>();
+    List<Set<SMGCandidate>> currentOrdering = new ArrayList<>();
+    Map<SMGObject, SMGCandidate> objToCandidateMap = new HashMap<>();
+
+    for (SMGCandidate candidate : trueListStarts) {
+      nestingMap.put(candidate, 0);
+      objToCandidateMap.put(candidate.getObject(), candidate);
+      for (SMGObject candidateListObj : candidate.getMaximalListElements()) {
+        objToCandidateMap.put(candidateListObj, candidate);
+      }
+    }
+
+    for (SMGCandidate candidate : trueListStarts) {
+      findNestingOfCandidates(
+          candidate,
+          candidate.getObject(),
+          candidate.getSuspectedNfo(),
+          candidate.getSuspectedPfo(),
+          new HashSet<>(),
+          nestingMap,
+          objToCandidateMap);
+    }
+
+    for (Entry<SMGCandidate, Integer> objToNestingLevel : nestingMap.entrySet()) {
+      SMGCandidate obj = objToNestingLevel.getKey();
+      int nesting = objToNestingLevel.getValue();
+      while (currentOrdering.size() <= nesting) {
+        currentOrdering.add(new HashSet<>());
+      }
+      // Add to correct
+      currentOrdering.get(nesting).add(obj);
+    }
+    return currentOrdering;
+  }
+
+  // TODO: do this also for non-candidates in between candidates
   private void findNestingOfCandidates(
       SMGCandidate start,
       SMGObject currentObj,
       BigInteger nfo,
       Optional<BigInteger> maybePfo,
       Set<SMGObject> alreadySeen,
-      Map<SMGObject, Integer> nestingMap) {
+      Map<SMGCandidate, Integer> nestingMap,
+      Map<SMGObject, SMGCandidate> objToCandidateMap) {
     SMG smg = state.getMemoryModel().getSmg();
 
     SMGPointsToEdge pointsToNext = null;
@@ -177,17 +188,18 @@ public class SMGCPAAbstractionManager {
         } else {
           // Points somewhere else, possibly nested list
           SMGPointsToEdge pointsToOther = smg.getPTEdge(value).orElseThrow();
-          // TODO: better nesting check
-          // This does not take into account pointers pointing to nested lists that are not to the
+
+          // This does take into account pointers pointing to nested lists that are not to the
           // root node or some structure that leads to a nested list below
-          // Just make a map when traversing that maps to the root (candidate)
-          if (nestingMap.containsKey(pointsToOther.pointsTo())) {
-            // Nesting level of the source of the pointer + 1 or the old if its larger
-            int nestingLevelOfNestedList = nestingMap.get(pointsToOther.pointsTo());
-            int nestingLevelOfSource = nestingMap.get(start.getObject());
-            nestingMap.put(
-                pointsToOther.pointsTo(),
-                Integer.max(nestingLevelOfNestedList, nestingLevelOfSource) + 1);
+          if (objToCandidateMap.containsKey(pointsToOther.pointsTo())) {
+            SMGCandidate candidateForObj = objToCandidateMap.get(pointsToOther.pointsTo());
+            if (nestingMap.containsKey(candidateForObj)) {
+              // Nesting level of the source of the pointer + 1 or the old if its larger
+              int nestingLevelOfNestedList = nestingMap.get(candidateForObj);
+              int nestingLevelOfSource = nestingMap.get(start);
+              nestingMap.put(
+                  candidateForObj, Integer.max(nestingLevelOfNestedList, nestingLevelOfSource) + 1);
+            }
           }
         }
       }
@@ -195,7 +207,13 @@ public class SMGCPAAbstractionManager {
 
     if (pointsToNext != null) {
       findNestingOfCandidates(
-          start, pointsToNext.pointsTo(), nfo, maybePfo, alreadySeen, nestingMap);
+          start,
+          pointsToNext.pointsTo(),
+          nfo,
+          maybePfo,
+          alreadySeen,
+          nestingMap,
+          objToCandidateMap);
     }
   }
 
@@ -247,39 +265,66 @@ public class SMGCPAAbstractionManager {
     return false;
   }
 
-  private int getLinkedCandidateLength(SMGObject root, BigInteger nfo, Set<SMGObject> alreadySeen) {
+  private SMGCandidate getLinkedCandidateLength(
+      SMGObject root,
+      BigInteger nfo,
+      int size,
+      Set<SMGObject> alreadySeen,
+      SMGCandidate candidate) {
+
     SMG smg = state.getMemoryModel().getSmg();
     if (!smg.isValid(root) || alreadySeen.contains(root)) {
-      return 0;
+      return SMGCandidate.withFoundListElements(alreadySeen, size, candidate);
     }
+
+    int addSize = 1;
+    if (root instanceof SMGSinglyLinkedListSegment) {
+      addSize = ((SMGSinglyLinkedListSegment) root).getMinLength();
+    }
+
     for (SMGHasValueEdge hve : smg.getEdges(root)) {
       SMGValue value = hve.hasValue();
-      int size = 1;
-      if (root instanceof SMGSinglyLinkedListSegment) {
-        size = ((SMGSinglyLinkedListSegment) root).getMinLength();
-      }
 
       if (hve.getOffset().compareTo(nfo) == 0 && smg.isPointer(value)) {
         SMGPointsToEdge pointsToEdge = smg.getPTEdge(value).orElseThrow();
+        // We only add list elements to already seen
+        // In theory this does not prevent all possible loops. But who would program such a thing?
         alreadySeen.add(root);
-        return size + getLinkedCandidateLength(pointsToEdge.pointsTo(), nfo, alreadySeen);
+        return getLinkedCandidateLength(
+            pointsToEdge.pointsTo(), nfo, addSize + size, alreadySeen, candidate);
       }
     }
-    return 0;
+    // We don't count the "last" element this way if it does not have a pointer at nfo
+    // This is completely fine! If the list extends further it will break the threshold and be
+    // abstracted eventually.
+    return SMGCandidate.withFoundListElements(alreadySeen, size, candidate);
   }
 
+  /**
+   * Finds all possible linked list candidates from the states heap memory. Checks that the
+   * candidates have the same size and nfo and are valid and have at least
+   * minimumLengthForListsForAbstraction length in total. Does not check DLL or value equality! You
+   * can expect the candidates to have the suspected root, nfo, max size independent of value
+   * equality and the objects.
+   *
+   * @return an unsorted list of candidates.
+   */
   ImmutableList<SMGCandidate> getRefinedLinkedCandidates() {
     ImmutableList<SMGCandidate> sortedCandiList =
         ImmutableList.sortedCopyOf(
             Comparator.comparing(SMGCandidate::getSuspectedNfo),
             refineCandidates(getLinkedCandidates(), state));
-    return sortedCandiList.stream()
-        .filter(
-            c ->
-                minimumLengthForListsForAbstraction
-                    <= getLinkedCandidateLength(
-                        c.getObject(), c.getSuspectedNfo(), new HashSet<>()))
-        .collect(ImmutableList.toImmutableList());
+
+    ImmutableList.Builder<SMGCandidate> refinedLinkedCandidatesBuilder = ImmutableList.builder();
+    for (SMGCandidate candidate : sortedCandiList) {
+      SMGCandidate candidateWithListInfo =
+          getLinkedCandidateLength(
+              candidate.getObject(), candidate.getSuspectedNfo(), 0, new HashSet<>(), candidate);
+      if (minimumLengthForListsForAbstraction <= candidateWithListInfo.maximalSizeOfList) {
+        refinedLinkedCandidatesBuilder.add(candidateWithListInfo);
+      }
+    }
+    return refinedLinkedCandidatesBuilder.build();
   }
 
   // Protected for tests
@@ -679,20 +724,64 @@ public class SMGCPAAbstractionManager {
     // If not present -> SLL
     private Optional<BigInteger> suspectedPfo;
 
+    /*
+     * Other suspected list elements. This is the maximal possible over approximation for the same size/nfo!
+     * Equalities are not checked and this might not reflect the final abstracted list.
+     * Used to find accurate nesting.
+     */
+    private Set<SMGObject> suspectedElements;
+
+    // Max size. Not checked for abstractable length!
+    private int maximalSizeOfList;
+
     public SMGCandidate(SMGObject pObject, BigInteger pSuspectedNfo) {
       this.object = pObject;
       this.suspectedNfo = pSuspectedNfo;
       this.suspectedPfo = Optional.empty();
+      this.suspectedElements = ImmutableSet.of();
+      this.maximalSizeOfList = 1;
     }
 
-    public SMGCandidate(SMGObject pObject, BigInteger pSuspectedNfo, BigInteger pSuspectedPfo) {
+    private SMGCandidate(
+        SMGObject pObject,
+        BigInteger pSuspectedNfo,
+        Optional<BigInteger> pSuspectedPfo,
+        Set<SMGObject> pSuspectedElements,
+        int maxSize) {
       this.object = pObject;
       this.suspectedNfo = pSuspectedNfo;
-      this.suspectedPfo = Optional.of(pSuspectedPfo);
+      this.suspectedPfo = pSuspectedPfo;
+      this.suspectedElements = pSuspectedElements;
+      this.maximalSizeOfList = maxSize;
     }
 
-    public SMGCandidate withPfo(BigInteger pSuspectedPfo) {
-      return new SMGCandidate(this.object, this.suspectedNfo, pSuspectedPfo);
+    public static SMGCandidate moveCandidateTo(
+        SMGObject newCandidateInSameList, SMGCandidate oldCandidateOnSameList) {
+      return new SMGCandidate(
+          newCandidateInSameList,
+          oldCandidateOnSameList.suspectedNfo,
+          oldCandidateOnSameList.suspectedPfo,
+          oldCandidateOnSameList.suspectedElements,
+          oldCandidateOnSameList.maximalSizeOfList);
+    }
+
+    public static SMGCandidate withPfo(BigInteger pSuspectedPfo, SMGCandidate candidate) {
+      return new SMGCandidate(
+          candidate.object,
+          candidate.suspectedNfo,
+          Optional.of(pSuspectedPfo),
+          candidate.suspectedElements,
+          candidate.maximalSizeOfList);
+    }
+
+    public static SMGCandidate withFoundListElements(
+        Set<SMGObject> pSuspectedElements, int lengthOfList, SMGCandidate candidate) {
+      return new SMGCandidate(
+          candidate.object,
+          candidate.suspectedNfo,
+          candidate.suspectedPfo,
+          candidate.suspectedElements,
+          lengthOfList);
     }
 
     public SMGObject getObject() {
@@ -709,6 +798,25 @@ public class SMGCPAAbstractionManager {
 
     public Optional<BigInteger> getSuspectedPfo() {
       return suspectedPfo;
+    }
+
+    /**
+     * Other suspected list elements. This is the maximal possible over approximation for the same
+     * size/nfo! Equalities are not checked and this might not reflect the final abstracted list.
+     * The candidate is part of that list, but it is unknown where. Used to find accurate nesting.
+     *
+     * @return the found list for the candidate.
+     */
+    public Set<SMGObject> getMaximalListElements() {
+      return suspectedElements;
+    }
+
+    /**
+     * @return size for the complete list for the candidate. It is unknown if this size represents
+     *     the complete abstractable list and should not be used for that.
+     */
+    public int getMaximalListLength() {
+      return maximalSizeOfList;
     }
   }
 }
