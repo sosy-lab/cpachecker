@@ -790,8 +790,7 @@ public class SymbolicProgramConfiguration {
     // Only look in the current stack frame
     StackFrame currentFrame = stackVariableMapping.peek();
     if (pName.contains("::")) {
-      int bla = pName.indexOf(':');
-      String variableFunctionName = pName.substring(0, bla);
+      String variableFunctionName = pName.substring(0, pName.indexOf(':'));
       if (!currentFrame
           .getFunctionDefinition()
           .getQualifiedName()

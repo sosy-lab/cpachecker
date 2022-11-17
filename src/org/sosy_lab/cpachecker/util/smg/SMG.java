@@ -1100,7 +1100,6 @@ public class SMG {
    */
   public boolean hasPotentialListObjectsWithPointersToObject(
       SMGObject targetObject, BigInteger suspectedNfo, Collection<SMGObject> heapObjects) {
-    ImmutableMap.Builder<SMGObject, BigInteger> ret = ImmutableMap.builder();
     for (Entry<SMGValue, SMGPointsToEdge> entry : pointsToEdges.entrySet()) {
       if (targetObject.equals(entry.getValue().pointsTo())) {
         SMGValue pointerValue = entry.getKey();
