@@ -55,6 +55,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/nla-digbench/egcd2-ll.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/*bound1*</exclude> <!-- bound 2,5,20,50 is sufficient, lets exclude 1,10,100 -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/hard*</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/ps2-ll_unwindbound20.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>

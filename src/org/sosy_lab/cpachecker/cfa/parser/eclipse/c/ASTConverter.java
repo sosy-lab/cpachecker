@@ -1698,9 +1698,7 @@ class ASTConverter {
     CType expressionType;
     CType typeId = convert(e.getTypeId());
 
-    if (typeIdOperator == TypeIdOperator.ALIGNOF || typeIdOperator == TypeIdOperator.SIZEOF) {
-      // sizeof and _Alignof always return int, CDT sometimes provides wrong type
-      expressionType = CNumericTypes.INT;
+    if ((typeIdOperator == TypeIdOperator.ALIGNOF || typeIdOperator == TypeIdOperator.SIZEOF)) {
       if (typeId.isIncomplete()) {
         // Cannot compute alignment
         throw parseContext.parseError(
@@ -1710,9 +1708,8 @@ class ASTConverter {
                 + typeId,
             e);
       }
-    } else {
-      expressionType = typeConverter.convert(e.getExpressionType());
     }
+    expressionType = typeConverter.convert(e.getExpressionType());
     return new CTypeIdExpression(getLocation(e), expressionType, typeIdOperator, typeId);
   }
 
