@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
@@ -704,6 +705,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
       return false;
+    } catch (RefinementFailedException e) {
+      if (fallBack) {
+        fallBackToBMC(e.getMessage());
+        return false;
+      } else {
+        throw e;
+      }
     } finally {
       stats.fixedPointComputation.stop();
     }
