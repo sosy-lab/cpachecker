@@ -1130,7 +1130,6 @@ public final class LoopStructure implements Serializable {
 
     @Override
     public CFANode entryNode(CFANode pNode) {
-
       CFANode currentNode = pNode;
 
       // the exit can have multiple out-edges, but only a single in-edge for a multi-node chain
@@ -1158,7 +1157,6 @@ public final class LoopStructure implements Serializable {
 
     @Override
     public CFANode exitNode(CFANode pNode) {
-
       CFANode currentNode = pNode;
 
       // the entry can have multiple in-edges, but only a single out-edge for a multi-node chain
@@ -1217,7 +1215,6 @@ public final class LoopStructure implements Serializable {
     }
 
     private CFANode branchFirstNode(CFANode pNode) {
-
       CFANode firstNode = nodeChainFinder.entryNode(pNode);
 
       boolean changed;
@@ -1239,7 +1236,6 @@ public final class LoopStructure implements Serializable {
     }
 
     private CFANode branchLastNode(CFANode pNode) {
-
       CFANode lastNode = nodeChainFinder.exitNode(pNode);
 
       boolean changed;
@@ -1273,7 +1269,6 @@ public final class LoopStructure implements Serializable {
      * @throws NullPointerException if {@code pMergeNode == null}
      */
     private Optional<CFANode> branchNode(CFANode pMergeNode) {
-
       int branchingFactor = pMergeNode.getNumEnteringEdges();
       checkArgument(branchingFactor > 1, "Node is not a merge node: %s", pMergeNode);
 
@@ -1281,7 +1276,6 @@ public final class LoopStructure implements Serializable {
         // we already know the branch node for the merge node
         return mergeNodeToBranchNode.get(pMergeNode);
       }
-
       mergeNodeToBranchNode.put(pMergeNode, Optional.empty());
 
       // find branch nodes for branches
@@ -1329,7 +1323,6 @@ public final class LoopStructure implements Serializable {
         branchNode = Optional.of(prevBranchNodeCandidate);
         mergeNodeToBranchNode.put(pMergeNode, branchNode);
       }
-
       return branchNode;
     }
 
@@ -1346,7 +1339,6 @@ public final class LoopStructure implements Serializable {
      * @throws NullPointerException if {@code pBranchNode == null}
      */
     private Optional<CFANode> mergeNode(CFANode pBranchNode) {
-
       int branchingFactor = pBranchNode.getNumLeavingEdges();
       checkArgument(branchingFactor > 1, "Node is not a branch node: %s", pBranchNode);
 
@@ -1354,7 +1346,6 @@ public final class LoopStructure implements Serializable {
         // we already know the merge node for the branch node
         return branchNodeToMergeNode.get(pBranchNode);
       }
-
       branchNodeToMergeNode.put(pBranchNode, Optional.empty());
 
       // find merge nodes for branches
@@ -1401,13 +1392,11 @@ public final class LoopStructure implements Serializable {
         mergeNode = Optional.of(prevMergeNodeCandidate);
         branchNodeToMergeNode.put(pBranchNode, mergeNode);
       }
-
       return mergeNode;
     }
 
     @Override
     public CFANode entryNode(CFANode pNode) {
-
       CFANode sectionEntry = branchFirstNode(pNode);
 
       boolean changed;
@@ -1435,7 +1424,6 @@ public final class LoopStructure implements Serializable {
 
     @Override
     public CFANode exitNode(CFANode pNode) {
-
       CFANode sectionExit = branchLastNode(pNode);
 
       boolean changed;
