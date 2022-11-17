@@ -213,6 +213,16 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         secure = true,
         description =
             "toggle the strategy to determine the next loop iteration\n"
+                + "to execute k-inductive check if \"checkPropertyInductiveness\" is enabled\n"
+                + "CONST: increased by by a constant (specified via loopBoundIncrementValueForKI)\n"
+                + "EAGER: skip all iterations where a bug cannot be found")
+    private LoopBoundIncrementStrategy loopBoundIncrementStrategyForKI =
+        LoopBoundIncrementStrategy.CONST;
+
+    @Option(
+        secure = true,
+        description =
+            "toggle the strategy to determine the next loop iteration\n"
                 + "to execute interpolation phase of IMC\n"
                 + "CONST: increased by a constant (specified via loopBoundIncrementValueForIMC)\n"
                 + "EAGER: skip all iterations where a bug cannot be found")
@@ -228,6 +238,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     @Option(
         secure = true,
+        description = "toggle the value to increment the loop bound by at each step for KI")
+    @IntegerOption(min = 1)
+    private int loopBoundIncrementValueForKI = 1;
+
+    @Option(
+        secure = true,
         description = "toggle the value to increment the loop bound by at each step for IMC")
     @IntegerOption(min = 1)
     private int loopBoundIncrementValueForIMC = 1;
@@ -236,10 +252,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     private static final int loopBoundIncrementValueForISMC = 1;
 
     private int nextLoopBoundForBMC = 1;
+    private int nextLoopBoundForKI = 2;
     private int nextLoopBoundForIMC = 2;
     private int nextLoopBoundForISMC = 2;
 
     private final IndividualCheckInfoWrapper bmcInfo;
+    private final IndividualCheckInfoWrapper kiInfo;
     private final IndividualCheckInfoWrapper imcInfo;
     private final IndividualCheckInfoWrapper ismcInfo;
 
@@ -247,14 +265,23 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       pConfig.inject(this);
 
       // configuration checks
-      if (!fixedPointComputeStrategy.isIMCEnabled()
-          && loopBoundIncrementStrategyForBMC == LoopBoundIncrementStrategy.EAGER) {
-        logger.log(
-            Level.WARNING,
-            "IMC is disabled, the loop bound is incremented by",
-            loopBoundIncrementValueForBMC,
-            "each time for BMC.");
-        loopBoundIncrementStrategyForBMC = LoopBoundIncrementStrategy.CONST;
+      if (!fixedPointComputeStrategy.isIMCEnabled()) {
+        if (loopBoundIncrementStrategyForBMC == LoopBoundIncrementStrategy.EAGER) {
+          logger.log(
+              Level.WARNING,
+              "IMC is disabled, the loop bound is incremented by",
+              loopBoundIncrementValueForBMC,
+              "each time for BMC.");
+          loopBoundIncrementStrategyForBMC = LoopBoundIncrementStrategy.CONST;
+        }
+        if (loopBoundIncrementStrategyForKI == LoopBoundIncrementStrategy.EAGER) {
+          logger.log(
+              Level.WARNING,
+              "IMC is disabled, the loop bound is incremented by",
+              loopBoundIncrementValueForKI,
+              "each time for KI.");
+          loopBoundIncrementStrategyForKI = LoopBoundIncrementStrategy.CONST;
+        }
       }
       if (fixedPointComputeStrategy.isIMCEnabled()
           && loopBoundIncrementStrategyForIMC == LoopBoundIncrementStrategy.EAGER
@@ -273,6 +300,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               loopBoundIncrementStrategyForBMC,
               loopBoundIncrementValueForBMC,
               nextLoopBoundForBMC);
+      kiInfo =
+          new IndividualCheckInfoWrapper(
+              "KI",
+              loopBoundIncrementStrategyForKI,
+              loopBoundIncrementValueForKI,
+              nextLoopBoundForKI);
       imcInfo =
           new IndividualCheckInfoWrapper(
               "IMC",
@@ -303,7 +336,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     private void incrementLoopBoundsToCheck() {
       final int currentLoopBound = getCurrentMaxLoopIterations();
-      for (var i : new IndividualCheckInfoWrapper[] {bmcInfo, imcInfo, ismcInfo}) {
+      for (var i : new IndividualCheckInfoWrapper[] {bmcInfo, kiInfo, imcInfo, ismcInfo}) {
         incrementLoopBoundToCheck(currentLoopBound, i);
       }
       resetLoopBoundIncrementValues();
@@ -318,7 +351,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     private void adjustLoopBoundIncrementValues(int imcInnerLoopIter) {
-      for (var i : new IndividualCheckInfoWrapper[] {bmcInfo, imcInfo, ismcInfo}) {
+      for (var i : new IndividualCheckInfoWrapper[] {bmcInfo, kiInfo, imcInfo, ismcInfo}) {
         adjustLoopBoundIncrementValue(imcInnerLoopIter, i);
       }
       assert ismcInfo.incrementValue == 1;
@@ -331,7 +364,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     private void resetLoopBoundIncrementValues() {
-      for (var i : new IndividualCheckInfoWrapper[] {bmcInfo, imcInfo, ismcInfo}) {
+      for (var i : new IndividualCheckInfoWrapper[] {bmcInfo, kiInfo, imcInfo, ismcInfo}) {
         resetLoopBoundIncrementValue(i);
       }
       assert bmcInfo.incrementValue == 1;
@@ -354,6 +387,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       return performCheckAtCurrentIteration(bmcInfo);
     }
 
+    private boolean performKIAtCurrentIteration() {
+      return performCheckAtCurrentIteration(kiInfo);
+    }
+
     private boolean performIMCAtCurrentIteration() {
       return performCheckAtCurrentIteration(imcInfo);
     }
@@ -365,6 +402,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Option(secure = true, description = "toggle checking forward conditions")
   private boolean checkForwardConditions = true;
+
+  @Option(secure = true, description = "toggle checking whether the safety property is inductive")
+  private boolean checkPropertyInductiveness = false;
 
   @Option(
       secure = true,
@@ -571,13 +611,25 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
-      // Interpolation
       if (isInterpolationEnabled()
           && loopBoundMgr.getCurrentMaxLoopIterations() > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
         stats.interpolationPreparation.start();
         partitionedFormulas.collectFormulasFromARG(pReachedSet);
         stats.interpolationPreparation.stop();
+        // k-induction
+        if (checkPropertyInductiveness
+            && loopBoundMgr.performKIAtCurrentIteration()
+            && isPropertyInductive(partitionedFormulas)) {
+          InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+          logger.log(Level.FINE, "The safety property is inductive");
+          // unlike IMC/ISMC, we cannot obtain a more precise fixed point here
+          finalFixedPoint = bfmgr.makeTrue();
+          InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
+              pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
+          return AlgorithmStatus.SOUND_AND_PRECISE;
+        }
+        // Interpolation
         if (reachFixedPoint(partitionedFormulas, reachVector)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
@@ -603,6 +655,23 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         "Forward-condition disabled because of " + pReason + ", falling back to plain BMC");
     fixedPointComputeStrategy = FixedPointComputeStrategy.NONE;
     checkForwardConditions = false;
+  }
+
+  private boolean isPropertyInductive(final PartitionedFormulas formulas)
+      throws InterruptedException, SolverException {
+    boolean isInductive;
+    try (ProverEnvironment inductionProver = solver.newProverEnvironment()) {
+      stats.satCheck.start();
+      BooleanFormula query =
+          bfmgr.and(bfmgr.and(formulas.getLoopFormulas()), formulas.getAssertionFormula());
+      try {
+        inductionProver.push(query);
+        isInductive = inductionProver.isUnsat();
+      } finally {
+        stats.satCheck.stop();
+      }
+    }
+    return isInductive;
   }
 
   private boolean reachFixedPoint(

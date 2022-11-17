@@ -616,6 +616,19 @@ public class CoreComponentsFactory {
                 aggregatedReachedSets);
       }
 
+      if (useTerminationAlgorithm) {
+        algorithm =
+            new TerminationAlgorithm(
+                config,
+                logger,
+                shutdownNotifier,
+                cfa,
+                reachedSetFactory,
+                aggregatedReachedSetManager,
+                algorithm,
+                cpa);
+      }
+
       if (checkCounterexamples) {
         if (cpa instanceof BAMCPA) {
           algorithm =
@@ -682,19 +695,6 @@ public class CoreComponentsFactory {
 
       if (unknownIfUnrestrictedProgram) {
         algorithm = new RestrictedProgramDomainAlgorithm(algorithm, cfa);
-      }
-
-      if (useTerminationAlgorithm) {
-        algorithm =
-            new TerminationAlgorithm(
-                config,
-                logger,
-                shutdownNotifier,
-                cfa,
-                reachedSetFactory,
-                aggregatedReachedSetManager,
-                algorithm,
-                cpa);
       }
 
       if (cpa instanceof ARGCPA && forceCexStore) {

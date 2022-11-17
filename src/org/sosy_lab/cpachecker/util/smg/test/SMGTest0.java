@@ -51,10 +51,10 @@ public class SMGTest0 {
         pLevel,
         BigInteger.valueOf(withSize),
         BigInteger.valueOf(offset),
-        BigInteger.valueOf(prevOffset),
+        BigInteger.valueOf(offset),
         BigInteger.valueOf(next),
-        mLength,
-        BigInteger.valueOf(offset));
+        BigInteger.valueOf(prevOffset),
+        mLength);
   }
 
   protected SMGHasValueEdge createHasValueEdgeToZero(BigInteger withSize) {

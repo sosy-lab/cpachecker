@@ -96,7 +96,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
   }
 
   private int getSizeofUncached(CType cType) {
-    if (cType instanceof CArrayType && cType.isIncomplete()) {
+    if (cType instanceof CArrayType && !cType.hasKnownConstantSize()) {
       CArrayType t = (CArrayType) cType;
       int length = t.getLengthAsInt().orElse(options.defaultArrayLength());
       final int sizeOfType = getSizeofUncached(t.getType());

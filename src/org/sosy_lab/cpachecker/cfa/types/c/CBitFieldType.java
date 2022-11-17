@@ -92,6 +92,11 @@ public class CBitFieldType implements CType {
   }
 
   @Override
+  public boolean hasKnownConstantSize() {
+    return type.hasKnownConstantSize();
+  }
+
+  @Override
   public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
     return pVisitor.visit(this);
   }
