@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableCollection;
@@ -24,6 +23,8 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import java.io.Serializable;
 import java.util.ArrayDeque;
@@ -482,7 +483,6 @@ public final class LoopStructure implements Serializable {
     // The latter can be a huge improvement for the main function, which may have thousands of nodes
     // in such an initial chain (global declarations).
     List<CFANode> initialChain = new ArrayList<>();
-    @Nullable CFANode nodeAfterInitialChain = null;
     {
       CFANode functionExitNode = pNodes.first(); // The function exit node is always the first
       if (functionExitNode instanceof FunctionExitNode) {
@@ -497,7 +497,7 @@ public final class LoopStructure implements Serializable {
         // of loop head nodes that does not contain what most users would consider
         // the most important loop head node of a function.
         if (!initialChain.isEmpty()) {
-          nodeAfterInitialChain = initialChain.remove(initialChain.size() - 1);
+          initialChain.remove(initialChain.size() - 1);
         }
 
         if (!hasBackWardsEdges(startNode)) {
@@ -532,6 +532,12 @@ public final class LoopStructure implements Serializable {
     final Edge[][] edges = new Edge[size][size];
 
     List<Loop> loops = new ArrayList<>();
+
+    CFANode nodeAfterInitialChain =
+        nodes.stream()
+            .filter(node -> node.getReversePostorderId() == nodesArray.length - 1)
+            .findFirst()
+            .orElseThrow();
     // For performance reasons, we use loop-free sections instead of individual nodes for loop
     // detection.
     LoopFreeSectionFinder loopFreeSectionFinder =
@@ -643,27 +649,16 @@ public final class LoopStructure implements Serializable {
     //        order (result is order dependent) because we may find loops in a different order.
     //        We should think of a better solution as this heuristic still doesn't fully solve our
     //        problem. At least in theory, there could still be differences in the overall result.
-    Multimap<CFANode, Loop> loopHeadToLoops = ArrayListMultimap.create();
-    for (Loop loop : loops) {
-      // loops have not been merged yet, so they have only a single loop head
-      loopHeadToLoops.put(Iterables.getOnlyElement(loop.getLoopHeads()), loop);
-    }
+    //
+    // loops have not been merged yet, so they have only a single loop head
+    Multimap<CFANode, Loop> loopHeadToLoops =
+        Multimaps.index(loops, loop -> Iterables.getOnlyElement(loop.getLoopHeads()));
     Collections.sort(
         loops,
-        (someLoop, otherLoop) -> {
-          CFANode someLoopHead = Iterables.getOnlyElement(someLoop.getLoopHeads());
-          CFANode otherLoopHead = Iterables.getOnlyElement(otherLoop.getLoopHeads());
-          // if a loop head appears more often, its loops should come first
-          int loopCountCmp =
-              Integer.compare(
-                  loopHeadToLoops.get(otherLoopHead).size(),
-                  loopHeadToLoops.get(someLoopHead).size());
-          if (loopCountCmp != 0) {
-            return loopCountCmp;
-          } else {
-            return otherLoop.compareTo(someLoop);
-          }
-        });
+        Comparator.<Loop>comparingInt(
+                loop -> loopHeadToLoops.get(Iterables.getOnlyElement(loop.getLoopHeads())).size())
+            .reversed() // if a loop head appears more often, its loops should come first
+            .thenComparing(Ordering.natural().reversed()));
 
     // THIRD step:
     // check all pairs of loops if one is an inner loop of the other
@@ -1207,8 +1202,8 @@ public final class LoopStructure implements Serializable {
     // Maps branch/merge nodes to their corresponding merge/branch nodes, so we can skip a
     // branching. `Optional.empty()` means that there is no corresponding merge/branch node or the
     // branching isn't loop-free.
-    private final Map<CFANode, Optional<CFANode>> branchNodeToMergeNode;
-    private final Map<CFANode, Optional<CFANode>> mergeNodeToBranchNode;
+    private final Map<CFANode, Optional<CFANode>> branchNodeToMergeNode = new HashMap<>();
+    private final Map<CFANode, Optional<CFANode>> mergeNodeToBranchNode = new HashMap<>();
 
     /**
      * Creates a new {@link BranchingLoopFreeSectionFinder} instance.
@@ -1219,8 +1214,6 @@ public final class LoopStructure implements Serializable {
     private BranchingLoopFreeSectionFinder(@Nullable CFANode pStartNode) {
       startNode = pStartNode;
       nodeChainFinder = new NodeChainLoopFreeSectionFinder(pStartNode);
-      branchNodeToMergeNode = new HashMap<>();
-      mergeNodeToBranchNode = new HashMap<>();
     }
 
     private CFANode branchFirstNode(CFANode pNode) {
@@ -1291,47 +1284,49 @@ public final class LoopStructure implements Serializable {
 
       mergeNodeToBranchNode.put(pMergeNode, Optional.empty());
 
-      CFANode[] lastNodes = new CFANode[branchingFactor];
-      for (int i = 0; i < branchingFactor; i++) {
-        lastNodes[i] = pMergeNode.getEnteringEdge(i).getPredecessor();
-      }
-
       // find branch nodes for branches
-      CFANode[] branchNodeCandidates = new CFANode[branchingFactor];
-      for (int i = 0; i < branchingFactor; i++) {
-        CFANode branchLastNode = lastNodes[i];
+      List<CFANode> branchNodeCandidates = new ArrayList<>(branchingFactor);
+      for (CFANode branchLastNode : CFAUtils.predecessorsOf(pMergeNode)) {
         if (branchLastNode.getNumLeavingEdges() >= branchingFactor) {
           // we are already at a branch node
-          branchNodeCandidates[i] = branchLastNode;
+          branchNodeCandidates.add(branchLastNode);
         } else {
           CFANode branchFirstNode = branchFirstNode(branchLastNode);
           if (branchFirstNode.getNumEnteringEdges() == 1) {
             // the sole predecessor of the first branch node is the branch node candidate
             CFANode branchNode = branchFirstNode.getEnteringEdge(0).getPredecessor();
             if (branchNode.getNumLeavingEdges() >= branchingFactor) {
-              branchNodeCandidates[i] = branchNode;
+              branchNodeCandidates.add(branchNode);
+            } else {
+              branchNodeCandidates.add(null);
+              break;
             }
+          } else {
+            branchNodeCandidates.add(null);
+            break;
           }
         }
       }
 
       // check whether all branch node candidates are equal and not `null`
       boolean acceptCandidates = true;
-      for (int i = 0; i < branchingFactor; i++) {
-        CFANode branchNodeCandidate = branchNodeCandidates[i];
+      @Nullable CFANode prevBranchNodeCandidate = null;
+      for (CFANode branchNodeCandidate : branchNodeCandidates) {
         if (branchNodeCandidate == null) {
           acceptCandidates = false;
           break;
         }
-        if (i > 0 && !branchNodeCandidates[i - 1].equals(branchNodeCandidate)) {
+        if (prevBranchNodeCandidate != null
+            && !branchNodeCandidate.equals(prevBranchNodeCandidate)) {
           acceptCandidates = false;
           break;
         }
+        prevBranchNodeCandidate = branchNodeCandidate;
       }
 
       Optional<CFANode> branchNode = Optional.empty();
       if (acceptCandidates) {
-        branchNode = Optional.of(branchNodeCandidates[0]);
+        branchNode = Optional.of(prevBranchNodeCandidate);
         mergeNodeToBranchNode.put(pMergeNode, branchNode);
       }
 
@@ -1362,47 +1357,48 @@ public final class LoopStructure implements Serializable {
 
       branchNodeToMergeNode.put(pBranchNode, Optional.empty());
 
-      CFANode[] firstNodes = new CFANode[branchingFactor];
-      for (int i = 0; i < branchingFactor; i++) {
-        firstNodes[i] = pBranchNode.getLeavingEdge(i).getSuccessor();
-      }
-
       // find merge nodes for branches
-      CFANode[] mergeNodeCandidates = new CFANode[branchingFactor];
-      for (int i = 0; i < branchingFactor; i++) {
-        CFANode branchFirstNode = firstNodes[i];
+      List<CFANode> mergeNodeCandidates = new ArrayList<>(branchingFactor);
+      for (CFANode branchFirstNode : CFAUtils.successorsOf(pBranchNode)) {
         if (branchFirstNode.getNumEnteringEdges() >= branchingFactor) {
           // we are already at a merge node
-          mergeNodeCandidates[i] = branchFirstNode;
+          mergeNodeCandidates.add(branchFirstNode);
         } else {
           CFANode branchLastNode = branchLastNode(branchFirstNode);
           if (branchLastNode.getNumLeavingEdges() == 1) {
             // the sole successor of the last branch node is the merge node candidate
             CFANode mergeNode = branchLastNode.getLeavingEdge(0).getSuccessor();
             if (mergeNode.getNumEnteringEdges() >= branchingFactor) {
-              mergeNodeCandidates[i] = mergeNode;
+              mergeNodeCandidates.add(mergeNode);
+            } else {
+              mergeNodeCandidates.add(null);
+              break;
             }
+          } else {
+            mergeNodeCandidates.add(null);
+            break;
           }
         }
       }
 
       // check whether all merge node candidates are equal and not `null`
       boolean acceptCandidates = true;
-      for (int i = 0; i < branchingFactor; i++) {
-        CFANode mergeNodeCandidate = mergeNodeCandidates[i];
+      @Nullable CFANode prevMergeNodeCandidate = null;
+      for (CFANode mergeNodeCandidate : mergeNodeCandidates) {
         if (mergeNodeCandidate == null) {
           acceptCandidates = false;
           break;
         }
-        if (i > 0 && !mergeNodeCandidates[i - 1].equals(mergeNodeCandidate)) {
+        if (prevMergeNodeCandidate != null && !mergeNodeCandidate.equals(prevMergeNodeCandidate)) {
           acceptCandidates = false;
           break;
         }
+        prevMergeNodeCandidate = mergeNodeCandidate;
       }
 
       Optional<CFANode> mergeNode = Optional.empty();
       if (acceptCandidates) {
-        mergeNode = Optional.of(mergeNodeCandidates[0]);
+        mergeNode = Optional.of(prevMergeNodeCandidate);
         branchNodeToMergeNode.put(pBranchNode, mergeNode);
       }
 
