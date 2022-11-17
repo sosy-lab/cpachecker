@@ -531,15 +531,30 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
-    if (isInterpolationEnabled() && !cfa.getAllLoopHeads().isPresent()) {
-      logger.log(Level.WARNING, "Disable interpolation as loop structure could not be determined");
-      fixedPointComputeStrategy = FixedPointComputeStrategy.NONE;
+    if (!cfa.getAllLoopHeads().isPresent()) {
+      if (isInterpolationEnabled()) {
+        logger.log(
+            Level.WARNING, "Disable interpolation as loop structure could not be determined");
+        fixedPointComputeStrategy = FixedPointComputeStrategy.NONE;
+      }
+      if (checkPropertyInductiveness) {
+        logger.log(
+            Level.WARNING, "Disable induction check as loop structure could not be determined");
+        checkPropertyInductiveness = false;
+      }
     }
-    if (isInterpolationEnabled() && cfa.getAllLoopHeads().orElseThrow().size() > 1) {
-      if (fallBack) {
-        fallBackToBMC("Interpolation is not supported for multi-loop programs yet");
-      } else {
-        throw new CPAException("Multi-loop programs are not supported yet");
+    if (cfa.getAllLoopHeads().orElseThrow().size() > 1) {
+      if (isInterpolationEnabled()) {
+        if (fallBack) {
+          fallBackToBMC("Interpolation is not supported for multi-loop programs yet");
+        } else {
+          throw new CPAException("Multi-loop programs are not supported yet");
+        }
+      }
+      if (checkPropertyInductiveness) {
+        logger.log(
+            Level.WARNING, "Disable induction check because the program contains multiple loops");
+        checkPropertyInductiveness = false;
       }
     }
 
@@ -612,8 +627,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
-      if (isInterpolationEnabled()
-          && loopBoundMgr.getCurrentMaxLoopIterations() > 1
+      if (loopBoundMgr.getCurrentMaxLoopIterations() > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
         stats.interpolationPreparation.start();
         partitionedFormulas.collectFormulasFromARG(pReachedSet);
@@ -631,7 +645,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
         // Interpolation
-        if (reachFixedPoint(partitionedFormulas, reachVector)) {
+        if (isInterpolationEnabled() && reachFixedPoint(partitionedFormulas, reachVector)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
               pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
