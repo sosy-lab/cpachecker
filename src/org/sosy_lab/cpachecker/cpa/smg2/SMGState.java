@@ -1325,49 +1325,8 @@ public class SMGState
     }
   }
 
-  private static int anonymousVarCount = 0;
-
-  private static String makeAnonymousVariableName() {
-    return "anonymous_var_" + anonymousVarCount++;
-  }
-
-  public SMGState copyAndPruneOutOfScopeVariables(Set<CSimpleDeclaration> pOutOfScopeVars) {
-    SMGState retState = this;
-    for (CSimpleDeclaration variable : pOutOfScopeVars) {
-      retState = retState.copyAndPruneVariable(MemoryLocation.forDeclaration(variable));
-    }
-
-    return retState;
-  }
-
   public SMGState copyAndReplaceMemoryModel(SymbolicProgramConfiguration newSPC) {
     return of(machineModel, newSPC, logger, options, errorInfo);
-  }
-
-  private SMGState copyAndPruneVariable(MemoryLocation pMemoryLocation) {
-    if (pMemoryLocation.isOnFunctionStack()) {
-      return copyAndPruneFunctionStackVariable(pMemoryLocation);
-    } else {
-      return copyAndPruneGlobalVariable(pMemoryLocation);
-    }
-  }
-
-  private SMGState copyAndPruneGlobalVariable(MemoryLocation pMemoryLocation) {
-    return of(
-        machineModel,
-        memoryModel.copyAndRemoveGlobalVariable(pMemoryLocation.getIdentifier()),
-        logger,
-        options,
-        errorInfo);
-  }
-
-  private SMGState copyAndPruneFunctionStackVariable(MemoryLocation pMemoryLocation) {
-    return of(
-        machineModel,
-        memoryModel.copyAndRemoveStackVariable(pMemoryLocation.getQualifiedName()),
-        logger,
-        options,
-        errorInfo);
   }
 
   // Only public for builtin functions

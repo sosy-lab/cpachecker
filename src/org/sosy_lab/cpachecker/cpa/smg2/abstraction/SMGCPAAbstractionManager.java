@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
@@ -103,7 +102,7 @@ public class SMGCPAAbstractionManager {
                         candidate.getSuspectedPfo(),
                         new HashSet<>(),
                         0))
-            .collect(Collectors.toSet());
+            .collect(ImmutableSet.toImmutableSet());
 
     Map<SMGObject, Integer> nestingMap = new HashMap<>();
     Map<SMGObject, SMGCandidate> objToCandidateMap = new HashMap<>();
@@ -183,14 +182,12 @@ public class SMGCPAAbstractionManager {
           // root node or some structure that leads to a nested list below
           // Just make a map when traversing that maps to the root (candidate)
           if (nestingMap.containsKey(pointsToOther.pointsTo())) {
-            if (nestingMap.containsKey(pointsToOther.pointsTo())) {
-              // Nesting level of the source of the pointer + 1 or the old if its larger
-              int nestingLevelOfNestedList = nestingMap.get(pointsToOther.pointsTo());
-              int nestingLevelOfSource = nestingMap.get(start.getObject());
-              nestingMap.put(
-                  pointsToOther.pointsTo(),
-                  Integer.max(nestingLevelOfNestedList, nestingLevelOfSource) + 1);
-            }
+            // Nesting level of the source of the pointer + 1 or the old if its larger
+            int nestingLevelOfNestedList = nestingMap.get(pointsToOther.pointsTo());
+            int nestingLevelOfSource = nestingMap.get(start.getObject());
+            nestingMap.put(
+                pointsToOther.pointsTo(),
+                Integer.max(nestingLevelOfNestedList, nestingLevelOfSource) + 1);
           }
         }
       }
