@@ -758,6 +758,27 @@ public class SMGState
   }
 
   /**
+   * Checks if a local variable exists for the name given for the previous function. CPAchecker
+   * forces my hand in things like strengthening as it wants to give me assume edges for previous
+   * functions.....
+   *
+   * @param pVarName Name of the local variable.
+   * @return true if the var exists, false else.
+   */
+  protected boolean isLocalVariablePresentOnPreviousStackFrame(String pVarName) {
+    PersistentStack<StackFrame> frames = memoryModel.getStackFrames();
+    if (frames == null) {
+      return false;
+    }
+    StackFrame stackframe = frames.popAndCopy().peek();
+    if (stackframe.getVariables().containsKey(pVarName)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Copy SMGState with a newly created object with the size given and put it into the current stack
    * frame. If there is no stack frame this throws an exception!
    *

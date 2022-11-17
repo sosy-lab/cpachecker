@@ -789,6 +789,22 @@ public class SymbolicProgramConfiguration {
     }
     // Only look in the current stack frame
     StackFrame currentFrame = stackVariableMapping.peek();
+    if (pName.contains("::")) {
+      int bla = pName.indexOf(':');
+      String variableFunctionName = pName.substring(0, bla);
+      if (!currentFrame
+          .getFunctionDefinition()
+          .getQualifiedName()
+          .contentEquals(variableFunctionName)) {
+        // Check 1 frame above, sometimes CPAchecker forces us to look there
+        currentFrame = stackVariableMapping.popAndCopy().peek();
+        Preconditions.checkArgument(
+            currentFrame
+                .getFunctionDefinition()
+                .getQualifiedName()
+                .contentEquals(variableFunctionName));
+      }
+    }
     int sizeOfVariables = currentFrame.getVariables().size();
     if (currentFrame.hasVariableArguments()) {
       sizeOfVariables = sizeOfVariables + currentFrame.getVariableArguments().size();

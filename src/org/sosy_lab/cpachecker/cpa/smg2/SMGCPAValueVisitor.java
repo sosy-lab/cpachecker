@@ -693,7 +693,8 @@ public class SMGCPAValueVisitor
     String variableName = varDecl.getQualifiedName();
 
     ImmutableList.Builder<SMGState> creationBuilder = ImmutableList.builder();
-    if (!state.isLocalOrGlobalVariablePresent(variableName)) {
+    if (!state.isLocalOrGlobalVariablePresent(variableName)
+        && !state.isLocalVariablePresentOnPreviousStackFrame(variableName)) {
       if (varDecl instanceof CVariableDeclaration) {
         creationBuilder.addAll(
             evaluator.handleVariableDeclarationWithoutInizializer(
