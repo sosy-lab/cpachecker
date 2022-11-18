@@ -8,7 +8,7 @@
 
 format_version: '2.0'
 
-input_files: 'huge-malloc.c'
+input_files: 'huge_malloc.c'
 
 properties:
   - property_file: ../../config/properties/unreach-call.prp
