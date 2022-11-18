@@ -2433,7 +2433,7 @@ public class SMGState
     ImmutableList.Builder<SMGState> returnBuilder = ImmutableList.builder();
     for (SMGStateAndOptionalSMGObjectAndOffset maybeRegion : dereferencePointer(addressToMemory)) {
       if (!maybeRegion.hasSMGObjectAndOffset()) {
-        // Can't write to non existing memory. However, we might not track that memory at the
+        // Can't write to non-existing memory. However, we might not track that memory at the
         // moment!
         returnBuilder.add(maybeRegion.getSMGState());
         continue;
@@ -2443,12 +2443,13 @@ public class SMGState
       SMGObject memoryRegion = maybeRegion.getSMGObject();
 
       if (!currentState.memoryModel.isObjectValid(memoryRegion)) {
-        // The dereference detected the error deref at this point, just return the state
+        // The dereference before this detected the error deref at this point, just return the state
         returnBuilder.add(currentState);
         continue;
       }
 
-      Preconditions.checkArgument(maybeRegion.getOffsetForObject().compareTo(BigInteger.ZERO) == 0);
+      // TODO: check if this is truly correct
+      writeOffsetInBits = writeOffsetInBits.add(maybeRegion.getOffsetForObject());
 
       returnBuilder.add(
           currentState.writeValueTo(
