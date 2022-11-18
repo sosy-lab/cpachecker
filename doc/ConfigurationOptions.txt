@@ -3766,7 +3766,7 @@ faultLocalization.by_traceformula.postConditionType = LAST_ASSUME_EDGES_ON_SAME_
 # By default, the precondition only contains the failing variable assignment
 # of all nondet variables. Choose INITIAL_ASSIGNMENT to add assignments like
 # '<datatype> <variable-name> = <value>' to the precondition.
-faultLocalization.by_traceformula.preconditionType = INITIAL_ASSIGNMENT
+faultLocalization.by_traceformula.preconditionType = NONDETERMINISTIC_VARIABLES_ONLY
   enum:     [NONDETERMINISTIC_VARIABLES_ONLY, INITIAL_ASSIGNMENT, ALWAYS_TRUE]
 
 # which algorithm to use
@@ -3915,21 +3915,6 @@ invariantStore.invariantGenerationStrategy = REACHED_SET
 
 # The witness from which invariants should be generated.
 invariantStore.witness = "invariantwitness.yaml"
-
-# toggle checking forward conditions
-ismc.checkForwardConditions = no default value
-
-# toggle falling back if interpolation or forward-condition is disabled
-ismc.fallBack = no default value
-
-# toggle Impact-like covering for the fixed-point check
-ismc.impactLikeCovering = no default value
-
-# toggle using interpolation to verify programs with loops
-ismc.interpolation = no default value
-
-# toggle removing unreachable stop states in ARG
-ismc.removeUnreachableStopStates = no default value
 
 # Specify the class code path to search for java class or interface
 # definitions
