@@ -721,6 +721,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       return false;
     } catch (RefinementFailedException e) {
       if (fallBack) {
+        logger.logDebugException(e);
         fallBackToBMC(e.getMessage());
         return false;
       } else {

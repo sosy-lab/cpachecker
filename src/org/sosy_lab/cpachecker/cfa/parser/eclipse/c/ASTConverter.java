@@ -1625,8 +1625,10 @@ class ASTConverter {
 
       default:
         CType type;
-        if (e.getOperator() == IASTUnaryExpression.op_alignOf) {
-          type = CNumericTypes.INT;
+        if (e.getOperator() == IASTUnaryExpression.op_alignOf
+            || e.getOperator() == IASTUnaryExpression.op_sizeof) {
+          // C11 §6.5.3.4 (5) type is always size_t (CDT has wrong type for _Alignof)
+          type = CNumericTypes.SIZE_T;
         } else if (e.getOperator() == IASTUnaryExpression.op_minus
             && operand.getExpressionType() instanceof CSimpleType) {
           // CDT parser might get the type wrong in this case, e.g.:
@@ -1708,8 +1710,11 @@ class ASTConverter {
                 + typeId,
             e);
       }
+      // C11 §6.5.3.4 (5) type is always size_t (CDT has wrong type for _Alignof)
+      expressionType = CNumericTypes.SIZE_T;
+    } else {
+      expressionType = typeConverter.convert(e.getExpressionType());
     }
-    expressionType = typeConverter.convert(e.getExpressionType());
     return new CTypeIdExpression(getLocation(e), expressionType, typeIdOperator, typeId);
   }
 

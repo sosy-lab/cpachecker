@@ -178,7 +178,7 @@ public interface PointerTargetSetBuilder {
 
       // Add base to prevent adding spurious targets when merging.
       // If size is not known, we can use a dummy size because it is only used for the fake base.
-      int size = type.hasKnownConstantSize() ? typeHandler.getSizeof(type) : 0;
+      long size = type.hasKnownConstantSize() ? typeHandler.getSizeof(type) : 0;
       bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(size));
 
       makeNextBaseAddressInequality(name, type, sizeExp, constraints);
@@ -290,7 +290,7 @@ public interface PointerTargetSetBuilder {
       } else if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
         final int length = CTypeUtils.getArrayLength(arrayType, options);
-        int offset = 0;
+        long offset = 0;
         for (int i = 0; i < length; ++i) {
           addTargets(base, arrayType.getType(), offset, containerOffset + properOffset, field);
           offset += typeHandler.getSizeof(arrayType.getType());
