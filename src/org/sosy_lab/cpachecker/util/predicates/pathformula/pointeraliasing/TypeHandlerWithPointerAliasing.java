@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multiset;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.Map;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -40,12 +40,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
   private final IdentityHashMap<CType, String> pointerNameCache = new IdentityHashMap<>();
 
-  // Use Multiset<String> instead of Map<String, Integer> because it is more
-  // efficient. The integer value is stored as the number of instances of any
-  // element in the Multiset. So instead of calling map.get(key) we just use
-  // Multiset.count(key). This is better because the Multiset internally uses
-  // modifiable integers instead of the immutable Integer class.
-  private final Multiset<CCompositeType> sizes = HashMultiset.create();
+  private final Map<CCompositeType, Long> sizes = new HashMap<>();
 
   public TypeHandlerWithPointerAliasing(
       LogManager pLogger,
@@ -69,31 +64,25 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    * @return The size of a given type.
    */
   @Override
-  public int getSizeof(CType cType) {
+  public long getSizeof(CType cType) {
     // Callers from inside this package should have simplified the type,
     // but callers from ctoformula package might have not.
     cType = simplifyType(cType);
     if (cType instanceof CCompositeType) {
-      if (sizes.contains(cType)) {
-        return sizes.count(cType);
-      } else {
-        int size = getSizeofUncached(cType);
-        sizes.add((CCompositeType) cType, size);
-        return size;
-      }
+      return sizes.computeIfAbsent((CCompositeType) cType, this::getSizeofUncached);
     } else {
       return getSizeofUncached(cType);
     }
   }
 
-  private int getSizeofUncached(CType cType) {
+  private long getSizeofUncached(CType cType) {
     if (cType instanceof CArrayType && !cType.hasKnownConstantSize()) {
       CArrayType t = (CArrayType) cType;
       int length = t.getLengthAsInt().orElse(options.defaultArrayLength());
-      final int sizeOfType = getSizeofUncached(t.getType());
+      final long sizeOfType = getSizeofUncached(t.getType());
       return length * sizeOfType;
     } else {
-      return model.getSizeof(cType).intValueExact();
+      return model.getSizeof(cType).longValueExact();
     }
   }
 

@@ -47,8 +47,8 @@ public class CtoFormulaTypeHandler {
    * @param pType the type to calculate the size of.
    * @return the size in bytes of the given type.
    */
-  public int getSizeof(CType pType) {
-    int size = machineModel.getSizeof(pType).intValueExact();
+  public long getSizeof(CType pType) {
+    long size = machineModel.getSizeof(pType).longValueExact();
     if (size == 0) {
       CType type = pType.getCanonicalType();
       if (type instanceof CArrayType) {
@@ -72,7 +72,7 @@ public class CtoFormulaTypeHandler {
    * @param pType the type to calculate the size of.
    * @return the size in bits of the given type.
    */
-  public int getBitSizeof(CType pType) {
+  public long getBitSizeof(CType pType) {
     if (pType instanceof CBitFieldType) {
       return ((CBitFieldType) pType).getBitFieldSize();
     }

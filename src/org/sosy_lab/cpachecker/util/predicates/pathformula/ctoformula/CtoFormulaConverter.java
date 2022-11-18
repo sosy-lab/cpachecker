@@ -236,7 +236,7 @@ public class CtoFormulaConverter {
    * @param pType the type to calculate the size of.
    * @return the size in bits of the given type.
    */
-  protected int getBitSizeof(CType pType) {
+  protected long getBitSizeof(CType pType) {
     return typeHandler.getBitSizeof(pType);
   }
 
@@ -247,7 +247,7 @@ public class CtoFormulaConverter {
    * @param pType the type to calculate the size of.
    * @return the size in bytes of the given type.
    */
-  protected int getSizeof(CType pType) {
+  protected long getSizeof(CType pType) {
     return typeHandler.getSizeof(pType);
   }
 
@@ -346,7 +346,7 @@ public class CtoFormulaConverter {
       }
     }
 
-    int bitSize = typeHandler.getBitSizeof(type);
+    int bitSize = Ints.checkedCast(typeHandler.getBitSizeof(type));
 
     return FormulaType.getBitvectorTypeWithSize(bitSize);
   }
@@ -1908,9 +1908,9 @@ public class CtoFormulaConverter {
 
     // f is now the structure, access it:
 
-    int offset = Ints.checkedCast(typeHandler.getBitOffset(structType, fExp.getFieldName()));
+    long offset = typeHandler.getBitOffset(structType, fExp.getFieldName());
     CType type = fExp.getExpressionType();
-    int fieldSize = getBitSizeof(type);
+    long fieldSize = getBitSizeof(type);
 
     // Crude hack for unions with zero-sized array fields produced by LDV
     // (ldv-consumption/32_7a_cilled_true_linux-3.8-rc1-32_7a-fs--ceph--ceph.ko-ldv_main7_sequence_infinite_withcheck_stateful.cil.out.c)
@@ -1921,12 +1921,11 @@ public class CtoFormulaConverter {
     // we assume that only CSimpleTypes can be unsigned
     boolean signed = !(type instanceof CSimpleType) || machineModel.isSigned((CSimpleType) type);
 
-    int lsb = offset;
-    int msb = offset + fieldSize - 1;
+    long lsb = offset;
+    long msb = offset + fieldSize - 1;
     assert lsb >= 0;
     assert msb >= lsb;
-    Triple<Integer, Integer, Boolean> msb_Lsb = Triple.of(msb, lsb, signed);
-    return msb_Lsb;
+    return Triple.of(Ints.checkedCast(msb), Ints.checkedCast(lsb), signed);
   }
 
   /** We call this method for unsupported Expressions and just make a new Variable. */
