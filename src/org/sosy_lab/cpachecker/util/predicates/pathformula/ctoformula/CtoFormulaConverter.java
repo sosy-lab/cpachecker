@@ -16,6 +16,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.primitives.Ints;
 import com.google.errorprone.annotations.FormatMethod;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -71,7 +72,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -1908,18 +1908,7 @@ public class CtoFormulaConverter {
 
     // f is now the structure, access it:
 
-    int offset;
-    switch (structType.getKind()) {
-      case UNION:
-        offset = 0;
-        break;
-      case STRUCT:
-        offset = getBitFieldOffset(structType, fExp.getFieldName());
-        break;
-      default:
-        throw new UnrecognizedCodeException("Unexpected field access", fExp);
-    }
-
+    int offset = Ints.checkedCast(typeHandler.getBitOffset(structType, fExp.getFieldName()));
     CType type = fExp.getExpressionType();
     int fieldSize = getBitSizeof(type);
 
@@ -1938,24 +1927,6 @@ public class CtoFormulaConverter {
     assert msb >= lsb;
     Triple<Integer, Integer, Boolean> msb_Lsb = Triple.of(msb, lsb, signed);
     return msb_Lsb;
-  }
-
-  /**
-   * Returns the offset of the given field in the given struct in bits.
-   *
-   * <p>This function does not handle UNIONs or ENUMs!
-   */
-  private int getBitFieldOffset(CCompositeType structType, String fieldName) {
-    int off = 0;
-    for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
-      if (member.getName().equals(fieldName)) {
-        return off;
-      }
-
-      off += getBitSizeof(member.getType());
-    }
-
-    throw new AssertionError("field " + fieldName + " was not found in " + structType);
   }
 
   /** We call this method for unsupported Expressions and just make a new Variable. */

@@ -8,22 +8,14 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
-
 import com.google.common.collect.HashMultiset;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multiset;
-import java.math.BigInteger;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
-import java.util.Map;
-import java.util.OptionalLong;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -54,7 +46,6 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
   // Multiset.count(key). This is better because the Multiset internally uses
   // modifiable integers instead of the immutable Integer class.
   private final Multiset<CCompositeType> sizes = HashMultiset.create();
-  private final Map<CCompositeType, ImmutableMap<String, Long>> offsets = new HashMap<>();
 
   public TypeHandlerWithPointerAliasing(
       LogManager pLogger,
@@ -190,58 +181,5 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
       pointerNameCache.put(type, result);
       return result;
     }
-  }
-
-  /**
-   * Get the offset of a field, if it is byte-aligned. Offsets of bit fields that do not start at a
-   * byte boundary are returned as <code>OptionaLong.empty()</code>.
-   */
-  OptionalLong getOffset(CCompositeType compositeType, final String memberName) {
-    final long bitOffset = getBitOffset(compositeType, memberName);
-    if (bitOffset % machineModel.getSizeofCharInBits() == 0) {
-      return OptionalLong.of(bitOffset / machineModel.getSizeofCharInBits());
-    } else {
-      return OptionalLong.empty();
-    }
-  }
-
-  /**
-   * @see #getOffset(CCompositeType, String)
-   */
-  OptionalLong getOffset(
-      CCompositeType compositeType, final CCompositeTypeMemberDeclaration member) {
-    return getOffset(compositeType, member.getName());
-  }
-
-  /**
-   * @see #getBitOffset(CCompositeType, String)
-   */
-  long getBitOffset(CCompositeType compositeType, final CCompositeTypeMemberDeclaration member) {
-    return getBitOffset(compositeType, member.getName());
-  }
-
-  /**
-   * The method is used to speed up member offset computation for declared composite types.
-   *
-   * @param compositeType The composite type.
-   * @param memberName The name of the member of the composite type.
-   * @return The offset of the member in the composite type in bits.
-   */
-  long getBitOffset(CCompositeType compositeType, final String memberName) {
-    checkIsSimplified(compositeType);
-    assert compositeType.getKind() != ComplexTypeKind.ENUM
-        : "Enums are not composite: " + compositeType;
-    ImmutableMap<String, Long> multiset = offsets.get(compositeType);
-    if (multiset == null) {
-      Map<CCompositeTypeMemberDeclaration, BigInteger> calculatedOffsets =
-          machineModel.getAllFieldOffsetsInBits(compositeType);
-      ImmutableMap.Builder<String, Long> memberOffsets =
-          ImmutableMap.builderWithExpectedSize(calculatedOffsets.size());
-      calculatedOffsets.forEach(
-          (key, value) -> memberOffsets.put(key.getName(), value.longValueExact()));
-      multiset = memberOffsets.buildOrThrow();
-      offsets.put(compositeType, multiset);
-    }
-    return multiset.get(memberName);
   }
 }
