@@ -12,8 +12,8 @@ public final class CNumericTypes {
 
   private CNumericTypes() {}
 
-  // type constants                                                        const volatile   basic
-  // type    long   short  signed unsign compl  imag   long long
+  // type constants
+  //      const volatile  basic type    long   short  signed unsign compl  imag   long long
   public static final CSimpleType BOOL =
       new CSimpleType(
           false, false, CBasicType.BOOL, false, false, false, false, false, false, false);
@@ -59,4 +59,7 @@ public final class CNumericTypes {
   public static final CSimpleType LONG_DOUBLE =
       new CSimpleType(
           false, false, CBasicType.DOUBLE, true, false, false, false, false, false, false);
+
+  public static final CType SIZE_T =
+      new CSimpleType(false, false, CBasicType.INT, true, false, false, true, false, false, false);
 }
