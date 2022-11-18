@@ -454,14 +454,15 @@ public final class LoopStructure implements Serializable {
     ImmutableListMultimap.Builder<String, Loop> loops = ImmutableListMultimap.builder();
     for (String functionName : cfa.getAllFunctionNames()) {
       NavigableSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
-      Collection<Loop> functionLoops = findLoops(nodes, cfa.getLanguage(), null, true);
+      Collection<Loop> functionLoops =
+          findLoops(nodes, cfa.getLanguage(), new SingleNodeLoopFreeSectionFinder(), true);
       // Assert that we find the same loops with and without using loop-free sections
       // (with `SingleNodeLoopFreeSectionFinder`, there are no sections that contain multiple nodes
       // and all nodes are handled separately).
       // We need to use sets because their `equals` methods are well-defined and we may find loops
       // in a different order.
       assert new HashSet<>(
-                  findLoops(nodes, cfa.getLanguage(), new SingleNodeLoopFreeSectionFinder(), true))
+                  findLoops(nodes, cfa.getLanguage(), new SingleNodeLoopFreeSectionFinder(), false))
               .equals(new HashSet<>(functionLoops))
           : "Using `LoopFreeSectionFinder` changes the found loops!";
       loops.putAll(functionName, functionLoops);
