@@ -138,7 +138,12 @@ public interface PointerTargetSetBuilder {
       bases = pointerTargetSet.getBases();
       fields = pointerTargetSet.getFields();
       deferredAllocations = pointerTargetSet.getDeferredAllocations();
-      targets = pointerTargetSet.getTargets();
+      if (pOptions.useArraysForHeap()) {
+        assert pointerTargetSet.getTargets() == null || pointerTargetSet.getTargets().isEmpty();
+        targets = null;
+      } else {
+        targets = pointerTargetSet.getTargets();
+      }
       highestAllocatedAddresses = pointerTargetSet.getHighestAllocatedAddresses();
       allocationCount = pointerTargetSet.getAllocationCount();
       typeHandler = pTypeHandler;
@@ -157,6 +162,10 @@ public interface PointerTargetSetBuilder {
      * @param type The type of the allocated base or the next added pointer target
      */
     private void addTargets(final String name, CType type) {
+      if (options.useArraysForHeap()) {
+        return;
+      }
+
       targets = ptsMgr.addToTargets(name, null, type, null, 0, 0, targets, fields);
     }
 
@@ -284,6 +293,10 @@ public interface PointerTargetSetBuilder {
         final long containerOffset,
         final CompositeField field) {
       checkIsSimplified(cType);
+      if (options.useArraysForHeap()) {
+        return;
+      }
+
       if (cType instanceof CElaboratedType) {
         // unresolved struct type won't have any targets, do nothing
 
@@ -341,6 +354,10 @@ public interface PointerTargetSetBuilder {
       if (tracksField(field)) {
         return true; // The field has already been added
       }
+
+      // FIXME: This will always incorrectly return false with options.useArraysForHeap(),
+      // which breaks addEssentialFields and causes problems later on.
+      // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1039#note_1177874407
 
       final PersistentSortedMap<String, PersistentList<PointerTarget>> oldTargets = targets;
       for (final Map.Entry<String, CType> baseEntry : bases.entrySet()) {
@@ -690,6 +707,7 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public PointerTargetSet build() {
+      assert (targets == null) == options.useArraysForHeap();
       PointerTargetSet result =
           new PointerTargetSet(
               bases,

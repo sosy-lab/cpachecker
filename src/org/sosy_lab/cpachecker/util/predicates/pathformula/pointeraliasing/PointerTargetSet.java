@@ -126,7 +126,7 @@ public final class PointerTargetSet implements Serializable {
     if (isEmpty()) {
       // Inside isEmpty(), we do not check the following the targets field.
       // so we assert here that isEmpty() implies that it is also empty.
-      assert targets.isEmpty();
+      assert targets == null || targets.isEmpty();
     }
   }
 
@@ -200,6 +200,8 @@ public final class PointerTargetSet implements Serializable {
   // for all values of i from this map).
   // This means that when a location is not present in this map,
   // its value is not tracked and might get lost.
+  // This map is only relevant for the UF-based encoding (not for the array-based encoding)
+  // and will be empty or null in the latter case.
   private final PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
 
   private final PersistentList<Formula> highestAllocatedAddresses;
@@ -238,7 +240,10 @@ public final class PointerTargetSet implements Serializable {
       bases = pts.bases;
       fields = pts.fields;
       deferredAllocations = new ArrayList<>(pts.deferredAllocations);
-      targets = new HashMap<>(Maps.transformValues(pts.targets, ArrayList::new));
+      targets =
+          pts.targets == null
+              ? new HashMap<>()
+              : new HashMap<>(Maps.transformValues(pts.targets, ArrayList::new));
       FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       highestAllocatedAddresses =
           new ArrayList<>(

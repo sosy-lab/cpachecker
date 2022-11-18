@@ -307,9 +307,18 @@ class PointerTargetSetManager {
 
     // Handle targets
 
-    PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
-        merge(
-            pts1.getTargets(), pts2.getTargets(), (key, list1, list2) -> mergeLists(list1, list2));
+    PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets;
+    if (options.useArraysForHeap()) {
+      assert pts1.getTargets() == null || pts1.getTargets().isEmpty();
+      assert pts2.getTargets() == null || pts2.getTargets().isEmpty();
+      mergedTargets = null;
+    } else {
+      mergedTargets =
+          merge(
+              pts1.getTargets(),
+              pts2.getTargets(),
+              (key, list1, list2) -> mergeLists(list1, list2));
+    }
     shutdownNotifier.shutdownIfNecessary();
 
     // Targets is always the cross product of bases and fields.
@@ -661,6 +670,10 @@ class PointerTargetSetManager {
       PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
       final PersistentSortedMap<CompositeField, Boolean> fields) {
     checkIsSimplified(cType);
+    if (options.useArraysForHeap()) {
+      return targets;
+    }
+
     /* Remove assertion: it fails on a correct code (gcc compiles it)
      * struct A;
      * ...
@@ -741,6 +754,10 @@ class PointerTargetSetManager {
       PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
       final PersistentSortedMap<String, CType> bases,
       final PersistentSortedMap<CompositeField, Boolean> fields) {
+    if (options.useArraysForHeap()) {
+      return targets;
+    }
+
     for (final Map.Entry<String, CType> entry : bases.entrySet()) {
       String name = entry.getKey();
       CType type = checkIsSimplified(entry.getValue());
