@@ -483,6 +483,7 @@ public final class LoopStructure implements Serializable {
     // The latter can be a huge improvement for the main function, which may have thousands of nodes
     // in such an initial chain (global declarations).
     List<CFANode> initialChain = new ArrayList<>();
+    @Nullable CFANode nodeAfterInitialChain = null;
     {
       CFANode functionExitNode = pNodes.first(); // The function exit node is always the first
       if (functionExitNode instanceof FunctionExitNode) {
@@ -497,7 +498,7 @@ public final class LoopStructure implements Serializable {
         // of loop head nodes that does not contain what most users would consider
         // the most important loop head node of a function.
         if (!initialChain.isEmpty()) {
-          initialChain.remove(initialChain.size() - 1);
+          nodeAfterInitialChain = initialChain.remove(initialChain.size() - 1);
         }
 
         if (!hasBackWardsEdges(startNode)) {
@@ -532,12 +533,6 @@ public final class LoopStructure implements Serializable {
     final Edge[][] edges = new Edge[size][size];
 
     List<Loop> loops = new ArrayList<>();
-
-    CFANode nodeAfterInitialChain =
-        nodes.stream()
-            .filter(node -> node.getReversePostorderId() == nodesArray.length - 1)
-            .findFirst()
-            .orElseThrow();
     // For performance reasons, we use loop-free sections instead of individual nodes for loop
     // detection.
     LoopFreeSectionFinder loopFreeSectionFinder =
