@@ -699,11 +699,11 @@ public final class LoopStructure implements Serializable {
               continue;
             }
             if (l1.isOuterLoopOf(l2)) {
-              // `l2` is an inner loop, add it's nodes to `l1`
+              // `l2` is an inner loop, add its nodes to `l1`
               l1.addNodes(l2);
               changed = true;
             } else if (l2.isOuterLoopOf(l1)) {
-              // `l1` is an inner loop, add it's nodes to `l2`
+              // `l1` is an inner loop, add its nodes to `l2`
               l2.addNodes(l1);
               changed = true;
             }
