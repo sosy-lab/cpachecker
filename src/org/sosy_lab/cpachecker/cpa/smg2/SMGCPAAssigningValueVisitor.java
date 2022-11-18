@@ -86,14 +86,14 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         if (isEqualityAssumption(binaryOperator)) {
           currentState =
               handleEqualityAssumption(
-                  lVarInBinaryExp, leftValue, rVarInBinaryExp, rightValue, currentState);
+                  lVarInBinaryExp, leftValue, rVarInBinaryExp, rightValue, currentState, edge);
         }
 
         // !(a == b) case
         if (isNonEqualityAssumption(binaryOperator)) {
           currentState =
               handleInEqualityAssumption(
-                  lVarInBinaryExp, leftValue, rVarInBinaryExp, rightValue, currentState);
+                  lVarInBinaryExp, leftValue, rVarInBinaryExp, rightValue, currentState, edge);
         }
 
         // TODO: AND, OR ?
@@ -113,7 +113,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       Value leftValue,
       CExpression rVarInBinaryExp,
       Value rightValue,
-      SMGState currentState)
+      SMGState currentState,
+      CFAEdge edge)
       throws CPATransferException {
     SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
     SMGState initialState = super.getInitialVisitorState();
@@ -147,7 +148,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                   leftHandSideAssignment.getOffsetForObject(),
                   size,
                   rightValue,
-                  type);
+                  type,
+                  edge);
 
         } else if (isEligibleForAssignment(rightValue)
             && leftValue.isExplicitlyKnown()
@@ -170,7 +172,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                     rightHandSideAssignment.getOffsetForObject(),
                     size,
                     leftValue,
-                    type);
+                    type,
+                    edge);
           }
         }
       }
@@ -186,7 +189,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       Value leftValue,
       CExpression rVarInBinaryExp,
       Value rightValue,
-      SMGState currentState)
+      SMGState currentState,
+      CFAEdge edge)
       throws CPATransferException {
 
     SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
@@ -215,7 +219,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                   leftHandSideAssignment.getOffsetForObject(),
                   size,
                   new NumericValue(1L),
-                  type);
+                  type,
+                  edge);
         }
       }
     }
@@ -244,7 +249,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                   rightHandSideAssignment.getOffsetForObject(),
                   size,
                   new NumericValue(1L),
-                  type);
+                  type,
+                  edge);
         }
       }
     }

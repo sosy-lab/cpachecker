@@ -24,6 +24,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -64,6 +67,9 @@ public class SMGCPAAbstractionTest {
 
   // Keep this above ~10 for the tests. Reduce if this class is slow.
   private static final int TEST_LIST_LENGTH = 50;
+
+  private CFAEdge dummyCDAEdge =
+      new DummyCFAEdge(CFANode.newDummyCFANode(), CFANode.newDummyCFANode());
 
   // The visitor should always use the currentState!
   @Before
@@ -1027,13 +1033,13 @@ public class SMGCPAAbstractionTest {
     currentState = currentState.copyAndAddObjectToHeap(currentAbstraction);
     currentState =
         currentState.writeValueTo(
-            currentAbstraction, hfo, pointerSizeInBits, new NumericValue(1), null);
+            currentAbstraction, hfo, pointerSizeInBits, new NumericValue(1), null, dummyCDAEdge);
     currentState =
         currentState.writeValueTo(
-            currentAbstraction, nfo, pointerSizeInBits, new NumericValue(0), null);
+            currentAbstraction, nfo, pointerSizeInBits, new NumericValue(0), null, dummyCDAEdge);
     currentState =
         currentState.writeValueTo(
-            currentAbstraction, pfo, pointerSizeInBits, new NumericValue(0), null);
+            currentAbstraction, pfo, pointerSizeInBits, new NumericValue(0), null, dummyCDAEdge);
     // Pointer to the abstracted list
     Value pointer = SymbolicValueFactory.getInstance().newIdentifier(null);
     currentState = currentState.createAndAddPointer(pointer, currentAbstraction, BigInteger.ZERO);
@@ -1170,10 +1176,10 @@ public class SMGCPAAbstractionTest {
     currentState = currentState.copyAndAddObjectToHeap(currentAbstraction);
     currentState =
         currentState.writeValueTo(
-            currentAbstraction, hfo, pointerSizeInBits, new NumericValue(1), null);
+            currentAbstraction, hfo, pointerSizeInBits, new NumericValue(1), null, dummyCDAEdge);
     currentState =
         currentState.writeValueTo(
-            currentAbstraction, nfo, pointerSizeInBits, new NumericValue(0), null);
+            currentAbstraction, nfo, pointerSizeInBits, new NumericValue(0), null, dummyCDAEdge);
     // Pointer to the abstracted list
     Value pointer = SymbolicValueFactory.getInstance().newIdentifier(null);
     currentState = currentState.createAndAddPointer(pointer, currentAbstraction, BigInteger.ZERO);
@@ -1457,13 +1463,13 @@ public class SMGCPAAbstractionTest {
     currentState = currentState.copyAndAddObjectToHeap(currentAbstraction);
     currentState =
         currentState.writeValueTo(
-            currentAbstraction, hfo, pointerSizeInBits, new NumericValue(1), null);
+            currentAbstraction, hfo, pointerSizeInBits, new NumericValue(1), null, dummyCDAEdge);
     currentState =
         currentState.writeValueTo(
-            currentAbstraction, nfo, pointerSizeInBits, new NumericValue(0), null);
+            currentAbstraction, nfo, pointerSizeInBits, new NumericValue(0), null, dummyCDAEdge);
     currentState =
         currentState.writeValueTo(
-            currentAbstraction, pfo, pointerSizeInBits, new NumericValue(0), null);
+            currentAbstraction, pfo, pointerSizeInBits, new NumericValue(0), null, dummyCDAEdge);
     // Pointer to the abstracted list
     Value pointer = SymbolicValueFactory.getInstance().newIdentifier(null);
     currentState = currentState.createAndAddPointer(pointer, currentAbstraction, BigInteger.ZERO);
@@ -1538,10 +1544,10 @@ public class SMGCPAAbstractionTest {
     currentState = currentState.copyAndAddObjectToHeap(currentAbstraction);
     currentState =
         currentState.writeValueTo(
-            currentAbstraction, hfo, pointerSizeInBits, new NumericValue(1), null);
+            currentAbstraction, hfo, pointerSizeInBits, new NumericValue(1), null, dummyCDAEdge);
     currentState =
         currentState.writeValueTo(
-            currentAbstraction, nfo, pointerSizeInBits, new NumericValue(0), null);
+            currentAbstraction, nfo, pointerSizeInBits, new NumericValue(0), null, dummyCDAEdge);
     // Pointer to the abstracted list
     Value pointer = SymbolicValueFactory.getInstance().newIdentifier(null);
     currentState = currentState.createAndAddPointer(pointer, currentAbstraction, BigInteger.ZERO);
@@ -1626,14 +1632,16 @@ public class SMGCPAAbstractionTest {
                 BigInteger.valueOf(j).multiply(BigInteger.valueOf(32)),
                 pointerSizeInBits,
                 new NumericValue(j),
-                null);
+                null,
+                dummyCDAEdge);
       }
 
       // Pointer to the next list segment (from the prev to this, except for the last)
       if (i == listLength - 1) {
         Value nextPointer = new NumericValue(0);
         currentState =
-            currentState.writeValueTo(listSegment, nfo, pointerSizeInBits, nextPointer, null);
+            currentState.writeValueTo(
+                listSegment, nfo, pointerSizeInBits, nextPointer, null, dummyCDAEdge);
       }
       if (prevObject != null) {
         ValueAndSMGState pointerAndState =
@@ -1641,7 +1649,7 @@ public class SMGCPAAbstractionTest {
         currentState = pointerAndState.getState();
         currentState =
             currentState.writeValueTo(
-                prevObject, nfo, pointerSizeInBits, pointerAndState.getValue(), null);
+                prevObject, nfo, pointerSizeInBits, pointerAndState.getValue(), null, dummyCDAEdge);
       }
 
       if (dll) {
@@ -1656,7 +1664,8 @@ public class SMGCPAAbstractionTest {
           currentState = pointerAndState.getState();
         }
         currentState =
-            currentState.writeValueTo(listSegment, pfo, pointerSizeInBits, prevPointer, null);
+            currentState.writeValueTo(
+                listSegment, pfo, pointerSizeInBits, prevPointer, null, dummyCDAEdge);
       }
       // Pointer to the list segment
       ValueAndSMGState pointerAndState =

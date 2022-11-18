@@ -241,7 +241,10 @@ public class SMGTransferRelation
             valueAndStateToWrite
                 .getState()
                 .writeToReturn(
-                    sizeInBits, valueAndStateToWrite.getValue(), returnExp.getExpressionType()));
+                    sizeInBits,
+                    valueAndStateToWrite.getValue(),
+                    returnExp.getExpressionType(),
+                    returnEdge));
       }
     } else {
       successorsBuilder.add(state);
@@ -552,7 +555,7 @@ public class SMGTransferRelation
           newMemory.getSize().subtract(offsetSource));
     } else {
       return evaluator.writeValueToNewVariableBasedOnTypes(
-          paramValue, cParamType, valueType, varName, currentState);
+          paramValue, cParamType, valueType, varName, currentState, callEdge);
     }
   }
 
@@ -895,7 +898,8 @@ public class SMGTransferRelation
                   offsetToWriteTo,
                   sizeOfTypeLeft,
                   addressToAssign,
-                  leftHandSideType));
+                  leftHandSideType,
+                  cfaEdge));
           continue;
         }
         continue;
@@ -913,7 +917,8 @@ public class SMGTransferRelation
                 addressToWriteTo,
                 offsetToWriteTo,
                 rightHandSideType,
-                valueAndState.getState()));
+                valueAndState.getState(),
+                cfaEdge));
       }
     }
 
@@ -929,7 +934,8 @@ public class SMGTransferRelation
       SMGObject addressToWriteTo,
       BigInteger offsetToWriteTo,
       CType rightHandSideType,
-      SMGState pCurrentState)
+      SMGState pCurrentState,
+      CFAEdge edge)
       throws SMG2Exception {
     SMGState currentState = pCurrentState;
 
@@ -959,7 +965,8 @@ public class SMGTransferRelation
               offsetToWriteTo,
               sizeInBits,
               UnknownValue.getInstance(),
-              leftHandSideType);
+              leftHandSideType,
+              edge);
         }
         BigInteger baseOffsetFromPointer = pointerOffset.asNumericValue().bigInteger();
 
@@ -1028,14 +1035,14 @@ public class SMGTransferRelation
             sizeInBits.compareTo(evaluator.getBitSizeof(currentState, leftHandSideType)) == 0);
 
         return currentState.writeValueTo(
-            addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite, leftHandSideType);
+            addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite, leftHandSideType, edge);
       }
 
     } else {
       // All other cases should return such that the value can be written directly to the left
       // hand side!
       return currentState.writeValueTo(
-          addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite, leftHandSideType);
+          addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite, leftHandSideType, edge);
     }
   }
 }

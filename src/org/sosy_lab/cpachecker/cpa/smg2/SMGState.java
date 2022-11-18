@@ -1682,16 +1682,45 @@ public class SMGState
    * @return A new SMGState with the error info.
    */
   public SMGState withOutOfRangeWrite(
-      SMGObject objectWrittenTo, BigInteger writeOffset, BigInteger writeSize, Value pValue) {
+      SMGObject objectWrittenTo,
+      BigInteger writeOffset,
+      BigInteger writeSize,
+      Value pValue,
+      CFAEdge edge) {
+
+    if (getMemoryModel().isHeapObject(objectWrittenTo)) {
+      // Invalid deref
+      return withInvalidDeref(objectWrittenTo, edge);
+    }
+
+    int lineInOrigin = edge.getFileLocation().getStartingLineInOrigin();
     String errorMSG =
         String.format(
-            "Try writing value %s with size %d at offset %d bit to object sized %d bit.",
-            pValue.toString(), writeSize, writeOffset, objectWrittenTo.getSize());
+            "Try writing value %s with size %d at offset %d bit to object sized %d bit in line %d.",
+            pValue.toString(), writeSize, writeOffset, objectWrittenTo.getSize(), lineInOrigin);
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
             .withProperty(Property.INVALID_WRITE)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(objectWrittenTo));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithNewErrorInfo(newErrorInfo);
+  }
+
+  private SMGState withInvalidDeref(SMGObject objectDerefed, CFAEdge edge) {
+    Preconditions.checkArgument(
+        getMemoryModel().isHeapObject(objectDerefed)
+            || !getMemoryModel().isObjectValid(objectDerefed));
+
+    int lineInOrigin = edge.getFileLocation().getStartingLineInOrigin();
+    String errorMSG =
+        String.format("valid-deref: invalid pointer dereference in line %d", lineInOrigin);
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_HEAP)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(objectDerefed));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
     return copyWithNewErrorInfo(newErrorInfo);
@@ -2304,7 +2333,8 @@ public class SMGState
    * @return a new {@link SMGState} with either an error info in case of an error or the value
    *     written to the return memory.
    */
-  public SMGState writeToReturn(BigInteger sizeInBits, Value valueToWrite, CType returnValueType) {
+  public SMGState writeToReturn(
+      BigInteger sizeInBits, Value valueToWrite, CType returnValueType, CFAEdge edge) {
     SMGObject returnObject = getMemoryModel().getReturnObjectForCurrentStackFrame().orElseThrow();
     if (valueToWrite.isUnknown()) {
       valueToWrite = getNewSymbolicValueForType(returnValueType);
@@ -2313,7 +2343,7 @@ public class SMGState
     if (returnObject.getOffset().compareTo(BigInteger.ZERO) > 0
         || returnObject.getSize().compareTo(sizeInBits) < 0) {
       // Out of range write
-      return withOutOfRangeWrite(returnObject, BigInteger.ZERO, sizeInBits, valueToWrite);
+      return withOutOfRangeWrite(returnObject, BigInteger.ZERO, sizeInBits, valueToWrite, edge);
     }
     return writeValue(returnObject, BigInteger.ZERO, sizeInBits, valueToWrite, returnValueType);
   }
@@ -2348,13 +2378,15 @@ public class SMGState
       BigInteger writeOffsetInBits,
       BigInteger sizeInBits,
       Value valueToWrite,
-      CType valueType)
+      CType valueType,
+      CFAEdge edge)
       throws SMG2Exception {
     if (object.isZero()) {
       // Write to 0
       return this.withInvalidWriteToZeroObject(object);
     } else if (!memoryModel.isObjectValid(object)) {
       // Write to an object that is invalidated (already freed)
+      // If object part if heap -> invalid deref
       return this.withInvalidWrite(object);
     }
     if (valueToWrite.isUnknown()) {
@@ -2364,9 +2396,8 @@ public class SMGState
     if (object.getOffset().compareTo(writeOffsetInBits) > 0
         || object.getSize().compareTo(sizeInBits.add(writeOffsetInBits)) < 0) {
       // Out of range write
-      // throw new SMG2Exception(
-      //     withOutOfRangeWrite(object, writeOffsetInBits, sizeInBits, valueToWrite));
-      return withOutOfRangeWrite(object, writeOffsetInBits, sizeInBits, valueToWrite);
+      // If object part if heap -> invalid deref
+      return withOutOfRangeWrite(object, writeOffsetInBits, sizeInBits, valueToWrite, edge);
     }
 
     return writeValue(object, writeOffsetInBits, sizeInBits, valueToWrite, valueType);
@@ -2396,7 +2427,8 @@ public class SMGState
       BigInteger writeOffsetInBits,
       BigInteger sizeInBits,
       Value valueToWrite,
-      CType valueType)
+      CType valueType,
+      CFAEdge edge)
       throws SMG2Exception {
     ImmutableList.Builder<SMGState> returnBuilder = ImmutableList.builder();
     for (SMGStateAndOptionalSMGObjectAndOffset maybeRegion : dereferencePointer(addressToMemory)) {
@@ -2420,7 +2452,7 @@ public class SMGState
 
       returnBuilder.add(
           currentState.writeValueTo(
-              memoryRegion, writeOffsetInBits, sizeInBits, valueToWrite, valueType));
+              memoryRegion, writeOffsetInBits, sizeInBits, valueToWrite, valueType, edge));
     }
     return returnBuilder.build();
   }
@@ -2524,7 +2556,8 @@ public class SMGState
       BigInteger writeOffsetInBits,
       BigInteger writeSizeInBits,
       Value valueToWrite,
-      CType valueType)
+      CType valueType,
+      CFAEdge edge)
       throws SMG2Exception {
     Optional<SMGObject> maybeVariableMemory =
         getMemoryModel().getObjectForVisibleVariable(variableName);
@@ -2539,7 +2572,8 @@ public class SMGState
         || variableMemory.getSize().compareTo(writeSizeInBits.add(writeOffsetInBits)) < 0) {
       // Out of range write
       throw new SMG2Exception(
-          withOutOfRangeWrite(variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite));
+          withOutOfRangeWrite(
+              variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite, edge));
     }
 
     return writeValue(variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite, valueType);

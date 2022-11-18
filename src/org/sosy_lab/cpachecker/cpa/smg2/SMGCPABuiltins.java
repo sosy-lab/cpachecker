@@ -321,7 +321,8 @@ public class SMGCPABuiltins {
             BigInteger.ZERO,
             sizeInBits,
             addressAndState.getValue(),
-            destIdArg.getExpressionType());
+            destIdArg.getExpressionType(),
+            pCfaEdge);
     return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
   }
 
@@ -354,7 +355,7 @@ public class SMGCPABuiltins {
    */
   @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateVaStart(
-      CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState)
+      CFunctionCallExpression cFCExpression, CFAEdge cfaEdge, SMGState pState)
       throws CPATransferException {
 
     SMGState currentState = pState;
@@ -392,7 +393,7 @@ public class SMGCPABuiltins {
     Value address = pointerAndState.getValue();
 
     List<SMGStateAndOptionalSMGObjectAndOffset> targets =
-        firstArg.accept(new SMGCPAAddressVisitor(evaluator, currentState, pCfaEdge, logger));
+        firstArg.accept(new SMGCPAAddressVisitor(evaluator, currentState, cfaEdge, logger));
     Preconditions.checkArgument(targets.size() == 1);
     for (SMGStateAndOptionalSMGObjectAndOffset target : targets) {
       // We assume that there is only 1 valid returned target
@@ -405,7 +406,7 @@ public class SMGCPABuiltins {
 
       currentState =
           currentState.writeValueTo(
-              targetObj, offset, sizeInBitsPointer, address, firstArg.getExpressionType());
+              targetObj, offset, sizeInBitsPointer, address, firstArg.getExpressionType(), cfaEdge);
     }
 
     BigInteger offset = BigInteger.ZERO;
@@ -417,7 +418,8 @@ public class SMGCPABuiltins {
               offset,
               sizeInBitsVarArg,
               varArg,
-              SMGCPAExpressionEvaluator.getCanonicalType(secondArg));
+              SMGCPAExpressionEvaluator.getCanonicalType(secondArg),
+              cfaEdge);
       // Unlikely that someone throws an abstracted list into a var args
       Preconditions.checkArgument(writtenStates.size() == 1);
       currentState = writtenStates.get(0);
@@ -885,7 +887,8 @@ public class SMGCPABuiltins {
                   bufferOffsetInBits,
                   sizeOfCharInBits.multiply(BigInteger.valueOf(count)),
                   charValue,
-                  CNumericTypes.CHAR)
+                  CNumericTypes.CHAR,
+                  cfaEdge)
               .get(0);
     } else {
       // Write each char on its own
@@ -897,7 +900,8 @@ public class SMGCPABuiltins {
                     bufferOffsetInBits.add(BigInteger.valueOf(c).multiply(sizeOfCharInBits)),
                     sizeOfCharInBits,
                     charValue,
-                    CNumericTypes.CHAR)
+                    CNumericTypes.CHAR,
+                    cfaEdge)
                 .get(0);
       }
     }

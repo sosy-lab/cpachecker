@@ -812,7 +812,8 @@ public class SMGCPAExpressionEvaluator {
               offsetInBits,
               sizeInBits,
               valueToWrite,
-              leftHandSideValue.getExpressionType()));
+              leftHandSideValue.getExpressionType(),
+              edge));
     }
 
     return successorsBuilder.build();
@@ -1257,7 +1258,8 @@ public class SMGCPAExpressionEvaluator {
       CType leftHandSideType,
       CType rightHandSideType,
       String qualifiedVarName,
-      SMGState pState)
+      SMGState pState,
+      CFAEdge edge)
       throws SMG2Exception {
     SMGState currentState = pState;
     // Parameter type is left hand side type
@@ -1326,7 +1328,8 @@ public class SMGCPAExpressionEvaluator {
               ZeroOffsetInBits,
               paramSizeInBits,
               UnknownValue.getInstance(),
-              parameterType);
+              parameterType,
+              edge);
         }
 
         ValueAndSMGState properPointerAndState =
@@ -1339,7 +1342,8 @@ public class SMGCPAExpressionEvaluator {
                 ZeroOffsetInBits,
                 paramSizeInBits,
                 properPointerAndState.getValue(),
-                parameterType);
+                parameterType,
+                edge);
       } else {
         throw new SMG2Exception(
             "Missing type handling when writing a pointer to a " + parameterType + ".");
@@ -1353,7 +1357,7 @@ public class SMGCPAExpressionEvaluator {
     } else {
       // Just write the value
       return currentState.writeToStackOrGlobalVariable(
-          qualifiedVarName, ZeroOffsetInBits, paramSizeInBits, valueToWrite, parameterType);
+          qualifiedVarName, ZeroOffsetInBits, paramSizeInBits, valueToWrite, parameterType, edge);
     }
   }
 
@@ -1861,7 +1865,8 @@ public class SMGCPAExpressionEvaluator {
                 pOffset,
                 getBitSizeof(addressState, pCurrentExpressionType),
                 addressAndState.getValue(),
-                pCurrentExpressionType));
+                pCurrentExpressionType,
+                pEdge));
       }
       return stateBuilder.build();
     }
@@ -1952,7 +1957,12 @@ public class SMGCPAExpressionEvaluator {
         currentState = addressAndState.getState();
         resultStatesBuilder.add(
             currentState.writeToStackOrGlobalVariable(
-                variableName, pOffsetInBits, sizeOfTypeLeft, addressToAssign, typeOfWrite));
+                variableName,
+                pOffsetInBits,
+                sizeOfTypeLeft,
+                addressToAssign,
+                typeOfWrite,
+                cfaEdge));
       }
 
     } else {
@@ -1972,7 +1982,7 @@ public class SMGCPAExpressionEvaluator {
 
         resultStatesBuilder.add(
             currentState.writeToStackOrGlobalVariable(
-                variableName, pOffsetInBits, sizeOfTypeLeft, valueToAssign, typeOfWrite));
+                variableName, pOffsetInBits, sizeOfTypeLeft, valueToAssign, typeOfWrite, cfaEdge));
       }
     }
     return resultStatesBuilder.build();
