@@ -140,15 +140,21 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
         if (isAssignable(leftHandSideAssignments)) {
 
-          CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
-          BigInteger size = evaluator.getBitSizeof(currentState, type);
+          CType lType = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
+          BigInteger size = evaluator.getBitSizeof(currentState, lType);
+          if (!SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp).equals(lType)) {
+            // Cast first
+            ValueAndSMGState newRightValueAndState = castCValue(rightValue, lType, currentState);
+            rightValue = newRightValueAndState.getValue();
+            currentState = newRightValueAndState.getState();
+          }
           currentState =
               currentState.writeValueTo(
                   leftHandSideAssignment.getSMGObject(),
                   leftHandSideAssignment.getOffsetForObject(),
                   size,
                   rightValue,
-                  type,
+                  lType,
                   edge);
 
         } else if (isEligibleForAssignment(rightValue)
@@ -164,15 +170,23 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
           if (isAssignable(rightHandSideAssignments)) {
 
-            CType type = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
-            BigInteger size = evaluator.getBitSizeof(currentState, type);
+            CType rType = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
+            BigInteger size = evaluator.getBitSizeof(currentState, rType);
+
+            if (!SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp).equals(rType)) {
+              // Cast first
+              ValueAndSMGState newRightValueAndState = castCValue(leftValue, rType, currentState);
+              leftValue = newRightValueAndState.getValue();
+              currentState = newRightValueAndState.getState();
+            }
+
             currentState =
                 currentState.writeValueTo(
                     rightHandSideAssignment.getSMGObject(),
                     rightHandSideAssignment.getOffsetForObject(),
                     size,
                     leftValue,
-                    type,
+                    rType,
                     edge);
           }
         }
