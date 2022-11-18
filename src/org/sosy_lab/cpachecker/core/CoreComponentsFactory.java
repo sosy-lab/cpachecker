@@ -731,7 +731,9 @@ public class CoreComponentsFactory {
             new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
       }
       if (useImportFaults) {
-        algorithm = new FaultLocalizationByImport(config, algorithm, cfa, logger);
+        algorithm =
+            new FaultLocalizationByImport(
+                config, algorithm, cfa, logger, shutdownNotifier, specification);
       }
     }
 

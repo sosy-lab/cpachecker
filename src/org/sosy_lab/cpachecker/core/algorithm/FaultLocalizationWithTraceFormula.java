@@ -142,7 +142,7 @@ public class FaultLocalizationWithTraceFormula
           "By default, the precondition only contains the failing variable assignment of all nondet"
               + " variables. Choose INITIAL_ASSIGNMENT to add assignments like '<datatype>"
               + " <variable-name> = <value>' to the precondition.")
-  private PreConditionType preconditionType = PreConditionType.INITIAL_ASSIGNMENT;
+  private PreConditionType preconditionType = PreConditionType.NONDETERMINISTIC_VARIABLES_ONLY;
 
   @Option(description = "which post-condition type to use")
   private PostConditionType postConditionType = PostConditionType.LAST_ASSUME_EDGES_ON_SAME_LINE;

@@ -19,11 +19,12 @@ public class SuspiciousCalculationExplanation implements FaultExplanation {
   public String explanationFor(Fault subset) {
     String offByOne =
         FluentIterable.from(subset)
-                    .filter(
-                        fc ->
-                            fc.correspondingEdge().getDescription().contains("+ 1")
-                                || fc.correspondingEdge().getDescription().contains("- 1"))
-                    .transform(fc -> fc.correspondingEdge().getDescription()).join(Joiner.on(", "));
+            .filter(
+                fc ->
+                    fc.correspondingEdge().getDescription().contains("+ 1")
+                        || fc.correspondingEdge().getDescription().contains("- 1"))
+            .transform(fc -> fc.correspondingEdge().getDescription())
+            .join(Joiner.on(", "));
     if (offByOne.isBlank()) {
       return "";
     }
