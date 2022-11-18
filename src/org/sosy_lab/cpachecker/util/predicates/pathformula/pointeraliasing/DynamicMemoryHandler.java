@@ -458,7 +458,7 @@ class DynamicMemoryHandler {
    */
   private static @Nullable Integer tryEvaluateExpression(CExpression e) {
     if (e instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression) e).getValue().intValue();
+      return ((CIntegerLiteralExpression) e).getValue().intValueExact();
     }
     return null;
   }
@@ -523,7 +523,7 @@ class DynamicMemoryHandler {
   private CType refineType(final CType type, final CIntegerLiteralExpression sizeLiteral) {
     assert sizeLiteral.getValue() != null;
 
-    final int size = sizeLiteral.getValue().intValue();
+    final int size = sizeLiteral.getValue().intValueExact();
     final int typeSize = conv.getSizeof(type);
     if (type instanceof CArrayType) {
       // An array type is used in the cast or assignment, so its size should likely match the

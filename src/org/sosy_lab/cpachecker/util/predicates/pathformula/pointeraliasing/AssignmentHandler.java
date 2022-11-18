@@ -17,6 +17,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.primitives.Ints;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -989,7 +990,7 @@ class AssignmentHandler {
     // for each innerMember of member we need to add a (destructive!) constraint like:
     // union.member.innerMember := treatAsMemberTypeAndExtractInnerMemberValue(rhsExpression);
     for (CCompositeTypeMemberDeclaration innerMember : memberType.getMembers()) {
-      int fieldOffset = (int) typeHandler.getBitOffset(memberType, innerMember);
+      int fieldOffset = Ints.checkedCast(typeHandler.getBitOffset(memberType, innerMember));
       if (fieldOffset >= rhsSize) {
         // nothing to fill anymore
         break;

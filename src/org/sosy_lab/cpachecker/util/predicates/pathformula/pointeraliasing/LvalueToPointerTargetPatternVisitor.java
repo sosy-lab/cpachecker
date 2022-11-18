@@ -293,7 +293,7 @@ class LvalueToPointerTargetPatternVisitor
 
   private static @Nullable Integer tryEvaluateExpression(CExpression e) {
     if (e instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression) e).getValue().intValue();
+      return ((CIntegerLiteralExpression) e).getValue().intValueExact();
     }
     return null;
   }
