@@ -461,7 +461,7 @@ public final class LoopStructure implements Serializable {
       // We need to use sets because their `equals` methods are well-defined and we may find loops
       // in a different order.
       assert new HashSet<>(
-                  findLoops(nodes, cfa.getLanguage(), new SingleNodeLoopFreeSectionFinder(), false))
+                  findLoops(nodes, cfa.getLanguage(), new SingleNodeLoopFreeSectionFinder(), true))
               .equals(new HashSet<>(functionLoops))
           : "Using `LoopFreeSectionFinder` changes the found loops!";
       loops.putAll(functionName, functionLoops);
