@@ -35,7 +35,7 @@ SPDX-License-Identifier: Apache-2.0
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/Assertion.spc</propertyfile>
-    <exclude>../programs/simple/pointer_aliasing/deferred_allocation_*</exclude>
+    <exclude>../programs/simple/pointer_aliasing/deferred_allocations_*</exclude>
   </tasks>
 
   <tasks>

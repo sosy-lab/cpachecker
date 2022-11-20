@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.Comparators;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -213,6 +214,7 @@ class ASTConverter {
             .put("externally_visible", Optional.empty())
             .put("flatten", Optional.empty())
             .put("format", Optional.empty())
+            .put("format_arg", Optional.empty())
             .put("gnu_inline", Optional.empty())
             .put("hot", Optional.empty())
             .put("ifunc", Optional.empty())
@@ -650,6 +652,27 @@ class ASTConverter {
       return value == 0;
     }
     return false;
+  }
+
+  /**
+   * Evaluate a constant expression into an integer literal. This method is for cases where the
+   * frontend really needs to know the resulting int value, so we simplify the expression and force
+   * it to be evaluated even if otherwise we would not. So call this only if necessary.
+   */
+  private BigInteger evaluateIntegerConstantExpression(IASTExpression exp) {
+    CAstNode n = convertExpressionWithSideEffectsNotSimplified(exp);
+    if (!(n instanceof CExpression)) {
+      throw parseContext.parseError("Constant expression with side effect", exp);
+    }
+
+    CExpression e = simplifyExpressionRecursively((CExpression) n);
+    if (e instanceof CIntegerLiteralExpression) {
+      return ((CIntegerLiteralExpression) e).getValue();
+    } else if (e instanceof CCharLiteralExpression) {
+      return BigInteger.valueOf(((CCharLiteralExpression) e).getCharacter());
+    } else {
+      throw parseContext.parseError("Integer constant expression could not be evaluated", n);
+    }
   }
 
   private CAstNode convert(IGNUASTCompoundStatementExpression e) {
@@ -1602,8 +1625,10 @@ class ASTConverter {
 
       default:
         CType type;
-        if (e.getOperator() == IASTUnaryExpression.op_alignOf) {
-          type = CNumericTypes.INT;
+        if (e.getOperator() == IASTUnaryExpression.op_alignOf
+            || e.getOperator() == IASTUnaryExpression.op_sizeof) {
+          // C11 §6.5.3.4 (5) type is always size_t (CDT has wrong type for _Alignof)
+          type = CNumericTypes.SIZE_T;
         } else if (e.getOperator() == IASTUnaryExpression.op_minus
             && operand.getExpressionType() instanceof CSimpleType) {
           // CDT parser might get the type wrong in this case, e.g.:
@@ -1675,9 +1700,7 @@ class ASTConverter {
     CType expressionType;
     CType typeId = convert(e.getTypeId());
 
-    if (typeIdOperator == TypeIdOperator.ALIGNOF || typeIdOperator == TypeIdOperator.SIZEOF) {
-      // sizeof and _Alignof always return int, CDT sometimes provides wrong type
-      expressionType = CNumericTypes.INT;
+    if ((typeIdOperator == TypeIdOperator.ALIGNOF || typeIdOperator == TypeIdOperator.SIZEOF)) {
       if (typeId.isIncomplete()) {
         // Cannot compute alignment
         throw parseContext.parseError(
@@ -1687,6 +1710,8 @@ class ASTConverter {
                 + typeId,
             e);
       }
+      // C11 §6.5.3.4 (5) type is always size_t (CDT has wrong type for _Alignof)
+      expressionType = CNumericTypes.SIZE_T;
     } else {
       expressionType = typeConverter.convert(e.getExpressionType());
     }
@@ -2244,10 +2269,10 @@ class ASTConverter {
           IASTInitializerClause initClause =
               ((IASTEqualsInitializer) initializer).getInitializerClause();
           if (initClause instanceof IASTInitializerList) {
-            int length = 0;
-            int position = 0;
+            @Nullable BigInteger length = BigInteger.ZERO;
+            BigInteger position = BigInteger.ZERO;
             for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
-              if (length == -1) {
+              if (length == null) {
                 break;
               }
 
@@ -2255,50 +2280,39 @@ class ASTConverter {
                 for (ICASTDesignator designator :
                     ((ICASTDesignatedInitializer) x).getDesignators()) {
                   if (designator instanceof CASTArrayRangeDesignator) {
-                    CAstNode ceil =
-                        convertExpressionWithSideEffects(
+                    BigInteger c =
+                        evaluateIntegerConstantExpression(
                             ((CASTArrayRangeDesignator) designator).getRangeCeiling());
-                    if (ceil instanceof CIntegerLiteralExpression) {
-                      int c = ((CIntegerLiteralExpression) ceil).getValue().intValue();
-                      length = Math.max(length, c + 1);
-                      position = c + 1;
-
-                      // we need distinct numbers for the range bounds, if they
-                      // are not there we cannot calculate the length of the array
-                      // correctly
-                    } else {
-                      length = -1;
-                      break;
-                    }
+                    position = c.add(BigInteger.ONE);
+                    length = Comparators.max(length, position);
 
                   } else if (designator instanceof CASTArrayDesignator) {
-                    CAstNode subscript =
-                        convertExpressionWithSideEffects(
+                    BigInteger s =
+                        evaluateIntegerConstantExpression(
                             ((CASTArrayDesignator) designator).getSubscriptExpression());
-                    int s = ((CIntegerLiteralExpression) subscript).getValue().intValue();
-                    length = Math.max(length, s + 1);
-                    position = s + 1;
+                    position = s.add(BigInteger.ONE);
+                    length = Comparators.max(length, position);
 
                     // we only know the length of the CASTArrayDesignator and the
                     // CASTArrayRangeDesignator, all other designators
                     // have to be ignore, if one occurs, we cannot calculate the length of the array
                     // correctly
                   } else {
-                    length = -1;
+                    length = null;
                     break;
                   }
                 }
               } else {
-                position++;
-                length = Math.max(position, length);
+                position = position.add(BigInteger.ONE);
+                length = Comparators.max(position, length);
               }
             }
 
             // only adjust the length of the array if we definitely know it
-            if (length != -1) {
+            if (length != null) {
               CExpression lengthExp =
                   new CIntegerLiteralExpression(
-                      getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
+                      getLocation(initializer), CNumericTypes.INT, length);
 
               type =
                   new CArrayType(
@@ -2694,50 +2708,9 @@ class ASTConverter {
     if (e.getValue() == null && lastValue != null) {
       value = lastValue + 1;
     } else {
-      CExpression v = convertExpressionWithoutSideEffects(e.getValue());
-
-      // for enums we always expect constants and simplify them,
-      // even if 'cfa.simplifyConstExpressions is disabled.
-      // Lets assume that there is never a signed integer overflow or another property violation.
-      v = simplifyExpressionRecursively(v);
-
-      boolean negate = false;
-      boolean complement = false;
-
-      if (v instanceof CUnaryExpression
-          && ((CUnaryExpression) v).getOperator() == UnaryOperator.MINUS) {
-        CUnaryExpression u = (CUnaryExpression) v;
-        negate = true;
-        v = u.getOperand();
-      } else if (v instanceof CUnaryExpression
-          && ((CUnaryExpression) v).getOperator() == UnaryOperator.TILDE) {
-        CUnaryExpression u = (CUnaryExpression) v;
-        complement = true;
-        v = u.getOperand();
-      }
-      assert !(v instanceof CUnaryExpression) : v;
-
-      if (v instanceof CIntegerLiteralExpression) {
-        value = ((CIntegerLiteralExpression) v).asLong();
-      } else if (v instanceof CCharLiteralExpression) {
-        value = (long) ((CCharLiteralExpression) v).getCharacter();
-      } else {
-        // ignore unsupported enum value and set it to NULL.
-        // TODO bug? constant enums are ignored, if 'cfa.simplifyConstExpressions' is disabled.
-        logger.logf(
-            Level.WARNING,
-            "enum constant '%s = %s' was not simplified and will be ignored in the following.",
-            e.getName(),
-            v.toQualifiedASTString());
-      }
-
-      if (value != null) {
-        if (negate) {
-          value = -value;
-        } else if (complement) {
-          value = ~value;
-        }
-      }
+      // TODO Because we fully evaluate the expression here and never add e.getValue() itself
+      // to the AST, any overflows in it will not be detectable by the analysis.
+      value = evaluateIntegerConstantExpression(e.getValue()).longValueExact();
     }
 
     String name = convert(e.getName());

@@ -57,6 +57,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loop-acceleration/diamond_1-2.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-invgen/heapsort.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/cohendiv-ll_valuebound2.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/divbin2_valuebound100.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/geo3-ll_valuebound2.yml</exclude> <!-- flapping timeout -->
   </tasks>
   <tasks>

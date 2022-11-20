@@ -160,13 +160,13 @@ class DynamicMemoryHandler {
           builder.buildBinaryExpression(param0, param1, BinaryOperator.MULTIPLY);
 
       // Try to evaluate the multiplication if possible.
-      Integer value0 = tryEvaluateExpression(param0);
-      Integer value1 = tryEvaluateExpression(param1);
+      Long value0 = tryEvaluateExpression(param0);
+      Long value1 = tryEvaluateExpression(param1);
       if (value0 != null && value1 != null) {
         long result =
             AbstractExpressionValueVisitor.calculateBinaryOperation(
-                    new NumericValue(value0.longValue()),
-                    new NumericValue(value1.longValue()),
+                    new NumericValue(value0),
+                    new NumericValue(value1),
                     multiplication,
                     conv.machineModel,
                     conv.logger)
@@ -243,7 +243,7 @@ class DynamicMemoryHandler {
     }
 
     final CExpression parameter = parameters.get(0);
-    Integer size = null;
+    Long size = null;
     final CType newType;
     if (isSizeof(parameter)) {
       newType = getSizeofType(parameter);
@@ -264,7 +264,7 @@ class DynamicMemoryHandler {
       if (!conv.options.revealAllocationTypeFromLHS() && !conv.options.deferUntypedAllocations()) {
         final CExpression length;
         if (size == null) {
-          size = conv.options.defaultAllocationSize();
+          size = (long) conv.options.defaultAllocationSize();
           length =
               new CIntegerLiteralExpression(
                   parameter.getFileLocation(),
@@ -456,9 +456,9 @@ class DynamicMemoryHandler {
    * @param e The C expression.
    * @return The value, if the expression is an integer literal, or {@code null}
    */
-  private static @Nullable Integer tryEvaluateExpression(CExpression e) {
+  private static @Nullable Long tryEvaluateExpression(CExpression e) {
     if (e instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression) e).getValue().intValue();
+      return ((CIntegerLiteralExpression) e).getValue().longValueExact();
     }
     return null;
   }
@@ -523,8 +523,8 @@ class DynamicMemoryHandler {
   private CType refineType(final CType type, final CIntegerLiteralExpression sizeLiteral) {
     assert sizeLiteral.getValue() != null;
 
-    final int size = sizeLiteral.getValue().intValue();
-    final int typeSize = conv.getSizeof(type);
+    final long size = sizeLiteral.getValue().longValueExact();
+    final long typeSize = conv.getSizeof(type);
     if (type instanceof CArrayType) {
       // An array type is used in the cast or assignment, so its size should likely match the
       // allocated size.
@@ -543,8 +543,8 @@ class DynamicMemoryHandler {
       // A pointer type is used in the cast or assignment.
       // If the allocated size is the multiple of the usage type size, we can recover the
       // actual array type (with length) of the allocation. Otherwise, just return the usage type.
-      final int n = size / typeSize;
-      final int remainder = size % typeSize;
+      final long n = size / typeSize;
+      final long remainder = size % typeSize;
       if (n == 0 || remainder != 0) {
         conv.logger.logf(
             Level.WARNING,

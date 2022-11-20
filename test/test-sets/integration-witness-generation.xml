@@ -55,17 +55,26 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/pthread-ext/*</exclude>
     <exclude>../programs/benchmarks/pthread-nondet/*</exclude>
     <exclude>../programs/benchmarks/ldv*/*</exclude>
+    <exclude>../programs/benchmarks/weaver/chl-file-item-subst.wvr.yml</exclude> <!-- flapping timeout/OOM -->
+    <exclude>../programs/benchmarks/weaver/chl-file-item-trans.wvr.yml</exclude> <!-- flapping timeout/OOM -->
+    <exclude>../programs/benchmarks/weaver/clever.wvr.yml</exclude> <!-- flapping timeout/OOM -->
+    <exclude>../programs/benchmarks/weaver/parallel-barrier-loop.wvr.yml</exclude> <!-- flapping timeout/OOM -->
+    <exclude>../programs/benchmarks/weaver/popl20-figure1.wvr.yml</exclude> <!-- flapping timeout/OOM -->
   </tasks>
   <tasks name="BitVectorsOverflows">
-    <includesfile>../programs/benchmarks/NoOverflows-BitVectors.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
-    <exclude>../programs/benchmarks/termination-crafted-lit/*</exclude> <!-- only timeout -->
+    <include>../programs/benchmarks/signedintegeroverflow-regression/*.yml</include>
+    <include>../programs/benchmarks/termination-crafted/*.yml</include>
+    <include>../programs/benchmarks/termination-numeric/*.yml</include>
   </tasks>
     <tasks name="HeapReach">
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/forester-heap/*</exclude> <!-- only timeout -->
     <exclude>../programs/benchmarks/list-ext2-properties/simple_and_skiplist_2lvl-2.yml</exclude> <!-- flapping timeout/OOM -->
+    <exclude>../programs/benchmarks/list-simple/sll2n_remove_all_reverse.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/heap-data/shared_mem1.yml</exclude> <!-- flapping timeout / Exception -->
+    <exclude>../programs/benchmarks/heap-manipulation/bubble_sort_linux-2.yml</exclude> <!-- flapping timeout / Exception -->
   </tasks>
   <tasks name="HeapMemSafety">
     <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
@@ -76,8 +85,6 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/list-ext-properties/test-0214_1.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/list-ext-properties/test-0217_1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/list-ext-properties/test-0504_1.yml</exclude> <!-- flapping timeout/OOM -->
-    <exclude>../programs/benchmarks/list-ext2-properties/simple_and_skiplist_2lvl-2.yml</exclude> <!-- flapping timeout/memout -->
-    <exclude>../programs/benchmarks/list-ext3-properties/sll_of_sll_nondet_append-1.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/memsafety*/*</exclude> <!-- only timeout -->
     <exclude>../programs/benchmarks/ldv-memsafety/ArraysOfVariableLength.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-memsafety/ArraysOfVariableLength2.yml</exclude> <!-- flapping timeout -->
@@ -90,6 +97,11 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/floats-cdfpl/square*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/float-benchs/filter*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/float-benchs/exp_loop.yml</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/float-benchs/sqrt_Householder_interval.yml</exclude> <!-- flapping timeout / exception -->
+    <exclude>../programs/benchmarks/float-benchs/sqrt_Newton_pseudoconstant.yml</exclude> <!-- flapping timeout / exception -->
+    <exclude>../programs/benchmarks/float-benchs/sqrt_biNewton_pseudoconstant.yml</exclude> <!-- flapping timeout / exception -->
+    <exclude>../programs/benchmarks/floats-esbmc-regression/digits_bad_while.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/floats-esbmc-regression/digits_while.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/float-newlib/float_req_bl_*b.yml</exclude> <!-- *a.yml is sufficient -->
     <exclude>../programs/benchmarks/float-newlib/float_req_bl_*c.yml</exclude> <!-- *a.yml is sufficient -->
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_0720.yml</exclude> <!-- flapping timeout -->
@@ -97,6 +109,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_1121b.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_1130a.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_1131a.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/loop-floats-scientific-comp/loop3.yml</exclude> <!-- flapping timeout -->
   </tasks>
   <tasks name="ControlFlow">
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
@@ -111,6 +124,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/recursive/recHanoi03-2.yml</exclude> <!-- flapping timeout/memout -->
     <exclude>../programs/benchmarks/recursive-simple/fibo_2calls_25-1.yml</exclude> <!-- flapping timeout/OOM -->
     <exclude>../programs/benchmarks/recursive-simple/fibo_25-1.yml</exclude> <!-- flapping timeout/OOM -->
+    <exclude>../programs/benchmarks/recursive-simple/id_o1000.yml</exclude> <!-- flapping timeout/OOM -->
     <option name="-setprop">cpa.callstack.skipVoidRecursion=false</option>
   </tasks>
 </benchmark>
