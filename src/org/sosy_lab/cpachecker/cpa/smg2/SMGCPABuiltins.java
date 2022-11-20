@@ -169,7 +169,7 @@ public class SMGCPABuiltins {
    * @return the result of the function call and the state for it. May be an error state!
    * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
    */
-  public List<ValueAndSMGState> handleFunctioncall(
+  public List<ValueAndSMGState> handleFunctionCall(
       CFunctionCallExpression pFunctionCall,
       String functionName,
       SMGState pSmgState,
@@ -464,7 +464,7 @@ public class SMGCPABuiltins {
    * @param calledFunctionName The name of the function to be called.
    * @param pState current {@link SMGState}.
    * @return a {@link List} of {@link ValueAndSMGState}s with either valid {@link Value}s and {@link
-   *     SMGState}s, or unknown Values and maybe error states. Depending on the the safety of the
+   *     SMGState}s, or unknown Values and maybe error states. Depending on the safety of the
    *     function/config.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
@@ -478,7 +478,6 @@ public class SMGCPABuiltins {
     switch (options.getHandleUnknownFunctions()) {
       case STRICT:
         if (!isSafeFunction(calledFunctionName)) {
-          // TODO: make this a error state
           throw new CPATransferException(
               String.format(
                   "Unknown function '%s' may be unsafe. See the"
@@ -488,12 +487,11 @@ public class SMGCPABuiltins {
         // fallthrough for safe functions
         // $FALL-THROUGH$
       case ASSUME_SAFE:
+      case ASSUME_EXTERNAL_ALLOCATED:
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
         return Collections3.transformedImmutableListCopy(
             checkedStates, state -> ValueAndSMGState.ofUnknownValue(state));
-      case ASSUME_EXTERNAL_ALLOCATED:
-        return Collections.singletonList(ValueAndSMGState.ofUnknownValue(pState));
       default:
         throw new UnsupportedOperationException(
             "Unhandled function in cpa.smg2.SMGCPABuiltins.handleUnknownFunction(): "

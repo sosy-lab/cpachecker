@@ -730,7 +730,8 @@ public class SMGTransferRelation
       }
     } else {
       // Check arguments for unknown functions without body
-      return builtins.checkAllParametersForValidity(cFCExpression, pState, pCfaEdge);
+      uselessValuesAndStates =
+          builtins.handleUnknownFunction(pCfaEdge, cFCExpression, calledFunctionName, pState);
     }
     return Collections3.transformedImmutableListCopy(
         uselessValuesAndStates, valAndState -> valAndState.getState());

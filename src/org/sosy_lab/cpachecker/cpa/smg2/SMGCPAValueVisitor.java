@@ -1985,12 +1985,10 @@ public class SMGCPAValueVisitor
         }
       }
 
-      // Now check and use builtins of C (malloc etc.)
+      // This checks and uses builtins and also unknown functions based on the options
       SMGCPABuiltins smgBuiltins = evaluator.getBuiltinFunctionHandler();
-      if (smgBuiltins.isABuiltIn(calledFunctionName)) {
-        return smgBuiltins.handleFunctioncall(
-            pIastFunctionCallExpression, calledFunctionName, state, cfaEdge);
-      }
+      return smgBuiltins.handleFunctionCall(
+          pIastFunctionCallExpression, calledFunctionName, state, cfaEdge);
     }
     return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
   }
