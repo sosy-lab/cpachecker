@@ -137,7 +137,7 @@ public class SMGCPAAbstractionTest {
    * identity.
    */
   @Test
-  public void nestedListSLLTest() throws InvalidConfigurationException, SMG2Exception {
+  public void nestedListSLLTest() throws SMG2Exception {
     // Smaller lengths are fine here, else this runs a while!
     // Increasing this is a good test for the overall performance of the SMGs!
     int listLength = 15;

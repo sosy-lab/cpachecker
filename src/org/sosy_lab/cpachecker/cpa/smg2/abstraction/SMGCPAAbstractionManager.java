@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.smg2.abstraction;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -602,34 +601,6 @@ public class SMGCPAAbstractionManager {
     return Optional.empty();
   }
 
-  private boolean hasNoPreviousListSegment(
-      ImmutableMap<SMGObject, BigInteger> pointerFromHeapToPotentialRoot,
-      SMGObject potentialRoot,
-      BigInteger suspectedNfo) {
-
-    for (Entry<SMGObject, BigInteger> otherPointerAndOffset :
-        pointerFromHeapToPotentialRoot.entrySet()) {
-      // otherPointerAndOffset lead to potentialRoot.
-      // As long as their offsets don't match with the nfo, they are not a previous list segment of
-      // this potentialRoot
-      SMGObject maybePreviousObj = otherPointerAndOffset.getKey();
-      BigInteger maybePreviousNfoOrPfo = otherPointerAndOffset.getValue();
-      // If the obj is not valid or not in the heap (global/local variable) it is not a previous
-      // list segment
-      if (!state.getMemoryModel().isObjectValid(maybePreviousObj)
-          || !state.getMemoryModel().getHeapObjects().contains(maybePreviousObj)) {
-        continue;
-      } else if (maybePreviousObj.getSize().compareTo(potentialRoot.getSize()) == 0) {
-        if (maybePreviousNfoOrPfo.compareTo(suspectedNfo) == 0) {
-          return false;
-        }
-        // maybePreviousObj -> potentialRoot might be a back pointer, this is fine however as we
-        // will eliminate those by traversing along the NFOs
-      }
-    }
-    return true;
-  }
-
   private boolean followupHasNextPointerToValid(
       SMGObject potentialFollowup,
       BigInteger nfoOfPrev,
@@ -656,7 +627,7 @@ public class SMGCPAAbstractionManager {
    * yet been visited.
    */
   private ImmutableSet<SMGHasValueEdge> getPointersToSameSizeObjects(
-      SMGObject root, SMG pInputSmg, Set<SMGObject> alreadyVisted) {
+      SMGObject root, SMG pInputSmg, Set<SMGObject> alreadyVisited) {
     BigInteger rootSize = root.getSize();
     ImmutableSet.Builder<SMGHasValueEdge> res = ImmutableSet.builder();
     for (SMGHasValueEdge hve : pInputSmg.getEdges(root)) {
@@ -665,7 +636,7 @@ public class SMGCPAAbstractionManager {
       if (pInputSmg.isPointer(value)) {
         SMGPointsToEdge pointsToEdge = pInputSmg.getPTEdge(value).orElseThrow();
         SMGObject reachedObject = pointsToEdge.pointsTo();
-        if (alreadyVisted.contains(reachedObject)) {
+        if (alreadyVisited.contains(reachedObject)) {
           continue;
         }
         // If the followup is invalid or size does not match, next
@@ -777,7 +748,7 @@ public class SMGCPAAbstractionManager {
           candidate.object,
           candidate.suspectedNfo,
           candidate.suspectedPfo,
-          candidate.suspectedElements,
+          pSuspectedElements,
           lengthOfList);
     }
 
