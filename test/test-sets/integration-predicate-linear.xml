@@ -52,8 +52,10 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/loop-lit/gj2007.c.i.p+lhb-reducer.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/loops-crafted-1/*</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/nla-digbench/egcd2-ll.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/*bound1*</exclude> <!-- bound 2,5,20,50 is sufficient, lets exclude 1,10,100 -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/hard*</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/ps2-ll_unwindbound20.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
@@ -82,5 +84,6 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-isdn-mISDN-mISDN_core.ko.cil.out.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_linux-43_1a-drivers--net--wireless--orinoco--orinoco_usb.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping unknown/timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--dvb--frontends--cxd2820r.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping unknown/timeout -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--common--tuners--mxl5007t.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
 </benchmark>
