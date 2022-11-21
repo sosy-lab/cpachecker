@@ -26,6 +26,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -1120,6 +1121,7 @@ public final class LoopStructure implements Serializable {
       delegate = pDelegate;
     }
 
+    @CanIgnoreReturnValue
     private CachingLoopFreeSectionFinder updateCache(CFANode pNode) {
       CFANode entryNode = delegate.entryNode(pNode);
       CFANode exitNode = delegate.exitNode(pNode);
