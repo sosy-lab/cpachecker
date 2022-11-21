@@ -727,10 +727,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         }
       case FunctionCallEdge:
         // @Deprecated, for old benchmark tasks
-        return cfaEdge.getSuccessor().getFunctionName().startsWith(VERIFIER_ATOMIC_BEGIN);
+        return cfaEdge.getSuccessor().getFunctionName().startsWith(VERIFIER_ATOMIC);
       case FunctionReturnEdge:
         // @Deprecated, for old benchmark tasks
-        return cfaEdge.getPredecessor().getFunctionName().startsWith(VERIFIER_ATOMIC_END);
+        return cfaEdge.getPredecessor().getFunctionName().startsWith(VERIFIER_ATOMIC);
       default:
         return false;
     }
