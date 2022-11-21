@@ -122,7 +122,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String VERIFIER_ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
   private static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
   private static final String ATOMIC_LOCK = "__CPAchecker_atomic_lock__";
-  private static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
+  public static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
   private static final String THREAD_ID_SEPARATOR = "__CPAchecker__";
 
   private static final ImmutableSet<String> UNSUPPORTED_THREAD_FUNCTIONS =

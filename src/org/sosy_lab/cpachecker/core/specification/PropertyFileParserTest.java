@@ -44,7 +44,7 @@ public class PropertyFileParserTest {
           .put(
               "CHECK( init(main()), LTL(G ! call(reach_error())) )",
               CommonVerificationProperty.REACHABILITY_ERROR)
-          .put("CHECK( init(main()), LTL(G ! data-race) )", new OtherLtlProperty("G ! data-race"))
+          .put("CHECK( init(main()), LTL(G ! data-race) )", CommonVerificationProperty.DATA_RACE)
           .put("CHECK( init(main()), LTL(G def-behavior) )", new OtherLtlProperty("G def-behavior"))
           .put("CHECK( init(main()), LTL(G ! overflow) )", CommonVerificationProperty.OVERFLOW)
           .put("CHECK( init(main()), LTL(G valid-deref) )", CommonVerificationProperty.VALID_DEREF)
