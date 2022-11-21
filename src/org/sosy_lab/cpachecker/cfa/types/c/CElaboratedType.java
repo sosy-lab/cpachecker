@@ -142,6 +142,18 @@ public final class CElaboratedType implements CComplexType {
   }
 
   @Override
+  public boolean hasKnownConstantSize() {
+    // similar logic as for isIncomplete
+    if (realType == null) {
+      return kind == ComplexTypeKind.ENUM; // enums are always complete and have known constant size
+    } else {
+      // need to delegate to realType because of GCC extension for VLAs in structs:
+      // https://gcc.gnu.org/onlinedocs/gcc/Variable-Length.html
+      return realType.hasKnownConstantSize();
+    }
+  }
+
+  @Override
   public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
     return pVisitor.visit(this);
   }

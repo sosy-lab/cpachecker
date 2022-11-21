@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
@@ -530,15 +531,30 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
-    if (isInterpolationEnabled() && !cfa.getAllLoopHeads().isPresent()) {
-      logger.log(Level.WARNING, "Disable interpolation as loop structure could not be determined");
-      fixedPointComputeStrategy = FixedPointComputeStrategy.NONE;
+    if (!cfa.getAllLoopHeads().isPresent()) {
+      if (isInterpolationEnabled()) {
+        logger.log(
+            Level.WARNING, "Disable interpolation as loop structure could not be determined");
+        fixedPointComputeStrategy = FixedPointComputeStrategy.NONE;
+      }
+      if (checkPropertyInductiveness) {
+        logger.log(
+            Level.WARNING, "Disable induction check as loop structure could not be determined");
+        checkPropertyInductiveness = false;
+      }
     }
-    if (isInterpolationEnabled() && cfa.getAllLoopHeads().orElseThrow().size() > 1) {
-      if (fallBack) {
-        fallBackToBMC("Interpolation is not supported for multi-loop programs yet");
-      } else {
-        throw new CPAException("Multi-loop programs are not supported yet");
+    if (cfa.getAllLoopHeads().orElseThrow().size() > 1) {
+      if (isInterpolationEnabled()) {
+        if (fallBack) {
+          fallBackToBMC("Interpolation is not supported for multi-loop programs yet");
+        } else {
+          throw new CPAException("Multi-loop programs are not supported yet");
+        }
+      }
+      if (checkPropertyInductiveness) {
+        logger.log(
+            Level.WARNING, "Disable induction check because the program contains multiple loops");
+        checkPropertyInductiveness = false;
       }
     }
 
@@ -622,13 +638,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             && isPropertyInductive(partitionedFormulas)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           logger.log(Level.FINE, "The safety property is inductive");
-          // unlinke IMC/ISMC, we cannot obtain a more precise fixed point here
+          // unlike IMC/ISMC, we cannot obtain a more precise fixed point here
           finalFixedPoint = bfmgr.makeTrue();
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
               pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
-        // interpolation
+        // Interpolation
         if (isInterpolationEnabled() && reachFixedPoint(partitionedFormulas, reachVector)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
@@ -703,6 +719,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
       return false;
+    } catch (RefinementFailedException e) {
+      if (fallBack) {
+        logger.logDebugException(e);
+        fallBackToBMC(e.getMessage());
+        return false;
+      } else {
+        throw e;
+      }
     } finally {
       stats.fixedPointComputation.stop();
     }

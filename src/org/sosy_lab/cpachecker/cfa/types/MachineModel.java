@@ -732,10 +732,9 @@ public enum MachineModel {
         case STRUCT:
         case UNION:
           int alignof = 1;
-          int alignOfType = 0;
           // TODO: Take possible padding into account
           for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
-            alignOfType = decl.getType().accept(this);
+            int alignOfType = decl.getType().accept(this);
             alignof = Math.max(alignof, alignOfType);
           }
           return alignof;
@@ -754,7 +753,7 @@ public enum MachineModel {
       }
 
       if (pElaboratedType.getKind() == ComplexTypeKind.ENUM) {
-        return model.getSizeofInt();
+        return model.getAlignofInt();
       }
 
       throw new IllegalArgumentException(

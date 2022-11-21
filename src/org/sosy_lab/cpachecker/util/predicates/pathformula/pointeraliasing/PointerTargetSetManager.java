@@ -70,7 +70,7 @@ class PointerTargetSetManager {
    * @param size The size of the fake base type.
    * @return An array of {@code size} voids.
    */
-  static CType getFakeBaseType(int size) {
+  static CType getFakeBaseType(long size) {
     return checkIsSimplified(
         new CArrayType(
             false,
@@ -568,8 +568,10 @@ class PointerTargetSetManager {
               false));
     }
 
-    final int typeSize =
-        pType.isIncomplete() ? options.defaultAllocationSize() : typeHandler.getSizeof(pType);
+    final long typeSize =
+        pType.hasKnownConstantSize()
+            ? typeHandler.getSizeof(pType)
+            : options.defaultAllocationSize();
     final Formula typeSizeF = formulaManager.makeNumber(pointerType, typeSize);
     final Formula newBasePlusTypeSize = formulaManager.makePlus(newBaseFormula, typeSizeF);
 
@@ -670,7 +672,7 @@ class PointerTargetSetManager {
     if (cType instanceof CArrayType) {
       final CArrayType arrayType = (CArrayType) cType;
       final int length = CTypeUtils.getArrayLength(arrayType, options);
-      int offset = 0;
+      long offset = 0;
       for (int i = 0; i < length; ++i) {
         // TODO: create region with arrayType.getType()
         targets =

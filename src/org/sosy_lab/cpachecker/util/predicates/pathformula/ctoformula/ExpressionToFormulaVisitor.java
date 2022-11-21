@@ -110,7 +110,7 @@ public class ExpressionToFormulaVisitor
 
   private Formula getPointerTargetSizeLiteral(
       final CPointerType pointerType, final CType implicitType) {
-    final int pointerTargetSize = conv.getSizeof(pointerType.getType());
+    final long pointerTargetSize = conv.getSizeof(pointerType.getType());
     return mgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
   }
 
