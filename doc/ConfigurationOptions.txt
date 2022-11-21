@@ -3597,6 +3597,10 @@ custominstructions.requirementsStateClassName = no default value
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
 
+# When checking for the data race property, use this configuration file
+# instead of the current one.
+datarace.config = no default value
+
 # Whether to consider pointees. Only if this option is set to true, a pointer
 # analysis is run during system dependence graph (SDG) construction and
 # dependencies of pointees are inserted into the SDG. If this option is set

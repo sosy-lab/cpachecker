@@ -128,6 +128,7 @@ public class ConfigurationFileChecks {
           "memorysafety.config",
           "memorycleanup.config",
           "overflow.config",
+          "datarace.config",
           "termination.config",
           "termination.violation.witness",
           // handled by WitnessOptions when path to witness is specified with -witness
