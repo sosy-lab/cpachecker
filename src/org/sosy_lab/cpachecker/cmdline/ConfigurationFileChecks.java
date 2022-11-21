@@ -408,6 +408,12 @@ public class ConfigurationFileChecks {
       } else {
         assertThat(spec).endsWith("specification/overflow.spc");
       }
+    } else if (basePath.toString().toLowerCase().contains("datarace")) {
+      if (isSvcompConfig) {
+        assertThat(spec).endsWith("specification/sv-comp-datarace.spc");
+      } else {
+        assertThat(spec).endsWith("specification/datarace.spc");
+      }
 
     } else if (cpas.contains("cpa.uninitvars.UninitializedVariablesCPA")) {
       assertThat(spec).endsWith("specification/UninitializedVariables.spc");
