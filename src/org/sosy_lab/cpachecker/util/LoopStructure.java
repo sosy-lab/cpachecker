@@ -552,7 +552,8 @@ public final class LoopStructure implements Serializable {
     LoopFreeSectionFinder loopFreeSectionFinder =
         pLoopFreeSectionFinder != null
             ? pLoopFreeSectionFinder
-            : new BranchingLoopFreeSectionFinder(nodeAfterInitialChain);
+            : new CachingLoopFreeSectionFinder(
+                new BranchingLoopFreeSectionFinder(nodeAfterInitialChain));
 
     // FIRST step: initialize arrays
     // We also summarize loop-free sections by adding an edge to `edges` between the entry and
@@ -1106,6 +1107,39 @@ public final class LoopStructure implements Serializable {
     @Override
     public CFANode exitNode(CFANode pNode) {
       return pNode;
+    }
+  }
+
+  private static final class CachingLoopFreeSectionFinder implements LoopFreeSectionFinder {
+
+    private final LoopFreeSectionFinder delegate;
+    private final Map<CFANode, CFANode> entryNodeCache = new HashMap<>();
+    private final Map<CFANode, CFANode> exitNodeCache = new HashMap<>();
+
+    private CachingLoopFreeSectionFinder(LoopFreeSectionFinder pDelegate) {
+      delegate = pDelegate;
+    }
+
+    private CachingLoopFreeSectionFinder updateCache(CFANode pNode) {
+      CFANode entryNode = delegate.entryNode(pNode);
+      CFANode exitNode = delegate.exitNode(pNode);
+      for (CFANode node : CFATraversal.dfs().collectNodesReachableFromTo(entryNode, exitNode)) {
+        entryNodeCache.put(node, entryNode);
+        exitNodeCache.put(node, exitNode);
+      }
+      return this;
+    }
+
+    @Override
+    public CFANode entryNode(CFANode pNode) {
+      @Nullable CFANode entryNode = entryNodeCache.get(pNode);
+      return entryNode != null ? entryNode : updateCache(pNode).entryNodeCache.get(pNode);
+    }
+
+    @Override
+    public CFANode exitNode(CFANode pNode) {
+      @Nullable CFANode exitNode = exitNodeCache.get(pNode);
+      return exitNode != null ? exitNode : updateCache(pNode).exitNodeCache.get(pNode);
     }
   }
 
