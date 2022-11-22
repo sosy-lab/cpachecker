@@ -17,8 +17,10 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="errinv">
     <option name="-predicateAnalysis-faultlocalization-errinv"/>
-    <includesfile>../programs/fault_localization/fl.set</includesfile>
-    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+    <tasks name="fault_loc">
+      <includesfile>../programs/fault_localization/fl.set</includesfile>
+      <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+    </tasks>
   </rundefinition>
 
   <columns>
