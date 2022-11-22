@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -231,6 +232,17 @@ public class FaultLocalizationByImport implements Algorithm {
         explanationsArray[i] = instantiateExplanations(explanations.get(i), ImmutableList.of());
       }
       faults = FaultRankingUtils.rank(finalScoring, ImmutableSet.copyOf(faults));
+      boolean intendedIndex = true;
+      for (Fault f : faults) {
+        if (f.getIntendedIndex() == -1) {
+          intendedIndex = false;
+          break;
+        }
+      }
+      if (intendedIndex) {
+        faults =
+            ImmutableList.sortedCopyOf(Comparator.comparingInt(f -> f.getIntendedIndex()), faults);
+      }
       for (Fault fault : faults) {
         FaultExplanation.explain(fault, explanationsArray);
       }
