@@ -36,7 +36,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -645,6 +647,14 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
     if (!(params.get(0) instanceof CUnaryExpression)) {
       throw new UnrecognizedCodeException("unsupported thread locking", params.get(0));
+    }
+    CExpression operand = ((CUnaryExpression) params.get(0)).getOperand();
+    if (operand instanceof CArraySubscriptExpression) {
+      CExpression subscriptExpression =
+          ((CArraySubscriptExpression) operand).getSubscriptExpression();
+      if (!(subscriptExpression instanceof ALiteralExpression)) {
+        throw new UnrecognizedCodeException("unsupported thread lock assignment", params.get(0));
+      }
     }
     //  CExpression expr0 = ((CUnaryExpression)params.get(0)).getOperand();
     //  if (!(expr0 instanceof CIdExpression)) {
