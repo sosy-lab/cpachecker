@@ -26,6 +26,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -253,7 +254,19 @@ public class FaultLocalizationByImport implements Algorithm {
                     .filter(AbstractStates::isTargetState)
                     .toList()
                     .get(0);
-        ARGPath bestPath = ARGUtils.getOnePathTo(target);
+        Set<CFAEdge> edges =
+            FluentIterable.from(faults)
+                .transformAndConcat(f -> f)
+                .transform(f -> f.correspondingEdge())
+                .toSet();
+        ARGPath bestPath =
+            FluentIterable.from(ARGUtils.getAllPaths(reachedSet, target))
+                .toSortedList(
+                    Comparator.comparingInt(
+                        path ->
+                            -Sets.intersection(ImmutableSet.copyOf(path.getInnerEdges()), edges)
+                                .size()))
+                .get(0);
         FaultLocalizationInfo info =
             FaultLocalizationInfo.withoutCounterexampleInfo(
                 ImmutableList.copyOf(faults),
@@ -265,6 +278,8 @@ public class FaultLocalizationByImport implements Algorithm {
         info.apply();
       } catch (InvalidConfigurationException pE) {
         logger.logUserException(Level.WARNING, pE, "Failed creating the HTML report...");
+      } catch (IndexOutOfBoundsException pE) {
+        throw new AssertionError("Could not find a path showing the violation.");
       }
       try {
         new FaultLocalizationInfoExporter(config).export(faults, error);
