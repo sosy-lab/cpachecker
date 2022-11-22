@@ -14,11 +14,14 @@ import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.collect.Collections3;
@@ -55,6 +58,9 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
 
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
 
+  private static final Function<Collection<Fault>, ImmutableList<Fault>> stableSort =
+      l -> ImmutableList.sortedCopyOf(Comparator.comparingInt(f -> f.getIntendedIndex()), l);
+
   /**
    * Track information on why the given program violates the specification.
    *
@@ -69,7 +75,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pParent.getCFAPathWithAssignments(),
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
-    rankedList = ImmutableList.copyOf(pFaults);
+    rankedList = stableSort.apply(pFaults)
     htmlWriter = new FaultReportWriter();
   }
 
@@ -100,14 +106,14 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pParent.getCFAPathWithAssignments(),
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
-    rankedList = FaultRankingUtils.rank(pRanking, pFaults);
+    rankedList = stableSort.apply(FaultRankingUtils.rank(pRanking, pFaults));
     htmlWriter = new FaultReportWriter();
   }
 
   private FaultLocalizationInfo(
       List<Fault> pFaults, CFAPathWithAssumptions pAssumptions, ARGPath pPath) {
     super(false, pPath, pAssumptions, true, CFAPathWithAdditionalInfo.empty());
-    rankedList = ImmutableList.copyOf(pFaults);
+    rankedList = stableSort.apply(pFaults);
     htmlWriter = new FaultReportWriter();
   }
 
