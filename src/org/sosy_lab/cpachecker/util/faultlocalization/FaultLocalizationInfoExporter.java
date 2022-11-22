@@ -59,7 +59,7 @@ public class FaultLocalizationInfoExporter {
 
   public FaultLocalizationInfoExporter(Configuration pConfiguration)
       throws InvalidConfigurationException {
-    pConfiguration.inject(this);
+    pConfiguration.recursiveInject(this);
   }
 
   public void export(Collection<Fault> pFaultSet, CFAEdge pErrorLocation) throws IOException {

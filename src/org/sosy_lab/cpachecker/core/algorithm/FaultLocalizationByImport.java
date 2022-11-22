@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Optionals;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -46,17 +45,16 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeScoring;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.faultlocalization.DefaultAnalysis;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultExplanation;
@@ -98,9 +96,6 @@ public class FaultLocalizationByImport implements Algorithm {
   private final FaultsConverter deserializer;
   private final LogManager logger;
   private final Configuration config;
-  private final CFA cfa;
-  private final ShutdownNotifier shutdownNotifier;
-  private final Specification specification;
 
   @Option(secure = true, description = "Whether to run specified analysis")
   private boolean algorithmActivated = false;
@@ -116,21 +111,13 @@ public class FaultLocalizationByImport implements Algorithm {
   private List<Scoring> scorings = ImmutableList.of();
 
   public FaultLocalizationByImport(
-      Configuration pConfiguration,
-      Algorithm pAlgorithm,
-      CFA pCFA,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      Specification pSpecification)
+      Configuration pConfiguration, Algorithm pAlgorithm, CFA pCFA, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     logger = pLogger;
     algorithm = pAlgorithm;
     config = pConfiguration;
-    cfa = pCFA;
     deserializer = new FaultsConverter(pCFA);
-    specification = pSpecification;
-    shutdownNotifier = pShutdownNotifier;
     if (algorithm == null && algorithmActivated) {
       throw new AssertionError("Cannot run an unavailable analysis");
     }
@@ -231,14 +218,8 @@ public class FaultLocalizationByImport implements Algorithm {
         logger.log(Level.INFO, "Finished exporting faults...");
       }
     } else {
+      status = algorithm.run(reachedSet);
       logger.log(Level.INFO, "Do not run analysis and apply rankings/explanations right away...");
-      DefaultAnalysis analysis = new DefaultAnalysis(shutdownNotifier, logger, cfa);
-      reachedSet.clear();
-      ReachedSet reachable = analysis.analyze(cfa.getMainFunction(), specification);
-      for (AbstractState abstractState : reachable) {
-        reachedSet.add(abstractState, reachable.getPrecision(abstractState));
-      }
-      Precision initial = reachedSet.getPrecision(reachedSet.getFirstState());
       FaultScoring[] scoringArray = new FaultScoring[scorings.size()];
       for (int i = 0; i < scorings.size(); i++) {
         scoringArray[i] = instantiateScoring(scorings.get(i), error);
@@ -254,10 +235,21 @@ public class FaultLocalizationByImport implements Algorithm {
         FaultExplanation.explain(fault, explanationsArray);
       }
       try {
+        ARGState target =
+            (ARGState)
+                FluentIterable.from(reachedSet)
+                    .filter(AbstractStates::isTargetState)
+                    .toList()
+                    .get(0);
+        ARGPath bestPath = ARGUtils.getOnePathTo(target);
         FaultLocalizationInfo info =
             FaultLocalizationInfo.withoutCounterexampleInfo(
-                ImmutableList.copyOf(faults), config, cfa);
-        info.getTargetPath().getStateSet().forEach(s -> reachedSet.add(s, initial));
+                ImmutableList.copyOf(faults),
+                CFAPathWithAssumptions.from(
+                    FluentIterable.from(bestPath.getInnerEdges())
+                        .transform(e -> new CFAEdgeWithAssumptions(e, ImmutableList.of(), ""))
+                        .toList()),
+                bestPath);
         info.apply();
       } catch (InvalidConfigurationException pE) {
         logger.logUserException(Level.WARNING, pE, "Failed creating the HTML report...");
@@ -268,7 +260,7 @@ public class FaultLocalizationByImport implements Algorithm {
       } catch (IOException | InvalidConfigurationException pE) {
         logger.logUserException(Level.WARNING, pE, "Failed exporting faults...");
       }
-      return AlgorithmStatus.UNSOUND_AND_PRECISE;
+      return status;
     }
     return status;
   }

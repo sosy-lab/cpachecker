@@ -9,15 +9,11 @@
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -26,20 +22,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.collect.Collections3;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
-import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 
 /**
  * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to
@@ -116,75 +104,18 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     htmlWriter = new FaultReportWriter();
   }
 
-  private FaultLocalizationInfo(List<Fault> pFaults, Configuration pConfiguration, CFA pCFA)
-      throws InvalidConfigurationException {
-    super(
-        false,
-        prepareARGPath(pFaults, pConfiguration, pCFA),
-        preparePathWithAssumptions(pFaults),
-        false,
-        CFAPathWithAdditionalInfo.empty());
+  private FaultLocalizationInfo(
+      List<Fault> pFaults, CFAPathWithAssumptions pAssumptions, ARGPath pPath) {
+    super(false, pPath, pAssumptions, true, CFAPathWithAdditionalInfo.empty());
     rankedList = ImmutableList.copyOf(pFaults);
     htmlWriter = new FaultReportWriter();
   }
 
   public static FaultLocalizationInfo withoutCounterexampleInfo(
-      List<Fault> pFaults, Configuration pConfiguration, CFA pCFA)
+      List<Fault> pFaults, CFAPathWithAssumptions pAssumptions, ARGPath pBestPath)
       throws InvalidConfigurationException {
     // use carefully
-    return new FaultLocalizationInfo(pFaults, pConfiguration, pCFA);
-  }
-
-  private static CFAPathWithAssumptions preparePathWithAssumptions(List<Fault> pFaults) {
-    Set<CFAEdge> edges =
-        FluentIterable.from(pFaults)
-            .transformAndConcat(fault -> fault)
-            .transform(FaultContribution::correspondingEdge)
-            .toSortedSet(Comparator.comparing(edge -> edge.getFileLocation()));
-    return CFAPathWithAssumptions.from(
-        FluentIterable.from(edges)
-            .transform(edge -> new CFAEdgeWithAssumptions(edge, ImmutableSet.of(), ""))
-            .toList());
-  }
-
-  private static ARGPath prepareARGPath(List<Fault> pFaults, Configuration pConfiguration, CFA pCFA)
-      throws InvalidConfigurationException {
-    Set<CFAEdge> edgesSet =
-        FluentIterable.from(pFaults)
-            .transformAndConcat(fault -> fault)
-            .transform(FaultContribution::correspondingEdge)
-            .toSet();
-    List<CFAEdge> edges =
-        FluentIterable.from(edgesSet)
-            .toSortedList(Comparator.comparing(edge -> edge.getFileLocation()));
-    // ARGUtils.
-    ARGPathBuilder argPathBuilder = ARGPath.builder();
-    LocationStateFactory factory =
-        new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfiguration);
-    ARGState current =
-        new ARGState(
-            new CompositeState(
-                ImmutableList.of(
-                    factory.getState(pCFA.getMainFunction()),
-                    ConfigurableTargetState.createCasualState())),
-            null);
-    for (CFAEdge edge : edges) {
-      argPathBuilder.add(current, edge);
-      current =
-          new ARGState(
-              new CompositeState(
-                  ImmutableList.of(
-                      factory.getState(edge.getPredecessor()),
-                      ConfigurableTargetState.createCasualState())),
-              current);
-    }
-    ARGState parent = Iterables.getOnlyElement(current.getParents());
-    CompositeState last = (CompositeState) current.getWrappedState();
-    last =
-        new CompositeState(
-            ImmutableList.of(last.get(0), ConfigurableTargetState.createTargetState()));
-    current = new ARGState(last, parent);
-    return argPathBuilder.build(current);
+    return new FaultLocalizationInfo(pFaults, pAssumptions, pBestPath);
   }
 
   /**
