@@ -363,15 +363,15 @@ inlined in the code with:
 private Collection<Fault> performFaultLocalization(List<CFAEdge> edgeList){
     // Filter all assume edges 
     Set<FaultContribution> assumes=FluentIterable
-    .from(edgeList)
-    .filter(e->e.getEdgeType()==CFAEdgeType.AssumeEdge)
-    .transform(edge->new FaultContribution(edge))
-    .toSet();
+        .from(edgeList)
+        .filter(e->e.getEdgeType()==CFAEdgeType.AssumeEdge)
+        .transform(edge->new FaultContribution(edge))
+        .toSet();
     // collect all error-prone statements in a Fault
-    Fault fault=new Fault(assumes);
+    Fault fault = new Fault(assumes);
     // return a collection of faults
     return ImmutableSet.of(fault);
-    }
+}
 ```
 
 The "_Localizer_" transforms the counterexample (list of edges) to a collection of faults. Here, we
@@ -385,7 +385,7 @@ different information to the same edge but at different "points in time".
 private Collection<Fault> explainFaults(Collection<Fault> faults){
     faults.forEach(f->f.addInfo(FaultInfo.possibleFixFor(f)));
     return faults;
-    }
+}
 ```
 
 In a next step, we (optionally) explain the faults.
@@ -396,7 +396,7 @@ automatic program repair to synthesize a patch that fixes the bug.
 ```java
 private List<Fault> rankFaults(Collection<Fault> faults){
     return ImmutableList.copyOf(faults);
-    }
+}
 ```
 
 Now, we want to rank our faults. The simplest of all rankers can be implemented as seen above. We
@@ -409,7 +409,7 @@ private void visualize(CounterexampleInfo parent,List<Fault> faults){
     FaultLocalizationInfo faultLocalizationInfo=new FaultLocalizationInfo(faults,parent);
     // apply changes to counterexample `parent`
     faultLocalizationInfo.apply();
-    }
+}
 ```
 
 Finally, we want to visualize our results. In our framework, we can simply call the code snippet
@@ -431,17 +431,17 @@ Lastly, we append the following check in the very last `else` branch of the meth
 
 ```java
 public Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,final CFA cfa,final Specification specification)
-    throws InvalidConfigurationException,CPAException,InterruptedException{
+    throws InvalidConfigurationException,CPAException,InterruptedException {
     if(/*...*/){
-    // ...
-    }else{
-    // ...
-    if(assumes){
-    algorithm=new FaultLocalizationAssumption(algorithm,logger);
-    }
+        // ...
+    } else {
+        // ...
+        if(assumes){
+          algorithm=new FaultLocalizationAssumption(algorithm,logger);
+        }
     }
     return algorithm;
-    }
+}
 ```
 
 Afterwards, we can execute the following snippet from the root directory of CPAchecker to run our
@@ -456,3 +456,68 @@ doc/tutorials/fault-localization/factorization-plain.c
 ```
 The report can be found in `output/Counterexample.2.html`.
 It should look like [this](report.html).
+
+# Importing Faults
+Our framework allows the import of faults from external tool
+via our format in JSON.
+The format is defined here:
+```JSON
+{
+  "faults" : [ {
+    "fault" : {
+      "score" : 0.4104287868993752,
+      "intendedIndex" : -1,
+      "infos" : [ {
+        "fault-info" : {
+          "description" : "...",
+          "score" : 0.0,
+          "type" : "FIX"
+        }
+      }, ... ],
+      "contributions" : [ {
+        "fault-contribution" : {
+          "score" : 0.0,
+          "infos" : [ ... ],
+          "location" : {
+            "startLine" : 11,
+            "endLine" : 11,
+            "startOffset" : 189,
+            "endOffset" : 204,
+            "code" : "num = num / (i + 1);",
+            "filename" : "test/primefactor.c"
+          }
+        }
+      } ]
+    }
+  }, ... ],
+  "error-location" : {
+   ... 
+  }
+}
+```
+It consists of two parts: a list of faults and the error location.
+The error location is optional and has the same attributes as other "location".
+It should indicate the location where a violation was found (e.g., violated assertion).
+A "fault" has a score, an intended index (in case it should not be ranked according to score),
+a list of additional infos (explanations, ranking information, etc.), and the actual list of 
+contributions to that specific fault.
+Every "fault-contribution" has a score and additional information like "fault" has it.
+Additionally, every contribution provides the exact location by specifying the
+start line of the statement, the end line of the statement, and the character offset of the first
+and last character of the statement. Optionally, a code snippet and the filename can be provided.
+A "fault-info" consists of a description like "possible off-by-one-error detected", a score, and
+a type. The type is either "FIX" for a possible bug-fix, "REASON" that explains why the fault
+localization technique marked this statement, or "RANK_INFO" to explain why a certain score
+was assigned.
+Enable the option `-setprop counterexample.export.exportFaults=true` to export faults in that format
+with cpachecker.
+To import faults again, use:
+```
+-importFaults \
+-setprop faultLocalization.import.importFile=<file> \
+-setprop faultLocalization.import.explanations=SUSPICIOUS_CALCULATION,NO_CONTEXT \
+-setprop faultLocalization.import.scorings=VARIABLE_COUNT \
+<program>
+```
+This allows the application of a list of rankings and explanations to the faults that are
+again exported in our format. Also, an HTML report is generated.
