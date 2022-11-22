@@ -15,10 +15,11 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-heap">4000M</option>
   <option name="-setprop">counterexample.export.exportFaults=true</option>
 
-	<rundefinition name="errinv">
+  <rundefinition name="errinv">
+    <option name="-predicateAnalysis-faultlocalization-errinv"/>
     <includesfile>../programs/fault_localization/fl.set</includesfile>
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
-	</rundefinition>
+  </rundefinition>
 
   <columns>
     <column title="total">time for CPAchecker</column>
