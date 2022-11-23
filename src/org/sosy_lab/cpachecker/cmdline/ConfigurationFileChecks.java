@@ -128,6 +128,7 @@ public class ConfigurationFileChecks {
           "memorysafety.config",
           "memorycleanup.config",
           "overflow.config",
+          "datarace.config",
           "termination.config",
           "termination.violation.witness",
           // handled by WitnessOptions when path to witness is specified with -witness
@@ -406,6 +407,12 @@ public class ConfigurationFileChecks {
         assertThat(spec).endsWith("specification/sv-comp-overflow.spc");
       } else {
         assertThat(spec).endsWith("specification/overflow.spc");
+      }
+    } else if (basePath.toString().toLowerCase().contains("datarace")) {
+      if (isSvcompConfig) {
+        assertThat(spec).endsWith("specification/sv-comp-datarace.spc");
+      } else {
+        assertThat(spec).endsWith("specification/datarace.spc");
       }
 
     } else if (cpas.contains("cpa.uninitvars.UninitializedVariablesCPA")) {

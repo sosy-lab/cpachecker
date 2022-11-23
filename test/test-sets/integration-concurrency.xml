@@ -24,18 +24,18 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-valueAnalysis-concurrency"/>
 
     <include>../programs/benchmarks/pthread-atomic/*.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/mix000_*opt.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/mix009_*opt.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/mix031_*opt.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/mix034_*opt.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/mix041_*opt.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/mix048_*opt.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/podwr*opt.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/rfi000_*opt.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/rfi001_*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix000.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix009.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix031.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix034_pso.opt_tso.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix041_power.opt_pso.opt_rmo.opt_tso.oepc_tso.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix048_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt_tso.oepc_tso.opt-podwr000_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt_tso.oepc_tso.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix048_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt_tso.oepc_tso.opt-podwr001_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt_tso.oepc_tso.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi000_power.opt_pso.opt_rmo.opt.yml.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi001_power.opt_pso.opt_rmo.opt_tso.oepc_tso.opt.yml</include>
     <include>../programs/benchmarks/pthread-wmm/safe006_*opt.yml</include>
     <include>../programs/benchmarks/pthread-wmm/safe007_*opt.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/safe010_*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe010_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt.yml</include>
     <include>../programs/benchmarks/pthread-wmm/safe028_*opt.yml</include>
   </tasks>
 
@@ -44,26 +44,27 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">analysis.algorithm.CEGAR=true</option>
     <option name="-setprop">cegar.refiner=cpa.value.refiner.ValueAnalysisRefiner</option>
 
-    <include>../programs/benchmarks/pthread-wmm/mix000_*oepc.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/mix009_*oepc.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/mix031_*oepc.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/mix034_*oepc.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/mix041_*oepc.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/mix048_*oepc.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/podwr*oepc.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/rfi000_*oepc.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/rfi001_*oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix000.oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix009.oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix031.oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix034_power.oepc_power.opt_pso.oepc_rmo.oepc_rmo.opt_tso.oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix041_power.oepc_pso.oepc_rmo.oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix048_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt_tso.oepc_tso.opt-podwr000_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt_tso.oepc_tso.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix048_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt_tso.oepc_tso.opt-podwr001_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt_tso.oepc_tso.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi000_power.opt_pso.opt_rmo.opt.yml.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi001_power.oepc_pso.oepc_rmo.oepc.yml</include>
     <include>../programs/benchmarks/pthread-wmm/safe006_*oepc.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/safe010_*oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe010_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt.yml</include>
   </tasks>
 
   <tasks name="bdd-concurrency">
     <option name="-bddAnalysis-concurrency"/>
 
-    <include>../programs/benchmarks/pthread-wmm/rfi005_*.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/rfi010_*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi005.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi010.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe006_*thin000_*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe007_*thin001_*.yml</include>
     <include>../programs/benchmarks/pthread-wmm/safe014_*.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/thin000_*.yml</include>
     <include>../programs/benchmarks/ldv-races/race-1*.yml</include>
     <include>../programs/benchmarks/ldv-races/race-4*.yml</include>
   </tasks>
@@ -77,8 +78,8 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/pthread-wmm/safe035_*.yml</include>
     <include>../programs/benchmarks/ldv-races/race-2*.yml</include>
     <!-- exclude flapping timeouts -->
-    <exclude>../programs/benchmarks/pthread-wmm/rfi002_power.opt.yml</exclude>
-    <exclude>../programs/benchmarks/pthread-wmm/thin001_power.oepc.yml</exclude>
+    <exclude>../programs/benchmarks/pthread-wmm/rfi002_power.*.opt.yml</exclude>
+    <exclude>../programs/benchmarks/pthread-wmm/safe007_power.*-thin001_power.oepc.yml</exclude>
   </tasks>
 
   <tasks name="predicateAnalysis-concurrency">
@@ -87,7 +88,7 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/benchmarks/pthread/stack-*.yml</include>
     <include>../programs/benchmarks/pthread/stack_longer-*.yml</include>
     <include>../programs/benchmarks/pthread-divine/ring*.yml</include>
-    <include>../programs/benchmarks/pthread-wmm/safe036_*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe036.yml</include>
     <include>../programs/benchmarks/ldv-races/race-3*.yml</include>
     <include>../programs/benchmarks/pthread-driver-races/char_generic*.yml</include>
     <!-- exclude flapping timeouts -->
