@@ -24,7 +24,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.collect.Collections3;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
@@ -119,8 +118,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   }
 
   public static FaultLocalizationInfo withoutCounterexampleInfo(
-      List<Fault> pFaults, CFAPathWithAssumptions pAssumptions, ARGPath pBestPath)
-      throws InvalidConfigurationException {
+      List<Fault> pFaults, CFAPathWithAssumptions pAssumptions, ARGPath pBestPath) {
     // use carefully
     return new FaultLocalizationInfo(pFaults, pAssumptions, pBestPath);
   }

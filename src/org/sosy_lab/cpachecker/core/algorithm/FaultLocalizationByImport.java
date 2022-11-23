@@ -271,13 +271,11 @@ public class FaultLocalizationByImport implements Algorithm {
             FaultLocalizationInfo.withoutCounterexampleInfo(
                 ImmutableList.copyOf(faults),
                 CFAPathWithAssumptions.from(
-                    FluentIterable.from(bestPath.getInnerEdges())
-                        .transform(e -> new CFAEdgeWithAssumptions(e, ImmutableList.of(), ""))
-                        .toList()),
+                    transformedImmutableListCopy(
+                        bestPath.getInnerEdges(),
+                        e -> new CFAEdgeWithAssumptions(e, ImmutableList.of(), ""))),
                 bestPath);
         info.apply();
-      } catch (InvalidConfigurationException pE) {
-        logger.logUserException(Level.WARNING, pE, "Failed creating the HTML report...");
       } catch (IndexOutOfBoundsException pE) {
         throw new AssertionError("Could not find a path showing the violation.");
       }
