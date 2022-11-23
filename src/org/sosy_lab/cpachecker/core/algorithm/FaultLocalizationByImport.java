@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -55,7 +54,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -290,7 +288,7 @@ public class FaultLocalizationByImport implements Algorithm {
         for (int i = 0; i < explanations.size(); i++) {
           explanationsArray[i] = instantiateExplanations(explanations.get(i), ImmutableList.of());
         }
-        faults = FaultRankingUtils.rank(finalScoring, ImmutableSet.copyOf(faults));
+        faults = FaultRankingUtils.rank(finalScoring, ImmutableList.copyOf(faults));
         boolean intendedIndex = true;
         for (Fault f : faults) {
           if (f.getIntendedIndex() == -1) {
@@ -367,7 +365,7 @@ public class FaultLocalizationByImport implements Algorithm {
         throws IOException {
       ObjectCodec codec = parser.getCodec();
       JsonNode node = codec.readTree(parser);
-      ImmutableSet.Builder<Fault> builder = ImmutableSet.builder();
+      ImmutableList.Builder<Fault> builder = ImmutableList.builder();
       if (node.get("faults").isArray()) {
         for (JsonNode jsonNode : node.get("faults")) {
           builder.add(restoreFault(jsonNode.get("fault")));

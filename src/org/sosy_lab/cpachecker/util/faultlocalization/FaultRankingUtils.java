@@ -12,6 +12,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -43,7 +44,7 @@ public class FaultRankingUtils {
       }
 
       @Override
-      public void balancedScore(Set<Fault> faults) {
+      public void balancedScore(Collection<Fault> faults) {
         for (FaultScoring faultScoring : pRanking) {
           faultScoring.balancedScore(faults);
         }
@@ -51,7 +52,7 @@ public class FaultRankingUtils {
     };
   }
 
-  public static ImmutableList<Fault> rank(FaultScoring scoring, Set<Fault> faults) {
+  public static ImmutableList<Fault> rank(FaultScoring scoring, Collection<Fault> faults) {
     scoring.balancedScore(faults);
     List<Fault> rankedList = new ArrayList<>();
     for (Fault fault : faults) {

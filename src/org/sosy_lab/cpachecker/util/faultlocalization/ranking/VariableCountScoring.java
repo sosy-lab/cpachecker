@@ -13,9 +13,9 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
@@ -44,7 +44,7 @@ public class VariableCountScoring implements FaultScoring {
   }
 
   @Override
-  public void balancedScore(Set<Fault> faults) {
+  public void balancedScore(Collection<Fault> faults) {
     for (Fault fault : faults) {
       for (FaultContribution faultContribution : fault) {
         String ast = faultContribution.correspondingEdge().getRawStatement();

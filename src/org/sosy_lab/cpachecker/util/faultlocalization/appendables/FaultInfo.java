@@ -86,7 +86,7 @@ public abstract class FaultInfo implements Comparable<FaultInfo> {
 
   @Override
   public int hashCode() {
-    return Objects.hash(31, description, score, type);
+    return Objects.hash(31, description, (int) (score * 10000), type);
   }
 
   @Override
@@ -94,7 +94,10 @@ public abstract class FaultInfo implements Comparable<FaultInfo> {
     if (q instanceof FaultInfo) {
       FaultInfo r = (FaultInfo) q;
       if (type.equals(r.type)) {
-        return r.description.equals(description) && score == r.score;
+        // prevent unequals if 5th digit after comma does not fit.
+        int scoreThis = (int) (score * 10000);
+        int scoreOther = (int) (r.score * 10000);
+        return r.description.equals(description) && scoreThis == scoreOther;
       }
     }
     return false;
