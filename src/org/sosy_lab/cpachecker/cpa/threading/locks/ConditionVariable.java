@@ -13,7 +13,7 @@ import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
-public class ConditionVariable implements Comparable<ConditionVariable> {
+public class ConditionVariable {
 
   private final String name;
   private final PersistentSet<String> waitingThreads;
@@ -93,10 +93,5 @@ public class ConditionVariable implements Comparable<ConditionVariable> {
     boolean resetLock = waitingThreads.isEmpty() && signalledThreads.size() == 1;
     return new ConditionVariable(
         name, waitingThreads, signalledThreads.removeAndCopy(pThreadId), resetLock ? null : lockId);
-  }
-
-  @Override
-  public int compareTo(ConditionVariable o) {
-    return name.compareTo(o.name);
   }
 }
