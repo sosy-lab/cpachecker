@@ -80,7 +80,9 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
    *     FaultInfo to this set.
    */
   public void addInfo(FaultInfo reason) {
-    infos.add(reason);
+    if (!infos.contains(reason)) {
+      infos.add(reason);
+    }
   }
 
   public List<FaultInfo> getInfos() {

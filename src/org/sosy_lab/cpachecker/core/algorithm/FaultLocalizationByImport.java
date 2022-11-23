@@ -36,6 +36,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -46,14 +48,22 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeScoring;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -98,6 +108,7 @@ public class FaultLocalizationByImport implements Algorithm {
   private final FaultsConverter deserializer;
   private final LogManager logger;
   private final Configuration config;
+  private final CFA cfa;
 
   @Option(secure = true, description = "Whether to run specified analysis")
   private boolean algorithmActivated = false;
@@ -119,6 +130,7 @@ public class FaultLocalizationByImport implements Algorithm {
     logger = pLogger;
     algorithm = pAlgorithm;
     config = pConfiguration;
+    cfa = pCFA;
     deserializer = new FaultsConverter(pCFA);
     if (algorithm == null && algorithmActivated) {
       throw new AssertionError("Cannot run an unavailable analysis");
@@ -176,11 +188,13 @@ public class FaultLocalizationByImport implements Algorithm {
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "Start parsing faults...");
     Collection<Fault> faults;
-    CFAEdge error;
+    CFAEdge errorEdge;
+    CFANode errorLocation;
     try {
       IntermediateFaults intermediateFaults = deserializer.jsonToFaults(importFile);
       faults = intermediateFaults.getFaults();
-      error = intermediateFaults.getErrorLocation();
+      errorEdge = intermediateFaults.getErrorLocation();
+      errorLocation = errorEdge == null ? null : errorEdge.getSuccessor();
     } catch (IOException pE) {
       throw new CPAException("Could not deserialize faults", pE);
     }
@@ -220,67 +234,95 @@ public class FaultLocalizationByImport implements Algorithm {
         logger.log(Level.INFO, "Finished exporting faults...");
       }
     } else {
-      status = algorithm.run(reachedSet);
-      logger.log(Level.INFO, "Do not run analysis and apply rankings/explanations right away...");
-      FaultScoring[] scoringArray = new FaultScoring[scorings.size()];
-      for (int i = 0; i < scorings.size(); i++) {
-        scoringArray[i] = instantiateScoring(scorings.get(i), error);
-      }
-      FaultScoring finalScoring = FaultRankingUtils.concatHeuristics(scoringArray);
-
-      FaultExplanation[] explanationsArray = new FaultExplanation[explanations.size()];
-      for (int i = 0; i < explanations.size(); i++) {
-        explanationsArray[i] = instantiateExplanations(explanations.get(i), ImmutableList.of());
-      }
-      faults = FaultRankingUtils.rank(finalScoring, ImmutableSet.copyOf(faults));
-      boolean intendedIndex = true;
-      for (Fault f : faults) {
-        if (f.getIntendedIndex() == -1) {
-          intendedIndex = false;
-          break;
-        }
-      }
-      if (intendedIndex) {
-        faults =
-            ImmutableList.sortedCopyOf(Comparator.comparingInt(f -> f.getIntendedIndex()), faults);
-      }
-      for (Fault fault : faults) {
-        FaultExplanation.explain(fault, explanationsArray);
-      }
       try {
-        ARGState target =
-            (ARGState)
-                FluentIterable.from(reachedSet)
-                    .filter(AbstractStates::isTargetState)
-                    .toList()
-                    .get(0);
+        status = AlgorithmStatus.SOUND_AND_PRECISE;
+        if (errorLocation == null) {
+          status = algorithm.run(reachedSet);
+          ARGState target =
+              (ARGState)
+                  FluentIterable.from(reachedSet)
+                      .filter(AbstractStates::isTargetState)
+                      .toList()
+                      .get(0);
+          errorLocation = AbstractStates.extractLocation(target);
+        }
+        reachedSet.clear();
         Set<CFAEdge> edges =
             FluentIterable.from(faults)
                 .transformAndConcat(f -> f)
                 .transform(f -> f.correspondingEdge())
                 .toSet();
-        ARGPath bestPath =
-            FluentIterable.from(ARGUtils.getAllPaths(reachedSet, target))
+        List<CFAEdge> bestPath =
+            FluentIterable.from(findAllPaths(cfa.getMainFunction(), errorLocation))
                 .toSortedList(
                     Comparator.comparingInt(
-                        path ->
-                            -Sets.intersection(ImmutableSet.copyOf(path.getInnerEdges()), edges)
-                                .size()))
+                        path -> -Sets.intersection(ImmutableSet.copyOf(path), edges).size()))
                 .get(0);
+        ARGState currState = null;
+        LocationStateFactory factory =
+            new LocationStateFactory(cfa, AnalysisDirection.FORWARD, config);
+        for (CFAEdge cfaEdge : bestPath) {
+          ARGState next =
+              new ARGState(
+                  new CompositeState(
+                      ImmutableList.of(
+                          new ConfigurableTargetState(false),
+                          factory.getState(cfaEdge.getPredecessor()))),
+                  currState);
+          reachedSet.addNoWaitlist(next, new Precision() {});
+          currState = next;
+        }
+        ARGState target =
+            new ARGState(
+                new CompositeState(
+                    ImmutableList.of(
+                        new ConfigurableTargetState(true),
+                        factory.getState(bestPath.get(bestPath.size() - 1).getSuccessor()))),
+                currState);
+        reachedSet.addNoWaitlist(target, new Precision() {});
+        logger.log(Level.INFO, "Do not run analysis and apply rankings/explanations right away...");
+        FaultScoring[] scoringArray = new FaultScoring[scorings.size()];
+        for (int i = 0; i < scorings.size(); i++) {
+          scoringArray[i] = instantiateScoring(scorings.get(i), errorEdge);
+        }
+        FaultScoring finalScoring = FaultRankingUtils.concatHeuristics(scoringArray);
+        FaultExplanation[] explanationsArray = new FaultExplanation[explanations.size()];
+        for (int i = 0; i < explanations.size(); i++) {
+          explanationsArray[i] = instantiateExplanations(explanations.get(i), ImmutableList.of());
+        }
+        faults = FaultRankingUtils.rank(finalScoring, ImmutableSet.copyOf(faults));
+        boolean intendedIndex = true;
+        for (Fault f : faults) {
+          if (f.getIntendedIndex() == -1) {
+            intendedIndex = false;
+            break;
+          }
+        }
+        if (intendedIndex) {
+          faults =
+              ImmutableList.sortedCopyOf(
+                  Comparator.comparingInt(f -> f.getIntendedIndex()), faults);
+        }
+        for (Fault fault : faults) {
+          FaultExplanation.explain(fault, explanationsArray);
+        }
+        ARGPath errorPath = ARGUtils.getOnePathTo((ARGState) reachedSet.getLastState());
         FaultLocalizationInfo info =
             FaultLocalizationInfo.withoutCounterexampleInfo(
                 ImmutableList.copyOf(faults),
                 CFAPathWithAssumptions.from(
                     transformedImmutableListCopy(
-                        bestPath.getInnerEdges(),
+                        errorPath.getInnerEdges(),
                         e -> new CFAEdgeWithAssumptions(e, ImmutableList.of(), ""))),
-                bestPath);
+                errorPath);
         info.apply();
       } catch (IndexOutOfBoundsException pE) {
         throw new AssertionError("Could not find a path showing the violation.");
+      } catch (InvalidConfigurationException pE) {
+        throw new AssertionError("Cannot create locations with factory");
       }
       try {
-        new FaultLocalizationInfoExporter(config).export(faults, error);
+        new FaultLocalizationInfoExporter(config).export(faults, errorEdge);
         logger.log(Level.INFO, "Finished exporting faults successfully!");
       } catch (IOException | InvalidConfigurationException pE) {
         logger.logUserException(Level.WARNING, pE, "Failed exporting faults...");
@@ -446,6 +488,56 @@ public class FaultLocalizationByImport implements Algorithm {
         default:
           throw new AssertionError("Unknown " + InfoType.class + ": " + type);
       }
+    }
+  }
+
+  private static List<List<CFAEdge>> findAllPaths(CFANode pStart, CFANode pEnd) {
+    List<List<CFAEdge>> waitlist = new ArrayList<>();
+    List<List<CFAEdge>> finished = new ArrayList<>();
+    for (CFAEdge leavingEdge : CFAUtils.leavingEdges(pStart)) {
+      waitlist.add(new ArrayList<>(ImmutableList.of(leavingEdge)));
+    }
+    while (!waitlist.isEmpty()) {
+      List<CFAEdge> path = waitlist.remove(0);
+      Set<CFAEdge> covered = ImmutableSet.copyOf(path);
+      CFAEdge lastEdge = path.get(path.size() - 1);
+      CFANode currentTail = lastEdge.getSuccessor();
+      if (currentTail.equals(pEnd)) {
+        finished.add(path);
+      }
+      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentTail)) {
+        if (covered.contains(leavingEdge)) {
+          continue;
+        }
+        List<CFAEdge> copy = new ArrayList<>(path);
+        copy.add(leavingEdge);
+        waitlist.add(copy);
+      }
+    }
+    return finished;
+  }
+
+  private static class ConfigurableTargetState implements AbstractState, Targetable, Partitionable {
+
+    private final boolean isTarget;
+
+    ConfigurableTargetState(boolean pIsTarget) {
+      isTarget = pIsTarget;
+    }
+
+    @Override
+    public boolean isTarget() {
+      return isTarget;
+    }
+
+    @Override
+    public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
+      return ImmutableSet.of();
+    }
+
+    @Override
+    public @Nullable Object getPartitionKey() {
+      return 1;
     }
   }
 }
