@@ -517,7 +517,7 @@ public class FaultLocalizationByImport implements Algorithm {
     return finished;
   }
 
-  private static class ConfigurableTargetState implements AbstractState, Targetable, Partitionable {
+  private static class ConfigurableTargetState implements AbstractState, Targetable {
 
     private final boolean isTarget;
 
@@ -533,11 +533,6 @@ public class FaultLocalizationByImport implements Algorithm {
     @Override
     public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
       return ImmutableSet.of();
-    }
-
-    @Override
-    public @Nullable Object getPartitionKey() {
-      return 1;
     }
   }
 }
