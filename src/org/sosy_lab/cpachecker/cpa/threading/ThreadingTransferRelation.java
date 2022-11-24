@@ -298,6 +298,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
                   return addWriteLock(
                       threadingState, activeThread, extractLockId(statement), results);
                 case THREAD_COND_WAIT:
+                case THREAD_COND_TIMEDWAIT:
                   return addCondition(
                       threadingState, activeThread, (AFunctionCall) statement, results, cfaEdge);
                 case THREAD_COND_SIGNAL:
