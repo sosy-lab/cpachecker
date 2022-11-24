@@ -601,11 +601,14 @@ public class BAMPredicateReducer
    * getFreshIndex() returns a higher index (8). Warning: do not use out of order!
    */
   private static void setFreshValueBasis(SSAMapBuilder ssa, String name, int idx) {
-    Preconditions.checkArgument(
-        idx > 0, "Indices need to be positive for this SSAMap implementation:", name, idx);
+    Preconditions.checkArgument(idx > 0, "Non-positive index %s for variable %s", idx, name);
     int oldIdx = ssa.getIndex(name);
     Preconditions.checkArgument(
-        idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, idx, "vs", oldIdx);
+        idx >= oldIdx,
+        "Non-monotonic SSAMap update for variable %s from %s to %s",
+        name,
+        oldIdx,
+        idx);
 
     if (idx > oldIdx) {
       PersistentSortedMap<String, Integer> newMapping =

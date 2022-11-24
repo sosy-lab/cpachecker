@@ -10,13 +10,16 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.TruthJUnit.assume;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
@@ -53,7 +56,19 @@ public class LoopTransitionFinderTest {
             .build();
     notifier = ShutdownNotifier.createDummy();
     logger = LogManager.createTestLogManager();
-    solver = Solver.create(config, logger, notifier);
+    try {
+      solver = Solver.create(config, logger, notifier);
+    } catch (InvalidConfigurationException e) {
+      Throwable cause = Throwables.getRootCause(e);
+      if (cause instanceof UnsatisfiedLinkError) {
+        assume()
+            .withMessage("Z3 requires newer libc than Ubuntu 18.04 provides")
+            .that(cause)
+            .hasMessageThat()
+            .doesNotContain("version `GLIBCXX_3.4.26' not found");
+      }
+      throw e;
+    }
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr =

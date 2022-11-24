@@ -195,6 +195,9 @@ class ASTLiteralConverter {
   @VisibleForTesting
   char parseCharacterLiteral(String s, final IASTNode e) {
     check(s.length() >= 3, "invalid character literal (too short)", e);
+    if (s.charAt(0) == 'L' || s.charAt(0) == 'u' || s.charAt(0) == 'U') {
+      throw parseContext.parseError("Wide-character literals are currently unsupported", e);
+    }
     check(
         s.charAt(0) == '\'' && s.charAt(s.length() - 1) == '\'',
         "character literal without quotation marks",

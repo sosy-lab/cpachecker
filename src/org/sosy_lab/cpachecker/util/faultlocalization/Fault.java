@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -27,8 +27,8 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
  */
 public class Fault extends ForwardingSet<FaultContribution> implements Comparable<Fault> {
 
-  private Set<FaultContribution> errorSet;
-  private List<FaultInfo> infos;
+  private final Set<FaultContribution> errorSet;
+  private final List<FaultInfo> infos;
   private int intendedIndex;
 
   /**
@@ -49,7 +49,7 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   }
 
   public Fault() {
-    this(new HashSet<>(), 0);
+    this(new LinkedHashSet<>(), 0);
   }
 
   /**
@@ -66,9 +66,10 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   }
 
   public Fault(Collection<FaultContribution> pContribs, double pScore) {
-    errorSet = new HashSet<>(pContribs);
+    errorSet = new LinkedHashSet<>(pContribs);
     infos = new ArrayList<>();
     score = pScore;
+    intendedIndex = -1;
   }
 
   /**
@@ -79,7 +80,9 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
    *     FaultInfo to this set.
    */
   public void addInfo(FaultInfo reason) {
-    infos.add(reason);
+    if (!infos.contains(reason)) {
+      infos.add(reason);
+    }
   }
 
   public List<FaultInfo> getInfos() {
@@ -184,6 +187,18 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   }
 
   public void replaceErrorSet(Set<FaultContribution> pContributions) {
-    errorSet = pContributions;
+    errorSet.clear();
+    errorSet.addAll(pContributions);
+  }
+
+  public static Fault merge(Fault f1, Fault f2) {
+    Set<FaultContribution> contributions = new LinkedHashSet<>(f1);
+    contributions.addAll(f2);
+    List<FaultInfo> infos = new ArrayList<>(f1.infos);
+    infos.addAll(f2.infos);
+    Fault newFault = new Fault(contributions);
+    infos.forEach(newFault::addInfo);
+    newFault.intendedIndex = Integer.min(f1.intendedIndex, f2.intendedIndex);
+    return newFault;
   }
 }

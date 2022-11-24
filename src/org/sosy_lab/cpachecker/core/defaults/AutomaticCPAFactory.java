@@ -15,6 +15,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.MutableClassToInstanceMap;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -104,7 +105,7 @@ public class AutomaticCPAFactory implements CPAFactory {
   @Override
   @SuppressForbidden("reflection necessary")
   public ConfigurableProgramAnalysis createInstance()
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     Constructor<?>[] allConstructors = type.getDeclaredConstructors();
     if (allConstructors.length != 1) {
@@ -175,6 +176,7 @@ public class AutomaticCPAFactory implements CPAFactory {
     } catch (InvocationTargetException e) {
       Throwable t = e.getCause();
       Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
+      Throwables.propagateIfPossible(t, InterruptedException.class);
       throw new UnexpectedCheckedException("instantiation of CPA " + type.getSimpleName(), t);
 
     } catch (InstantiationException e) {
@@ -187,28 +189,33 @@ public class AutomaticCPAFactory implements CPAFactory {
     }
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CPAFactory setLogger(LogManager pLogger) {
     set(pLogger, LogManager.class);
     return this;
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CPAFactory setConfiguration(Configuration pConfiguration) {
     return set(pConfiguration, Configuration.class);
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CPAFactory setShutdownNotifier(ShutdownNotifier pShutdownNotifier) {
     return set(pShutdownNotifier, ShutdownNotifier.class);
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CPAFactory setChild(ConfigurableProgramAnalysis pChild)
       throws UnsupportedOperationException {
     return set(pChild, ConfigurableProgramAnalysis.class);
   }
 
+  @CanIgnoreReturnValue
   @Override
   public <T> CPAFactory set(T obj, Class<T> cls) throws UnsupportedOperationException {
     Preconditions.checkNotNull(cls);
@@ -299,7 +306,7 @@ public class AutomaticCPAFactory implements CPAFactory {
 
     @Override
     public ConfigurableProgramAnalysis createInstance()
-        throws InvalidConfigurationException, CPAException {
+        throws InvalidConfigurationException, CPAException, InterruptedException {
       T options;
       try {
         // create options holder class instance

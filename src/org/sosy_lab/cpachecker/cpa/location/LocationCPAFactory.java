@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.location;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -26,6 +27,7 @@ class LocationCPAFactory extends AbstractCPAFactory {
     locationType = pLocationType;
   }
 
+  @CanIgnoreReturnValue
   @Override
   public <T> LocationCPAFactory set(T pObject, Class<T> pClass) {
     if (CFA.class.isAssignableFrom(pClass)) {

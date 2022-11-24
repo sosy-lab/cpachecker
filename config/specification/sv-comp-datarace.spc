@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // This automaton contains the specification of the
-// category NoOverflows of the 
+// category NoDataRace of the 
 // Competition on Software Verification.
 // This specification also implements some functions which usually lead to a program abort.
 

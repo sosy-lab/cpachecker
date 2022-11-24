@@ -20,6 +20,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.google.common.io.Resources;
@@ -68,6 +69,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizationInfoWithTraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition.PreCondition;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -79,6 +84,7 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 
 @Options
 public class ReportGenerator {
@@ -357,7 +363,10 @@ public class ReportGenerator {
         writer.write(",\n\"faults\":");
         flInfo.faultsToJSON(writer);
         writer.write(",\n\"precondition\":");
-        flInfo.writePrecondition(writer);
+        JSON.writeJSONString(
+            ImmutableMap.of(
+                "fl-precondition", extractPreconditionFromFaultLocalizationInfo(flInfo)),
+            writer);
       } else {
         writer.write(",\n\"errorPath\":");
         counterExample.toJSON(writer);
@@ -368,6 +377,18 @@ public class ReportGenerator {
     dotBuilder.writeCfaInfo(writer);
     writer.write("\n}\n");
     writer.write("window.cfaJson = cfaJson;\n");
+  }
+
+  private String extractPreconditionFromFaultLocalizationInfo(FaultLocalizationInfo fInfo) {
+    if (!(fInfo instanceof FaultLocalizationInfoWithTraceFormula)) {
+      return "";
+    }
+    TraceFormula traceFormula = ((FaultLocalizationInfoWithTraceFormula) fInfo).getTraceFormula();
+    PreCondition preCondition = traceFormula.getPrecondition();
+    FormulaContext context = traceFormula.getContext();
+    FormulaToCVisitor visitor = new FormulaToCVisitor(context.getSolver().getFormulaManager());
+    context.getSolver().getFormulaManager().visit(preCondition.getPrecondition(), visitor);
+    return visitor.getString();
   }
 
   private void insertArgJson(Writer writer) throws IOException {
@@ -436,8 +457,8 @@ public class ReportGenerator {
     String insertTableLine =
         "<table  id=\"statistics_table\" class=\"display\" style=\"width:100%;padding: 10px\""
             + " class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th"
-            + " scope=\"col\">Statistics Name</th><th scope=\"col\">Statistics Value</th"
-            + " scope=\"col\"><th>Additional Value</th></tr></thead><tbody>\n";
+            + " scope=\"col\">Statistics Name</th><th scope=\"col\">Statistics Value</th><th"
+            + " scope=\"col\">Additional Value</th></tr></thead><tbody>\n";
     writer.write(insertTableLine);
     for (String line : LINE_SPLITTER.split(statistics)) {
       if (!line.contains(":") && !line.trim().isEmpty() && !line.contains("----------")) {

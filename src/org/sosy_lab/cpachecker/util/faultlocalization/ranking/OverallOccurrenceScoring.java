@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -20,7 +21,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
 public class OverallOccurrenceScoring implements FaultScoring {
 
-  private Map<Fault, Double> faultValue = new HashMap<>();
+  private final Map<Fault, Double> faultValue = new HashMap<>();
 
   @Override
   public RankInfo scoreFault(Fault fault) {
@@ -28,7 +29,7 @@ public class OverallOccurrenceScoring implements FaultScoring {
   }
 
   @Override
-  public void balancedScore(Set<Fault> faults) {
+  public void balancedScore(Collection<Fault> faults) {
     for (Fault f1 : faults) {
       double value = 0;
       for (Fault f2 : faults) {

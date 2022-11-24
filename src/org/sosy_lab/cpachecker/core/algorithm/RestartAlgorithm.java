@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -351,7 +352,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         } catch (CPAException e) {
           isLastReachedSetUsable = false;
           lastAnalysisFailed = true;
-          if (e instanceof CounterexampleAnalysisFailed || e instanceof RefinementFailedException) {
+          if (e instanceof CounterexampleAnalysisFailed
+              || e instanceof RefinementFailedException
+              || e instanceof InfeasibleCounterexampleException) {
             status = status.withPrecise(false);
           }
           if (configFilesIterator.hasNext()) {

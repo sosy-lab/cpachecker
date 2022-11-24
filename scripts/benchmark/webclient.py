@@ -153,7 +153,7 @@ class PollingResultDownloader:
                 self._shutdown.wait(self._result_poll_interval - duration)
 
     def start(self):
-        if (not self._shutdown.is_set()) and (not self._state_poll_thread.isAlive()):
+        if (not self._shutdown.is_set()) and (not self._state_poll_thread.is_alive()):
             logging.info("Starting polling of run states.")
             self._state_poll_thread.start()
 
@@ -1164,7 +1164,7 @@ class WebInterface:
 
 def _open_output_log(output_path):
     log_file_path = output_path + "output.log"
-    logging.info("Log file is written to " + log_file_path + ".")
+    logging.info("Log file is written to %s.", log_file_path)
     return open(log_file_path, "wb")
 
 

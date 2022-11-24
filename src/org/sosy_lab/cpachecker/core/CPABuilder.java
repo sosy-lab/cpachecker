@@ -96,7 +96,7 @@ public class CPABuilder {
       final CFA cfa,
       final Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     return buildCPAs(cfa, specification, ImmutableList.of(), pAggregatedReachedSets);
   }
 
@@ -111,7 +111,7 @@ public class CPABuilder {
       final Specification specification,
       final List<Automaton> additionalAutomata,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     final FluentIterable<Automaton> allAutomata =
         FluentIterable.concat(specification.getSpecificationAutomata(), additionalAutomata);
 
@@ -312,7 +312,7 @@ public class CPABuilder {
       final CFA cfa,
       final Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     if (cpaConfig.isPlaceholder) {
       if (cpaConfig.equals(SPECIFICATION_PLACEHOLDER)) {
@@ -467,7 +467,7 @@ public class CPABuilder {
       final CFA cfa,
       final Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     ImmutableList<CPAConfig> children = cpaConfig.children;
 

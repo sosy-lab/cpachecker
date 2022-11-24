@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Classes;
-import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -71,6 +70,7 @@ public final class Specification {
           .put(CommonVerificationProperty.VALID_MEMTRACK, "sv-comp-memorysafety")
           .put(CommonVerificationProperty.VALID_MEMCLEANUP, "sv-comp-memorycleanup")
           .put(CommonVerificationProperty.OVERFLOW, "sv-comp-overflow")
+          .put(CommonVerificationProperty.DATA_RACE, "sv-comp-datarace")
           .put(CommonVerificationProperty.DEADLOCK, "deadlock")
           .put(CommonVerificationProperty.ASSERT, "JavaAssertion")
           // .put(CommonPropertyType.TERMINATION, "none needed")
@@ -222,8 +222,7 @@ public final class Specification {
 
     } else if (AutomatonACSLParser.isACSLAnnotatedFile(specFile)) {
       logger.logf(Level.INFO, "Parsing CFA with ACSL annotations from file \"%s\"", specFile);
-      CFACreator cfaCreator =
-          new CFACreator(config, logger, ShutdownManager.create().getNotifier());
+      CFACreator cfaCreator = new CFACreator(config, logger, pShutdownNotifier);
       CFAWithACSLAnnotations annotatedCFA;
       try {
         annotatedCFA =

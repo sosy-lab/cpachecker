@@ -51,6 +51,7 @@ public class SMGProveNequality {
 
     ValueAndObjectSet targetValueAndReachedSet1 = lookThrough(value1);
     ValueAndObjectSet targetValueAndReachedSet2 = lookThrough(value2);
+
     // check if values are equal
     if (targetValueAndReachedSet1.getValue().equals(targetValueAndReachedSet2.getValue())) {
       return false;
@@ -118,6 +119,9 @@ public class SMGProveNequality {
     while (ptoOptional.isPresent() && !ptoOptional.orElseThrow().pointsTo().isZero()) {
       SMGPointsToEdge pointerEdge = ptoOptional.orElseThrow();
       SMGObject nextObject = pointerEdge.pointsTo();
+      if (pointerEdge.targetSpecifier() == SMGTargetSpecifier.IS_REGION) {
+        break;
+      }
       checkArgument(nextObject instanceof SMGDoublyLinkedListSegment);
 
       SMGDoublyLinkedListSegment dlls = (SMGDoublyLinkedListSegment) nextObject;

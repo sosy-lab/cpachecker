@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.Comparators;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -193,38 +194,103 @@ class ASTConverter {
     ImmutableMap.Builder<String, Optional<FunctionAttribute>> builder = ImmutableMap.builder();
     KNOWN_FUNCTION_ATTRIBUTES =
         builder
+            // occurs in sv-benchmarks
+            .put("ldv_model", Optional.empty())
+            .put("ldv_model_inline", Optional.empty())
+            // https://gcc.gnu.org/onlinedocs/gcc-12.1.0/gcc/Common-Function-Attributes.html
             .put("access", Optional.empty())
             .put("alias", Optional.empty())
             .put("aligned", Optional.empty())
+            .put("alloc_align", Optional.empty())
             .put("alloc_size", Optional.empty())
             .put("always_inline", Optional.empty())
-            .put("cdecl", Optional.empty())
+            .put("assume_aligned", Optional.empty())
+            .put("cold", Optional.empty())
             .put("const", Optional.empty())
-            .put("dllimport", Optional.empty())
-            .put("fastcall", Optional.empty())
-            .put("format", Optional.empty())
             .put("deprecated", Optional.empty())
-            .put("ldv_model", Optional.empty())
-            .put("ldv_model_inline", Optional.empty())
+            .put("unavailable", Optional.empty())
+            .put("error", Optional.empty())
+            .put("warning", Optional.empty())
+            .put("externally_visible", Optional.empty())
+            .put("flatten", Optional.empty())
+            .put("format", Optional.empty())
+            .put("format_arg", Optional.empty())
+            .put("gnu_inline", Optional.empty())
+            .put("hot", Optional.empty())
+            .put("ifunc", Optional.empty())
+            .put("interrupt", Optional.empty())
+            .put("interrupt_handler", Optional.empty())
             .put("leaf", Optional.empty())
             .put("malloc", Optional.empty())
-            .put("mode", Optional.empty()) // handled in ASTConverter
+            .put("no_icf", Optional.empty())
             .put("no_instrument_function", Optional.empty())
+            .put("no_profile_instrument_function", Optional.empty())
+            .put("no_reorder", Optional.empty())
+            .put("no_sanitize", Optional.empty())
+            .put("no_sanitize_address", Optional.empty())
+            .put("no_address_safety_analysis", Optional.empty())
+            .put("no_sanitize_thread", Optional.empty())
+            .put("no_sanitize_undefined", Optional.empty())
+            .put("no_sanitize_coverage", Optional.empty())
+            .put("no_split_stack", Optional.empty())
+            .put("no_stack_limit", Optional.empty())
+            .put("noclone", Optional.empty())
             .put("noinline", Optional.empty())
+            .put("noipa", Optional.empty())
             .put("nonnull", Optional.empty())
+            .put("noplt", Optional.empty())
             .put("noreturn", Optional.of(FunctionAttribute.NO_RETURN))
             .put("nothrow", Optional.empty())
+            .put("optimize", Optional.empty())
+            .put("patchable_function_entry", Optional.empty())
             .put("pure", Optional.empty())
-            .put("regparm", Optional.empty())
+            .put("returns_nonnull", Optional.empty())
             .put("returns_twice", Optional.empty())
             .put("section", Optional.empty())
-            .put("stdcall", Optional.empty())
-            .put("warn_unused_result", Optional.empty())
+            .put("sentinel", Optional.empty())
+            .put("simd", Optional.empty())
+            .put("stack_protect", Optional.empty())
+            .put("no_stack_protector", Optional.empty())
+            .put("target", Optional.empty())
+            .put("symver", Optional.empty())
+            .put("tainted_args", Optional.empty())
+            .put("target_clones", Optional.empty())
             .put("unused", Optional.empty())
             .put("used", Optional.empty())
+            .put("retain", Optional.empty())
             .put("visibility", Optional.empty())
-            .put("warning", Optional.empty())
+            .put("warn_unused_result", Optional.empty())
             .put("weak", Optional.empty())
+            .put("weakref", Optional.empty())
+            .put("zero_call_used_regs", Optional.empty())
+            // https://gcc.gnu.org/onlinedocs/gcc-12.1.0/gcc/x86-Function-Attributes.html
+            .put("cdecl", Optional.empty())
+            .put("fastcall", Optional.empty())
+            .put("thiscall", Optional.empty())
+            .put("ms_abi", Optional.empty())
+            .put("sysv_abi", Optional.empty())
+            .put("callee_pop_aggregate_return", Optional.empty())
+            .put("ms_hook_prologue", Optional.empty())
+            .put("naked", Optional.empty())
+            .put("regparm", Optional.empty())
+            .put("sseregparm", Optional.empty())
+            .put("force_align_arg_pointer", Optional.empty())
+            .put("stdcall", Optional.empty())
+            .put("no_caller_saved_registers", Optional.empty())
+            .put("indirect_branch", Optional.empty())
+            .put("function_return", Optional.empty())
+            .put("nocf_check", Optional.empty())
+            .put("cf_check", Optional.empty())
+            .put("indirect_return", Optional.empty())
+            .put("fentry_name", Optional.empty())
+            .put("fentry_section", Optional.empty())
+            .put("nodirect_extern_access", Optional.empty())
+            // https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html
+            // might end up as a funciton attribute when used for the return type?
+            .put("mode", Optional.empty()) // handled by this class
+            // https://gcc.gnu.org/onlinedocs/gcc-12.1.0/gcc/Microsoft-Windows-Function-Attributes.html
+            .put("dllexport", Optional.empty())
+            .put("dllimport", Optional.empty())
             .buildOrThrow();
   }
 
@@ -586,6 +652,27 @@ class ASTConverter {
       return value == 0;
     }
     return false;
+  }
+
+  /**
+   * Evaluate a constant expression into an integer literal. This method is for cases where the
+   * frontend really needs to know the resulting int value, so we simplify the expression and force
+   * it to be evaluated even if otherwise we would not. So call this only if necessary.
+   */
+  private BigInteger evaluateIntegerConstantExpression(IASTExpression exp) {
+    CAstNode n = convertExpressionWithSideEffectsNotSimplified(exp);
+    if (!(n instanceof CExpression)) {
+      throw parseContext.parseError("Constant expression with side effect", exp);
+    }
+
+    CExpression e = simplifyExpressionRecursively((CExpression) n);
+    if (e instanceof CIntegerLiteralExpression) {
+      return ((CIntegerLiteralExpression) e).getValue();
+    } else if (e instanceof CCharLiteralExpression) {
+      return BigInteger.valueOf(((CCharLiteralExpression) e).getCharacter());
+    } else {
+      throw parseContext.parseError("Integer constant expression could not be evaluated", n);
+    }
   }
 
   private CAstNode convert(IGNUASTCompoundStatementExpression e) {
@@ -1130,8 +1217,10 @@ class ASTConverter {
         sideAssignmentStack.getAndResetPreSideAssignments();
         sideAssignmentStack.leaveBlock();
         if (params.size() == 2) {
-          if (areCompatibleTypes(
-              params.get(0).getExpressionType(), params.get(1).getExpressionType())) {
+          // Expression from convertExpressionWithoutSideEffects is null if type was void
+          CType type1 = params.get(0) == null ? CVoidType.VOID : params.get(0).getExpressionType();
+          CType type2 = params.get(1) == null ? CVoidType.VOID : params.get(1).getExpressionType();
+          if (areCompatibleTypes(type1, type2)) {
             return CIntegerLiteralExpression.ONE;
           } else {
             return CIntegerLiteralExpression.ZERO;
@@ -1536,8 +1625,10 @@ class ASTConverter {
 
       default:
         CType type;
-        if (e.getOperator() == IASTUnaryExpression.op_alignOf) {
-          type = CNumericTypes.INT;
+        if (e.getOperator() == IASTUnaryExpression.op_alignOf
+            || e.getOperator() == IASTUnaryExpression.op_sizeof) {
+          // C11 §6.5.3.4 (5) type is always size_t (CDT has wrong type for _Alignof)
+          type = CNumericTypes.SIZE_T;
         } else if (e.getOperator() == IASTUnaryExpression.op_minus
             && operand.getExpressionType() instanceof CSimpleType) {
           // CDT parser might get the type wrong in this case, e.g.:
@@ -1609,9 +1700,7 @@ class ASTConverter {
     CType expressionType;
     CType typeId = convert(e.getTypeId());
 
-    if (typeIdOperator == TypeIdOperator.ALIGNOF || typeIdOperator == TypeIdOperator.SIZEOF) {
-      // sizeof and _Alignof always return int, CDT sometimes provides wrong type
-      expressionType = CNumericTypes.INT;
+    if ((typeIdOperator == TypeIdOperator.ALIGNOF || typeIdOperator == TypeIdOperator.SIZEOF)) {
       if (typeId.isIncomplete()) {
         // Cannot compute alignment
         throw parseContext.parseError(
@@ -1621,6 +1710,8 @@ class ASTConverter {
                 + typeId,
             e);
       }
+      // C11 §6.5.3.4 (5) type is always size_t (CDT has wrong type for _Alignof)
+      expressionType = CNumericTypes.SIZE_T;
     } else {
       expressionType = typeConverter.convert(e.getExpressionType());
     }
@@ -2178,10 +2269,10 @@ class ASTConverter {
           IASTInitializerClause initClause =
               ((IASTEqualsInitializer) initializer).getInitializerClause();
           if (initClause instanceof IASTInitializerList) {
-            int length = 0;
-            int position = 0;
+            @Nullable BigInteger length = BigInteger.ZERO;
+            BigInteger position = BigInteger.ZERO;
             for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
-              if (length == -1) {
+              if (length == null) {
                 break;
               }
 
@@ -2189,50 +2280,39 @@ class ASTConverter {
                 for (ICASTDesignator designator :
                     ((ICASTDesignatedInitializer) x).getDesignators()) {
                   if (designator instanceof CASTArrayRangeDesignator) {
-                    CAstNode ceil =
-                        convertExpressionWithSideEffects(
+                    BigInteger c =
+                        evaluateIntegerConstantExpression(
                             ((CASTArrayRangeDesignator) designator).getRangeCeiling());
-                    if (ceil instanceof CIntegerLiteralExpression) {
-                      int c = ((CIntegerLiteralExpression) ceil).getValue().intValue();
-                      length = Math.max(length, c + 1);
-                      position = c + 1;
-
-                      // we need distinct numbers for the range bounds, if they
-                      // are not there we cannot calculate the length of the array
-                      // correctly
-                    } else {
-                      length = -1;
-                      break;
-                    }
+                    position = c.add(BigInteger.ONE);
+                    length = Comparators.max(length, position);
 
                   } else if (designator instanceof CASTArrayDesignator) {
-                    CAstNode subscript =
-                        convertExpressionWithSideEffects(
+                    BigInteger s =
+                        evaluateIntegerConstantExpression(
                             ((CASTArrayDesignator) designator).getSubscriptExpression());
-                    int s = ((CIntegerLiteralExpression) subscript).getValue().intValue();
-                    length = Math.max(length, s + 1);
-                    position = s + 1;
+                    position = s.add(BigInteger.ONE);
+                    length = Comparators.max(length, position);
 
                     // we only know the length of the CASTArrayDesignator and the
                     // CASTArrayRangeDesignator, all other designators
                     // have to be ignore, if one occurs, we cannot calculate the length of the array
                     // correctly
                   } else {
-                    length = -1;
+                    length = null;
                     break;
                   }
                 }
               } else {
-                position++;
-                length = Math.max(position, length);
+                position = position.add(BigInteger.ONE);
+                length = Comparators.max(position, length);
               }
             }
 
             // only adjust the length of the array if we definitely know it
-            if (length != -1) {
+            if (length != null) {
               CExpression lengthExp =
                   new CIntegerLiteralExpression(
-                      getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
+                      getLocation(initializer), CNumericTypes.INT, length);
 
               type =
                   new CArrayType(
@@ -2628,50 +2708,9 @@ class ASTConverter {
     if (e.getValue() == null && lastValue != null) {
       value = lastValue + 1;
     } else {
-      CExpression v = convertExpressionWithoutSideEffects(e.getValue());
-
-      // for enums we always expect constants and simplify them,
-      // even if 'cfa.simplifyConstExpressions is disabled.
-      // Lets assume that there is never a signed integer overflow or another property violation.
-      v = simplifyExpressionRecursively(v);
-
-      boolean negate = false;
-      boolean complement = false;
-
-      if (v instanceof CUnaryExpression
-          && ((CUnaryExpression) v).getOperator() == UnaryOperator.MINUS) {
-        CUnaryExpression u = (CUnaryExpression) v;
-        negate = true;
-        v = u.getOperand();
-      } else if (v instanceof CUnaryExpression
-          && ((CUnaryExpression) v).getOperator() == UnaryOperator.TILDE) {
-        CUnaryExpression u = (CUnaryExpression) v;
-        complement = true;
-        v = u.getOperand();
-      }
-      assert !(v instanceof CUnaryExpression) : v;
-
-      if (v instanceof CIntegerLiteralExpression) {
-        value = ((CIntegerLiteralExpression) v).asLong();
-      } else if (v instanceof CCharLiteralExpression) {
-        value = (long) ((CCharLiteralExpression) v).getCharacter();
-      } else {
-        // ignore unsupported enum value and set it to NULL.
-        // TODO bug? constant enums are ignored, if 'cfa.simplifyConstExpressions' is disabled.
-        logger.logf(
-            Level.WARNING,
-            "enum constant '%s = %s' was not simplified and will be ignored in the following.",
-            e.getName(),
-            v.toQualifiedASTString());
-      }
-
-      if (value != null) {
-        if (negate) {
-          value = -value;
-        } else if (complement) {
-          value = ~value;
-        }
-      }
+      // TODO Because we fully evaluate the expression here and never add e.getValue() itself
+      // to the AST, any overflows in it will not be detectable by the analysis.
+      value = evaluateIntegerConstantExpression(e.getValue()).longValueExact();
     }
 
     String name = convert(e.getName());

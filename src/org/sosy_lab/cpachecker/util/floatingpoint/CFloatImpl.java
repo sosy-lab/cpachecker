@@ -544,8 +544,8 @@ public class CFloatImpl extends CFloat {
       diff = tExp - oExp;
       rExp = tExp;
 
-      if ((diff > 2 * tSummand.getMantissaLength())
-          || (diff == 2 * tSummand.getMantissaLength()
+      if ((diff > 2 * (long) tSummand.getMantissaLength())
+          || (diff == 2 * (long) tSummand.getMantissaLength()
               && tSummand.getType() == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE)) {
         oMan = 0;
       } else {
@@ -577,8 +577,8 @@ public class CFloatImpl extends CFloat {
       diff = oExp - tExp;
       rExp = oExp;
 
-      if ((diff > 2 * tSummand.getMantissaLength())
-          || (diff == 2 * tSummand.getMantissaLength()
+      if ((diff > 2 * (long) tSummand.getMantissaLength())
+          || (diff == 2 * (long) tSummand.getMantissaLength()
               && tSummand.getType() == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE)) {
         tMan = 0;
       } else {

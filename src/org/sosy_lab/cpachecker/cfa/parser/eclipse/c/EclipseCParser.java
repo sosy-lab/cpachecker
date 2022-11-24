@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper.wrapCode;
+import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper.wrapFile;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
@@ -20,8 +22,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,18 +36,7 @@ import org.eclipse.cdt.core.dom.ast.IASTPreprocessorIncludeStatement;
 import org.eclipse.cdt.core.dom.ast.IASTProblem;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.cdt.core.dom.ast.gnu.c.GCCLanguage;
-import org.eclipse.cdt.core.dom.parser.c.ANSICParserExtensionConfiguration;
-import org.eclipse.cdt.core.dom.parser.c.ICParserExtensionConfiguration;
-import org.eclipse.cdt.core.index.IIndexFileLocation;
-import org.eclipse.cdt.core.model.ILanguage;
 import org.eclipse.cdt.core.parser.FileContent;
-import org.eclipse.cdt.core.parser.IParserLogService;
-import org.eclipse.cdt.core.parser.IScannerInfo;
-import org.eclipse.cdt.internal.core.parser.IMacroDictionary;
-import org.eclipse.cdt.internal.core.parser.InternalParserUtil;
-import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContent;
-import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContentProvider;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -63,12 +52,10 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
-/** Wrapper for Eclipse CDT */
+/** Parser based on Eclipse CDT */
 class EclipseCParser implements CParser {
 
-  private final ILanguage language;
-
-  private final IParserLogService parserLog;
+  private final EclipseCdtWrapper eclipseCdt;
 
   private final MachineModel machine;
   private final LogManager logger;
@@ -88,18 +75,8 @@ class EclipseCParser implements CParser {
     machine = pMachine;
     options = pOptions;
     shutdownNotifier = pShutdownNotifier;
-    parserLog = new ShutdownNotifierLogAdapter(pShutdownNotifier);
 
-    switch (pOptions.getDialect()) {
-      case C99:
-        language = new CLanguage(new ANSICParserExtensionConfiguration());
-        break;
-      case GNUC:
-        language = GCCLanguage.getDefault();
-        break;
-      default:
-        throw new IllegalArgumentException("Unknown C dialect");
-    }
+    eclipseCdt = new EclipseCdtWrapper(pOptions, pShutdownNotifier);
   }
 
   /**
@@ -111,15 +88,6 @@ class EclipseCParser implements CParser {
       return Path.of(".").resolve(path);
     }
     return path;
-  }
-
-  private FileContent wrapCode(Path pFileName, String pCode) {
-    return FileContent.create(pFileName.toString(), pCode.toCharArray());
-  }
-
-  private FileContent wrapFile(Path pFileName) throws IOException {
-    String code = Files.readString(pFileName, Charset.defaultCharset());
-    return wrapCode(pFileName, code);
   }
 
   private interface FileParseWrapper {
@@ -226,9 +194,7 @@ class EclipseCParser implements CParser {
               + func.getRawSignature());
     }
 
-    IASTStatement[] statements = ((IASTCompoundStatement) body).getStatements();
-
-    return statements;
+    return ((IASTCompoundStatement) body).getStatements();
   }
 
   private ASTConverter prepareTemporaryConverter(Scope scope) {
@@ -289,14 +255,11 @@ class EclipseCParser implements CParser {
     return nodeList;
   }
 
-  // we don't use IASTName#getImageLocation(), so the parser doesn't need to create them
-  protected static final int PARSER_OPTIONS = ILanguage.OPTION_NO_IMAGE_LOCATIONS;
-
   private IASTTranslationUnit parse(FileContent codeReader, ParseContext parseContext)
       throws CParserException, InterruptedException {
     parseTimer.start();
     try {
-      IASTTranslationUnit result = getASTTranslationUnit(codeReader);
+      IASTTranslationUnit result = eclipseCdt.getASTTranslationUnit(codeReader);
 
       // Separate handling of include problems
       // so that we can give a better error message.
@@ -325,21 +288,6 @@ class EclipseCParser implements CParser {
       throw new CParserException(e);
     } finally {
       parseTimer.stop();
-    }
-  }
-
-  private IASTTranslationUnit getASTTranslationUnit(FileContent pCode)
-      throws CFAGenerationRuntimeException, CoreException, InterruptedException {
-    try {
-      return language.getASTTranslationUnit(
-          pCode,
-          StubScannerInfo.instance,
-          FileContentProvider.instance,
-          null,
-          PARSER_OPTIONS,
-          parserLog);
-    } finally {
-      shutdownNotifier.shutdownIfNecessary();
     }
   }
 
@@ -449,120 +397,6 @@ class EclipseCParser implements CParser {
   @Override
   public Timer getCFAConstructionTime() {
     return cfaTimer;
-  }
-
-  /**
-   * Private class extending the Eclipse CDT class that is the starting point for using the parser.
-   * Supports choise of parser dialect.
-   */
-  @SuppressWarnings("unchecked")
-  private static class CLanguage extends GCCLanguage {
-
-    private final ICParserExtensionConfiguration parserConfig;
-
-    public CLanguage(ICParserExtensionConfiguration parserConfig) {
-      this.parserConfig = parserConfig;
-    }
-
-    @Override
-    protected ICParserExtensionConfiguration getParserExtensionConfiguration() {
-      return parserConfig;
-    }
-  }
-
-  /**
-   * Private class that tells the Eclipse CDT scanner that no macros and include paths have been
-   * defined externally.
-   */
-  protected static class StubScannerInfo implements IScannerInfo {
-
-    private static final ImmutableMap<String, String> MACROS;
-
-    static {
-      ImmutableMap.Builder<String, String> macrosBuilder = ImmutableMap.builder();
-
-      // _Static_assert(cond, msg) feature of C11
-      macrosBuilder.put("_Static_assert(c, m)", "");
-      // _Noreturn feature of C11
-      macrosBuilder.put("_Noreturn", "");
-
-      // These built-ins are defined as macros
-      // in org.eclipse.cdt.core.dom.parser.GNUScannerExtensionConfiguration.
-      // When the parser encounters their redefinition or
-      // some non-trivial usage in the code, we get parsing errors.
-      // So we redefine these macros to themselves in order to
-      // parse them as functions.
-      macrosBuilder.put("__builtin_constant_p", "__builtin_constant_p");
-      macrosBuilder.put(
-          "__builtin_types_compatible_p(t1,t2)",
-          "__builtin_types_compatible_p(({t1 arg1; arg1;}), ({t2 arg2; arg2;}))");
-      macrosBuilder.put("__offsetof__", "__offsetof__");
-      macrosBuilder.put("__builtin_offsetof(t,f)", "__builtin_offsetof(((t){}).f)");
-      macrosBuilder.put("__func__", "\"__func__\"");
-      macrosBuilder.put("__FUNCTION__", "\"__FUNCTION__\"");
-      macrosBuilder.put("__PRETTY_FUNCTION__", "\"__PRETTY_FUNCTION__\"");
-
-      // For vararg handling there are some interesting macros that we could use available at
-      // https://web.archive.org/web/20160801170919/http://research.microsoft.com/en-us/um/redmond/projects/invisible/include/stdarg.h.htm
-      // However, without proper support in the analysis, these just make things worse.
-      // Cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/711
-      // We need size of smallest addressable unit:
-      // macrosBuilder.put("_INTSIZEOF(n)", "((sizeof(n) + sizeof(int) - 1) & ~(sizeof(int) - 1))");
-      // macrosBuilder.put("__builtin_va_start(ap,v)", "(ap = (va_list)&v + _INTSIZEOF(v))");
-      // macrosBuilder.put("__builtin_va_arg(ap,t)", "*(t *)((ap += _INTSIZEOF(t)) -
-      // _INTSIZEOF(t))");
-      // macrosBuilder.put("__builtin_va_end(ap)", "(ap = (va_list)0)");
-
-      // But for now we just make sure that code with varargs can be parsed
-      macrosBuilder.put("__builtin_va_arg(ap,t)", "(t)__builtin_va_arg(ap)");
-
-      // specifying a GCC version >= 4.7 enables handling of 128-bit types in
-      // GCCScannerExtensionConfiguration
-      macrosBuilder.put("__GNUC__", "4");
-      macrosBuilder.put("__GNUC_MINOR__", "7");
-
-      // Our version of CDT does not recognize _Float128 yet:
-      // https://gitlab.com/sosy-lab/software/cpachecker/-/issues/471
-      macrosBuilder.put("_Float128", "__float128");
-      // https://gcc.gnu.org/onlinedocs/gcc/Floating-Types.html
-      // https://code.woboq.org/userspace/glibc/bits/floatn-common.h.html
-      macrosBuilder.put("_Float32", "float");
-      macrosBuilder.put("_Float32x", "double");
-      macrosBuilder.put("_Float64", "double");
-      macrosBuilder.put("_Float64x", "long double");
-
-      MACROS = macrosBuilder.buildOrThrow();
-    }
-
-    protected static final IScannerInfo instance = new StubScannerInfo();
-
-    @Override
-    public Map<String, String> getDefinedSymbols() {
-      // the externally defined pre-processor macros
-      return MACROS;
-    }
-
-    @Override
-    public String[] getIncludePaths() {
-      return new String[0];
-    }
-  }
-
-  private static class FileContentProvider extends InternalFileContentProvider {
-
-    static final InternalFileContentProvider instance = new FileContentProvider();
-
-    @Override
-    public InternalFileContent getContentForInclusion(
-        String pFilePath, IMacroDictionary pMacroDictionary) {
-      return InternalParserUtil.createExternalFileContent(
-          pFilePath, InternalParserUtil.SYSTEM_DEFAULT_ENCODING);
-    }
-
-    @Override
-    public InternalFileContent getContentForInclusion(IIndexFileLocation pIfl, String pAstPath) {
-      return InternalParserUtil.createFileContent(pIfl);
-    }
   }
 
   /**
