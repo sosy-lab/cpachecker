@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -246,16 +247,13 @@ public class FaultLocalizationByImport implements Algorithm {
         }
         reachedSet.clear();
         Set<CFAEdge> edges =
-            FluentIterable.from(faults)
-                .transformAndConcat(f -> f)
-                .transform(f -> f.correspondingEdge())
-                .toSet();
+            FluentIterable.concat(faults).transform(f -> f.correspondingEdge()).toSet();
+        Comparator<List<CFAEdge>> mostIntersections =
+            Comparator.comparingInt(
+                path -> Sets.intersection(ImmutableSet.copyOf(path), edges).size());
         List<CFAEdge> bestPath =
-            FluentIterable.from(findAllPaths(cfa.getMainFunction(), errorLocation))
-                .toSortedList(
-                    Comparator.comparingInt(
-                        path -> -Sets.intersection(ImmutableSet.copyOf(path), edges).size()))
-                .get(0);
+            Collections.max(findAllPaths(cfa.getMainFunction(), errorLocation), mostIntersections);
+        errorEdge = bestPath.get(bestPath.size() - 1);
         ARGState currState = null;
         LocationStateFactory factory =
             new LocationStateFactory(cfa, AnalysisDirection.FORWARD, config);
@@ -278,7 +276,7 @@ public class FaultLocalizationByImport implements Algorithm {
                         factory.getState(bestPath.get(bestPath.size() - 1).getSuccessor()))),
                 currState);
         reachedSet.addNoWaitlist(target, new Precision() {});
-        logger.log(Level.INFO, "Do not run analysis and apply rankings/explanations right away...");
+        logger.log(Level.INFO, "Apply rankings/explanations right away...");
         FaultScoring[] scoringArray = new FaultScoring[scorings.size()];
         for (int i = 0; i < scorings.size(); i++) {
           scoringArray[i] = instantiateScoring(scorings.get(i), errorEdge);
@@ -315,9 +313,9 @@ public class FaultLocalizationByImport implements Algorithm {
                 errorPath);
         info.apply();
       } catch (IndexOutOfBoundsException pE) {
-        throw new AssertionError("Could not find a path showing the violation.");
+        throw new AssertionError("Could not find a path showing the violation.", pE);
       } catch (InvalidConfigurationException pE) {
-        throw new AssertionError("Cannot create locations with factory");
+        throw new AssertionError("Configuration for LocationStateFactory was invalid.", pE);
       }
       try {
         new FaultLocalizationInfoExporter(config).export(faults, errorEdge);
