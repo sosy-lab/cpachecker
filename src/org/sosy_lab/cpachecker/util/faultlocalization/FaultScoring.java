@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
 /** Faults are ranked by their score. FaultScoring is meant to implement one measurement. */
@@ -30,7 +30,7 @@ public interface FaultScoring {
    *
    * @param faults obtained result set by any fault localization algorithm
    */
-  default void balancedScore(Set<Fault> faults) {
+  default void balancedScore(Collection<Fault> faults) {
     // NOTE: overriding this method is not recommended
     double overallScore = 0;
     List<RankInfo> infos = new ArrayList<>();
