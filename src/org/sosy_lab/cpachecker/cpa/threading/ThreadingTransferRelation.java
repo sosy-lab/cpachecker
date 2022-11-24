@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.cpa.threading.locks.MutexLock;
 import org.sosy_lab.cpachecker.cpa.threading.locks.RWLock;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
@@ -127,6 +126,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String RW_MUTEX_READLOCK = "pthread_rwlock_rdlock";
   private static final String RW_MUTEX_WRITELOCK = "pthread_rwlock_wrlock";
   private static final String THREAD_COND_WAIT = "pthread_cond_wait";
+  private static final String THREAD_COND_TIMEDWAIT = "pthread_cond_timedwait";
   private static final String THREAD_COND_SIGNAL = "pthread_cond_signal";
   private static final String THREAD_COND_BC = "pthread_cond_broadcast";
   private static final String VERIFIER_ATOMIC = "__VERIFIER_atomic_";
@@ -135,11 +135,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String ATOMIC_LOCK = "__CPAchecker_atomic_lock__";
   public static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
   private static final String THREAD_ID_SEPARATOR = "__CPAchecker__";
-
-  private static final ImmutableSet<String> UNSUPPORTED_THREAD_FUNCTIONS =
-      ImmutableSet.of(
-          // https://gitlab.com/sosy-lab/software/cpachecker/-/issues/929
-          "pthread_cond_timedwait");
 
   private static final ImmutableSet<String> THREAD_FUNCTIONS =
       ImmutableSet.of(
@@ -150,6 +145,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           RW_MUTEX_READLOCK,
           RW_MUTEX_WRITELOCK,
           THREAD_COND_WAIT,
+          THREAD_COND_TIMEDWAIT,
           THREAD_COND_SIGNAL,
           THREAD_COND_BC,
           THREAD_JOIN,
@@ -285,9 +281,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
                 ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
             if (functionNameExp instanceof AIdExpression) {
               final String functionName = ((AIdExpression) functionNameExp).getName();
-              if (UNSUPPORTED_THREAD_FUNCTIONS.contains(functionName)) {
-                throw new UnsupportedCodeException("pthread condition variables", cfaEdge);
-              }
               switch (functionName) {
                 case THREAD_START:
                   return startNewThread(threadingState, statement, results, cfaEdge);
