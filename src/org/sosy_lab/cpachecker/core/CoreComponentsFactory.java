@@ -550,7 +550,7 @@ public class CoreComponentsFactory {
           new RandomTestGeneratorAlgorithm(config, logger, shutdownNotifier, cfa, specification);
     } else if (useSamplingAlgorithm) {
       verifyNotNull(shutdownManager);
-      algorithm = new SamplingAlgorithm(config, logger, shutdownManager, cfa);
+      algorithm = new SamplingAlgorithm(config, logger, shutdownManager, cfa, specification);
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 

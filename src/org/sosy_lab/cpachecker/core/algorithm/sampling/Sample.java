@@ -8,42 +8,35 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.sampling;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class Sample {
 
-  // Formula that was used to create the sample
-  private final BooleanFormula pathFormula;
-  // Formula manager which created the stored path formula
-  private final FormulaManagerView fmgr;
-  // Mapping of variables to their respective values.
-  // Supported are boolean or numeral values (Rational/Double/BigInteger/Long/Integer)
-  private final Map<MemoryLocation, Object> variableValues;
+  // Mapping of variables to their respective values and types
+  private final ImmutableMap<MemoryLocation, ValueAndType> variableValues;
+  // Location where this sample occurs
+  private final CFANode location;
 
-  public Sample(
-      BooleanFormula pPathFormula,
-      FormulaManagerView pFmgr,
-      Map<MemoryLocation, Object> pVariableValues) {
-    pathFormula = pPathFormula;
-    fmgr = pFmgr;
-    variableValues = pVariableValues;
+  public Sample(Map<MemoryLocation, ValueAndType> pVariableValues, CFANode pLocation) {
+    variableValues = ImmutableMap.copyOf(pVariableValues);
+    location = pLocation;
   }
 
-  /** Gets the stored path formula for the original formula manager. */
-  public BooleanFormula getPathFormula() {
-    return pathFormula;
-  }
-
-  /** Gets the stored path formula for the given formula manager. */
-  public BooleanFormula getPathFormula(FormulaManagerView pFmgr) {
-    return pFmgr.translateFrom(pathFormula, fmgr);
-  }
-
-  public Map<MemoryLocation, Object> getVariableValues() {
+  public Map<MemoryLocation, ValueAndType> getVariableValues() {
     return variableValues;
+  }
+
+  public CFANode getLocation() {
+    return location;
+  }
+
+  public String writePrecisionFile() {
+    // TODO
+    return null;
   }
 
   @Override

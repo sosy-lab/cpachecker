@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.sampling;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
@@ -16,6 +15,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NestingAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -42,13 +43,14 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -66,13 +68,20 @@ public class SamplingAlgorithm extends NestingAlgorithm {
   private int numInitialSamples = 5;
 
   private final CFA cfa;
+  private final SampleUnrollingAlgorithm unrollingAlgorithm;
 
   public SamplingAlgorithm(
-      Configuration pConfig, LogManager pLogger, ShutdownManager pShutdownManager, CFA pCfa)
-      throws InvalidConfigurationException {
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownManager pShutdownManager,
+      CFA pCfa,
+      Specification pSpecification)
+      throws CPAException, InterruptedException, InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownManager.getNotifier(), Specification.alwaysSatisfied());
     pConfig.inject(this);
     cfa = pCfa;
+    unrollingAlgorithm =
+        new SampleUnrollingAlgorithm(pConfig, pLogger, pShutdownManager, pCfa, pSpecification);
   }
 
   @Override
@@ -91,175 +100,151 @@ public class SamplingAlgorithm extends NestingAlgorithm {
         "SamplingAlgorithm needs ForwardingReachedSet");
     ForwardingReachedSet reachedSet = (ForwardingReachedSet) pReachedSet;
 
-    if (cfa.getAllLoopHeads().isEmpty()) {
+    if (cfa.getLoopStructure().isEmpty()) {
       logger.log(Level.INFO, "Program contains no loops, nothing to do for SamplingAlgorithm.");
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
 
-    Set<Sample> samples = getInitialSamples(reachedSet, numInitialSamples);
-    for (Sample sample : samples) {
-      // TODO: Unroll samples
-    }
-
-    return AlgorithmStatus.NO_PROPERTY_CHECKED;
-  }
-
-  /**
-   * Collect some initial samples, i.e. positive samples that may occur when entering the loop for
-   * the first time.
-   */
-  private Set<Sample> getInitialSamples(ForwardingReachedSet reachedSet, int numSamples)
-      throws InterruptedException, CPAException, SolverException {
-    // Create algorithm for finding initial sample
-    Algorithm sampleAlgorithm;
-    ConfigurableProgramAnalysis sampleCPA;
-    ReachedSet sampleReachedSet;
+    // Create algorithm for building the ARG
+    Algorithm builderAlgorithm;
+    ConfigurableProgramAnalysis builderCPA;
+    ReachedSet builderReachedSet;
     Solver solver;
-    Path samplingConfig =
-        Path.of("config", "valueAnalysis-predicateAnalysis-Cegar-ABEl.properties");
-    // TODO: Generate specification based on loop structure
-    Path samplingSpec = Path.of("..", "sample_config.spc");
+    Path builderConfig = Path.of("config", "valueAnalysis-predicateAnalysis-Cegar-ABEl.properties");
     try {
-      Specification initialSamplingSpecification =
-          Specification.fromFiles(
-              ImmutableSet.of(samplingSpec), cfa, globalConfig, logger, shutdownNotifier);
-      Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> findInitialSample =
-          createNextAlgorithm(
-              samplingConfig,
+      Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> buildARG =
+          super.createAlgorithm(
+              builderConfig,
               extractLocation(reachedSet.getFirstState()),
               cfa,
               ShutdownManager.createWithParent(shutdownNotifier),
-              null,
-              initialSamplingSpecification);
-      sampleAlgorithm = findInitialSample.getFirst();
-      sampleCPA = findInitialSample.getSecond();
-      sampleReachedSet = findInitialSample.getThird();
+              AggregatedReachedSets.empty(),
+              ImmutableSet.of("analysis.useSamplingAlgorithm"),
+              Sets.newHashSet());
+      builderAlgorithm = buildARG.getFirst();
+      builderCPA = buildARG.getSecond();
+      builderReachedSet = buildARG.getThird();
       solver =
-          CPAs.retrieveCPAOrFail(sampleCPA, PredicateCPA.class, SamplingAlgorithmProto.class)
+          CPAs.retrieveCPAOrFail(builderCPA, PredicateCPA.class, SamplingAlgorithm.class)
               .getSolver();
     } catch (InvalidConfigurationException e) {
       logger.log(
           Level.WARNING,
           "Could not create algorithm for collecting initial samples due to invalid configuration");
-      return ImmutableSet.of();
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
     } catch (IOException e) {
       logger.log(Level.WARNING, "Could not load configuration for initial sampling");
-      return ImmutableSet.of();
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
 
-    // Run analysis until loop is entered.
-    // This is done by considering the loop start as target location.
-    reachedSet.setDelegate(sampleReachedSet);
-    logger.log(Level.INFO, "Collecting initial samples");
-    sampleAlgorithm.run(sampleReachedSet);
+    // Run analysis to create ARG
+    reachedSet.setDelegate(builderReachedSet);
+    logger.log(Level.INFO, "Building ARG...");
+    builderAlgorithm.run(reachedSet);
     shutdownNotifier.shutdownIfNecessary();
-    // If the loop can never be entered there is no need for a loop invariant
-    if (!sampleReachedSet.wasTargetReached()) {
-      logger.logf(Level.WARNING, "Loop not reachable, failed to generate samples");
-      return ImmutableSet.of();
+
+    ImmutableSet.Builder<Sample> samples = ImmutableSet.builder();
+
+    // Collect some positive samples using predicate-based and value-based sampling
+    for (Loop loop : cfa.getLoopStructure().get().getAllLoops()) {
+      for (Sample sample : getInitialPositiveSamples(reachedSet, solver, loop, numInitialSamples)) {
+        samples.addAll(unrollingAlgorithm.unrollSample(sample, loop));
+      }
     }
 
-    // The config used for finding initial samples already creates a counterexample, so there is no
-    // need to build another target path.
-    ARGState lastState = (ARGState) reachedSet.getLastState();
-    assert lastState.isTarget();
-    ARGPath targetPath = lastState.getCounterexampleInformation().orElseThrow().getTargetPath();
+    // TODO: Now get initial negative samples and unroll backwards
 
-    // Extract initial samples from target path
-    return generateSamplesFromTargetPath(targetPath, solver, numSamples);
+    // TODO: Then build samples and write to file
+
+    return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  private Set<Sample> generateSamplesFromTargetPath(
-      ARGPath targetPath, Solver solver, int numSamples)
+  /**
+   * Collect some initial positive samples, i.e. samples that may occur when entering the loop.
+   *
+   * <p>This function implements predicate-based sampling.
+   */
+  private Set<Sample> getInitialPositiveSamples(
+      ForwardingReachedSet reachedSet, Solver solver, Loop loop, int numSamples)
       throws InterruptedException, SolverException {
-    // Create formula for target location
     BooleanFormulaManager bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
-    List<BooleanFormula> pathFormulas = new ArrayList<>();
-    List<AbstractState> abstractionStates =
-        from(targetPath.asStatesList())
-            .skip(1)
-            .filter(PredicateAbstractState::containsAbstractionState)
-            .transform(state -> (AbstractState) state)
-            .toList();
-    for (PredicateAbstractState e :
-        AbstractStates.projectToType(abstractionStates, PredicateAbstractState.class)) {
-      // Conjuncting block formula of last abstraction and current path formula
-      // works regardless of state is an abstraction state or not.
-      BooleanFormula pathFormula =
-          bfmgr.and(
-              e.getAbstractionFormula().getBlockFormula().getFormula(),
-              e.getPathFormula().getFormula());
-      pathFormulas.add(pathFormula);
-    }
-    BooleanFormula formula = bfmgr.and(pathFormulas);
 
-    // Collect models
-    List<List<ValueAssignment>> models = new ArrayList<>();
-    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      prover.push(formula);
-      while (models.size() < numSamples) {
-        if (prover.isUnsat()) {
-          logger.logf(
-              Level.INFO,
-              "Exhausted all satisfying models, collected only %s samples",
-              models.size());
-          break;
-        }
-        models.add(prover.getModelAssignments());
-        List<BooleanFormula> modelFormulas = new ArrayList<>();
-        for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
-          modelFormulas.add(modelAssignment.getAssignmentAsFormula());
-        }
-        prover.addConstraint(bfmgr.not(bfmgr.and(modelFormulas)));
-      }
-      prover.pop();
-    }
-
-    // Extract samples from models
+    // Collect some positive samples for each loop head.
+    // Different loop heads potentially correspond to different paths to enter the loop and even if
+    // some are redundant we collect at most numSamples * (numLoopHeads - 1) redundant samples which
+    // should be small.
     Set<Sample> samples = new HashSet<>();
-    for (List<ValueAssignment> model : models) {
-      Map<MemoryLocation, Object> variableValues = new HashMap<>();
-      for (ValueAssignment assignment : model) {
-        String varName = assignment.getName();
-        List<String> parts = Splitter.on("@").splitToList(varName);
-        if (!parts.get(0).contains("::")) {
-          // Current assignment is a function result
-          // TODO: Can this really not be an unqualified variable?
-          continue;
+    for (CFANode loopHead : loop.getLoopHeads()) {
+      // Extract path formulas at the loop head
+      ImmutableSet.Builder<BooleanFormula> formulaBuilder = ImmutableSet.builder();
+      // TODO: We want a LocationMappedReachedSet inside the ForwardingReachedSet for maximum
+      //  efficiency
+      for (AbstractState state : reachedSet.getReached(loopHead)) {
+        if (loopHead.equals(AbstractStates.extractLocation(state))) {
+          PredicateAbstractState predicateState =
+              AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+          BooleanFormula formula =
+              bfmgr.and(
+                  predicateState.getAbstractionFormula().getBlockFormula().getFormula(),
+                  predicateState.getPathFormula().getFormula());
+          formulaBuilder.add(formula);
         }
-        MemoryLocation var = MemoryLocation.fromQualifiedName(parts.get(0));
-        Object value = assignment.getValue();
-        variableValues.put(var, value);
       }
-      samples.add(new Sample(formula, solver.getFormulaManager(), variableValues));
+      ImmutableSet<BooleanFormula> formulas = formulaBuilder.build();
+
+      // Next, get satisfying models from SMT solver
+      try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+        for (BooleanFormula formula : formulas) {
+          List<List<ValueAssignment>> models = new ArrayList<>(numSamples);
+          prover.push(formula);
+          while (models.size() < numSamples) {
+            if (prover.isUnsat()) {
+              logger.logf(
+                  Level.INFO,
+                  "Exhausted all satisfying models, collected only %s samples",
+                  models.size());
+              break;
+            }
+            models.add(prover.getModelAssignments());
+            List<BooleanFormula> modelFormulas = new ArrayList<>();
+            for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
+              modelFormulas.add(modelAssignment.getAssignmentAsFormula());
+            }
+            prover.addConstraint(bfmgr.not(bfmgr.and(modelFormulas)));
+
+            samples.add(extractSampleFromModel(prover.getModelAssignments(), loopHead));
+          }
+          prover.pop();
+        }
+      }
     }
     return samples;
   }
 
-  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(
-      Path singleConfigFileName,
-      CFANode pInitialNode,
-      CFA pCfa,
-      ShutdownManager singleShutdownManager,
-      ReachedSet currentReachedSet,
-      Specification pSpecification)
-      throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
-    AggregatedReachedSets aggregatedReachedSets;
-    if (currentReachedSet != null) {
-      aggregatedReachedSets = AggregatedReachedSets.singleton(currentReachedSet);
-    } else {
-      aggregatedReachedSets = AggregatedReachedSets.empty();
-    }
+  private Sample extractSampleFromModel(List<ValueAssignment> model, CFANode location) {
+    Map<MemoryLocation, ValueAndType> variableValues = new HashMap<>();
+    for (ValueAssignment assignment : model) {
+      String varName = assignment.getName();
+      List<String> parts = Splitter.on("@").splitToList(varName);
+      if (!parts.get(0).contains("::")) {
+        // Current assignment is a function result
+        // TODO: Can this really not be an unqualified variable?
+        continue;
+      }
+      MemoryLocation var = MemoryLocation.fromQualifiedName(parts.get(0));
 
-    return super.createAlgorithmWithSpecification(
-        singleConfigFileName,
-        pInitialNode,
-        pCfa,
-        singleShutdownManager,
-        aggregatedReachedSets,
-        pSpecification,
-        ImmutableSet.of("analysis.useSamplingAlgorithm"),
-        Sets.newHashSet());
+      Object value = assignment.getValue();
+      ValueAndType valueAndType;
+      if (value instanceof BigInteger) {
+        valueAndType =
+            new ValueAndType(new NumericValue((BigInteger) value), CNumericTypes.LONG_LONG_INT);
+      } else {
+        throw new AssertionError(
+            "Unhandled type for value assignment: " + assignment.getValue().getClass());
+      }
+      variableValues.put(var, valueAndType);
+    }
+    return new Sample(variableValues, location);
   }
 
   @Override

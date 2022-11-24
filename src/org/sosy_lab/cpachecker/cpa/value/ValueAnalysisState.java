@@ -150,7 +150,7 @@ public final class ValueAnalysisState
    * @param variableName name of the variable.
    * @param value value to be assigned.
    */
-  public void assignConstant(String variableName, Value value) {
+  void assignConstant(String variableName, Value value) {
     addToConstantsMap(MemoryLocation.parseExtendedQualifiedName(variableName), value, null);
   }
 
