@@ -39,8 +39,18 @@
 # for CPAchecker.
 
 _cpachecker_completions() {
-    if [[ "$2" == "-"* ]]; then
-        local cpachecker_dir="$(dirname $(which "$1"))/.."
+    local prev="${COMP_WORDS[COMP_CWORD-1]}"
+    local current="${COMP_WORDS[COMP_CWORD]}"
+    local cpachecker_dir="$(dirname $(which "$1"))/.."
+    if [[ "$prev" == "-spec" ]]; then
+        local spec_dir=${cpachecker_dir}/config/specification
+        if [[ -e "$spec_dir" ]]; then
+            local specs=$(find "$spec_dir" -maxdepth 1 -name '*.spc' -printf '%f\n' | rev | cut -d"." -f2- | rev)
+        fi
+
+        COMPREPLY+=($(compgen -W "${specs}" -- "$current"))
+
+    elif [[ "$current" == "-"* ]]; then
         local config_dir=${cpachecker_dir}/config
         local params="-32 -64 -benchmark -cbmc -cmc -config -cp -classpath -cpas -entryfunction -h -help -java -logfile -nolog -noout -outputpath -preprocess -printOptions -printUsedOptions -secureMode -setprop -skipRecursion -sourcepath -spec -stats -timelimit -witness"
 
@@ -48,7 +58,7 @@ _cpachecker_completions() {
             params="$params $(find $config_dir -maxdepth 1 -name '*.properties' -printf '-%f\n' | rev | cut -d"." -f2- | rev)"
         fi
 
-        COMPREPLY+=($(compgen -W "${params}" -- "$2"))
+        COMPREPLY+=($(compgen -W "${params}" -- "$current"))
     fi
 }
 

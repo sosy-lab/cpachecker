@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -203,6 +204,7 @@ class AcyclicGraph {
    * @param pNewRootNode the new root node.
    * @return this graph with all nodes and edges removed.
    */
+  @CanIgnoreReturnValue
   public AcyclicGraph reset(CFANode pNewRootNode) {
     abort();
     this.edges.clear();

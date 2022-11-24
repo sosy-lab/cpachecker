@@ -12,9 +12,9 @@ variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: e842c376f095c5307f72391f1286bd438f455b97
+  REFASTER_REPO_REVISION: 0287f114a4fa2af2e4e743b9cbf86d179d89553a
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.13.1
+  REFASTER_VERSION: 2.15.0
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
   npm_config_cache: "${CI_PROJECT_DIR}/.cache/npm"
   npm_config_prefer_offline: "true"
@@ -195,7 +195,7 @@ build-docker:release:
   extends: .build-docker
   variables:
     DOCKERFILE: build/Dockerfile.release
-    IMAGE: ":2.1.1"
+    IMAGE: ":2.2"
     EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest"
 
 
@@ -235,7 +235,7 @@ check-format-python:
   before_script:
     - pip install black
   script:
-    - black . --check --diff
+    - black . --check --diff --include='contrib/.*\.py'
   <<: *pip-cache
 
 flake8:
@@ -244,7 +244,7 @@ flake8:
   needs: []
   image: python:3.8
   before_script:
-    - "pip install 'flake8<4' 'bandit==1.7.2' flake8-awesome"
+    - "pip install 'flake8<6' flake8-awesome"
   script:
     - flake8
   <<: *pip-cache

@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -29,18 +30,18 @@ public class NoContextExplanation implements FaultExplanation {
   private NoContextExplanation() {}
 
   /**
-   * This method relies on singleton sets otherwise an error is thrown. Make a suggestion for a bug
-   * fix based on the EdgeType.
+   * Make a suggestion for a bug-fix based on the EdgeType.
    *
    * @param subset set of FaultLocalizationOutputs.
    * @return explanation of what might be a fix
-   * @see
-   *     org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo#possibleFixFor(FaultContribution)
+   * @see org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo#possibleFixFor(Fault)
    */
   @Override
   public String explanationFor(Fault subset) {
-    checkArgument(subset.size() == 1, "NoContextExplanation requires exactly one edge in Fault");
-    FaultContribution faultContribution = subset.iterator().next();
+    return from(subset).transform(this::explain).join(Joiner.on("\n\n"));
+  }
+
+  private String explain(FaultContribution faultContribution) {
     CFAEdge pEdge = faultContribution.correspondingEdge();
     String description = pEdge.getDescription();
     switch (pEdge.getEdgeType()) {

@@ -36,10 +36,10 @@ import org.sosy_lab.java_smt.api.SolverException;
 /**
  * This helper class provides utility functions for algorithms that require formulas encoding the
  * transition of a complete loop-unrolling in their analysis. Such algorithms, including {@link
- * IMCAlgorithm} and {@link ISMCAlgorithm}, often assume single-loop programs as input and have to
- * be used with large-blocking encoding such that the block formulas of the abstraction states at
- * loop heads represent the transition formula of a complete loop. An ARG under this setting has a
- * sequence of abstraction states whose locations are the unique loop head.
+ * IMCAlgorithm}, often assume single-loop programs as input and have to be used with large-blocking
+ * encoding such that the block formulas of the abstraction states at loop heads represent the
+ * transition formula of a complete loop. An ARG under this setting has a sequence of abstraction
+ * states whose locations are the unique loop head.
  *
  * <p>This class implements methods to check if an ARG has the required shape and collect formulas
  * from such ARGs.

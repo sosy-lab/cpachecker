@@ -40,12 +40,12 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantStoreEntry;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantStoreEntryLocation;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantStoreEntryLoopInvariant;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantStoreEntryMetadata;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantStoreEntryProducer;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantStoreEntryTask;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InformationRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.ProducerRecord;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.TaskRecord;
 
 /**
  * Class to export invariants in the invariant-witness format.
@@ -60,8 +60,8 @@ public final class InvariantWitnessWriter {
   private final LogManager logger;
   private final ObjectMapper mapper;
 
-  private final InvariantStoreEntryProducer producerDescription;
-  private final InvariantStoreEntryTask taskDescription;
+  private final ProducerRecord producerDescription;
+  private final TaskRecord taskDescription;
 
   @Option(secure = true, description = "The directory where the invariants are stored.")
   @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
@@ -71,8 +71,8 @@ public final class InvariantWitnessWriter {
       Configuration pConfig,
       LogManager pLogger,
       ListMultimap<String, Integer> pLineOffsetsByFile,
-      InvariantStoreEntryProducer pProducerDescription,
-      InvariantStoreEntryTask pTaskDescription)
+      ProducerRecord pProducerDescription,
+      TaskRecord pTaskDescription)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
@@ -111,7 +111,7 @@ public final class InvariantWitnessWriter {
         pConfig,
         pLogger,
         InvariantStoreUtil.getLineOffsetsByFile(pCFA.getFileNames()),
-        new InvariantStoreEntryProducer(
+        new ProducerRecord(
             "CPAchecker",
             CPAchecker.getPlainVersion(),
             CPAchecker.getApproachName(pConfig),
@@ -120,7 +120,7 @@ public final class InvariantWitnessWriter {
         getTaskDescription(pCFA, pSpecification));
   }
 
-  private static InvariantStoreEntryTask getTaskDescription(CFA pCFA, Specification pSpecification)
+  private static TaskRecord getTaskDescription(CFA pCFA, Specification pSpecification)
       throws IOException {
     List<Path> inputFiles = pCFA.getFileNames();
     ImmutableMap.Builder<String, String> inputFileHashes = ImmutableMap.builder();
@@ -129,7 +129,7 @@ public final class InvariantWitnessWriter {
     }
     String specification = pSpecification.getProperties().iterator().next().toString();
 
-    return new InvariantStoreEntryTask(
+    return new TaskRecord(
         inputFiles.stream().map(Path::toString).collect(ImmutableList.toImmutableList()),
         inputFileHashes.buildOrThrow(),
         specification,
@@ -164,7 +164,7 @@ public final class InvariantWitnessWriter {
    *     definition of the invariant-witness format) invalid.
    */
   public void exportInvariantWitness(InvariantWitness invariantWitness) throws IOException {
-    InvariantStoreEntry entry = invariantWitnessToStoreEnty(invariantWitness);
+    LoopInvariantEntry entry = invariantWitnessToStoreEnty(invariantWitness);
     String entryYaml = mapper.writeValueAsString(ImmutableList.of(entry));
 
     Path outFile = outDir.resolve(entry.getMetadata().getUuid() + ".invariantwitness.yaml");
@@ -174,12 +174,12 @@ public final class InvariantWitnessWriter {
     }
   }
 
-  private InvariantStoreEntry invariantWitnessToStoreEnty(InvariantWitness invariantWitness) {
+  private LoopInvariantEntry invariantWitnessToStoreEnty(InvariantWitness invariantWitness) {
     ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
     String creationTime = now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 
-    final InvariantStoreEntryMetadata metadata =
-        new InvariantStoreEntryMetadata(
+    final MetadataRecord metadata =
+        new MetadataRecord(
             "0.1",
             UUID.randomUUID().toString(),
             creationTime,
@@ -191,20 +191,19 @@ public final class InvariantWitnessWriter {
     final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
     final int offsetInLine = invariantWitness.getLocation().getNodeOffset() - lineOffset;
 
-    InvariantStoreEntryLocation location =
-        new InvariantStoreEntryLocation(
+    LocationRecord location =
+        new LocationRecord(
             fileName,
             "file_hash",
             lineNumber,
             offsetInLine,
             invariantWitness.getNode().getFunctionName());
 
-    InvariantStoreEntryLoopInvariant invariant =
-        new InvariantStoreEntryLoopInvariant(
-            invariantWitness.getFormula().toString(), "assertion", "C");
+    InformationRecord invariant =
+        new InformationRecord(invariantWitness.getFormula().toString(), "assertion", "C");
 
-    InvariantStoreEntry entry =
-        new InvariantStoreEntry("loop_invariant", metadata, location, invariant);
+    LoopInvariantEntry entry =
+        new LoopInvariantEntry("loop_invariant", metadata, location, invariant);
 
     return entry;
   }

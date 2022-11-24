@@ -164,6 +164,12 @@ public class CFASecondPassBuilder {
       // Our CFA structure currently does not support this,
       // so insert a dummy node and a blank edge.
       CFANode tmp = new CFANode(successorNode.getFunction());
+      // Temporary hack for #989. Without this, tmp would have reverse post-order id 0 because
+      // CFASecondPassBuilder runs after these ids are assigned.
+      // Just copying the one from the previous node is also wrong because the ids should be unique
+      // but at least better than 0 because it does not break the waitlist-traversal strategy.
+      tmp.setReversePostorderId(predecessorNode.getReversePostorderId());
+
       cfa.addNode(tmp);
       CFAEdge tmpEdge = new BlankEdge("", FileLocation.DUMMY, tmp, successorNode, "");
       CFACreationUtils.addEdgeUnconditionallyToCFA(tmpEdge);

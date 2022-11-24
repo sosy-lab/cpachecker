@@ -53,6 +53,11 @@ public final class CPointerType implements CType, Serializable {
   }
 
   @Override
+  public boolean hasKnownConstantSize() {
+    return true;
+  }
+
+  @Override
   public String toString() {
     String decl;
 

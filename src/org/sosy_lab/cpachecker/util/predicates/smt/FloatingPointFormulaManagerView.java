@@ -38,19 +38,22 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
   }
 
   @Override
-  public <T extends Formula> T castTo(FloatingPointFormula pNumber, FormulaType<T> pTargetType) {
+  public <T extends Formula> T castTo(
+      FloatingPointFormula pNumber, boolean pSigned, FormulaType<T> pTargetType) {
     // This method needs to unwrap/wrap pTargetType and the return value,
     // in case they are replaced with other formula types.
-    return wrap(pTargetType, manager.castTo(pNumber, unwrapType(pTargetType)));
+    return wrap(pTargetType, manager.castTo(pNumber, pSigned, unwrapType(pTargetType)));
   }
 
   @Override
   public <T extends Formula> T castTo(
       FloatingPointFormula number,
+      boolean pSigned,
       FormulaType<T> targetType,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
     return wrap(
-        targetType, manager.castTo(number, unwrapType(targetType), pFloatingPointRoundingMode));
+        targetType,
+        manager.castTo(number, pSigned, unwrapType(targetType), pFloatingPointRoundingMode));
   }
 
   @Override

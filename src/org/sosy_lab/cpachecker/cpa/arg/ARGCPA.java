@@ -81,13 +81,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   @Option(
       secure = true,
       description =
-          "If this option is enabled, ARG states will also be merged if the first wrapped state "
-              + "is subsumed by the second wrapped state (and the parents are not yet subsumed).")
-  private boolean mergeOnWrappedSubsumption = false;
-
-  @Option(
-      secure = true,
-      description =
           "prevent the stop-operator from aborting the stop-check early when it crosses a target"
               + " state")
   private boolean coverTargetStates = false;
@@ -101,7 +94,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   private boolean enableStateReduction = true;
 
   private final LogManager logger;
-
+  private final ARGMergeJoin.MergeOptions mergeOptions;
   private final ARGStatistics stats;
 
   private ARGCPA(
@@ -114,6 +107,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA
     super(cpa);
     config.inject(this);
     this.logger = logger;
+    mergeOptions = new ARGMergeJoin.MergeOptions(config);
     stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
   }
 
@@ -136,7 +130,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA
       return new ARGMergeJoinCPAEnabledAnalysis(wrappedMergeOperator, deleteInCPAEnabledAnalysis);
     } else {
       return new ARGMergeJoin(
-          wrappedMergeOperator, getWrappedCpa().getAbstractDomain(), mergeOnWrappedSubsumption);
+          wrappedMergeOperator, getWrappedCpa().getAbstractDomain(), logger, mergeOptions);
     }
   }
 

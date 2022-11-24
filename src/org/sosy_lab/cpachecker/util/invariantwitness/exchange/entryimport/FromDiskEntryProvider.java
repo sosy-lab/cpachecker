@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.invariantwitness.exchange.entryimport;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.collect.FluentIterable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -30,7 +31,8 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantStoreEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
 
 /**
  * Watches a directory for new invariant-store entries and reads and returns them.
@@ -50,7 +52,7 @@ class FromDiskEntryProvider implements AutoCloseable {
   @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
   private Path storeDirectory = Path.of("invariantWitnesses");
 
-  private final Queue<InvariantStoreEntry> loadedEntries;
+  private final Queue<LoopInvariantEntry> loadedEntries;
   private final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
   private final JavaType entryType;
 
@@ -60,8 +62,7 @@ class FromDiskEntryProvider implements AutoCloseable {
     pConfig.inject(this);
     loadedEntries = new ArrayDeque<>();
 
-    entryType =
-        mapper.getTypeFactory().constructCollectionType(List.class, InvariantStoreEntry.class);
+    entryType = mapper.getTypeFactory().constructCollectionType(List.class, AbstractEntry.class);
   }
 
   static FromDiskEntryProvider getNewFromDiskEntryProvider(Configuration pConfig)
@@ -76,7 +77,7 @@ class FromDiskEntryProvider implements AutoCloseable {
    * @return optional invariant
    * @throws IOException if accessing the invariant files fails
    */
-  Optional<InvariantStoreEntry> getNext() throws IOException {
+  Optional<LoopInvariantEntry> getNext() throws IOException {
     synchronized (this) {
       if (!loadedEntries.isEmpty()) {
         return Optional.of(loadedEntries.remove());
@@ -96,7 +97,7 @@ class FromDiskEntryProvider implements AutoCloseable {
    * @return next available invariant.
    * @throws IOException if accessing the invariant files fails
    */
-  InvariantStoreEntry awaitNext() throws InterruptedException, IOException {
+  LoopInvariantEntry awaitNext() throws InterruptedException, IOException {
     synchronized (this) {
       if (!loadedEntries.isEmpty()) {
         return loadedEntries.remove();
@@ -147,8 +148,8 @@ class FromDiskEntryProvider implements AutoCloseable {
   }
 
   private synchronized void loadEntries(File entriesFile) throws IOException {
-    List<InvariantStoreEntry> entries = mapper.readValue(entriesFile, entryType);
-    loadedEntries.addAll(entries);
+    List<AbstractEntry> entries = mapper.readValue(entriesFile, entryType);
+    FluentIterable.from(entries).filter(LoopInvariantEntry.class).copyInto(loadedEntries);
   }
 
   @Override

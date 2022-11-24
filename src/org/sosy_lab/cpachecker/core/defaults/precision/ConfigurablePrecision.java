@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.defaults.precision;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Multimap;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Objects;
@@ -214,6 +215,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     writer.write("# configured precision used - nothing to show here");
   }
 
+  @CanIgnoreReturnValue
   @Override
   public VariableTrackingPrecision join(VariableTrackingPrecision consolidatedPrecision) {
     Preconditions.checkArgument(getClass().equals(consolidatedPrecision.getClass()));

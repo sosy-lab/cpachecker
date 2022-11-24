@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 
@@ -156,8 +157,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structures for handling goto
   private final Map<String, CFALabelNode> labelMap = new HashMap<>();
-  private final Multimap<String, Pair<CFANode, FileLocation>> gotoLabelNeeded =
-      ArrayListMultimap.create();
+  private final Multimap<String, GotoInformation> gotoLabelNeeded = ArrayListMultimap.create();
 
   // Data structures for handling function declarations
   private FunctionEntryNode cfa = null;
@@ -777,18 +777,17 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     // Check if any goto's previously analyzed need connections to this label
-    for (Pair<CFANode, FileLocation> gotoNode : gotoLabelNeeded.get(labelName)) {
-      String description = "Goto: " + labelName;
+    for (GotoInformation gotoInfo : gotoLabelNeeded.get(labelName)) {
       BlankEdge gotoEdge =
-          new BlankEdge(
-              description,
-              onlyFirstLine(gotoNode.getSecond()),
-              gotoNode.getFirst(),
+          createGotoEdge(
+              gotoInfo.getGotoStatement(),
+              gotoInfo.getFileLoc(),
+              gotoInfo.getPrevNode(),
               labelNode,
-              description);
+              labelName);
       addToCFA(gotoEdge);
 
-      FileLocation gotoLocation = gotoNode.getSecondNotNull();
+      FileLocation gotoLocation = gotoInfo.getFileLoc();
       for (StatementBlock block :
           FluentIterable.from(blocks).filter(StatementBlock.class).toList()) {
         if (block.getStartOffset() <= gotoLocation.getNodeOffset()
@@ -833,9 +832,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     if (labelNode != null) {
-      BlankEdge gotoEdge =
-          new BlankEdge(
-              gotoStatement.getRawSignature(), fileloc, prevNode, labelNode, "Goto: " + labelName);
+      BlankEdge gotoEdge = createGotoEdge(gotoStatement, fileloc, prevNode, labelNode, labelName);
 
       for (StatementBlock block :
           FluentIterable.from(blocks).filter(StatementBlock.class).toList()) {
@@ -856,11 +853,21 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       addToCFA(gotoEdge);
     } else {
-      gotoLabelNeeded.put(labelName, Pair.of(prevNode, fileloc));
+      gotoLabelNeeded.put(labelName, new GotoInformation(prevNode, gotoStatement, fileloc));
     }
 
     CFANode nextNode = newCFANode();
     locStack.push(nextNode);
+  }
+
+  private BlankEdge createGotoEdge(
+      IASTGotoStatement gotoStatement,
+      FileLocation fileloc,
+      CFANode prevNode,
+      CFANode labelNode,
+      String labelName) {
+    return new BlankEdge(
+        gotoStatement.getRawSignature(), fileloc, prevNode, labelNode, "Goto: " + labelName);
   }
 
   /**
@@ -2602,6 +2609,35 @@ class CFAFunctionBuilder extends ASTVisitor {
       } else {
         throw new AssertionError();
       }
+    }
+  }
+
+  private static final class GotoInformation {
+
+    private final CFANode prevNode;
+    private final IASTGotoStatement gotoStatement;
+    private final FileLocation fileLoc;
+
+    private GotoInformation(
+        final CFANode pPrevNode,
+        final IASTGotoStatement pGotoStatement,
+        final FileLocation pFileLoc) {
+
+      prevNode = pPrevNode;
+      gotoStatement = checkNotNull(pGotoStatement);
+      fileLoc = checkNotNull(pFileLoc);
+    }
+
+    public CFANode getPrevNode() {
+      return prevNode;
+    }
+
+    public IASTGotoStatement getGotoStatement() {
+      return gotoStatement;
+    }
+
+    public FileLocation getFileLoc() {
+      return fileLoc;
     }
   }
 }

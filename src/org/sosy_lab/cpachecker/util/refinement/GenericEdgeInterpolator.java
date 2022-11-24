@@ -108,6 +108,11 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
     }
   }
 
+  // For subclasses
+  protected FeasibilityChecker<S> getFeasibilityChecker() {
+    return checker;
+  }
+
   /**
    * This method derives an interpolant for the given error path and interpolation state.
    *
@@ -117,6 +122,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * @param pOffset offset of the state at where to start the current interpolation
    * @param pInputInterpolant the input interpolant
    */
+  @SuppressWarnings("unchecked")
   @Override
   public I deriveInterpolant(
       final ARGPath pErrorPath,
@@ -217,8 +223,10 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * current edge would also end up in the final interpolant. This optimization was removed again in
    * commit r16007 because the payoff did not justify maintaining the code, esp. as other
    * optimizations work equally well with less code.
+   *
+   * <p>Protected for subclass access only!
    */
-  private Set<MemoryLocation> determineMemoryLocationsToInterpolateOn(
+  protected Set<MemoryLocation> determineMemoryLocationsToInterpolateOn(
       final S candidateInterpolant) {
     return candidateInterpolant.getTrackedMemoryLocations();
   }
@@ -235,6 +243,15 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
   }
 
   /**
+   * Protected for subclass access.
+   *
+   * @return the initial state.
+   */
+  protected S getInitalState() {
+    return initialState;
+  }
+
+  /**
    * This method returns the number of performed interpolations.
    *
    * @return the number of performed interpolations
@@ -244,14 +261,33 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
     return numberOfInterpolationQueries;
   }
 
+  /** Resets numberOfInterpolationQueries to 0. Protected for subclass access only. */
+  protected void resetNumberOfInterpolationQueries() {
+    numberOfInterpolationQueries = 0;
+  }
+
+  protected ShutdownNotifier getShutdownNotifier() {
+    return shutdownNotifier;
+  }
+
   /**
-   * This method gets the initial successor, i.e. the state following the initial state.
+   * Protected for subclass access only.
+   *
+   * @return the current interpolation manager.
+   */
+  protected InterpolantManager<S, I> getInterpolationManager() {
+    return interpolantManager;
+  }
+
+  /**
+   * This method gets the initial successor, i.e. the state following the initial state. Protected
+   * for subclass access.
    *
    * @param pInitialState the initial state, i.e. the state represented by the input interpolant.
    * @param pInitialEdge the initial edge of the error path
    * @return the initial successor
    */
-  private Optional<S> getInitialSuccessor(
+  protected Optional<S> getInitialSuccessor(
       final S pInitialState, final CFAEdge pInitialEdge, final Deque<S> pCallstack)
       throws CPAException, InterruptedException {
 
@@ -287,12 +323,13 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
   }
 
   /**
-   * This method checks, if the given edge is only renaming variables.
+   * This method checks, if the given edge is only renaming variables. Protected for subclasses
+   * only.
    *
    * @param cfaEdge the CFA edge to check
    * @return true, if the given edge is only renaming variables
    */
-  private boolean isOnlyVariableRenamingEdge(CFAEdge cfaEdge) {
+  protected boolean isOnlyVariableRenamingEdge(CFAEdge cfaEdge) {
     return
     // if the edge is null this is a dynamic multi edge
     cfaEdge != null
@@ -309,5 +346,26 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
     // || cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
     // || cfaEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
     ;
+  }
+
+  /**
+   * @return option applyItpEqualityOptimization
+   */
+  protected boolean getApplyItpEqualityOptimization() {
+    return applyItpEqualityOptimization;
+  }
+
+  /**
+   * @return option applyRenamingOptimization
+   */
+  protected boolean getApplyRenamingOptimization() {
+    return applyRenamingOptimization;
+  }
+
+  /**
+   * @return option applyUnsatSuffixOptimization
+   */
+  protected boolean getApplyUnsatSuffixOptimization() {
+    return applyUnsatSuffixOptimization;
   }
 }
