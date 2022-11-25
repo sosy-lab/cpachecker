@@ -267,7 +267,7 @@ public class ThreadingState
   /** returns whether any of the threads has the lock */
   public boolean isLockHeld(String lockId) {
     Preconditions.checkNotNull(lockId);
-    return locks.containsKey(lockId) && locks.get(lockId).isHeldByThread(); // TODO threadId needed?
+    return locks.containsKey(lockId) && locks.get(lockId).isHeldByThread();
   }
 
   /** returns whether the given thread has the lock */
