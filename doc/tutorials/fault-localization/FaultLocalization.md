@@ -126,6 +126,8 @@ This technique allows users to find decision points and wrong assumptions in the
 eventually lead to the error. The technique solely serves demonstration purposes. A set of
 error-prone statements is called _fault_.
 
+The full code snippet can be found below.
+
 We start the tutorial by creating a new class
 `FaultLocalizationAssumption` in `org.sosy_lab.cpachecker.core.algorithm`.
 
@@ -426,6 +428,10 @@ the constructor of `CoreComponentsFactory.
 @Option(secure = true, name = "assumes", description = "Enable our fault localization technique")
 private boolean assumes=false;
 ```
+We have to import the algorithm with
+```java
+import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationAssumption;
+```
 Lastly, we append the following check in the very last `else` branch of the method
 `createAlgorithm`.
 
@@ -456,6 +462,8 @@ doc/tutorials/fault-localization/factorization-plain.c
 ```
 The report can be found in `output/Counterexample.2.html`.
 It should look like [this](report.html).
+
+You can verify that the algorithm runs by looking at the console output.
 
 # Importing Faults
 Our framework allows the import of faults from external tool
