@@ -65,6 +65,16 @@ configuration-checks:jdk-17:
     - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
+configuration-checks:jdk-19:
+  <<: *configuration-checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-19
+  needs:
+    - build-dependencies
+    - build:jdk-19
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-19
+
 
 configuration-documentation:
   <<: *binary_check
@@ -128,6 +138,16 @@ python-unit-tests:jdk-17:
     - build-dependencies
     - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
+
+python-unit-tests:jdk-19:
+  <<: *python-unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-19
+  needs:
+    - build-dependencies
+    - build:jdk-19
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-19
 
 
 javascript-build:
@@ -290,6 +310,12 @@ unit-tests:jdk-11:
       junit: "output/junit/TESTS-TestSuites.xml"
 
 unit-tests:jdk-17:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+  artifacts:
+    reports:
+      junit: "output/junit/TESTS-TestSuites.xml"
+
+unit-tests:jdk-19:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
     reports:
