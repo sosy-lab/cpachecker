@@ -222,7 +222,7 @@ analysis.algorithm.faultLocalization.by_traceformula = false
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
-# Distribute predicate analysis to multiple workers
+# Import faults stored in a JSON format.
 analysis.algorithm.importFaults = false
 
 # use nontermination witness validator to check a violation witness for

@@ -387,7 +387,7 @@ public class CoreComponentsFactory {
   @Option(
       secure = true,
       name = "algorithm.importFaults",
-      description = "Distribute predicate analysis to multiple workers")
+      description = "Import faults stored in a JSON format.")
   private boolean useImportFaults = false;
 
   @Option(secure = true, description = "Enable converting test goals to conditions.")
