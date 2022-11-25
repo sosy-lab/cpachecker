@@ -19,7 +19,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import java.math.BigInteger;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
@@ -29,23 +28,13 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
@@ -494,71 +483,7 @@ public class ThreadingState
   @Override
   public List<? extends AExpression> getAssumptions() {
     if (lastThreadFunctionResult != null) {
-      switch (lastThreadFunctionResult.getThreadFunction().getEdgeType()) {
-        case FunctionCallEdge:
-          FunctionCallEdge functionCallEdge =
-              (FunctionCallEdge) lastThreadFunctionResult.getThreadFunction();
-          if (functionCallEdge.getFunctionCall() instanceof AFunctionCallAssignmentStatement) {
-            AFunctionCallAssignmentStatement functionCallAssignmentStatement =
-                (AFunctionCallAssignmentStatement) functionCallEdge.getFunctionCall();
-            ALeftHandSide lhs = functionCallAssignmentStatement.getLeftHandSide();
-            if (lhs instanceof CExpression) {
-              return ImmutableList.of(
-                  new CBinaryExpression(
-                      lhs.getFileLocation(),
-                      CNumericTypes.BOOL,
-                      ((CExpression) lhs).getExpressionType(),
-                      (CExpression) lhs,
-                      new CIntegerLiteralExpression(
-                          FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
-                      lastThreadFunctionResult.isSuccess()
-                          ? BinaryOperator.EQUALS
-                          : BinaryOperator.NOT_EQUALS));
-            }
-          }
-          break;
-        case StatementEdge:
-          AStatementEdge statementEdge =
-              (AStatementEdge) lastThreadFunctionResult.getThreadFunction();
-          AStatement statement = statementEdge.getStatement();
-          if (statement instanceof AFunctionCallAssignmentStatement) {
-            AFunctionCallAssignmentStatement functionCallAssignmentStatement =
-                (AFunctionCallAssignmentStatement) statement;
-            ALeftHandSide lhs = functionCallAssignmentStatement.getLeftHandSide();
-            if (lhs instanceof CExpression) {
-              return ImmutableList.of(
-                  new CBinaryExpression(
-                      lhs.getFileLocation(),
-                      CNumericTypes.BOOL,
-                      ((CExpression) lhs).getExpressionType(),
-                      (CExpression) lhs,
-                      new CIntegerLiteralExpression(
-                          FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
-                      lastThreadFunctionResult.isSuccess()
-                          ? BinaryOperator.EQUALS
-                          : BinaryOperator.NOT_EQUALS));
-            }
-          } else if (statement instanceof AFunctionCallStatement) {
-            AFunctionCallExpression functionCallExpression =
-                ((AFunctionCallStatement) statement).getFunctionCallExpression();
-            if (functionCallExpression instanceof CExpression) {
-              return ImmutableList.of(
-                  new CBinaryExpression(
-                      functionCallExpression.getFileLocation(),
-                      CNumericTypes.BOOL,
-                      ((CExpression) functionCallExpression).getExpressionType(),
-                      (CExpression) functionCallExpression,
-                      new CIntegerLiteralExpression(
-                          FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
-                      lastThreadFunctionResult.isSuccess()
-                          ? BinaryOperator.EQUALS
-                          : BinaryOperator.NOT_EQUALS));
-            }
-          }
-          break;
-        default:
-          throw new AssertionError("Unhandled edge type");
-      }
+      return lastThreadFunctionResult.asAssumptions();
     }
     return ImmutableList.of();
   }
@@ -660,11 +585,6 @@ public class ThreadingState
         entryFunction,
         threadIdsForWitness,
         pLastThreadFunctionResult);
-  }
-
-  /** See {@link #lastThreadFunctionResult}. */
-  public ThreadFunctionReturnValue getLastThreadFunctionResult() {
-    return lastThreadFunctionResult;
   }
 
   @Nullable Integer getThreadIdForWitness(String threadId) {
