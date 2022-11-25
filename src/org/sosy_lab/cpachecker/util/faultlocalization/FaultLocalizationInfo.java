@@ -14,6 +14,8 @@ import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -24,7 +26,9 @@ import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 /**
  * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to
@@ -66,7 +70,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pParent.getCFAPathWithAssignments(),
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
-    rankedList = ImmutableList.copyOf(pFaults);
+    rankedList = sortFaultsByIndexIfPresent(pFaults);
     htmlWriter = new FaultReportWriter();
   }
 
@@ -97,8 +101,26 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pParent.getCFAPathWithAssignments(),
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
-    rankedList = FaultRankingUtils.rank(pRanking, pFaults);
+    rankedList = sortFaultsByIndexIfPresent(FaultRankingUtils.rank(pRanking, pFaults));
     htmlWriter = new FaultReportWriter();
+  }
+
+  private FaultLocalizationInfo(
+      List<Fault> pFaults, CFAPathWithAssumptions pAssumptions, ARGPath pPath) {
+    super(false, pPath, pAssumptions, true, CFAPathWithAdditionalInfo.empty());
+    rankedList = sortFaultsByIndexIfPresent(pFaults);
+    htmlWriter = new FaultReportWriter();
+  }
+
+  private static ImmutableList<Fault> sortFaultsByIndexIfPresent(Collection<Fault> pFaults) {
+    // stable sorting algorithm -> noop if intendedIndex is not set.
+    return ImmutableList.sortedCopyOf(Comparator.comparingInt(f -> f.getIntendedIndex()), pFaults);
+  }
+
+  public static FaultLocalizationInfo withoutCounterexampleInfo(
+      List<Fault> pFaults, CFAPathWithAssumptions pAssumptions, ARGPath pBestPath) {
+    // use carefully
+    return new FaultLocalizationInfo(pFaults, pAssumptions, pBestPath);
   }
 
   /**

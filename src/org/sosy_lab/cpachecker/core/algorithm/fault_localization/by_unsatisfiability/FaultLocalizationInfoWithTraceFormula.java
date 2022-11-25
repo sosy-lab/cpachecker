@@ -41,10 +41,11 @@ public class FaultLocalizationInfoWithTraceFormula extends FaultLocalizationInfo
 
   private static List<Fault> correctlySortFaults(
       Set<Fault> pFaults, FaultScoring pScoring, boolean pSortIntended) {
+    List<Fault> ranked = FaultRankingUtils.rank(pScoring, pFaults);
     if (pSortIntended) {
       return ImmutableList.sortedCopyOf(Comparator.comparingInt(Fault::getIntendedIndex), pFaults);
     }
-    return FaultRankingUtils.rank(pScoring, pFaults);
+    return ranked;
   }
 
   public TraceFormula getTraceFormula() {

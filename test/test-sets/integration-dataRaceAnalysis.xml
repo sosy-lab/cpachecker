@@ -15,8 +15,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <option name="-noout"/>
   <option name="-heap">1500M</option>
-  <option name="-raceDetection"/>
-  <option name="-spec">config/specification/datarace.spc</option>
+  <option name="-dataRaceAnalysis"/>
   
   <rundefinition>
     <tasks name="NoDataRace-Main">

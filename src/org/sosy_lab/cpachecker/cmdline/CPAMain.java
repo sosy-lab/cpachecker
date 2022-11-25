@@ -232,6 +232,15 @@ public class CPAMain {
 
     @Option(
         secure = true,
+        name = "datarace.config",
+        description =
+            "When checking for the data race property, "
+                + "use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path dataraceConfig = null;
+
+    @Option(
+        secure = true,
         name = "termination.config",
         description =
             "When checking for the termination property, "
@@ -497,6 +506,13 @@ public class CPAMain {
             "Unsupported combination of properties: " + properties);
       }
       alternateConfigFile = check(options.overflowConfig, "overflows", "overflow.config");
+    } else if (properties.contains(CommonVerificationProperty.DATA_RACE)) {
+      if (properties.size() != 1) {
+        // Data race property cannot be checked with others in combination
+        throw new InvalidConfigurationException(
+            "Unsupported combination of properties: " + properties);
+      }
+      alternateConfigFile = check(options.dataraceConfig, "data races", "datarace.config");
     } else if (properties.contains(CommonVerificationProperty.TERMINATION)) {
       // Termination property cannot be checked with others in combination
       if (properties.size() != 1) {
@@ -540,6 +556,7 @@ public class CPAMain {
           .clearOption("memorysafety.config")
           .clearOption("memorycleanup.config")
           .clearOption("overflow.config")
+          .clearOption("datarace.config")
           .clearOption("termination.config")
           .clearOption("output.disable")
           .clearOption("output.path")

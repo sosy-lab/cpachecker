@@ -20,6 +20,12 @@ Changes from CPAchecker 2.1.1 to CPAchecker 2.2
   (this behavior is the same for all versions of CPAchecker).
 * CPAchecker 2.2 is the last release that works on Java 11,
   future versions of CPAchecker will require Java 17 or newer.
+* Detection of Data Races
+  CPAchecker now supports detection of data races in C programs
+  via the new configuration `-dataRaceAnalysis`.
+  A data race is undefined behavior triggered by concurrent,
+  conflicting access to the same memory location, and as such
+  it is desirable to verify the absence of these data races.
 
 
 Changes from CPAchecker 2.1 to CPAchecker 2.1.1

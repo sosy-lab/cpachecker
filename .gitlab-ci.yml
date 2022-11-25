@@ -195,7 +195,7 @@ build-docker:release:
   extends: .build-docker
   variables:
     DOCKERFILE: build/Dockerfile.release
-    IMAGE: ":2.1.1"
+    IMAGE: ":2.2"
     EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest"
 
 
@@ -244,7 +244,7 @@ flake8:
   needs: []
   image: python:3.8
   before_script:
-    - "pip install flake8 flake8-awesome"
+    - "pip install 'flake8<6' flake8-awesome"
   script:
     - flake8
   <<: *pip-cache

@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.CallHierarchyScoring;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeScoring;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.InvalidCounterexampleException;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.TraceFormulaOptions;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.postcondition.FinalAssumeClusterPostConditionComposer;
@@ -63,14 +64,17 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultExplanation;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultScoring;
-import org.sosy_lab.cpachecker.util.faultlocalization.InformationProvider;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
+import org.sosy_lab.cpachecker.util.faultlocalization.explanation.InformationProvider;
+import org.sosy_lab.cpachecker.util.faultlocalization.explanation.NoContextExplanation;
+import org.sosy_lab.cpachecker.util.faultlocalization.explanation.SuspiciousCalculationExplanation;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.MinimalLineDistanceScoring;
-import org.sosy_lab.cpachecker.util.faultlocalization.ranking.OverallOccurrenceScoring;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.SetSizeScoring;
+import org.sosy_lab.cpachecker.util.faultlocalization.ranking.VariableCountScoring;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -136,12 +140,16 @@ public class FaultLocalizationWithTraceFormula
   @Option(
       description =
           "By default, the precondition only contains the failing variable assignment of all nondet"
-              + " variables. Choose INITIAL_ASSIGNMENT to assignments like '<datatype>"
+              + " variables. Choose INITIAL_ASSIGNMENT to add assignments like '<datatype>"
               + " <variable-name> = <value>' to the precondition.")
   private PreConditionType preconditionType = PreConditionType.NONDETERMINISTIC_VARIABLES_ONLY;
 
   @Option(description = "which post-condition type to use")
   private PostConditionType postConditionType = PostConditionType.LAST_ASSUME_EDGES_ON_SAME_LINE;
+
+  @Option(
+      description = "whether to include variables beginning with __FAULT_LOCALIZATION_precondition")
+  private boolean includeDeclared = true;
 
   public FaultLocalizationWithTraceFormula(
       final Algorithm pStoreAlgorithm,
@@ -280,12 +288,10 @@ public class FaultLocalizationWithTraceFormula
         // fall-through
       case MAXSAT:
         return FaultRankingUtils.concatHeuristics(
-            new EdgeTypeScoring(),
+            new VariableCountScoring(),
             new SetSizeScoring(),
-            new OverallOccurrenceScoring(),
             new MinimalLineDistanceScoring(
-                pTraceFormula.getPostCondition().getEdgesForPostCondition().get(0)),
-            new CallHierarchyScoring(pTraceFormula.getTrace().toEdgeList()));
+                pTraceFormula.getPostCondition().getEdgesForPostCondition().get(0)));
       case ERRINV:
         // fall-through
       case UNSAT:
@@ -347,8 +353,13 @@ public class FaultLocalizationWithTraceFormula
         faults = remainingFaults.build();
       }
 
-      InformationProvider.searchForAdditionalInformation(faults, edgeList);
-      InformationProvider.addDefaultPotentialFixesToFaults(faults, 3);
+      for (Fault fault : faults) {
+        FaultExplanation.explain(
+            fault,
+            NoContextExplanation.getInstance(),
+            new InformationProvider(edgeList),
+            new SuspiciousCalculationExplanation());
+      }
 
       FaultLocalizationInfo info =
           new FaultLocalizationInfoWithTraceFormula(
@@ -375,6 +386,11 @@ public class FaultLocalizationWithTraceFormula
     } catch (IllegalStateException iE) {
       throw new CPAException(
           "The counterexample is spurious. Calculating interpolants is not possible.", iE);
+    } catch (InvalidCounterexampleException pE) {
+      throw new CPAException(
+          "The counterexample is invalid and cannot be transformed to a proper unsatisfiable"
+              + " TraceFormula.",
+          pE);
     }
   }
 
@@ -394,9 +410,9 @@ public class FaultLocalizationWithTraceFormula
   private PreConditionComposer getPreConditionExtractor() {
     switch (preconditionType) {
       case NONDETERMINISTIC_VARIABLES_ONLY:
-        return new VariableAssignmentPreConditionComposer(context, options, false);
+        return new VariableAssignmentPreConditionComposer(context, options, false, includeDeclared);
       case INITIAL_ASSIGNMENT:
-        return new VariableAssignmentPreConditionComposer(context, options, true);
+        return new VariableAssignmentPreConditionComposer(context, options, true, includeDeclared);
       case ALWAYS_TRUE:
         return new TruePreConditionComposer(context);
       default:
