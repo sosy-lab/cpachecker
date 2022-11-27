@@ -79,8 +79,6 @@ public class SampleUnrollingAlgorithm {
 
   public Set<Sample> unrollSample(Sample initialSample, Loop loop)
       throws CPAException, InterruptedException {
-    // TODO: Make analysis direction configurable (currently we can only get positive samples,
-    //  backward analysis could be used for collecting negative samples)
     AbstractState initialState = makeInitialState(initialSample);
     Precision initialPrecision = makeInitialPrecision(initialSample);
     ReachedSet reachedSet = reachedSetFactory.create(cpa);

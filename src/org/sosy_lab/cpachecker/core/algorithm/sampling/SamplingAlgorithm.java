@@ -27,11 +27,13 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -52,6 +54,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -68,7 +72,8 @@ public class SamplingAlgorithm extends NestingAlgorithm {
   private int numInitialSamples = 5;
 
   private final CFA cfa;
-  private final SampleUnrollingAlgorithm unrollingAlgorithm;
+  private final SampleUnrollingAlgorithm forwardUnrollingAlgorithm;
+  private final SampleUnrollingAlgorithm backwardUnrollingAlgorithm;
 
   public SamplingAlgorithm(
       Configuration pConfig,
@@ -80,8 +85,26 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     super(pConfig, pLogger, pShutdownManager.getNotifier(), Specification.alwaysSatisfied());
     pConfig.inject(this);
     cfa = pCfa;
-    unrollingAlgorithm =
-        new SampleUnrollingAlgorithm(pConfig, pLogger, pShutdownManager, pCfa, pSpecification);
+
+    ConfigurationBuilder unrollingConfigBuilder =
+        Configuration.builder()
+            .copyFrom(pConfig)
+            .setOption("cpa.predicate.direction", "FORWARD")
+            .setOption("analysis.initialStatesFor", "ENTRY")
+            .setOption("cpa.callstack.traverseBackwards", "false");
+    forwardUnrollingAlgorithm =
+        new SampleUnrollingAlgorithm(
+            unrollingConfigBuilder.build(), pLogger, pShutdownManager, pCfa, pSpecification);
+
+    unrollingConfigBuilder =
+        Configuration.builder()
+            .copyFrom(pConfig)
+            .setOption("cpa.predicate.direction", "BACKWARD")
+            .setOption("analysis.initialStatesFor", "TARGET")
+            .setOption("cpa.callstack.traverseBackwards", "true");
+    backwardUnrollingAlgorithm =
+        new SampleUnrollingAlgorithm(
+            unrollingConfigBuilder.build(), pLogger, pShutdownManager, pCfa, pSpecification);
   }
 
   @Override
@@ -130,10 +153,10 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     } catch (InvalidConfigurationException e) {
       logger.log(
           Level.WARNING,
-          "Could not create algorithm for collecting initial samples due to invalid configuration");
+          "Could not create algorithm for building ARG due to invalid configuration");
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     } catch (IOException e) {
-      logger.log(Level.WARNING, "Could not load configuration for initial sampling");
+      logger.log(Level.WARNING, "Could not load configuration for building ARG");
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
 
@@ -148,15 +171,82 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     // Collect some positive samples using predicate-based and value-based sampling
     for (Loop loop : cfa.getLoopStructure().get().getAllLoops()) {
       for (Sample sample : getInitialPositiveSamples(reachedSet, solver, loop, numInitialSamples)) {
-        samples.addAll(unrollingAlgorithm.unrollSample(sample, loop));
+        samples.addAll(forwardUnrollingAlgorithm.unrollSample(sample, loop));
       }
     }
 
-    // TODO: Now get initial negative samples and unroll backwards
+    // Now collect some negative samples for each target location
+    for (CFANode targetNode : getTargetNodes()) {
+      // Create algorithm for building the backward ARG
+      Algorithm backwardsBuilderAlgorithm;
+      ConfigurableProgramAnalysis backwardsBuilderCPA;
+      ReachedSet backwardsBuilderReachedSet;
+      Solver backwardsSolver;
+      Path backwardsBuilderConfig = Path.of("config", "predicateAnalysisBackward.properties");
+      try {
+        Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> buildBackwardARG =
+            super.createAlgorithm(
+                backwardsBuilderConfig,
+                targetNode,
+                cfa,
+                ShutdownManager.createWithParent(shutdownNotifier),
+                AggregatedReachedSets.empty(),
+                ImmutableSet.of("analysis.useSamplingAlgorithm"),
+                Sets.newHashSet());
+        backwardsBuilderAlgorithm = buildBackwardARG.getFirst();
+        backwardsBuilderCPA = buildBackwardARG.getSecond();
+        backwardsBuilderReachedSet = buildBackwardARG.getThird();
+        backwardsSolver =
+            CPAs.retrieveCPAOrFail(backwardsBuilderCPA, PredicateCPA.class, SamplingAlgorithm.class)
+                .getSolver();
+      } catch (InvalidConfigurationException e) {
+        logger.log(
+            Level.WARNING,
+            "Could not create algorithm for building backward ARG due to invalid configuration");
+        return AlgorithmStatus.NO_PROPERTY_CHECKED;
+      } catch (IOException e) {
+        logger.log(Level.WARNING, "Could not load configuration for building backward ARG");
+        return AlgorithmStatus.NO_PROPERTY_CHECKED;
+      }
+
+      // Run analysis to create backward ARG
+      reachedSet.setDelegate(backwardsBuilderReachedSet);
+      logger.log(Level.INFO, "Building backward ARG...");
+      backwardsBuilderAlgorithm.run(reachedSet);
+      shutdownNotifier.shutdownIfNecessary();
+
+      // Collect some negative samples using predicate-based and backward sampling
+      for (Loop loop : cfa.getLoopStructure().get().getAllLoops()) {
+        for (Sample sample :
+            getInitialNegativeSamples(reachedSet, backwardsSolver, loop, numInitialSamples)) {
+          samples.addAll(backwardUnrollingAlgorithm.unrollSample(sample, loop));
+        }
+      }
+    }
+
+    samples.build();
 
     // TODO: Then build samples and write to file
 
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
+  }
+
+  private ImmutableSet<CFANode> getTargetNodes() throws InterruptedException {
+    TargetLocationProvider tlp = new TargetLocationProviderImpl(shutdownNotifier, logger, cfa);
+    Specification spec;
+    try {
+      spec =
+          Specification.fromFiles(
+              ImmutableSet.of(Path.of("config", "specification", "default.spc")),
+              cfa,
+              globalConfig,
+              logger,
+              shutdownNotifier);
+    } catch (InvalidConfigurationException pE) {
+      logger.log(Level.WARNING, "Could not determine target due to invalid configuration");
+      return ImmutableSet.of();
+    }
+    return tlp.tryGetAutomatonTargetLocations(cfa.getMainFunction(), spec);
   }
 
   /**
@@ -213,6 +303,62 @@ public class SamplingAlgorithm extends NestingAlgorithm {
             prover.addConstraint(bfmgr.not(bfmgr.and(modelFormulas)));
 
             samples.add(extractSampleFromModel(prover.getModelAssignments(), loopHead));
+          }
+          prover.pop();
+        }
+      }
+    }
+    return samples;
+  }
+
+  private Set<Sample> getInitialNegativeSamples(
+      ForwardingReachedSet reachedSet, Solver solver, Loop loop, int numSamples)
+      throws InterruptedException, SolverException {
+    BooleanFormulaManager bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
+
+    // Collect some negative samples for each potential loop exit.
+    Set<Sample> samples = new HashSet<>();
+    for (CFAEdge outgoing : loop.getOutgoingEdges()) {
+      CFANode lastNode = outgoing.getPredecessor();
+
+      // Extract path formulas at the considered node
+      ImmutableSet.Builder<BooleanFormula> formulaBuilder = ImmutableSet.builder();
+      // TODO: We want a LocationMappedReachedSet inside the ForwardingReachedSet for maximum
+      //  efficiency
+      for (AbstractState state : reachedSet.getReached(lastNode)) {
+        if (lastNode.equals(AbstractStates.extractLocation(state))) {
+          PredicateAbstractState predicateState =
+              AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+          BooleanFormula formula =
+              bfmgr.and(
+                  predicateState.getAbstractionFormula().getBlockFormula().getFormula(),
+                  predicateState.getPathFormula().getFormula());
+          formulaBuilder.add(formula);
+        }
+      }
+      ImmutableSet<BooleanFormula> formulas = formulaBuilder.build();
+
+      // Next, get satisfying models from SMT solver
+      try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+        for (BooleanFormula formula : formulas) {
+          List<List<ValueAssignment>> models = new ArrayList<>(numSamples);
+          prover.push(formula);
+          while (models.size() < numSamples) {
+            if (prover.isUnsat()) {
+              logger.logf(
+                  Level.INFO,
+                  "Exhausted all satisfying models, collected only %s samples",
+                  models.size());
+              break;
+            }
+            models.add(prover.getModelAssignments());
+            List<BooleanFormula> modelFormulas = new ArrayList<>();
+            for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
+              modelFormulas.add(modelAssignment.getAssignmentAsFormula());
+            }
+            prover.addConstraint(bfmgr.not(bfmgr.and(modelFormulas)));
+
+            samples.add(extractSampleFromModel(prover.getModelAssignments(), lastNode));
           }
           prover.pop();
         }
