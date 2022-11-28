@@ -12,7 +12,7 @@ variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: 0287f114a4fa2af2e4e743b9cbf86d179d89553a
+  REFASTER_REPO_REVISION: 16c07156f0dabdb1a9cb3c98206b7df680b0a4f3
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
   REFASTER_VERSION: 2.15.0
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
@@ -334,9 +334,7 @@ spotbugs:
     - build:jdk-17
 
 refaster:
-  # so far does not work with Java 17:
-  # https://github.com/google/error-prone/issues/3553
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
 
 # Disable some checks because they are not used for CPAchecker
