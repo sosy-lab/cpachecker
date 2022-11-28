@@ -16,13 +16,13 @@ error-prone statements in the program. Additionally, they try to explain the res
 debugging.
 
 Please conduct the following papers for further reading:
-- [Distance Metrics I](https://doi.org/10.1145/1029894.1029908)
-- [Distance Metrics II](https://doi.org/10.1007/s10009-005-0202-0)
-- [MaxSat](https://doi.org/10.1145/1993498.1993550)
-- [Error Invariants](https://doi.org/10.1007/978-3-642-32759-9_17)
-- [Ochiai](https://doi.org/10.1145/1831708.1831715)
-- [DStar](https://doi.org/10.1109/TR.2013.2285319)
-- [Tarantula](https://doi.org/10.1145/1831708.1831717)
+ - [Distance Metrics I](https://doi.org/10.1145/1029894.1029908)
+ - [Distance Metrics II](https://doi.org/10.1007/s10009-005-0202-0)
+ - [MaxSat](https://doi.org/10.1145/1993498.1993550)
+ - [Error Invariants](https://doi.org/10.1007/978-3-642-32759-9_17)
+ - [Ochiai](https://doi.org/10.1145/1831708.1831715)
+ - [DStar](https://doi.org/10.1109/TR.2013.2285319)
+ - [Tarantula](https://doi.org/10.1145/1831708.1831717)
 
 Running Fault Localization
 ----------
