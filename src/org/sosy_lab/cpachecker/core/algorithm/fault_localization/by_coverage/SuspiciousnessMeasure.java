@@ -18,6 +18,8 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_coverage.uti
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 public abstract class SuspiciousnessMeasure {
 
@@ -41,7 +43,10 @@ public abstract class SuspiciousnessMeasure {
       FaultContribution pFaultContribution = new FaultContribution(cfaEdge);
       if (suspiciousness != 0) {
         pFaultContribution.setScore(suspiciousness);
-        faults.add(new Fault(pFaultContribution, suspiciousness));
+        Fault f = new Fault(pFaultContribution);
+        f.addInfo(FaultInfo.rankInfo("Suspiciousness measure", suspiciousness));
+        FaultRankingUtils.assignScoreTo(f);
+        faults.add(f);
       }
     }
     return faults;
