@@ -329,7 +329,7 @@ public final class LockState extends AbstractLockState {
       if (result != 0) {
         return result;
       }
-      Integer Result = entry1.getValue() - entry2.getValue();
+      int Result = entry1.getValue() - entry2.getValue();
       if (Result != 0) {
         return Result;
       }
