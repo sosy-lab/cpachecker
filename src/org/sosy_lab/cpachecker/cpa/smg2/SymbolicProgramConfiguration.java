@@ -908,7 +908,7 @@ public class SymbolicProgramConfiguration {
   public SymbolicProgramConfiguration copyAndAddPointerFromAddressToRegion(
       Value address, SMGObject target, BigInteger offsetInBits) {
     // If there is no SMGValue for this address we create it, else we use the existing
-    SymbolicProgramConfiguration spc = this.copyAndCreateValue(address);
+    SymbolicProgramConfiguration spc = copyAndCreateValue(address);
     SMGValue smgAddress = spc.getSMGValueFromValue(address).orElseThrow();
     // Now we create a points-to-edge from this value to the target object at the
     // specified offset, overriding any existing from this value
@@ -923,7 +923,7 @@ public class SymbolicProgramConfiguration {
   public SymbolicProgramConfiguration copyAndAddPointerFromAddressToRegionWithNestingLevel(
       Value address, SMGObject target, BigInteger offsetInBits, int nestingLevel) {
     // If there is no SMGValue for this address we create it, else we use the existing
-    SymbolicProgramConfiguration spc = this.copyAndCreateValue(address);
+    SymbolicProgramConfiguration spc = copyAndCreateValue(address);
     SMGValue smgAddress = spc.getSMGValueFromValue(address).orElseThrow();
     // Now we create a points-to-edge from this value to the target object at the
     // specified offset, overriding any existing from this value

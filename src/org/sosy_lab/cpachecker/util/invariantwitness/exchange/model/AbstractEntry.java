@@ -27,7 +27,7 @@ public abstract class AbstractEntry {
   protected final String entryType;
 
   public AbstractEntry(@JsonProperty("entry_type") String entry_type) {
-    this.entryType = entry_type;
+    entryType = entry_type;
   }
 
   public String getEntryType() {

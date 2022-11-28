@@ -181,9 +181,9 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
   private void fillAddressAndValueMaps(
       SMGState state, Map<LeftHandSide, Address> lfhsToAddressMap, Map<Address, Object> valuesMap) {
     @SuppressWarnings("unused")
-    Set<SMGObject> todo = new HashSet<SMGObject>();
+    Set<SMGObject> todo = new HashSet<>();
     @SuppressWarnings("unused")
-    Set<SMGObject> alreadyVisited = new HashSet<SMGObject>();
+    Set<SMGObject> alreadyVisited = new HashSet<>();
 
     StackFrame currentStackFrame = state.getMemoryModel().getStackFrames().peek();
     String functionName = currentStackFrame.getFunctionDefinition().getName();
