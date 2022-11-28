@@ -195,7 +195,7 @@ public class BlockNode {
         + ", size="
         + getNodesInBlock().size()
         + ", code='"
-        + code.replaceAll("\n", "")
+        + code.replace("\n", "")
         + '\''
         + '}';
   }
