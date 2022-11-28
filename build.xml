@@ -31,6 +31,7 @@ SPDX-License-Identifier: Apache-2.0
     <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
     <property name="ivy.configurations" value="build, runtime, test, format-source, spotbugs, checkstyle"/>
     <property name="documentation.options.file" value="doc/ConfigurationOptions.txt"/>
+    <property name="source.release" value="17"/>
 
     <!-- The following error-prone checks are disabled:
          BadImport: we often import FluentIterable.from and we have a Checkstyle check instead
