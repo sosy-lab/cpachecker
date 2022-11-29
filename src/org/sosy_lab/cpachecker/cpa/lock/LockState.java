@@ -10,10 +10,13 @@ package org.sosy_lab.cpachecker.cpa.lock;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Comparators;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -252,6 +255,10 @@ public final class LockState extends AbstractLockState {
     }
   }
 
+  private static final Comparator<Iterable<Entry<LockIdentifier, Integer>>> LOCKS_COMPARATOR =
+      Comparators.lexicographical(
+          Entry.<LockIdentifier, Integer>comparingByKey().thenComparing(Entry.comparingByValue()));
+
   private final ImmutableMap<LockIdentifier, Integer> locks;
   // if we need restore state, we save it here
   // Used for function annotations like annotate.function_name.restore
@@ -312,29 +319,10 @@ public final class LockState extends AbstractLockState {
   @Override
   public int compareTo(CompatibleState pOther) {
     LockState other = (LockState) pOther;
-
-    int result = Integer.compare(other.getSize(), getSize()); // decreasing queue
-
-    if (result != 0) {
-      return result;
-    }
-
-    Iterator<Entry<LockIdentifier, Integer>> iterator1 = locks.entrySet().iterator();
-    Iterator<Entry<LockIdentifier, Integer>> iterator2 = other.locks.entrySet().iterator();
-    // Sizes are equal
-    while (iterator1.hasNext()) {
-      Entry<LockIdentifier, Integer> entry1 = iterator1.next();
-      Entry<LockIdentifier, Integer> entry2 = iterator2.next();
-      result = entry1.getKey().compareTo(entry2.getKey());
-      if (result != 0) {
-        return result;
-      }
-      int Result = Integer.compare(entry1.getValue(), entry2.getValue());
-      if (Result != 0) {
-        return Result;
-      }
-    }
-    return 0;
+    return ComparisonChain.start()
+        .compare(other.getSize(), getSize()) // decreasing queue
+        .compare(locks.entrySet(), other.locks.entrySet(), LOCKS_COMPARATOR) // Sizes are equal
+        .result();
   }
 
   @Override

@@ -12,8 +12,10 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.Ordering;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -256,25 +258,10 @@ public final class DeadLockState extends AbstractLockState {
   @Override
   public int compareTo(CompatibleState pOther) {
     DeadLockState other = (DeadLockState) pOther;
-
-    int result = Integer.compare(other.getSize(), getSize()); // decreasing queue
-
-    if (result != 0) {
-      return result;
-    }
-
-    Iterator<LockIdentifier> iterator1 = lockList.iterator();
-    Iterator<LockIdentifier> iterator2 = other.lockList.iterator();
-    // Sizes are equal
-    while (iterator1.hasNext()) {
-      LockIdentifier lockId1 = iterator1.next();
-      LockIdentifier lockId2 = iterator2.next();
-      result = lockId1.compareTo(lockId2);
-      if (result != 0) {
-        return result;
-      }
-    }
-    return 0;
+    return ComparisonChain.start()
+        .compare(other.getSize(), getSize()) // decreasing queue
+        .compare(lockList, other.lockList, Ordering.natural().lexicographical()) // Sizes are equal
+        .result();
   }
 
   @Override
