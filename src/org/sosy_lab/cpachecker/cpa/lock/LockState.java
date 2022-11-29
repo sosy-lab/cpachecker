@@ -313,7 +313,7 @@ public final class LockState extends AbstractLockState {
   public int compareTo(CompatibleState pOther) {
     LockState other = (LockState) pOther;
 
-    int result = other.getSize() - getSize(); // decreasing queue
+    int result = Integer.compare(other.getSize(), getSize()); // decreasing queue
 
     if (result != 0) {
       return result;
@@ -329,7 +329,7 @@ public final class LockState extends AbstractLockState {
       if (result != 0) {
         return result;
       }
-      int Result = entry1.getValue() - entry2.getValue();
+      int Result = Integer.compare(entry1.getValue(), entry2.getValue());
       if (Result != 0) {
         return Result;
       }

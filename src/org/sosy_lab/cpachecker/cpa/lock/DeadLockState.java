@@ -257,7 +257,7 @@ public final class DeadLockState extends AbstractLockState {
   public int compareTo(CompatibleState pOther) {
     DeadLockState other = (DeadLockState) pOther;
 
-    int result = other.getSize() - getSize(); // decreasing queue
+    int result = Integer.compare(other.getSize(), getSize()); // decreasing queue
 
     if (result != 0) {
       return result;
