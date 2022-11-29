@@ -10,9 +10,11 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Iterator;
@@ -30,6 +32,10 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 public class TransitionCondition implements Comparable<TransitionCondition> {
 
   private static final TransitionCondition EMPTY = new TransitionCondition();
+
+  private static final Comparator<Iterable<Map.Entry<KeyDef, String>>> KEY_VALUES_COMPARATOR =
+      Comparators.lexicographical(
+          Map.Entry.<KeyDef, String>comparingByKey().thenComparing(Map.Entry.comparingByValue()));
 
   private final EnumMap<KeyDef, String> keyValues;
 
@@ -167,27 +173,11 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     if (this == pO) {
       return 0;
     }
-    Iterator<Map.Entry<KeyDef, String>> entryIterator = keyValues.entrySet().iterator();
-    Iterator<Map.Entry<KeyDef, String>> otherEntryIterator = pO.keyValues.entrySet().iterator();
-    while (entryIterator.hasNext() && otherEntryIterator.hasNext()) {
-      Map.Entry<KeyDef, String> entry = entryIterator.next();
-      Map.Entry<KeyDef, String> otherEntry = otherEntryIterator.next();
-      int compKey = entry.getKey().compareTo(otherEntry.getKey());
-      if (compKey != 0) {
-        return compKey;
-      }
-      int compVal = entry.getValue().compareTo(otherEntry.getValue());
-      if (compVal != 0) {
-        return compVal;
-      }
-    }
-    if (!entryIterator.hasNext()) {
-      return -1;
-    }
-    if (!otherEntryIterator.hasNext()) {
-      return 1;
-    }
-    return scope.compareTo(pO.scope);
+
+    return ComparisonChain.start()
+        .compare(keyValues.entrySet(), pO.keyValues.entrySet(), KEY_VALUES_COMPARATOR)
+        .compare(scope, pO.scope)
+        .result();
   }
 
   public static TransitionCondition empty() {

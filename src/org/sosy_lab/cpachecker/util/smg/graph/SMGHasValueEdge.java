@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.smg.graph;
 
+import com.google.common.collect.ComparisonChain;
 import java.math.BigInteger;
 
 /**
@@ -54,20 +55,11 @@ public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
 
   @Override
   public int compareTo(SMGHasValueEdge pOther) {
-    int valueCompare = value.compareTo(pOther.value);
-    if (valueCompare == 0) {
-      if (offset.compareTo(pOther.offset) == 0) {
-        if (sizeInBits.compareTo(pOther.sizeInBits) == 0) {
-          return 0;
-        } else {
-          return sizeInBits.compareTo(pOther.sizeInBits);
-        }
-      } else {
-        return offset.compareTo(pOther.offset);
-      }
-    } else {
-      return valueCompare;
-    }
+    return ComparisonChain.start()
+        .compare(value, pOther.value)
+        .compare(offset, pOther.offset)
+        .compare(sizeInBits, pOther.sizeInBits)
+        .result();
   }
 
   @Override
