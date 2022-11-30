@@ -17,18 +17,9 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPATest0;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager.SMGCandidate;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
@@ -46,57 +37,9 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 /*
- * We always assume lists to be head, nfo, pfo each pointer sized.
+ * Tests (list) abstraction and materialization.
  */
-public class SMGCPAAbstractionTest {
-
-  private MachineModel machineModel;
-  // Pointer size for the machine model in bits
-  private BigInteger pointerSizeInBits;
-
-  private LogManagerWithoutDuplicates logger;
-  private SMGState currentState;
-  private SMGCPAMaterializer materializer;
-
-  private BigInteger sllSize;
-  private BigInteger dllSize;
-
-  private BigInteger hfo = BigInteger.ZERO;
-  private BigInteger nfo;
-  private BigInteger pfo;
-
-  // Keep this above ~10 for the tests. Reduce if this class is slow.
-  private static final int TEST_LIST_LENGTH = 50;
-
-  private CFAEdge dummyCDAEdge =
-      new DummyCFAEdge(CFANode.newDummyCFANode(), CFANode.newDummyCFANode());
-
-  // The visitor should always use the currentState!
-  @Before
-  public void init() throws InvalidConfigurationException {
-    // We always assume lists to be head, nfo, pfo each pointer sized.
-    machineModel = MachineModel.LINUX32;
-    pointerSizeInBits =
-        BigInteger.valueOf(
-            machineModel.getSizeof(machineModel.getPointerEquivalentSimpleType()) * 8L);
-    sllSize = pointerSizeInBits.multiply(BigInteger.TWO);
-    dllSize = pointerSizeInBits.multiply(BigInteger.valueOf(3));
-    nfo = hfo.add(pointerSizeInBits);
-    pfo = nfo.add(pointerSizeInBits);
-    logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
-
-    materializer = new SMGCPAMaterializer(logger);
-
-    currentState =
-        SMGState.of(machineModel, logger, new SMGOptions(Configuration.defaultConfiguration()));
-  }
-
-  // Resets state and visitor to an empty state
-  @After
-  public void resetSMGStateAndVisitor() throws InvalidConfigurationException {
-    currentState =
-        SMGState.of(machineModel, logger, new SMGOptions(Configuration.defaultConfiguration()));
-  }
+public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
   /**
    * Creates and tests lists that are barely not abstractable because of 1 value not being equal for
@@ -142,21 +85,8 @@ public class SMGCPAAbstractionTest {
     // Increasing this is a good test for the overall performance of the SMGs!
     int listLength = 15;
     Value[] pointers = buildConcreteList(false, sllSize, listLength);
-    for (Value pointer : pointers) {
-      // Generate the same list for each top list segment and save the first pointer as data
-      Value[] pointersNested = buildConcreteList(false, sllSize, listLength);
-      // We care only about the first pointer here
-      SMGStateAndOptionalSMGObjectAndOffset topListSegmentAndState =
-          currentState.dereferencePointerWithoutMaterilization(pointer).orElseThrow();
-      currentState = topListSegmentAndState.getSMGState();
-      SMGObject topListSegment = topListSegmentAndState.getSMGObject();
-      currentState =
-          currentState.writeValue(
-              topListSegment,
-              hfo,
-              pointerSizeInBits,
-              currentState.getMemoryModel().getSMGValueFromValue(pointersNested[0]).orElseThrow());
-    }
+    addSubListsToList(listLength, pointers, false);
+
     SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
     currentState = absFinder.findAndAbstractLists();
     // 1 null obj + 1 top list + listLength nested
@@ -1612,73 +1542,6 @@ public class SMGCPAAbstractionTest {
     return currentState;
   }
 
-  /*
-   * Will fill the list with data such that the nfo (and pfo) are last. The data is int and the same every list segment.
-   * The data is numeric starting from 0, +1 each new value such that the space until nfo is filled.
-   * Valid sizes are divisible by 32. The nfo for the last and pfo for the first segment are 0.
-   */
-  private Value[] buildConcreteList(boolean dll, BigInteger sizeOfSegment, int listLength)
-      throws SMG2Exception {
-    Value[] pointerArray = new Value[listLength];
-    SMGObject prevObject = null;
-
-    for (int i = 0; i < listLength; i++) {
-      SMGObject listSegment = SMGObject.of(0, sizeOfSegment, BigInteger.ZERO);
-      currentState = currentState.copyAndAddObjectToHeap(listSegment);
-      for (int j = 0; j < sizeOfSegment.divide(pointerSizeInBits).intValue(); j++) {
-        currentState =
-            currentState.writeValueTo(
-                listSegment,
-                BigInteger.valueOf(j).multiply(BigInteger.valueOf(32)),
-                pointerSizeInBits,
-                new NumericValue(j),
-                null,
-                dummyCDAEdge);
-      }
-
-      // Pointer to the next list segment (from the prev to this, except for the last)
-      if (i == listLength - 1) {
-        Value nextPointer = new NumericValue(0);
-        currentState =
-            currentState.writeValueTo(
-                listSegment, nfo, pointerSizeInBits, nextPointer, null, dummyCDAEdge);
-      }
-      if (prevObject != null) {
-        ValueAndSMGState pointerAndState =
-            currentState.searchOrCreateAddress(listSegment, BigInteger.ZERO);
-        currentState = pointerAndState.getState();
-        currentState =
-            currentState.writeValueTo(
-                prevObject, nfo, pointerSizeInBits, pointerAndState.getValue(), null, dummyCDAEdge);
-      }
-
-      if (dll) {
-        // Pointer to the prev list segment
-        Value prevPointer;
-        if (i == 0) {
-          prevPointer = new NumericValue(0);
-        } else {
-          ValueAndSMGState pointerAndState =
-              currentState.searchOrCreateAddress(prevObject, BigInteger.ZERO);
-          prevPointer = pointerAndState.getValue();
-          currentState = pointerAndState.getState();
-        }
-        currentState =
-            currentState.writeValueTo(
-                listSegment, pfo, pointerSizeInBits, prevPointer, null, dummyCDAEdge);
-      }
-      // Pointer to the list segment
-      ValueAndSMGState pointerAndState =
-          currentState.searchOrCreateAddress(listSegment, BigInteger.ZERO);
-      pointerArray[i] = pointerAndState.getValue();
-      currentState = pointerAndState.getState();
-
-      prevObject = listSegment;
-    }
-    checkListDataIntegrity(pointerArray, dll);
-    return pointerArray;
-  }
-
   /**
    * Checks the integrity of list pointers and nesting levels.
    *
@@ -1881,41 +1744,6 @@ public class SMGCPAAbstractionTest {
       }
       assertThat(foundNum).isEqualTo(totalSizeOfList);
       assertThat(zeros == 3).isTrue();
-    }
-  }
-
-  /**
-   * Checks that all pointers given have data that is located in the beginning of the list as 32bit
-   * integers with the first being 0, then +1 for each after that in the same list.
-   *
-   * @param pointers a array of pointers pointing to a list with the default data scheme.
-   */
-  private void checkListDataIntegrity(Value[] pointers, boolean dll) {
-    int toCheckData = sllSize.divide(pointerSizeInBits).subtract(BigInteger.ONE).intValue();
-    if (dll) {
-      toCheckData =
-          sllSize
-              .divide(pointerSizeInBits)
-              .subtract(BigInteger.ONE)
-              .subtract(BigInteger.ONE)
-              .intValue();
-    }
-    for (Value pointer : pointers) {
-      for (int j = 0; j < toCheckData; j++) {
-        ValueAndSMGState readDataWithoutMaterialization =
-            currentState.readValueWithoutMaterialization(
-                currentState
-                    .dereferencePointerWithoutMaterilization(pointer)
-                    .orElseThrow()
-                    .getSMGObject(),
-                BigInteger.valueOf(j).multiply(pointerSizeInBits),
-                pointerSizeInBits,
-                null);
-        currentState = readDataWithoutMaterialization.getState();
-        assertThat(readDataWithoutMaterialization.getValue().isNumericValue()).isTrue();
-        assertThat(readDataWithoutMaterialization.getValue().asNumericValue().bigInteger())
-            .isEquivalentAccordingToCompareTo(BigInteger.valueOf(j));
-      }
     }
   }
 }
