@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.smg.graph;
 
+import com.google.common.collect.ComparisonChain;
 import java.math.BigInteger;
 
 /**
@@ -55,15 +56,11 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
 
   @Override
   public int compareTo(SMGPointsToEdge pOther) {
-    if (pointsToObject.compareTo(pOther.pointsToObject) == 0) {
-      if (offset.compareTo(pOther.offset) == 0) {
-        return targetSpecifier.compareTo(pOther.targetSpecifier);
-      } else {
-        return offset.compareTo(pOther.offset);
-      }
-    } else {
-      return pointsToObject.compareTo(pOther.pointsToObject);
-    }
+    return ComparisonChain.start()
+        .compare(pointsToObject, pOther.pointsToObject)
+        .compare(offset, pOther.offset)
+        .compare(targetSpecifier, pOther.targetSpecifier)
+        .result();
   }
 
   @Override
