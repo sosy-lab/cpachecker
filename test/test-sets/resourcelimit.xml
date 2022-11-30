@@ -26,6 +26,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.lock.LockCPA,cpa.predicate.BAMPredicateCPA</option>
     <option name="-setprop">cpa.usage.unsafedetector.ignoreEmptyLockset=false</option>
     <option name="-skipRecursion"/>
+    <option name="-setprop">cpa.iterationCountLimit=5</option>
     <include>../programs/cpalockator/simple/*.c</include>
   </tasks>
 
