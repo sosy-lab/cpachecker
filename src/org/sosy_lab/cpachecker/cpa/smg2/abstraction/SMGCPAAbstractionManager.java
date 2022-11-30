@@ -22,8 +22,10 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
@@ -250,7 +252,7 @@ public class SMGCPAAbstractionManager {
       }
       // Use the more advanced equality check that checks pointers via memory shapes
       if (state.checkEqualValuesForTwoStatesWithExemptions(
-          root, walker, exemptOffsetsOfList, state, state, ImmutableSet.of())) {
+          root, walker, exemptOffsetsOfList, state, state, EqualityCache.<Value>of())) {
         if (currentLength + 1 >= minimumLengthForListsForAbstraction) {
           return true;
         } else {
