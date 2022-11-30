@@ -29,9 +29,16 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
  */
 public class SMGCPAEqualityTest extends SMGCPATest0 {
 
+  // 8 seems like a reasonable compromise that tests everything and is not too slow
+  private int listLength = 8;
+
+  /**
+   * Compare 2 lists that are equal, but one is abstracted, the other is not.
+   *
+   * @throws SMG2Exception never thrown
+   */
   @Test
   public void concreteAndAbstractedListLessOrEqualTest() throws SMG2Exception {
-    int listLength = 15;
     Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength);
     SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
     currentState = absFinder.findAndAbstractLists();
@@ -119,11 +126,10 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * In any case, a 10 long concrete list can not subsume a 10+ abstracted list, but the abstracted
    * can subsume the concrete.
    *
-   * @throws SMG2Exception: never thrown.
+   * @throws SMG2Exception never thrown.
    */
   @Test
   public void concreteAndAbstractedListWSublistLessOrEqualTest() throws SMG2Exception {
-    int listLength = 10;
     Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength);
     addSubListsToList(listLength, pointersAbstractedList, false);
     SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
@@ -163,15 +169,16 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
         .isFalse();
   }
 
-  /*
+  /**
    * Make 3 lists. Two idendical, with the same sublists (abstracted, i.e. 10+) and one smaller
    * (i.e. 9+). The 10 should always equal the other 10, while the 9 should only be equal for the
    * input 10, 9 (in that order. Because of the <= relation. And yes 10 <= 9!!
    * Because 9+ also covers 10+, but 10+ not 9+)
+   *
+   * @throws SMG2Exception never thrown
    */
   @Test
   public void abstractedListWSublistLessOrEqualTest() throws SMG2Exception {
-    int listLength = 10;
     Value[] pointersSmallerAbstractedList = buildConcreteList(false, sllSize, listLength - 1);
     addSubListsToList(listLength, pointersSmallerAbstractedList, false);
     SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
@@ -262,13 +269,15 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
         .isTrue();
   }
 
-  /*
+  /**
    * Compare 2 lists with nested lists. We make 1 nested list shorter, such that it does not abstract, should therefore not be equal.
+   *
+   * @throws SMG2Exception never thrown
+   * @throws InvalidConfigurationException never thrown
    */
   @Test
   public void abstractedListWSublistNotLessOrEqualTest()
       throws SMG2Exception, InvalidConfigurationException {
-    int listLength = 6;
     for (int i = 0; i < listLength; i++) {
       resetSMGStateAndVisitor();
       Value[] pointersAbstractedShortList = buildConcreteList(false, sllSize, listLength);
@@ -354,16 +363,18 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
     }
   }
 
-  /*
+  /**
    * Make 3 lists. All have the same length, all have sublists with the same length.
    * 1 list get 1 changed value in the nested lists such that they are no longer abstractable.
    * Then compare if they are equal by shape with 2 lists, one concrete, one abstracted with all
    * values equal expect that one. None should be equal.
+   *
+   * @throws SMG2Exception never thrown
+   * @throws InvalidConfigurationException never thrown
    */
   @Test
   public void abstractedListWSublistNotLessOrEqualTest2()
       throws SMG2Exception, InvalidConfigurationException {
-    int listLength = 6;
     for (int i = 0; i < listLength; i++) {
       resetSMGStateAndVisitor();
       Value[] pointersConcreteDifferentList = buildConcreteList(false, sllSize, listLength);
