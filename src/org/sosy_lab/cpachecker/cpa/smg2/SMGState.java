@@ -1069,6 +1069,30 @@ public class SMGState
       @Nullable Value otherValue,
       EqualityCache<Value> equalityCache)
       throws SMG2Exception {
+    return areValuesEqual(
+        thisState, thisValue, otherState, otherValue, equalityCache, new HashSet<>());
+  }
+
+  /**
+   * Check the equality of values. Depending on the options symbolics are always equal or only for
+   * ids. Addresses are compared by the shape of their memory.
+   *
+   * @param thisState state of thisValue
+   * @param thisValue value in thisState
+   * @param otherState state for otherValue
+   * @param otherValue value in otherState
+   * @param equalityCache current cache of values that are known to be equal
+   * @return true if the entered values are equal.
+   * @throws SMG2Exception for critical errors
+   */
+  private boolean areValuesEqual(
+      SMGState thisState,
+      @Nullable Value thisValue,
+      SMGState otherState,
+      @Nullable Value otherValue,
+      EqualityCache<Value> equalityCache,
+      Set<Value> thisAlreadyCheckedPointers)
+      throws SMG2Exception {
     // Comparing pointers leads to == true, but they may be not equal because of the heap!!!
     if (thisValue == otherValue && thisValue.isExplicitlyKnown()) {
       return true;
@@ -1092,19 +1116,29 @@ public class SMGState
       return thisNum.equals(otherNum);
     }
 
-
     // Pointers are more difficult, they are represented by a SymbolicIdentifier, again unique
     // id. We need to use the CPA method
     if (memoryModel.isPointer(thisValue) && otherState.memoryModel.isPointer(otherValue)) {
       if (equalityCache.isEqualityKnown(thisValue, otherValue)) {
         return true;
+      } else if (thisAlreadyCheckedPointers.contains(thisValue)) {
+        equalityCache.addEquality(thisValue, otherValue);
+        return true;
+      } else {
+        // Pointers can be cyclic! We remember already checked values.
+        thisAlreadyCheckedPointers.add(thisValue);
       }
-      // Pointers can be cyclic! We remember already checked values.
-      // We assume the values to be equal here and then check it,
-      // the next step aborts if they are not (this prevents loops)
-      equalityCache.addEquality(thisValue, otherValue);
-      return isHeapEqualForTwoPointersWithTwoStates(
-              thisState, thisValue, otherState, otherValue, equalityCache);
+      if (isHeapEqualForTwoPointersWithTwoStates(
+          thisState,
+          thisValue,
+          otherState,
+          otherValue,
+          equalityCache,
+          thisAlreadyCheckedPointers)) {
+        equalityCache.addEquality(thisValue, otherValue);
+        return true;
+      }
+      return false;
     }
 
     // Unknowns in this current CPA implementation are not comparable in different states!
@@ -1133,7 +1167,8 @@ public class SMGState
       Value thisAddress,
       SMGState otherState,
       Value otherAddress,
-      EqualityCache<Value> equalityCache)
+      EqualityCache<Value> equalityCache,
+      Set<Value> thisAlreadyCheckedPointers)
       throws SMG2Exception {
     // Careful, dereference might materialize new memory out of abstractions!
     Optional<SMGStateAndOptionalSMGObjectAndOffset> thisDeref =
@@ -1167,11 +1202,18 @@ public class SMGState
 
       if (thisObj instanceof SMGSinglyLinkedListSegment
           || otherObj instanceof SMGSinglyLinkedListSegment) {
-        return checkAbstractedListEquality(thisState, thisObj, otherState, otherObj, equalityCache);
+        return checkAbstractedListEquality(
+            thisState, thisObj, otherState, otherObj, equalityCache, thisAlreadyCheckedPointers);
       }
 
       return checkEqualValuesForTwoStatesWithExemptions(
-          thisObj, otherObj, ImmutableList.of(), thisState, otherState, equalityCache);
+          thisObj,
+          otherObj,
+          ImmutableList.of(),
+          thisState,
+          otherState,
+          equalityCache,
+          thisAlreadyCheckedPointers);
     }
     return false;
   }
@@ -1184,7 +1226,8 @@ public class SMGState
       SMGObject thisObj,
       SMGState otherState,
       SMGObject otherObj,
-      EqualityCache<Value> equalityCache)
+      EqualityCache<Value> equalityCache,
+      Set<Value> thisPointerValueAlreadyVisited)
       throws SMG2Exception {
 
     // If one is DLL and the other is SLL, something is wrong
@@ -1217,7 +1260,13 @@ public class SMGState
         }
         // Check that the values are equal and that the next and back pointers are as well
         return checkEqualValuesForTwoStatesWithExemptions(
-            thisSLL, otherSLL, ImmutableList.of(), thisState, otherState, equalityCache);
+            thisSLL,
+            otherSLL,
+            ImmutableList.of(),
+            thisState,
+            otherState,
+            equalityCache,
+            thisPointerValueAlreadyVisited);
       }
     } else {
       // Don't check for equality of abstracted and concrete lists for lessOrEqual!
@@ -1235,7 +1284,8 @@ public class SMGState
       SMGState otherState,
       Value otherAddress,
       SMGObject otherObj,
-      EqualityCache<Value> equalityCache)
+      EqualityCache<Value> equalityCache,
+      Set<Value> thisPointerValuesAlreadyVisited)
       throws SMG2Exception {
     // one is an abstracted list, the other is not, we check this by materializing the abstracted
     // as long as the concrete allows
@@ -1268,7 +1318,8 @@ public class SMGState
                     thisAddress,
                     otherState,
                     otherAddress,
-                    equalityCache)) {
+                    equalityCache,
+                    thisPointerValuesAlreadyVisited)) {
               equalityCache.addEquality(thisAddress, otherAddress);
               return true;
             }
@@ -1284,7 +1335,12 @@ public class SMGState
           return deref
               .getSMGState()
               .areValuesEqual(
-                  deref.getSMGState(), thisAddress, otherState, otherAddress, equalityCache);
+                  deref.getSMGState(),
+                  thisAddress,
+                  otherState,
+                  otherAddress,
+                  equalityCache,
+                  thisPointerValuesAlreadyVisited);
         }
       }
     }
@@ -1317,7 +1373,8 @@ public class SMGState
                     thisAddress,
                     stateAndUseless.getState(),
                     otherAddress,
-                    equalityCache)) {
+                    equalityCache,
+                    thisPointerValuesAlreadyVisited)) {
               equalityCache.addEquality(thisAddress, otherAddress);
               return true;
             }
@@ -1331,7 +1388,12 @@ public class SMGState
           return deref
               .getSMGState()
               .areValuesEqual(
-                  thisState, thisAddress, deref.getSMGState(), otherAddress, equalityCache);
+                  thisState,
+                  thisAddress,
+                  deref.getSMGState(),
+                  otherAddress,
+                  equalityCache,
+                  thisPointerValuesAlreadyVisited);
         }
       }
     }
@@ -1340,8 +1402,7 @@ public class SMGState
 
   /**
    * Compare 2 values, but do not compare the exempt offsets. Compares pointers by shape of the
-   * memory they point to. Needed for lists and their next/prev pointers. TODO: add caching
-   * abilities based on states or external
+   * memory they point to. Needed for lists and their next/prev pointers.
    *
    * @param thisObject object of the this state to compare.
    * @param otherObject object of the other state to compare.
@@ -1359,6 +1420,38 @@ public class SMGState
       SMGState thisState,
       SMGState otherState,
       EqualityCache<Value> equalityCache)
+      throws SMG2Exception {
+    return checkEqualValuesForTwoStatesWithExemptions(
+        thisObject,
+        otherObject,
+        exemptOffsets,
+        thisState,
+        otherState,
+        equalityCache,
+        new HashSet<>());
+  }
+
+  /**
+   * Compare 2 values, but do not compare the exempt offsets. Compares pointers by shape of the
+   * memory they point to. Needed for lists and their next/prev pointers.
+   *
+   * @param thisObject object of the this state to compare.
+   * @param otherObject object of the other state to compare.
+   * @param exemptOffsets exempt offsets, e.g. nfo, pfo offsets.
+   * @param thisState the state to which the this object belongs.
+   * @param otherState the state to which the other object belongs.
+   * @param equalityCache basic value check cache.
+   * @return true if the 2 memory sections given are equal. False else.
+   * @throws SMG2Exception for critical errors.
+   */
+  private boolean checkEqualValuesForTwoStatesWithExemptions(
+      SMGObject thisObject,
+      SMGObject otherObject,
+      ImmutableList<BigInteger> exemptOffsets,
+      SMGState thisState,
+      SMGState otherState,
+      EqualityCache<Value> equalityCache,
+      Set<Value> thisPointerValuesAlreadyVisited)
       throws SMG2Exception {
 
     Map<BigInteger, SMGHasValueEdge> otherOffsetToHVEdgeMap = new HashMap<>();
@@ -1404,16 +1497,18 @@ public class SMGState
       Value thisHVEValue =
           thisState.memoryModel.getValueFromSMGValue(thisHVE.hasValue()).orElseThrow();
 
-      // We assume the values to be equal here and then check it,
-      // the next step aborts if they are not (this prevents loops)
-      equalityCache.addEquality(thisHVEValue, otherHVEValue);
       // These values are either numeric, pointer or unknown
-      if (!areValuesEqual(thisState, thisHVEValue, otherState, otherHVEValue, equalityCache)) {
+      if (!areValuesEqual(
+          thisState,
+          thisHVEValue,
+          otherState,
+          otherHVEValue,
+          equalityCache,
+          thisPointerValuesAlreadyVisited)) {
         return false;
       }
       // They are equal, we don't need to check it again later
       thisOffsetToHVEdgeMap.remove(otherOffset);
-
     }
     // At this point we know that from the perspective of other, this is equal or greater
     // Now we need to know if it is reverse also
@@ -1432,7 +1527,13 @@ public class SMGState
       // These values are either numeric, pointer or unknown
       // Nothing == symbolic; symbolic != concrete and everything != pointer expect the same
       // pointer!
-      if (!areValuesEqual(thisState, thisHVEValue, otherState, otherHVEValue, equalityCache)) {
+      if (!areValuesEqual(
+          thisState,
+          thisHVEValue,
+          otherState,
+          otherHVEValue,
+          equalityCache,
+          thisPointerValuesAlreadyVisited)) {
         return false;
       }
       equalityCache.addEquality(thisHVEValue, otherHVEValue);
@@ -3229,7 +3330,13 @@ public class SMGState
     SMGObject nextObj = maybeNext.orElseThrow();
     // Values not equal, continue traverse
     if (!checkEqualValuesForTwoStatesWithExemptions(
-        root, nextObj, ImmutableList.of(nfo, pfo), this, this, EqualityCache.<Value>of())) {
+        root,
+        nextObj,
+        ImmutableList.of(nfo, pfo),
+        this,
+        this,
+        EqualityCache.<Value>of(),
+        new HashSet<>())) {
       return abstractIntoDLL(
           nextObj,
           nfo,
@@ -3352,7 +3459,13 @@ public class SMGState
 
     // Values not equal, continue traverse
     if (!checkEqualValuesForTwoStatesWithExemptions(
-        root, nextObj, ImmutableList.of(nfo), this, this, EqualityCache.<Value>of())) {
+        root,
+        nextObj,
+        ImmutableList.of(nfo),
+        this,
+        this,
+        EqualityCache.<Value>of(),
+        new HashSet<>())) {
       return abstractIntoSLL(
           nextObj, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(root).build());
     }

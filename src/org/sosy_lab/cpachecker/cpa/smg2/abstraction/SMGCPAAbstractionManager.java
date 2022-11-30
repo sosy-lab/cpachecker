@@ -39,6 +39,8 @@ public class SMGCPAAbstractionManager {
 
   private SMGState state;
 
+  private EqualityCache<Value> equalityCache;
+
   private int minimumLengthForListsForAbstraction;
 
   public SMGCPAAbstractionManager(SMGState pState, int pMinimumLengthForListsForAbstraction) {
@@ -48,6 +50,7 @@ public class SMGCPAAbstractionManager {
 
   public SMGState findAndAbstractLists() throws SMG2Exception {
     SMGState currentState = state;
+    equalityCache = EqualityCache.of();
     ImmutableList<SMGCandidate> refinedCandidates = getRefinedLinkedCandidates();
     // Sort in DLL and SLL candidates and also order by nesting
     List<Set<SMGCandidate>> orderListCandidatesByNesting =
@@ -252,7 +255,7 @@ public class SMGCPAAbstractionManager {
       }
       // Use the more advanced equality check that checks pointers via memory shapes
       if (state.checkEqualValuesForTwoStatesWithExemptions(
-          root, walker, exemptOffsetsOfList, state, state, EqualityCache.<Value>of())) {
+          root, walker, exemptOffsetsOfList, state, state, equalityCache)) {
         if (currentLength + 1 >= minimumLengthForListsForAbstraction) {
           return true;
         } else {
