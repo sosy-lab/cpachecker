@@ -172,8 +172,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
   /**
    * Make 3 lists. Two idendical, with the same sublists (abstracted, i.e. 10+) and one smaller
    * (i.e. 9+). The 10 should always equal the other 10, while the 9 should only be equal for the
-   * input 10, 9 (in that order. Because of the <= relation. And yes 10 <= 9!!
-   * Because 9+ also covers 10+, but 10+ not 9+)
+   * input 10, 9 (in that order. Because of the <= relation. And yes 10 <= 9!! Because 9+ also
+   * covers 10+, but 10+ not 9+)
    *
    * @throws SMG2Exception never thrown
    */
@@ -270,7 +270,8 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
   }
 
   /**
-   * Compare 2 lists with nested lists. We make 1 nested list shorter, such that it does not abstract, should therefore not be equal.
+   * Compare 2 lists with nested lists. We make 1 nested list shorter, such that it does not
+   * abstract, should therefore not be equal.
    *
    * @throws SMG2Exception never thrown
    * @throws InvalidConfigurationException never thrown
@@ -364,10 +365,10 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
   }
 
   /**
-   * Make 3 lists. All have the same length, all have sublists with the same length.
-   * 1 list get 1 changed value in the nested lists such that they are no longer abstractable.
-   * Then compare if they are equal by shape with 2 lists, one concrete, one abstracted with all
-   * values equal expect that one. None should be equal.
+   * Make 3 lists. All have the same length, all have sublists with the same length. 1 list get 1
+   * changed value in the nested lists such that they are no longer abstractable. Then compare if
+   * they are equal by shape with 2 lists, one concrete, one abstracted with all values equal expect
+   * that one. None should be equal.
    *
    * @throws SMG2Exception never thrown
    * @throws InvalidConfigurationException never thrown
