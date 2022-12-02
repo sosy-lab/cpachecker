@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Predicates.not;
+import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.stream.Collectors.toCollection;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
@@ -139,7 +140,7 @@ public interface PointerTargetSetBuilder {
       fields = pointerTargetSet.getFields();
       deferredAllocations = pointerTargetSet.getDeferredAllocations();
       if (pOptions.useArraysForHeap()) {
-        assert pointerTargetSet.getTargets() == null || pointerTargetSet.getTargets().isEmpty();
+        verify(pointerTargetSet.getTargets() == null || pointerTargetSet.getTargets().isEmpty());
         targets = null;
       } else {
         targets = pointerTargetSet.getTargets();

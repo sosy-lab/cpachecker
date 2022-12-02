@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
+import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
@@ -309,8 +310,8 @@ class PointerTargetSetManager {
 
     PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets;
     if (options.useArraysForHeap()) {
-      assert pts1.getTargets() == null || pts1.getTargets().isEmpty();
-      assert pts2.getTargets() == null || pts2.getTargets().isEmpty();
+      verify(pts1.getTargets() == null || pts1.getTargets().isEmpty());
+      verify(pts2.getTargets() == null || pts2.getTargets().isEmpty());
       mergedTargets = null;
     } else {
       mergedTargets =
