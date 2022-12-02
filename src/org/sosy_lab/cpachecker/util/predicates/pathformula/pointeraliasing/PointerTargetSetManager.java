@@ -287,6 +287,9 @@ class PointerTargetSetManager {
     final CopyOnWriteSortedMap<CompositeField, Boolean> fieldsOnlyPts2 =
         CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<CompositeField, Boolean>of());
 
+    if (options.useArraysForHeap()) {
+      verify(pts1.getFields().isEmpty() && pts2.getFields().isEmpty());
+    }
     PersistentSortedMap<CompositeField, Boolean> mergedFields =
         merge(
             pts1.getFields(),

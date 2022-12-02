@@ -141,6 +141,7 @@ public interface PointerTargetSetBuilder {
       deferredAllocations = pointerTargetSet.getDeferredAllocations();
       if (pOptions.useArraysForHeap()) {
         verify(pointerTargetSet.getTargets() == null || pointerTargetSet.getTargets().isEmpty());
+        verify(pointerTargetSet.getFields().isEmpty());
         targets = null;
       } else {
         targets = pointerTargetSet.getTargets();
@@ -272,7 +273,7 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public boolean tracksField(CompositeField field) {
-      return fields.containsKey(field);
+      return options.useArraysForHeap() || fields.containsKey(field);
     }
 
     /**
@@ -403,6 +404,9 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public void addEssentialFields(final List<CompositeField> pFields) {
+      if (options.useArraysForHeap()) {
+        return;
+      }
       final Predicate<CompositeField> isNewField = (compositeField) -> !tracksField(compositeField);
 
       final Comparator<CompositeField> simpleTypedFieldsFirst =

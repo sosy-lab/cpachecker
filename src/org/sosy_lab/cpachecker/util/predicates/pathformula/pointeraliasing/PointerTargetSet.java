@@ -189,6 +189,8 @@ public final class PointerTargetSet implements Serializable {
 
   // The set of "shared" fields that are accessed directly via pointers,
   // so they are represented with UFs instead of as variables.
+  // This map is only used for the UF-based encoding (not for the array-based encoding)
+  // and will be empty in the latter case.
   private final PersistentSortedMap<CompositeField, Boolean> fields;
 
   private final PersistentList<Pair<String, DeferredAllocation>> deferredAllocations;
