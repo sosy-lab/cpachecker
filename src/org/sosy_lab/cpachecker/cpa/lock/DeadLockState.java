@@ -41,7 +41,7 @@ public final class DeadLockState extends AbstractLockState {
     public int compareTo(CompatibleState pOther) {
       Preconditions.checkArgument(pOther instanceof DeadLockTreeNode);
       DeadLockTreeNode o = (DeadLockTreeNode) pOther;
-      int result = size() - o.size();
+      int result = Integer.compare(size(), o.size());
       if (result != 0) {
         return result;
       }

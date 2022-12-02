@@ -91,7 +91,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
   @Override
   public int compareTo(CompatibleState pOther) {
     ThreadState other = (ThreadState) pOther;
-    int result = other.threadSet.size() - threadSet.size(); // decreasing queue
+    int result = Integer.compare(other.threadSet.size(), threadSet.size()); // decreasing queue
 
     if (result != 0) {
       return result;
