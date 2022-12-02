@@ -12,7 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -45,7 +45,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
 
   private TransitionCondition() {
     keyValues = new EnumMap<>(KeyDef.class);
-    scope = new Scope(Optional.empty(), ImmutableMap.of());
+    scope = new Scope(Optional.empty(), ImmutableSortedMap.of());
   }
 
   private TransitionCondition(EnumMap<KeyDef, String> pKeyValues, Scope pScope) {
@@ -188,12 +188,12 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
 
     private final Optional<String> functionName;
 
-    private final ImmutableMap<String, ASimpleDeclaration> usedDeclarations;
+    private final ImmutableSortedMap<String, ASimpleDeclaration> usedDeclarations;
 
     private Scope(
         Optional<String> pFunctionName, Map<String, ASimpleDeclaration> pUsedDeclarations) {
       functionName = pFunctionName;
-      usedDeclarations = ImmutableMap.copyOf(pUsedDeclarations);
+      usedDeclarations = ImmutableSortedMap.copyOf(pUsedDeclarations);
       for (ASimpleDeclaration decl : pUsedDeclarations.values()) {
         if (decl instanceof AVariableDeclaration) {
           AVariableDeclaration varDecl = (AVariableDeclaration) decl;
