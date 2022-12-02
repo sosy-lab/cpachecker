@@ -15,6 +15,7 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -51,19 +52,10 @@ public final class LockState extends AbstractLockState {
     public int compareTo(CompatibleState pOther) {
       Preconditions.checkArgument(pOther instanceof LockTreeNode);
       LockTreeNode o = (LockTreeNode) pOther;
-      int result = Integer.compare(size(), o.size());
-      if (result != 0) {
-        return result;
-      }
-      Iterator<LockIdentifier> lockIterator = iterator();
-      Iterator<LockIdentifier> lockIterator2 = o.iterator();
-      while (lockIterator.hasNext()) {
-        result = lockIterator.next().compareTo(lockIterator2.next());
-        if (result != 0) {
-          return result;
-        }
-      }
-      return 0;
+      return ComparisonChain.start()
+          .compare(size(), o.size())
+          .compare(this, o, Ordering.natural().lexicographical()) // compares iterators
+          .result();
     }
 
     @Override

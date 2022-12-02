@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -41,19 +40,10 @@ public final class DeadLockState extends AbstractLockState {
     public int compareTo(CompatibleState pOther) {
       Preconditions.checkArgument(pOther instanceof DeadLockTreeNode);
       DeadLockTreeNode o = (DeadLockTreeNode) pOther;
-      int result = Integer.compare(size(), o.size());
-      if (result != 0) {
-        return result;
-      }
-      Iterator<LockIdentifier> lockIterator = iterator();
-      Iterator<LockIdentifier> lockIterator2 = o.iterator();
-      while (lockIterator.hasNext()) {
-        result = lockIterator.next().compareTo(lockIterator2.next());
-        if (result != 0) {
-          return result;
-        }
-      }
-      return 0;
+      return ComparisonChain.start()
+          .compare(size(), o.size())
+          .compare(this, o, Ordering.natural().lexicographical()) // compares iterators
+          .result();
     }
 
     @Override
