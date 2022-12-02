@@ -33,13 +33,16 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -55,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -122,6 +126,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   public static final String THREAD_START = "pthread_create";
   public static final String THREAD_JOIN = "pthread_join";
   private static final String THREAD_EXIT = "pthread_exit";
+  private static final String MUTEX_TYPE = "pthread_mutex_t";
+  private static final String RW_MUTEX_TYPE = "pthread_rwlock_t";
   private static final String THREAD_MUTEX_LOCK = "pthread_mutex_lock";
   private static final String THREAD_MUTEX_UNLOCK = "pthread_mutex_unlock";
   private static final String THREAD_MUTEX_TRYLOCK = "pthread_mutex_trylock";
@@ -187,10 +193,14 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     }
 
     // check if atomic lock exists and is set for current thread
-    if (useAtomicLocks
-        && threadingState.isLockHeld(ATOMIC_LOCK)
-        && !threadingState.isLockHeld(activeThread, ATOMIC_LOCK)) {
-      return ImmutableSet.of();
+    if (useAtomicLocks) {
+      if (!threadingState.hasLock(ATOMIC_LOCK)) {
+        threadingState = threadingState.updateLockAndCopy(new MutexLock(ATOMIC_LOCK));
+      }
+      if (threadingState.isLockHeld(ATOMIC_LOCK)
+          && !threadingState.isLockHeld(activeThread, ATOMIC_LOCK)) {
+        return ImmutableSet.of();
+      }
     }
 
     // check if a local-access-lock allows to avoid exploration of some threads
@@ -279,52 +289,52 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         {
           AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
           if (statement instanceof AFunctionCall) {
-            AExpression functionNameExp =
-                ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-            if (functionNameExp instanceof AIdExpression) {
-              final String functionName = ((AIdExpression) functionNameExp).getName();
-              switch (functionName) {
-                case THREAD_START:
-                  return startNewThread(threadingState, statement, results, cfaEdge);
-                case THREAD_MUTEX_LOCK:
-                  return addLock(threadingState, activeThread, extractLockId(statement), results);
-                case THREAD_MUTEX_UNLOCK:
-                  return removeLock(activeThread, extractLockId(statement), results);
-                case THREAD_MUTEX_TRYLOCK:
-                  return tryAddLock(
-                      threadingState, activeThread, extractLockId(statement), results, cfaEdge);
-                case RW_MUTEX_READLOCK:
-                  return addReadLock(
-                      threadingState, activeThread, extractLockId(statement), results);
-                case RW_MUTEX_WRITELOCK:
-                  return addWriteLock(
-                      threadingState, activeThread, extractLockId(statement), results);
-                case THREAD_COND_WAIT:
-                case THREAD_COND_TIMEDWAIT:
-                  return addCondition(
-                      threadingState, activeThread, (AFunctionCall) statement, results, cfaEdge);
-                case THREAD_COND_SIGNAL:
-                case THREAD_COND_BC:
-                  return removeCondition(threadingState, (AFunctionCall) statement, results);
-                case THREAD_JOIN:
-                  return joinThread(threadingState, statement, results);
-                case THREAD_EXIT:
-                  // this function-call is already handled in the beginning with isLastNodeOfThread.
-                  // return exitThread(threadingState, activeThread, results);
-                  break;
-                case VERIFIER_ATOMIC_BEGIN:
-                  if (useAtomicLocks) {
-                    return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
-                  }
-                  break;
-                case VERIFIER_ATOMIC_END:
-                  if (useAtomicLocks) {
-                    return removeLock(activeThread, ATOMIC_LOCK, results);
-                  }
-                  break;
-                default:
-                  // nothing to do, return results
-              }
+            AFunctionCall functionCall = (AFunctionCall) statement;
+            String functionName = getFunctionName(functionCall);
+            LockInfo lock = extractLock(functionCall, threadingState);
+            switch (functionName) {
+              case THREAD_START:
+                return startNewThread(threadingState, statement, results, cfaEdge);
+              case THREAD_MUTEX_LOCK:
+                assert lock != null;
+                return addLock(activeThread, lock, results);
+              case THREAD_MUTEX_UNLOCK:
+                assert lock != null;
+                return removeLock(activeThread, lock, results);
+              case THREAD_MUTEX_TRYLOCK:
+                assert lock != null;
+                return tryAddLock(activeThread, lock, results, cfaEdge);
+              case RW_MUTEX_READLOCK:
+                assert lock instanceof RWLock;
+                return addReadLock(activeThread, (RWLock) lock, results);
+              case RW_MUTEX_WRITELOCK:
+                assert lock instanceof RWLock;
+                return addWriteLock(activeThread, (RWLock) lock, results);
+              case THREAD_COND_WAIT:
+              case THREAD_COND_TIMEDWAIT:
+                return addCondition(
+                    threadingState, activeThread, (AFunctionCall) statement, results, cfaEdge);
+              case THREAD_COND_SIGNAL:
+              case THREAD_COND_BC:
+                return removeCondition(threadingState, (AFunctionCall) statement, results);
+              case THREAD_JOIN:
+                return joinThread(threadingState, statement, results);
+              case THREAD_EXIT:
+                // this function-call is already handled in the beginning with isLastNodeOfThread.
+                // return exitThread(threadingState, activeThread, results);
+                break;
+              case VERIFIER_ATOMIC_BEGIN:
+                if (useAtomicLocks) {
+                  return addLock(activeThread, threadingState.getLock(ATOMIC_LOCK), results);
+                }
+                break;
+              case VERIFIER_ATOMIC_END:
+                if (useAtomicLocks) {
+                  return removeLock(activeThread, threadingState.getLock(ATOMIC_LOCK), results);
+                }
+                break;
+              default:
+                // nothing to do, return results
             }
           }
           break;
@@ -340,10 +350,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
             // anything
             final String calledFunction = cfaEdge.getSuccessor().getFunctionName();
             if (calledFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
-              return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
+              return addLock(activeThread, threadingState.getLock(ATOMIC_LOCK), results);
             } else if (calledFunction.startsWith(VERIFIER_ATOMIC)
                 && !calledFunction.startsWith(VERIFIER_ATOMIC_END)) {
-              return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
+              return addLock(activeThread, threadingState.getLock(ATOMIC_LOCK), results);
             }
           }
           break;
@@ -359,10 +369,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
             // anything
             final String exitedFunction = cfaEdge.getPredecessor().getFunctionName();
             if (exitedFunction.startsWith(VERIFIER_ATOMIC_END)) {
-              return removeLock(activeThread, ATOMIC_LOCK, results);
+              return removeLock(activeThread, threadingState.getLock(ATOMIC_LOCK), results);
             } else if (exitedFunction.startsWith(VERIFIER_ATOMIC)
                 && !exitedFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
-              return removeLock(activeThread, ATOMIC_LOCK, results);
+              return removeLock(activeThread, threadingState.getLock(ATOMIC_LOCK), results);
             }
           }
           break;
@@ -428,11 +438,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     if (CFAEdgeType.StatementEdge == cfaEdge.getEdgeType()) {
       AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
       if (statement instanceof AFunctionCall) {
-        AExpression functionNameExp =
-            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-        if (functionNameExp instanceof AIdExpression) {
-          return THREAD_EXIT.equals(((AIdExpression) functionNameExp).getName());
-        }
+        String functionName = getFunctionName((AFunctionCall) statement);
+        return THREAD_EXIT.equals(functionName);
       }
     }
     return false;
@@ -655,44 +662,31 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   }
 
   private Collection<ThreadingState> addLock(
-      final ThreadingState threadingState,
-      final String activeThread,
-      String lockId,
-      final Collection<ThreadingState> results) {
-    if (threadingState.isLockHeld(lockId)) {
+      final String activeThread, final LockInfo lock, final Collection<ThreadingState> results) {
+    if (lock.isHeld()) {
       // some thread (including activeThread) has the lock, using it twice is not possible
       // TODO: Or maybe it is? (e.g. recursive mutex) -> Check context where this function is called
       return ImmutableSet.of();
     }
 
-    LockInfo lock;
-    if (threadingState.hasLock(lockId)) {
-      lock = threadingState.getLock(lockId);
-    } else {
-      lock = new MutexLock(lockId);
-    }
-
     return transform(results, ts -> ts.updateLockAndCopy(lock.acquire(activeThread)));
   }
 
+  private Collection<ThreadingState> removeLock(
+      final String activeThread, final LockInfo lock, final Collection<ThreadingState> results) {
+    return transform(results, ts -> ts.updateLockAndCopy(lock.release(activeThread)));
+  }
+
   private Collection<ThreadingState> tryAddLock(
-      final ThreadingState threadingState,
       final String activeThread,
-      String lockId,
+      final LockInfo lock,
       final Collection<ThreadingState> results,
       CFAEdge trylockEdge) {
-    if (threadingState.isLockHeld(lockId)) {
-      boolean success = threadingState.getLock(lockId).isHeldByThread(activeThread);
+    if (lock.isHeld()) {
+      boolean success = lock.isHeldByThread(activeThread);
       ThreadFunctionReturnValue lastThreadFunctionResult =
           new ThreadFunctionReturnValue(trylockEdge, success);
       return transform(results, ts -> ts.withLastThreadFunctionResult(lastThreadFunctionResult));
-    }
-
-    LockInfo lock;
-    if (threadingState.hasLock(lockId)) {
-      lock = threadingState.getLock(lockId);
-    } else {
-      lock = new MutexLock(lockId);
     }
 
     return transform(
@@ -703,18 +697,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   }
 
   private Collection<ThreadingState> addReadLock(
-      final ThreadingState threadingState,
-      final String activeThread,
-      String lockId,
-      final Collection<ThreadingState> results) {
-    RWLock lock;
-    if (threadingState.hasLock(lockId)
-        && threadingState.getLock(lockId).getLockType().equals(LockType.RW_MUTEX)) {
-      lock = (RWLock) threadingState.getLock(lockId);
-    } else {
-      lock = new RWLock(lockId);
-    }
-
+      final String activeThread, final RWLock lock, final Collection<ThreadingState> results) {
     if (lock.hasWriter()) {
       // Reader cannot acquire lock while writer is active
       return ImmutableSet.of();
@@ -724,18 +707,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   }
 
   private Collection<ThreadingState> addWriteLock(
-      final ThreadingState threadingState,
-      final String activeThread,
-      String lockId,
-      final Collection<ThreadingState> results) {
-    RWLock lock;
-    if (threadingState.hasLock(lockId)
-        && threadingState.getLock(lockId).getLockType().equals(LockType.RW_MUTEX)) {
-      lock = (RWLock) threadingState.getLock(lockId);
-    } else {
-      lock = new RWLock(lockId);
-    }
-
+      final String activeThread, final RWLock lock, final Collection<ThreadingState> results) {
     if (lock.hasReader() || lock.hasWriter()) {
       // Writer cannot acquire lock while a reader or another writer is active
       return ImmutableSet.of();
@@ -799,56 +771,121 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return transform(results, ts -> ts.updateCondVarAndCopy(condVar));
   }
 
-  /** get the name (lockId) of the new lock at the given edge, or NULL if no lock is required. */
-  static @Nullable String getLockId(final CFAEdge cfaEdge) throws UnrecognizedCodeException {
-    if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
-      final AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
-      if (statement instanceof AFunctionCall) {
-        final AExpression functionNameExp =
-            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-        if (functionNameExp instanceof AIdExpression) {
-          final String functionName = ((AIdExpression) functionNameExp).getName();
-          if (THREAD_MUTEX_LOCK.equals(functionName)
-              || THREAD_MUTEX_TRYLOCK.equals(functionName)
-              || RW_MUTEX_READLOCK.equals(functionName)
-              || RW_MUTEX_WRITELOCK.equals(functionName)) {
-            return extractLockId(statement);
-          }
+  private static String getFunctionName(AFunctionCall functionCall) {
+    AExpression functionNameExpression =
+        functionCall.getFunctionCallExpression().getFunctionNameExpression();
+    while (functionNameExpression instanceof APointerExpression) {
+      functionNameExpression = ((APointerExpression) functionNameExpression).getOperand();
+    }
+    if (functionNameExpression instanceof AIdExpression) {
+      return ((AIdExpression) functionNameExpression).getName();
+    }
+    throw new AssertionError("Could not extract function name from function call" + functionCall);
+  }
+
+  /** Return the lock referenced by the given function call or null if no lock is referenced. */
+  static @Nullable LockInfo extractLock(AFunctionCall functionCall, ThreadingState threadingState)
+      throws UnrecognizedCodeException {
+    LockInfo lockInfo;
+    String functionName = getFunctionName(functionCall);
+    switch (functionName) {
+      case THREAD_MUTEX_LOCK:
+      case THREAD_MUTEX_TRYLOCK:
+      case THREAD_MUTEX_UNLOCK:
+        AExpression lockExpression =
+            functionCall.getFunctionCallExpression().getParameterExpressions().get(0);
+        lockInfo = extractLock(lockExpression, threadingState, LockType.MUTEX);
+        break;
+      case RW_MUTEX_READLOCK:
+      case RW_MUTEX_WRITELOCK:
+        lockExpression = functionCall.getFunctionCallExpression().getParameterExpressions().get(0);
+        lockInfo = extractLock(lockExpression, threadingState, LockType.RW_MUTEX);
+        break;
+      case THREAD_COND_WAIT:
+      case THREAD_COND_TIMEDWAIT:
+        lockExpression = functionCall.getFunctionCallExpression().getParameterExpressions().get(1);
+        lockInfo = extractLock(lockExpression, threadingState, LockType.MUTEX);
+        break;
+      case THREAD_START:
+      case THREAD_JOIN:
+      case THREAD_EXIT:
+      case THREAD_COND_SIGNAL:
+      case THREAD_COND_BC:
+      case VERIFIER_ATOMIC_BEGIN:
+      case VERIFIER_ATOMIC_END:
+        return null;
+      default:
+        if (THREAD_FUNCTIONS.contains(functionName)) {
+          throw new AssertionError("Unhandled thread function");
+        }
+        // No lock is required
+        return null;
+    }
+    return lockInfo;
+  }
+
+  private static LockInfo extractLock(
+      AExpression expression, ThreadingState threadingState, LockType lockType)
+      throws UnrecognizedCodeException {
+    if (expression instanceof AUnaryExpression) {
+      AExpression operand = ((AUnaryExpression) expression).getOperand();
+      if (operand instanceof AArraySubscriptExpression) {
+        return extractLockFromArray((AArraySubscriptExpression) operand, threadingState);
+      }
+
+      // Try to extract the lock id and check whether the references lock already exists
+      String lockId;
+      if (operand instanceof AIdExpression) {
+        lockId = ((AIdExpression) operand).getName();
+      } else if (operand instanceof CFieldReference) {
+        lockId = operand.toASTString();
+      } else {
+        throw new UnrecognizedCodeException("Unsupported thread locking", expression);
+      }
+      if (threadingState.hasLock(lockId)) {
+        return threadingState.getLock(lockId);
+      }
+
+      // If the lock has been referenced for the first time create its LockInfo
+      switch (lockType) {
+        case MUTEX:
+          return new MutexLock(lockId);
+        case RW_MUTEX:
+          return new RWLock(lockId);
+        default:
+          throw new AssertionError("Unhandled lock type");
+      }
+    }
+    throw new UnrecognizedCodeException("Unsupported thread locking", expression);
+  }
+
+  private static LockInfo extractLockFromArray(
+      AArraySubscriptExpression arraySubscriptExpression, ThreadingState threadingState)
+      throws UnrecognizedCodeException {
+    AExpression arrayExpression = arraySubscriptExpression.getArrayExpression();
+    AExpression subscriptExpression = arraySubscriptExpression.getSubscriptExpression();
+    if (subscriptExpression instanceof AIntegerLiteralExpression) {
+      String arrayName = arrayExpression.toASTString();
+      int index = ((AIntegerLiteralExpression) subscriptExpression).getValue().intValue();
+      String lockId = arrayName + "[" + index + "]";
+
+      if (threadingState.hasLock(lockId)) {
+        return threadingState.getLock(lockId);
+      }
+
+      if (arraySubscriptExpression.getExpressionType() instanceof CTypedefType) {
+        CTypedefType elementType = (CTypedefType) arraySubscriptExpression.getExpressionType();
+        switch (elementType.getName()) {
+          case MUTEX_TYPE:
+            return new MutexLock(lockId);
+          case RW_MUTEX_TYPE:
+            return new RWLock(lockId);
+          default:
+            throw new AssertionError("Unhandled mutex type");
         }
       }
     }
-    // otherwise no lock is required
-    return null;
-  }
-
-  private static String extractLockId(final AStatement statement) throws UnrecognizedCodeException {
-    // first check for some possible errors and unsupported parts
-    List<? extends AExpression> params =
-        ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
-    if (!(params.get(0) instanceof CUnaryExpression)) {
-      throw new UnrecognizedCodeException("unsupported thread locking", params.get(0));
-    }
-    CExpression operand = ((CUnaryExpression) params.get(0)).getOperand();
-    if (operand instanceof CArraySubscriptExpression) {
-      CExpression subscriptExpression =
-          ((CArraySubscriptExpression) operand).getSubscriptExpression();
-      if (!(subscriptExpression instanceof ALiteralExpression)) {
-        throw new UnrecognizedCodeException("unsupported thread lock assignment", params.get(0));
-      }
-    }
-    //  CExpression expr0 = ((CUnaryExpression)params.get(0)).getOperand();
-    //  if (!(expr0 instanceof CIdExpression)) {
-    //    throw new UnrecognizedCodeException("unsupported thread lock assignment", expr0);
-    //  }
-    //  String lockId = ((CIdExpression) expr0).getName();
-
-    String lockId = ((CUnaryExpression) params.get(0)).getOperand().toString();
-    return lockId;
-  }
-
-  private Collection<ThreadingState> removeLock(
-      final String activeThread, final String lockId, final Collection<ThreadingState> results) {
-    return transform(results, ts -> ts.releaseLockAndCopy(activeThread, lockId));
+    throw new UnrecognizedCodeException("Unsupported thread locking", arraySubscriptExpression);
   }
 
   private Collection<ThreadingState> joinThread(
@@ -921,11 +958,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         {
           AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
           if (statement instanceof AFunctionCall) {
-            AExpression functionNameExp =
-                ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-            if (functionNameExp instanceof AIdExpression) {
-              return THREAD_FUNCTIONS.contains(((AIdExpression) functionNameExp).getName());
-            }
+            String functionName = getFunctionName((AFunctionCall) statement);
+            return THREAD_FUNCTIONS.contains(functionName);
           }
           return false;
         }

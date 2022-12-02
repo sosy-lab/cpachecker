@@ -25,7 +25,7 @@ public class MutexLock extends LockInfo {
   }
 
   @Override
-  public boolean isHeldByThread() {
+  public boolean isHeld() {
     return threadId != null;
   }
 
@@ -38,7 +38,7 @@ public class MutexLock extends LockInfo {
   @Override
   public LockInfo acquire(String pThreadId) {
     Preconditions.checkNotNull(pThreadId);
-    Preconditions.checkState(!isHeldByThread());
+    Preconditions.checkState(!isHeld());
     return new MutexLock(getLockId(), pThreadId);
   }
 
@@ -51,7 +51,7 @@ public class MutexLock extends LockInfo {
 
   @Override
   public String toString() {
-    return super.toString() + (isHeldByThread() ? " held by " + threadId : "");
+    return super.toString() + (isHeld() ? " held by " + threadId : "");
   }
 
   @Override

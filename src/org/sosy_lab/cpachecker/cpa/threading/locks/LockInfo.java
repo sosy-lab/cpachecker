@@ -66,7 +66,7 @@ public abstract class LockInfo implements Comparable<LockInfo> {
   }
 
   /** Returns whether some thread is holding the lock. */
-  public abstract boolean isHeldByThread();
+  public abstract boolean isHeld();
 
   /** Returns whether the specified thread is holding the lock. */
   public abstract boolean isHeldByThread(String pThreadId);

@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.cpa.threading;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_JOIN;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.extractLock;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.extractParamName;
-import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.getLockId;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.isLastNodeOfThread;
 
 import com.google.common.base.Joiner;
@@ -267,7 +267,7 @@ public class ThreadingState
   /** returns whether any of the threads has the lock */
   public boolean isLockHeld(String lockId) {
     Preconditions.checkNotNull(lockId);
-    return locks.containsKey(lockId) && locks.get(lockId).isHeldByThread();
+    return locks.containsKey(lockId) && locks.get(lockId).isHeld();
   }
 
   /** returns whether the given thread has the lock */
@@ -449,8 +449,15 @@ public class ThreadingState
 
   /** check, if the edge required a lock, that is already used. This might cause a deadlock. */
   private boolean needsAlreadyUsedLock(CFAEdge edge) throws UnrecognizedCodeException {
-    final String newLock = getLockId(edge);
-    return newLock != null && isLockHeld(newLock);
+    if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
+      final AStatement statement = ((AStatementEdge) edge).getStatement();
+      if (statement instanceof AFunctionCall) {
+        AFunctionCall functionCall = (AFunctionCall) statement;
+        LockInfo lock = extractLock(functionCall, this);
+        return lock != null && lock.isHeld();
+      }
+    }
+    return false;
   }
 
   /**

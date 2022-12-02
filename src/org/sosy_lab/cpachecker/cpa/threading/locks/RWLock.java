@@ -68,7 +68,7 @@ public class RWLock extends LockInfo {
   }
 
   @Override
-  public boolean isHeldByThread() {
+  public boolean isHeld() {
     return writer != null || !readers.isEmpty();
   }
 
