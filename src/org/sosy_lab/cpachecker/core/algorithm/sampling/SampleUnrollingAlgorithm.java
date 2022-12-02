@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.sampling;
 import com.google.common.base.Functions;
 import com.google.common.base.Objects;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
@@ -85,8 +84,7 @@ public class SampleUnrollingAlgorithm {
     reachedSet.add(initialState, initialPrecision);
     logger.log(Level.FINER, "Unrolling sample...");
 
-    Set<MemoryLocation> relevantVariables = initialSample.getVariableValues().keySet();
-    SampleTreeNode sampleTreeRoot = run(reachedSet, loop, relevantVariables);
+    SampleTreeNode sampleTreeRoot = run(reachedSet, initialSample, loop);
 
     ImmutableSet.Builder<Sample> builder = ImmutableSet.builder();
     Queue<SampleTreeNode> waitlist = new ArrayDeque<>();
@@ -129,15 +127,14 @@ public class SampleUnrollingAlgorithm {
     return cpa.getInitialPrecision(sample.getLocation(), StateSpacePartition.getDefaultPartition());
   }
 
-  private SampleTreeNode run(
-      ReachedSet reachedSet, Loop loop, Set<MemoryLocation> relevantVariables)
+  private SampleTreeNode run(ReachedSet reachedSet, Sample initialSample, Loop loop)
       throws CPAException, InterruptedException {
     TransferRelation transferRelation = cpa.getTransferRelation();
     PrecisionAdjustment precisionAdjustment = cpa.getPrecisionAdjustment();
+    Set<MemoryLocation> relevantVariables = initialSample.getVariableValues().keySet();
 
     AbstractState first = reachedSet.getFirstState();
-    SampleTreeNode root =
-        new SampleTreeNode(getSampleForState(first, relevantVariables), getLocationForState(first));
+    SampleTreeNode root = new SampleTreeNode(initialSample, getLocationForState(first));
     Map<AbstractState, SampleTreeNode> nodes = new HashMap<>();
     nodes.put(first, root);
 
@@ -145,7 +142,7 @@ public class SampleUnrollingAlgorithm {
       AbstractState state = reachedSet.popFromWaitlist();
       Precision precision = reachedSet.getPrecision(state);
       SampleTreeNode node = nodes.get(state);
-      Sample sample = getSampleForState(state, relevantVariables);
+      Sample sample = Sample.fromAbstractState(state, relevantVariables);
       for (AbstractState successor : transferRelation.getAbstractSuccessors(state, precision)) {
         Optional<PrecisionAdjustmentResult> precAdjustmentOptional =
             precisionAdjustment.prec(
@@ -157,7 +154,7 @@ public class SampleUnrollingAlgorithm {
         successor = precAdjustmentResult.abstractState();
         Precision successorPrecision = precAdjustmentResult.precision();
 
-        Sample successorSample = getSampleForState(successor, relevantVariables);
+        Sample successorSample = Sample.fromAbstractState(successor, relevantVariables);
         if (!successorSample.equals(sample)) {
           SampleTreeNode nextNode =
               new SampleTreeNode(successorSample, getLocationForState(successor));
@@ -175,20 +172,6 @@ public class SampleUnrollingAlgorithm {
     }
 
     return root;
-  }
-
-  private Sample getSampleForState(AbstractState pState, Set<MemoryLocation> relevantVariables) {
-    CFANode location = AbstractStates.extractLocation(pState);
-    ValueAnalysisState valueState =
-        AbstractStates.extractStateByType(pState, ValueAnalysisState.class);
-
-    ImmutableMap.Builder<MemoryLocation, ValueAndType> builder = ImmutableMap.builder();
-    for (MemoryLocation memoryLocation : valueState.createInterpolant().getMemoryLocations()) {
-      if (relevantVariables.contains(memoryLocation)) {
-        builder.put(memoryLocation, valueState.getValueAndTypeFor(memoryLocation));
-      }
-    }
-    return new Sample(builder.build(), location);
   }
 
   private CFANode getLocationForState(AbstractState pState) {
