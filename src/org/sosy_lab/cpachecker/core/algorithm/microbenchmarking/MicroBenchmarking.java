@@ -1,10 +1,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.microbenchmarking;
 
 import java.io.IOException;
+import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,9 +18,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Tickers;
 import org.sosy_lab.common.time.Tickers.TickerWithUnit;
@@ -41,9 +45,9 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 public class MicroBenchmarking implements Algorithm {
 
   private static class BenchmarkExecutionRun {
-    private long startTime;
-    private long endTime;
-    private long duration;
+    long startTime;
+    long endTime;
+    long duration;
   }
 
   private static class MicroBenchmarkingStatistics extends MultiStatistics {
@@ -79,6 +83,9 @@ public class MicroBenchmarking implements Algorithm {
   @Option(description = "List of programs to run each benchmarking algorithm on.")
   private List<String> programFiles = List.of("loop_1.c");
 
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path outputFile;
+
   public MicroBenchmarking(
       Configuration pConfig,
       LogManager pLogger,
@@ -86,7 +93,6 @@ public class MicroBenchmarking implements Algorithm {
       Specification pSpecification,
       Algorithm child)
       throws InvalidConfigurationException {
-
     pConfig.inject(this);
 
     this.child = child;
@@ -158,24 +164,26 @@ public class MicroBenchmarking implements Algorithm {
 
       long benchmarkEndTime = ticker.read();
 
-      stats.benchmarkExecutionDuration = benchmarkEndTime - benchmarkStartTime;
-      stats.averageBenchmarkDuration =
-          benchmarkTimeSum
-              / (this.propertyFiles.size() * this.programFiles.size() * this.numExecutions);
-      stats.allBenchmarksDurationDelta = highestBenchmarkTime - stats.averageBenchmarkDuration;
+      if (this.outputFile != null) {
+        try (Writer writer = IO.openOutputFile(this.outputFile, Charset.defaultCharset())) {
+          benchmarkTimes.entrySet()
+              .forEach(entry -> entry.getValue().forEach(l -> l.entrySet().forEach(e -> {
+                try {
+                  writer.append(entry.getKey() + " - " + e.getKey() + "\n");
+                  for (BenchmarkExecutionRun run : e.getValue()) {
+                    writer.append(run.duration + ";");
+                  }
+                  writer.append("\n");
+                } catch (IOException e1) {
+                  logger
+                      .logUserException(Level.WARNING, e1, "Failed to write time values to file!");
+                }
 
-      logger.logf(
-          Level.INFO,
-          "Entire benchmark run took %s nanoseconds.",
-          stats.benchmarkExecutionDuration);
-      logger.logf(
-          Level.INFO,
-          "Benchmarks had an average runtime of %s nanoseconds.",
-          stats.averageBenchmarkDuration);
-      logger.logf(
-          Level.INFO,
-          "Average runtime delta is +- %s nanoseconds",
-          stats.allBenchmarksDurationDelta);
+              })));
+        } catch (IOException ex) {
+          logger.logUserException(Level.WARNING, ex, "Could not write CFA to dot file");
+        }
+      }
     } catch (InvalidConfigurationException | IOException | ParserException e) {
       logger.logUserException(Level.SEVERE, e, "Failed to create benchmark algorithms!");
     }

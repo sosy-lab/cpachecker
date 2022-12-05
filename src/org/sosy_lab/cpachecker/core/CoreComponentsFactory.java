@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.Counterexample
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummaryAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.microbenchmarking.MicroBenchmarking;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
@@ -391,6 +392,10 @@ public class CoreComponentsFactory {
       name = "algorithm.configurableComponents",
       description = "Distribute predicate analysis to multiple workers")
   private boolean useConfigurableComponents = false;
+
+  @Option(
+    description = "Indicate whether a micro benchmark should be executed before running the analysis.")
+  private boolean useMicroBenchmark = false;
 
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
@@ -746,6 +751,11 @@ public class CoreComponentsFactory {
       if (useFaultLocalizationWithTraceFormulas) {
         algorithm =
             new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
+      }
+
+      if (useMicroBenchmark) {
+        algorithm =
+            new MicroBenchmarking(config, logger, shutdownNotifier, specification, algorithm);
       }
     }
 
