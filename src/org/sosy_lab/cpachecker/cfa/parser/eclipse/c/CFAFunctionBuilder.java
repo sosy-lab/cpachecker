@@ -259,9 +259,10 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     // if the function exit node doesn't have entering edges, it's unreachable and we remove it
-    cfa.getExitNode()
-        .filter(exitNode -> exitNode.getNumEnteringEdges() == 0)
-        .ifPresent(unreachableExitNode -> cfa.removeExitNode());
+    Optional<FunctionExitNode> exitNode = cfa.getExitNode();
+    if (exitNode.isPresent() && exitNode.orElseThrow().getNumEnteringEdges() == 0) {
+      cfa.removeExitNode();
+    }
 
     assert !sideAssignmentStack.hasPreSideAssignments();
     assert !sideAssignmentStack.hasPostSideAssignments();
