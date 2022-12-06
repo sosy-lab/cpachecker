@@ -665,7 +665,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       final String activeThread, final LockInfo lock, final Collection<ThreadingState> results) {
     if (lock.isHeld()) {
       // some thread (including activeThread) has the lock, using it twice is not possible
-      // TODO: Or maybe it is? (e.g. recursive mutex) -> Check context where this function is called
       return ImmutableSet.of();
     }
 

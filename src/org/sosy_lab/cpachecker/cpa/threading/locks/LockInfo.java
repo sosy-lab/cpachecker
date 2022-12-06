@@ -12,10 +12,8 @@ import java.util.Objects;
 
 public abstract class LockInfo implements Comparable<LockInfo> {
 
-  // TODO: Add subclasses for other lock types
   public enum LockType {
     MUTEX,
-    RECURSIVE_MUTEX,
     RW_MUTEX
   }
 
