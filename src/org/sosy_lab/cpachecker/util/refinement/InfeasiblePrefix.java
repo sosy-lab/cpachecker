@@ -18,6 +18,7 @@ import com.google.common.collect.Iterables;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.smg2.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -72,6 +73,19 @@ public class InfeasiblePrefix {
 
     ImmutableList.Builder<ImmutableSet<String>> simpleInterpolantSequence = ImmutableList.builder();
     for (ValueAnalysisInterpolant itp : pInterpolantSequence) {
+      simpleInterpolantSequence.add(
+          transformedImmutableSetCopy(
+              itp.getMemoryLocations(), MemoryLocation::getExtendedQualifiedName));
+    }
+
+    return new InfeasiblePrefix(pInfeasiblePrefix, simpleInterpolantSequence.build());
+  }
+
+  public static InfeasiblePrefix buildForSMGValueDomain(
+      final ARGPath pInfeasiblePrefix, final List<SMGInterpolant> pInterpolantSequence) {
+
+    ImmutableList.Builder<ImmutableSet<String>> simpleInterpolantSequence = ImmutableList.builder();
+    for (SMGInterpolant itp : pInterpolantSequence) {
       simpleInterpolantSequence.add(
           transformedImmutableSetCopy(
               itp.getMemoryLocations(), MemoryLocation::getExtendedQualifiedName));

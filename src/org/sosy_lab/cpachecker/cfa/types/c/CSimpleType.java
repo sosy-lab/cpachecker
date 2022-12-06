@@ -108,6 +108,11 @@ public final class CSimpleType implements CType, Serializable {
   }
 
   @Override
+  public boolean hasKnownConstantSize() {
+    return true;
+  }
+
+  @Override
   public int hashCode() {
     if (hashCache == 0) {
       hashCache =

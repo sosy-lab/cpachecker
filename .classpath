@@ -81,6 +81,7 @@ SPDX-License-Identifier: Apache-2.0
 	<classpathentry kind="lib" path="lib/java/runtime/antlr4-runtime.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/com.microsoft.z3.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/CVC4.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/cvc5.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/princess_2.13.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/scala-library.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/jackson-annotations.jar"/>

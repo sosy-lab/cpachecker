@@ -16,6 +16,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.primitives.Ints;
 import com.google.errorprone.annotations.FormatMethod;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -71,7 +72,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -236,7 +236,7 @@ public class CtoFormulaConverter {
    * @param pType the type to calculate the size of.
    * @return the size in bits of the given type.
    */
-  protected int getBitSizeof(CType pType) {
+  protected long getBitSizeof(CType pType) {
     return typeHandler.getBitSizeof(pType);
   }
 
@@ -247,7 +247,7 @@ public class CtoFormulaConverter {
    * @param pType the type to calculate the size of.
    * @return the size in bytes of the given type.
    */
-  protected int getSizeof(CType pType) {
+  protected long getSizeof(CType pType) {
     return typeHandler.getSizeof(pType);
   }
 
@@ -346,7 +346,7 @@ public class CtoFormulaConverter {
       }
     }
 
-    int bitSize = typeHandler.getBitSizeof(type);
+    int bitSize = Ints.checkedCast(typeHandler.getBitSizeof(type));
 
     return FormulaType.getBitvectorTypeWithSize(bitSize);
   }
@@ -610,7 +610,7 @@ public class CtoFormulaConverter {
       if (sourceSize > targetSize) {
         formula =
             fmgr.getBitvectorFormulaManager()
-                .extract((BitvectorFormula) formula, targetSize - 1, 0, false);
+                .extract((BitvectorFormula) formula, targetSize - 1, 0);
       } else if (sourceSize < targetSize) {
         return null; // TODO extend with nondet bits
       }
@@ -633,7 +633,7 @@ public class CtoFormulaConverter {
       if (sourceSize > targetSize) {
         formula =
             fmgr.getBitvectorFormulaManager()
-                .extract((BitvectorFormula) formula, targetSize - 1, 0, false);
+                .extract((BitvectorFormula) formula, targetSize - 1, 0);
 
       } else if (sourceSize < targetSize) {
         return null; // TODO extend with nondet bits
@@ -884,7 +884,7 @@ public class CtoFormulaConverter {
         ret = bfmgr.ifThenElse(fmgr.makeEqual(zeroFromSize, pFormula), zeroToSize, oneToSize);
       } else {
         if (fromSize > toSize) {
-          ret = fmgr.makeExtract(pFormula, toSize - 1, 0, isSigned.test(pFromCType));
+          ret = fmgr.makeExtract(pFormula, toSize - 1, 0);
         } else if (fromSize < toSize) {
           ret = fmgr.makeExtend(pFormula, (toSize - fromSize), isSigned.test(pFromCType));
         } else {
@@ -893,13 +893,18 @@ public class CtoFormulaConverter {
       }
     } else if (fromType.isFloatingPointType()) {
       if (toType.isFloatingPointType()) {
-        ret = fmgr.getFloatingPointFormulaManager().castTo((FloatingPointFormula) pFormula, toType);
+        ret =
+            fmgr.getFloatingPointFormulaManager()
+                .castTo((FloatingPointFormula) pFormula, isSigned.test(pToCType), toType);
       } else {
         // Cf. C-Standard 6.3.1.4 (1).
         ret =
             fmgr.getFloatingPointFormulaManager()
                 .castTo(
-                    (FloatingPointFormula) pFormula, toType, FloatingPointRoundingMode.TOWARD_ZERO);
+                    (FloatingPointFormula) pFormula,
+                    isSigned.test(pToCType),
+                    toType,
+                    FloatingPointRoundingMode.TOWARD_ZERO);
       }
 
     } else if (toType.isFloatingPointType()) {
@@ -1833,8 +1838,7 @@ public class CtoFormulaConverter {
   /** Creates a Formula which accesses the given bits. */
   private BitvectorFormula accessField(
       Triple<Integer, Integer, Boolean> msb_Lsb_signed, BitvectorFormula f) {
-    return fmgr.makeExtract(
-        f, msb_Lsb_signed.getFirst(), msb_Lsb_signed.getSecond(), msb_Lsb_signed.getThird());
+    return fmgr.makeExtract(f, msb_Lsb_signed.getFirst(), msb_Lsb_signed.getSecond());
   }
 
   /** Creates a Formula which accesses the given Field */
@@ -1875,7 +1879,7 @@ public class CtoFormulaConverter {
     List<Formula> parts = new ArrayList<>(3);
 
     if (msb_Lsb.getFirst() + 1 < size) {
-      parts.add(fmgr.makeExtract(pLVar, size - 1, msb_Lsb.getFirst() + 1, msb_Lsb.getThird()));
+      parts.add(fmgr.makeExtract(pLVar, size - 1, msb_Lsb.getFirst() + 1));
     }
 
     if (pRightVariable.isPresent()) {
@@ -1886,7 +1890,7 @@ public class CtoFormulaConverter {
     }
 
     if (msb_Lsb.getSecond() > 0) {
-      parts.add(fmgr.makeExtract(pLVar, msb_Lsb.getSecond() - 1, 0, msb_Lsb.getThird()));
+      parts.add(fmgr.makeExtract(pLVar, msb_Lsb.getSecond() - 1, 0));
     }
 
     if (parts.isEmpty()) {
@@ -1904,20 +1908,9 @@ public class CtoFormulaConverter {
 
     // f is now the structure, access it:
 
-    int offset;
-    switch (structType.getKind()) {
-      case UNION:
-        offset = 0;
-        break;
-      case STRUCT:
-        offset = getBitFieldOffset(structType, fExp.getFieldName());
-        break;
-      default:
-        throw new UnrecognizedCodeException("Unexpected field access", fExp);
-    }
-
+    long offset = typeHandler.getBitOffset(structType, fExp.getFieldName());
     CType type = fExp.getExpressionType();
-    int fieldSize = getBitSizeof(type);
+    long fieldSize = getBitSizeof(type);
 
     // Crude hack for unions with zero-sized array fields produced by LDV
     // (ldv-consumption/32_7a_cilled_true_linux-3.8-rc1-32_7a-fs--ceph--ceph.ko-ldv_main7_sequence_infinite_withcheck_stateful.cil.out.c)
@@ -1928,30 +1921,11 @@ public class CtoFormulaConverter {
     // we assume that only CSimpleTypes can be unsigned
     boolean signed = !(type instanceof CSimpleType) || machineModel.isSigned((CSimpleType) type);
 
-    int lsb = offset;
-    int msb = offset + fieldSize - 1;
+    long lsb = offset;
+    long msb = offset + fieldSize - 1;
     assert lsb >= 0;
     assert msb >= lsb;
-    Triple<Integer, Integer, Boolean> msb_Lsb = Triple.of(msb, lsb, signed);
-    return msb_Lsb;
-  }
-
-  /**
-   * Returns the offset of the given field in the given struct in bits.
-   *
-   * <p>This function does not handle UNIONs or ENUMs!
-   */
-  private int getBitFieldOffset(CCompositeType structType, String fieldName) {
-    int off = 0;
-    for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
-      if (member.getName().equals(fieldName)) {
-        return off;
-      }
-
-      off += getBitSizeof(member.getType());
-    }
-
-    throw new AssertionError("field " + fieldName + " was not found in " + structType);
+    return Triple.of(Ints.checkedCast(msb), Ints.checkedCast(lsb), signed);
   }
 
   /** We call this method for unsupported Expressions and just make a new Variable. */

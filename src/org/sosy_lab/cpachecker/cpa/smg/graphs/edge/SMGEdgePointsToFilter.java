@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPointsToEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -29,16 +30,19 @@ public class SMGEdgePointsToFilter {
     targetObject = Preconditions.checkNotNull(pTargetObject, "fitlering for NULL might be useless");
   }
 
+  @CanIgnoreReturnValue
   public SMGEdgePointsToFilter filterHavingValue(SMGValue pValue) {
     value = pValue;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public SMGEdgePointsToFilter filterAtTargetOffset(Long pOffset) {
     targetOffset = pOffset;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public SMGEdgePointsToFilter filterByTargetSpecifier(SMGTargetSpecifier pTargetSpecifier) {
     targetSpecifier = pTargetSpecifier;
     return this;

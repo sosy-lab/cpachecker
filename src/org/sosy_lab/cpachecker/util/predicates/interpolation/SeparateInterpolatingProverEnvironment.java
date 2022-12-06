@@ -65,6 +65,11 @@ public class SeparateInterpolatingProverEnvironment<T>
   }
 
   @Override
+  public int size() {
+    return itpEnv.size();
+  }
+
+  @Override
   public boolean isUnsat() throws InterruptedException, SolverException {
     return itpEnv.isUnsat();
   }

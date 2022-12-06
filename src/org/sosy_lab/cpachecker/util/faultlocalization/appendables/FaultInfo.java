@@ -11,8 +11,7 @@ package org.sosy_lab.cpachecker.util.faultlocalization.appendables;
 import java.util.Comparator;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
-import org.sosy_lab.cpachecker.util.faultlocalization.ranking.NoContextExplanation;
+import org.sosy_lab.cpachecker.util.faultlocalization.explanation.NoContextExplanation;
 
 public abstract class FaultInfo implements Comparable<FaultInfo> {
 
@@ -41,12 +40,11 @@ public abstract class FaultInfo implements Comparable<FaultInfo> {
    * Returns a possible fix for pSet. It may be a guess. The set has to have size 1 because
    * NoContextExplanation is designed to explain singletons only.
    *
-   * @param pFaultContribution find an explanation for this fault contribution
+   * @param pFault find an explanation for all edges in this fault
    * @return Explanation for pSet
    */
-  public static FaultInfo possibleFixFor(FaultContribution pFaultContribution) {
-    return new PotentialFix(
-        NoContextExplanation.getInstance().explanationFor(new Fault(pFaultContribution)));
+  public static FaultInfo possibleFixFor(Fault pFault) {
+    return new PotentialFix(NoContextExplanation.getInstance().explanationFor(pFault));
   }
 
   public static PotentialFix fix(String pDescription) {
@@ -88,7 +86,7 @@ public abstract class FaultInfo implements Comparable<FaultInfo> {
 
   @Override
   public int hashCode() {
-    return Objects.hash(31, description, score, type);
+    return Objects.hash(31, description, (int) (score * 10000), type);
   }
 
   @Override
@@ -96,7 +94,10 @@ public abstract class FaultInfo implements Comparable<FaultInfo> {
     if (q instanceof FaultInfo) {
       FaultInfo r = (FaultInfo) q;
       if (type.equals(r.type)) {
-        return r.description.equals(description) && score == r.score;
+        // prevent unequals if 5th digit after comma does not fit.
+        int scoreThis = (int) (score * 10000);
+        int scoreOther = (int) (r.score * 10000);
+        return r.description.equals(description) && scoreThis == scoreOther;
       }
     }
     return false;

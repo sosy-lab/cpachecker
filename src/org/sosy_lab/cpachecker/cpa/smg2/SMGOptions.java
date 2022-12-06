@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -16,6 +17,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.cpachecker.cpa.smg.SMGRuntimeCheck;
 
 @Options(prefix = "cpa.smg2")
 public class SMGOptions {
@@ -62,10 +64,29 @@ public class SMGOptions {
 
   @Option(
       secure = true,
+      toUppercase = true,
+      name = "GCCZeroLengthArray",
+      description = "Enable GCC extension 'Arrays of Length Zero'.")
+  private boolean GCCZeroLengthArray = false;
+
+  @Option(
+      secure = true,
+      name = "guessSizeOfUnknownMemorySize",
+      description = "Size of memory that cannot be calculated will be guessed.")
+  private boolean guessSizeOfUnknownMemorySize = false;
+
+  @Option(
+      secure = true,
       name = "memoryAllocationFunctions",
       description = "Memory allocation functions")
   private ImmutableSet<String> memoryAllocationFunctions =
       ImmutableSet.of("malloc", "__kmalloc", "kmalloc", "realloc");
+
+  @Option(
+      secure = true,
+      name = "guessSize",
+      description = "Allocation size of memory that cannot be calculated.")
+  private BigInteger guessSize = BigInteger.valueOf(2);
 
   @Option(
       secure = true,
@@ -120,11 +141,28 @@ public class SMGOptions {
 
   @Option(
       secure = true,
+      name = "trackErrorPredicates",
+      description = "Enable track predicates for possible memory safety error on SMG state")
+  private boolean trackErrorPredicates = false;
+
+  @Option(
+      secure = true,
       name = "handleUnknownDereferenceAsSafe",
       description =
           "Handle unknown dereference as safe and check error based on error predicate, "
               + "depends on trackPredicates")
   private boolean handleUnknownDereferenceAsSafe = false;
+
+  @Option(
+      secure = true,
+      name = "crashOnUnknown",
+      description = "Crash on unknown array dereferences")
+  private boolean crashOnUnknown = false;
+
+  @Option(
+      secure = true,
+      description = "with this option enabled, heap abstraction will be enabled.")
+  private boolean enableHeapAbstraction = false;
 
   @Option(
       secure = true,
@@ -137,6 +175,12 @@ public class SMGOptions {
       name = "unknownOnUndefined",
       description = "Emit messages when we encounter non-target undefined behavior")
   private boolean unknownOnUndefined = true;
+
+  @Option(
+      secure = true,
+      name = "runtimeCheck",
+      description = "Sets the level of runtime checking: NONE, HALF, FULL")
+  private SMGRuntimeCheck runtimeCheck = SMGRuntimeCheck.NONE;
 
   @Option(
       secure = true,
@@ -173,6 +217,38 @@ public class SMGOptions {
           "Perform merge SMGStates by SMGJoin on ends of code block. Works with 'merge=JOIN'")
   private boolean joinOnBlockEnd = true;
 
+  @Option(
+      secure = true,
+      description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
+  private boolean assignEqualityAssumptions = true;
+
+  // assignSymbolicValues is needed to get the same options as the valueAnalysis as SMGs always save
+  // symbolics. We could however simply retranslate every symbolic to an unknown after reads.
+  @Option(
+      secure = true,
+      description = "Treat symbolic values as unknowns and assign new concrete values to them.")
+  private boolean assignSymbolicValues = true;
+
+  @Option(
+      secure = true,
+      description =
+          "if there is an assumption like (x!=0), "
+              + "this option sets unknown (uninitialized) variables to 1L, "
+              + "when the true-branch is handled.")
+  private boolean initAssumptionVars = false;
+
+  @Option(
+      secure = true,
+      description = "Assume that variables used only in a boolean context are either zero or one.")
+  private boolean optimizeBooleanVariables = true;
+
+  @Option(
+      secure = true,
+      description =
+          "If this option is enabled, a memory allocation (e.g. malloc or array declaration) for "
+              + "unknown memory sizes does not abort, but also does not create any memory.")
+  private boolean ignoreUnknownMemoryAllocation = false;
+
   public enum SMGExportLevel {
     NEVER,
     LEAF,
@@ -182,6 +258,18 @@ public class SMGOptions {
 
   public SMGOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
+  }
+
+  public boolean isIgnoreUnknownMemoryAllocation() {
+    return ignoreUnknownMemoryAllocation;
+  }
+
+  boolean isOptimizeBooleanVariables() {
+    return optimizeBooleanVariables;
+  }
+
+  boolean isInitAssumptionVars() {
+    return initAssumptionVars;
   }
 
   public boolean isCheckForMemLeaksAtEveryFrameDrop() {
@@ -202,6 +290,18 @@ public class SMGOptions {
 
   public ImmutableSet<String> getSafeUnknownFunctions() {
     return safeUnknownFunctions;
+  }
+
+  public boolean isGCCZeroLengthArray() {
+    return GCCZeroLengthArray;
+  }
+
+  public boolean isGuessSizeOfUnknownMemorySize() {
+    return guessSizeOfUnknownMemorySize;
+  }
+
+  public BigInteger getGuessSize() {
+    return guessSize;
   }
 
   public ImmutableSet<String> getMemoryAllocationFunctions() {
@@ -244,12 +344,24 @@ public class SMGOptions {
     return trackPredicates;
   }
 
+  public boolean trackErrorPredicates() {
+    return trackErrorPredicates;
+  }
+
+  public boolean isHeapAbstractionEnabled() {
+    return enableHeapAbstraction;
+  }
+
   public boolean isMemoryErrorTarget() {
     return memoryErrors;
   }
 
   public boolean unknownOnUndefined() {
     return unknownOnUndefined;
+  }
+
+  public SMGRuntimeCheck getRuntimeCheck() {
+    return runtimeCheck;
   }
 
   public PathTemplate getExportSMGFilePattern() {
@@ -274,5 +386,17 @@ public class SMGOptions {
 
   public boolean getJoinOnBlockEnd() {
     return joinOnBlockEnd;
+  }
+
+  public boolean crashOnUnknown() {
+    return crashOnUnknown;
+  }
+
+  boolean isAssignEqualityAssumptions() {
+    return assignEqualityAssumptions;
+  }
+
+  boolean isAssignSymbolicValues() {
+    return assignSymbolicValues;
   }
 }

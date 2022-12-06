@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
+import java.util.Objects;
 
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "entry_type", visible = true)
 @JsonSubTypes({
@@ -27,7 +28,7 @@ public abstract class AbstractEntry {
   protected final String entryType;
 
   public AbstractEntry(@JsonProperty("entry_type") String entry_type) {
-    this.entryType = entry_type;
+    entryType = entry_type;
   }
 
   public String getEntryType() {
@@ -41,10 +42,7 @@ public abstract class AbstractEntry {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((entryType == null) ? 0 : entryType.hashCode());
-    return result;
+    return Objects.hash(entryType);
   }
 
   @Override
@@ -59,11 +57,7 @@ public abstract class AbstractEntry {
       return false;
     }
     AbstractEntry other = (AbstractEntry) obj;
-    if (entryType == null) {
-      if (other.entryType != null) {
-        return false;
-      }
-    } else if (!entryType.equals(other.entryType)) {
+    if (!Objects.equals(entryType, other.entryType)) {
       return false;
     }
     return true;

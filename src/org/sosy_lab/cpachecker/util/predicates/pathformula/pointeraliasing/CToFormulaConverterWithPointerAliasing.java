@@ -420,23 +420,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     Formula size;
     if (decayedType.isIncomplete()) {
       size = null;
-    } else if (decayedType instanceof CArrayType
-        && !((CArrayType) decayedType).getLengthAsInt().isPresent()) {
-      CArrayType arrayType = (CArrayType) decayedType;
-      Formula elementSize =
-          fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(arrayType.getType()));
-      Formula elementCount =
-          buildTerm(arrayType.getLength(), edge, function, ssa, pts, constraints, errorConditions);
-      elementCount =
-          makeCast(
-              arrayType.getLength().getExpressionType(),
-              CPointerType.POINTER_TO_VOID,
-              elementCount,
-              constraints,
-              edge);
-      size = fmgr.makeMultiply(elementSize, elementCount);
     } else {
-      size = fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(decayedType));
+      size = getSizeExpression(decayedType, edge, function, ssa, pts, constraints, errorConditions);
     }
 
     if (CTypeUtils.containsArray(type, originalDeclaration)) {
@@ -447,6 +432,39 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       } else {
         pts.addBase(declaration.getQualifiedName(), type, size, constraints);
       }
+    }
+  }
+
+  private Formula getSizeExpression(
+      final CType type,
+      final CFAEdge edge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCodeException {
+    if (type instanceof CArrayType) {
+      CArrayType arrayType = (CArrayType) type;
+
+      Formula elementSize =
+          getSizeExpression(
+              arrayType.getType(), edge, function, ssa, pts, constraints, errorConditions);
+
+      Formula elementCount =
+          buildTerm(arrayType.getLength(), edge, function, ssa, pts, constraints, errorConditions);
+      elementCount =
+          makeCast(
+              arrayType.getLength().getExpressionType(),
+              CPointerType.POINTER_TO_VOID,
+              elementCount,
+              constraints,
+              edge);
+
+      return fmgr.makeMultiply(elementSize, elementCount);
+
+    } else {
+      return fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(type));
     }
   }
 
@@ -1332,13 +1350,13 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   /** {@inheritDoc} */
   @Override
-  protected int getSizeof(CType pType) {
+  protected long getSizeof(CType pType) {
     return super.getSizeof(pType);
   }
 
   /** {@inheritDoc} */
   @Override
-  protected int getBitSizeof(CType pType) {
+  protected long getBitSizeof(CType pType) {
     return super.getBitSizeof(pType);
   }
 
