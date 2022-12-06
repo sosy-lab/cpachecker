@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -138,7 +139,15 @@ public class TestDataTools {
       }
     }
 
-    return cfa.getMainFunction().getExitNode().map(mapping::get).orElse(null);
+    FunctionExitNode mainExitNode =
+        cfa.getMainFunction()
+            .getExitNode()
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        "Main function entry node must have a corresponding exit node: "
+                            + cfa.getMainFunction()));
+    return mapping.get(mainExitNode);
   }
 
   /** Convert a given string to a {@link CFA}, assuming it is a body of a single function. */

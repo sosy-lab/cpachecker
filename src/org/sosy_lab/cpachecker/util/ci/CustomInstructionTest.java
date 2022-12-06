@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -71,10 +72,15 @@ public class CustomInstructionTest {
 
     startNode = cfa.getMainFunction();
     endNodes = new HashSet<>();
-    cfa.getMainFunction()
-        .getExitNode()
-        .map(mainExitNode -> CFAUtils.allPredecessorsOf(mainExitNode).toList())
-        .ifPresent(endNodes::addAll);
+    FunctionExitNode mainExitNode =
+        cfa.getMainFunction()
+            .getExitNode()
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        "Main function entry node must have a corresponding exit node: "
+                            + cfa.getMainFunction()));
+    endNodes.addAll(CFAUtils.allPredecessorsOf(mainExitNode).toList());
 
     ImmutableList<String> input = ImmutableList.of("a");
     ImmutableList<String> output = ImmutableList.of("b");

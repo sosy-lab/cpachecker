@@ -33,7 +33,6 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -66,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -539,9 +539,14 @@ public class CParserUtils {
         }
       }
     }
-    @Nullable ExpressionTree<AExpression> exitNodeExpressionTree =
-        pEntry.getExitNode().map(memo::get).orElse(null);
-    return pParserTools.expressionTreeSimplifier.simplify(exitNodeExpressionTree);
+    FunctionExitNode exitNode =
+        pEntry
+            .getExitNode()
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        "Function entry node must have a corresponding exit node: " + pEntry));
+    return pParserTools.expressionTreeSimplifier.simplify(memo.get(exitNode));
   }
 
   private static AExpression replaceCPAcheckerTMPVariables(
