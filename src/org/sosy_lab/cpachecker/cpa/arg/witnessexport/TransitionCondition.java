@@ -248,8 +248,10 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     @Override
     public int compareTo(Scope pOther) {
       return ComparisonChain.start()
-          .compareTrueFirst(isGlobal(), pOther.isGlobal())
-          .compare(functionName.orElseThrow(), pOther.functionName.orElseThrow())
+          .compare(
+              functionName,
+              pOther.functionName,
+              Comparators.emptiesFirst(Comparator.naturalOrder()))
           .compare(
               usedDeclarations,
               pOther.usedDeclarations,
