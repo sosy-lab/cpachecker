@@ -455,14 +455,15 @@ public final class LoopStructure implements Serializable {
     ImmutableListMultimap.Builder<String, Loop> loops = ImmutableListMultimap.builder();
     for (String functionName : cfa.getAllFunctionNames()) {
       NavigableSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
-      Collection<Loop> functionLoops = findLoops(nodes, cfa.getLanguage(), null, true);
+      Collection<Loop> functionLoops = findLoops(nodes, cfa.getLanguage(), null, true, true);
       // Assert that we find the same loops with and without using loop-free sections
       // (with `SingleNodeLoopFreeSectionFinder`, there are no sections that contain multiple nodes
       // and all nodes are handled separately).
       // We need to use sets because their `equals` methods are well-defined and we may find loops
       // in a different order.
       assert new HashSet<>(
-                  findLoops(nodes, cfa.getLanguage(), new SingleNodeLoopFreeSectionFinder(), true))
+                  findLoops(
+                      nodes, cfa.getLanguage(), new SingleNodeLoopFreeSectionFinder(), true, true))
               .equals(new HashSet<>(functionLoops))
           : "Using `LoopFreeSectionFinder` changes the found loops!";
       loops.putAll(functionName, functionLoops);
@@ -482,13 +483,16 @@ public final class LoopStructure implements Serializable {
    * @param pOptimizeMergeOrder if set to {@code true}, this method tries to optimize the merge
    *     order using a heuristic, which has the goal to merge loops together that intuitively should
    *     be merged together
+   * @param pDelayMerges if set to {@code true}, this method only merges loops after all inner-outer
+   *     loop relations have been discovered
    * @return A collection of found loops.
    */
   private static Collection<Loop> findLoops(
       NavigableSet<CFANode> pNodes,
       Language language,
       @Nullable LoopFreeSectionFinder pLoopFreeSectionFinder,
-      boolean pOptimizeMergeOrder)
+      boolean pOptimizeMergeOrder,
+      boolean pDelayMerges)
       throws ParserException {
 
     // Two optimizations:
@@ -676,60 +680,103 @@ public final class LoopStructure implements Serializable {
 
     // THIRD step: Check all loop pairs to discover inner-outer loop relations and merge loops
     // together if necessary.
-    @Nullable Loop loopToRemove = null;
-    do {
-      if (loopToRemove != null) {
-        loops.remove(loopToRemove);
-        loopToRemove = null;
-      }
-
-      // discover all inner-outer loop relations
+    if (pDelayMerges) {
+      @Nullable Loop loopToRemove = null;
       do {
-        changed = false;
-        // the check is symmetric, so we need to only check (i1, i2) with i1 < i2
-        for (int i1 = 0; i1 < loops.size(); i1++) {
+        if (loopToRemove != null) {
+          loops.remove(loopToRemove);
+          loopToRemove = null;
+        }
+
+        // discover all inner-outer loop relations
+        do {
+          changed = false;
+          // the check is symmetric, so we need to only check (i1, i2) with i1 < i2
+          for (int i1 = 0; i1 < loops.size(); i1++) {
+            Loop l1 = loops.get(i1);
+            for (int i2 = i1 + 1; i2 < loops.size(); i2++) {
+              Loop l2 = loops.get(i2);
+              if (!l1.intersectsWith(l2)) {
+                // loops have nothing in common
+                continue;
+              }
+              if (l1.getLoopNodes().containsAll(l2.getLoopNodes())
+                  || l2.getLoopNodes().containsAll(l1.getLoopNodes())) {
+                // inner-outer loop relation already known
+                continue;
+              }
+              if (l1.isOuterLoopOf(l2)) {
+                // `l2` is an inner loop, add its nodes to `l1`
+                l1.addNodes(l2);
+                changed = true;
+              } else if (l2.isOuterLoopOf(l1)) {
+                // `l1` is an inner loop, add its nodes to `l2`
+                l2.addNodes(l1);
+                changed = true;
+              }
+            }
+          }
+        } while (changed);
+
+        // merge loops if necessary
+        for (int i1 = 0; i1 < loops.size() && loopToRemove == null; i1++) {
           Loop l1 = loops.get(i1);
-          for (int i2 = i1 + 1; i2 < loops.size(); i2++) {
+          for (int i2 = i1 + 1; i2 < loops.size() && loopToRemove == null; i2++) {
             Loop l2 = loops.get(i2);
             if (!l1.intersectsWith(l2)) {
               // loops have nothing in common
               continue;
             }
-            if (l1.getLoopNodes().containsAll(l2.getLoopNodes())
-                || l2.getLoopNodes().containsAll(l1.getLoopNodes())) {
-              // inner-outer loop relation already known
+            if (!l1.isOuterLoopOf(l2) && !l2.isOuterLoopOf(l1)) {
+              // strange goto-loop, merge the two together
+              l1.mergeWith(l2);
+              loopToRemove = l2;
+            }
+          }
+        }
+      } while (loopToRemove != null);
+    } else {
+      NavigableSet<Integer> toRemove = new TreeSet<>();
+      do {
+        toRemove.clear();
+        for (int i1 = 0; i1 < loops.size(); i1++) {
+          Loop l1 = loops.get(i1);
+
+          for (int i2 = i1 + 1; i2 < loops.size(); i2++) {
+            Loop l2 = loops.get(i2);
+
+            if (!l1.intersectsWith(l2)) {
+              // loops have nothing in common
               continue;
             }
+
             if (l1.isOuterLoopOf(l2)) {
-              // `l2` is an inner loop, add its nodes to `l1`
+
+              // l2 is an inner loop
+              // add its nodes to l1
               l1.addNodes(l2);
-              changed = true;
+
             } else if (l2.isOuterLoopOf(l1)) {
-              // `l1` is an inner loop, add its nodes to `l2`
+
+              // l1 is an inner loop
+              // add its nodes to l2
               l2.addNodes(l1);
-              changed = true;
+
+            } else {
+              // strange goto loop, merge the two together
+
+              toRemove.add(i2);
+
+              l1.mergeWith(l2);
             }
           }
         }
-      } while (changed);
 
-      // merge loops if necessary
-      for (int i1 = 0; i1 < loops.size() && loopToRemove == null; i1++) {
-        Loop l1 = loops.get(i1);
-        for (int i2 = i1 + 1; i2 < loops.size() && loopToRemove == null; i2++) {
-          Loop l2 = loops.get(i2);
-          if (!l1.intersectsWith(l2)) {
-            // loops have nothing in common
-            continue;
-          }
-          if (!l1.isOuterLoopOf(l2) && !l2.isOuterLoopOf(l1)) {
-            // strange goto-loop, merge the two together
-            l1.mergeWith(l2);
-            loopToRemove = l2;
-          }
+        for (int i : toRemove.descendingSet()) { // need to iterate in reverse order!
+          loops.remove(i);
         }
-      }
-    } while (loopToRemove != null);
+      } while (!toRemove.isEmpty());
+    }
 
     return ImmutableList.copyOf(loops);
   }
