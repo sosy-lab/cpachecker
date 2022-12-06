@@ -88,16 +88,15 @@ public class SMGCPAValueVisitorTest {
   private static final String COMPOSITE_VARIABLE_NAME = "compositeVariableName";
   private static final String COMPOSITE_DECLARATION_NAME = "compositeDeclaration";
 
-  private static final CType[] BIT_FIELD_TYPES =
-      new CType[] {
-        CHAR_TYPE,
-        SHORT_TYPE,
-        UNSIGNED_SHORT_TYPE,
-        INT_TYPE,
-        UNSIGNED_INT_TYPE,
-        LONG_TYPE,
-        UNSIGNED_LONG_TYPE
-      };
+  private static final CType[] BIT_FIELD_TYPES = {
+    CHAR_TYPE,
+    SHORT_TYPE,
+    UNSIGNED_SHORT_TYPE,
+    INT_TYPE,
+    UNSIGNED_INT_TYPE,
+    LONG_TYPE,
+    UNSIGNED_LONG_TYPE
+  };
 
   private static final MachineModel MACHINE_MODEL = MachineModel.LINUX64;
   // Pointer size for the machine model in bits
@@ -1613,7 +1612,7 @@ public class SMGCPAValueVisitorTest {
     // 255 is max for unsigned. Java chars are unsigned!
     // According to the C 99 standard, char, unsigned char and signed char should behave the same.
     // As we use the numeric values, they essentially do.
-    char[] testChars = new char[] {((char) 0), ((char) 1), 'a', 'A', ((char) 127), ((char) 255)};
+    char[] testChars = {((char) 0), ((char) 1), 'a', 'A', ((char) 127), ((char) 255)};
 
     for (CType typeToTest : BIT_FIELD_TYPES) {
       for (char testChar : testChars) {
@@ -1652,7 +1651,7 @@ public class SMGCPAValueVisitorTest {
   @Test
   public void castSignedShortTest() throws CPATransferException {
     // Min value, -1, 0, 1, max value
-    short[] testValues = new short[] {Short.MIN_VALUE, -1, 0, 1, Short.MAX_VALUE};
+    short[] testValues = {Short.MIN_VALUE, -1, 0, 1, Short.MAX_VALUE};
 
     for (CType typeToTest : BIT_FIELD_TYPES) {
       for (short testValue : testValues) {
@@ -1693,8 +1692,7 @@ public class SMGCPAValueVisitorTest {
   @Test
   public void castUnsignedShortTest() throws CPATransferException {
     // 0, 1, max value signed short, max value signed short * 2, max value unsigned short
-    int[] testValues =
-        new int[] {0, 1, Short.MAX_VALUE, Short.MAX_VALUE * 2, Short.MAX_VALUE * 2 + 1};
+    int[] testValues = {0, 1, Short.MAX_VALUE, Short.MAX_VALUE * 2, Short.MAX_VALUE * 2 + 1};
 
     for (CType typeToTest : BIT_FIELD_TYPES) {
       for (int testValue : testValues) {
@@ -1735,7 +1733,7 @@ public class SMGCPAValueVisitorTest {
   @Test
   public void castSignedIntTest() throws CPATransferException {
     // Min value, -1, 0, 1, max value
-    int[] testValues = new int[] {Integer.MIN_VALUE, -1, 0, 1, Integer.MAX_VALUE};
+    int[] testValues = {Integer.MIN_VALUE, -1, 0, 1, Integer.MAX_VALUE};
 
     for (CType typeToTest : BIT_FIELD_TYPES) {
       for (int testValue : testValues) {
@@ -1776,14 +1774,13 @@ public class SMGCPAValueVisitorTest {
   @Test
   public void castUnsignedIntTest() throws CPATransferException {
     // 0, 1, max value signed int, double max v signed, max unsigned
-    BigInteger[] testValues =
-        new BigInteger[] {
-          BigInteger.valueOf(0),
-          BigInteger.valueOf(1),
-          BigInteger.valueOf(Integer.MAX_VALUE),
-          BigInteger.valueOf(Integer.MAX_VALUE).multiply(BigInteger.TWO),
-          BigInteger.valueOf(Integer.MAX_VALUE).multiply(BigInteger.TWO).add(BigInteger.ONE)
-        };
+    BigInteger[] testValues = {
+      BigInteger.valueOf(0),
+      BigInteger.valueOf(1),
+      BigInteger.valueOf(Integer.MAX_VALUE),
+      BigInteger.valueOf(Integer.MAX_VALUE).multiply(BigInteger.TWO),
+      BigInteger.valueOf(Integer.MAX_VALUE).multiply(BigInteger.TWO).add(BigInteger.ONE)
+    };
 
     for (CType typeToTest : BIT_FIELD_TYPES) {
       for (BigInteger testValue : testValues) {
@@ -1823,7 +1820,7 @@ public class SMGCPAValueVisitorTest {
   @Test
   public void castSignedLongTest() throws CPATransferException {
     // min value, -1,  0, 1, max value
-    long[] testValues = new long[] {Long.MIN_VALUE, -1, 0, 1, Long.MAX_VALUE};
+    long[] testValues = {Long.MIN_VALUE, -1, 0, 1, Long.MAX_VALUE};
 
     for (CType typeToTest : BIT_FIELD_TYPES) {
       for (long testValue : testValues) {
@@ -1864,14 +1861,13 @@ public class SMGCPAValueVisitorTest {
   @Test
   public void castUnsignedLongTest() throws CPATransferException {
     // 0, 1, max value signed long, double that, max unsigned long
-    BigInteger[] testValues =
-        new BigInteger[] {
-          BigInteger.valueOf(0),
-          BigInteger.valueOf(1),
-          BigInteger.valueOf(Long.MAX_VALUE),
-          BigInteger.valueOf(Long.MAX_VALUE).multiply(BigInteger.TWO),
-          BigInteger.valueOf(Long.MAX_VALUE).multiply(BigInteger.TWO).add(BigInteger.ONE)
-        };
+    BigInteger[] testValues = {
+      BigInteger.valueOf(0),
+      BigInteger.valueOf(1),
+      BigInteger.valueOf(Long.MAX_VALUE),
+      BigInteger.valueOf(Long.MAX_VALUE).multiply(BigInteger.TWO),
+      BigInteger.valueOf(Long.MAX_VALUE).multiply(BigInteger.TWO).add(BigInteger.ONE)
+    };
 
     for (CType typeToTest : BIT_FIELD_TYPES) {
       for (BigInteger testValue : testValues) {

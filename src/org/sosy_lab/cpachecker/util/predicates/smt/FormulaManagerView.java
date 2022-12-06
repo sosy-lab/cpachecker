@@ -981,7 +981,7 @@ public class FormulaManagerView {
    * @return A BooleanFormula representing a constraint about term.
    */
   public <T extends Formula> BooleanFormula makeElementIndexConstraint(
-      T term, T start, int length, boolean signed) {
+      T term, T start, long length, boolean signed) {
     FormulaType<T> type = getFormulaType(start);
     T end = makePlus(start, makeNumber(type, length));
     return booleanFormulaManager.and(

@@ -22,7 +22,7 @@ FROM ubuntu:20.04
 RUN apt-get update && apt-get install -y --no-install-recommends \
   unzip
 
-ADD https://cpachecker.sosy-lab.org/CPAchecker-2.1.1-unix.zip /
+ADD https://cpachecker.sosy-lab.org/CPAchecker-2.2-unix.zip /
 RUN unzip -q /CPAchecker*-unix.zip -d / && mv /CPAchecker*-unix /cpachecker
 
 FROM ubuntu:20.04

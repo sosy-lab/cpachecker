@@ -401,8 +401,7 @@ public class SMGState
   }
 
   public SMGState copyAndRemoveStackVariable(String qualifiedName) {
-    return this.copyAndReplaceMemoryModel(
-        this.memoryModel.copyAndRemoveStackVariable(qualifiedName));
+    return copyAndReplaceMemoryModel(memoryModel.copyAndRemoveStackVariable(qualifiedName));
   }
 
   @SuppressWarnings("unused")
@@ -948,7 +947,7 @@ public class SMGState
     if (getSize() < pOther.getSize()) {
       return false;
     }
-    if (!this.errorInfo.isEmpty()) {
+    if (!errorInfo.isEmpty()) {
       // As long as the other has at least once the same type of error its fine
       ImmutableSet<Property> otherSetOfPropertyViolations =
           pOther.errorInfo.stream()
@@ -965,7 +964,7 @@ public class SMGState
     // if any one constant's value of the other element differs from the constant's value in this
     // element
     Iterator<CFunctionDeclarationAndOptionalValue> thisStackFrames =
-        this.memoryModel.getFunctionDeclarationsFromStackFrames().iterator();
+        memoryModel.getFunctionDeclarationsFromStackFrames().iterator();
     Iterator<CFunctionDeclarationAndOptionalValue> otherStackFrames =
         pOther.memoryModel.getFunctionDeclarationsFromStackFrames().iterator();
     while (otherStackFrames.hasNext()) {
@@ -1010,7 +1009,7 @@ public class SMGState
     for (Entry<MemoryLocation, ValueAndValueSize> remainingThisEntry : memLocAndValues.entrySet()) {
       // MemoryLocation key = remainingThisEntry.getKey();
       Value otherValue = remainingThisEntry.getValue().getValue();
-      if (this.memoryModel.isPointer(otherValue)) {
+      if (memoryModel.isPointer(otherValue)) {
         return false;
       }
     }
@@ -1018,7 +1017,7 @@ public class SMGState
       return false;
     }
     // Don't drop heap objects, or we can't determine mem-leaks
-    if (this.memoryModel.getHeapObjects().size() > pOther.memoryModel.getHeapObjects().size()) {
+    if (memoryModel.getHeapObjects().size() > pOther.memoryModel.getHeapObjects().size()) {
       return false;
     } else {
       // Check that the heap objects are equal in validity
@@ -1236,7 +1235,7 @@ public class SMGState
     Map<BigInteger, SMGHasValueEdge> thisOffsetToHVEdgeMap = new HashMap<>();
     for (SMGHasValueEdge hve : thisHVEs) {
       thisOffsetToHVEdgeMap.put(hve.getOffset(), hve);
-      if (this.memoryModel.getSmg().isPointer(hve.hasValue())) {
+      if (memoryModel.getSmg().isPointer(hve.hasValue())) {
         // Pointers are necessary!!!!
         if (otherOffsetToHVEdgeMap.get(hve.getOffset()) == null) {
           return false;
@@ -2376,7 +2375,7 @@ public class SMGState
       throws SMG2Exception {
     if (object.isZero()) {
       // Write to 0
-      return this.withInvalidWriteToZeroObject(object);
+      return withInvalidWriteToZeroObject(object);
     } else if (!memoryModel.isObjectValid(object)) {
       // Write to an object that is invalidated (already freed)
       return this.withInvalidWrite(object);
@@ -2975,7 +2974,7 @@ public class SMGState
         memoryModel.copyAndRemoveHasValueEdges(memory, ImmutableList.of(edgeToRemove));
     // We don't need to remove the entire variable! We just need to return unknown for it, which is
     // fulfilled by removing the value edge.
-    SMGState newState = this.copyAndReplaceMemoryModel(newSPC);
+    SMGState newState = copyAndReplaceMemoryModel(newSPC);
 
     return new StateAndInfo<>(
         newState,
@@ -3146,7 +3145,7 @@ public class SMGState
               pfo,
               newMinLength);
     }
-    SMGState currentState = this.copyAndAddObjectToHeap(newDLL);
+    SMGState currentState = copyAndAddObjectToHeap(newDLL);
     currentState = currentState.copyAllValuesFromObjToObj(nextObj, newDLL);
     // Write prev from root into the current prev
     SMGValueAndSMGState prevPointer =
@@ -3251,7 +3250,7 @@ public class SMGState
               nfo,
               newMinLength);
     }
-    SMGState currentState = this.copyAndAddObjectToHeap(newSLL);
+    SMGState currentState = copyAndAddObjectToHeap(newSLL);
     currentState = currentState.copyAllValuesFromObjToObj(nextObj, newSLL);
 
     // Replace ALL pointers that previously pointed to the root or the next object to the SLL

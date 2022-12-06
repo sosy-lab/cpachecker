@@ -1350,13 +1350,13 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   /** {@inheritDoc} */
   @Override
-  protected int getSizeof(CType pType) {
+  protected long getSizeof(CType pType) {
     return super.getSizeof(pType);
   }
 
   /** {@inheritDoc} */
   @Override
-  protected int getBitSizeof(CType pType) {
+  protected long getBitSizeof(CType pType) {
     return super.getBitSizeof(pType);
   }
 

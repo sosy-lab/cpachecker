@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
+import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
@@ -70,7 +71,7 @@ class PointerTargetSetManager {
    * @param size The size of the fake base type.
    * @return An array of {@code size} voids.
    */
-  static CType getFakeBaseType(int size) {
+  static CType getFakeBaseType(long size) {
     return checkIsSimplified(
         new CArrayType(
             false,
@@ -286,6 +287,9 @@ class PointerTargetSetManager {
     final CopyOnWriteSortedMap<CompositeField, Boolean> fieldsOnlyPts2 =
         CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<CompositeField, Boolean>of());
 
+    if (options.useArraysForHeap()) {
+      verify(pts1.getFields().isEmpty() && pts2.getFields().isEmpty());
+    }
     PersistentSortedMap<CompositeField, Boolean> mergedFields =
         merge(
             pts1.getFields(),
@@ -307,9 +311,18 @@ class PointerTargetSetManager {
 
     // Handle targets
 
-    PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
-        merge(
-            pts1.getTargets(), pts2.getTargets(), (key, list1, list2) -> mergeLists(list1, list2));
+    PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets;
+    if (options.useArraysForHeap()) {
+      verify(pts1.getTargets() == null || pts1.getTargets().isEmpty());
+      verify(pts2.getTargets() == null || pts2.getTargets().isEmpty());
+      mergedTargets = null;
+    } else {
+      mergedTargets =
+          merge(
+              pts1.getTargets(),
+              pts2.getTargets(),
+              (key, list1, list2) -> mergeLists(list1, list2));
+    }
     shutdownNotifier.shutdownIfNecessary();
 
     // Targets is always the cross product of bases and fields.
@@ -568,7 +581,7 @@ class PointerTargetSetManager {
               false));
     }
 
-    final int typeSize =
+    final long typeSize =
         pType.hasKnownConstantSize()
             ? typeHandler.getSizeof(pType)
             : options.defaultAllocationSize();
@@ -661,6 +674,10 @@ class PointerTargetSetManager {
       PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
       final PersistentSortedMap<CompositeField, Boolean> fields) {
     checkIsSimplified(cType);
+    if (options.useArraysForHeap()) {
+      return targets;
+    }
+
     /* Remove assertion: it fails on a correct code (gcc compiles it)
      * struct A;
      * ...
@@ -672,7 +689,7 @@ class PointerTargetSetManager {
     if (cType instanceof CArrayType) {
       final CArrayType arrayType = (CArrayType) cType;
       final int length = CTypeUtils.getArrayLength(arrayType, options);
-      int offset = 0;
+      long offset = 0;
       for (int i = 0; i < length; ++i) {
         // TODO: create region with arrayType.getType()
         targets =
@@ -741,6 +758,10 @@ class PointerTargetSetManager {
       PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
       final PersistentSortedMap<String, CType> bases,
       final PersistentSortedMap<CompositeField, Boolean> fields) {
+    if (options.useArraysForHeap()) {
+      return targets;
+    }
+
     for (final Map.Entry<String, CType> entry : bases.entrySet()) {
       String name = entry.getKey();
       CType type = checkIsSimplified(entry.getValue());

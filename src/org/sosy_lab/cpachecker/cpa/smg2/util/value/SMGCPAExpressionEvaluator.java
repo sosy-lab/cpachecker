@@ -128,7 +128,7 @@ public class SMGCPAExpressionEvaluator {
     } else {
       // Offset known but not 0, search for/create the correct address
       List<ValueAndSMGState> pointers =
-          this.findOrcreateNewPointer(
+          findOrcreateNewPointer(
               addressExpression.getMemoryAddress(),
               offset.asNumericValue().bigInteger(),
               currentState);
@@ -1186,11 +1186,11 @@ public class SMGCPAExpressionEvaluator {
         LogManagerWithoutDuplicates pLogger,
         SMGOptions pOptions) {
       super(pModel);
-      this.model = pModel;
-      this.state = pState;
-      this.logger = pLogger;
-      this.evaluator = pEvaluator;
-      this.options = pOptions;
+      model = pModel;
+      state = pState;
+      logger = pLogger;
+      evaluator = pEvaluator;
+      options = pOptions;
     }
 
     @Override

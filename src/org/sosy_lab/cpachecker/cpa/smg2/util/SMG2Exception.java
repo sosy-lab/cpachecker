@@ -21,7 +21,7 @@ public class SMG2Exception extends CPATransferException {
 
   public SMG2Exception(SMGState pErrorState) {
     super(pErrorState.getErrorInfo().toString());
-    this.errorState = pErrorState;
+    errorState = pErrorState;
   }
 
   public SMG2Exception(String errorMsg) {

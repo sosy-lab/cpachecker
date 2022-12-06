@@ -95,9 +95,21 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/ReachSafety-Combinations.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
+  <tasks name="ReachSafety-Hardware">
+    <includesfile>../programs/benchmarks/ReachSafety-Hardware.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
 
   <tasks name="SoftwareSystems-AWS-C-Common-ReachSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common-ReachSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-BusyBox-ReachSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox-ReachSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-coreutils-ReachSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-coreutils-ReachSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">

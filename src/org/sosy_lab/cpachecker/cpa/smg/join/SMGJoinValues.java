@@ -1438,18 +1438,22 @@ final class SMGJoinValues {
 
       switch (pList.getKind()) {
         case DLL:
-          final SMGDoublyLinkedList dll = (SMGDoublyLinkedList) pList;
-          nfo = dll.getNfo();
-          pfo = dll.getPfo();
-          long hfo = dll.getHfo();
-          listCopy = new SMGDoublyLinkedList(pList.getSize(), hfo, nfo, pfo, 0, listLevel);
-          break;
+          {
+            final SMGDoublyLinkedList dll = (SMGDoublyLinkedList) pList;
+            nfo = dll.getNfo();
+            pfo = dll.getPfo();
+            long hfo = dll.getHfo();
+            listCopy = new SMGDoublyLinkedList(pList.getSize(), hfo, nfo, pfo, 0, listLevel);
+            break;
+          }
         case SLL:
-          final SMGSingleLinkedList sll = (SMGSingleLinkedList) pList;
-          nfo = sll.getNfo();
-          hfo = sll.getHfo();
-          listCopy = new SMGSingleLinkedList(pList.getSize(), hfo, nfo, 0, listLevel);
-          break;
+          {
+            final SMGSingleLinkedList sll = (SMGSingleLinkedList) pList;
+            nfo = sll.getNfo();
+            long hfo = sll.getHfo();
+            listCopy = new SMGSingleLinkedList(pList.getSize(), hfo, nfo, 0, listLevel);
+            break;
+          }
         default:
           throw new AssertionError();
       }
