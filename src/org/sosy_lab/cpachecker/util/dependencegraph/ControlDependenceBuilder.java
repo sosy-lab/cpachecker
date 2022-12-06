@@ -88,11 +88,11 @@ final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdg
             .orElse(DomTree.empty());
     ImmutableSet<CFANode> postDomTreeNodes = ImmutableSet.copyOf(postDomTree);
 
-    NodeCollectingCFAVisitor nodeCollector = new NodeCollectingCFAVisitor();
-    CFATraversal.dfs().ignoreFunctionCalls().traverse(pEntryNode, nodeCollector);
-
     controlDependenceBuilder.insertControlDependencies(
         postDomTree, postDomTreeNodes, pDependOnBothAssumptions);
+
+    NodeCollectingCFAVisitor nodeCollector = new NodeCollectingCFAVisitor();
+    CFATraversal.dfs().ignoreFunctionCalls().traverse(pEntryNode, nodeCollector);
 
     controlDependenceBuilder.insertMissingControlDependencies(
         postDomTree, postDomTreeNodes, nodeCollector.getVisitedNodes());
