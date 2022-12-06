@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -296,7 +297,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
   private String recreateFunction(
       FunctionEntryNode functionEntryNode,
       CFANode currentStartNode,
-      CFANode untilNode,
+      @Nullable CFANode untilNode,
       BasicBlock block) {
     StringBuilder wholeFunction = new StringBuilder();
 
