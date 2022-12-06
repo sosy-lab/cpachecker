@@ -356,10 +356,7 @@ public interface PointerTargetSetBuilder {
       if (tracksField(field)) {
         return true; // The field has already been added
       }
-
-      // FIXME: This will always incorrectly return false with options.useArraysForHeap(),
-      // which breaks addEssentialFields and causes problems later on.
-      // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1039#note_1177874407
+      verify(!options.useArraysForHeap()); // tracksField() should always return true otherwise
 
       final PersistentSortedMap<String, PersistentList<PointerTarget>> oldTargets = targets;
       for (final Map.Entry<String, CType> baseEntry : bases.entrySet()) {
@@ -367,6 +364,8 @@ public interface PointerTargetSetBuilder {
       }
       fields = fields.putAndCopy(field, true);
 
+      // This condition relies on addTargets() doing something, which it only does if
+      // useArraysForHeap is false.
       return oldTargets != targets;
     }
 
