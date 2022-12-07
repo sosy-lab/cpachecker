@@ -1164,7 +1164,7 @@ class WebInterface:
 
 def _open_output_log(output_path):
     log_file_path = output_path + "output.log"
-    logging.info("Log file is written to " + log_file_path + ".")
+    logging.info("Log file is written to %s.", log_file_path)
     return open(log_file_path, "wb")
 
 

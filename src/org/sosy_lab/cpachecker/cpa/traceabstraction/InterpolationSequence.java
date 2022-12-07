@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -61,6 +62,7 @@ class InterpolationSequence {
       localPredCache = HashMultimap.create();
     }
 
+    @CanIgnoreReturnValue
     Builder addPredicates(
         LocationInstance pLocInstance, Collection<AbstractionPredicate> pPredicates) {
       for (AbstractionPredicate abstractionPredicate : pPredicates) {
@@ -69,6 +71,8 @@ class InterpolationSequence {
           // this specific key-value pair is now added for the first time.
           IndexedAbstractionPredicate indexedPred =
               new IndexedAbstractionPredicate(ID_GENERATOR.getFreshId(), abstractionPredicate);
+
+          // verify that the added predicate is unique and has not already been there before
           verify(navigablePredicates.add(indexedPred));
           verify(localPredicates.put(pLocInstance.getLocation(), indexedPred));
         }
@@ -81,6 +85,10 @@ class InterpolationSequence {
     }
   }
 
+  /**
+   * Set containing predicates in the order in which the solver has returned them as part of a
+   * counterexample.
+   */
   private final ImmutableSortedSet<IndexedAbstractionPredicate> orderedPredicates;
 
   private final ImmutableSetMultimap<CFANode, IndexedAbstractionPredicate> localPredicates;
@@ -106,8 +114,33 @@ class InterpolationSequence {
     return getPredicates(PLocationInstance).stream().findFirst();
   }
 
-  Optional<IndexedAbstractionPredicate> getNext(IndexedAbstractionPredicate pPredicate) {
+  Optional<IndexedAbstractionPredicate> getNextIndex(IndexedAbstractionPredicate pPredicate) {
     return Optional.ofNullable(orderedPredicates.higher(pPredicate));
+  }
+
+  /**
+   * Returns the next {@link IndexedAbstractionPredicate} from this sequence that has a different
+   * {@link AbstractionPredicate} than the one passed to this method.
+   *
+   * @return An {@link Optional} containing the next such {@link IndexedAbstractionPredicate}, or
+   *     {@link Optional#empty()} if no such predicate is available.
+   */
+  Optional<IndexedAbstractionPredicate> getNextPredicate(IndexedAbstractionPredicate pPredicate) {
+    IndexedAbstractionPredicate curPred = pPredicate;
+
+    while (true) {
+      IndexedAbstractionPredicate nextPred = orderedPredicates.higher(curPred);
+      if (nextPred == null) {
+        return Optional.empty();
+      }
+
+      if (pPredicate.getPredicate().equals(nextPred.getPredicate())) {
+        curPred = nextPred;
+        continue;
+      }
+
+      return Optional.of(nextPred);
+    }
   }
 
   boolean isStrictSubsetOf(InterpolationSequence pOtherSequence) {

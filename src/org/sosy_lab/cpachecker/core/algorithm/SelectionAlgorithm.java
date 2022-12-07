@@ -182,6 +182,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
           "Requires alias handling:                       " + (requiresAliasHandling ? 1 : 0));
       out.println(
           "Requires loop handling:                        " + (requiresLoopHandling ? 1 : 0));
+      out.println("Has a single loop:                             " + (hasSingleLoop ? 1 : 0));
       out.println(
           "Requires composite-type handling:              "
               + (requiresCompositeTypeHandling ? 1 : 0));

@@ -5,12 +5,12 @@ This file is part of CPAchecker,
 a tool for configurable software verification:
 https://cpachecker.sosy-lab.org
 
-SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
 
 SPDX-License-Identifier: Apache-2.0
 -->
 
-<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="1">
 
   <option name="-noout"/>
@@ -20,18 +20,17 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-default--overflow"/>
   </rundefinition>
 
-  <tasks name="Overflows-BitVectors">
-    <includesfile>../programs/benchmarks/NoOverflows-BitVectors.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
-  </tasks>
   <tasks name="Systems_BusyBox_Overflows">
     <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox-NoOverflows.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     <exclude>../programs/benchmarks/busybox-1.22.0/realpath-1.yml</exclude> <!-- flapping unknown/timeout -->
   </tasks>
-  <tasks name="Overflows-Other">
-    <includesfile>../programs/benchmarks/NoOverflows-Other.set</includesfile>
+  <tasks name="Overflows-Main">
+    <includesfile>../programs/benchmarks/NoOverflows-Main.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    <exclude>../programs/benchmarks/ldv-commit-tester/m0_sound-oss-opl3-ko--111_1a--42f9f8d-1.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/ldv-validator-v0.6/linux-stable-42f9f8d-1-111_1a-sound--oss--opl3.ko-entry_point.cil.out.yml</exclude> <!-- flapping unknown/flapping timeout -->
+    <exclude>../programs/benchmarks/loop-invgen/nested9.yml</exclude> <!-- flapping timeout -->
   </tasks>
   <tasks name="Overflow-Simple">
     <includesfile>../programs/simple/overflow/overflow.set</includesfile>

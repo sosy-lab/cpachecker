@@ -80,7 +80,8 @@ public class ConfigurationFileChecks {
               + " requires exactly one specification automaton, but none were given.*|.*Could not"
               + " read precision from file.*|.*The SMT solver MATHSAT5 is not available on this"
               + " machine because of missing libraries \\(no optimathsat5j in"
-              + " java\\.library\\.path.*",
+              + " java\\.library\\.path.*|.*The SMT solver Z3 is not available on this machine"
+              + " because of missing libraries .* version `GLIBCXX_3.4.26' not found.*",
           Pattern.DOTALL);
 
   private static final Pattern ALLOWED_WARNINGS =
@@ -127,6 +128,7 @@ public class ConfigurationFileChecks {
           "memorysafety.config",
           "memorycleanup.config",
           "overflow.config",
+          "datarace.config",
           "termination.config",
           "termination.violation.witness",
           // handled by WitnessOptions when path to witness is specified with -witness
@@ -406,6 +408,12 @@ public class ConfigurationFileChecks {
       } else {
         assertThat(spec).endsWith("specification/overflow.spc");
       }
+    } else if (basePath.toString().toLowerCase().contains("datarace")) {
+      if (isSvcompConfig) {
+        assertThat(spec).endsWith("specification/sv-comp-datarace.spc");
+      } else {
+        assertThat(spec).endsWith("specification/datarace.spc");
+      }
 
     } else if (cpas.contains("cpa.uninitvars.UninitializedVariablesCPA")) {
       assertThat(spec).endsWith("specification/UninitializedVariables.spc");
@@ -455,6 +463,7 @@ public class ConfigurationFileChecks {
               Path.of("witnessValidation.properties"),
               Path.of("craigInterpolation-violationWitness.properties"),
               Path.of("wacsl.properties"),
+              Path.of("importFaults.properties"),
               Path.of("distributed-block-summaries"));
     }
 

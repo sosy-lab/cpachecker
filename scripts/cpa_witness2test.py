@@ -198,13 +198,13 @@ def create_parser():
 def _determine_file_args(argv):
     parameter_prefix = "-"
     files = []
-    logging.debug(f"Determining file args from {argv}")
+    logging.debug("Determining file args from %s", argv)
     for fst, snd in zip(argv[:-1], argv[1:]):
         if not fst.startswith(parameter_prefix) and not snd.startswith(
             parameter_prefix
         ):
             files.append(snd)
-    logging.debug(f"Determined file args: {files}")
+    logging.debug("Determined file args: %s", files)
     return files
 
 
@@ -405,16 +405,14 @@ def _analyze_result_values(
         and expected_errmsg in test_result.stderr
     ):
         logging.info(
-            "Harness {} reached expected property violation ({}).".format(
-                harness, spec_prop
-            )
+            "Harness %s reached expected property violation (%s).", harness, spec_prop
         )
         return RESULT_ACCEPT, spec_prop
     elif test_result.returncode == 0:
-        logging.info("Harness {} did not encounter _any_ error".format(harness))
+        logging.info("Harness %s did not encounter _any_ error", harness)
         return RESULT_REJECT, None
     else:
-        logging.info("Run with harness {} was not successful".format(harness))
+        logging.info("Run with harness %s was not successful", harness)
         return RESULT_UNK, None
 
 
@@ -502,7 +500,7 @@ def _execute_harnesses(
     reject_count = 0
     for harness in created_harnesses:
         iter_count += 1
-        logging.info("Looking at {}".format(harness))
+        logging.info("Looking at %s", harness)
         exe_target = output_dir + os.sep + get_target_name(harness)
         compile_cmd = create_compile_cmd(
             harness, program_file, exe_target, args, specification
@@ -521,7 +519,7 @@ def _execute_harnesses(
             _log_multiline(compile_result.stdout, level=logging.DEBUG)
 
             if compile_result.returncode != 0:
-                logging.warning("Compilation failed for harness {}".format(harness))
+                logging.warning("Compilation failed for harness %s", harness)
                 continue
 
         else:
@@ -534,15 +532,11 @@ def _execute_harnesses(
         if test_result.stdout:
             with open(test_stdout_file, "w+") as output:
                 output.write(test_result.stdout)
-                logging.info(
-                    "Wrote stdout of test execution to {}".format(test_stdout_file)
-                )
+                logging.info("Wrote stdout of test execution to %s", test_stdout_file)
         if test_result.stderr:
             with open(test_stderr_file, "w+") as error_output:
                 error_output.write(test_result.stderr)
-                logging.info(
-                    "Wrote stderr of test execution to {}".format(test_stderr_file)
-                )
+                logging.info("Wrote stderr of test execution to %s", test_stderr_file)
 
         result, new_violated_property = analyze_result(
             test_result, harness, specification

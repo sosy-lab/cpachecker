@@ -94,6 +94,9 @@ public final class InterpolationManager {
   private int reusedFormulasOnSolverStack = 0;
 
   public void printStatistics(StatisticsWriter w0) {
+    if (cexAnalysisTimer.getNumberOfIntervals() == 0) {
+      return;
+    }
     w0.put(
         "Counterexample analysis",
         cexAnalysisTimer
@@ -235,6 +238,13 @@ public final class InterpolationManager {
           "After a failed interpolation query, try to solve the formulas again with different"
               + " options instead of giving up immediately.")
   private boolean tryAgainOnInterpolationError = true;
+
+  @Option(
+      secure = true,
+      description =
+          "When interpolation query fails, attempt to check feasibility of the current"
+              + " counterexample without interpolation")
+  private boolean tryWithoutInterpolation = true;
 
   private final ITPStrategy itpStrategy;
 
@@ -434,11 +444,14 @@ public final class InterpolationManager {
           }
         }
       } catch (SolverException itpException) {
-        logger.logUserException(
-            Level.FINEST,
-            itpException,
-            "Interpolation failed, attempting to solve without interpolation");
-        return fallbackWithoutInterpolation(f, imprecisePath, itpException);
+        if (tryWithoutInterpolation) {
+          logger.logUserException(
+              Level.FINEST,
+              itpException,
+              "Interpolation failed, attempting to solve without interpolation");
+          return fallbackWithoutInterpolation(f, imprecisePath, itpException);
+        }
+        throw new RefinementFailedException(Reason.InterpolationFailed, null, itpException);
       }
 
     } finally {

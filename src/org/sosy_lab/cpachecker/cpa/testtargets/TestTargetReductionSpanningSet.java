@@ -217,11 +217,13 @@ public class TestTargetReductionSpanningSet {
     public String toString() {
       return representativeTarget
           + "\n predecessors:"
-          + Joiner.on('\t')
-              .join(from(predecessors).transform(edgeNode -> edgeNode.representativeTarget))
+          + from(predecessors)
+              .transform(edgeNode -> edgeNode.representativeTarget)
+              .join(Joiner.on('\t'))
           + "\n successors:"
-          + Joiner.on('\t')
-              .join(from(successors).transform(edgeNode -> edgeNode.representativeTarget))
+          + from(successors)
+              .transform(edgeNode -> edgeNode.representativeTarget)
+              .join(Joiner.on('\t'))
           + "\n";
     }
   }

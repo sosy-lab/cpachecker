@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,11 +46,13 @@ public class BlockSummaryWorkerBuilder {
     return "W" + workerGenerators.size() + pAdditionalIdentifier;
   }
 
+  @CanIgnoreReturnValue
   public BlockSummaryWorkerBuilder createAdditionalConnections(int numberConnections) {
     additionalConnections = numberConnections;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public BlockSummaryWorkerBuilder addAnalysisWorker(
       BlockNode pNode, BlockSummaryAnalysisOptions pOptions) {
     workerGenerators.add(
@@ -65,12 +68,14 @@ public class BlockSummaryWorkerBuilder {
     return this;
   }
 
+  @CanIgnoreReturnValue
   public BlockSummaryWorkerBuilder addResultCollectorWorker(
       Collection<BlockNode> nodes, BlockSummaryAnalysisOptions pOptions) {
     workerGenerators.add(connection -> new BlockSummaryResultWorker(nodes, connection, pOptions));
     return this;
   }
 
+  @CanIgnoreReturnValue
   public BlockSummaryWorkerBuilder addVisualizationWorker(
       BlockGraph pBlockTree, BlockSummaryAnalysisOptions pOptions) {
     workerGenerators.add(
@@ -78,6 +83,7 @@ public class BlockSummaryWorkerBuilder {
     return this;
   }
 
+  @CanIgnoreReturnValue
   public BlockSummaryWorkerBuilder addRootWorker(
       BlockNode pNode, BlockSummaryAnalysisOptions pOptions) {
     workerGenerators.add(

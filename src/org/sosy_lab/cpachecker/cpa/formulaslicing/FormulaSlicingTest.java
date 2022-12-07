@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import static com.google.common.truth.TruthJUnit.assume;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.Map;
@@ -20,8 +21,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.WEAKENING_STRATEGY;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner.ExpectedVerdict;
@@ -110,8 +114,25 @@ public class FormulaSlicingTest {
   private void check(String filename, ExpectedVerdict pExpected, Map<String, String> extra)
       throws Exception {
     String fullPath = Path.of(TEST_DIR_PATH, filename).toString();
+    Configuration config = getProperties(extra);
 
-    TestResults results = CPATestRunner.run(getProperties(extra), fullPath);
+    // Attempt to create solver up front and skip test if not possible.
+    try {
+      Solver.create(config, LogManager.createNullLogManager(), ShutdownNotifier.createDummy())
+          .close();
+    } catch (InvalidConfigurationException e) {
+      Throwable cause = Throwables.getRootCause(e);
+      if (cause instanceof UnsatisfiedLinkError) {
+        assume()
+            .withMessage("Z3 requires newer libc than Ubuntu 18.04 provides")
+            .that(cause)
+            .hasMessageThat()
+            .doesNotContain("version `GLIBCXX_3.4.26' not found");
+      }
+      throw e;
+    }
+
+    TestResults results = CPATestRunner.run(config, fullPath);
     if (pExpected == ExpectedVerdict.TRUE) {
       results.assertIsSafe();
     } else if (pExpected == ExpectedVerdict.FALSE) {

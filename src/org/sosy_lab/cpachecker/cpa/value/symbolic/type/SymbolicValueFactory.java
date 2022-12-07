@@ -289,6 +289,15 @@ public class SymbolicValueFactory {
 
     SymbolicExpression operand;
 
+    if (pValue instanceof AddressExpression) {
+      // TODO:
+      // We want to cast AddressExpressions only if the cast type is smaller than signed int
+      // (default for pointers) because only then the cast would make a difference.
+      // In all smaller cases we need to make sure that there are 2 possibilities later on.
+      // One where due to the cast the values still match and one where they don't.
+      return (SymbolicExpression) pValue;
+    }
+
     if (!(pValue instanceof SymbolicExpression)) {
       return asConstant(pValue, canonicalTargetType);
     } else {

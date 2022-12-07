@@ -102,8 +102,8 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="4.6.1" conf="test->default"/>
-        <dependency org="org.mockito" name="mockito-errorprone" rev="4.6.1" conf="build->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="4.9.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-errorprone" rev="4.9.0" conf="build->default"/>
 
         <!-- Antlr
              Parser generator. -->
@@ -136,8 +136,8 @@ SPDX-License-Identifier: Apache-2.0
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
         <!-- Synchronize version with REFASTER_VERSION in ../.gitlab-ci.yml! -->
-        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.13.1" conf="build->default" />
-        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.13.1" conf="build->default; contrib->sources" />
+        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.15.0" conf="build->default" />
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.15.0" conf="build->default; contrib->sources" />
 
         <!-- Policeman's Forbidden API Checker
              Useful for detecting uses of unwanted API -->
@@ -145,31 +145,31 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
-        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.22" conf="build->default"/>
+        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.25" conf="build->default"/>
 
         <!-- google-java-format
              A source-code formatter for Java -->
         <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.15.0" conf="format-source->default"/>
 
         <!-- SpotBugs -->
-        <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="4.5.3" conf="spotbugs->default"/>
+        <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="4.7.3" conf="spotbugs->default"/>
         <!-- JAR with annotations needs to be present at runtime because we use Nullable.class -->
-        <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="4.5.3" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="4.7.3" conf="runtime->default; contrib->sources"/>
         <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
 
         <!-- Checkstyle -->
-        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.42.0" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="10.3.2" conf="checkstyle->default"/>
+        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.44.0" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="10.5.0" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="java-smt" rev="3.10.1" conf="runtime->runtime-without-gpl; contrib->sources">
+        <dependency org="org.sosy_lab" name="java-smt" rev="3.14.3-7-ge7d54ab2" conf="runtime->runtime-without-gpl; contrib->sources">
         <!-- We do not ship GPLv3 licensed software like the SMT solver Yices2.
              The user has to enable such components directly.
              We provide the following configuration for this case:
-             <dependency org="org.sosy_lab" name="java-smt" rev="3.10.0" conf="runtime->runtime; contrib->sources">
+             <dependency org="org.sosy_lab" name="java-smt" rev="3.14.3-7-ge7d54ab2" conf="runtime->runtime; contrib->sources">
         -->
           <!-- OptiMathSAT causes segfaults: https://github.com/sosy-lab/java-smt/issues/132 -->
           <exclude org="org.sosy_lab" module="javasmt-solver-optimathsat"/>
@@ -180,7 +180,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->
-        <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2021-10-05-rf6ece58d9b" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2022-10-13-r05bfb7ad3d" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Batik library for creating svg-images -->
         <dependency org="org.apache.xmlgraphics" name="batik-svggen" rev="1.12" conf="runtime->default; contrib->sources">
@@ -195,7 +195,7 @@ SPDX-License-Identifier: Apache-2.0
         </dependency>
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
-        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.13.1"/>
+        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.15.0"/>
 
     </dependencies>
 </ivy-module>

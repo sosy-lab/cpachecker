@@ -37,7 +37,6 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -71,6 +70,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizationInfoWithTraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition.PreCondition;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -83,6 +84,7 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 
 @Options
 public class ReportGenerator {
@@ -381,23 +383,12 @@ public class ReportGenerator {
     if (!(fInfo instanceof FaultLocalizationInfoWithTraceFormula)) {
       return "";
     }
-    List<String> preconditionParts = new ArrayList<>();
-    PreCondition preCondition =
-        ((FaultLocalizationInfoWithTraceFormula) fInfo).getTraceFormula().getPrecondition();
-    for (CFAEdge cfaEdge : preCondition.getEdgesForPrecondition()) {
-      String input = cfaEdge.getCode().replaceAll(";", "");
-      List<String> parts = Splitter.on(" ").limit(2).splitToList(input);
-      assert !parts.isEmpty() : "Splitter split " + input + " into 0 parts.";
-      if (parts.size() == 1) {
-        preconditionParts.add(parts.get(0));
-      } else {
-        preconditionParts.add(parts.get(1));
-      }
-    }
-    if (preconditionParts.isEmpty()) {
-      preconditionParts.add("true");
-    }
-    return Joiner.on(" && ").join(preconditionParts);
+    TraceFormula traceFormula = ((FaultLocalizationInfoWithTraceFormula) fInfo).getTraceFormula();
+    PreCondition preCondition = traceFormula.getPrecondition();
+    FormulaContext context = traceFormula.getContext();
+    FormulaToCVisitor visitor = new FormulaToCVisitor(context.getSolver().getFormulaManager());
+    context.getSolver().getFormulaManager().visit(preCondition.getPrecondition(), visitor);
+    return visitor.getString();
   }
 
   private void insertArgJson(Writer writer) throws IOException {
