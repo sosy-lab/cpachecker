@@ -51,6 +51,7 @@ public interface PointerTargetSetBuilder {
       String newBase,
       @Nullable CType type,
       @Nullable Formula allocationSize,
+      boolean isDynamicAllocation,
       Constraints constraints);
 
   void prepareBase(String name, CType type);
@@ -185,7 +186,7 @@ public interface PointerTargetSetBuilder {
     /**
      * Prepare the newly allocated base of the given type for tracking later on.
      *
-     * <p>Make sure to call {@link #addNextBaseAddressConstraints(String, CType, Formula,
+     * <p>Make sure to call {@link #addNextBaseAddressConstraints(String, CType, Formula, boolean,
      * Constraints)} before calling this method!
      *
      * @param name The name of the variable.
@@ -235,7 +236,7 @@ public interface PointerTargetSetBuilder {
      * Adds the newly allocated base of the given type for tracking along with all its tracked
      * (sub)fields (if it is a structure/union) or all its elements (if it is an array).
      *
-     * <p>Make sure to call {@link #addNextBaseAddressConstraints(String, CType, Formula,
+     * <p>Make sure to call {@link #addNextBaseAddressConstraints(String, CType, Formula, boolean,
      * Constraints)} before calling this method!
      *
      * @param name The name of the base
@@ -265,6 +266,7 @@ public interface PointerTargetSetBuilder {
      * @param newBase The name of the next base.
      * @param type The type of the next base.
      * @param allocationSize An expression for the size in bytes of the new base.
+     * @param isDynamicAllocation Whether this is an allocation from malloc etc.
      * @param constraints Where the constraints about addresses will be added to.
      */
     @Override
@@ -272,6 +274,7 @@ public interface PointerTargetSetBuilder {
         final String newBase,
         final @Nullable CType type,
         final @Nullable Formula allocationSize,
+        final boolean isDynamicAllocation,
         final Constraints constraints) {
       if (bases.containsKey(newBase)) {
         // The base has already been added, duplicate constraints would be unsound
@@ -280,7 +283,12 @@ public interface PointerTargetSetBuilder {
 
       highestAllocatedAddresses =
           ptsMgr.makeBaseAddressConstraints(
-              newBase, type, allocationSize, highestAllocatedAddresses, constraints);
+              newBase,
+              type,
+              allocationSize,
+              isDynamicAllocation,
+              highestAllocatedAddresses,
+              constraints);
     }
 
     /**
@@ -768,6 +776,7 @@ public interface PointerTargetSetBuilder {
         String pNewBase,
         @Nullable CType pType,
         @Nullable Formula pAllocationSize,
+        boolean isDynamicAllocation,
         Constraints pConstraints) {
       throw new UnsupportedOperationException();
     }

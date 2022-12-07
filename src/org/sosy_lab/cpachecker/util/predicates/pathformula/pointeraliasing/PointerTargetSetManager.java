@@ -519,7 +519,7 @@ class PointerTargetSetManager {
           && !DynamicMemoryHandler.isAllocVariableName(baseName)) {
         highestAllocatedAddresses =
             makeBaseAddressConstraints(
-                baseName, base.getValue(), null, highestAllocatedAddresses, pConstraints);
+                baseName, base.getValue(), null, false, highestAllocatedAddresses, pConstraints);
       }
     }
 
@@ -539,6 +539,7 @@ class PointerTargetSetManager {
    * @param pNewBase The name of the new base.
    * @param pType The type of the new base.
    * @param pAllocationSize An optional expression for the size in bytes of the new base.
+   * @param pIsDynamicAllocation Whether this is an allocation from malloc etc.
    * @param pHighestAllocatedAddresses list of addresses for which this method will ensure that the
    *     new base does not overlap
    * @param pConstraints Where the constraints about addresses will be added to.
@@ -549,9 +550,11 @@ class PointerTargetSetManager {
       final String pNewBase,
       final @Nullable CType pType,
       final @Nullable Formula pAllocationSize,
+      final boolean pIsDynamicAllocation,
       final PersistentList<Formula> pHighestAllocatedAddresses,
       final Constraints pConstraints) {
     checkArgument(pType != null || pAllocationSize != null);
+    checkArgument(!pIsDynamicAllocation || pAllocationSize != null);
 
     if (!options.trackFunctionPointers() && pType != null && CTypes.isFunctionPointer(pType)) {
       // Avoid adding constraints about function addresses,
@@ -576,13 +579,16 @@ class PointerTargetSetManager {
 
     // Add alignment constraint
     // For incomplete types, better not add constraints (imprecise) than a wrong one (unsound).
-    if (pType != null && !pType.isIncomplete()) {
+    int alignment = 0;
+    if (pIsDynamicAllocation) {
+      alignment = conv.machineModel.getAlignofMalloc();
+    } else if (pType != null && !pType.isIncomplete()) {
+      alignment = typeHandler.getAlignof(pType);
+    }
+    if (alignment != 0) {
       pConstraints.addConstraint(
           formulaManager.makeModularCongruence(
-              newBaseFormula,
-              formulaManager.makeNumber(pointerType, 0L),
-              typeHandler.getAlignof(pType),
-              false));
+              newBaseFormula, formulaManager.makeNumber(pointerType, 0L), alignment, false));
     }
 
     final long typeSize =
