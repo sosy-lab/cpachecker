@@ -47,7 +47,13 @@ import org.sosy_lab.java_smt.api.Formula;
 
 public interface PointerTargetSetBuilder {
 
-  void prepareBase(String name, CType type, @Nullable Formula size, Constraints constraints);
+  void addNextBaseAddressConstraints(
+      String newBase,
+      @Nullable CType type,
+      @Nullable Formula allocationSize,
+      Constraints constraints);
+
+  void prepareBase(String name, CType type);
 
   void shareBase(String name, CType type);
 
@@ -55,7 +61,7 @@ public interface PointerTargetSetBuilder {
    * Adds the newly allocated base of the given type for tracking along with all its tracked
    * (sub)fields (if its a structure/union) or all its elements (if its an array).
    */
-  void addBase(String name, CType type, @Nullable Formula size, Constraints constraints);
+  void addBase(String name, CType type);
 
   boolean tracksField(CompositeField field);
 
@@ -177,15 +183,16 @@ public interface PointerTargetSetBuilder {
     }
 
     /**
-     * Returns a boolean formula for a prepared base of a pointer.
+     * Prepare the newly allocated base of the given type for tracking later on.
+     *
+     * <p>Make sure to call {@link #addNextBaseAddressConstraints(String, CType, Formula,
+     * Constraints)} before calling this method!
      *
      * @param name The name of the variable.
      * @param type The type of the variable.
-     * @param sizeExp An expression for the size in bytes of the new base.
      */
     @Override
-    public void prepareBase(
-        final String name, CType type, final @Nullable Formula sizeExp, Constraints constraints) {
+    public void prepareBase(final String name, CType type) {
       checkIsSimplified(type);
       if (bases.containsKey(name)) {
         // The base has already been added
@@ -196,8 +203,6 @@ public interface PointerTargetSetBuilder {
       // If size is not known, we can use a dummy size because it is only used for the fake base.
       long size = type.hasKnownConstantSize() ? typeHandler.getSizeof(type) : 0;
       bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(size));
-
-      makeNextBaseAddressInequality(name, type, sizeExp, constraints);
     }
 
     /**
@@ -230,13 +235,14 @@ public interface PointerTargetSetBuilder {
      * Adds the newly allocated base of the given type for tracking along with all its tracked
      * (sub)fields (if it is a structure/union) or all its elements (if it is an array).
      *
+     * <p>Make sure to call {@link #addNextBaseAddressConstraints(String, CType, Formula,
+     * Constraints)} before calling this method!
+     *
      * @param name The name of the base
      * @param type The type of the base
-     * @param size An expression for the size in bytes of the new base.
      */
     @Override
-    public void addBase(
-        final String name, CType type, final @Nullable Formula size, Constraints constraints) {
+    public void addBase(final String name, CType type) {
       checkIsSimplified(type);
       if (bases.containsKey(name)) {
         // The base has already been added
@@ -245,25 +251,32 @@ public interface PointerTargetSetBuilder {
 
       addTargets(name, type);
       bases = bases.putAndCopy(name, type);
-
-      makeNextBaseAddressInequality(name, type, size, constraints);
     }
 
     /**
      * Create the constraints for inequality between existing bases and a new base (to prevent
-     * overlapping), and store the new base as highest allocated address for when the next base is
-     * created.
+     * overlapping) as well as for alignment, and store the new base as highest allocated address
+     * for when the next base is created.
+     *
+     * <p>This method needs to be called before the new base is added.
+     *
+     * <p>Either type or allocationSize need to be given.
      *
      * @param newBase The name of the next base.
      * @param type The type of the next base.
      * @param allocationSize An expression for the size in bytes of the new base.
      * @param constraints Where the constraints about addresses will be added to.
      */
-    private void makeNextBaseAddressInequality(
+    @Override
+    public void addNextBaseAddressConstraints(
         final String newBase,
-        final CType type,
+        final @Nullable CType type,
         final @Nullable Formula allocationSize,
         final Constraints constraints) {
+      if (bases.containsKey(newBase)) {
+        // The base has already been added, duplicate constraints would be unsound
+        return;
+      }
 
       highestAllocatedAddresses =
           ptsMgr.makeBaseAddressConstraints(
@@ -751,8 +764,16 @@ public interface PointerTargetSetBuilder {
     INSTANCE;
 
     @Override
-    public void prepareBase(
-        String pName, CType pType, @Nullable Formula pSize, Constraints constraints) {
+    public void addNextBaseAddressConstraints(
+        String pNewBase,
+        @Nullable CType pType,
+        @Nullable Formula pAllocationSize,
+        Constraints pConstraints) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void prepareBase(String pName, CType pType) {
       throw new UnsupportedOperationException();
     }
 
@@ -762,8 +783,7 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public void addBase(
-        String pName, CType pType, @Nullable Formula pSize, Constraints constraints) {
+    public void addBase(String pName, CType pType) {
       throw new UnsupportedOperationException();
     }
 

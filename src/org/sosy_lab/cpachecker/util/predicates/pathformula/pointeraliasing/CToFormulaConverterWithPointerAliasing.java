@@ -425,12 +425,15 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
 
     if (CTypeUtils.containsArray(type, originalDeclaration)) {
-      pts.addBase(declaration.getQualifiedName(), type, size, constraints);
+      pts.addNextBaseAddressConstraints(declaration.getQualifiedName(), type, size, constraints);
+      pts.addBase(declaration.getQualifiedName(), type);
+
     } else if (isAddressedVariable(declaration) || !CTypeUtils.isSimpleType(decayedType)) {
+      pts.addNextBaseAddressConstraints(declaration.getQualifiedName(), type, size, constraints);
       if (options.useConstraintOptimization()) {
-        pts.prepareBase(declaration.getQualifiedName(), type, size, constraints);
+        pts.prepareBase(declaration.getQualifiedName(), type);
       } else {
-        pts.addBase(declaration.getQualifiedName(), type, size, constraints);
+        pts.addBase(declaration.getQualifiedName(), type);
       }
     }
   }
