@@ -138,7 +138,7 @@ public class TestDataTools {
       }
     }
 
-    return mapping.get(cfa.getMainFunction().getExitNode());
+    return mapping.get(cfa.getMainFunction().getExitNode().orElseThrow());
   }
 
   /** Convert a given string to a {@link CFA}, assuming it is a body of a single function. */

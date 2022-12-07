@@ -235,7 +235,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   }
 
   /** This utility method checks if the given path is feasible. */
-  private boolean isFeasible(ARGPath slicedErrorPathPrefix)
+  protected boolean isFeasible(ARGPath slicedErrorPathPrefix)
       throws CPAException, InterruptedException {
     return checker.isFeasible(slicedErrorPathPrefix);
   }
@@ -245,7 +245,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * feasible, i.e., because slicing is not fully precise in presence of, e.g., structs or arrays,
    * the original error path (prefix) that was given as input is returned.
    */
-  private ARGPath sliceErrorPath(final ARGPath pErrorPathPrefix)
+  protected ARGPath sliceErrorPath(final ARGPath pErrorPathPrefix)
       throws CPAException, InterruptedException {
 
     if (!isPathSlicingPossible(pErrorPathPrefix)) {
@@ -400,7 +400,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * @param pErrorPathPrefix the error path prefix to be sliced
    * @return true, if slicing is possible, else, false
    */
-  private boolean isPathSlicingPossible(final ARGPath pErrorPathPrefix) {
+  protected boolean isPathSlicingPossible(final ARGPath pErrorPathPrefix) {
     return pathSlicing
         && isRefinementSelectionEnabled()
         && pErrorPathPrefix.getFirstState().getParents().isEmpty();

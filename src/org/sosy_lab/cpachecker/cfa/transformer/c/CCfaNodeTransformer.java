@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
@@ -85,9 +86,10 @@ public interface CCfaNodeTransformer extends CfaNodeTransformer {
       private CFunctionEntryNode newCFunctionEntryNode(
           CFunctionEntryNode pOldNode, CfaNetwork pCfaNetwork, CfaNodeProvider pNodeProvider) {
 
-        FunctionExitNode oldExitNode =
-            pCfaNetwork.functionExitNode(pOldNode).orElse(pOldNode.getExitNode());
-        FunctionExitNode newExitNode = (FunctionExitNode) pNodeProvider.get(oldExitNode);
+        @Nullable FunctionExitNode oldExitNode =
+            pCfaNetwork.functionExitNode(pOldNode).orElse(null);
+        @Nullable FunctionExitNode newExitNode =
+            oldExitNode != null ? (FunctionExitNode) pNodeProvider.get(oldExitNode) : null;
 
         Optional<CVariableDeclaration> newReturnVariable =
             applyNodeAstSubstitutions(pOldNode, pOldNode.getReturnVariable());
@@ -98,7 +100,9 @@ public interface CCfaNodeTransformer extends CfaNodeTransformer {
                 newFunctionDeclaration(pOldNode),
                 newExitNode,
                 newReturnVariable);
-        newExitNode.setEntryNode(newEntryNode);
+        if (newExitNode != null) {
+          newExitNode.setEntryNode(newEntryNode);
+        }
 
         return newEntryNode;
       }

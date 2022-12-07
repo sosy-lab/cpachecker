@@ -144,8 +144,8 @@ class FunctionCloner implements CFAVisitor {
   @Override
   public TraversalProcess visitEdge(final CFAEdge edge) {
 
-    final CFANode start = cloneNode(edge.getPredecessor(), true);
-    final CFANode end = cloneNode(edge.getSuccessor(), true);
+    final CFANode start = cloneNode(edge.getPredecessor());
+    final CFANode end = cloneNode(edge.getSuccessor());
 
     final CFAEdge newEdge = cloneEdge(edge, start, end);
 
@@ -161,7 +161,7 @@ class FunctionCloner implements CFAVisitor {
     // TODO do we need to override this function?
     // each cloned edge also clones its predecessor and successor (if nodes not in nodeMapping).
 
-    cloneNode(node, true);
+    cloneNode(node);
 
     return TraversalProcess.CONTINUE;
   }
@@ -305,7 +305,7 @@ class FunctionCloner implements CFAVisitor {
 
   /** clones a node: copies all content and inserts a new functionName */
   @SuppressWarnings("unchecked")
-  private <T extends CFANode> T cloneNode(@NonNull final T node, final boolean addToMapping) {
+  private <T extends CFANode> T cloneNode(@NonNull final T node) {
     Preconditions.checkNotNull(node);
 
     if (nodeCache.containsKey(node)) {
@@ -325,12 +325,10 @@ class FunctionCloner implements CFAVisitor {
 
     } else if (node instanceof CFunctionEntryNode) {
       final CFunctionEntryNode n = (CFunctionEntryNode) node;
-      final FunctionExitNode exitNode = n.getExitNode();
 
-      // exitNode is maybe not part of the CFA, but accessible through entryNode.getExitNode().
-      final boolean isExitNodeReachable = exitNode.getNumEnteringEdges() > 0;
+      @Nullable FunctionExitNode newExitNode =
+          n.getExitNode().map(exitNode -> cloneNode(exitNode)).orElse(null);
 
-      final FunctionExitNode newExitNode = cloneNode(exitNode, isExitNodeReachable);
       Optional<CVariableDeclaration> returnVariable = n.getReturnVariable();
       if (returnVariable.isPresent()) {
         returnVariable = Optional.of(cloneAst(returnVariable.orElseThrow()));
@@ -341,7 +339,9 @@ class FunctionCloner implements CFAVisitor {
               cloneAst(n.getFunctionDefinition()),
               newExitNode,
               returnVariable);
-      newExitNode.setEntryNode(entryNode); // this must not change hashvalue!
+      if (newExitNode != null) {
+        newExitNode.setEntryNode(entryNode); // this must not change hashvalue!
+      }
       newNode = entryNode;
 
     } else {
@@ -356,9 +356,7 @@ class FunctionCloner implements CFAVisitor {
       newNode.setLoopStart();
     }
 
-    if (addToMapping) {
-      nodeCache.put(node, newNode);
-    }
+    nodeCache.put(node, newNode);
 
     return (T) newNode;
   }

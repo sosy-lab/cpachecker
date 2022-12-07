@@ -28,11 +28,15 @@ public abstract class FunctionEntryNode extends CFANode {
   private final @Nullable AVariableDeclaration returnVariable;
 
   // Check if call edges are added in the second pass
-  private final FunctionExitNode exitNode;
+  // Some function entry nodes do not have a corresponding function exit node that is also part of
+  // the CFA. If a function never returns, because it always aborts the program or always executes
+  // an infinite loop, the CFA doesn't contain an exit node for the function. If this is the case,
+  // this field is null.
+  private @Nullable FunctionExitNode exitNode;
 
   protected FunctionEntryNode(
       final FileLocation pFileLocation,
-      FunctionExitNode pExitNode,
+      @Nullable FunctionExitNode pExitNode,
       final AFunctionDeclaration pFunctionDefinition,
       final Optional<? extends AVariableDeclaration> pReturnVariable) {
 
@@ -47,8 +51,30 @@ public abstract class FunctionEntryNode extends CFANode {
     return location;
   }
 
-  public FunctionExitNode getExitNode() {
-    return exitNode;
+  /**
+   * Returns an optional containing the corresponding function exit node for this entry node, if it
+   * exists.
+   *
+   * <p>Some function entry nodes do not have a corresponding function exit node. If a function
+   * never returns, because it always aborts the program or always executes an infinite loop, the
+   * CFA doesn't contain an exit node for the function.
+   *
+   * @return If this function entry node has a corresponding function exit node, an optional
+   *     containing the function exit node is returned. Otherwise, if the function entry node does
+   *     not have a corresponding function exit node, {@code Optional.empty()} is returned.
+   */
+  public Optional<FunctionExitNode> getExitNode() {
+    return Optional.ofNullable(exitNode);
+  }
+
+  /**
+   * Removes the corresponding function exit node from this entry node.
+   *
+   * <p>Only call this method if the function exit node isn't part of the CFA. Do not call this
+   * method outside CFA construction.
+   */
+  public void removeExitNode() {
+    exitNode = null;
   }
 
   public AFunctionDeclaration getFunctionDefinition() {

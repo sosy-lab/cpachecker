@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.util.smg.join;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
@@ -35,6 +37,30 @@ public class NodeMapping {
 
   public void addMapping(SMGObject o1, SMGObject o2) {
     objectMap.put(o1, o2);
+  }
+
+  /**
+   * Replace the mapping existing from some value to oldTarget with the new target. This is needed
+   * to update the mapping and not chain gets.
+   */
+  public void replaceValueMapping(SMGValue oldTarget, SMGValue newTarget) {
+    for (Entry<SMGValue, SMGValue> entry : new ArrayList<>(valueMap.entrySet())) {
+      if (entry.getValue().equals(oldTarget)) {
+        valueMap.put(entry.getKey(), newTarget);
+      }
+    }
+  }
+
+  /**
+   * Replace the mapping existing from some value to oldTarget with the new target. This is needed
+   * to update the mapping and not chain gets.
+   */
+  public void replaceObjectMapping(SMGObject oldTarget, SMGObject newTarget) {
+    for (Entry<SMGObject, SMGObject> entry : new ArrayList<>(objectMap.entrySet())) {
+      if (entry.getValue().equals(oldTarget)) {
+        objectMap.put(entry.getKey(), newTarget);
+      }
+    }
   }
 
   public boolean mappingExists(SMGObject pMappedObject) {

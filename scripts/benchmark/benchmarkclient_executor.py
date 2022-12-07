@@ -104,6 +104,8 @@ def execute_benchmark(benchmark, output_handler):
             cmdLine.extend(["--zip-result-files", str(benchmark.config.zipResultFiles)])
         if benchmark.config.cgroupAccess:
             cmdLine.extend(["--cgroupAccess", str(benchmark.config.cgroupAccess)])
+        if benchmark.config.tryLessMemory:
+            cmdLine.extend(["--try-less-memory", str(benchmark.config.tryLessMemory)])
         if benchmark.config.debug:
             cmdLine.extend(["--print-new-files", "true"])
 
@@ -349,9 +351,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             rawPath = run.log_file[: -len(".log")]
             dirname, filename = os.path.split(rawPath)
             vcloudFilesDirectory = rawPath + ".files"
-            benchexecFilesDirectory = os.path.join(
-                dirname[: -len(".logfiles")] + ".files", filename
-            )
+            benchexecFilesDirectory = run.result_files_folder
             if os.path.isdir(vcloudFilesDirectory) and not os.path.isdir(
                 benchexecFilesDirectory
             ):

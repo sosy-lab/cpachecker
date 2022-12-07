@@ -498,12 +498,13 @@ public class LiveVariables {
     }
 
     for (FunctionEntryNode node : functionHeads) {
-      FunctionExitNode exitNode = node.getExitNode();
-      if (pCfa.getAllNodes().contains(exitNode)) {
+      Optional<FunctionExitNode> exitNode = node.getExitNode();
+      if (exitNode.isPresent()) {
         analysisParts.reachedSet.add(
-            analysisParts.cpa.getInitialState(exitNode, StateSpacePartition.getDefaultPartition()),
+            analysisParts.cpa.getInitialState(
+                exitNode.orElseThrow(), StateSpacePartition.getDefaultPartition()),
             analysisParts.cpa.getInitialPrecision(
-                exitNode, StateSpacePartition.getDefaultPartition()));
+                exitNode.orElseThrow(), StateSpacePartition.getDefaultPartition()));
       }
     }
 

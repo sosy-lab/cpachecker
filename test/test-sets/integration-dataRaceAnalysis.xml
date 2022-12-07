@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="90 s" hardtimelimit="120 s" memlimit="2 GB" cpuCores="1">
+
+  <option name="-noout"/>
+  <option name="-heap">1500M</option>
+  <option name="-dataRaceAnalysis"/>
+  
+  <rundefinition>
+    <tasks name="NoDataRace-Main">
+      <includesfile>../programs/benchmarks/NoDataRace-Main.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-data-race.prp</propertyfile>
+    </tasks>
+  </rundefinition>
+
+</benchmark>
