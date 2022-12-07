@@ -16,7 +16,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import java.io.IOException;
 import java.io.InputStream;
@@ -138,7 +137,7 @@ public class CPAchecker {
       secure = true,
       name = "analysis.initialStatesFor",
       description = "What CFA nodes should be the starting point of the analysis?")
-  private Set<InitialStatesFor> initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY);
+  private Set<InitialStatesFor> initialStatesFor = ImmutableSet.of(InitialStatesFor.ENTRY);
 
   @Option(
       secure = true,
