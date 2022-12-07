@@ -191,6 +191,10 @@ analysis.algorithm.CEGAR = false
 # with PredicateCPA and large-block encoding
 analysis.algorithm.IMC = false
 
+# use McMillan's interpolation-based model checking algorithm by encoding a
+# CFA as a transition relation with a symbolic program counter
+analysis.algorithm.IMCTR = false
+
 # Use MPI for running analyses in new subprocesses. The resulting reachedset
 # is the one of the first analysis returning in time. All other mpi-processes
 # will get aborted.
@@ -3880,6 +3884,16 @@ imc.loopBoundIncrementValueForKI = 1
 
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false
+
+# derive interpolants backward
+imctr.backwardInterpolation = true
+
+# check the union of safety properties after each transition (the original
+# encoding in McMillan's CAV 2003 paper)
+imctr.checkUnionProperty = false
+
+# enable interpolation-based model checking
+imctr.interpolation = true
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
