@@ -10,5 +10,6 @@
   
   <rundefinition>
     <option name="-config">config/microbenchmarking.properties</option>
+    <option name="-microBenchmark.outputFile">output.txt</option>
   </rundefinition>
 </benchmark>

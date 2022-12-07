@@ -116,11 +116,13 @@ public class MicroBenchmarking implements Algorithm {
       Map<String, List<Map<String, List<BenchmarkExecutionRun>>>> benchmarkTimes = new HashMap<>();
 
       Iterator<String> propertyFilesIterator = propertyFiles.iterator();
-      Iterator<String> programFilesIterator = programFiles.iterator();
 
+
+      int index = 0;
       while (propertyFilesIterator.hasNext()) {
         String singleConfigFileName = propertyFilesIterator.next();
         List<Map<String, List<BenchmarkExecutionRun>>> times = new ArrayList<>();
+        Iterator<String> programFilesIterator = programFiles.iterator();
         while (programFilesIterator.hasNext()) {
           String singleProgramFileName = programFilesIterator.next();
 
@@ -160,7 +162,8 @@ public class MicroBenchmarking implements Algorithm {
 
 
         }
-        benchmarkTimes.put(singleConfigFileName, times);
+        benchmarkTimes.put(singleConfigFileName + "-" + index, times);
+        index++;
       }
 
       long benchmarkEndTime = ticker.read();
@@ -175,6 +178,7 @@ public class MicroBenchmarking implements Algorithm {
                     writer.append(run.duration + ";");
                   }
                   writer.append("\n");
+                  writer.flush();
                 } catch (IOException e1) {
                   logger
                       .logUserException(Level.WARNING, e1, "Failed to write time values to file!");
