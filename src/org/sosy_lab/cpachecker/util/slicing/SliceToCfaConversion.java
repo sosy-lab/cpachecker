@@ -194,7 +194,7 @@ final class SliceToCfaConversion {
 
       FunctionEntryNode mainEntryNode = pSlice.getOriginalCfa().getMainFunction();
       graph.addNode(mainEntryNode);
-      graph.addNode(mainEntryNode.getExitNode());
+      mainEntryNode.getExitNode().ifPresent(graph::addNode);
 
       return CCfaFactory.CLONER.createCfa(
           graph, pSlice.getOriginalCfa().getMetadata(), pLogger, pShutdownNotifier);

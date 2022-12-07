@@ -35,7 +35,7 @@ SPDX-License-Identifier: Apache-2.0
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/Assertion.spc</propertyfile>
-    <exclude>../programs/simple/pointer_aliasing/deferred_allocation_*</exclude>
+    <exclude>../programs/simple/pointer_aliasing/deferred_allocations_*</exclude>
   </tasks>
 
   <tasks>
@@ -59,6 +59,7 @@ SPDX-License-Identifier: Apache-2.0
 
     <!-- Timeout even after 90s -->
     <exclude>../programs/benchmarks/list-properties/*</exclude>
+    <exclude>../programs/benchmarks/ldv-sets/test_add-1.yml</exclude> <!-- flapping timeout -->
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
@@ -73,7 +74,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loops/veris.c_NetBSD-libc_loop.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-acceleration/diamond_*</exclude>
     <exclude>../programs/benchmarks/loop-lit/*</exclude> <!-- mostly timeouts -->
-    <exclude>../programs/benchmarks/loop-invgen/apache-get-tag.i.p+sep-reducer.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/loop-invgen/apache-get-tag.i.*-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-invgen/id_build.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-invariants/linear-inequality-inv-b.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loops-crafted-1/*</exclude> <!-- only timeouts -->

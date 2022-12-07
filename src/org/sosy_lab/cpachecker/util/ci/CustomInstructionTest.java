@@ -71,9 +71,8 @@ public class CustomInstructionTest {
 
     startNode = cfa.getMainFunction();
     endNodes = new HashSet<>();
-    for (CFAEdge edge : CFAUtils.allEnteringEdges(cfa.getMainFunction().getExitNode())) {
-      endNodes.add(edge.getPredecessor());
-    }
+    CFAUtils.allPredecessorsOf(cfa.getMainFunction().getExitNode().orElseThrow())
+        .copyInto(endNodes);
 
     ImmutableList<String> input = ImmutableList.of("a");
     ImmutableList<String> output = ImmutableList.of("b");

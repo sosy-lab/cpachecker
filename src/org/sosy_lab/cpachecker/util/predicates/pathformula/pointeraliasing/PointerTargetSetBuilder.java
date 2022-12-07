@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Predicates.not;
+import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.stream.Collectors.toCollection;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
@@ -138,7 +139,13 @@ public interface PointerTargetSetBuilder {
       bases = pointerTargetSet.getBases();
       fields = pointerTargetSet.getFields();
       deferredAllocations = pointerTargetSet.getDeferredAllocations();
-      targets = pointerTargetSet.getTargets();
+      if (pOptions.useArraysForHeap()) {
+        verify(pointerTargetSet.getTargets() == null || pointerTargetSet.getTargets().isEmpty());
+        verify(pointerTargetSet.getFields().isEmpty());
+        targets = null;
+      } else {
+        targets = pointerTargetSet.getTargets();
+      }
       highestAllocatedAddresses = pointerTargetSet.getHighestAllocatedAddresses();
       allocationCount = pointerTargetSet.getAllocationCount();
       typeHandler = pTypeHandler;
@@ -157,6 +164,10 @@ public interface PointerTargetSetBuilder {
      * @param type The type of the allocated base or the next added pointer target
      */
     private void addTargets(final String name, CType type) {
+      if (options.useArraysForHeap()) {
+        return;
+      }
+
       targets = ptsMgr.addToTargets(name, null, type, null, 0, 0, targets, fields);
     }
 
@@ -177,9 +188,8 @@ public interface PointerTargetSetBuilder {
       }
 
       // Add base to prevent adding spurious targets when merging.
-      // If type is incomplete, we can use a dummy size here because it is only used for the fake
-      // base.
-      int size = type.isIncomplete() ? 0 : typeHandler.getSizeof(type);
+      // If size is not known, we can use a dummy size because it is only used for the fake base.
+      long size = type.hasKnownConstantSize() ? typeHandler.getSizeof(type) : 0;
       bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(size));
 
       makeNextBaseAddressInequality(name, type, sizeExp, constraints);
@@ -263,7 +273,7 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public boolean tracksField(CompositeField field) {
-      return fields.containsKey(field);
+      return options.useArraysForHeap() || fields.containsKey(field);
     }
 
     /**
@@ -285,13 +295,17 @@ public interface PointerTargetSetBuilder {
         final long containerOffset,
         final CompositeField field) {
       checkIsSimplified(cType);
+      if (options.useArraysForHeap()) {
+        return;
+      }
+
       if (cType instanceof CElaboratedType) {
         // unresolved struct type won't have any targets, do nothing
 
       } else if (cType instanceof CArrayType) {
         final CArrayType arrayType = (CArrayType) cType;
         final int length = CTypeUtils.getArrayLength(arrayType, options);
-        int offset = 0;
+        long offset = 0;
         for (int i = 0; i < length; ++i) {
           addTargets(base, arrayType.getType(), offset, containerOffset + properOffset, field);
           offset += typeHandler.getSizeof(arrayType.getType());
@@ -342,6 +356,7 @@ public interface PointerTargetSetBuilder {
       if (tracksField(field)) {
         return true; // The field has already been added
       }
+      verify(!options.useArraysForHeap()); // tracksField() should always return true otherwise
 
       final PersistentSortedMap<String, PersistentList<PointerTarget>> oldTargets = targets;
       for (final Map.Entry<String, CType> baseEntry : bases.entrySet()) {
@@ -349,6 +364,8 @@ public interface PointerTargetSetBuilder {
       }
       fields = fields.putAndCopy(field, true);
 
+      // This condition relies on addTargets() doing something, which it only does if
+      // useArraysForHeap is false.
       return oldTargets != targets;
     }
 
@@ -386,6 +403,9 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public void addEssentialFields(final List<CompositeField> pFields) {
+      if (options.useArraysForHeap()) {
+        return;
+      }
       final Predicate<CompositeField> isNewField = (compositeField) -> !tracksField(compositeField);
 
       final Comparator<CompositeField> simpleTypedFieldsFirst =
@@ -691,6 +711,7 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public PointerTargetSet build() {
+      assert (targets == null) == options.useArraysForHeap();
       PointerTargetSet result =
           new PointerTargetSet(
               bases,

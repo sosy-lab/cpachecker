@@ -161,7 +161,7 @@ final class WrappingCfaNetwork extends AbstractCfaNetwork {
 
   @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
-    return Optional.of(pFunctionEntryNode.getExitNode());
+    return pFunctionEntryNode.getExitNode();
   }
 
   @Override

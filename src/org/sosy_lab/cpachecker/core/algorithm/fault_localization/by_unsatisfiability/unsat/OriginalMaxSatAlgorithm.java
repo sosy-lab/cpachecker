@@ -112,7 +112,7 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
    * @return boolean formula as conjunct of all selector formulas
    */
   private BooleanFormula softSetFormula(Fault softSet, BooleanFormulaManager bmgr) {
-    return softSet.stream().map(f -> ((TraceAtom) f).getFormula()).collect(bmgr.toConjunction());
+    return softSet.stream().map(f -> ((TraceAtom) f).getSelector()).collect(bmgr.toConjunction());
   }
 
   /**
@@ -123,7 +123,7 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
    */
   private BooleanFormula hardSetFormula(Set<Fault> hardSet, BooleanFormulaManager bmgr) {
     return hardSet.stream()
-        .map(l -> l.stream().map(f -> ((TraceAtom) f).getFormula()).collect(bmgr.toDisjunction()))
+        .map(l -> l.stream().map(f -> ((TraceAtom) f).getSelector()).collect(bmgr.toDisjunction()))
         .collect(bmgr.toConjunction());
   }
 

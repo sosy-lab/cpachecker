@@ -19,6 +19,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -209,6 +210,13 @@ public class ThreadingState
   /** returns whether there is any lock registered for the thread. */
   public boolean hasLockForThread(String threadId) {
     return locks.containsValue(threadId);
+  }
+
+  public Set<String> getLocksForThread(String threadId) {
+    return FluentIterable.from(locks.entrySet())
+        .filter(entry -> entry.getValue().equals(threadId))
+        .transform(Map.Entry::getKey)
+        .toSet();
   }
 
   @Override

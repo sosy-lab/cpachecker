@@ -239,6 +239,13 @@ public final class InterpolationManager {
               + " options instead of giving up immediately.")
   private boolean tryAgainOnInterpolationError = true;
 
+  @Option(
+      secure = true,
+      description =
+          "When interpolation query fails, attempt to check feasibility of the current"
+              + " counterexample without interpolation")
+  private boolean tryWithoutInterpolation = true;
+
   private final ITPStrategy itpStrategy;
 
   private final ExecutorService executor;
@@ -437,11 +444,14 @@ public final class InterpolationManager {
           }
         }
       } catch (SolverException itpException) {
-        logger.logUserException(
-            Level.FINEST,
-            itpException,
-            "Interpolation failed, attempting to solve without interpolation");
-        return fallbackWithoutInterpolation(f, imprecisePath, itpException);
+        if (tryWithoutInterpolation) {
+          logger.logUserException(
+              Level.FINEST,
+              itpException,
+              "Interpolation failed, attempting to solve without interpolation");
+          return fallbackWithoutInterpolation(f, imprecisePath, itpException);
+        }
+        throw new RefinementFailedException(Reason.InterpolationFailed, null, itpException);
       }
 
     } finally {
@@ -866,7 +876,7 @@ public final class InterpolationManager {
   public class Interpolator<T> {
 
     public InterpolatingProverEnvironment<T> itpProver;
-    private final List<Pair<BooleanFormula, T>> currentlyAssertedFormulas = new ArrayList<>();
+    private List<Pair<BooleanFormula, T>> currentlyAssertedFormulas = new ArrayList<>();
 
     Interpolator() {
       itpProver = newEnvironment();
@@ -878,6 +888,32 @@ public final class InterpolationManager {
       // only the InterpolatingProverEnvironment itself cares about it.
       return (InterpolatingProverEnvironment<T>)
           solver.newProverEnvironmentWithInterpolation(ProverOptions.GENERATE_MODELS);
+    }
+
+    /**
+     * Builds a new solver environment out of the old environment and replaces the old. Also asserts
+     * all formulas currently on the assertion stack and calls isUnsat() once on the new
+     * environment. Deletes old environment afterwards. The currentlyAssertedFormulas are updated as
+     * well. Should be used after an interpolation failed with an exception.
+     *
+     * @throws InterruptedException solver specific
+     * @throws SolverException solver specific
+     */
+    @SuppressWarnings("CheckReturnValue")
+    public void destroyAndRebuildSolverEnvironment() throws InterruptedException, SolverException {
+      itpProver.close();
+      itpProver = newEnvironment();
+      List<Pair<BooleanFormula, T>> newAssertedFormulas = new ArrayList<>();
+      for (Pair<BooleanFormula, T> formulaAndItpP : currentlyAssertedFormulas) {
+        newAssertedFormulas.add(
+            Pair.of(formulaAndItpP.getFirst(), itpProver.push(formulaAndItpP.getFirst())));
+      }
+      currentlyAssertedFormulas = newAssertedFormulas;
+      // One could argue that this should be done manually and not automatically.
+      // But if this is only used after a failed interpolation, an automatic isUnsat call is fine
+      // The result here does not differ from before, but it needs to be done for the internal
+      // solver state
+      itpProver.isUnsat();
     }
 
     /**
