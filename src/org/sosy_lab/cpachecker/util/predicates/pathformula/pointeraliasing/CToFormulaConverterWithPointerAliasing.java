@@ -1167,10 +1167,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final BooleanFormula result =
         super.makeExitFunction(summaryEdge, calledFunction, ssa, pts, constraints, errorConditions);
 
-    DynamicMemoryHandler memoryHandler =
-        new DynamicMemoryHandler(
-            this, summaryEdge, ssa, pts, constraints, errorConditions, regionMgr);
-    memoryHandler.handleDeferredAllocationInFunctionExit(calledFunction);
+    if (options.revealAllocationTypeFromLHS() || options.deferUntypedAllocations()) {
+      DynamicMemoryHandler memoryHandler =
+          new DynamicMemoryHandler(
+              this, summaryEdge, ssa, pts, constraints, errorConditions, regionMgr);
+      memoryHandler.handleDeferredAllocationInFunctionExit(calledFunction);
+    }
 
     return result;
   }
