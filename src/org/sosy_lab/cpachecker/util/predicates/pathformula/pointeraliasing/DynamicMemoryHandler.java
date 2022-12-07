@@ -298,10 +298,14 @@ class DynamicMemoryHandler {
           makeAllocVariableName(functionName, newType, pts.getFreshAllocationId());
       address =
           makeAllocation(
-              conv.options.isSuccessfulZallocFunctionName(functionName), newType, newBase, sizeExp);
+              conv.options.isSuccessfulZallocFunctionName(functionName),
+              newType,
+              newBase,
+              Optional.of(sizeExp));
     } else {
       final String newBase =
           makeAllocVariableName(functionName, CVoidType.VOID, pts.getFreshAllocationId());
+      pts.addNextBaseAddressConstraints(newBase, null, sizeExp, true, constraints);
       pts.addTemporaryDeferredAllocation(
           conv.options.isSuccessfulZallocFunctionName(functionName),
           Optional.ofNullable(size)
@@ -311,7 +315,6 @@ class DynamicMemoryHandler {
                           parameter.getFileLocation(),
                           parameter.getExpressionType(),
                           BigInteger.valueOf(s))),
-          sizeExp,
           newBase);
       address =
           conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID);
@@ -369,13 +372,14 @@ class DynamicMemoryHandler {
    * @param isZeroing A flag indicating if the variable is zeroing.
    * @param type The type.
    * @param base The name of the base.
-   * @param size An expression for the size in bytes of the new base.
+   * @param pSize An expression for the size in bytes of the new base. If absent, this was a
+   *     previously deferred base.
    * @return A formula for the memory allocation.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution gets interrupted.
    */
   private Formula makeAllocation(
-      final boolean isZeroing, final CType type, final String base, final Formula size)
+      final boolean isZeroing, final CType type, final String base, final Optional<Formula> pSize)
       throws UnrecognizedCodeException, InterruptedException {
     final Formula result = conv.makeBaseAddress(base, type);
     if (isZeroing) {
@@ -394,7 +398,8 @@ class DynamicMemoryHandler {
 
       constraints.addConstraint(initialization);
     }
-    pts.addNextBaseAddressConstraints(base, type, size, true, constraints);
+
+    pSize.ifPresent(size -> pts.addNextBaseAddressConstraints(base, type, size, true, constraints));
     pts.addBase(base, type);
     if (isZeroing) {
       addAllFields(type);
@@ -606,7 +611,7 @@ class DynamicMemoryHandler {
       throws UnrecognizedCodeException, InterruptedException {
     for (DeferredAllocation d : pts.removeDeferredAllocations(pointer)) {
       makeAllocation(
-          d.isZeroed(), getAllocationType(type, d.getSize()), d.getBase(), d.getSizeExpression());
+          d.isZeroed(), getAllocationType(type, d.getSize()), d.getBase(), Optional.empty());
     }
   }
 

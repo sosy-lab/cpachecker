@@ -71,7 +71,7 @@ public interface PointerTargetSetBuilder {
   void addEssentialFields(final List<CompositeField> fields);
 
   void addTemporaryDeferredAllocation(
-      boolean isZeroed, Optional<CIntegerLiteralExpression> size, Formula sizeExp, String base);
+      boolean isZeroed, Optional<CIntegerLiteralExpression> size, String base);
 
   void addDeferredAllocationPointer(String newPointer, String originalPointer);
 
@@ -237,7 +237,8 @@ public interface PointerTargetSetBuilder {
      * (sub)fields (if it is a structure/union) or all its elements (if it is an array).
      *
      * <p>Make sure to call {@link #addNextBaseAddressConstraints(String, CType, Formula, boolean,
-     * Constraints)} before calling this method!
+     * Constraints)} before calling this method, but not if this was a deferred allocation and the
+     * method was called before!
      *
      * @param name The name of the base
      * @param type The type of the base
@@ -495,22 +496,21 @@ public interface PointerTargetSetBuilder {
      * yet unknown type to be allocated. This version is specifically for temporary variables used
      * in between allocation in the RHS and (possibly) revealing the type from the LHS.
      *
+     * <p>Make sure to call {@link #addNextBaseAddressConstraints(String, CType, Formula, boolean,
+     * Constraints)} before calling this method!
+     *
      * @param isZeroed A flag indicating if the allocated object is zeroed (e.g. allocated with
      *     kzalloc).
      * @param size The size of the allocated memory (usually specified as allocation function
      *     argument).
-     * @param sizeExp A formula representing the size of the allocation.
      * @param base The name of the corresponding base.
      */
     @Override
     public void addTemporaryDeferredAllocation(
-        final boolean isZeroed,
-        final Optional<CIntegerLiteralExpression> size,
-        final Formula sizeExp,
-        final String base) {
+        final boolean isZeroed, final Optional<CIntegerLiteralExpression> size, final String base) {
       verify(options.revealAllocationTypeFromLHS() || options.deferUntypedAllocations());
       final Pair<String, DeferredAllocation> p =
-          Pair.of(base, new DeferredAllocation(base, size, sizeExp, isZeroed));
+          Pair.of(base, new DeferredAllocation(base, size, isZeroed));
 
       // This base needs to be fresh!
       checkState(!bases.containsKey(base));
@@ -813,10 +813,7 @@ public interface PointerTargetSetBuilder {
 
     @Override
     public void addTemporaryDeferredAllocation(
-        boolean pIsZeroed,
-        Optional<CIntegerLiteralExpression> pSize,
-        Formula pSizeExp,
-        String pBase) {
+        boolean pIsZeroed, Optional<CIntegerLiteralExpression> pSize, String pBase) {
       throw new UnsupportedOperationException();
     }
 

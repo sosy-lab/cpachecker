@@ -1160,8 +1160,8 @@ ERROR: goto ERROR;
 }
 
 void main() {
- int* p1;
- int* p2;
+ void* p1;
+ void* p2;
  int si = sizeof(int);
 
  p1 = malloc(si);
