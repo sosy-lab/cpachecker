@@ -86,7 +86,9 @@ public final class CCfaTransformerTest {
    * <p>Only CFA nodes and edges reachable from the main function entry node are considered.
    *
    * <p>If a CFA node has multiple leaving edges, we use {@link MultipleLeavingEdgesOrder} which
-   * makes comparing CFAs a lot easier and faster (i.e., O(V + E)).
+   * makes comparing CFAs a lot easier and faster (i.e., O(V + E) node/edge comparisons (without
+   * edge sorting), sorting multiple leaving edges is also quite fast because the branching factor
+   * is rather small).
    */
   private static void assertCfaEquivalence(
       CFA pSomeCfa,
