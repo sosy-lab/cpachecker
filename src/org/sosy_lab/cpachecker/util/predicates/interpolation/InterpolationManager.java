@@ -891,25 +891,28 @@ public final class InterpolationManager {
     }
 
     /**
-     * Builds a new solver environment out of the old environment and replaces the old.
-     * Also asserts all formulas currently on the assertion stack and
-     * calls isUnsat() once on the new environment. Deletes old environment afterwards.
-     * The currentlyAssertedFormulas are updated as well.
-     * Should be used after an interpolation failed with an exception.
+     * Builds a new solver environment out of the old environment and replaces the old. Also asserts
+     * all formulas currently on the assertion stack and calls isUnsat() once on the new
+     * environment. Deletes old environment afterwards. The currentlyAssertedFormulas are updated as
+     * well. Should be used after an interpolation failed with an exception.
      *
      * @throws InterruptedException solver specific
      * @throws SolverException solver specific
      */
+    @SuppressWarnings("CheckReturnValue")
     public void destroyAndRebuildSolverEnvironment() throws InterruptedException, SolverException {
       itpProver.close();
       itpProver = newEnvironment();
       List<Pair<BooleanFormula, T>> newAssertedFormulas = new ArrayList<>();
       for (Pair<BooleanFormula, T> formulaAndItpP : currentlyAssertedFormulas) {
-        newAssertedFormulas.add(Pair.of(formulaAndItpP.getFirst(), itpProver.push(formulaAndItpP.getFirst())));
+        newAssertedFormulas.add(
+            Pair.of(formulaAndItpP.getFirst(), itpProver.push(formulaAndItpP.getFirst())));
       }
       currentlyAssertedFormulas = newAssertedFormulas;
       // One could argue that this should be done manually and not automatically.
       // But if this is only used after a failed interpolation, an automatic isUnsat call is fine
+      // The result here does not differ from before, but it needs to be done for the internal
+      // solver state
       itpProver.isUnsat();
     }
 
