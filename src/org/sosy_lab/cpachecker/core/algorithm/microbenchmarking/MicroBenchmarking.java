@@ -83,6 +83,7 @@ public class MicroBenchmarking implements Algorithm {
   @Option(description = "List of programs to run each benchmarking algorithm on.")
   private List<String> programFiles = List.of("loop_1.c");
 
+  @Option(description = "Defines the file where the results of the micro benchmark are stored.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path outputFile;
 
