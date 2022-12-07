@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
@@ -139,6 +140,10 @@ public interface PointerTargetSetBuilder {
       bases = pointerTargetSet.getBases();
       fields = pointerTargetSet.getFields();
       deferredAllocations = pointerTargetSet.getDeferredAllocations();
+      verify(
+          pOptions.revealAllocationTypeFromLHS()
+              || pOptions.deferUntypedAllocations()
+              || deferredAllocations.isEmpty());
       if (pOptions.useArraysForHeap()) {
         verify(pointerTargetSet.getTargets() == null || pointerTargetSet.getTargets().isEmpty());
         verify(pointerTargetSet.getFields().isEmpty());
@@ -482,11 +487,15 @@ public interface PointerTargetSetBuilder {
         final Optional<CIntegerLiteralExpression> size,
         final Formula sizeExp,
         final String base) {
+      verify(options.revealAllocationTypeFromLHS() || options.deferUntypedAllocations());
       final Pair<String, DeferredAllocation> p =
           Pair.of(base, new DeferredAllocation(base, size, sizeExp, isZeroed));
-      if (!deferredAllocations.contains(p)) {
-        deferredAllocations = deferredAllocations.with(p);
-      }
+
+      // This base needs to be fresh!
+      checkState(!bases.containsKey(base));
+      checkState(!deferredAllocations.contains(p));
+
+      deferredAllocations = deferredAllocations.with(p);
     }
 
     /**
