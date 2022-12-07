@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -539,14 +538,8 @@ public class CParserUtils {
         }
       }
     }
-    FunctionExitNode exitNode =
-        pEntry
-            .getExitNode()
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        "Function entry node must have a corresponding exit node: " + pEntry));
-    return pParserTools.expressionTreeSimplifier.simplify(memo.get(exitNode));
+    return pParserTools.expressionTreeSimplifier.simplify(
+        memo.get(pEntry.getExitNode().orElseThrow()));
   }
 
   private static AExpression replaceCPAcheckerTMPVariables(
