@@ -593,6 +593,14 @@ public class CPAchecker {
           break;
         case EXIT:
           initialLocations = Optionals.asSet(pAnalysisEntryFunction.getExitNode());
+          if (initialLocations.isEmpty()) {
+            logger.logf(
+                Level.SEVERE,
+                "Cannot use exit node of '%s' because it never returns in a normal way"
+                    + " (because, e.g., it always aborts the program or always executes an obvious"
+                    + " infinite loop)",
+                pAnalysisEntryFunction.getFunction().getOrigName());
+          }
           break;
         case FUNCTION_ENTRIES:
           initialLocations = ImmutableSet.copyOf(pCfa.getAllFunctionHeads());
