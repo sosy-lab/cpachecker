@@ -496,6 +496,7 @@ public final class InterpolationManager {
       try {
         return solveCounterexample(f, imprecisePath);
       } catch (SolverException e) {
+        // TODO: Do we need to rebuild the interpolator here? i.e. is it ever used again?
         throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
       }
 
@@ -1001,6 +1002,7 @@ public final class InterpolationManager {
               e,
               "Interpolation failed, trying again in reverse order and with%s incremental check.",
               incrementalCheck ? "out" : "");
+          this.destroyAndRebuildSolverEnvironment();
           Collections.fill(formulasWithStatesAndGroupdIds, null); // reset state
 
           int[] permutation = formulaPermutation.toArray();
