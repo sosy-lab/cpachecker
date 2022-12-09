@@ -23,6 +23,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.InvariantGeneratorForBMC.InvariantGeneratorFactory;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.AbstractInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
@@ -164,125 +165,5 @@ public class InvariantExportAlgorithm implements Algorithm {
       logger.log(Level.INFO, "Exporting invariant " + witness);
       invariantWitnessWriter.exportInvariantWitness(witness);
     }
-  }
-
-  // TODO This is copy&paste from BMC Algorithm. Refactor!
-  public enum InvariantGeneratorFactory {
-    INDUCTION {
-
-      @Override
-      InvariantGenerator createInvariantGenerator(
-          Configuration pConfig,
-          LogManager pLogger,
-          ReachedSetFactory pReachedSetFactory,
-          ShutdownManager pShutdownManager,
-          CFA pCFA,
-          Specification pSpecification,
-          AggregatedReachedSets pAggregatedReachedSets,
-          TargetLocationProvider pTargetLocationProvider)
-          throws InvalidConfigurationException, CPAException, InterruptedException {
-        return KInductionInvariantGenerator.create(
-            pConfig,
-            pLogger,
-            pShutdownManager,
-            pCFA,
-            pSpecification,
-            pReachedSetFactory,
-            pTargetLocationProvider,
-            pAggregatedReachedSets);
-      }
-    },
-
-    REACHED_SET {
-      @Override
-      InvariantGenerator createInvariantGenerator(
-          Configuration pConfig,
-          LogManager pLogger,
-          ReachedSetFactory pReachedSetFactory,
-          ShutdownManager pShutdownManager,
-          CFA pCFA,
-          Specification pSpecification,
-          AggregatedReachedSets pAggregatedReachedSets,
-          TargetLocationProvider pTargetLocationProvider) {
-        return new AbstractInvariantGenerator() {
-
-          @Override
-          protected void startImpl(CFANode pInitialLocation) {
-            // do nothing
-          }
-
-          @Override
-          public boolean isProgramSafe() {
-            // just return false, program will be ended by parallel algorithm if the invariant
-            // generator can prove safety before the current analysis
-            return false;
-          }
-
-          @Override
-          public void cancel() {
-            // do nothing
-          }
-
-          @Override
-          public InvariantSupplier getSupplier() throws CPAException, InterruptedException {
-            return new FormulaInvariantsSupplier(pAggregatedReachedSets);
-          }
-
-          @Override
-          public ExpressionTreeSupplier getExpressionTreeSupplier()
-              throws CPAException, InterruptedException {
-            return new ExpressionTreeInvariantSupplier(pAggregatedReachedSets, pCFA);
-          }
-        };
-      }
-    },
-
-    DO_NOTHING {
-
-      @Override
-      InvariantGenerator createInvariantGenerator(
-          Configuration pConfig,
-          LogManager pLogger,
-          ReachedSetFactory pReachedSetFactory,
-          ShutdownManager pShutdownManager,
-          CFA pCFA,
-          Specification pSpecification,
-          AggregatedReachedSets pAggregatedReachedSets,
-          TargetLocationProvider pTargetLocationProvider) {
-        return new DoNothingInvariantGenerator();
-      }
-    },
-
-    INVARIANT_STORE {
-      @Override
-      InvariantGenerator createInvariantGenerator(
-          Configuration pConfig,
-          LogManager pLogger,
-          ReachedSetFactory pReachedSetFactory,
-          ShutdownManager pShutdownManager,
-          CFA pCFA,
-          Specification pSpecification,
-          AggregatedReachedSets pAggregatedReachedSets,
-          TargetLocationProvider pTargetLocationProvider)
-          throws InvalidConfigurationException, CPAException, InterruptedException {
-        try {
-          return InvariantWitnessGenerator.getNewFromDiskInvariantGenerator(
-              pConfig, pCFA, pLogger, pShutdownManager.getNotifier());
-        } catch (IOException e) {
-          throw new CPAException("Could not instantiate from disk invariant generator", e);
-        }
-      }
-    };
-
-    abstract InvariantGenerator createInvariantGenerator(
-        Configuration pConfig,
-        LogManager pLogger,
-        ReachedSetFactory pReachedSetFactory,
-        ShutdownManager pShutdownManager,
-        CFA pCFA,
-        Specification pSpecification,
-        AggregatedReachedSets pAggregatedReachedSets,
-        TargetLocationProvider pTargetLocationProvider)
-        throws InvalidConfigurationException, CPAException, InterruptedException;
   }
 }

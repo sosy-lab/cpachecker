@@ -76,7 +76,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
     INDUCTION {
 
       @Override
-      InvariantGenerator createInvariantGenerator(
+      public InvariantGenerator createInvariantGenerator(
           Configuration pConfig,
           LogManager pLogger,
           ReachedSetFactory pReachedSetFactory,
@@ -100,7 +100,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
 
     REACHED_SET {
       @Override
-      InvariantGenerator createInvariantGenerator(
+      public InvariantGenerator createInvariantGenerator(
           Configuration pConfig,
           LogManager pLogger,
           ReachedSetFactory pReachedSetFactory,
@@ -145,7 +145,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
     DO_NOTHING {
 
       @Override
-      InvariantGenerator createInvariantGenerator(
+      public InvariantGenerator createInvariantGenerator(
           Configuration pConfig,
           LogManager pLogger,
           ReachedSetFactory pReachedSetFactory,
@@ -160,7 +160,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
 
     INVARIANT_STORE {
       @Override
-      InvariantGenerator createInvariantGenerator(
+      public InvariantGenerator createInvariantGenerator(
           Configuration pConfig,
           LogManager pLogger,
           ReachedSetFactory pReachedSetFactory,
@@ -179,7 +179,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
       }
     };
 
-    abstract InvariantGenerator createInvariantGenerator(
+    public abstract InvariantGenerator createInvariantGenerator(
         Configuration pConfig,
         LogManager pLogger,
         ReachedSetFactory pReachedSetFactory,
