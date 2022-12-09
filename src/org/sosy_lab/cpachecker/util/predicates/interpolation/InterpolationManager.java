@@ -13,6 +13,7 @@ import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
@@ -495,6 +496,7 @@ public final class InterpolationManager {
       try {
         return solveCounterexample(f, imprecisePath);
       } catch (SolverException e) {
+        // TODO: Do we need to rebuild the interpolator here? i.e. is it ever used again?
         throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
       }
 
@@ -899,7 +901,6 @@ public final class InterpolationManager {
      * @throws InterruptedException solver specific
      * @throws SolverException solver specific
      */
-    @SuppressWarnings("CheckReturnValue")
     public void destroyAndRebuildSolverEnvironment() throws InterruptedException, SolverException {
       itpProver.close();
       itpProver = newEnvironment();
@@ -911,9 +912,9 @@ public final class InterpolationManager {
       currentlyAssertedFormulas = newAssertedFormulas;
       // One could argue that this should be done manually and not automatically.
       // But if this is only used after a failed interpolation, an automatic isUnsat call is fine
-      // The result here does not differ from before, but it needs to be done for the internal
+      // The result here should not differ from before, but it needs to be done for the internal
       // solver state
-      itpProver.isUnsat();
+      Preconditions.checkArgument(itpProver.isUnsat());
     }
 
     /**
@@ -1001,6 +1002,7 @@ public final class InterpolationManager {
               e,
               "Interpolation failed, trying again in reverse order and with%s incremental check.",
               incrementalCheck ? "out" : "");
+          this.destroyAndRebuildSolverEnvironment();
           Collections.fill(formulasWithStatesAndGroupdIds, null); // reset state
 
           int[] permutation = formulaPermutation.toArray();
