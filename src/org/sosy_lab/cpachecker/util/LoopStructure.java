@@ -450,8 +450,7 @@ public final class LoopStructure implements Serializable {
     ImmutableListMultimap.Builder<String, Loop> loops = ImmutableListMultimap.builder();
     for (String functionName : cfa.getAllFunctionNames()) {
       NavigableSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
-      Collection<Loop> functionLoops =
-          findLoops(nodes, cfa.getLanguage(), new SingleNodeLoopFreeSectionFinder(), true);
+      Collection<Loop> functionLoops = findLoops(nodes, cfa.getLanguage(), null, true);
       assert new HashSet<>(
                   findLoops(nodes, cfa.getLanguage(), new SingleNodeLoopFreeSectionFinder(), false))
               .equals(new HashSet<>(functionLoops))
