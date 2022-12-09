@@ -709,9 +709,6 @@ bmc.checkTargetStates = true
 # try using induction to verify programs with loops
 bmc.induction = false
 
-# toggle using interpolation to verify programs with loops
-bmc.interpolation = false
-
 # Strategy for generating auxiliary invariants
 bmc.invariantGenerationStrategy = DO_NOTHING
   enum:     [INDUCTION, REACHED_SET, DO_NOTHING, INVARIANT_STORE]
