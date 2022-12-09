@@ -343,6 +343,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
       TargetLocationProvider pTargetLocationProvider,
       BooleanFormula pInitialInvariants)
       throws InvalidConfigurationException, CPAException, InterruptedException {
+    pConfig.inject(this);
     shutdownNotifier = pShutdownManager.getNotifier();
     invariantGenerationRunning = true;
     loopHeadInvariants = pInitialInvariants;
