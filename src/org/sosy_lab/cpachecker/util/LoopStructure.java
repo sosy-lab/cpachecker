@@ -41,6 +41,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -441,6 +442,25 @@ public final class LoopStructure implements Serializable {
   }
 
   /**
+   * Returns whether {@code pSome} is at least as good as {@code pOther}.
+   *
+   * @param pSome some collection of loops for a specific function
+   * @param pOther a different collection of loops for the same function as {@code pSome}
+   * @return If {@code pSome} is at least as good as {@code pOther}, {@code true} is returned.
+   *     Otherwise, if {@code pOther} is better than {@code pSome}, {@code false} is returned.
+   * @throws NullPointerException if any parameter is null
+   */
+  private static boolean isBetterOrEqual(Collection<Loop> pSome, Collection<Loop> pOther) {
+    Set<CFANode> someLoopHeads =
+        pSome.stream().flatMap(loop -> loop.getLoopHeads().stream()).collect(Collectors.toSet());
+    Set<CFANode> otherLoopHeads =
+        pOther.stream().flatMap(loop -> loop.getLoopHeads().stream()).collect(Collectors.toSet());
+    // In general, finding more loops is better, because every time we merge loops, we lose some
+    // amount of information.
+    return someLoopHeads.equals(otherLoopHeads) && pSome.size() >= pOther.size();
+  }
+
+  /**
    * Build loop-structure information for a CFA. Do not call this method outside of the frontend,
    * use {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()} instead.
    *
@@ -451,10 +471,12 @@ public final class LoopStructure implements Serializable {
     for (String functionName : cfa.getAllFunctionNames()) {
       NavigableSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
       Collection<Loop> functionLoops = findLoops(nodes, cfa.getLanguage(), null, true);
-      assert new HashSet<>(
-                  findLoops(nodes, cfa.getLanguage(), new SingleNodeLoopFreeSectionFinder(), false))
-              .equals(new HashSet<>(functionLoops))
-          : "Using `LoopFreeSectionFinder` changes the found loops!";
+      // Assert that the new and more performant approach using loop-free sections is at least as
+      // good as the original approach for finding loops.
+      assert isBetterOrEqual(
+              functionLoops,
+              findLoops(nodes, cfa.getLanguage(), new SingleNodeLoopFreeSectionFinder(), false))
+          : "New loop-finding approach is worse than the original loop-finding approach!";
       loops.putAll(functionName, functionLoops);
     }
     return new LoopStructure(loops.build());
