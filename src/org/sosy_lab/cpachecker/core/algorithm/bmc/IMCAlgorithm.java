@@ -668,7 +668,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         // k-induction
         if (checkPropertyInductiveness
             && loopBoundMgr.performKIAtCurrentIteration()
-            && isPropertyInductive(partitionedFormulas)) {
+            && isPropertyInductive(partitionedFormulas, loopInv)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           logger.log(Level.FINE, "The safety property is inductive");
           // unlike IMC/ISMC, we cannot obtain a more precise fixed point here
@@ -706,15 +706,15 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     checkForwardConditions = false;
   }
 
-  private boolean isPropertyInductive(final PartitionedFormulas formulas)
+  private boolean isPropertyInductive(final PartitionedFormulas formulas, BooleanFormula loopInv)
       throws InterruptedException, SolverException {
     boolean isInductive;
     try (ProverEnvironment inductionProver = solver.newProverEnvironment()) {
       stats.satCheck.start();
-      BooleanFormula query =
-          bfmgr.and(bfmgr.and(formulas.getLoopFormulas()), formulas.getAssertionFormula());
+      inductionProver.push(fmgr.instantiate(loopInv, formulas.getPrefixSsaMap()));
+      inductionProver.push(bfmgr.and(formulas.getLoopFormulas()));
+      inductionProver.push(formulas.getAssertionFormula());
       try {
-        inductionProver.push(query);
         isInductive = inductionProver.isUnsat();
       } finally {
         stats.satCheck.stop();
