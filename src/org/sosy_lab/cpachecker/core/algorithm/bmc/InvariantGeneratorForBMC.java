@@ -191,7 +191,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
         throws InvalidConfigurationException, CPAException, InterruptedException;
   }
 
-  interface InvariantGeneratorHeadStart {
+  private interface InvariantGeneratorHeadStart {
 
     void waitForInvariantGenerator() throws InterruptedException;
   }
@@ -301,7 +301,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
   }
 
   @Option(secure = true, description = "Strategy for generating auxiliary invariants")
-  protected InvariantGeneratorFactory invariantGenerationStrategy =
+  private InvariantGeneratorFactory invariantGenerationStrategy =
       InvariantGeneratorFactory.DO_NOTHING;
 
   @Option(
@@ -331,7 +331,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
   private final LogManager logger;
   private BooleanFormula loopHeadInvariants;
 
-  public InvariantGeneratorForBMC(
+  InvariantGeneratorForBMC(
       ShutdownManager pShutdownManager,
       boolean pAlgIsInvariantGenerator,
       Configuration pConfig,
@@ -537,7 +537,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
     return ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
   }
 
-  public ExpressionTree<Object> getLocationInvariants(CFANode pLocation)
+  ExpressionTree<Object> getLocationInvariants(CFANode pLocation)
       throws InterruptedException {
     return getExpressionTreeSupplier().getInvariantFor(pLocation);
   }
