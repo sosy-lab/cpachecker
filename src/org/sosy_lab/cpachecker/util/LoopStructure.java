@@ -447,7 +447,7 @@ public final class LoopStructure implements Serializable {
    * @param pOther a different collection of loops for the same function as {@code pSome}
    * @return If {@code pSome} is at least as good as {@code pOther}, {@code true} is returned.
    *     Otherwise, if {@code pOther} is better than {@code pSome}, {@code false} is returned.
-   * @throws NullPointerException if any parameter is null
+   * @throws NullPointerException if any parameter is {@code null}
    */
   private static boolean isBetterOrEqual(Collection<Loop> pSome, Collection<Loop> pOther) {
     ImmutableSet<CFANode> someLoopHeads =
@@ -694,11 +694,11 @@ public final class LoopStructure implements Serializable {
                 continue;
               }
               if (l1.isOuterLoopOf(l2)) {
-                // `l2` is an inner loop, add its nodes to `l1`
+                // `l2` is an inner loop of `l1`, add its nodes to `l1`
                 l1.addNodes(l2);
                 changed = true;
               } else if (l2.isOuterLoopOf(l1)) {
-                // `l1` is an inner loop, add its nodes to `l2`
+                // `l1` is an inner loop of `l2`, add its nodes to `l2`
                 l2.addNodes(l1);
                 changed = true;
               }
@@ -712,7 +712,7 @@ public final class LoopStructure implements Serializable {
           Loop l1 = loops.get(i1);
           for (int i2 = i1 + 1; i2 < loops.size() && loopToRemove == null; i2++) {
             Loop l2 = loops.get(i2);
-            if (l2.getLoopHeads().equals(l1.getLoopHeads())) {
+            if (l1.getLoopHeads().equals(l2.getLoopHeads())) {
               if (!l1.intersectsWith(l2)) {
                 // loops have nothing in common
                 continue;
@@ -726,26 +726,25 @@ public final class LoopStructure implements Serializable {
           }
         }
 
-        if (loopToRemove == null) {
-          // merge loops if necessary
-          for (int i1 = 0; i1 < loops.size() && loopToRemove == null; i1++) {
-            Loop l1 = loops.get(i1);
-            for (int i2 = i1 + 1; i2 < loops.size() && loopToRemove == null; i2++) {
-              Loop l2 = loops.get(i2);
-              if (!l1.intersectsWith(l2)) {
-                // loops have nothing in common
-                continue;
-              }
-              if (!l1.isOuterLoopOf(l2) && !l2.isOuterLoopOf(l1)) {
-                // strange goto-loop, merge the two together
-                l1.mergeWith(l2);
-                loopToRemove = l2;
-              }
+        // merge loops if necessary, including loops with different loops heads
+        for (int i1 = 0; i1 < loops.size() && loopToRemove == null; i1++) {
+          Loop l1 = loops.get(i1);
+          for (int i2 = i1 + 1; i2 < loops.size() && loopToRemove == null; i2++) {
+            Loop l2 = loops.get(i2);
+            if (!l1.intersectsWith(l2)) {
+              // loops have nothing in common
+              continue;
+            }
+            if (!l1.isOuterLoopOf(l2) && !l2.isOuterLoopOf(l1)) {
+              // strange goto-loop, merge the two loops together
+              l1.mergeWith(l2);
+              loopToRemove = l2;
             }
           }
         }
       } while (loopToRemove != null);
     } else {
+      // the original algorithm for discovering inner-outer loop relations and merging loops
       NavigableSet<Integer> toRemove = new TreeSet<>();
       do {
         toRemove.clear();
