@@ -655,8 +655,16 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (loopBoundMgr.getCurrentMaxLoopIterations() > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
         stats.interpolationPreparation.start();
-        partitionedFormulas.collectFormulasFromARG(pReachedSet);
-        stats.interpolationPreparation.stop();
+        BooleanFormula loopInv;
+        try {
+          partitionedFormulas.collectFormulasFromARG(pReachedSet);
+          loopInv = getCurrentLoopHeadInvariants(pReachedSet);
+        } finally {
+          stats.interpolationPreparation.stop();
+        }
+        if (isSafetyProvenByInvariantGenerator(pReachedSet)) {
+          return AlgorithmStatus.SOUND_AND_PRECISE;
+        }
         // k-induction
         if (checkPropertyInductiveness
             && loopBoundMgr.performKIAtCurrentIteration()
@@ -670,7 +678,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
         // Interpolation
-        if (isInterpolationEnabled() && reachFixedPoint(partitionedFormulas, reachVector)) {
+        if (isInterpolationEnabled()
+            && reachFixedPoint(partitionedFormulas, reachVector, loopInv)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
               pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
@@ -715,14 +724,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private boolean reachFixedPoint(
-      final PartitionedFormulas formulas, List<BooleanFormula> reachVector)
+      final PartitionedFormulas formulas, List<BooleanFormula> reachVector, BooleanFormula loopInv)
       throws CPAException, SolverException, InterruptedException {
     stats.fixedPointComputation.start();
     try {
       boolean hasReachedFixedPoint = false;
       switch (fixedPointComputeStrategy) {
         case ITP:
-          hasReachedFixedPoint = reachFixedPointByInterpolation(formulas);
+          hasReachedFixedPoint = reachFixedPointByInterpolation(formulas, loopInv);
           break;
         case ITPSEQ:
           hasReachedFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
@@ -730,7 +739,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         case ITPSEQ_AND_ITP:
           hasReachedFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
           if (!hasReachedFixedPoint) {
-            hasReachedFixedPoint = reachFixedPointByInterpolation(formulas);
+            hasReachedFixedPoint = reachFixedPointByInterpolation(formulas, loopInv);
           }
           break;
         case NONE:
@@ -765,7 +774,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @throws InterruptedException On shutdown request.
    */
   private boolean reachFixedPointByInterpolation(
-      final PartitionedFormulas formulas, ReachedSet reachedSet)
+      final PartitionedFormulas formulas, BooleanFormula loopInv)
       throws InterruptedException, CPAException, SolverException {
     if (!loopBoundMgr.performIMCAtCurrentIteration()) {
       return false;
@@ -773,7 +782,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Computing fixed points by interpolation (IMC)");
     logger.log(Level.ALL, "The SSA map is", formulas.getPrefixSsaMap());
     BooleanFormula currentImage = formulas.getPrefixFormula();
-    BooleanFormula loopInv = getCurrentLoopHeadInvariants(reachedSet);
 
     ImmutableList<BooleanFormula> loops = formulas.getLoopFormulas();
     // suffix formula: T(S1, S2) && T(S1, S2) && ... && T(Sn-1, Sn) && ~P(Sn)
@@ -794,12 +802,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           "[ accumulated:",
           stats.numOfIMCInnerIterations,
           "]");
-      if (isSafetyProvenByInvariantGenerator(reachedSet)) {
-        // `#removeUnreachableTargetStates` and `#storeFixedPointAsAbstractionAtLoopHeads` will be
-        // called twice, but it shouldn't cause any problem (?)
-        finalFixedPoint = getCurrentLoopHeadInvariants(reachedSet);
-        return true;
-      }
       logger.log(Level.ALL, "The current image is", currentImage);
       assert interpolants.orElseThrow().size() == 2;
       BooleanFormula interpolant = interpolants.orElseThrow().get(1);
