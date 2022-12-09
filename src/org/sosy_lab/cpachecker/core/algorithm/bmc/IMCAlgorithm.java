@@ -8,19 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.assertAt;
-import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIteration;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -31,12 +27,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.FormulaInContext;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -53,7 +45,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -452,10 +443,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final PredicateAbstractionManager predAbsMgr;
   private final InterpolationManager itpMgr;
   private final CFA cfa;
+  private final LoopHeadInvariantsGenerator loopHeadInvariantsGenerator;
 
   private BooleanFormula finalFixedPoint;
-  private BooleanFormula loopHeadInvariants;
-  private boolean invariantGenerationRunning;
   private LoopBoundManager loopBoundMgr;
 
   public IMCAlgorithm(
@@ -499,9 +489,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             pfmgr, solver, Optional.empty(), Optional.empty(), pConfig, shutdownNotifier, logger);
 
     finalFixedPoint = bfmgr.makeFalse();
-    loopHeadInvariants = bfmgr.makeTrue();
-    invariantGenerationRunning =
-        invariantGenerationStrategy != InvariantGeneratorFactory.DO_NOTHING;
+    loopHeadInvariantsGenerator =
+        new LoopHeadInvariantsGenerator(
+            invariantGenerator,
+            invariantGeneratorHeadStart,
+            shutdownNotifier,
+            logger,
+            fmgr,
+            pfmgr);
     loopBoundMgr = new LoopBoundManager(pConfig);
 
     if (assertTargetsAtEveryIteration
@@ -520,14 +515,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Override
   public AlgorithmStatus run(final ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
-    invariantGenerator.start(extractLocation(pReachedSet.getFirstState()));
+    loopHeadInvariantsGenerator.start(extractLocation(pReachedSet.getFirstState()));
     try {
-      invariantGeneratorHeadStart.waitForInvariantGenerator();
+      loopHeadInvariantsGenerator.headStart();
       return interpolationModelChecking(pReachedSet);
     } catch (SolverException e) {
       throw new CPAException("Solver Failure " + e.getMessage(), e);
     } finally {
-      invariantGenerator.cancel();
+      loopHeadInvariantsGenerator.cancel();
     }
   }
 
@@ -579,7 +574,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         BooleanFormula loopInv;
         try {
           partitionedFormulas.collectFormulasFromARG(pReachedSet);
-          loopInv = getLoopHeadInvariants(pReachedSet);
+          loopInv =
+              loopHeadInvariantsGenerator.getUninstantiatedInvariants(pReachedSet, getLoopHeads());
         } finally {
           stats.interpolationPreparation.stop();
         }
@@ -869,8 +865,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                 fmgr.instantiate(loopInv, formulas.getPrefixSsaMap()), formulas.getLoopFormula(0));
         BooleanFormula nextInvariant = fmgr.instantiate(loopInv, formulas.getSsaMapOfLoop(0));
         if (solver.implies(invariantTransition, nextInvariant)) {
-          logger.log(
-              Level.INFO, "Fixed point reached with external inductive invariants");
+          logger.log(Level.INFO, "Fixed point reached with external inductive invariants");
           finalFixedPoint = fmgr.uninstantiate(currentImage);
           return true;
         }
@@ -1004,9 +999,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                   formulas.getLoopFormula(0));
           BooleanFormula nextInvariant = fmgr.instantiate(loopInv, formulas.getSsaMapOfLoop(0));
           if (solver.implies(invariantTransition, nextInvariant)) {
-            logger.log(
-                Level.INFO,
-                "Fixed point reached with external inductive invariants");
+            logger.log(Level.INFO, "Fixed point reached with external inductive invariants");
             finalFixedPoint = currentImage;
             return true;
           }
@@ -1057,80 +1050,16 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private boolean isSafetyProvenByInvariantGenerator(ReachedSet reachedSet)
       throws CPATransferException, InterruptedException {
-    if (invariantGenerator.isProgramSafe()) {
+    if (loopHeadInvariantsGenerator.isProgramSafe()) {
       InterpolationHelper.removeUnreachableTargetStates(reachedSet);
       InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
-          reachedSet, getLoopHeadInvariants(reachedSet), predAbsMgr, pfmgr);
+          reachedSet,
+          loopHeadInvariantsGenerator.getUninstantiatedInvariants(reachedSet, getLoopHeads()),
+          predAbsMgr,
+          pfmgr);
       logger.log(Level.INFO, "Safety proven by invariant generator");
       return true;
     }
     return false;
-  }
-
-  private BooleanFormula getLoopHeadInvariants(ReachedSet reachedSet)
-      throws CPATransferException, InterruptedException {
-    Iterable<AbstractState> loopHeadStates = getLoopHeadStatesAtFirstIteration(reachedSet);
-    return fmgr.uninstantiate(
-        assertAt(loopHeadStates, getLoopHeadInvariantsInContext(loopHeadStates), fmgr, true));
-  }
-
-  private FluentIterable<AbstractState> getLoopHeadStatesAtFirstIteration(ReachedSet reachedSet) {
-    FluentIterable<AbstractState> loopHeadStates =
-        AbstractStates.filterLocations(reachedSet, getLoopHeads());
-    return filterIteration(loopHeadStates, 1, getLoopHeads());
-  }
-
-  /**
-   * Gets the most current invariants generated by the invariant generator.
-   *
-   * @return the most current invariants generated by the invariant generator.
-   */
-  private FormulaInContext getLoopHeadInvariantsInContext(Iterable<AbstractState> pAssertionStates) {
-    Set<CFANode> stopLoopHeads =
-        AbstractStates.extractLocations(pAssertionStates).toSet();
-    return pContext -> {
-      shutdownNotifier.shutdownIfNecessary();
-      if (!bfmgr.isFalse(loopHeadInvariants) && invariantGenerationRunning) {
-        BooleanFormula lhi = bfmgr.makeFalse();
-        for (CFANode loopHead : stopLoopHeads) {
-          lhi = bfmgr.or(lhi, getCurrentLocationInvariants(loopHead, fmgr, pfmgr, pContext));
-          shutdownNotifier.shutdownIfNecessary();
-        }
-        loopHeadInvariants = lhi;
-      }
-      return loopHeadInvariants;
-    };
-  }
-
-  // note: an exact copy from KInductionProver
-  private BooleanFormula getCurrentLocationInvariants(
-      CFANode pLocation,
-      FormulaManagerView pFormulaManager,
-      PathFormulaManager pPathFormulaManager,
-      PathFormula pContext)
-      throws InterruptedException {
-    shutdownNotifier.shutdownIfNecessary();
-    InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
-
-    return currentInvariantsSupplier.getInvariantFor(
-        pLocation, Optional.empty(), pFormulaManager, pPathFormulaManager, pContext);
-  }
-
-  // note: an exact copy from KInductionProver
-  private InvariantSupplier getCurrentInvariantSupplier() throws InterruptedException {
-    if (invariantGenerationRunning) {
-      try {
-        return invariantGenerator.getSupplier();
-      } catch (CPAException e) {
-        logger.logUserException(Level.FINE, e, "Invariant generation failed.");
-        invariantGenerationRunning = false;
-      } catch (InterruptedException e) {
-        shutdownNotifier.shutdownIfNecessary();
-        logger.log(Level.FINE, "Invariant generation was cancelled.");
-        logger.logDebugException(e);
-        invariantGenerationRunning = false;
-      }
-    }
-    return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
   }
 }
