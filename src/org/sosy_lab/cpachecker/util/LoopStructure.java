@@ -20,18 +20,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
-import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
@@ -456,14 +451,9 @@ public final class LoopStructure implements Serializable {
     for (String functionName : cfa.getAllFunctionNames()) {
       NavigableSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
       Collection<Loop> functionLoops =
-          findLoops(nodes, cfa.getLanguage(), new SingleNodeLoopFreeSectionFinder(), true, true);
+          findLoops(nodes, cfa.getLanguage(), new SingleNodeLoopFreeSectionFinder(), true);
       assert new HashSet<>(
-                  findLoops(
-                      nodes,
-                      cfa.getLanguage(),
-                      new SingleNodeLoopFreeSectionFinder(),
-                      false,
-                      false))
+                  findLoops(nodes, cfa.getLanguage(), new SingleNodeLoopFreeSectionFinder(), false))
               .equals(new HashSet<>(functionLoops))
           : "Using `LoopFreeSectionFinder` changes the found loops!";
       loops.putAll(functionName, functionLoops);
@@ -480,9 +470,6 @@ public final class LoopStructure implements Serializable {
    * @param pLoopFreeSectionFinder the {@link LoopFreeSectionFinder} to use to speed up loop finding
    *     (if {@code pLoopFreeSectionFinder == null}, a default {@link LoopFreeSectionFinder} is used
    *     by this method)
-   * @param pOptimizeMergeOrder if set to {@code true}, this method tries to optimize the merge
-   *     order using a heuristic, which has the goal to merge loops together that intuitively should
-   *     be merged together
    * @param pDelayMerges if set to {@code true}, this method only merges loops after all inner-outer
    *     loop relations have been discovered
    * @return A collection of found loops.
@@ -491,7 +478,6 @@ public final class LoopStructure implements Serializable {
       NavigableSet<CFANode> pNodes,
       Language language,
       @Nullable LoopFreeSectionFinder pLoopFreeSectionFinder,
-      boolean pOptimizeMergeOrder,
       boolean pDelayMerges)
       throws ParserException {
 
@@ -654,28 +640,6 @@ public final class LoopStructure implements Serializable {
         default:
           throw new AssertionError("unknown language");
       }
-    }
-
-    if (pOptimizeMergeOrder) {
-      // In the third step, strange goto-loops are merged together. This is order dependent, so we
-      // want to first merge strange goto-loops that have the same loop heads, as this likely merges
-      // loops together that intuitively should be merged together.
-      // FIXME: This heuristic was added because we want to find the exact same loops with and
-      // without
-      //        using loop-free sections. Without this heuristic, we may merge loops in a different
-      //        order (result is order dependent) because we may find loops in a different order.
-      //        We should think of a better solution as this heuristic still doesn't fully solve our
-      //        problem. At least in theory, there could still be differences in the overall result.
-      //
-      // loops have not been merged yet, so they have only a single loop head
-      Multimap<CFANode, Loop> loopHeadToLoops =
-          Multimaps.index(loops, loop -> Iterables.getOnlyElement(loop.getLoopHeads()));
-      Collections.sort(
-          loops,
-          Comparator.<Loop>comparingInt(
-                  loop -> loopHeadToLoops.get(Iterables.getOnlyElement(loop.getLoopHeads())).size())
-              .reversed() // if a loop head appears more often, its loops should come first
-              .thenComparing(Ordering.natural().reversed()));
     }
 
     // THIRD step: Check all loop pairs to discover inner-outer loop relations and merge loops
