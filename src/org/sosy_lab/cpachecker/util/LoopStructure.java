@@ -726,7 +726,7 @@ public final class LoopStructure implements Serializable {
           }
         }
 
-        // merge loops if necessary, including loops with different loops heads
+        // merge loops if necessary, including loops with different loop heads
         for (int i1 = 0; i1 < loops.size() && loopToRemove == null; i1++) {
           Loop l1 = loops.get(i1);
           for (int i2 = i1 + 1; i2 < loops.size() && loopToRemove == null; i2++) {
