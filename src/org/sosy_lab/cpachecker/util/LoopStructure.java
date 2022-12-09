@@ -41,7 +41,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -451,10 +450,14 @@ public final class LoopStructure implements Serializable {
    * @throws NullPointerException if any parameter is null
    */
   private static boolean isBetterOrEqual(Collection<Loop> pSome, Collection<Loop> pOther) {
-    Set<CFANode> someLoopHeads =
-        pSome.stream().flatMap(loop -> loop.getLoopHeads().stream()).collect(Collectors.toSet());
-    Set<CFANode> otherLoopHeads =
-        pOther.stream().flatMap(loop -> loop.getLoopHeads().stream()).collect(Collectors.toSet());
+    ImmutableSet<CFANode> someLoopHeads =
+        pSome.stream()
+            .flatMap(loop -> loop.getLoopHeads().stream())
+            .collect(ImmutableSet.toImmutableSet());
+    ImmutableSet<CFANode> otherLoopHeads =
+        pOther.stream()
+            .flatMap(loop -> loop.getLoopHeads().stream())
+            .collect(ImmutableSet.toImmutableSet());
     // In general, finding more loops is better, because every time we merge loops, we lose some
     // amount of information.
     return someLoopHeads.equals(otherLoopHeads) && pSome.size() >= pOther.size();
