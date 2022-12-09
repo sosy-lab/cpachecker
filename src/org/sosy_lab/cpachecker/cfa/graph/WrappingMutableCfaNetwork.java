@@ -16,6 +16,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -117,6 +118,10 @@ final class WrappingMutableCfaNetwork implements MutableCfaNetwork, ForwardingCf
 
     if (mutableCfa.getAllNodes().contains(pNode)) {
       return mutableCfa.removeNode(pNode);
+    }
+
+    if (pNode instanceof FunctionExitNode) {
+      ((FunctionExitNode) pNode).getEntryNode().removeExitNode();
     }
 
     return false;
