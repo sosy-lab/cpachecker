@@ -718,19 +718,41 @@ public final class LoopStructure implements Serializable {
           }
         } while (changed);
 
-        // merge loops if necessary
+        // We want to first merge strange goto-loops that have the same loop heads, as this likely
+        // merges loops together that intuitively should be merged together.
         for (int i1 = 0; i1 < loops.size() && loopToRemove == null; i1++) {
           Loop l1 = loops.get(i1);
           for (int i2 = i1 + 1; i2 < loops.size() && loopToRemove == null; i2++) {
             Loop l2 = loops.get(i2);
-            if (!l1.intersectsWith(l2)) {
-              // loops have nothing in common
-              continue;
+            if (l2.getLoopHeads().equals(l1.getLoopHeads())) {
+              if (!l1.intersectsWith(l2)) {
+                // loops have nothing in common
+                continue;
+              }
+              if (!l1.isOuterLoopOf(l2) && !l2.isOuterLoopOf(l1)) {
+                // strange goto-loop, merge the two together
+                l1.mergeWith(l2);
+                loopToRemove = l2;
+              }
             }
-            if (!l1.isOuterLoopOf(l2) && !l2.isOuterLoopOf(l1)) {
-              // strange goto-loop, merge the two together
-              l1.mergeWith(l2);
-              loopToRemove = l2;
+          }
+        }
+
+        if (loopToRemove == null) {
+          // merge loops if necessary
+          for (int i1 = 0; i1 < loops.size() && loopToRemove == null; i1++) {
+            Loop l1 = loops.get(i1);
+            for (int i2 = i1 + 1; i2 < loops.size() && loopToRemove == null; i2++) {
+              Loop l2 = loops.get(i2);
+              if (!l1.intersectsWith(l2)) {
+                // loops have nothing in common
+                continue;
+              }
+              if (!l1.isOuterLoopOf(l2) && !l2.isOuterLoopOf(l1)) {
+                // strange goto-loop, merge the two together
+                l1.mergeWith(l2);
+                loopToRemove = l2;
+              }
             }
           }
         }
