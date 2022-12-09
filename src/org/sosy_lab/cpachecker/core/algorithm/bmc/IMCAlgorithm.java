@@ -443,8 +443,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final PredicateAbstractionManager predAbsMgr;
   private final InterpolationManager itpMgr;
   private final CFA cfa;
-  private final LoopHeadInvariantsGenerator loopHeadInvariantsGenerator;
-
   private BooleanFormula finalFixedPoint;
   private LoopBoundManager loopBoundMgr;
 
@@ -489,14 +487,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             pfmgr, solver, Optional.empty(), Optional.empty(), pConfig, shutdownNotifier, logger);
 
     finalFixedPoint = bfmgr.makeFalse();
-    loopHeadInvariantsGenerator =
-        new LoopHeadInvariantsGenerator(
-            invariantGenerator,
-            invariantGeneratorHeadStart,
-            shutdownNotifier,
-            logger,
-            fmgr,
-            pfmgr);
     loopBoundMgr = new LoopBoundManager(pConfig);
 
     if (assertTargetsAtEveryIteration
@@ -515,14 +505,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Override
   public AlgorithmStatus run(final ReachedSet pReachedSet)
       throws CPAException, InterruptedException {
-    loopHeadInvariantsGenerator.start(extractLocation(pReachedSet.getFirstState()));
+    invariantGeneratorForBMC.start(extractLocation(pReachedSet.getFirstState()));
     try {
-      loopHeadInvariantsGenerator.headStart();
+      invariantGeneratorForBMC.waitForHeadStart();
       return interpolationModelChecking(pReachedSet);
     } catch (SolverException e) {
       throw new CPAException("Solver Failure " + e.getMessage(), e);
     } finally {
-      loopHeadInvariantsGenerator.cancel();
+      invariantGeneratorForBMC.cancel();
     }
   }
 
@@ -575,7 +565,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         try {
           partitionedFormulas.collectFormulasFromARG(pReachedSet);
           loopInv =
-              loopHeadInvariantsGenerator.getUninstantiatedInvariants(pReachedSet, getLoopHeads());
+              invariantGeneratorForBMC.getUninstantiatedInvariants(
+                  pReachedSet, getLoopHeads(), fmgr, pfmgr);
         } finally {
           stats.interpolationPreparation.stop();
         }
@@ -1050,11 +1041,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private boolean isSafetyProvenByInvariantGenerator(ReachedSet reachedSet)
       throws CPATransferException, InterruptedException {
-    if (loopHeadInvariantsGenerator.isProgramSafe()) {
+    if (invariantGeneratorForBMC.isProgramSafe()) {
       InterpolationHelper.removeUnreachableTargetStates(reachedSet);
       InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
           reachedSet,
-          loopHeadInvariantsGenerator.getUninstantiatedInvariants(reachedSet, getLoopHeads()),
+          invariantGeneratorForBMC.getUninstantiatedInvariants(
+              reachedSet, getLoopHeads(), fmgr, pfmgr),
           predAbsMgr,
           pfmgr);
       logger.log(Level.INFO, "Safety proven by invariant generator");

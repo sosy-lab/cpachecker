@@ -287,6 +287,11 @@ public final class BMCHelper {
     return filterIterationsBetween(pStates, pIteration, pIteration, pLoopHeads);
   }
 
+  public static FluentIterable<AbstractState> filterFirstIteration(
+      Iterable<AbstractState> pStates, Set<CFANode> pLoopHeads) {
+    return filterIteration(pStates, 1, pLoopHeads);
+  }
+
   private static int convertIteration(
       int pIteration, AbstractState state, Set<CFANode> pLoopHeads) {
     if (pIteration == Integer.MAX_VALUE) {

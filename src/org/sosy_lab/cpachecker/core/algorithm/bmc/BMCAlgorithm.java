@@ -131,7 +131,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     } catch (SolverException e) {
       throw new CPAException("Solver Failure " + e.getMessage(), e);
     } finally {
-      invariantGenerator.cancel();
+      invariantGeneratorForBMC.cancel();
     }
   }
 
@@ -200,18 +200,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             ARGState rootState =
                 AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
             if (rootState != null && invariantsExport != null) {
-              ExpressionTreeSupplier tmpExpressionTreeSupplier =
-                  ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
-              if (invariantGenerator.isStarted()) {
-                try {
-                  tmpExpressionTreeSupplier = invariantGenerator.getExpressionTreeSupplier();
-                } catch (CPAException | InterruptedException e1) {
-                  tmpExpressionTreeSupplier =
-                      ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
-                }
-              }
-              final ExpressionTreeSupplier expSup = tmpExpressionTreeSupplier;
               try (Writer w = IO.openOutputFile(invariantsExport, StandardCharsets.UTF_8)) {
+                final ExpressionTreeSupplier expSup =
+                    invariantGeneratorForBMC.getExpressionTreeSupplier();
                 final Witness generatedWitness =
                     argWitnessExporter.generateProofWitness(
                         rootState,
