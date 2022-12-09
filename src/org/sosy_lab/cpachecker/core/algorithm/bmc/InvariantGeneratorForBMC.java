@@ -537,8 +537,7 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
     return ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
   }
 
-  ExpressionTree<Object> getLocationInvariants(CFANode pLocation)
-      throws InterruptedException {
+  ExpressionTree<Object> getLocationInvariants(CFANode pLocation) throws InterruptedException {
     return getExpressionTreeSupplier().getInvariantFor(pLocation);
   }
 
