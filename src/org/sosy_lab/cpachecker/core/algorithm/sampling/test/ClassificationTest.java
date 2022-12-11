@@ -29,8 +29,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.sampling.Sample;
+import org.sosy_lab.cpachecker.core.algorithm.sampling.Sample.SampleClass;
 import org.sosy_lab.cpachecker.core.algorithm.sampling.SampleClassificationAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.sampling.SampleClassificationAlgorithm.SampleClass;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -42,7 +42,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class ClassificationTest {
 
   private static final String TEST_PROGRAM_DIR = "test/programs/induction/";
-  private static final String TEST_CONFIG = "config/valueAnalysis-predicateAnalysis-Cegar-ABEl.properties";
+  private static final String TEST_CONFIG =
+      "config/valueAnalysis-predicateAnalysis-Cegar-ABEl.properties";
   private static final String TEST_SPECIFICATION = "config/specification/default.spc";
 
   private Configuration testConfig;

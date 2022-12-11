@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
+import org.sosy_lab.cpachecker.core.algorithm.sampling.Sample.SampleClass;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -76,7 +77,8 @@ public class SampleClassificationAlgorithm {
 
     Set<MemoryLocation> relevantVariables = sample.getVariableValues().keySet();
     for (AbstractState state : reachedSet) {
-      if (sample.equals(Sample.fromAbstractState(state, relevantVariables))) {
+      if (sample.equals(
+          Sample.fromAbstractState(state, relevantVariables, sample.getSampleClass()))) {
         // Sample is reachable from the initial state
         if (status.isSound()) {
           return SampleClass.POSITIVE;
@@ -128,11 +130,5 @@ public class SampleClassificationAlgorithm {
 
     // Get initial precision
     return cpa.getInitialPrecision(sample.getLocation(), StateSpacePartition.getDefaultPartition());
-  }
-
-  public enum SampleClass {
-    POSITIVE,
-    NEGATIVE,
-    UNKNOWN
   }
 }

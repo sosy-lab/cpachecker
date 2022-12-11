@@ -15,7 +15,9 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.io.Writer;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,13 +26,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -38,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NestingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.sampling.Sample.SampleClass;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -70,6 +77,10 @@ public class SamplingAlgorithm extends NestingAlgorithm {
 
   @Option(secure = true, description = "The number of initial samples to collect before unrolling.")
   private int numInitialSamples = 5;
+
+  @Option(secure = true, description = "The file where generated samples should be written to.")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path outFile = Path.of("samples.json");
 
   private final CFA cfa;
   private final SampleUnrollingAlgorithm forwardUnrollingAlgorithm;
@@ -224,11 +235,24 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       }
     }
 
-    samples.build();
-
-    // TODO: Then build samples and write to file
+    // Finally, export samples
+    try {
+      writeSamplesToFile(samples.build());
+    } catch (IOException e) {
+      logger.log(Level.WARNING, "Export of produced samples failed");
+    }
 
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
+  }
+
+  private void writeSamplesToFile(Set<Sample> samples) throws IOException {
+    StringJoiner sj = new StringJoiner(",\n", "[\n", "]\n");
+    for (Sample sample : samples) {
+      sj.add(sample.export());
+    }
+    try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
+      writer.write(sj.toString());
+    }
   }
 
   private ImmutableSet<CFANode> getTargetNodes() throws InterruptedException {
@@ -302,7 +326,9 @@ public class SamplingAlgorithm extends NestingAlgorithm {
             }
             prover.addConstraint(bfmgr.not(bfmgr.and(modelFormulas)));
 
-            samples.add(extractSampleFromModel(prover.getModelAssignments(), loopHead));
+            samples.add(
+                extractSampleFromModel(
+                    prover.getModelAssignments(), loopHead, SampleClass.POSITIVE));
           }
           prover.pop();
         }
@@ -358,7 +384,9 @@ public class SamplingAlgorithm extends NestingAlgorithm {
             }
             prover.addConstraint(bfmgr.not(bfmgr.and(modelFormulas)));
 
-            samples.add(extractSampleFromModel(prover.getModelAssignments(), lastNode));
+            samples.add(
+                extractSampleFromModel(
+                    prover.getModelAssignments(), lastNode, SampleClass.NEGATIVE));
           }
           prover.pop();
         }
@@ -367,7 +395,8 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     return samples;
   }
 
-  private Sample extractSampleFromModel(List<ValueAssignment> model, CFANode location) {
+  private Sample extractSampleFromModel(
+      List<ValueAssignment> model, CFANode location, SampleClass sampleClass) {
     Map<MemoryLocation, ValueAndType> variableValues = new HashMap<>();
     for (ValueAssignment assignment : model) {
       String varName = assignment.getName();
@@ -390,7 +419,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       }
       variableValues.put(var, valueAndType);
     }
-    return new Sample(variableValues, location);
+    return new Sample(variableValues, location, sampleClass);
   }
 
   @Override

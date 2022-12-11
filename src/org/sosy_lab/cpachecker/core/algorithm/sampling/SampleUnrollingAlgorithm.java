@@ -29,6 +29,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
+import org.sosy_lab.cpachecker.core.algorithm.sampling.Sample.SampleClass;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -138,11 +139,14 @@ public class SampleUnrollingAlgorithm {
     Map<AbstractState, SampleTreeNode> nodes = new HashMap<>();
     nodes.put(first, root);
 
+    // All samples obtained via unrolling have the same class as the initial sample
+    SampleClass sampleClass = initialSample.getSampleClass();
+
     while (reachedSet.hasWaitingState()) {
       AbstractState state = reachedSet.popFromWaitlist();
       Precision precision = reachedSet.getPrecision(state);
       SampleTreeNode node = nodes.get(state);
-      Sample sample = Sample.fromAbstractState(state, relevantVariables);
+      Sample sample = Sample.fromAbstractState(state, relevantVariables, sampleClass);
       for (AbstractState successor : transferRelation.getAbstractSuccessors(state, precision)) {
         Optional<PrecisionAdjustmentResult> precAdjustmentOptional =
             precisionAdjustment.prec(
@@ -154,7 +158,8 @@ public class SampleUnrollingAlgorithm {
         successor = precAdjustmentResult.abstractState();
         Precision successorPrecision = precAdjustmentResult.precision();
 
-        Sample successorSample = Sample.fromAbstractState(successor, relevantVariables);
+        Sample successorSample =
+            Sample.fromAbstractState(successor, relevantVariables, sampleClass);
         if (!successorSample.equals(sample)) {
           SampleTreeNode nextNode =
               new SampleTreeNode(successorSample, getLocationForState(successor));
