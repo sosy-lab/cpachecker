@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.getFunctionName;
+
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
@@ -15,12 +17,10 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
@@ -249,35 +249,5 @@ public class MemoryAccessExtractor {
       return true;
     }
     return false;
-  }
-
-  /**
-   * Tries to determine the function name for a given AFunctionCall.
-   *
-   * <p>Note that it is usually possible to just look up the name from the declaration of the
-   * contained function call expression but there are niche cases where this is not the case, which
-   * is why this function is necessary.
-   */
-  private String getFunctionName(AFunctionCall pFunctionCall) {
-    AFunctionCallExpression functionCallExpression = pFunctionCall.getFunctionCallExpression();
-    if (functionCallExpression.getDeclaration() != null) {
-      return functionCallExpression.getDeclaration().getName();
-    } else {
-      AExpression functionNameExpression = functionCallExpression.getFunctionNameExpression();
-      if (functionNameExpression instanceof AIdExpression) {
-        return ((AIdExpression) functionNameExpression).getName();
-      } else if (functionNameExpression instanceof AUnaryExpression) {
-        AUnaryExpression unaryFunctionNameExpression = (AUnaryExpression) functionNameExpression;
-        if (unaryFunctionNameExpression.getOperand() instanceof AIdExpression) {
-          return ((AIdExpression) unaryFunctionNameExpression.getOperand()).getName();
-        }
-      } else if (functionNameExpression instanceof APointerExpression) {
-        APointerExpression pointerExpression = (APointerExpression) functionNameExpression;
-        if (pointerExpression.getOperand() instanceof AIdExpression) {
-          return ((AIdExpression) pointerExpression.getOperand()).getName();
-        }
-      }
-    }
-    throw new AssertionError("Unable to determine function name.");
   }
 }

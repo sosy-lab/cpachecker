@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
@@ -770,12 +771,29 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return transform(results, ts -> ts.updateCondVarAndCopy(condVar));
   }
 
-  private static String getFunctionName(AFunctionCall functionCall) {
-    AExpression functionNameExpression =
-        functionCall.getFunctionCallExpression().getFunctionNameExpression();
-    while (functionNameExpression instanceof APointerExpression) {
-      functionNameExpression = ((APointerExpression) functionNameExpression).getOperand();
+  /**
+   * Tries to determine the function name for a given AFunctionCall.
+   *
+   * <p>Note that it is usually possible to just look up the name from the declaration of the
+   * contained function call expression but there are niche cases where this is not the case, which
+   * is why this function is necessary.
+   */
+  public static String getFunctionName(AFunctionCall functionCall) {
+    AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
+    if (functionCallExpression.getDeclaration() != null) {
+      return functionCallExpression.getDeclaration().getName();
     }
+
+    AExpression functionNameExpression = functionCallExpression.getFunctionNameExpression();
+    while (functionNameExpression instanceof APointerExpression
+        || functionNameExpression instanceof AUnaryExpression) {
+      if (functionNameExpression instanceof APointerExpression) {
+        functionNameExpression = ((APointerExpression) functionNameExpression).getOperand();
+      } else {
+        functionNameExpression = ((AUnaryExpression) functionNameExpression).getOperand();
+      }
+    }
+
     if (functionNameExpression instanceof AIdExpression) {
       return ((AIdExpression) functionNameExpression).getName();
     }
