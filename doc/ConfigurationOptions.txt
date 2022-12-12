@@ -3885,6 +3885,9 @@ imc.loopBoundIncrementValueForKI = 1
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false
 
+# analyze the derived interpolants
+imctr.analyzeInterpolant = false
+
 # derive interpolants backward
 imctr.backwardInterpolation = true
 

@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -76,6 +79,9 @@ public class IMCTRAlgorithm implements Algorithm {
 
   @Option(secure = true, description = "derive interpolants backward")
   private boolean backwardInterpolation = true;
+
+  @Option(secure = true, description = "analyze the derived interpolants")
+  private boolean analyzeInterpolant = false;
 
   @Option(
       secure = true,
@@ -199,7 +205,7 @@ public class IMCTRAlgorithm implements Algorithm {
         // IMC inner loop
         if (interpolation) {
           try (InterpolatingProverEnvironment<?> itpProver =
-              solver.newProverEnvironmentWithInterpolation()) {
+              solver.newProverEnvironmentWithInterpolation(ProverOptions.GENERATE_MODELS)) {
             if (reachFixedPointByInterpolation(itpProver, bmcQuery, initialCondition.getSsa())) {
               return AlgorithmStatus.SOUND_AND_PRECISE;
             }
@@ -426,6 +432,9 @@ public class IMCTRAlgorithm implements Algorithm {
       logger.log(Level.ALL, "Interpolant:", interpolant);
       interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), pPrefixSsaMap);
       logger.log(Level.ALL, "After changing SSA indices:", interpolant);
+      if (analyzeInterpolant) {
+        analyzeFormula(interpolant);
+      }
       if (solver.implies(interpolant, currentImage)) {
         logger.log(Level.INFO, "The current image reaches a fixed point");
         return true;
@@ -435,6 +444,12 @@ public class IMCTRAlgorithm implements Algorithm {
       formulaA.remove(formulaA.size() - 1);
       formulaA.add(pProver.push(interpolant));
     }
+    logger.log(
+        Level.ALL,
+        "Counterexample to the inner loop:",
+        ImmutableList.sortedCopyOf(
+            Comparator.<Model.ValueAssignment, String>comparing(n -> n.toString()),
+            pProver.getModelAssignments()));
     return false;
   }
 
@@ -444,5 +459,28 @@ public class IMCTRAlgorithm implements Algorithm {
     return backwardInterpolation
         ? bfmgr.not(pProver.getInterpolant(pFormulaB))
         : pProver.getInterpolant(pFormulaA);
+  }
+
+  private void analyzeFormula(final BooleanFormula pFormula) {
+    ImmutableSet<BooleanFormula> atoms = fmgr.extractAtoms(pFormula, false);
+    int numAtomsWithProgramCounter = 0;
+    for (BooleanFormula atom : atoms) {
+      boolean isAtomWithProgramCounter = false;
+      Set<String> variableNames = fmgr.extractVariableNames(atom);
+      for (String name : variableNames) {
+        if (name.contains(PROGRAM_COUNTER_NAME)) {
+          ++numAtomsWithProgramCounter;
+          isAtomWithProgramCounter = true;
+          break;
+        }
+      }
+      if (!isAtomWithProgramCounter) {
+        logger.log(Level.INFO, "  Interesting atom:", atom);
+      }
+    }
+    if (atoms.size() != numAtomsWithProgramCounter) {
+      logger.log(Level.INFO, "    #atoms with pc:", numAtomsWithProgramCounter);
+      logger.log(Level.INFO, "    #atoms:", atoms.size());
+    }
   }
 }
