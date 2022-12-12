@@ -2,6 +2,7 @@
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
   <option name="-noout"></option>
+  <resultfiles>output/*.txt</resultfiles>
   
   <tasks name="ReachSafety-Loops">
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
@@ -10,6 +11,6 @@
   
   <rundefinition>
     <option name="-config">config/microbenchmarking.properties</option>
-    <option name="-microBenchmark.outputFile">output.txt</option>
+    <option name="-setprop">microBenchmark.outputFile=output.txt</option>
   </rundefinition>
 </benchmark>

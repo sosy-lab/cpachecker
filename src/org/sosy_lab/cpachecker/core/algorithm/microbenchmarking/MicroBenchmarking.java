@@ -74,16 +74,21 @@ public class MicroBenchmarking implements Algorithm {
   private final Specification specification;
 
   @Option(
+    secure = true,
       description = "Number of iterations for each algorithm/program combination. Defaults to 10.")
   private int numExecutions = 20;
 
-  @Option(description = "List of algorithm config files to use for the benchmarking process.")
+  @Option(
+    secure = true,
+    description = "List of algorithm config files to use for the benchmarking process.")
   private List<String> propertyFiles = List.of("micro-benchmarking-predicate.properties");
 
-  @Option(description = "List of programs to run each benchmarking algorithm on.")
+  @Option(secure = true, description = "List of programs to run each benchmarking algorithm on.")
   private List<String> programFiles = List.of("loop_1.c");
 
-  @Option(description = "Defines the file where the results of the micro benchmark are stored.")
+  @Option(
+    secure = true,
+    description = "Defines the file where the results of the micro benchmark are stored.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path outputFile;
 
