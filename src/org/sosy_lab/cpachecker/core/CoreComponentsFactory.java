@@ -394,6 +394,7 @@ public class CoreComponentsFactory {
   private boolean useConfigurableComponents = false;
 
   @Option(
+    secure = true,
     description = "Indicate whether a micro benchmark should be executed before running the analysis.")
   private boolean useMicroBenchmark = false;
 
