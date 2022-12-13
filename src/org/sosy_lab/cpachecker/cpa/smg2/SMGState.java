@@ -1278,6 +1278,7 @@ public class SMGState
   }
 
   // Saved for later usage; State comparison
+  @SuppressWarnings("unused")
   private boolean abstractedAndConcreteListEquality(
       SMGState thisState,
       Value thisAddress,
