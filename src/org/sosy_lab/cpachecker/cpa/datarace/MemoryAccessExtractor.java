@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
-import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.getFunctionName;
-
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
@@ -38,20 +36,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class MemoryAccessExtractor {
-
-  // These functions need special handling that is not currently provided by the DataRaceCPA.
-  // When one of these functions is encountered we are therefore unable to tell if a data race
-  // is present or not, so the analysis is terminated. TODO: Add support for these functions
-  private static final ImmutableSet<String> UNSUPPORTED_FUNCTIONS =
-      ImmutableSet.of(
-          "pthread_rwlock_rdlock",
-          "pthread_rwlock_timedrdlock",
-          "pthread_rwlock_timedwrlock",
-          "pthread_rwlock_wrlock");
 
   /**
    * Collects the memory locations accessed by the given CFA edge and builds the corresponding
@@ -59,8 +46,7 @@ public class MemoryAccessExtractor {
    *
    * <p>Throws CPATransferException if an unsupported function is encountered.
    */
-  Set<MemoryAccess> getNewAccesses(ThreadInfo activeThreadInfo, CFAEdge edge, Set<String> locks)
-      throws CPATransferException {
+  Set<MemoryAccess> getNewAccesses(ThreadInfo activeThreadInfo, CFAEdge edge, Set<String> locks) {
     String activeThread = activeThreadInfo.getThreadId();
     int epoch = activeThreadInfo.getEpoch();
     Set<OverapproximatingMemoryLocation> readLocationBuilder = new HashSet<>();
@@ -99,10 +85,6 @@ public class MemoryAccessExtractor {
         break;
       case FunctionCallEdge:
         FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
-        String functionName = getFunctionName(functionCallEdge.getFunctionCall());
-        if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
-          throw new CPATransferException("DataRaceCPA does not support function " + functionName);
-        }
         if (functionCallEdge.getFunctionCall() instanceof AFunctionCallAssignmentStatement) {
           AFunctionCallAssignmentStatement functionCallAssignmentStatement =
               (AFunctionCallAssignmentStatement) functionCallEdge.getFunctionCall();
@@ -148,10 +130,6 @@ public class MemoryAccessExtractor {
         } else if (statement instanceof AFunctionCallAssignmentStatement) {
           AFunctionCallAssignmentStatement functionCallAssignmentStatement =
               (AFunctionCallAssignmentStatement) statement;
-          functionName = getFunctionName(functionCallAssignmentStatement);
-          if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
-            throw new CPATransferException("DataRaceCPA does not support function " + functionName);
-          }
           writeLocationBuilder.addAll(
               getInvolvedVariableTypes(
                   functionCallAssignmentStatement.getLeftHandSide(), statementEdge));
@@ -162,10 +140,6 @@ public class MemoryAccessExtractor {
           }
         } else if (statement instanceof AFunctionCallStatement) {
           AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
-          functionName = getFunctionName(functionCallStatement);
-          if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
-            throw new CPATransferException("DataRaceCPA does not support function " + functionName);
-          }
           for (AExpression expression :
               functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
             readLocationBuilder.addAll(getInvolvedVariableTypes(expression, statementEdge));
