@@ -760,6 +760,17 @@ cegar.maxIterations = -1
 # omitted.
 cegar.refiner = no default value
 
+# Max amount of Inner refinements. A negative number deactivates this
+# parameter.
+cegar.refiner.composition.maxAmntInnerRefinements = -1
+
+# Which wrapped refinement algorithms to use? (give class name, required for
+# CEGAR) If the package name starts with 'org.sosy_lab.cpachecker.', this
+# prefix can be omitted.The refiners are written as one would function
+# compositioni.e. first in the config the last one to be applied and last in
+# the config the first one to be apllied.
+cegar.refiner.composition.wrappedrefiners = no default value
+
 # Max amount of first refinements.
 cegar.refiner.summaries.maxAmntFirstRefinements = 100
 
@@ -767,6 +778,13 @@ cegar.refiner.summaries.maxAmntFirstRefinements = 100
 # CEGAR) If the package name starts with 'org.sosy_lab.cpachecker.', this
 # prefix can be omitted.
 cegar.refiner.summaries.wrappedrefiner = no default value
+
+# Which wrapped refinement algorithms to use? (give class name, required for
+# CEGAR) If the package name starts with 'org.sosy_lab.cpachecker.', this
+# prefix can be omitted.Currently only two refiners are supported.The
+# refiners are written as one would function compositioni.e. first the last
+# one and last the first one.
+cegar.refiner.summaries.wrappedrefiners = no default value
 
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false

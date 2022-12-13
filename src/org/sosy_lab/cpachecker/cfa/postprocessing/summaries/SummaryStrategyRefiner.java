@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.location.LocationPrecision;
+import org.sosy_lab.cpachecker.cpa.value.refiner.SummaryValueRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -37,12 +38,20 @@ public class SummaryStrategyRefiner implements Refiner {
   protected final ARGCPA argCpa;
   private SummaryInformation summaryInformation;
 
-  public SummaryStrategyRefiner(
+  private SummaryStrategyRefiner(
       LogManager pLogger, final ConfigurableProgramAnalysis pCpa, CFA pCfa)
       throws InvalidConfigurationException {
     logger = pLogger;
     argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, Refiner.class);
     summaryInformation = pCfa.getSummaryInformation().orElseThrow();
+  }
+
+  public static Refiner create(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SummaryValueRefiner.class);
+    LogManager logger = argCpa.getLogger();
+
+    return new SummaryStrategyRefiner(logger, pCpa, argCpa.getCfa());
   }
 
   @Override

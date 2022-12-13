@@ -1,0 +1,105 @@
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="2">
+  <option name="-heap">10000M</option>
+
+  <resultfiles>output/**.*</resultfiles>
+  <!--<option name="-setprop">counterexample.export.graphml=witness.graphml</option>
+	<option name="-setprop">cpa.arg.proofWitness=witness.graphml</option>
+	<option name="-setprop">termination.violation.witness=witness.graphml</option>
+	<option name="-setprop">counterexample.export.compressWitness=false</option>
+	<option name="-setprop">cpa.arg.compressWitness=false</option>-->
+
+  <!--<resultfiles>output/LA/*.*</resultfiles>-->
+	<option name="-setprop">cfa.summaries.outputdirectory=LA</option>
+	<option name="-setprop">cfa.summaries.strategies=OUTPUTLOOPACCELERATION,LOOPCONSTANTEXTRAPOLATION,NAIVELOOPACCELERATION,HAVOCSTRATEGY</option>
+ 
+  <rundefinition name="loopsummary-predicate">
+	  <option name="-config">cpachecker/config/loopsummary/predicateAnalysis-loopsummary.properties</option>
+	  <option name="-benchmark"/>
+  </rundefinition>
+
+  <rundefinition name="predicate">
+	  <option name="-config">cpachecker/config/predicateAnalysis.properties</option>
+	  <option name="-benchmark"/>
+  </rundefinition>
+
+  <rundefinition name="loopsummary-value">
+	  <option name="-config">cpachecker/config/loopsummary/valueAnalysis-loopsummary.properties</option>
+	  <option name="-benchmark"/>
+  </rundefinition>
+
+  <rundefinition name="value">
+	  <option name="-config">cpachecker/config/valueAnalysis.properties</option>
+ 	  <option name="-benchmark"/>
+  </rundefinition>
+
+  <rundefinition name="loopsummary-bmc">
+    <option name="-config">cpachecker/config/loopsummary/bmc-incremental-loopsummary.properties</option>
+    <option name="-benchmark"/>
+  </rundefinition>
+
+  <rundefinition name="bmc">
+    <option name="-config">cpachecker/config/loopsummary/bmc-incremental.properties</option>
+    <option name="-benchmark"/>
+  </rundefinition>
+
+
+  <!--<columns>
+    <column title="UsedConfig">Used algorithm property</column>
+  </columns> -->
+  <!--
+  <tasks name="ReachSafety-Loops">
+    <includesfile>sv-benchmarks/c/ReachSafety-Loops.set</includesfile>
+    <propertyfile>sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  -->
+
+  <!--<tasks name="ReachSafety-Arrays">
+    <includesfile>sv-benchmarks/c/ReachSafety-Arrays.set</includesfile>
+    <propertyfile>sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-BitVectors">
+    <includesfile>sv-benchmarks/c/ReachSafety-BitVectors.set</includesfile>
+    <propertyfile>sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-ControlFlow">
+    <includesfile>sv-benchmarks/c/ReachSafety-ControlFlow.set</includesfile>
+    <propertyfile>sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-ECA">
+    <includesfile>sv-benchmarks/c/ReachSafety-ECA.set</includesfile>
+    <propertyfile>sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-Floats">
+    <includesfile>sv-benchmarks/c/ReachSafety-Floats.set</includesfile>
+    <propertyfile>sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-Heap">
+    <includesfile>sv-benchmarks/c/ReachSafety-Heap.set</includesfile>
+    <propertyfile>sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>-->
+  <tasks name="ReachSafety-Loops">
+	  <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <!--<tasks name="ReachSafety-ProductLines">
+    <includesfile>sv-benchmarks/c/ReachSafety-ProductLines.set</includesfile>
+    <propertyfile>sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-Recursive">
+    <includesfile>sv-benchmarks/c/ReachSafety-Recursive.set</includesfile>
+    <propertyfile>sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-Sequentialized">
+    <includesfile>sv-benchmarks/c/ReachSafety-Sequentialized.set</includesfile>
+    <propertyfile>sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-XCSP">
+    <includesfile>sv-benchmarks/c/ReachSafety-XCSP.set</includesfile>
+    <propertyfile>sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-Combinations">
+    <includesfile>sv-benchmarks/c/ReachSafety-Combinations.set</includesfile>
+    <propertyfile>sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+  </tasks>-->
+</benchmark>
