@@ -422,9 +422,10 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         pWaitInfo.add(new WaitInfo(activeThread, conditionWaits.get(activeThread), epoch));
         break;
       default:
-        if (THREAD_FUNCTIONS.contains(functionName)) {
-          throw new AssertionError("Unhandled thread function");
-        }
+        // TODO: Uncomment check once all thread functions are handled
+        // if (THREAD_FUNCTIONS.contains(functionName)) {
+        //  throw new AssertionError("Unhandled thread function");
+        // }
         // Nothing to do
     }
   }
