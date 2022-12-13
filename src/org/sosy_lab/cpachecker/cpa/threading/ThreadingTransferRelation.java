@@ -850,7 +850,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         return extractLockFromArray((AArraySubscriptExpression) operand, threadingState);
       }
 
-      // Try to extract the lock id and check whether the references lock already exists
+      // Try to extract the lock id and check whether the referenced lock already exists
       String lockId;
       if (operand instanceof AIdExpression) {
         lockId = ((AIdExpression) operand).getName();

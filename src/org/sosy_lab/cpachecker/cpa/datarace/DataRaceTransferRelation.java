@@ -12,7 +12,6 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.TH
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_COND_SIGNAL;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_COND_TIMEDWAIT;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_COND_WAIT;
-import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_FUNCTIONS;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.getFunctionName;
 
 import com.google.common.collect.ImmutableMap;
@@ -110,7 +109,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
       for (String lock : activeThreadLocks) {
         if (!state.getLocksForThread(activeThread).contains(lock)) {
-          //  Lock was newly acquired
+          // Lock was newly acquired
           LockRelease lastRelease = state.getLastReleaseForLock(lock);
           if (lastRelease != null && !lastRelease.getThreadId().equals(activeThread)) {
             // A lock release synchronizes-with the next acquisition of that lock (but
