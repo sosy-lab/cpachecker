@@ -3813,8 +3813,9 @@ public class SMGState
 
     public void addEquality(V thisEqual, V otherEqual) {
       if (primitiveCache.containsKey(thisEqual)) {
-        if (!primitiveCache.get(thisEqual).contains(otherEqual)) {
-          primitiveCache.get(thisEqual).add(otherEqual);
+        Set thisEqualSet = primitiveCache.get(thisEqual);
+        if (!thisEqualSet.contains(otherEqual)) {
+          thisEqualSet.add(otherEqual);
         }
       } else {
         primitiveCache.put(thisEqual, new HashSet<>());
