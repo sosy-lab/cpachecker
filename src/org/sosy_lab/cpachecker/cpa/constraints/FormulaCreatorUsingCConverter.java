@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints;
 
+import com.google.common.collect.ComparisonChain;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -136,6 +137,14 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
     @Override
     public String getDescription() {
       return UNKNOWN;
+    }
+
+    @Override
+    public int compareTo(CFAEdge pOther) {
+      return ComparisonChain.start()
+          .compare(getPredecessor(), pOther.getPredecessor())
+          .compare(getSuccessor(), pOther.getSuccessor())
+          .result();
     }
   }
 }

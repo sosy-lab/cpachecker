@@ -79,6 +79,8 @@ public class PropertyFileParserTest {
               CommonCoverageProperty.COVERAGE_ERROR)
           // expected to come
           .put("CHECK( init(main()), LTL(G ! deadlock) )", CommonVerificationProperty.DEADLOCK)
+          .put(
+              "CHECK( init(main()), LTL(G ! taint-error) )", CommonVerificationProperty.TAINT_ERROR)
           // non-hardcoded values
           .put(
               "COVER( init(main()), FQL(COVER EDGES(@CALL(some_arbitrary_function))) )",

@@ -3190,6 +3190,20 @@ cpa.statistics.metric.structVariablesCount = true
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
 
+# The merge operator to use for TaintAnalysisCPA.
+cpa.taint.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
+# Set of taint-sink functions.
+cpa.taint.sinkFunctions = {}
+
+# Set of taint-source functions.
+cpa.taint.sourceFunctions = {}
+
+# The stop operator to use for TaintAnalysisCPA.
+cpa.taint.stop = "SEP"
+  allowed values: [SEP, JOIN, NEVER, EQUALS]
+
 # Which refinement algorithm to use? (give class name, required for
 # termination algorithm with CEGAR) If the package name starts with
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.

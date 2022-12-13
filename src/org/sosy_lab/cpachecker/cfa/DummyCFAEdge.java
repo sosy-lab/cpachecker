@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import com.google.common.collect.ComparisonChain;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -69,5 +70,13 @@ public class DummyCFAEdge implements CFAEdge {
   @Override
   public String getCode() {
     return "";
+  }
+
+  @Override
+  public int compareTo(CFAEdge pOther) {
+    return ComparisonChain.start()
+        .compare(getPredecessor(), pOther.getPredecessor())
+        .compare(getSuccessor(), pOther.getSuccessor())
+        .result();
   }
 }

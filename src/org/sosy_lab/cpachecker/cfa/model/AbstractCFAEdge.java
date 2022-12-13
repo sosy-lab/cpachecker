@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.model;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ComparisonChain;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -69,6 +70,15 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   @Override
   public FileLocation getFileLocation() {
     return fileLocation;
+  }
+
+  @Override
+  public int compareTo(CFAEdge pOther) {
+    // FIXME: `equals` uses `instanceof AbstractCFAEdge`, but this method accepts `CFAEdge`
+    return ComparisonChain.start()
+        .compare(getPredecessor(), pOther.getPredecessor())
+        .compare(getSuccessor(), pOther.getSuccessor())
+        .result();
   }
 
   @Override
