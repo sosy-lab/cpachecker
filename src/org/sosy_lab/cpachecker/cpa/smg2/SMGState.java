@@ -11,8 +11,10 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.SetMultimap;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
@@ -3797,13 +3799,13 @@ public class SMGState
   // TODO: To be replaced with a better structure, i.e. union-find
   // This is mutable on purpose!
   public static class EqualityCache<V> {
-    private Map<V, Set<V>> primitiveCache;
+    private SetMultimap<V, V> primitiveCache;
 
     private EqualityCache() {
-      primitiveCache = new HashMap<>();
+      primitiveCache = HashMultimap.create();
     }
 
-    private EqualityCache(Map<V, Set<V>> newPrimitiveCache) {
+    private EqualityCache(SetMultimap<V, V> newPrimitiveCache) {
       primitiveCache = newPrimitiveCache;
     }
 
@@ -3812,15 +3814,7 @@ public class SMGState
     }
 
     public void addEquality(V thisEqual, V otherEqual) {
-      if (primitiveCache.containsKey(thisEqual)) {
-        Set thisEqualSet = primitiveCache.get(thisEqual);
-        if (!thisEqualSet.contains(otherEqual)) {
-          thisEqualSet.add(otherEqual);
-        }
-      } else {
-        primitiveCache.put(thisEqual, new HashSet<>());
-        primitiveCache.get(thisEqual).add(otherEqual);
-      }
+      primitiveCache.put(thisEqual, otherEqual);
     }
 
     /*
