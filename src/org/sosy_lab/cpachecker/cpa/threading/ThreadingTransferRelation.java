@@ -134,10 +134,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String THREAD_MUTEX_TRYLOCK = "pthread_mutex_trylock";
   private static final String RW_MUTEX_READLOCK = "pthread_rwlock_rdlock";
   private static final String RW_MUTEX_WRITELOCK = "pthread_rwlock_wrlock";
-  private static final String THREAD_COND_WAIT = "pthread_cond_wait";
-  private static final String THREAD_COND_TIMEDWAIT = "pthread_cond_timedwait";
-  private static final String THREAD_COND_SIGNAL = "pthread_cond_signal";
-  private static final String THREAD_COND_BC = "pthread_cond_broadcast";
+  public static final String THREAD_COND_WAIT = "pthread_cond_wait";
+  public static final String THREAD_COND_TIMEDWAIT = "pthread_cond_timedwait";
+  public static final String THREAD_COND_SIGNAL = "pthread_cond_signal";
+  public static final String THREAD_COND_BC = "pthread_cond_broadcast";
   private static final String VERIFIER_ATOMIC = "__VERIFIER_atomic_";
   private static final String VERIFIER_ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
   private static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
@@ -145,7 +145,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   public static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
   private static final String THREAD_ID_SEPARATOR = "__CPAchecker__";
 
-  private static final ImmutableSet<String> THREAD_FUNCTIONS =
+  public static final ImmutableSet<String> THREAD_FUNCTIONS =
       ImmutableSet.of(
           THREAD_START,
           THREAD_MUTEX_LOCK,

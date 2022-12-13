@@ -8,23 +8,40 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_COND_BC;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_COND_SIGNAL;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_COND_TIMEDWAIT;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_COND_WAIT;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_FUNCTIONS;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.getFunctionName;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
+import org.sosy_lab.cpachecker.cpa.threading.locks.ConditionVariable;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -75,6 +92,9 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       Set<String> activeThreadLocks = threadingState.getLocksForThread(activeThread);
       ImmutableSetMultimap<String, String> heldLocks =
           updateHeldLocks(state, activeThread, activeThreadLocks);
+      ImmutableMap<String, String> conditionWaits =
+          updateConditionWaits(
+              state, activeThread, threadingState.getCondVarForThread(activeThread));
       ImmutableSet<LockRelease> lastReleases =
           updateLastReleases(state, activeThread, activeThreadLocks, threadInfo);
 
@@ -93,6 +113,33 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
                     threadInfo.get(activeThread).getEpoch()));
           }
         }
+      }
+
+      // Handle threading-related functions
+      AFunctionCall functionCall = null;
+      switch (cfaEdge.getEdgeType()) {
+        case FunctionCallEdge:
+          FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
+          functionCall = functionCallEdge.getFunctionCall();
+          break;
+        case StatementEdge:
+          AStatementEdge statementEdge = (AStatementEdge) cfaEdge;
+          AStatement statement = statementEdge.getStatement();
+          if (statement instanceof AFunctionCallAssignmentStatement) {
+            functionCall = (AFunctionCallAssignmentStatement) statement;
+          } else if (statement instanceof AFunctionCallStatement) {
+            functionCall = (AFunctionCallStatement) statement;
+          }
+          break;
+      }
+      Set<WaitInfo> newWaitInfo = new HashSet<>(state.getWaitInfo());
+      if (functionCall != null) {
+        handleThreadFunctions(
+            functionCall,
+            newThreadInfo.get(activeThread),
+            conditionWaits,
+            newWaitInfo,
+            synchronizationBuilder);
       }
 
       // Collect new accesses
@@ -192,7 +239,9 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
               newThreadInfo,
               threadSynchronizations,
               heldLocks,
+              conditionWaits,
               lastReleases,
+              newWaitInfo,
               hasDataRace));
     }
 
@@ -256,6 +305,26 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     return newReleases.build();
   }
 
+  private ImmutableMap<String, String> updateConditionWaits(
+      DataRaceState state, String activeThread, ConditionVariable condVar) {
+    ImmutableMap.Builder<String, String> conditionWaits = ImmutableMap.builder();
+
+    if (condVar != null) {
+      // The active thread is now waiting on a condition variable
+      assert !state.getConditionWaits().containsKey(activeThread);
+      conditionWaits.put(activeThread, condVar.getName());
+    }
+
+    // For other threads nothing changes
+    for (Entry<String, String> entry : state.getConditionWaits().entrySet()) {
+      if (!entry.getKey().equals(activeThread)) {
+        conditionWaits.put(entry);
+      }
+    }
+
+    return conditionWaits.buildOrThrow();
+  }
+
   /**
    * Updates the currently tracked thread information with information from the ThreadingCPA.
    *
@@ -303,6 +372,45 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       }
     }
     return threadsBuilder.buildOrThrow();
+  }
+
+  private void handleThreadFunctions(
+      AFunctionCall pFunctionCall,
+      ThreadInfo pActiveThreadInfo,
+      ImmutableMap<String, String> conditionWaits,
+      Set<WaitInfo> pWaitInfo,
+      ImmutableSet.Builder<ThreadSynchronization> threadSynchronizations) {
+    String activeThread = pActiveThreadInfo.getThreadId();
+    int epoch = pActiveThreadInfo.getEpoch();
+    String functionName = getFunctionName(pFunctionCall);
+    switch (functionName) {
+      case THREAD_COND_SIGNAL:
+      case THREAD_COND_BC:
+        AExpression condVarExpression =
+            pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
+        String condVar = ((CUnaryExpression) condVarExpression).getOperand().toString();
+
+        Set<WaitInfo> toRemove = new HashSet<>();
+        for (WaitInfo waitInfo : pWaitInfo) {
+          if (waitInfo.getWaitingOn().equals(condVar)) {
+            threadSynchronizations.add(
+                new ThreadSynchronization(
+                    activeThread, waitInfo.getWaitingThread(), epoch, waitInfo.getEpoch()));
+            toRemove.add(waitInfo);
+          }
+        }
+        pWaitInfo.removeAll(toRemove);
+        break;
+      case THREAD_COND_WAIT:
+      case THREAD_COND_TIMEDWAIT:
+        pWaitInfo.add(new WaitInfo(activeThread, conditionWaits.get(activeThread), epoch));
+        break;
+      default:
+        if (THREAD_FUNCTIONS.contains(functionName)) {
+          throw new AssertionError("Unhandled thread function");
+        }
+        // Nothing to do
+    }
   }
 
   /**
