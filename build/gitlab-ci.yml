@@ -60,6 +60,10 @@ build:jdk-17:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
+build:jdk-19:
+  <<: *build
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-19
+
 
 # For checks that need the binaries
 .binary_check: &binary_check
@@ -87,6 +91,10 @@ build-project-ecj:jdk-11:
 build-project-ecj:jdk-17:
   <<: *build-project-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
+
+build-project-ecj:jdk-19:
+  <<: *build-project-ecj
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-19
 
 
 check-format:
@@ -163,6 +171,16 @@ unit-tests:jdk-17:
     - build-dependencies
     - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
+
+unit-tests:jdk-19:
+  <<: *unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-19
+  needs:
+    - build-dependencies
+    - build:jdk-19
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-19
 
 
 refaster:
@@ -252,3 +270,9 @@ build-docker:test:jdk-17:
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-17
     IMAGE: /test:jdk-17
+
+build-docker:test:jdk-19:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-19
+    IMAGE: /test:jdk-19

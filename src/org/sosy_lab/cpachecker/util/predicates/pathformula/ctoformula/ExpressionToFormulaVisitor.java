@@ -509,7 +509,7 @@ public class ExpressionToFormulaVisitor
           CType returnType = exp.getExpressionType();
           FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
           if (!returnFormulaType.equals(mgr.getFormulaType(ret))) {
-            ret = conv.makeCast(t, returnType, ret, constraints, edge);
+            ret = conv.makeCast(promoted, returnType, ret, constraints, edge);
           }
           assert returnFormulaType.equals(mgr.getFormulaType(ret))
               : "Returntype "

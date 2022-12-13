@@ -75,6 +75,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loops/*string*</exclude>
     <exclude>../programs/benchmarks/nla-digbench-scaling/*</exclude> <!-- only FALSE results due to missing multiplication support in BDD analysis -->
     <exclude>../programs/benchmarks/loop-invgen/*</exclude> <!-- mostly OOM/StackOverflow -->
+    <exclude>../programs/benchmarks/loops-crafted-1/mono-crafted_13.yml</exclude> <!-- flapping timeout / wrong alarm -->
     <exclude>../programs/benchmarks/loops-crafted-1/theatreSquare.yml</exclude> <!-- flapping OOM/StackOverflow -->
   </tasks>
 </benchmark>

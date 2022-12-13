@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
-import org.sosy_lab.cpachecker.cpa.smg2.util.value.CValue;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -639,11 +638,11 @@ public class SymbolicProgramConfiguration {
    * smgValue (and vice versa) into the returned copy. Note: the value is not yet added to the SMG!
    * And if there is a mapping already present for a Value or SMGValue this will fail!
    *
-   * @param cValue {@link CValue} that is mapped to the entered smgValue.
+   * @param value {@link Value} that is mapped to the entered smgValue.
    * @param smgValue {@link SMGValue} that is mapped to the entered cValue.
    * @return A copy of this SPC with the value mapping added.
    */
-  public SymbolicProgramConfiguration copyAndPutValue(Value cValue, SMGValue smgValue) {
+  public SymbolicProgramConfiguration copyAndPutValue(Value value, SMGValue smgValue) {
     ImmutableBiMap.Builder<Equivalence.Wrapper<Value>, SMGValue> builder = ImmutableBiMap.builder();
     return of(
         smg,
@@ -651,7 +650,7 @@ public class SymbolicProgramConfiguration {
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
-        builder.putAll(valueMapping).put(valueWrapper.wrap(cValue), smgValue).buildOrThrow(),
+        builder.putAll(valueMapping).put(valueWrapper.wrap(value), smgValue).buildOrThrow(),
         variableToTypeMap);
   }
 
@@ -923,7 +922,7 @@ public class SymbolicProgramConfiguration {
   public SymbolicProgramConfiguration copyAndAddPointerFromAddressToRegion(
       Value address, SMGObject target, BigInteger offsetInBits) {
     // If there is no SMGValue for this address we create it, else we use the existing
-    SymbolicProgramConfiguration spc = this.copyAndCreateValue(address);
+    SymbolicProgramConfiguration spc = copyAndCreateValue(address);
     SMGValue smgAddress = spc.getSMGValueFromValue(address).orElseThrow();
     // Now we create a points-to-edge from this value to the target object at the
     // specified offset, overriding any existing from this value
@@ -938,7 +937,7 @@ public class SymbolicProgramConfiguration {
   public SymbolicProgramConfiguration copyAndAddPointerFromAddressToRegionWithNestingLevel(
       Value address, SMGObject target, BigInteger offsetInBits, int nestingLevel) {
     // If there is no SMGValue for this address we create it, else we use the existing
-    SymbolicProgramConfiguration spc = this.copyAndCreateValue(address);
+    SymbolicProgramConfiguration spc = copyAndCreateValue(address);
     SMGValue smgAddress = spc.getSMGValueFromValue(address).orElseThrow();
     // Now we create a points-to-edge from this value to the target object at the
     // specified offset, overriding any existing from this value

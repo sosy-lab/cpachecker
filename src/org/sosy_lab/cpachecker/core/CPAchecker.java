@@ -16,7 +16,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.CFACheck;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cmdline.CPAMain;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -139,7 +137,7 @@ public class CPAchecker {
       secure = true,
       name = "analysis.initialStatesFor",
       description = "What CFA nodes should be the starting point of the analysis?")
-  private Set<InitialStatesFor> initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY);
+  private Set<InitialStatesFor> initialStatesFor = ImmutableSet.of(InitialStatesFor.ENTRY);
 
   @Option(
       secure = true,
@@ -593,7 +591,15 @@ public class CPAchecker {
           initialLocations = ImmutableSet.of(pAnalysisEntryFunction);
           break;
         case EXIT:
-          initialLocations = ImmutableSet.of(pAnalysisEntryFunction.getExitNode());
+          initialLocations = Optionals.asSet(pAnalysisEntryFunction.getExitNode());
+          if (initialLocations.isEmpty()) {
+            logger.logf(
+                Level.SEVERE,
+                "Cannot use exit node of '%s' because it never returns in a normal way"
+                    + " (because, e.g., it always aborts the program or always executes an obvious"
+                    + " infinite loop)",
+                pAnalysisEntryFunction.getFunction().getOrigName());
+          }
           break;
         case FUNCTION_ENTRIES:
           initialLocations = ImmutableSet.copyOf(pCfa.getAllFunctionHeads());
@@ -610,7 +616,7 @@ public class CPAchecker {
               ImmutableSet.<CFANode>builder()
                   .addAll(
                       CFAUtils.getProgramSinks(
-                          pCfa, pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
+                          pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
                   .build();
 
           break;
@@ -646,10 +652,7 @@ public class CPAchecker {
     Set<CFANode> functionExitNodes = new HashSet<>();
 
     for (FunctionEntryNode node : cfa.getAllFunctionHeads()) {
-      FunctionExitNode exitNode = node.getExitNode();
-      if (cfa.getAllNodes().contains(exitNode)) {
-        functionExitNodes.add(exitNode);
-      }
+      node.getExitNode().ifPresent(functionExitNodes::add);
     }
     return functionExitNodes;
   }
