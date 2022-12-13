@@ -80,11 +80,17 @@ public class MicroBenchmarking implements Algorithm {
 
   @Option(
     secure = true,
+    required = true,
     description = "List of algorithm config files to use for the benchmarking process.")
-  private List<String> propertyFiles = List.of("micro-benchmarking-predicate.properties");
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private List<Path> propertyFiles;
 
-  @Option(secure = true, description = "List of programs to run each benchmarking algorithm on.")
-  private List<String> programFiles = List.of("loop_1.c");
+  @Option(
+    secure = true,
+    required = true,
+    description = "List of programs to run each benchmarking algorithm on.")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private List<Path> programFiles;
 
   @Option(
     secure = true,
@@ -120,24 +126,23 @@ public class MicroBenchmarking implements Algorithm {
 
       Map<String, List<Map<String, List<BenchmarkExecutionRun>>>> benchmarkTimes = new HashMap<>();
 
-      Iterator<String> propertyFilesIterator = propertyFiles.iterator();
+      Iterator<Path> propertyFilesIterator = propertyFiles.iterator();
 
 
       int index = 0;
       while (propertyFilesIterator.hasNext()) {
-        String singleConfigFileName = propertyFilesIterator.next();
+        Path singleConfigFilePath = propertyFilesIterator.next();
         List<Map<String, List<BenchmarkExecutionRun>>> times = new ArrayList<>();
-        Iterator<String> programFilesIterator = programFiles.iterator();
+        Iterator<Path> programFilesIterator = programFiles.iterator();
         while (programFilesIterator.hasNext()) {
-          String singleProgramFileName = programFilesIterator.next();
+          Path singleProgramFilePath = programFilesIterator.next();
 
           ConfigurationBuilder configurationBuilder = Configuration.builder();
-          configurationBuilder.loadFromResource(getClass(), singleConfigFileName);
+          configurationBuilder.loadFromFile(singleConfigFilePath);
           Configuration configuration = configurationBuilder.build();
           CFACreator cfaCreator = new CFACreator(configuration, logger, shutdownNotifier);
 
-          Path pathPredicate = getSourceFilePath(singleProgramFileName);
-          CFA cfa = cfaCreator.parseFileAndCreateCFA(List.of(pathPredicate.toString()));
+          CFA cfa = cfaCreator.parseFileAndCreateCFA(List.of(singleProgramFilePath.toString()));
 
           ReachedSetFactory reachedSetFactory = new ReachedSetFactory(configuration, logger);
           CPABuilder cpaBuilder =
@@ -156,18 +161,20 @@ public class MicroBenchmarking implements Algorithm {
           List<BenchmarkExecutionRun> list =
               runProgramAnalysis(ticker, algorithm, reached, reachedSetFactory, cpa, cfa);
           Map<String, List<BenchmarkExecutionRun>> map = new HashMap<>();
-          map.put(singleProgramFileName, list);
+          map.put(singleProgramFilePath.toString(), list);
           times.add(map);
 
           logger.logf(
               Level.INFO,
               "Running analysis %s on program %s",
-              singleConfigFileName.substring(singleConfigFileName.lastIndexOf('/') + 1),
-              singleProgramFileName.substring(singleProgramFileName.lastIndexOf('/') + 1));
+              singleConfigFilePath.toString()
+                  .substring(singleConfigFilePath.toString().lastIndexOf('/') + 1),
+              singleProgramFilePath.toString()
+                  .substring(singleProgramFilePath.toString().lastIndexOf('/') + 1));
 
 
         }
-        benchmarkTimes.put(singleConfigFileName + "-" + index, times);
+        benchmarkTimes.put(singleConfigFilePath.toString() + "-" + index, times);
         index++;
       }
 
@@ -236,31 +243,6 @@ public class MicroBenchmarking implements Algorithm {
     }
     return list;
   }
-
-  //  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> buildBenchmarkAlgorithm(
-  //      String propertiesFile, String sourceFile)
-  //      throws InvalidConfigurationException, IOException, ParserException, InterruptedException,
-  //          CPAException {
-  //    CFACreator cfaCreator = new CFACreator(configuration, logger, shutdownNotifier);
-  //
-  //    Path pathPredicate = getSourceFilePath(sourceFile);
-  //    CFA cfa = cfaCreator.parseFileAndCreateCFA(List.of(pathPredicate.toString()));
-  //
-  //    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(configuration, logger);
-  //    CPABuilder cpaBuilder =
-  //        new CPABuilder(configuration, logger, shutdownNotifier, reachedSetFactory);
-  //    final ConfigurableProgramAnalysis cpa =
-  //        cpaBuilder.buildCPAs(cfa, specification, AggregatedReachedSets.empty());
-  //
-  //    CoreComponentsFactory factory =
-  //        new CoreComponentsFactory(
-  //            configuration, logger, shutdownNotifier, AggregatedReachedSets.empty());
-  //    Algorithm algorithm = factory.createAlgorithm(cpa, cfa, specification);
-  //    ReachedSet reached =
-  //        reachedSetFactory.createAndInitialize(
-  //            cpa, cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
-  //    return Triple.of(algorithm, cpa, reached);
-  //  }
 
   private Path getSourceFilePath(String fileName) {
 
