@@ -134,6 +134,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String THREAD_MUTEX_TRYLOCK = "pthread_mutex_trylock";
   private static final String RW_MUTEX_READLOCK = "pthread_rwlock_rdlock";
   private static final String RW_MUTEX_WRITELOCK = "pthread_rwlock_wrlock";
+  private static final String RW_MUTEX_UNLOCK = "pthread_rwlock_unlock";
   public static final String THREAD_COND_WAIT = "pthread_cond_wait";
   public static final String THREAD_COND_TIMEDWAIT = "pthread_cond_timedwait";
   public static final String THREAD_COND_SIGNAL = "pthread_cond_signal";
@@ -153,6 +154,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           THREAD_MUTEX_TRYLOCK,
           RW_MUTEX_READLOCK,
           RW_MUTEX_WRITELOCK,
+          RW_MUTEX_UNLOCK,
           THREAD_COND_WAIT,
           THREAD_COND_TIMEDWAIT,
           THREAD_COND_SIGNAL,
@@ -311,6 +313,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
               case RW_MUTEX_WRITELOCK:
                 assert lock instanceof RWLock;
                 return addWriteLock(activeThread, (RWLock) lock, results);
+              case RW_MUTEX_UNLOCK:
+                assert lock instanceof RWLock;
+                return removeLock(activeThread, lock, results);
               case THREAD_COND_WAIT:
               case THREAD_COND_TIMEDWAIT:
                 return addCondition(
@@ -815,6 +820,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         break;
       case RW_MUTEX_READLOCK:
       case RW_MUTEX_WRITELOCK:
+      case RW_MUTEX_UNLOCK:
         lockExpression = functionCall.getFunctionCallExpression().getParameterExpressions().get(0);
         lockInfo = extractLock(lockExpression, threadingState, LockType.RW_MUTEX);
         break;
