@@ -719,6 +719,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return !isStopStateUnreachable;
   }
 
+  /** Check if the safety property can be proven by <i>k</i>-induction */
   private boolean isPropertyInductive(
       ReachedSet pReachedSet, PartitionedFormulas formulas, BooleanFormula loopInv)
       throws InterruptedException, SolverException {
@@ -851,24 +852,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               currentImage)) {
         // Step 3: check if external invariant is inductive
         logger.log(Level.FINE, "Checking inductiveness of invariant ");
-        BooleanFormula invariantTransition =
-            bfmgr.and(
-                fmgr.instantiate(loopInv, formulas.getPrefixSsaMap()), formulas.getLoopFormula(0));
-        BooleanFormula nextInvariant = fmgr.instantiate(loopInv, formulas.getSsaMapOfLoop(0));
-        if (solver.implies(invariantTransition, nextInvariant)) {
+        if (formulas.checkInductivenessOf(solver, loopInv)) {
           logger.log(Level.INFO, "Fixed point reached with external inductive invariants");
           finalFixedPoint = fmgr.uninstantiate(currentImage);
           return true;
         }
         // Step 4: check if image is relatively inductive to the external invariant
         logger.log(Level.FINE, "Checking relative inductiveness of image");
-        BooleanFormula currentImageTransition =
-            bfmgr.and(
-                fmgr.instantiate(loopInv, formulas.getPrefixSsaMap()),
-                currentImage,
-                formulas.getLoopFormula(0));
-        BooleanFormula nextImage = fmgr.instantiate(currentImage, formulas.getSsaMapOfLoop(0));
-        if (solver.implies(currentImageTransition, nextImage)) {
+        if (formulas.checkRelativeInductivenssOf(solver, currentImage, loopInv)) {
           logger.log(Level.INFO, "Fixed point reached with external invariants");
           finalFixedPoint = currentImage;
           return true;
@@ -984,24 +975,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         if (!bfmgr.isTrue(loopInv) && solver.implies(bfmgr.and(imageAtI, loopInv), currentImage)) {
           // Step 3: check if external invariant is inductive
           logger.log(Level.FINE, "Checking inductiveness of invariant ");
-          BooleanFormula invariantTransition =
-              bfmgr.and(
-                  fmgr.instantiate(loopInv, formulas.getPrefixSsaMap()),
-                  formulas.getLoopFormula(0));
-          BooleanFormula nextInvariant = fmgr.instantiate(loopInv, formulas.getSsaMapOfLoop(0));
-          if (solver.implies(invariantTransition, nextInvariant)) {
+          if (formulas.checkInductivenessOf(solver, loopInv)) {
             logger.log(Level.INFO, "Fixed point reached with external inductive invariants");
             finalFixedPoint = currentImage;
             return true;
           }
           // Step 4: check if image is relatively inductive to the external invariant
           logger.log(Level.FINE, "Checking relative inductiveness of image");
-          BooleanFormula currentImageTransition =
-              bfmgr.and(
-                  fmgr.instantiate(bfmgr.and(loopInv, currentImage), formulas.getPrefixSsaMap()),
-                  formulas.getLoopFormula(0));
-          BooleanFormula nextImage = fmgr.instantiate(currentImage, formulas.getSsaMapOfLoop(0));
-          if (solver.implies(currentImageTransition, nextImage)) {
+          if (formulas.checkRelativeInductivenssOf(solver, currentImage, loopInv)) {
             logger.log(Level.INFO, "Fixed point reached with external invariants");
             finalFixedPoint = currentImage;
             return true;

@@ -23,7 +23,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * This class provides a formula representation for {@link IMCAlgorithm}. It stores the following
@@ -176,5 +179,28 @@ class PartitionedFormulas {
       logger.log(Level.ALL, "Loop ", i, ": ", loopFormulas.get(i));
     }
     logger.log(Level.ALL, "Target:", targetAssertion);
+  }
+
+  /**
+   * Check whether the given formula <i>f</i> is inductive w.r.t the transition relation <i>T</i>,
+   * i.e. whether <i>f &and; T &rArr; f'</i>.
+   */
+  boolean checkInductivenessOf(Solver solver, BooleanFormula f)
+      throws SolverException, InterruptedException {
+    return checkRelativeInductivenssOf(solver, f, bfmgr.makeTrue());
+  }
+
+  /**
+   * Check whether the given formula <i>f</i> is inductive relative to formula <i>g</i> w.r.t the
+   * transition relation <i>T</i>, i.e. whether <i>f &and; g &and; T &rArr; f'</i>.
+   */
+  boolean checkRelativeInductivenssOf(Solver solver, BooleanFormula f, BooleanFormula g)
+      throws SolverException, InterruptedException {
+    checkState(isInitialized, UNINITIALIZED_MSG);
+    FormulaManagerView fmgr = solver.getFormulaManager();
+    BooleanFormula currentImage =
+        bfmgr.and(fmgr.instantiate(f, getPrefixSsaMap()), fmgr.instantiate(g, getPrefixSsaMap()));
+    BooleanFormula nextImage = fmgr.instantiate(f, getSsaMapOfLoop(0));
+    return solver.implies(bfmgr.and(currentImage, getLoopFormula(0)), nextImage);
   }
 }
