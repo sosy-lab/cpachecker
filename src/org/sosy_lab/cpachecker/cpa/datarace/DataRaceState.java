@@ -11,12 +11,13 @@ package org.sosy_lab.cpachecker.cpa.datarace;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.cpa.threading.locks.LockInfo;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 public class DataRaceState implements AbstractQueryableState {
@@ -27,9 +28,9 @@ public class DataRaceState implements AbstractQueryableState {
   private final ImmutableSet<MemoryAccess> accessesWithSubsequentWrites;
   private final ImmutableMap<String, ThreadInfo> threadInfo;
   private final ImmutableSet<ThreadSynchronization> threadSynchronizations;
-  private final ImmutableSetMultimap<String, String> heldLocks;
+  private final ImmutableSetMultimap<String, LockInfo> heldLocks;
   private final ImmutableMap<String, String> conditionWaits;
-  private final ImmutableSet<LockRelease> lastReleases;
+  private final ImmutableSetMultimap<String, LockRelease> lastReleases;
   private final ImmutableSet<WaitInfo> waitInfo;
   private final boolean hasDataRace;
 
@@ -41,7 +42,7 @@ public class DataRaceState implements AbstractQueryableState {
         ImmutableSet.of(),
         ImmutableSetMultimap.of(),
         ImmutableMap.of(),
-        ImmutableSet.of(),
+        ImmutableSetMultimap.of(),
         ImmutableSet.of(),
         pHasDataRace);
   }
@@ -51,9 +52,9 @@ public class DataRaceState implements AbstractQueryableState {
       Set<MemoryAccess> pAccessesWithSubsequentWrites,
       Map<String, ThreadInfo> pThreadInfo,
       Set<ThreadSynchronization> pThreadSynchronizations,
-      SetMultimap<String, String> pHeldLocks,
+      SetMultimap<String, LockInfo> pHeldLocks,
       Map<String, String> pConditionWaits,
-      Set<LockRelease> pLastReleases,
+      Multimap<String, LockRelease> pLastReleases,
       Set<WaitInfo> pWaitInfo,
       boolean pHasDataRace) {
     memoryAccesses = ImmutableSet.copyOf(pMemoryAccesses);
@@ -62,7 +63,7 @@ public class DataRaceState implements AbstractQueryableState {
     threadSynchronizations = ImmutableSet.copyOf(pThreadSynchronizations);
     heldLocks = ImmutableSetMultimap.copyOf(pHeldLocks);
     conditionWaits = ImmutableMap.copyOf(pConditionWaits);
-    lastReleases = ImmutableSet.copyOf(pLastReleases);
+    lastReleases = ImmutableSetMultimap.copyOf(pLastReleases);
     waitInfo = ImmutableSet.copyOf(pWaitInfo);
     hasDataRace = pHasDataRace;
   }
@@ -83,7 +84,7 @@ public class DataRaceState implements AbstractQueryableState {
     return threadSynchronizations;
   }
 
-  public ImmutableSetMultimap<String, String> getHeldLocks() {
+  public ImmutableSetMultimap<String, LockInfo> getHeldLocks() {
     return heldLocks;
   }
 
@@ -91,25 +92,12 @@ public class DataRaceState implements AbstractQueryableState {
     return conditionWaits;
   }
 
-  public Set<LockRelease> getLastReleases() {
+  public Multimap<String, LockRelease> getLastReleases() {
     return lastReleases;
   }
 
   Set<WaitInfo> getWaitInfo() {
     return waitInfo;
-  }
-
-  Set<String> getLocksForThread(String threadId) {
-    return heldLocks.get(threadId);
-  }
-
-  @Nullable LockRelease getLastReleaseForLock(String lock) {
-    for (LockRelease release : lastReleases) {
-      if (release.getLockId().equals(lock)) {
-        return release;
-      }
-    }
-    return null;
   }
 
   boolean hasDataRace() {

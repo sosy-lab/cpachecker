@@ -236,7 +236,7 @@ public class ThreadingState
     return withLocks(locks.putAndCopy(lockInfo.getLockId(), lockInfo));
   }
 
-  LockInfo getLock(String lockId) {
+  public LockInfo getLock(String lockId) {
     Preconditions.checkNotNull(lockId);
     Preconditions.checkArgument(locks.containsKey(lockId));
     return locks.get(lockId);
