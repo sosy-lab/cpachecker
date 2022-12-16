@@ -337,6 +337,9 @@ refaster:
   # so far does not work with Java 17:
   # https://github.com/google/error-prone/issues/3553
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+  # https://github.com/google/error-prone/issues/3484 has started to appear with Error Prone 2.15 as well,
+  # we have to wait for a fix in Error Prone 2.17
+  allow_failure: true
 
 
 # Disable some checks because they are not used for CPAchecker
