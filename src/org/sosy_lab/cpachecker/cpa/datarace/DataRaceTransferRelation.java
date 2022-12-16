@@ -129,6 +129,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
             functionCall = (AFunctionCallStatement) statement;
           }
           break;
+        default:
+          // Other edge types shouldn't contain function calls
       }
       Set<WaitInfo> newWaitInfo = new HashSet<>(state.getWaitInfo());
       if (functionCall != null) {
