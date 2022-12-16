@@ -18,7 +18,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-dataRaceAnalysis"/>
   
   <rundefinition>
-    <tasks name="NoDataRace-Main">
+    <tasks>
       <includesfile>../programs/benchmarks/NoDataRace-Main.set</includesfile>
       <propertyfile>../programs/benchmarks/properties/no-data-race.prp</propertyfile>
     </tasks>
