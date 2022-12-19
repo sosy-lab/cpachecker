@@ -74,7 +74,6 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 public class InvariantGeneratorForBMC implements StatisticsProvider {
   public enum InvariantGeneratorFactory {
     INDUCTION {
-
       @Override
       public InvariantGenerator createInvariantGenerator(
           Configuration pConfig,
@@ -143,7 +142,6 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
     },
 
     DO_NOTHING {
-
       @Override
       public InvariantGenerator createInvariantGenerator(
           Configuration pConfig,
@@ -198,7 +196,6 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
 
   private enum InvariantGeneratorHeadStartFactories {
     NONE {
-
       @Override
       public InvariantGeneratorHeadStart createFor(
           InvariantGeneratorForBMC pInvariantGeneratorForBMC) {
@@ -213,7 +210,6 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
     },
 
     AWAIT_TERMINATION {
-
       @Override
       public InvariantGeneratorHeadStart createFor(
           InvariantGeneratorForBMC pInvariantGeneratorForBMC) {
@@ -237,7 +233,6 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
     },
 
     WAIT_UNTIL_EXPENSIVE_ADJUSTMENT {
-
       @Override
       InvariantGeneratorHeadStart createFor(InvariantGeneratorForBMC pInvariantGeneratorForBMC) {
         CountDownLatch latch = new CountDownLatch(1);

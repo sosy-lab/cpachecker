@@ -263,7 +263,7 @@ abstract class AbstractBMCAlgorithm
             pSpecification,
             pAggregatedReachedSets,
             targetLocationProvider,
-            bfmgr.makeFalse());
+            bfmgr.makeTrue());
   }
 
   static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
