@@ -16,8 +16,10 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.TH
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_COND_SIGNAL;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_COND_TIMEDWAIT;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_COND_WAIT;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_JOIN;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_MUTEX_LOCK;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_MUTEX_UNLOCK;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_START;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.getFunctionName;
 
 import com.google.common.collect.ImmutableList;
@@ -29,6 +31,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -342,10 +345,54 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       throw new CPATransferException("DataRaceCPA does not support function " + functionName);
     }
 
+    Map<String, ThreadInfo> threadInfo = new HashMap<>(state.getThreadInfo());
+    for (Entry<String, ThreadInfo> entry : threadInfo.entrySet()) {
+      if (entry.getKey().equals(activeThread)) {
+        threadInfo.put(
+            activeThread, new ThreadInfo(activeThread, entry.getValue().getEpoch() + 1, true));
+      }
+    }
+
     Multimap<String, LockRelease> newReleases = LinkedHashMultimap.create();
     newReleases.putAll(state.getLastReleases());
 
     switch (functionName) {
+      case THREAD_START:
+        {
+          AExpression threadExpression =
+              pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
+          String newThreadId = ((CUnaryExpression) threadExpression).getOperand().toString();
+
+          ThreadInfo addedThreadInfo;
+          if (state.getThreadInfo().containsKey(newThreadId)) {
+            addedThreadInfo =
+                new ThreadInfo(
+                    newThreadId, state.getThreadInfo().get(newThreadId).getEpoch() + 1, true);
+          } else {
+            addedThreadInfo = new ThreadInfo(newThreadId, 0, true);
+          }
+          threadInfo.put(newThreadId, addedThreadInfo);
+
+          // Thread creation synchronizes-with the created thread
+          threadSynchronizations.add(
+              new ThreadSynchronization(
+                  activeThread,
+                  newThreadId,
+                  state.getThreadInfo().get(activeThread).getEpoch() + 1,
+                  addedThreadInfo.getEpoch()));
+          break;
+        }
+      case THREAD_JOIN:
+        {
+          AExpression threadExpression =
+              pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
+          String joinedThreadId = ((CUnaryExpression) threadExpression).getOperand().toString();
+
+          threadInfo.put(
+              joinedThreadId,
+              new ThreadInfo(joinedThreadId, threadInfo.get(joinedThreadId).getEpoch(), false));
+          break;
+        }
       case THREAD_MUTEX_LOCK:
         {
           AExpression lockExpression =
