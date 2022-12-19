@@ -108,9 +108,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       Set<String> activeThreadLocks = threadingState.getLocksForThread(activeThread);
       ImmutableSetMultimap<String, LockInfo> heldLocks =
           updateHeldLocks(state, threadingState, activeThread, activeThreadLocks);
-      ImmutableMap<String, String> conditionWaits =
-          updateConditionWaits(
-              state, activeThread, threadingState.getCondVarForThread(activeThread));
       Multimap<String, LockRelease> lastReleases = state.getLastReleases();
 
       // Handle threading-related functions
@@ -137,9 +134,9 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         lastReleases =
             handleThreadFunctions(
                 state,
+                threadingState,
                 functionCall,
                 newThreadInfo.get(activeThread),
-                conditionWaits,
                 newWaitInfo,
                 synchronizationBuilder);
       }
@@ -241,7 +238,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
               newThreadInfo,
               threadSynchronizations,
               heldLocks,
-              conditionWaits,
               lastReleases,
               newWaitInfo,
               hasDataRace));
@@ -279,26 +275,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       }
     }
     return newHeldLocks.build();
-  }
-
-  private ImmutableMap<String, String> updateConditionWaits(
-      DataRaceState state, String activeThread, ConditionVariable condVar) {
-    ImmutableMap.Builder<String, String> conditionWaits = ImmutableMap.builder();
-
-    if (condVar != null) {
-      // The active thread is now waiting on a condition variable
-      assert !state.getConditionWaits().containsKey(activeThread);
-      conditionWaits.put(activeThread, condVar.getName());
-    }
-
-    // For other threads nothing changes
-    for (Entry<String, String> entry : state.getConditionWaits().entrySet()) {
-      if (!entry.getKey().equals(activeThread)) {
-        conditionWaits.put(entry);
-      }
-    }
-
-    return conditionWaits.buildOrThrow();
   }
 
   /**
@@ -352,9 +328,9 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
   private Multimap<String, LockRelease> handleThreadFunctions(
       DataRaceState state,
+      ThreadingState threadingState,
       AFunctionCall pFunctionCall,
       ThreadInfo pActiveThreadInfo,
-      ImmutableMap<String, String> conditionWaits,
       Set<WaitInfo> pWaitInfo,
       ImmutableSet.Builder<ThreadSynchronization> threadSynchronizations)
       throws CPATransferException {
@@ -477,26 +453,31 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         }
       case THREAD_COND_SIGNAL:
       case THREAD_COND_BC:
-        AExpression condVarExpression =
-            pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
-        String condVar = ((CUnaryExpression) condVarExpression).getOperand().toString();
+        {
+          AExpression condVarExpression =
+              pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
+          String condVar = ((CUnaryExpression) condVarExpression).getOperand().toString();
 
-        Set<WaitInfo> toRemove = new HashSet<>();
-        for (WaitInfo waitInfo : pWaitInfo) {
-          if (waitInfo.getWaitingOn().equals(condVar)) {
-            threadSynchronizations.add(
-                new ThreadSynchronization(
-                    // TODO: Order correct?
-                    activeThread, waitInfo.getWaitingThread(), epoch, waitInfo.getEpoch()));
-            toRemove.add(waitInfo);
+          Set<WaitInfo> toRemove = new HashSet<>();
+          for (WaitInfo waitInfo : pWaitInfo) {
+            if (waitInfo.getWaitingOn().equals(condVar)) {
+              threadSynchronizations.add(
+                  new ThreadSynchronization(
+                      // TODO: Order correct?
+                      activeThread, waitInfo.getWaitingThread(), epoch, waitInfo.getEpoch()));
+              toRemove.add(waitInfo);
+            }
           }
+          pWaitInfo.removeAll(toRemove);
+          break;
         }
-        pWaitInfo.removeAll(toRemove);
-        break;
       case THREAD_COND_WAIT:
       case THREAD_COND_TIMEDWAIT:
-        pWaitInfo.add(new WaitInfo(activeThread, conditionWaits.get(activeThread), epoch));
-        break;
+        {
+          ConditionVariable condVar = threadingState.getCondVarForThread(activeThread);
+          pWaitInfo.add(new WaitInfo(activeThread, condVar.getName(), epoch));
+          break;
+        }
       default:
         // TODO: Uncomment check once all thread functions are handled
         // if (THREAD_FUNCTIONS.contains(functionName)) {

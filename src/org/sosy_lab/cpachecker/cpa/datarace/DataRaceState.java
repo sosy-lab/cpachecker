@@ -29,7 +29,6 @@ public class DataRaceState implements AbstractQueryableState {
   private final ImmutableMap<String, ThreadInfo> threadInfo;
   private final ImmutableSet<ThreadSynchronization> threadSynchronizations;
   private final ImmutableSetMultimap<String, LockInfo> heldLocks;
-  private final ImmutableMap<String, String> conditionWaits;
   private final ImmutableSetMultimap<String, LockRelease> lastReleases;
   private final ImmutableSet<WaitInfo> waitInfo;
   private final boolean hasDataRace;
@@ -41,7 +40,6 @@ public class DataRaceState implements AbstractQueryableState {
         pThreadInfo,
         ImmutableSet.of(),
         ImmutableSetMultimap.of(),
-        ImmutableMap.of(),
         ImmutableSetMultimap.of(),
         ImmutableSet.of(),
         pHasDataRace);
@@ -53,7 +51,6 @@ public class DataRaceState implements AbstractQueryableState {
       Map<String, ThreadInfo> pThreadInfo,
       Set<ThreadSynchronization> pThreadSynchronizations,
       SetMultimap<String, LockInfo> pHeldLocks,
-      Map<String, String> pConditionWaits,
       Multimap<String, LockRelease> pLastReleases,
       Set<WaitInfo> pWaitInfo,
       boolean pHasDataRace) {
@@ -62,7 +59,6 @@ public class DataRaceState implements AbstractQueryableState {
     threadInfo = ImmutableMap.copyOf(pThreadInfo);
     threadSynchronizations = ImmutableSet.copyOf(pThreadSynchronizations);
     heldLocks = ImmutableSetMultimap.copyOf(pHeldLocks);
-    conditionWaits = ImmutableMap.copyOf(pConditionWaits);
     lastReleases = ImmutableSetMultimap.copyOf(pLastReleases);
     waitInfo = ImmutableSet.copyOf(pWaitInfo);
     hasDataRace = pHasDataRace;
@@ -86,10 +82,6 @@ public class DataRaceState implements AbstractQueryableState {
 
   public ImmutableSetMultimap<String, LockInfo> getHeldLocks() {
     return heldLocks;
-  }
-
-  Map<String, String> getConditionWaits() {
-    return conditionWaits;
   }
 
   public Multimap<String, LockRelease> getLastReleases() {
@@ -143,7 +135,6 @@ public class DataRaceState implements AbstractQueryableState {
         && threadInfo.equals(that.threadInfo)
         && threadSynchronizations.equals(that.threadSynchronizations)
         && heldLocks.equals(that.heldLocks)
-        && conditionWaits.equals(that.conditionWaits)
         && lastReleases.equals(that.lastReleases)
         && waitInfo.equals(that.waitInfo);
   }
@@ -156,7 +147,6 @@ public class DataRaceState implements AbstractQueryableState {
         threadInfo,
         threadSynchronizations,
         heldLocks,
-        conditionWaits,
         lastReleases,
         waitInfo,
         hasDataRace);
