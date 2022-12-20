@@ -443,6 +443,7 @@ class TaintTransferRelation extends ForwardingTransferRelation<TaintState, Taint
 
         // TODO: handle pointers properly
         if (mode == Mode.DEF) {
+          partialDefs = true; // `UNKNOWN` can be the target of many pointers
           defs.add(UNKNOWN);
         } else {
           uses.add(UNKNOWN);
@@ -499,6 +500,7 @@ class TaintTransferRelation extends ForwardingTransferRelation<TaintState, Taint
 
       // TODO: handle pointers
       if (mode == Mode.DEF) {
+        partialDefs = true; // `UNKNOWN` can be the target of many pointers
         defs.add(UNKNOWN);
       } else {
         uses.add(UNKNOWN);
