@@ -221,7 +221,12 @@ class TaintTransferRelation extends ForwardingTransferRelation<TaintState, Taint
           newTaintState = newTaintState.taint(pEdge);
         }
         if (taintSinkFunctions.contains(calledFunctionName)) {
-          newTaintState = newTaintState.taintError();
+          DefUseCollector defUseCollector = new DefUseCollector();
+          functionCall.accept(defUseCollector);
+          if (newTaintState.isTainted(pEdge)
+              || containsTaintedUse(newTaintState, defUseCollector.getUses())) {
+            newTaintState = newTaintState.taintedSink();
+          }
         }
       }
     }

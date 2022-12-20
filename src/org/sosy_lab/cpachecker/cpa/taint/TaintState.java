@@ -74,7 +74,7 @@ class TaintState implements AbstractState, AbstractQueryableState {
     return taintedMemoryLocations.containsKey(pMemoryLocation);
   }
 
-  public TaintState taintError() {
+  public TaintState taintedSink() {
     return new TaintState(true, taintedEdges, taintedMemoryLocations);
   }
 
