@@ -18,6 +18,7 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.TH
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_COND_WAIT;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_JOIN;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_MUTEX_LOCK;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_MUTEX_TRYLOCK;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_MUTEX_UNLOCK;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_START;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.getFunctionName;
@@ -394,10 +395,17 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           break;
         }
       case THREAD_MUTEX_LOCK:
+      case THREAD_MUTEX_TRYLOCK:
         {
           AExpression lockExpression =
               pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
           String lockId = ((CUnaryExpression) lockExpression).getOperand().toString();
+
+          if (functionName.equals(THREAD_MUTEX_TRYLOCK)
+              && !threadingState.isLockHeld(activeThread, lockId)) {
+            // Trylock did not succeed, no new synchronization
+            break;
+          }
 
           Collection<LockRelease> lastReleases = newReleases.get(lockId);
           assert lastReleases.size() < 2 : "Expected at most one last release for regular mutex";
