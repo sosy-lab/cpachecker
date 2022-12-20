@@ -11,6 +11,6 @@ CONTROL AUTOMATON TAINTSTATUS
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  CHECK(TaintAnalysisCPA, "taint-error") -> ERROR("taint-error: unsafe call with tainted values in $location");
+  CHECK(TaintAnalysisCPA, "tainted-sink") -> ERROR("tainted-sink: unsafe call with tainted values in $location");
 
 END AUTOMATON

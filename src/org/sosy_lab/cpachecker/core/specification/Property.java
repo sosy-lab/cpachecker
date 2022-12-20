@@ -112,7 +112,7 @@ public interface Property {
 
     DEADLOCK("G ! deadlock"),
 
-    TAINT_ERROR("G ! taint-error"),
+    TAINTED_SINK("G ! tainted-sink"),
 
     TERMINATION("F end"),
 

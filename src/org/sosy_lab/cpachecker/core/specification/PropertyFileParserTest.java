@@ -80,7 +80,8 @@ public class PropertyFileParserTest {
           // expected to come
           .put("CHECK( init(main()), LTL(G ! deadlock) )", CommonVerificationProperty.DEADLOCK)
           .put(
-              "CHECK( init(main()), LTL(G ! taint-error) )", CommonVerificationProperty.TAINT_ERROR)
+              "CHECK( init(main()), LTL(G ! tainted-sink) )",
+              CommonVerificationProperty.TAINTED_SINK)
           // non-hardcoded values
           .put(
               "COVER( init(main()), FQL(COVER EDGES(@CALL(some_arbitrary_function))) )",

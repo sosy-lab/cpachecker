@@ -22,22 +22,22 @@ class TaintState implements AbstractState, AbstractQueryableState {
 
   public static final TaintState INITIAL_STATE = new TaintState(false);
 
-  private final boolean taintError;
+  private final boolean taintedSink;
 
   private final PersistentSortedMap<CFAEdge, Void> taintedEdges;
   private final PersistentSortedMap<MemoryLocation, Void> taintedMemoryLocations;
 
-  private TaintState(boolean pTaintError) {
-    taintError = pTaintError;
+  private TaintState(boolean pSinkTainted) {
+    taintedSink = pSinkTainted;
     taintedEdges = PathCopyingPersistentTreeMap.<CFAEdge, Void>of();
     taintedMemoryLocations = PathCopyingPersistentTreeMap.<MemoryLocation, Void>of();
   }
 
   private TaintState(
-      boolean pTaintError,
+      boolean pSinkTainted,
       PersistentSortedMap<CFAEdge, Void> pTaintedEdges,
       PersistentSortedMap<MemoryLocation, Void> pTaintedMemoryLocations) {
-    taintError = pTaintError;
+    taintedSink = pSinkTainted;
     taintedEdges = pTaintedEdges;
     taintedMemoryLocations = pTaintedMemoryLocations;
   }
@@ -59,8 +59,8 @@ class TaintState implements AbstractState, AbstractQueryableState {
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    if (pProperty.equals("taint-error")) {
-      return taintError;
+    if (pProperty.equals("tainted-sink")) {
+      return taintedSink;
     } else {
       return AbstractQueryableState.super.checkProperty(pProperty);
     }
@@ -79,7 +79,7 @@ class TaintState implements AbstractState, AbstractQueryableState {
   }
 
   public boolean containsAll(TaintState pOther) {
-    if (taintError && !pOther.taintError) {
+    if (taintedSink && !pOther.taintedSink) {
       return false;
     }
     for (CFAEdge edge : taintedEdges.keySet()) {
@@ -97,28 +97,28 @@ class TaintState implements AbstractState, AbstractQueryableState {
 
   public TaintState taint(CFAEdge pEdge) {
     PersistentSortedMap<CFAEdge, Void> newTaintedEdges = taintedEdges.putAndCopy(pEdge, null);
-    return new TaintState(taintError, newTaintedEdges, taintedMemoryLocations);
+    return new TaintState(taintedSink, newTaintedEdges, taintedMemoryLocations);
   }
 
   public TaintState taint(MemoryLocation pMemoryLocation) {
     PersistentSortedMap<MemoryLocation, Void> newTaintedMemoryLocations =
         taintedMemoryLocations.putAndCopy(pMemoryLocation, null);
-    return new TaintState(taintError, taintedEdges, newTaintedMemoryLocations);
+    return new TaintState(taintedSink, taintedEdges, newTaintedMemoryLocations);
   }
 
   public TaintState untaint(CFAEdge pEdge) {
     PersistentSortedMap<CFAEdge, Void> newTaintedEdges = taintedEdges.removeAndCopy(pEdge);
-    return new TaintState(taintError, newTaintedEdges, taintedMemoryLocations);
+    return new TaintState(taintedSink, newTaintedEdges, taintedMemoryLocations);
   }
 
   public TaintState untaint(MemoryLocation pMemoryLocation) {
     PersistentSortedMap<MemoryLocation, Void> newTaintedMemoryLocations =
         taintedMemoryLocations.removeAndCopy(pMemoryLocation);
-    return new TaintState(taintError, taintedEdges, newTaintedMemoryLocations);
+    return new TaintState(taintedSink, taintedEdges, newTaintedMemoryLocations);
   }
 
   public TaintState union(TaintState pOther) {
-    boolean newTaintError = taintError || pOther.taintError;
+    boolean newTaintError = taintedSink || pOther.taintedSink;
     PersistentSortedMap<CFAEdge, Void> newTaintedEdges = union(taintedEdges, pOther.taintedEdges);
     PersistentSortedMap<MemoryLocation, Void> newTaintedMemoryLocations =
         union(taintedMemoryLocations, pOther.taintedMemoryLocations);
@@ -127,7 +127,7 @@ class TaintState implements AbstractState, AbstractQueryableState {
 
   @Override
   public int hashCode() {
-    return Objects.hash(taintError, taintedEdges, taintedMemoryLocations);
+    return Objects.hash(taintedSink, taintedEdges, taintedMemoryLocations);
   }
 
   @Override
@@ -150,7 +150,7 @@ class TaintState implements AbstractState, AbstractQueryableState {
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
-        .add("taintError", taintError)
+        .add("taintedSink", taintedSink)
         .add("taintedEdges", taintedEdges)
         .add("taintedMemoryLocations", taintedMemoryLocations)
         .toString();
