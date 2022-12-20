@@ -126,7 +126,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   public static final String THREAD_START = "pthread_create";
   public static final String THREAD_JOIN = "pthread_join";
-  private static final String THREAD_EXIT = "pthread_exit";
+  public static final String THREAD_EXIT = "pthread_exit";
   private static final String MUTEX_TYPE = "pthread_mutex_t";
   private static final String RW_MUTEX_TYPE = "pthread_rwlock_t";
   public static final String THREAD_MUTEX_LOCK = "pthread_mutex_lock";
@@ -140,8 +140,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   public static final String THREAD_COND_SIGNAL = "pthread_cond_signal";
   public static final String THREAD_COND_BC = "pthread_cond_broadcast";
   private static final String VERIFIER_ATOMIC = "__VERIFIER_atomic_";
-  private static final String VERIFIER_ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
-  private static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
+  public static final String VERIFIER_ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
+  public static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
   private static final String ATOMIC_LOCK = "__CPAchecker_atomic_lock__";
   public static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
   private static final String THREAD_ID_SEPARATOR = "__CPAchecker__";

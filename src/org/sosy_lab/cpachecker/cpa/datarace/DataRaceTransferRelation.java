@@ -16,11 +16,15 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.TH
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_COND_SIGNAL;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_COND_TIMEDWAIT;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_COND_WAIT;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_EXIT;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_FUNCTIONS;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_JOIN;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_MUTEX_LOCK;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_MUTEX_TRYLOCK;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_MUTEX_UNLOCK;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_START;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.VERIFIER_ATOMIC_BEGIN;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.VERIFIER_ATOMIC_END;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.getFunctionName;
 
 import com.google.common.collect.ImmutableList;
@@ -533,12 +537,21 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           pWaitInfo.add(new WaitInfo(activeThread, condVar.getName(), epoch));
           break;
         }
+      case THREAD_EXIT:
+      case VERIFIER_ATOMIC_BEGIN:
+      case VERIFIER_ATOMIC_END:
+        {
+          // No special handling needed
+          break;
+        }
       default:
-        // TODO: Uncomment check once all thread functions are handled
-        // if (THREAD_FUNCTIONS.contains(functionName)) {
-        //  throw new AssertionError("Unhandled thread function");
-        // }
-        // Nothing to do
+        {
+          if (THREAD_FUNCTIONS.contains(functionName)) {
+            throw new AssertionError("Unhandled thread function");
+          }
+          // Nothing to do
+          break;
+        }
     }
     return newReleases;
   }
