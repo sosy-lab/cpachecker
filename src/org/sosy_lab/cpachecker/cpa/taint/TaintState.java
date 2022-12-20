@@ -142,7 +142,7 @@ class TaintState implements AbstractState, AbstractQueryableState {
     }
 
     TaintState other = (TaintState) pOther;
-    return taintedEdges == other.taintedEdges
+    return taintedSink == other.taintedSink
         && Objects.equals(taintedEdges, other.taintedEdges)
         && Objects.equals(taintedMemoryLocations, other.taintedMemoryLocations);
   }
