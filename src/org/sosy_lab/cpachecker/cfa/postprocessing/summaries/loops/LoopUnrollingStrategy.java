@@ -81,11 +81,19 @@ public class LoopUnrollingStrategy extends LoopStrategy {
 
     return Optional.of(
         new GhostCFA(
-            startNodeGhostCFA, endNodeGhostCFA, pBeforeWhile, pBeforeWhile, this.strategyEnum, new ArrayList<>(), StrategyQualifier.OverApproximating));
+            startNodeGhostCFA,
+            endNodeGhostCFA,
+            pBeforeWhile,
+            pBeforeWhile,
+            this.strategyEnum,
+            new ArrayList<>(),
+            StrategyQualifier.Underapproximating));
   }
 
   @Override
   public Optional<GhostCFA> summarize(final CFANode beforeWhile) {
+    // TODO: Make this a dynamic underapproximating strategy dependent on the amount of loop
+    // unrollings
     Optional<CFANode> maybeLoopHead = this.determineLoopHead(beforeWhile);
     if (maybeLoopHead.isEmpty()) {
       return Optional.empty();

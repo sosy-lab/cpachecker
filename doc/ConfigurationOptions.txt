@@ -866,7 +866,8 @@ cfa.summaries = false
 # Dependencies between the Different Strategies
 cfa.summaries.dependencies = BASESTRATEGYDEPENDENCY
   enum:     [NOSTRATEGYDEPENDENCY, BASESTRATEGYDEPENDENCY, LOOPSTRATEGYDEPENDENCY,
-             LOOPSTRATEGYMOSTGENERALORDERINGDEPENDENCY, LOOPSTRATEGYOVERFLOWDEPENDENCY]
+             LOOPSTRATEGYMOSTGENERALORDERINGDEPENDENCY, LOOPSTRATEGYOVERFLOWDEPENDENCY,
+             UNDERAPPROXIMATINGDEPENDENCY]
 
 # once enabled, this will create a copy of the input program in the output
 # directory where parts of the program have been replaced by the
@@ -4423,7 +4424,8 @@ stop = "SEP"
 # Dependencies between the Different Strategies
 summaries.transfer = BASESTRATEGYDEPENDENCY
   enum:     [NOSTRATEGYDEPENDENCY, BASESTRATEGYDEPENDENCY, LOOPSTRATEGYDEPENDENCY,
-             LOOPSTRATEGYMOSTGENERALORDERINGDEPENDENCY, LOOPSTRATEGYOVERFLOWDEPENDENCY]
+             LOOPSTRATEGYMOSTGENERALORDERINGDEPENDENCY, LOOPSTRATEGYOVERFLOWDEPENDENCY,
+             UNDERAPPROXIMATINGDEPENDENCY]
 
 # compress the produced violation-witness automata using GZIP compression.
 termination.compressWitness = true

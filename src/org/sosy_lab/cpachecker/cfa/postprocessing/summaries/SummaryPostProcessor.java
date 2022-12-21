@@ -96,6 +96,7 @@ public class SummaryPostProcessor implements StatisticsProvider {
     List<CFANode> newNodes = new ArrayList<>();
     Set<CFANode> visitedNodes = new HashSet<>();
     while (!fixpoint) {
+      fixpoint = true;
       ghostCfaToBeAdded = new ArrayList<>();
 
       currentNodes.add(startNode);

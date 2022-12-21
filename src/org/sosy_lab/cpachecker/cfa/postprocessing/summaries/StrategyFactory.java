@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.LoopUnrollingS
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.NaiveLoopAccelerationStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.NondetBoundConstantExtrapolationStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.OutputLoopAccelerationStrategy;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.underapproximating.NondetVariableAssignmentStrategy;
 
 public class StrategyFactory {
 
@@ -67,6 +68,9 @@ public class StrategyFactory {
         return new HavocStrategy(logger, shutdownNotifier, strategyDependencies, cfa);
       case ABSTRACTACCELERATIONSTRATEGY:
         return new AbstractAccelerationStrategy(
+            logger, shutdownNotifier, strategyDependencies, cfa);
+      case NONDETVARIABLEASSIGNMENTSTRATEGY:
+        return new NondetVariableAssignmentStrategy(
             logger, shutdownNotifier, strategyDependencies, cfa);
       default:
         return null;

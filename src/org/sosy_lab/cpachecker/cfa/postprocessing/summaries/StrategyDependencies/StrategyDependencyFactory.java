@@ -23,6 +23,8 @@ public class StrategyDependencyFactory {
         return new LoopStrategyOverflowDependency();
       case NOSTRATEGYDEPENDENCY:
         return new NoStrategyDependency();
+      case UNDERAPPROXIMATINGDEPENDENCY:
+        return new UnderapproximatingStrategyDependency();
       default:
         return null;
     }
