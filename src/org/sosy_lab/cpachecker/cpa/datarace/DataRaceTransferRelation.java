@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.VE
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.getFunctionName;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -40,7 +39,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -92,67 +90,24 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableSet.of(pState);
     }
     DataRaceState state = (DataRaceState) pState;
-    Map<String, ThreadInfo> threadInfo = state.getThreadInfo();
     ImmutableSet.Builder<DataRaceState> strengthenedStates = ImmutableSet.builder();
-    ImmutableSet.Builder<ThreadSynchronization> synchronizationBuilder = ImmutableSet.builder();
-    synchronizationBuilder.addAll(state.getThreadSynchronizations());
 
     for (ThreadingState threadingState :
         AbstractStates.projectToType(otherStates, ThreadingState.class)) {
 
       Set<String> threadIds = threadingState.getThreadIds();
       String activeThread = getActiveThread(cfaEdge, threadingState);
-      assert Objects.equals(activeThread, threadInfo.get(activeThread).getThreadId());
-      ImmutableMap<String, ThreadInfo> newThreadInfo =
-          updateThreadInfo(threadInfo, threadIds, activeThread, synchronizationBuilder);
-
-      if (newThreadInfo.values().stream().filter(i -> i.isRunning()).count() == 1) {
-        // No data race possible in sequential part
-        strengthenedStates.add(new DataRaceState(newThreadInfo, state.hasDataRace()));
-        continue;
-      }
-
-      // Update locking related info with info from ThreadingCPA
-      Set<String> activeThreadLocks = threadingState.getLocksForThread(activeThread);
-      ImmutableSetMultimap<String, LockInfo> heldLocks =
-          updateHeldLocks(state, threadingState, activeThread, activeThreadLocks);
-      Multimap<String, LockRelease> lastReleases = state.getLastReleases();
-
-      // Handle threading-related functions
-      AFunctionCall functionCall = null;
-      switch (cfaEdge.getEdgeType()) {
-        case FunctionCallEdge:
-          FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
-          functionCall = functionCallEdge.getFunctionCall();
-          break;
-        case StatementEdge:
-          AStatementEdge statementEdge = (AStatementEdge) cfaEdge;
-          AStatement statement = statementEdge.getStatement();
-          if (statement instanceof AFunctionCallAssignmentStatement) {
-            functionCall = (AFunctionCallAssignmentStatement) statement;
-          } else if (statement instanceof AFunctionCallStatement) {
-            functionCall = (AFunctionCallStatement) statement;
-          }
-          break;
-        default:
-          // Other edge types shouldn't contain function calls
-      }
-      Set<WaitInfo> newWaitInfo = new HashSet<>(state.getWaitInfo());
-      if (functionCall != null) {
-        lastReleases =
-            handleThreadFunctions(
-                state,
-                threadingState,
-                functionCall,
-                newThreadInfo.get(activeThread),
-                newWaitInfo,
-                synchronizationBuilder);
-      }
+      ImmutableSet.Builder<ThreadSynchronization> synchronizationBuilder = ImmutableSet.builder();
+      // synchronizes-with is transitive, and thus thread synchronizations should never be removed,
+      // even if one of the participating threads terminates
+      synchronizationBuilder.addAll(state.getThreadSynchronizations());
 
       // Collect new accesses
       Set<MemoryAccess> newMemoryAccesses =
           memoryAccessExtractor.getNewAccesses(
-              threadInfo.get(activeThread), cfaEdge, activeThreadLocks);
+              state.getThreadInfo().get(activeThread),
+              cfaEdge,
+              threadingState.getLocksForThread(activeThread));
       for (MemoryAccess newAccess : newMemoryAccesses) {
         if (newAccess.isOverapproximating()) {
           throw new CPATransferException("DataRaceCPA does not support pointer analysis");
@@ -208,47 +163,18 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         }
       }
 
-      // Determine whether any of the new accesses constitutes a data race
-      boolean hasDataRace = state.hasDataRace();
-      Set<ThreadSynchronization> threadSynchronizations = synchronizationBuilder.build();
-      for (MemoryAccess access : memoryAccessBuilder.build()) {
-        if (hasDataRace) {
-          // Already found a data race, no need to continue
-          break;
-        }
-        if (access.getThreadId().equals(activeThread)) {
-          // All new accesses were made by the currently active thread and accesses made by the same
-          // thread are never conflicting.
-          continue;
-        }
-        for (MemoryAccess newAccess : newMemoryAccesses) {
-          if (access.mightAccessSameLocationAs(newAccess)
-              && (access.isWrite() || newAccess.isWrite())
-              && Sets.intersection(access.getLocks(), newAccess.getLocks()).isEmpty()
-              && !access.happensBefore(newAccess, threadSynchronizations)) {
-            // Two accesses are conflicting if:
-            //   - They access the same memory location
-            //   - They were made by two different threads
-            //   - At least one of them is a write access
-            // Two conflicting accesses constitute a data race unless:
-            //   - Both accesses are performed through atomic operations, or
-            //   - One access happens-before the other
-            hasDataRace = true;
-            break;
-          }
-        }
-      }
-
+      // Handle threading-related functions if necessary
+      AFunctionCall functionCall = extractFunctionCall(cfaEdge);
       strengthenedStates.add(
-          new DataRaceState(
-              memoryAccessBuilder.addAll(newMemoryAccesses).build(),
+          handleThreadFunctions(
+              state,
+              threadingState,
+              functionCall,
+              activeThread,
+              synchronizationBuilder,
               subsequentWritesBuilder.build(),
-              newThreadInfo,
-              threadSynchronizations,
-              heldLocks,
-              lastReleases,
-              newWaitInfo,
-              hasDataRace));
+              memoryAccessBuilder.build(),
+              newMemoryAccesses));
     }
 
     return strengthenedStates.build();
@@ -265,12 +191,32 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     return subsequentWritesBuilder;
   }
 
+  private AFunctionCall extractFunctionCall(CFAEdge cfaEdge) {
+    AFunctionCall functionCall = null;
+    switch (cfaEdge.getEdgeType()) {
+      case FunctionCallEdge:
+        FunctionCallEdge functionCallEdge = (FunctionCallEdge) cfaEdge;
+        functionCall = functionCallEdge.getFunctionCall();
+        break;
+      case StatementEdge:
+        AStatementEdge statementEdge = (AStatementEdge) cfaEdge;
+        AStatement statement = statementEdge.getStatement();
+        if (statement instanceof AFunctionCallAssignmentStatement) {
+          functionCall = (AFunctionCallAssignmentStatement) statement;
+        } else if (statement instanceof AFunctionCallStatement) {
+          functionCall = (AFunctionCallStatement) statement;
+        }
+        break;
+      default:
+        // Other edge types shouldn't contain function calls
+    }
+    return functionCall;
+  }
+
   private ImmutableSetMultimap<String, LockInfo> updateHeldLocks(
-      DataRaceState state,
-      ThreadingState pThreadingState,
-      String activeThread,
-      Set<String> activeThreadLocks) {
+      DataRaceState state, ThreadingState pThreadingState, String activeThread) {
     ImmutableSetMultimap.Builder<String, LockInfo> newHeldLocks = ImmutableSetMultimap.builder();
+    Set<String> activeThreadLocks = pThreadingState.getLocksForThread(activeThread);
     // For locks held by the active thread use info from ThreadingCPA
     for (String lock : activeThreadLocks) {
       newHeldLocks.put(activeThread, pThreadingState.getLock(lock));
@@ -285,275 +231,300 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     return newHeldLocks.build();
   }
 
-  /**
-   * Updates the currently tracked thread information with information from the ThreadingCPA.
-   *
-   * @param threadInfo The current map of thread ID -> ThreadInfo.
-   * @param threadIds The IDs of currently existing thread as obtained from the ThreadingCPA.
-   * @param activeThread The ID of the current active thread.
-   * @return The new map of thread ID -> ThreadInfo objects.
-   */
-  private ImmutableMap<String, ThreadInfo> updateThreadInfo(
-      Map<String, ThreadInfo> threadInfo,
-      Set<String> threadIds,
-      String activeThread,
-      ImmutableSet.Builder<ThreadSynchronization> threadSynchronizations) {
-    Set<String> added = Sets.difference(threadIds, threadInfo.keySet());
-    assert added.size() < 2 : "Multiple thread creations in same step not supported";
-    Set<String> removed = Sets.difference(threadInfo.keySet(), threadIds);
-    assert !removed.contains(activeThread) : "Thread active after join";
-
-    ImmutableMap.Builder<String, ThreadInfo> threadsBuilder = ImmutableMap.builder();
-    if (!added.isEmpty()) {
-      String threadId = added.iterator().next();
-      ThreadInfo addedThreadInfo;
-      if (threadInfo.containsKey(threadId)) {
-        addedThreadInfo = new ThreadInfo(threadId, threadInfo.get(threadId).getEpoch() + 1, true);
-      } else {
-        addedThreadInfo = new ThreadInfo(threadId, 0, true);
-      }
-      threadsBuilder.put(threadId, addedThreadInfo);
-      threadSynchronizations.add(
-          new ThreadSynchronization(
-              activeThread,
-              threadId,
-              threadInfo.get(activeThread).getEpoch() + 1,
-              addedThreadInfo.getEpoch()));
-    }
-    for (Entry<String, ThreadInfo> entry : threadInfo.entrySet()) {
-      if (entry.getKey().equals(activeThread)) {
-        threadsBuilder.put(
-            activeThread, new ThreadInfo(activeThread, entry.getValue().getEpoch() + 1, true));
-      } else if (removed.contains(entry.getKey())) {
-        threadsBuilder.put(
-            entry.getKey(), new ThreadInfo(entry.getKey(), entry.getValue().getEpoch(), false));
-      } else if (!added.contains(entry.getKey())) {
-        threadsBuilder.put(entry);
-      }
-    }
-    return threadsBuilder.buildOrThrow();
-  }
-
-  private Multimap<String, LockRelease> handleThreadFunctions(
+  private DataRaceState handleThreadFunctions(
       DataRaceState state,
       ThreadingState threadingState,
       AFunctionCall pFunctionCall,
-      ThreadInfo pActiveThreadInfo,
-      Set<WaitInfo> pWaitInfo,
-      ImmutableSet.Builder<ThreadSynchronization> threadSynchronizations)
+      String activeThread,
+      ImmutableSet.Builder<ThreadSynchronization> synchronizationBuilder,
+      Set<MemoryAccess> subsequentWrites,
+      Set<MemoryAccess> memoryAccesses,
+      Set<MemoryAccess> newMemoryAccesses)
       throws CPATransferException {
-    String activeThread = pActiveThreadInfo.getThreadId();
-    int epoch = pActiveThreadInfo.getEpoch();
-
-    String functionName = getFunctionName(pFunctionCall);
-    if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
-      throw new CPATransferException("DataRaceCPA does not support function " + functionName);
-    }
-
+    // Prepare additional mutable data structures, depending on pFunctionCall these may change
     Map<String, ThreadInfo> threadInfo = new HashMap<>(state.getThreadInfo());
-    for (Entry<String, ThreadInfo> entry : threadInfo.entrySet()) {
-      if (entry.getKey().equals(activeThread)) {
-        threadInfo.put(
-            activeThread, new ThreadInfo(activeThread, entry.getValue().getEpoch() + 1, true));
+    threadInfo.put(
+        activeThread,
+        new ThreadInfo(activeThread, threadInfo.get(activeThread).getEpoch() + 1, true));
+    Set<WaitInfo> waitInfo = new HashSet<>(state.getWaitInfo());
+    Multimap<String, LockRelease> newReleases = LinkedHashMultimap.create(state.getLastReleases());
+
+    // Prepare additional immutable data structures
+    int epoch = threadInfo.get(activeThread).getEpoch();
+    ImmutableSetMultimap<String, LockInfo> heldLocks =
+        updateHeldLocks(state, threadingState, activeThread);
+
+    // Apply necessary changes, depending on the called thread function
+    if (pFunctionCall != null) {
+      String functionName = getFunctionName(pFunctionCall);
+      if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
+        throw new CPATransferException("DataRaceCPA does not support function " + functionName);
       }
-    }
 
-    Multimap<String, LockRelease> newReleases = LinkedHashMultimap.create();
-    newReleases.putAll(state.getLastReleases());
+      switch (functionName) {
+        case THREAD_START:
+          {
+            AExpression threadExpression =
+                pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
+            String newThreadId = ((CUnaryExpression) threadExpression).getOperand().toString();
 
-    switch (functionName) {
-      case THREAD_START:
-        {
-          AExpression threadExpression =
-              pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
-          String newThreadId = ((CUnaryExpression) threadExpression).getOperand().toString();
+            ThreadInfo addedThreadInfo;
+            if (state.getThreadInfo().containsKey(newThreadId)) {
+              addedThreadInfo =
+                  new ThreadInfo(
+                      newThreadId, state.getThreadInfo().get(newThreadId).getEpoch() + 1, true);
+            } else {
+              addedThreadInfo = new ThreadInfo(newThreadId, 0, true);
+            }
+            threadInfo.put(newThreadId, addedThreadInfo);
 
-          ThreadInfo addedThreadInfo;
-          if (state.getThreadInfo().containsKey(newThreadId)) {
-            addedThreadInfo =
-                new ThreadInfo(
-                    newThreadId, state.getThreadInfo().get(newThreadId).getEpoch() + 1, true);
-          } else {
-            addedThreadInfo = new ThreadInfo(newThreadId, 0, true);
-          }
-          threadInfo.put(newThreadId, addedThreadInfo);
-
-          // Thread creation synchronizes-with the created thread
-          threadSynchronizations.add(
-              new ThreadSynchronization(
-                  activeThread,
-                  newThreadId,
-                  state.getThreadInfo().get(activeThread).getEpoch() + 1,
-                  addedThreadInfo.getEpoch()));
-          break;
-        }
-      case THREAD_JOIN:
-        {
-          AExpression threadExpression =
-              pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
-          String joinedThreadId = ((CUnaryExpression) threadExpression).getOperand().toString();
-
-          threadInfo.put(
-              joinedThreadId,
-              new ThreadInfo(joinedThreadId, threadInfo.get(joinedThreadId).getEpoch(), false));
-          break;
-        }
-      case THREAD_MUTEX_LOCK:
-      case THREAD_MUTEX_TRYLOCK:
-        {
-          AExpression lockExpression =
-              pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
-          String lockId = ((CUnaryExpression) lockExpression).getOperand().toString();
-
-          if (functionName.equals(THREAD_MUTEX_TRYLOCK)
-              && !threadingState.isLockHeld(activeThread, lockId)) {
-            // Trylock did not succeed, no new synchronization
+            // Thread creation synchronizes-with the created thread
+            synchronizationBuilder.add(
+                new ThreadSynchronization(
+                    activeThread,
+                    newThreadId,
+                    state.getThreadInfo().get(activeThread).getEpoch() + 1,
+                    addedThreadInfo.getEpoch()));
             break;
           }
+        case THREAD_JOIN:
+          {
+            AExpression threadExpression =
+                pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
+            String joinedThreadId = ((CUnaryExpression) threadExpression).getOperand().toString();
 
-          Collection<LockRelease> lastReleases = newReleases.get(lockId);
-          assert lastReleases.size() < 2 : "Expected at most one last release for regular mutex";
-          for (LockRelease lastRelease : lastReleases) {
-            if (lastRelease.getThreadId().equals(activeThread)) {
-              // synchronizes-with is unnecessary if acquire and release are done by the same thread
-              continue;
-            }
-
-            // A lock release synchronizes-with the next acquisition of that lock
-            threadSynchronizations.add(
-                new ThreadSynchronization(
-                    lastRelease.getThreadId(), activeThread, lastRelease.getAccessEpoch(), epoch));
+            threadInfo.put(
+                joinedThreadId,
+                new ThreadInfo(joinedThreadId, threadInfo.get(joinedThreadId).getEpoch(), false));
+            break;
           }
-          break;
-        }
-      case RW_MUTEX_READLOCK:
-        {
-          AExpression lockExpression =
-              pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
-          String lockId = ((CUnaryExpression) lockExpression).getOperand().toString();
+        case THREAD_MUTEX_LOCK:
+        case THREAD_MUTEX_TRYLOCK:
+          {
+            AExpression lockExpression =
+                pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
+            String lockId = ((CUnaryExpression) lockExpression).getOperand().toString();
 
-          Collection<LockRelease> lastReleases = newReleases.get(lockId);
-          for (LockRelease lastRelease : lastReleases) {
-            assert lastRelease instanceof RWLockRelease;
-            if (lastRelease.getThreadId().equals(activeThread)) {
-              continue;
+            if (functionName.equals(THREAD_MUTEX_TRYLOCK)
+                && !threadingState.isLockHeld(activeThread, lockId)) {
+              // Trylock did not succeed, no new synchronization
+              break;
             }
 
-            // - Reader Acquire synchronizes-with the last writer release
-            // - Reader Acquire does NOT synchronize-with ANY reader release directly
-            if (((RWLockRelease) lastRelease).isWriteRelease()) {
-              threadSynchronizations.add(
+            // Add synchronization with last lock release
+            Collection<LockRelease> lastReleases = newReleases.get(lockId);
+            assert lastReleases.size() < 2 : "Expected at most one last release for regular mutex";
+            for (LockRelease lastRelease : lastReleases) {
+              if (lastRelease.getThreadId().equals(activeThread)) {
+                // synchronizes-with is unnecessary if acquire and release are done by the same
+                // thread
+                continue;
+              }
+
+              // A lock release synchronizes-with the next acquisition of that lock
+              synchronizationBuilder.add(
                   new ThreadSynchronization(
                       lastRelease.getThreadId(),
                       activeThread,
                       lastRelease.getAccessEpoch(),
                       epoch));
             }
-          }
-          break;
-        }
-      case RW_MUTEX_WRITELOCK:
-        {
-          AExpression lockExpression =
-              pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
-          String lockId = ((CUnaryExpression) lockExpression).getOperand().toString();
-
-          ImmutableList<LockRelease> lastReleases = ImmutableList.copyOf(newReleases.get(lockId));
-          for (LockRelease lastRelease : lastReleases) {
-            assert lastRelease instanceof RWLockRelease;
-            if (lastRelease.getThreadId().equals(activeThread)) {
-              continue;
-            }
-
-            // - Writer Acquire synchronizes-with the last writer release
-            // - Writer Acquire synchronizes-with EVERY reader release since the last writer release
-            threadSynchronizations.add(
-                new ThreadSynchronization(
-                    lastRelease.getThreadId(), activeThread, lastRelease.getAccessEpoch(), epoch));
-
-            if (!((RWLockRelease) lastRelease).isWriteRelease()) {
-              // Reader releases can be removed now, because synchronizes-with is transitive
-              newReleases.remove(lockId, lastRelease);
-            }
-          }
-          break;
-        }
-      case THREAD_MUTEX_UNLOCK:
-      case RW_MUTEX_UNLOCK:
-        {
-          AExpression lockExpression =
-              pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
-          String lockId = ((CUnaryExpression) lockExpression).getOperand().toString();
-
-          if (lockId.equals(LOCAL_ACCESS_LOCK)) {
-            // Do not track releases of local access lock,
-            // as these may not be used for synchronization
             break;
           }
+        case RW_MUTEX_READLOCK:
+          {
+            AExpression lockExpression =
+                pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
+            String lockId = ((CUnaryExpression) lockExpression).getOperand().toString();
 
-          LockInfo lock = null;
-          for (LockInfo lockInfo : state.getHeldLocks().get(activeThread)) {
-            if (lockInfo.getLockId().equals(lockId)) {
-              lock = lockInfo;
+            // Add synchronization
+            Collection<LockRelease> lastReleases = newReleases.get(lockId);
+            for (LockRelease lastRelease : lastReleases) {
+              assert lastRelease instanceof RWLockRelease;
+              if (lastRelease.getThreadId().equals(activeThread)) {
+                continue;
+              }
+
+              // - Reader Acquire synchronizes-with the last writer release
+              // - Reader Acquire does NOT synchronize-with ANY reader release directly
+              if (((RWLockRelease) lastRelease).isWriteRelease()) {
+                synchronizationBuilder.add(
+                    new ThreadSynchronization(
+                        lastRelease.getThreadId(),
+                        activeThread,
+                        lastRelease.getAccessEpoch(),
+                        epoch));
+              }
+            }
+            break;
+          }
+        case RW_MUTEX_WRITELOCK:
+          {
+            AExpression lockExpression =
+                pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
+            String lockId = ((CUnaryExpression) lockExpression).getOperand().toString();
+
+            // Add synchronization
+            ImmutableList<LockRelease> lastReleases = ImmutableList.copyOf(newReleases.get(lockId));
+            for (LockRelease lastRelease : lastReleases) {
+              assert lastRelease instanceof RWLockRelease;
+              if (lastRelease.getThreadId().equals(activeThread)) {
+                continue;
+              }
+
+              // - Writer Acquire synchronizes-with the last writer release
+              // - Writer Acquire synchronizes-with EVERY reader release since the last writer
+              // release
+              synchronizationBuilder.add(
+                  new ThreadSynchronization(
+                      lastRelease.getThreadId(),
+                      activeThread,
+                      lastRelease.getAccessEpoch(),
+                      epoch));
+
+              if (!((RWLockRelease) lastRelease).isWriteRelease()) {
+                // Reader releases can be removed now, because synchronizes-with is transitive
+                newReleases.remove(lockId, lastRelease);
+              }
+            }
+            break;
+          }
+        case THREAD_MUTEX_UNLOCK:
+        case RW_MUTEX_UNLOCK:
+          {
+            AExpression lockExpression =
+                pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
+            String lockId = ((CUnaryExpression) lockExpression).getOperand().toString();
+
+            if (lockId.equals(LOCAL_ACCESS_LOCK)) {
+              // Do not track releases of local access lock,
+              // as these may not be used for synchronization
               break;
             }
-          }
-          assert lock != null;
 
-          if (functionName.equals(THREAD_MUTEX_UNLOCK)) {
-            assert lock.getLockType() == LockType.MUTEX;
-            newReleases.put(lockId, new LockRelease(lockId, activeThread, epoch));
-          } else {
-            assert lock.getLockType() == LockType.RW_MUTEX;
-            boolean isWriteRelease = ((RWLock) lock).hasWriter();
-            newReleases.put(lockId, new RWLockRelease(lockId, activeThread, epoch, isWriteRelease));
-          }
-          break;
-        }
-      case THREAD_COND_SIGNAL:
-      case THREAD_COND_BC:
-        {
-          AExpression condVarExpression =
-              pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
-          String condVar = ((CUnaryExpression) condVarExpression).getOperand().toString();
-
-          Set<WaitInfo> toRemove = new HashSet<>();
-          for (WaitInfo waitInfo : pWaitInfo) {
-            if (waitInfo.getWaitingOn().equals(condVar)) {
-              threadSynchronizations.add(
-                  new ThreadSynchronization(
-                      // TODO: Order correct?
-                      activeThread, waitInfo.getWaitingThread(), epoch, waitInfo.getEpoch()));
-              toRemove.add(waitInfo);
+            LockInfo lock = null;
+            for (LockInfo lockInfo : state.getHeldLocks().get(activeThread)) {
+              if (lockInfo.getLockId().equals(lockId)) {
+                lock = lockInfo;
+                break;
+              }
             }
+            assert lock != null;
+
+            if (functionName.equals(THREAD_MUTEX_UNLOCK)) {
+              assert lock.getLockType() == LockType.MUTEX;
+              newReleases.put(lockId, new LockRelease(lockId, activeThread, epoch));
+            } else {
+              assert lock.getLockType() == LockType.RW_MUTEX;
+              boolean isWriteRelease = ((RWLock) lock).hasWriter();
+              newReleases.put(
+                  lockId, new RWLockRelease(lockId, activeThread, epoch, isWriteRelease));
+            }
+            break;
           }
-          pWaitInfo.removeAll(toRemove);
-          break;
-        }
-      case THREAD_COND_WAIT:
-      case THREAD_COND_TIMEDWAIT:
-        {
-          ConditionVariable condVar = threadingState.getCondVarForThread(activeThread);
-          pWaitInfo.add(new WaitInfo(activeThread, condVar.getName(), epoch));
-          break;
-        }
-      case THREAD_EXIT:
-      case VERIFIER_ATOMIC_BEGIN:
-      case VERIFIER_ATOMIC_END:
-        {
-          // No special handling needed
-          break;
-        }
-      default:
-        {
-          if (THREAD_FUNCTIONS.contains(functionName)) {
-            throw new AssertionError("Unhandled thread function");
+        case THREAD_COND_SIGNAL:
+        case THREAD_COND_BC:
+          {
+            AExpression condVarExpression =
+                pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
+            String condVar = ((CUnaryExpression) condVarExpression).getOperand().toString();
+
+            Set<WaitInfo> toRemove = new HashSet<>();
+            for (WaitInfo info : waitInfo) {
+              if (info.getWaitingOn().equals(condVar)) {
+                synchronizationBuilder.add(
+                    new ThreadSynchronization(
+                        // TODO: Order correct?
+                        activeThread, info.getWaitingThread(), epoch, info.getEpoch()));
+                toRemove.add(info);
+              }
+            }
+            waitInfo.removeAll(toRemove);
+            break;
           }
-          // Nothing to do
-          break;
-        }
+        case THREAD_COND_WAIT:
+        case THREAD_COND_TIMEDWAIT:
+          {
+            ConditionVariable condVar = threadingState.getCondVarForThread(activeThread);
+            waitInfo.add(new WaitInfo(activeThread, condVar.getName(), epoch));
+            break;
+          }
+        case THREAD_EXIT:
+        case VERIFIER_ATOMIC_BEGIN:
+        case VERIFIER_ATOMIC_END:
+          {
+            // No special handling needed
+            break;
+          }
+        default:
+          {
+            if (THREAD_FUNCTIONS.contains(functionName)) {
+              throw new AssertionError("Unhandled thread function");
+            }
+            // Nothing to do
+            break;
+          }
+      }
     }
-    return newReleases;
+
+    // TODO: Probably want to get rid of this check (but it is an optimization...)
+    if (threadInfo.values().stream().filter(i -> i.isRunning()).count() == 1) {
+      // No data race possible in sequential part
+      return new DataRaceState(threadInfo, state.hasDataRace());
+    }
+
+    Set<ThreadSynchronization> threadSynchronizations = synchronizationBuilder.build();
+    boolean hasDataRace =
+        nextHasDataRace(
+            state, activeThread, memoryAccesses, newMemoryAccesses, threadSynchronizations);
+
+    return new DataRaceState(
+        Sets.union(memoryAccesses, newMemoryAccesses),
+        subsequentWrites,
+        threadInfo,
+        threadSynchronizations,
+        heldLocks,
+        newReleases,
+        waitInfo,
+        hasDataRace);
+  }
+
+  private boolean nextHasDataRace(
+      DataRaceState state,
+      String activeThread,
+      Set<MemoryAccess> memoryAccesses,
+      Set<MemoryAccess> newMemoryAccesses,
+      Set<ThreadSynchronization> threadSynchronizations) {
+    // Determine whether any of the new accesses constitutes a data race
+    boolean hasDataRace = state.hasDataRace();
+    for (MemoryAccess access : memoryAccesses) {
+      if (hasDataRace) {
+        // Already found a data race, no need to continue
+        break;
+      }
+      if (access.getThreadId().equals(activeThread)) {
+        // All new accesses were made by the currently active thread and accesses made by the same
+        // thread are never conflicting.
+        continue;
+      }
+      for (MemoryAccess newAccess : newMemoryAccesses) {
+        if (access.mightAccessSameLocationAs(newAccess)
+            && (access.isWrite() || newAccess.isWrite())
+            && Sets.intersection(access.getLocks(), newAccess.getLocks()).isEmpty()
+            && !access.happensBefore(newAccess, threadSynchronizations)) {
+          // Two accesses are conflicting if:
+          //   - They access the same memory location
+          //   - They were made by two different threads
+          //   - At least one of them is a write access
+          // Two conflicting accesses constitute a data race unless:
+          //   - Both accesses are performed through atomic operations, or
+          //   - One access happens-before the other
+          hasDataRace = true;
+          break;
+        }
+      }
+    }
+    return hasDataRace;
   }
 
   /**
