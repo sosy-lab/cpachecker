@@ -184,6 +184,8 @@ class PartitionedFormulas {
   /**
    * Check whether the given formula <i>f</i> is inductive w.r.t the transition relation <i>T</i>,
    * i.e. whether <i>f &and; T &rArr; f'</i>.
+   *
+   * @param f an uninstantiated formula
    */
   boolean checkInductivenessOf(Solver solver, BooleanFormula f)
       throws SolverException, InterruptedException {
@@ -193,6 +195,9 @@ class PartitionedFormulas {
   /**
    * Check whether the given formula <i>f</i> is inductive relative to formula <i>g</i> w.r.t the
    * transition relation <i>T</i>, i.e. whether <i>f &and; g &and; T &rArr; f'</i>.
+   *
+   * @param f an uninstantiated formula
+   * @param g an uninstantiated formula
    */
   boolean checkRelativeInductivenssOf(Solver solver, BooleanFormula f, BooleanFormula g)
       throws SolverException, InterruptedException {

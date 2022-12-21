@@ -819,6 +819,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         bfmgr.and(
             bfmgr.and(loops.subList(1, formulas.getNumLoops())), formulas.getAssertionFormula());
 
+    final boolean isLoopInvInductive = formulas.checkInductivenessOf(solver, loopInv);
+    boolean isLoopInvRelInducitve = true; // Init & T ==> Inv' holds
+    logger.log(
+        Level.FINE,
+        "The auxiliary loop-head invariant is " + (isLoopInvInductive ? "" : "not ") + "inductive");
+
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(ImmutableList.of(currentImage, loops.get(0), suffixFormula));
     assert interpolants.isPresent();
@@ -839,32 +845,20 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.ALL, "The interpolant is", interpolant);
       interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), formulas.getPrefixSsaMap());
       logger.log(Level.ALL, "After changing SSA", interpolant);
-      // Step 1: regular IMC check
+      // Refine the interpolant when possible
+      if (isLoopInvRelInducitve) {
+        interpolant = bfmgr.and(interpolant, fmgr.instantiate(loopInv, formulas.getPrefixSsaMap()));
+      }
       if (solver.implies(interpolant, currentImage)) {
         logger.log(Level.INFO, "The current image reaches a fixed point");
         finalFixedPoint = fmgr.uninstantiate(currentImage);
         return true;
       }
-      // Step 2: IMC check strengthened by external invariant
-      if (!bfmgr.isTrue(loopInv)
-          && solver.implies(
-              bfmgr.and(interpolant, fmgr.instantiate(loopInv, formulas.getPrefixSsaMap())),
-              currentImage)) {
-        // Step 3: check if external invariant is inductive
-        logger.log(Level.FINE, "Checking inductiveness of invariant ");
-        if (formulas.checkInductivenessOf(solver, loopInv)) {
-          logger.log(Level.INFO, "Fixed point reached with external inductive invariants");
-          finalFixedPoint = fmgr.uninstantiate(currentImage);
-          return true;
-        }
-        // Step 4: check if image is relatively inductive to the external invariant
-        logger.log(Level.FINE, "Checking relative inductiveness of image");
-        if (formulas.checkRelativeInductivenssOf(solver, currentImage, loopInv)) {
-          logger.log(Level.INFO, "Fixed point reached with external invariants");
-          finalFixedPoint = currentImage;
-          return true;
-        }
-      }
+      // Check if the loop-head invariant is relatively inductive to the current interpolant
+      isLoopInvRelInducitve =
+          isLoopInvInductive
+              || formulas.checkRelativeInductivenssOf(
+                  solver, loopInv, fmgr.uninstantiate(interpolants.orElseThrow().get(1)));
       currentImage = bfmgr.or(currentImage, interpolant);
       interpolants = itpMgr.interpolate(ImmutableList.of(interpolant, loops.get(0), suffixFormula));
     }
