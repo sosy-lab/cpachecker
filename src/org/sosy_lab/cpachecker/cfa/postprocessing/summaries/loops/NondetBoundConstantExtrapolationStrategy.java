@@ -170,9 +170,4 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
 
     return this.createSumaryCFA(beforeWhile, loopBoundExpression, loop);
   }
-
-  @Override
-  public boolean isPrecise() {
-    return false;
-  }
 }

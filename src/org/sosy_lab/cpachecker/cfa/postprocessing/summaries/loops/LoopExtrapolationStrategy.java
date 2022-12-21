@@ -419,9 +419,4 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
     }
     return onlyLinearVariableModifications.get(loop);
   }
-
-  @Override
-  public boolean isPrecise() {
-    return true;
-  }
 }

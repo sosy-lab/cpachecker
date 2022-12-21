@@ -17,9 +17,4 @@ public class BaseStrategy implements Strategy {
   public Optional<GhostCFA> summarize(CFANode pLoopStartNode) {
     return Optional.empty();
   }
-
-  @Override
-  public boolean isPrecise() {
-    return true;
-  }
 }

@@ -27,9 +27,6 @@ public interface Strategy {
    */
   public Optional<GhostCFA> summarize(final CFANode loopStartNode);
 
-  /** Returns true if the Summary is Precise, false in any other case */
-  public boolean isPrecise();
-
   default String getName() {
     return this.getClass().getSimpleName();
   }

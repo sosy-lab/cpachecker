@@ -39,9 +39,4 @@ public abstract class AbstractStrategy implements Strategy {
   public Optional<GhostCFA> summarize(final CFANode loopStartNode) {
     return Optional.empty();
   }
-
-  @Override
-  public boolean isPrecise() {
-    return false;
-  }
 }

@@ -100,9 +100,4 @@ public class LoopUnrollingStrategy extends LoopStrategy {
 
     return summarizeLoop(loop, beforeWhile);
   }
-
-  @Override
-  public boolean isPrecise() {
-    return true;
-  }
 }
