@@ -202,6 +202,11 @@ analysis.algorithm.MPI = false
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
 
+# use PGAR algorithm for lazy proof guided analysis
+# You need to specify a refiner with the cegar.refiner option.
+# Currently all refiner require the use of the ARGCPA.
+analysis.algorithm.PGAR = false
+
 # use a analysis which proves if the program satisfies a specified property
 # with the help of an enabler CPA to separate differnt program paths
 analysis.algorithm.analysisWithEnabler = false
@@ -759,32 +764,6 @@ cegar.maxIterations = -1
 # the package name starts with 'org.sosy_lab.cpachecker.', this prefix can be
 # omitted.
 cegar.refiner = no default value
-
-# Max amount of Inner refinements. A negative number deactivates this
-# parameter.
-cegar.refiner.composition.maxAmntInnerRefinements = -1
-
-# Which wrapped refinement algorithms to use? (give class name, required for
-# CEGAR) If the package name starts with 'org.sosy_lab.cpachecker.', this
-# prefix can be omitted.The refiners are written as one would function
-# compositioni.e. first in the config the last one to be applied and last in
-# the config the first one to be apllied.
-cegar.refiner.composition.wrappedrefiners = no default value
-
-# Max amount of first refinements.
-cegar.refiner.summaries.maxAmntFirstRefinements = 100
-
-# Which wrapped refinement algorithm to use? (give class name, required for
-# CEGAR) If the package name starts with 'org.sosy_lab.cpachecker.', this
-# prefix can be omitted.
-cegar.refiner.summaries.wrappedrefiner = no default value
-
-# Which wrapped refinement algorithms to use? (give class name, required for
-# CEGAR) If the package name starts with 'org.sosy_lab.cpachecker.', this
-# prefix can be omitted.Currently only two refiners are supported.The
-# refiners are written as one would function compositioni.e. first the last
-# one and last the first one.
-cegar.refiner.summaries.wrappedrefiners = no default value
 
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
@@ -4104,6 +4083,14 @@ pdr.liftingStrategy = NO_LIFTING
 # trace before a consecution abstraction failure triggers a refinement.
 pdr.spuriousTransitionCountThreshold = 0
 
+# Max number of refinement iterations, -1 for no limit
+pgar.maxIterations = -1
+
+# Which refinement algorithm to use? (give class name, required for PGAR) If
+# the package name starts with 'org.sosy_lab.cpachecker.', this prefix can be
+# omitted.
+pgar.refiner = no default value
+
 # Format to use for image output
 pixelgraphic.export.format = "svg"
 
@@ -4238,6 +4225,17 @@ reachedSet.dot = "reached.dot"
 # print reached set to text file
 reachedSet.export = false
 reachedSet.file = "reached.txt"
+
+# Max amount of Inner refinements. A negative number deactivates this
+# parameter.
+refiner.composition.maxAmntInnerRefinements = -1
+
+# Which wrapped refinement algorithms to use? (give class name, required for
+# CEGAR) If the package name starts with 'org.sosy_lab.cpachecker.', this
+# prefix can be omitted.The refiners are written as one would function
+# compositioni.e. first in the config the last one to be applied and last in
+# the config the first one to be apllied.
+refiner.composition.wrappedrefiners = no default value
 
 # Generate HTML report with analysis result.
 report.export = true

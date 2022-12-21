@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Optional;
@@ -261,7 +262,7 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy
             endNodeGhostCFA,
             pBeforeWhile,
             leavingEdge.getSuccessor(),
-            this.strategyEnum));
+            this.strategyEnum, new ArrayList<>(), StrategyQualifier.OverApproximating));
   }
 
   @Override

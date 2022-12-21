@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
+import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,13 +35,12 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 public class SummaryInformation {
 
   private Map<CFANode, GhostCFA> startNodeGhostCFAToGhostCFA = new HashMap<>();
-  private Map<CFANode, GhostCFA> startNodeOriginalCFAToGhostCFA = new HashMap<>();
+  private Map<CFANode, List<GhostCFA>> startNodeOriginalCFAToGhostCFAs = new HashMap<>();
   private Map<CFANode, Loop> nodeToLoopStructure = new HashMap<>();
   private Set<Strategy> strategies = new HashSet<>();
   private StrategyFactory factory;
   private final StrategyDependency summaryCreationStrategy;
   private final StrategyDependency summaryTransferStrategy;
-  private Map<CFANode, Set<StrategiesEnum>> unallowedStrategiesForNode = new HashMap<>();
 
   public SummaryInformation(
       CFA pCfa,
@@ -53,10 +53,12 @@ public class SummaryInformation {
 
   public void addGhostCFA(GhostCFA ghostCFA) {
     startNodeGhostCFAToGhostCFA.put(ghostCFA.getStartGhostCfaNode(), ghostCFA);
-    startNodeOriginalCFAToGhostCFA.put(ghostCFA.getStartOriginalCfaNode(), ghostCFA);
-    for (CFANode n : ghostCFA.getAllNodes()) {
-      // this.addNodeForStrategy(StrategiesEnum.BASE, n);
-      this.unallowedStrategiesForNode.put(n, new HashSet<>());
+    if (startNodeOriginalCFAToGhostCFAs.containsKey(ghostCFA.getStartOriginalCfaNode())) {
+      startNodeOriginalCFAToGhostCFAs.get(ghostCFA.getStartOriginalCfaNode()).add(ghostCFA);
+    } else {
+      List<GhostCFA> ghostCFAs = new ArrayList<>();
+      ghostCFAs.add(ghostCFA);
+      startNodeOriginalCFAToGhostCFAs.put(ghostCFA.getStartOriginalCfaNode(), ghostCFAs);
     }
   }
 
@@ -103,12 +105,26 @@ public class SummaryInformation {
     return this.summaryTransferStrategy;
   }
 
-  public List<StrategiesEnum> getChosenStrategies(CFANode node, LocationPrecision prec) {
+  public Optional<GhostCFA> getBestAllowedStrategy(CFANode pNode, LocationPrecision pPrec) {
     List<StrategiesEnum> availableStrategies =
-        new ArrayList<>(SummaryUtils.getAvailableStrategies(node));
-    availableStrategies.removeAll(prec.getUnallowedStrategies());
-    List<StrategiesEnum> allowedStrategies =
-        new ArrayList<>(getTransferSummaryStrategy().filter(availableStrategies));
-    return allowedStrategies;
+        FluentIterable.from(
+                this.startNodeOriginalCFAToGhostCFAs.getOrDefault(pNode, new ArrayList<>()))
+            .filter(g -> !pPrec.getForbiddenStrategies().contains(g))
+            .transform(g -> g.getStrategy())
+            .toList();
+    List<StrategiesEnum> possibleStrategies =
+        this.summaryTransferStrategy.filter(availableStrategies);
+
+    for (GhostCFA g: this.startNodeOriginalCFAToGhostCFAs.getOrDefault(pNode, new ArrayList<>())) {
+      if (possibleStrategies.contains(g.getStrategy())) {
+        return Optional.of(g);
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  public List<GhostCFA> getAvailableStrategies(CFANode node) {
+    return startNodeOriginalCFAToGhostCFAs.getOrDefault(node, new ArrayList<>());
   }
 }

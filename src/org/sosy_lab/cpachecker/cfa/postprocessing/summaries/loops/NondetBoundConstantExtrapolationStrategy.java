@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -136,7 +137,7 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
             endNodeGhostCFA,
             beforeWhile,
             leavingEdge.getSuccessor(),
-            this.strategyEnum));
+            this.strategyEnum, new ArrayList<>(), StrategyQualifier.OverApproximating));
   }
 
   @Override

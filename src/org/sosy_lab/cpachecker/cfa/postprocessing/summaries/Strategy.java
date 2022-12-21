@@ -13,9 +13,17 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public interface Strategy {
 
+  public enum StrategyQualifier {
+    OverApproximating,
+    Precise,
+    Underapproximating,
+  }
+
   /**
-   * Gives a summary state back if the State can be summarized using the Strategy given Return an
-   * Empty option if this is not the case.
+   * Gives a summary state back if the State can be summarized using the Strategy given.
+   *
+   * @param loopStartNode the cfaNode from which this strategy should begin
+   * @return the ghostCFA describing the strategy being applied at the node.
    */
   public Optional<GhostCFA> summarize(final CFANode loopStartNode);
 

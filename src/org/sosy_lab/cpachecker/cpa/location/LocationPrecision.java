@@ -8,39 +8,72 @@
 
 package org.sosy_lab.cpachecker.cpa.location;
 
+import com.google.common.collect.FluentIterable;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 
 public class LocationPrecision implements AdjustablePrecision {
 
-  private Set<StrategiesEnum> unallowedStrategies = new HashSet<>();
+  private Set<GhostCFA> forbiddenStrategies = new HashSet<>();
+
+  private List<GhostCFA> beginningStrategies = new ArrayList<>();
+
+  private Optional<GhostCFA> currentStrategy = Optional.empty();
 
   public LocationPrecision() {}
 
-  public void addUnallowedStrategy(StrategiesEnum strategy) {
-    unallowedStrategies.add(strategy);
+  public LocationPrecision(List<GhostCFA> pBeginningStrategies) {
+    beginningStrategies = pBeginningStrategies;
   }
 
-  public Set<StrategiesEnum> getUnallowedStrategies() {
-    return this.unallowedStrategies;
+  public void addForbiddenStrategy(GhostCFA ghostCFA) {
+    forbiddenStrategies.add(ghostCFA);
+  }
+
+  public Set<GhostCFA> getForbiddenStrategies() {
+    return this.forbiddenStrategies;
+  }
+
+  public Optional<GhostCFA> getCurrentStrategy() {
+    return currentStrategy;
+  }
+
+  public void setCurrentStrategy(Optional<GhostCFA> pCurrentStrategy) {
+    currentStrategy = pCurrentStrategy;
+  }
+
+  /**
+   *
+   * @param pNode the node to be checked
+   * @return whether the given CFANode is the starting node of any of the available strategies
+   */
+  public boolean isStartOfSomeStrategy(CFANode pNode) {
+    return FluentIterable.from(beginningStrategies)
+        .transform(g -> g.getStartGhostCfaNode())
+        .toSet()
+        .contains(pNode);
   }
 
   @Override
   public String toString() {
-    return "LocationPrecision " + this.unallowedStrategies;
+    return "LocationPrecision " + this.forbiddenStrategies;
   }
 
   @Override
   public AdjustablePrecision add(AdjustablePrecision pOtherPrecision) {
     if (pOtherPrecision instanceof LocationPrecision) {
       LocationPrecision newLocationPrecission = new LocationPrecision();
-      Set<StrategiesEnum> newUnallowedStrategies = new HashSet<>();
-      newUnallowedStrategies.addAll(unallowedStrategies);
-      newUnallowedStrategies.addAll(((LocationPrecision) pOtherPrecision).getUnallowedStrategies());
-      for (StrategiesEnum s : newUnallowedStrategies) {
-        newLocationPrecission.addUnallowedStrategy(s);
+      Set<GhostCFA> newUnallowedStrategies = new HashSet<>();
+      newUnallowedStrategies.addAll(forbiddenStrategies);
+      newUnallowedStrategies.addAll(((LocationPrecision) pOtherPrecision).getForbiddenStrategies());
+      for (GhostCFA s : newUnallowedStrategies) {
+        newLocationPrecission.addForbiddenStrategy(s);
       }
 
       return newLocationPrecission;
@@ -53,12 +86,12 @@ public class LocationPrecision implements AdjustablePrecision {
   public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
     if (pOtherPrecision instanceof LocationPrecision) {
       LocationPrecision newLocationPrecission = new LocationPrecision();
-      Set<StrategiesEnum> newUnallowedStrategies = new HashSet<>();
-      newUnallowedStrategies.addAll(unallowedStrategies);
+      Set<GhostCFA> newUnallowedStrategies = new HashSet<>();
+      newUnallowedStrategies.addAll(forbiddenStrategies);
       newUnallowedStrategies.removeAll(
-          ((LocationPrecision) pOtherPrecision).getUnallowedStrategies());
-      for (StrategiesEnum s : newUnallowedStrategies) {
-        newLocationPrecission.addUnallowedStrategy(s);
+          ((LocationPrecision) pOtherPrecision).getForbiddenStrategies());
+      for (GhostCFA s : newUnallowedStrategies) {
+        newLocationPrecission.addForbiddenStrategy(s);
       }
 
       return newLocationPrecission;
@@ -70,4 +103,6 @@ public class LocationPrecision implements AdjustablePrecision {
   public boolean isEmpty() {
     return false;
   }
+
+
 }

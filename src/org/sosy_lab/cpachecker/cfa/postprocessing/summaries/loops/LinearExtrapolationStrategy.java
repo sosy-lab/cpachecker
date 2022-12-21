@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -221,6 +222,8 @@ public class LinearExtrapolationStrategy extends LoopExtrapolationStrategy {
             endNodeGhostCFA,
             pBeforeWhile,
             leavingEdge.getSuccessor(),
-            this.strategyEnum));
+            this.strategyEnum,
+            new ArrayList<>(),
+            StrategyQualifier.Precise));
   }
 }

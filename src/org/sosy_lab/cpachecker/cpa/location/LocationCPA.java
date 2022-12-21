@@ -16,6 +16,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -34,10 +35,12 @@ public class LocationCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA {
 
   private final LocationStateFactory stateFactory;
+  private Optional<SummaryInformation> summaryInformation = Optional.empty();
 
   private LocationCPA(LocationStateFactory pStateFactory, CFA pCFA) {
     super("sep", "sep", new LocationTransferRelation(pStateFactory, pCFA));
     stateFactory = pStateFactory;
+    summaryInformation = pCFA.getSummaryInformation();
 
     Optional<CFAInfo> cfaInfo = GlobalInfo.getInstance().getCFAInfo();
     if (cfaInfo.isPresent()) {
@@ -65,6 +68,7 @@ public class LocationCPA extends AbstractCPA
       AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
       throws CPATransferException, InterruptedException {
     ImmutableSet<? extends AbstractState> successors = ImmutableSet.copyOf(pSuccessors);
+    // TODO: We may need to update this to the new Location precision
     ImmutableSet<? extends AbstractState> actualSuccessors =
         ImmutableSet.copyOf(
             getTransferRelation()
@@ -81,6 +85,6 @@ public class LocationCPA extends AbstractCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return new LocationPrecisionAdjustment();
+    return new LocationPrecisionAdjustment(summaryInformation);
   }
 }

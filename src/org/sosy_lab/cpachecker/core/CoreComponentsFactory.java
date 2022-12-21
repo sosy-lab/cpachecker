@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.InvariantExportAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.LoopAbstractionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.PGARAlgorithm.PGARAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProgramSplitAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RandomTestGeneratorAlgorithm;
@@ -117,6 +118,15 @@ public class CoreComponentsFactory {
               + "\nYou need to specify a refiner with the cegar.refiner option."
               + "\nCurrently all refiner require the use of the ARGCPA.")
   private boolean useCEGAR = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.PGAR",
+      description =
+          "use PGAR algorithm for lazy proof guided analysis"
+              + "\nYou need to specify a refiner with the cegar.refiner option."
+              + "\nCurrently all refiner require the use of the ARGCPA.")
+  private boolean usePGAR = false;
 
   @Option(
       secure = true,
@@ -580,6 +590,12 @@ public class CoreComponentsFactory {
       if (useCEGAR) {
         algorithm =
             new CEGARAlgorithmFactory(algorithm, cpa, logger, config, shutdownNotifier)
+                .newInstance();
+      }
+
+      if (usePGAR) {
+        algorithm =
+            new PGARAlgorithmFactory(algorithm, cpa, logger, config, shutdownNotifier)
                 .newInstance();
       }
 

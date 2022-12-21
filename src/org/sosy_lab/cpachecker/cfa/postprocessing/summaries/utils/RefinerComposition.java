@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-@Options(prefix = "cegar.refiner.composition")
+@Options(prefix = "refiner.composition")
 public class RefinerComposition implements Refiner, StatisticsProvider {
 
   private final LogManager logger;
@@ -96,11 +96,13 @@ public class RefinerComposition implements Refiner, StatisticsProvider {
     Optional<Configuration> config = Optional.empty();
 
     // TODO: Improve this code, since this is currently a very ugly hack
-    // TODO: If first the wrong CPA is given this produces an error in the Java heap
-    // TODO: This problem apparently occurs when the predicateCPA is freed, which is weird
     try {
+      @SuppressWarnings("resource")
       PredicateCPA predicateCPA =
           CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, RefinerComposition.class);
+
+      // The shutdown notifier has a pointer into the MathSat5 solver, so if the object goes out
+      // scope, the pointer points to nothing which makes sense. So do not free the resource.
       shutdownNotifier = Optional.of(predicateCPA.getShutdownNotifier());
       config = Optional.of(predicateCPA.getConfiguration());
     } catch (InvalidConfigurationException e) {
@@ -145,6 +147,18 @@ public class RefinerComposition implements Refiner, StatisticsProvider {
         return true;
       }
     }
+
+    // If nothing was refined, we apply them again, since the maximum amount of refinements may have
+    // happened
+    for (int i = 0; i < refiners.size(); i++) {
+      // TODO: Log statistics
+      Refiner refiner = refiners.get(i);
+      amntRefinements.set(i, amntRefinements.get(i) + 1);
+      if (refiner.performRefinement(pReached)) {
+        return true;
+      }
+    }
+
     return false;
   }
 }

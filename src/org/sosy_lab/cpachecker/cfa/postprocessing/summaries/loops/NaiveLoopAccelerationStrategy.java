@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -127,7 +128,7 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy
 
     return Optional.of(
         new GhostCFA(
-            startNodeGhostCFA, endNodeGhostCFA, pBeforeWhile, leavingSuccessor, this.strategyEnum));
+            startNodeGhostCFA, endNodeGhostCFA, pBeforeWhile, leavingSuccessor, this.strategyEnum, new ArrayList<>(), StrategyQualifier.OverApproximating));
   }
 
   @Override

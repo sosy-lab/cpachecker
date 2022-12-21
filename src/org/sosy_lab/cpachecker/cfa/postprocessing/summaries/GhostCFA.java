@@ -9,15 +9,20 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.Strategy.StrategyQualifier;
 
 public class GhostCFA {
+
+
   private final StrategiesEnum strategy;
   private final CFANode startGhostCfaNode;
   private final CFANode stopGhostCfaNode;
@@ -27,13 +32,16 @@ public class GhostCFA {
   private Optional<CFAEdge> endNodesConnection;
   private Set<CFAEdge> allEdges = null;
   private Set<CFANode> allNodes = null;
+  private List<AExpression> parameters;
+  private StrategyQualifier strategyQualifier;
 
   public GhostCFA(
       CFANode pStartGhostCfaNode,
       CFANode pStopGhostCfaNode,
       CFANode pStartOriginalCfaNode,
       CFANode pStopOriginalCfaNode,
-      StrategiesEnum pStrategy) {
+      StrategiesEnum pStrategy,
+      List<AExpression> pParameters, StrategyQualifier pStrategyQualifier) {
 
     this.setStartNodesConnection(Optional.empty());
     this.setEndNodesConnection(Optional.empty());
@@ -42,6 +50,8 @@ public class GhostCFA {
     this.startOriginalCfaNode = pStartOriginalCfaNode;
     this.stopOriginalCfaNode = pStopOriginalCfaNode;
     this.strategy = pStrategy;
+    this.parameters = pParameters;
+    this.strategyQualifier = pStrategyQualifier;
     this.collectEdges();
     this.collectNodes();
   }
@@ -156,7 +166,46 @@ public class GhostCFA {
     }
   }
 
+  public void updateParameters(List<AExpression> pParameters) {
+    assert pParameters.size() == parameters.size()
+        : "Currently changing the amount of parameters is not supported";
+
+    parameters = pParameters;
+
+    // TODO Change the CFA in order to match the new parameters
+    // TODO: What should be the interface for the parameters in the CFA?
+    //      For example:
+    //          the first parameters.size() elements being variables and replacing their assignments
+  }
+
   public Set<CFANode> getAllNodes() {
     return allNodes;
+  }
+
+  public StrategyQualifier getStrategyQualifier() {
+    // TODO: Make this dependent on the parameters
+    return strategyQualifier;
+  }
+
+  @Override
+  public int hashCode() {
+    return this.startGhostCfaNode.hashCode()
+        + this.stopGhostCfaNode.hashCode()
+        + this.strategy.ordinal();
+  }
+
+  @Override
+  public final boolean equals(Object pObj) {
+    if (!(pObj instanceof GhostCFA)) {
+      return false;
+    }
+
+    GhostCFA otherGhostCFA = (GhostCFA) pObj;
+
+    return this.startOriginalCfaNode == otherGhostCFA.startOriginalCfaNode
+        && this.stopOriginalCfaNode == otherGhostCFA.stopOriginalCfaNode
+        && this.strategy == otherGhostCFA.strategy
+        // TODO: How to compare if all the elements of a List are equal correctly?
+        && this.parameters == otherGhostCFA.parameters;
   }
 }

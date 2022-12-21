@@ -10,17 +10,13 @@ package org.sosy_lab.cpachecker.cpa.location;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import de.uni_freiburg.informatik.ultimate.util.datastructures.ImmutableList;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -30,11 +26,13 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public class LocationTransferRelation implements TransferRelation {
 
   private final LocationStateFactory factory;
-  private final CFA pCFA;
+
+  @SuppressWarnings("unused")
+  private final Optional<SummaryInformation> maybeSummaryInformation;
 
   public LocationTransferRelation(LocationStateFactory pFactory, CFA pCFA) {
     factory = pFactory;
-    this.pCFA = pCFA;
+    maybeSummaryInformation = pCFA.getSummaryInformation();
   }
 
   @Override
@@ -44,20 +42,18 @@ public class LocationTransferRelation implements TransferRelation {
     CFANode node = ((LocationState) element).getLocationNode();
 
     if (CFAUtils.allLeavingEdges(node).contains(cfaEdge)) {
-      if (this.pCFA.getSummaryInformation().isEmpty()) {
+      LocationPrecision lPrec = (LocationPrecision) prec;
+      if (lPrec.getCurrentStrategy().isEmpty()
+          && !lPrec.isStartOfSomeStrategy(cfaEdge.getSuccessor())) {
         return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
       } else {
-        SummaryInformation summaryInformation = pCFA.getSummaryInformation().orElseThrow();
-        List<StrategiesEnum> chosenStrategies =
-            summaryInformation.getChosenStrategies(node, (LocationPrecision) prec);
-
-        ArrayList<LocationState> successors = new ArrayList<>();
-
-        if (chosenStrategies.contains(SummaryUtils.getStrategyForEdge(cfaEdge))) {
-          successors.add(factory.getState(cfaEdge.getSuccessor()));
+        if (lPrec.getCurrentStrategy().isPresent()) {
+          CFANode expectedNextNode =
+              lPrec.getCurrentStrategy().orElseThrow().getStartGhostCfaNode();
+          if (expectedNextNode == cfaEdge.getSuccessor()) {
+            return Collections.singleton(factory.getState(expectedNextNode));
+          }
         }
-
-        return new ImmutableList<>(successors);
       }
     }
 
@@ -70,15 +66,17 @@ public class LocationTransferRelation implements TransferRelation {
 
     CFANode node = ((LocationState) element).getLocationNode();
 
-    if (this.pCFA.getSummaryInformation().isEmpty()) {
+    if (maybeSummaryInformation.isEmpty()) {
       return CFAUtils.successorsOf(node).transform(n -> factory.getState(n)).toList();
     } else {
-      SummaryInformation summaryInformation = pCFA.getSummaryInformation().orElseThrow();
-      List<StrategiesEnum> chosenStrategies =
-          summaryInformation.getChosenStrategies(node, (LocationPrecision) prec);
-
       return FluentIterable.from(node.getLeavingEdges())
-          .filter(e -> chosenStrategies.contains(SummaryUtils.getStrategyForEdge(e)))
+          .filter(
+              e ->
+                  e.getSuccessor()
+                      == ((LocationPrecision) prec)
+                          .getCurrentStrategy()
+                          .orElseThrow()
+                          .getStartGhostCfaNode())
           .transform(e -> factory.getState(e.getSuccessor()))
           .toList();
     }

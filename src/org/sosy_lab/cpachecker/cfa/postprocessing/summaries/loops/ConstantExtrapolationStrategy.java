@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
 import com.google.common.collect.FluentIterable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -277,7 +278,9 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy
             endNodeGhostCFA,
             pBeforeWhile,
             leavingEdge.getSuccessor(),
-            this.strategyEnum));
+            this.strategyEnum,
+            new ArrayList<>(),
+            StrategyQualifier.Precise));
   }
 
   @Override

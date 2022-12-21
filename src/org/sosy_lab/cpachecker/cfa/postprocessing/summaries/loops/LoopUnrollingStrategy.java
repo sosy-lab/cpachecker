@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -80,7 +81,7 @@ public class LoopUnrollingStrategy extends LoopStrategy {
 
     return Optional.of(
         new GhostCFA(
-            startNodeGhostCFA, endNodeGhostCFA, pBeforeWhile, pBeforeWhile, this.strategyEnum));
+            startNodeGhostCFA, endNodeGhostCFA, pBeforeWhile, pBeforeWhile, this.strategyEnum, new ArrayList<>(), StrategyQualifier.OverApproximating));
   }
 
   @Override
