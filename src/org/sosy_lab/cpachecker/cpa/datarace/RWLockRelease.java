@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
-import com.google.common.base.Objects;
+import java.util.Objects;
 
 public class RWLockRelease extends LockRelease {
 
@@ -40,6 +40,6 @@ public class RWLockRelease extends LockRelease {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(super.hashCode(), isWriteRelease);
+    return Objects.hash(super.hashCode(), isWriteRelease);
   }
 }
