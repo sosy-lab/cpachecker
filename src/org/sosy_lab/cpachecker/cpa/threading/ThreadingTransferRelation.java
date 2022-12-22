@@ -805,7 +805,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   }
 
   /** Return the lock referenced by the given function call or null if no lock is referenced. */
-  static @Nullable LockInfo extractLock(AFunctionCall functionCall, ThreadingState threadingState)
+  public static @Nullable LockInfo extractLock(AFunctionCall functionCall, ThreadingState threadingState)
       throws UnrecognizedCodeException {
     LockInfo lockInfo;
     String functionName = getFunctionName(functionCall);

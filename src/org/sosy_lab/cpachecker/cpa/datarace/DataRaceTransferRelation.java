@@ -25,6 +25,7 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.TH
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_START;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.VERIFIER_ATOMIC_BEGIN;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.VERIFIER_ATOMIC_END;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.extractLock;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.getFunctionName;
 
 import com.google.common.collect.ImmutableList;
@@ -272,9 +273,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         case THREAD_MUTEX_LOCK:
         case THREAD_MUTEX_TRYLOCK:
           {
-            AExpression lockExpression =
-                pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
-            String lockId = ((CUnaryExpression) lockExpression).getOperand().toString();
+            String lockId = extractLock(pFunctionCall, threadingState).getLockId();
+            assert threadingState.hasLock(lockId);
 
             if (functionName.equals(THREAD_MUTEX_TRYLOCK)
                 && !threadingState.isLockHeld(activeThread, lockId)) {
@@ -304,9 +304,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           }
         case RW_MUTEX_READLOCK:
           {
-            AExpression lockExpression =
-                pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
-            String lockId = ((CUnaryExpression) lockExpression).getOperand().toString();
+            String lockId = extractLock(pFunctionCall, threadingState).getLockId();
+            assert threadingState.hasLock(lockId);
 
             // Add synchronization
             Collection<LockRelease> lastReleases = newReleases.get(lockId);
@@ -331,9 +330,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           }
         case RW_MUTEX_WRITELOCK:
           {
-            AExpression lockExpression =
-                pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
-            String lockId = ((CUnaryExpression) lockExpression).getOperand().toString();
+            String lockId = extractLock(pFunctionCall, threadingState).getLockId();
+            assert threadingState.hasLock(lockId);
 
             // Add synchronization
             ImmutableList<LockRelease> lastReleases = ImmutableList.copyOf(newReleases.get(lockId));
@@ -363,9 +361,9 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         case THREAD_MUTEX_UNLOCK:
         case RW_MUTEX_UNLOCK:
           {
-            AExpression lockExpression =
-                pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
-            String lockId = ((CUnaryExpression) lockExpression).getOperand().toString();
+            LockInfo lock = extractLock(pFunctionCall, threadingState);
+            String lockId = lock.getLockId();
+            assert threadingState.hasLock(lockId);
 
             if (lockId.equals(LOCAL_ACCESS_LOCK)) {
               // Do not track releases of local access lock,
@@ -373,7 +371,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
               break;
             }
 
-            LockInfo lock = threadingState.getLock(lockId);
             if (functionName.equals(THREAD_MUTEX_UNLOCK)) {
               assert lock.getLockType() == LockType.MUTEX;
               newReleases.put(lockId, new LockRelease(lockId, activeThread, epoch));
