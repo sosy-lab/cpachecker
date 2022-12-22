@@ -16,7 +16,7 @@ public enum Language {
 
   private final String name;
 
-  private Language(String pName) {
+  Language(String pName) {
     name = pName;
   }
 

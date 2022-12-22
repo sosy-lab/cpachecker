@@ -89,6 +89,8 @@ public class SequentialInterpolation extends ITPStrategy {
           return getFwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.logDebugException(e, FALLBACK_BWD_MSG);
+          // Rebuild solver env as it might be tainted after an exception
+          interpolator.destroyAndRebuildSolverEnvironment();
         }
         // $FALL-THROUGH$
       case BWD:
@@ -99,6 +101,8 @@ public class SequentialInterpolation extends ITPStrategy {
           return getBwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.logDebugException(e, FALLBACK_FWD_MSG);
+          // Rebuild solver env as it might be tainted after an exception
+          interpolator.destroyAndRebuildSolverEnvironment();
         }
         // $FALL-THROUGH$
       case FWD:
@@ -113,6 +117,8 @@ public class SequentialInterpolation extends ITPStrategy {
           forward = getFwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.logDebugException(e, FALLBACK_BWD_MSG);
+          // Rebuild solver env as it might be tainted after an exception
+          interpolator.destroyAndRebuildSolverEnvironment();
           return getBwdInterpolants(interpolator, formulas);
         }
 
@@ -124,6 +130,8 @@ public class SequentialInterpolation extends ITPStrategy {
             throw e;
           } else {
             logger.logDebugException(e, FALLBACK_FWD_MSG);
+            // Rebuild solver env as it might be tainted after an exception
+            interpolator.destroyAndRebuildSolverEnvironment();
             return forward;
           }
         }

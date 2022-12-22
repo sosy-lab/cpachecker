@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -457,7 +456,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   /** the whole program will terminate after this edge */
   private boolean isEndOfMainFunction(CFAEdge edge) {
-    return Objects.equals(cfa.getMainFunction().getExitNode(), edge.getSuccessor());
+    return cfa.getMainFunction()
+        .getExitNode()
+        .map(mainExitNode -> mainExitNode.equals(edge.getSuccessor()))
+        .orElse(false); // if there is no exit node, the edge cannot be the end of main
   }
 
   private ThreadingState exitThreads(ThreadingState tmp) {

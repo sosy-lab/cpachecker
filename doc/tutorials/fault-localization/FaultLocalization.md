@@ -16,13 +16,13 @@ error-prone statements in the program. Additionally, they try to explain the res
 debugging.
 
 Please conduct the following papers for further reading:
-- [Distance Metrics I](https://doi.org/10.1145/1029894.1029908)
-- [Distance Metrics II](https://doi.org/10.1007/s10009-005-0202-0)
-- [MaxSat](https://doi.org/10.1145/1993498.1993550)
-- [Error Invariants](https://doi.org/10.1007/978-3-642-32759-9_17)
-- [Ochiai](https://doi.org/10.1145/1831708.1831715)
-- [DStar](https://doi.org/10.1109/TR.2013.2285319)
-- [Tarantula](https://doi.org/10.1145/1831708.1831717)
+ - [Distance Metrics I](https://doi.org/10.1145/1029894.1029908)
+ - [Distance Metrics II](https://doi.org/10.1007/s10009-005-0202-0)
+ - [MaxSat](https://doi.org/10.1145/1993498.1993550)
+ - [Error Invariants](https://doi.org/10.1007/978-3-642-32759-9_17)
+ - [Ochiai](https://doi.org/10.1145/1831708.1831715)
+ - [DStar](https://doi.org/10.1109/TR.2013.2285319)
+ - [Tarantula](https://doi.org/10.1145/1831708.1831717)
 
 Running Fault Localization
 ----------
@@ -125,6 +125,8 @@ In this tutorial we implement a new fault localization technique that simply mar
 This technique allows users to find decision points and wrong assumptions in the error path that
 eventually lead to the error. The technique solely serves demonstration purposes. A set of
 error-prone statements is called _fault_.
+
+The full code snippet can be found below.
 
 We start the tutorial by creating a new class
 `FaultLocalizationAssumption` in `org.sosy_lab.cpachecker.core.algorithm`.
@@ -426,6 +428,10 @@ the constructor of `CoreComponentsFactory.
 @Option(secure = true, name = "assumes", description = "Enable our fault localization technique")
 private boolean assumes=false;
 ```
+We have to import the algorithm with
+```java
+import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationAssumption;
+```
 Lastly, we append the following check in the very last `else` branch of the method
 `createAlgorithm`.
 
@@ -456,6 +462,8 @@ doc/tutorials/fault-localization/factorization-plain.c
 ```
 The report can be found in `output/Counterexample.2.html`.
 It should look like [this](report.html).
+
+You can verify that the algorithm runs by looking at the console output.
 
 # Importing Faults
 Our framework allows the import of faults from external tool
