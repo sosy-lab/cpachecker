@@ -223,8 +223,16 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         activeThread,
         new ThreadInfo(activeThread, threadInfo.get(activeThread).getEpoch() + 1, true));
     int epoch = threadInfo.get(activeThread).getEpoch();
-    Set<WaitInfo> waitInfo = new HashSet<>(state.getWaitInfo());
     Multimap<String, LockRelease> newReleases = LinkedHashMultimap.create(state.getLastReleases());
+    Set<WaitInfo> waitInfo = new HashSet<>(state.getWaitInfo());
+    for (WaitInfo info : state.getWaitInfo()) {
+      if (info.getWaitingThread().equals(activeThread)
+          && threadingState.getCondVarForThread(activeThread) == null) {
+        // This is a spurious wakeup. If the active thread had been signalled, info would have
+        // already been removed.
+        waitInfo.remove(info);
+      }
+    }
 
     // Apply necessary changes, depending on the called thread function
     if (pFunctionCall != null) {
@@ -394,7 +402,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
               if (info.getWaitingOn().equals(condVar)) {
                 synchronizationBuilder.add(
                     new ThreadSynchronization(
-                        // TODO: Order correct?
                         activeThread, info.getWaitingThread(), epoch, info.getEpoch()));
                 toRemove.add(info);
               }
