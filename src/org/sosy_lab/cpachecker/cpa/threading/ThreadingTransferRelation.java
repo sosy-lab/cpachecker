@@ -318,13 +318,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
                 return removeLock(activeThread, lock, results);
               case THREAD_COND_WAIT:
               case THREAD_COND_TIMEDWAIT:
-                return addCondition(
-                    threadingState, activeThread, (AFunctionCall) statement, results, cfaEdge);
+                return addCondition(threadingState, activeThread, functionCall, results, cfaEdge);
               case THREAD_COND_SIGNAL:
               case THREAD_COND_BC:
-                return removeCondition(threadingState, (AFunctionCall) statement, results);
+                return removeCondition(threadingState, functionCall, results);
               case THREAD_JOIN:
-                return joinThread(threadingState, statement, results);
+                return joinThread(threadingState, functionCall, results);
               case THREAD_EXIT:
                 // this function-call is already handled in the beginning with isLastNodeOfThread.
                 // return exitThread(threadingState, activeThread, results);
@@ -912,28 +911,21 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   }
 
   private Collection<ThreadingState> joinThread(
-      ThreadingState threadingState, AStatement statement, Collection<ThreadingState> results)
+      ThreadingState threadingState, AFunctionCall statement, Collection<ThreadingState> results)
       throws UnrecognizedCodeException {
 
-    if (threadingState.getThreadIds().contains(extractParamName(statement, 0))) {
+    AExpression threadExpression =
+        statement.getFunctionCallExpression().getParameterExpressions().get(0);
+    if (!(threadExpression instanceof CIdExpression)) {
+      throw new UnrecognizedCodeException("Unsupported thread join access", threadExpression);
+    }
+
+    if (threadingState.getThreadIds().contains(((CIdExpression) threadExpression).getName())) {
       // we wait for an active thread -> nothing to do
       return ImmutableSet.of();
     }
 
     return results;
-  }
-
-  /** extract the name of the n-th parameter from a function call. */
-  static String extractParamName(AStatement statement, int n) throws UnrecognizedCodeException {
-    // first check for some possible errors and unsupported parts
-    List<? extends AExpression> params =
-        ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
-    AExpression expr = params.get(n);
-    if (!(expr instanceof CIdExpression)) {
-      throw new UnrecognizedCodeException("unsupported thread join access", expr);
-    }
-
-    return ((CIdExpression) expr).getName();
   }
 
   /**

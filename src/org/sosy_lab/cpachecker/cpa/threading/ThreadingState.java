@@ -12,7 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_JOIN;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.extractLock;
-import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.extractParamName;
+import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.getFunctionName;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.isLastNodeOfThread;
 
 import com.google.common.base.Joiner;
@@ -28,8 +28,8 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -468,18 +468,23 @@ public class ThreadingState
     if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
       AStatement statement = ((AStatementEdge) edge).getStatement();
       if (statement instanceof AFunctionCall) {
-        AExpression functionNameExp =
-            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-        if (functionNameExp instanceof AIdExpression) {
-          final String functionName = ((AIdExpression) functionNameExp).getName();
-          if (THREAD_JOIN.equals(functionName)) {
-            final String joiningThread = extractParamName(statement, 0);
-            // check whether other thread is running and has at least one outgoing edge,
-            // then we have to wait for it.
-            if (threads.containsKey(joiningThread)
-                && !isLastNodeOfThread(getThreadLocation(joiningThread).getLocationNode())) {
-              return true;
-            }
+        String functionName = getFunctionName((AFunctionCall) statement);
+        if (THREAD_JOIN.equals(functionName)) {
+          AExpression threadExpression =
+              ((AFunctionCall) statement)
+                  .getFunctionCallExpression()
+                  .getParameterExpressions()
+                  .get(0);
+          if (!(threadExpression instanceof CIdExpression)) {
+            throw new UnrecognizedCodeException("Unsupported thread join access", threadExpression);
+          }
+
+          final String joiningThread = ((CIdExpression) threadExpression).getName();
+          // check whether other thread is running and has at least one outgoing edge,
+          // then we have to wait for it.
+          if (threads.containsKey(joiningThread)
+              && !isLastNodeOfThread(getThreadLocation(joiningThread).getLocationNode())) {
+            return true;
           }
         }
       }

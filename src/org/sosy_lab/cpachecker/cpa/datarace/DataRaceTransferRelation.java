@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -261,7 +262,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           {
             AExpression threadExpression =
                 pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
-            String joinedThreadId = ((CUnaryExpression) threadExpression).getOperand().toString();
+            String joinedThreadId = ((CIdExpression) threadExpression).getName();
 
             threadInfo.put(
                 joinedThreadId,
