@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
+import com.google.common.base.Objects;
+
 public class RWLockRelease extends LockRelease {
 
   private final boolean isWriteRelease;
@@ -19,5 +21,25 @@ public class RWLockRelease extends LockRelease {
 
   public boolean isWriteRelease() {
     return isWriteRelease;
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (!(pO instanceof RWLockRelease)) {
+      return false;
+    }
+    if (!super.equals(pO)) {
+      return false;
+    }
+    RWLockRelease that = (RWLockRelease) pO;
+    return isWriteRelease == that.isWriteRelease;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(super.hashCode(), isWriteRelease);
   }
 }
