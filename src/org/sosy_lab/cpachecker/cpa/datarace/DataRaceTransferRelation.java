@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.ge
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -38,7 +37,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -213,24 +211,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     return functionCall;
   }
 
-  private ImmutableSetMultimap<String, LockInfo> updateHeldLocks(
-      DataRaceState state, ThreadingState pThreadingState, String activeThread) {
-    ImmutableSetMultimap.Builder<String, LockInfo> newHeldLocks = ImmutableSetMultimap.builder();
-    Set<String> activeThreadLocks = pThreadingState.getLocksForThread(activeThread);
-    // For locks held by the active thread use info from ThreadingCPA
-    for (String lock : activeThreadLocks) {
-      newHeldLocks.put(activeThread, pThreadingState.getLock(lock));
-    }
-
-    // For locks held by any other thread nothing changes
-    for (Entry<String, LockInfo> entry : state.getHeldLocks().entries()) {
-      if (!entry.getKey().equals(activeThread)) {
-        newHeldLocks.put(entry);
-      }
-    }
-    return newHeldLocks.build();
-  }
-
   private DataRaceState handleThreadFunctions(
       DataRaceState state,
       ThreadingState threadingState,
@@ -241,18 +221,13 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       Set<MemoryAccess> memoryAccesses,
       Set<MemoryAccess> newMemoryAccesses)
       throws CPATransferException {
-    // Prepare additional mutable data structures, depending on pFunctionCall these may change
     Map<String, ThreadInfo> threadInfo = new HashMap<>(state.getThreadInfo());
     threadInfo.put(
         activeThread,
         new ThreadInfo(activeThread, threadInfo.get(activeThread).getEpoch() + 1, true));
+    int epoch = threadInfo.get(activeThread).getEpoch();
     Set<WaitInfo> waitInfo = new HashSet<>(state.getWaitInfo());
     Multimap<String, LockRelease> newReleases = LinkedHashMultimap.create(state.getLastReleases());
-
-    // Prepare additional immutable data structures
-    int epoch = threadInfo.get(activeThread).getEpoch();
-    ImmutableSetMultimap<String, LockInfo> heldLocks =
-        updateHeldLocks(state, threadingState, activeThread);
 
     // Apply necessary changes, depending on the called thread function
     if (pFunctionCall != null) {
@@ -402,21 +377,13 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
               break;
             }
 
-            LockInfo lock = null;
-            for (LockInfo lockInfo : state.getHeldLocks().get(activeThread)) {
-              if (lockInfo.getLockId().equals(lockId)) {
-                lock = lockInfo;
-                break;
-              }
-            }
-            assert lock != null;
-
+            LockInfo lock = threadingState.getLock(lockId);
             if (functionName.equals(THREAD_MUTEX_UNLOCK)) {
               assert lock.getLockType() == LockType.MUTEX;
               newReleases.put(lockId, new LockRelease(lockId, activeThread, epoch));
             } else {
               assert lock.getLockType() == LockType.RW_MUTEX;
-              boolean isWriteRelease = ((RWLock) lock).hasWriter();
+              boolean isWriteRelease = ((RWLock) lock).wasLastReleaseWriter();
               newReleases.put(
                   lockId, new RWLockRelease(lockId, activeThread, epoch, isWriteRelease));
             }
@@ -483,7 +450,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         subsequentWrites,
         threadInfo,
         threadSynchronizations,
-        heldLocks,
         newReleases,
         waitInfo,
         hasDataRace);

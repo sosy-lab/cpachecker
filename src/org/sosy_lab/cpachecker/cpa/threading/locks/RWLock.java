@@ -16,29 +16,27 @@ public class RWLock extends LockInfo {
 
   private final PersistentSet<String> readers;
   private final String writer;
+  private final boolean lastReleaseWasWriter;
 
   public RWLock(String pLockId) {
-    this(pLockId, new PersistentSet<>(), null);
+    this(pLockId, new PersistentSet<>(), null, false);
   }
 
-  private RWLock(String pLockId, PersistentSet<String> pReaders, String pWriter) {
+  private RWLock(
+      String pLockId,
+      PersistentSet<String> pReaders,
+      String pWriter,
+      boolean pLastReleaseWasWriter) {
     super(pLockId, LockType.RW_MUTEX);
     readers = pReaders;
     writer = pWriter;
-  }
-
-  private RWLock withReaders(PersistentSet<String> pReaders) {
-    return new RWLock(getLockId(), pReaders, writer);
-  }
-
-  private RWLock withWriter(String pWriter) {
-    return new RWLock(getLockId(), readers, pWriter);
+    lastReleaseWasWriter = pLastReleaseWasWriter;
   }
 
   public RWLock addReader(String pReader) {
     Preconditions.checkNotNull(pReader);
     Preconditions.checkState(writer == null);
-    return withReaders(readers.addAndCopy(pReader));
+    return new RWLock(getLockId(), readers.addAndCopy(pReader), writer, lastReleaseWasWriter);
   }
 
   public boolean hasReader() {
@@ -48,13 +46,13 @@ public class RWLock extends LockInfo {
   private RWLock removeReader(String pReader) {
     Preconditions.checkNotNull(pReader);
     Preconditions.checkArgument(readers.contains(pReader));
-    return withReaders(readers.removeAndCopy(pReader));
+    return new RWLock(getLockId(), readers.removeAndCopy(pReader), writer, false);
   }
 
   public RWLock addWriter(String pWriter) {
     Preconditions.checkNotNull(pWriter);
     Preconditions.checkState(writer == null && readers.isEmpty());
-    return withWriter(pWriter);
+    return new RWLock(getLockId(), readers, pWriter, lastReleaseWasWriter);
   }
 
   public boolean hasWriter() {
@@ -64,7 +62,11 @@ public class RWLock extends LockInfo {
   private RWLock removeWriter(String pWriter) {
     Preconditions.checkNotNull(pWriter);
     Preconditions.checkArgument(pWriter.equals(writer));
-    return withWriter(null);
+    return new RWLock(getLockId(), readers, null, true);
+  }
+
+  public boolean wasLastReleaseWriter() {
+    return lastReleaseWasWriter;
   }
 
   @Override
