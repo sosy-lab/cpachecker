@@ -106,11 +106,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
               state.getThreadInfo().get(activeThread),
               cfaEdge,
               threadingState.getLocksForThread(activeThread));
-      for (MemoryAccess newAccess : newMemoryAccesses) {
-        if (newAccess.isOverapproximating()) {
-          throw new CPATransferException("DataRaceCPA does not support pointer analysis");
-        }
-      }
 
       // Update tracked memory accesses
       ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
@@ -434,10 +429,16 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    // TODO: Probably want to get rid of this check (but it is an optimization...)
     if (threadInfo.values().stream().filter(i -> i.isRunning()).count() == 1) {
       // No data race possible in sequential part
       return new DataRaceState(threadInfo, state.hasDataRace());
+    }
+    // Only check this in the parallel part, because otherwise the exception will trigger even
+    // because of unused stuff in the header
+    for (MemoryAccess newAccess : newMemoryAccesses) {
+      if (newAccess.isOverapproximating()) {
+        throw new CPATransferException("DataRaceCPA does not support pointer analysis");
+      }
     }
 
     Set<ThreadSynchronization> threadSynchronizations = synchronizationBuilder.build();
