@@ -8,12 +8,15 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.threading.locks.LockInfo;
+import org.sosy_lab.cpachecker.cpa.threading.locks.RWLock;
 
 class MemoryAccess {
 
@@ -28,15 +31,32 @@ class MemoryAccess {
       String pThreadId,
       OverapproximatingMemoryLocation pMemoryLocation,
       boolean pIsWrite,
-      Set<String> pLocks,
+      Set<LockInfo> pLocks,
       CFAEdge pEdge,
       int pAccessEpoch) {
     threadId = pThreadId;
     memoryLocation = pMemoryLocation;
     isWrite = pIsWrite;
-    locks = ImmutableSet.copyOf(pLocks);
+    locks = ImmutableSet.copyOf(getEffectiveLocks(pLocks, pIsWrite));
     edge = pEdge;
     accessEpoch = pAccessEpoch;
+  }
+
+  /**
+   * Filter out locks that have no effect on the memory access, e.g. holding only a reader lock and
+   * performing a write access is equivalent to holding no lock at all.
+   */
+  private Set<String> getEffectiveLocks(Set<LockInfo> pLocks, boolean pIsWrite) {
+    if (pIsWrite) {
+      return FluentIterable.from(pLocks)
+          .filter(lock -> !(lock instanceof RWLock && ((RWLock) lock).hasReader()))
+          .transform(LockInfo::getLockId)
+          .toSet();
+    }
+    return FluentIterable.from(pLocks)
+        .filter(lock -> !(lock instanceof RWLock && ((RWLock) lock).hasWriter()))
+        .transform(LockInfo::getLockId)
+        .toSet();
   }
 
   String getThreadId() {

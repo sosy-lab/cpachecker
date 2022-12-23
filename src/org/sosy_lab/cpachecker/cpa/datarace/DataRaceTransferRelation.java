@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.VE
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.extractLock;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.getFunctionName;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -103,11 +104,13 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       synchronizationBuilder.addAll(state.getThreadSynchronizations());
 
       // Collect new accesses
+      Set<LockInfo> heldLocks =
+          FluentIterable.from(threadingState.getLocksForThread(activeThread))
+              .transform(id -> threadingState.getLock(id))
+              .toSet();
       Set<MemoryAccess> newMemoryAccesses =
           memoryAccessExtractor.getNewAccesses(
-              state.getThreadInfo().get(activeThread),
-              cfaEdge,
-              threadingState.getLocksForThread(activeThread));
+              state.getThreadInfo().get(activeThread), cfaEdge, heldLocks);
 
       // Update tracked memory accesses
       ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();

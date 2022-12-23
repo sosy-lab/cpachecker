@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.threading.locks.LockInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class MemoryAccessExtractor {
@@ -46,7 +47,7 @@ public class MemoryAccessExtractor {
    *
    * <p>Throws CPATransferException if an unsupported function is encountered.
    */
-  Set<MemoryAccess> getNewAccesses(ThreadInfo activeThreadInfo, CFAEdge edge, Set<String> locks) {
+  Set<MemoryAccess> getNewAccesses(ThreadInfo activeThreadInfo, CFAEdge edge, Set<LockInfo> locks) {
     String activeThread = activeThreadInfo.getThreadId();
     int epoch = activeThreadInfo.getEpoch();
     Set<OverapproximatingMemoryLocation> readLocationBuilder = new HashSet<>();
