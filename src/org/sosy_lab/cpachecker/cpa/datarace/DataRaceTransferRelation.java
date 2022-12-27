@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -270,17 +269,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
                     addedThreadInfo.getEpoch()));
             break;
           }
-        case THREAD_JOIN:
-          {
-            AExpression threadExpression =
-                pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
-            String joinedThreadId = ((CIdExpression) threadExpression).getName();
-
-            threadInfo.put(
-                joinedThreadId,
-                new ThreadInfo(joinedThreadId, threadInfo.get(joinedThreadId).getEpoch(), false));
-            break;
-          }
         case THREAD_MUTEX_LOCK:
         case THREAD_MUTEX_TRYLOCK:
           {
@@ -419,6 +407,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
             waitInfo.add(new WaitInfo(activeThread, condVar.getName(), epoch));
             break;
           }
+        case THREAD_JOIN:
         case THREAD_EXIT:
         case VERIFIER_ATOMIC_BEGIN:
         case VERIFIER_ATOMIC_END:
@@ -434,6 +423,15 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
             // Nothing to do
             break;
           }
+      }
+    }
+
+    // Update terminated threads
+    Set<String> threadIds = threadInfo.keySet();
+    for (String threadId : threadIds) {
+      if (!threadingState.getThreadIds().contains(threadId)) {
+        threadInfo.put(
+            threadId, new ThreadInfo(threadId, threadInfo.get(threadId).getEpoch(), false));
       }
     }
 
