@@ -31,6 +31,8 @@ public class UnderapproximatingStrategyDependency implements StrategyDependency 
 
     if (pAvailableStrategies.contains(StrategiesEnum.NONDETVARIABLEASSIGNMENTSTRATEGY)) {
       preferredStrategies.add(StrategiesEnum.NONDETVARIABLEASSIGNMENTSTRATEGY);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.BOUNDEDLOOPUNROLLINGSTRATEGY)) {
+      preferredStrategies.add(StrategiesEnum.BOUNDEDLOOPUNROLLINGSTRATEGY);
     } else if (pAvailableStrategies.contains(StrategiesEnum.BASE)) {
       preferredStrategies.add(StrategiesEnum.BASE);
     }
