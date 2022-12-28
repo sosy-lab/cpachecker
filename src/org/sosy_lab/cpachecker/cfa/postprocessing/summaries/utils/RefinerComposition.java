@@ -52,6 +52,12 @@ public class RefinerComposition implements Refiner, StatisticsProvider {
 
   @Option(
       secure = true,
+      name = "stopAfterTrueCounterexample",
+      description = "Do we stop after finding a true counterexample.")
+  public boolean stopAfterTrueCounterexample = false;
+
+  @Option(
+      secure = true,
       name = "wrappedrefiners",
       required = true,
       description =
@@ -143,8 +149,12 @@ public class RefinerComposition implements Refiner, StatisticsProvider {
 
       Refiner refiner = refiners.get(i);
       amntRefinements.set(i, amntRefinements.get(i) + 1);
-      if (refiner.performRefinement(pReached)) {
+      boolean refinementResult = refiner.performRefinement(pReached);
+      if (refinementResult) {
         return true;
+      } else if (stopAfterTrueCounterexample) {
+        // If an inner refiner already found a true counterexample we may sometimes stop
+        return false;
       }
     }
 

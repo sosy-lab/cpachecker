@@ -4231,6 +4231,9 @@ reachedSet.file = "reached.txt"
 # parameter.
 refiner.composition.maxAmntInnerRefinements = -1
 
+# Do we stop after finding a true counterexample.
+refiner.composition.stopAfterTrueCounterexample = false
+
 # Which wrapped refinement algorithms to use? (give class name, required for
 # CEGAR) If the package name starts with 'org.sosy_lab.cpachecker.', this
 # prefix can be omitted.The refiners are written as one would function
