@@ -139,6 +139,10 @@ public class SummaryRefinerStatistics implements Statistics {
       return;
     }
 
+    if (summaryInformation == null) {
+      return;
+    }
+
     Map<CFANode, Set<StrategiesEnum>> stratMap = new HashMap<>();
     for (AbstractState a : pReached) {
       FluentIterable.from(AbstractStates.extractLocations(a))
