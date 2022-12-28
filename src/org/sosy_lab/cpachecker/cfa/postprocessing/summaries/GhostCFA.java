@@ -202,10 +202,19 @@ public class GhostCFA {
 
     GhostCFA otherGhostCFA = (GhostCFA) pObj;
 
+    if (this.parameters.size() != otherGhostCFA.parameters.size()) {
+      return false;
+    }
+
+    for (int i = 0; i < this.parameters.size(); i++) {
+      @SuppressWarnings("unused")
+      AExpression expr1 = this.parameters.get(i);
+      @SuppressWarnings("unused")
+      AExpression expr2 = otherGhostCFA.parameters.get(i);
+    }
+
     return this.startOriginalCfaNode == otherGhostCFA.startOriginalCfaNode
         && this.stopOriginalCfaNode == otherGhostCFA.stopOriginalCfaNode
-        && this.strategy == otherGhostCFA.strategy
-        // TODO: How to compare if all the elements of a List are equal correctly?
-        && this.parameters == otherGhostCFA.parameters;
+        && this.strategy == otherGhostCFA.strategy;
   }
 }

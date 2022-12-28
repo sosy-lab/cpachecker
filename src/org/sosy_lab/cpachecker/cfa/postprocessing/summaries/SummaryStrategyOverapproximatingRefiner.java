@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
+import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -108,8 +109,13 @@ public class SummaryStrategyOverapproximatingRefiner implements Refiner {
           summaryInformation.getBestAllowedStrategy(
               AbstractStates.extractLocation(refinementState), locationPrecision));
 
-      reached.removeSubtree(
-          refinementState, locationPrecision, p -> p instanceof LocationPrecision);
+      // Using reached.removeSubtree does not remove only the children elements, but also the
+      // element itself. Which in turn also removes the updated precision
+      ArrayList<ARGState> children = Lists.newArrayList(refinementState.getChildren());
+
+      for (int i = 0; i < children.size(); i++) {
+        reached.removeSubtree(children.get(i));
+      }
 
       return true;
     }

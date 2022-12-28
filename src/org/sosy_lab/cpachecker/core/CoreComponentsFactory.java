@@ -593,7 +593,11 @@ public class CoreComponentsFactory {
                 .newInstance();
       }
 
+
       if (usePGAR) {
+        // The PGAR algorithm should be instantiated after the CEGAR algorithm in order to allow for
+        // CEGAR inside PGAR. This is for example the case for underapproximating Loopsummary
+        // Strategies
         algorithm =
             new PGARAlgorithmFactory(algorithm, cpa, logger, config, shutdownNotifier)
                 .newInstance();
