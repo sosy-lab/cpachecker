@@ -4228,6 +4228,10 @@ reachedSet.dot = "reached.dot"
 reachedSet.export = false
 reachedSet.file = "reached.txt"
 
+# Ignore the inner refiners after the maximum amount of refinements for the
+# inner refinements has been reached.
+refiner.composition.ignoreInnerRefinersAfterMaxAmount = false
+
 # Max amount of Inner refinements. A negative number deactivates this
 # parameter.
 refiner.composition.maxAmntInnerRefinements = -1

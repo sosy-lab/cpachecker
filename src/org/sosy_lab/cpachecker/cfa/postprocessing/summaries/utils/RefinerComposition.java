@@ -52,6 +52,13 @@ public class RefinerComposition implements Refiner, StatisticsProvider {
 
   @Option(
       secure = true,
+      name = "ignoreInnerRefinersAfterMaxAmount",
+      description =
+          "Ignore the inner refiners after the maximum amount of refinements for the inner refinements has been reached.")
+  public boolean ignoreInnerRefinersAfterMaxAmount = false;
+
+  @Option(
+      secure = true,
       name = "wrappedrefiners",
       required = true,
       description =
@@ -136,7 +143,9 @@ public class RefinerComposition implements Refiner, StatisticsProvider {
     boolean refinementResult = true;
     for (int i = 0; i < refiners.size(); i++) {
       if (maxAmntInnerRefinements >= 0 && amntRefinements.get(i) >= maxAmntInnerRefinements + 1) {
-        amntRefinements.set(i, 0);
+        if (!ignoreInnerRefinersAfterMaxAmount) {
+          amntRefinements.set(i, 0);
+        }
         continue;
       }
 
