@@ -63,10 +63,13 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
@@ -281,7 +284,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
   private Set<Sample> getInitialPositiveSamples(
       ForwardingReachedSet reachedSet, Solver solver, Loop loop, int numSamples)
       throws InterruptedException, SolverException {
-    BooleanFormulaManager bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
+    BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
 
     // Collect some positive samples for each loop head.
     // Different loop heads potentially correspond to different paths to enter the loop and even if
@@ -289,7 +292,6 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     // should be small.
     Set<Sample> samples = new HashSet<>();
     for (CFANode loopHead : loop.getLoopHeads()) {
-      // Extract path formulas at the loop head
       ImmutableSet.Builder<BooleanFormula> formulaBuilder = ImmutableSet.builder();
       // TODO: We want a LocationMappedReachedSet inside the ForwardingReachedSet for maximum
       //  efficiency
@@ -304,35 +306,9 @@ public class SamplingAlgorithm extends NestingAlgorithm {
           formulaBuilder.add(formula);
         }
       }
-      ImmutableSet<BooleanFormula> formulas = formulaBuilder.build();
-
-      // Next, get satisfying models from SMT solver
-      try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-        for (BooleanFormula formula : formulas) {
-          List<List<ValueAssignment>> models = new ArrayList<>(numSamples);
-          prover.push(formula);
-          while (models.size() < numSamples) {
-            if (prover.isUnsat()) {
-              logger.logf(
-                  Level.INFO,
-                  "Exhausted all satisfying models, collected only %s samples",
-                  models.size());
-              break;
-            }
-            models.add(prover.getModelAssignments());
-            List<BooleanFormula> modelFormulas = new ArrayList<>();
-            for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
-              modelFormulas.add(modelAssignment.getAssignmentAsFormula());
-            }
-            prover.addConstraint(bfmgr.not(bfmgr.and(modelFormulas)));
-
-            samples.add(
-                extractSampleFromModel(
-                    prover.getModelAssignments(), loopHead, SampleClass.POSITIVE));
-          }
-          prover.pop();
-        }
-      }
+      samples.addAll(
+          getSamplesForFormulas(
+              formulaBuilder.build(), solver, loopHead, numSamples, SampleClass.POSITIVE));
     }
     return samples;
   }
@@ -340,7 +316,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
   private Set<Sample> getInitialNegativeSamples(
       ForwardingReachedSet reachedSet, Solver solver, Loop loop, int numSamples)
       throws InterruptedException, SolverException {
-    BooleanFormulaManager bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
+    BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
 
     // Collect some negative samples for each potential loop exit.
     Set<Sample> samples = new HashSet<>();
@@ -362,34 +338,100 @@ public class SamplingAlgorithm extends NestingAlgorithm {
           formulaBuilder.add(formula);
         }
       }
-      ImmutableSet<BooleanFormula> formulas = formulaBuilder.build();
+      samples.addAll(
+          getSamplesForFormulas(
+              formulaBuilder.build(), solver, lastNode, numSamples, SampleClass.NEGATIVE));
+    }
+    return samples;
+  }
 
-      // Next, get satisfying models from SMT solver
-      try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-        for (BooleanFormula formula : formulas) {
-          List<List<ValueAssignment>> models = new ArrayList<>(numSamples);
-          prover.push(formula);
-          while (models.size() < numSamples) {
-            if (prover.isUnsat()) {
-              logger.logf(
-                  Level.INFO,
-                  "Exhausted all satisfying models, collected only %s samples",
-                  models.size());
-              break;
-            }
-            models.add(prover.getModelAssignments());
-            List<BooleanFormula> modelFormulas = new ArrayList<>();
-            for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
-              modelFormulas.add(modelAssignment.getAssignmentAsFormula());
-            }
-            prover.addConstraint(bfmgr.not(bfmgr.and(modelFormulas)));
+  private Set<Sample> getSamplesForFormulas(
+      Set<BooleanFormula> pFormulas,
+      Solver pSolver,
+      CFANode pLocation,
+      int pNumSamples,
+      SampleClass pSampleClass)
+      throws InterruptedException, SolverException {
+    Set<Sample> samples = new HashSet<>();
+    BooleanFormulaManagerView bfmgr = pSolver.getFormulaManager().getBooleanFormulaManager();
+    try (ProverEnvironment prover = pSolver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      for (BooleanFormula formula : pFormulas) {
+        List<List<ValueAssignment>> models = new ArrayList<>(pNumSamples);
+        prover.push(formula);
 
-            samples.add(
-                extractSampleFromModel(
-                    prover.getModelAssignments(), lastNode, SampleClass.NEGATIVE));
-          }
-          prover.pop();
+        if (prover.isUnsat()) {
+          // Formula is UNSAT even without additional constraints, there is nothing to do
+          logger.log(Level.INFO, "Encountered unsatisfiable formula, no samples exist");
+          break;
         }
+        // Query solver for a random model so we get easy access to the variable representations
+        // (this is a hack)
+        List<Formula> variableFormulas = new ArrayList<>();
+        List<ValueAssignment> assignments = prover.getModelAssignments();
+        for (ValueAssignment assignment : assignments) {
+          List<String> parts = Splitter.on("@").splitToList(assignment.getName());
+          if (!parts.get(0).contains("::")) {
+            // Current assignment is a function result
+            // TODO: Can this really not be an unqualified variable?
+            continue;
+          }
+          variableFormulas.add(assignment.getKey());
+        }
+        logger.log(Level.INFO, variableFormulas);
+
+        // Add some constraints to keep the variable values small
+        BitvectorFormulaManagerView bvmgr =
+            pSolver.getFormulaManager().getBitvectorFormulaManager();
+        for (Formula variableFormula : variableFormulas) {
+          // TODO: We assume all variables are bitvectors for now
+          BitvectorFormula variable = (BitvectorFormula) variableFormula;
+          boolean unsat = true;
+          long max_value = 10;
+          // If the formula becomes unsat the constraint was too tight, so loosen it or remove
+          // completely.
+          // TODO: Could use a more sophisticated approach
+          while (unsat && max_value <= 1000) {
+            BitvectorFormula limit = bvmgr.makeBitvector(32, max_value);
+            BooleanFormula upper = bvmgr.lessOrEquals(variable, limit, true);
+            BooleanFormula lower = bvmgr.lessOrEquals(bvmgr.negate(variable), limit, true);
+            prover.push(upper);
+            prover.addConstraint(lower);
+            unsat = prover.isUnsat();
+            // Need to pop and add again as constraint if SAT, because otherwise solver stack can
+            // vary in size
+            prover.pop();
+            if (unsat) {
+              prover.pop();
+              max_value *= 10;
+            } else {
+              prover.addConstraint(bfmgr.and(upper, lower));
+            }
+          }
+        }
+
+        // Collect some satisfying models
+        while (models.size() < pNumSamples) {
+          if (prover.isUnsat()) {
+            logger.logf(
+                Level.INFO,
+                "Exhausted all satisfying models, collected only %s samples",
+                models.size());
+            break;
+          }
+          models.add(prover.getModelAssignments());
+
+          // Add constraint to avoid getting the same model again
+          List<BooleanFormula> modelFormulas = new ArrayList<>();
+          for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
+            modelFormulas.add(modelAssignment.getAssignmentAsFormula());
+          }
+          prover.addConstraint(bfmgr.not(bfmgr.and(modelFormulas)));
+
+          // Extract sample
+          samples.add(
+              extractSampleFromModel(prover.getModelAssignments(), pLocation, pSampleClass));
+        }
+        prover.pop();
       }
     }
     return samples;
