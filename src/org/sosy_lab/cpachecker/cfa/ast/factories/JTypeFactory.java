@@ -31,4 +31,9 @@ public class JTypeFactory {
     // TODO Auto-generated method stub
     return null;
   }
+
+  public static Number getLowerLimit(JType pType) {
+    // TODO Auto-generated method stub
+    return null;
+  }
 }

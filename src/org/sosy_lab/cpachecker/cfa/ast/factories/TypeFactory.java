@@ -43,4 +43,14 @@ public class TypeFactory {
       return null;
     }
   }
+
+  public static Number getLowerLimit(Type pType) {
+    if (pType instanceof CType) {
+      return CTypeFactory.getLowerLimit((CType) pType);
+    } else if (pType instanceof JType) {
+      return JTypeFactory.getLowerLimit((JType) pType);
+    } else {
+      return null;
+    }
+  }
 }

@@ -10,12 +10,19 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
+import org.sosy_lab.cpachecker.cfa.ast.factories.TypeFactory;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.Strategy.StrategyQualifier;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -88,21 +95,17 @@ public class SummaryStrategyUnderapproximatingRefiner implements Refiner {
           ((WrapperPrecision) pReached.getPrecision(refinementState))
               .retrieveWrappedPrecision(LocationPrecision.class);
 
-      // TODO: Make a deepcopy of the ghostCFA of the current strategy before adding it to the
-      // forbidden strategies. Since the parameters of the ghostCFA may be updated.
-      locationPrecision.addForbiddenStrategy(locationPrecision.getCurrentStrategy().orElseThrow());
-
-      // Update the parameters of the current Strategy if wanted
+      // Add forbidden strategies. This must be a since the parameters may be updated.
+      locationPrecision.addForbiddenStrategy(
+          locationPrecision.getCurrentStrategy().orElseThrow().copy());
 
       // Set the new best strategy
-      // TODO: Improve the new strategy selection
-      locationPrecision.setCurrentStrategy(
-          summaryInformation.getBestAllowedStrategy(
-              AbstractStates.extractLocation(refinementState), locationPrecision));
+      Optional<GhostCFA> nextStrategy = getNextStrategy(refinementState, locationPrecision);
+      locationPrecision.setCurrentStrategy(nextStrategy);
 
       // Using reached.removeSubtree does not remove only the children elements, but also the
       // element itself. Which in turn also removes the updated precision
-      ArrayList<ARGState> children = Lists.newArrayList(refinementState.getChildren());
+      List<ARGState> children = Lists.newArrayList(refinementState.getChildren());
 
       for (int i = 0; i < children.size(); i++) {
         reached.removeSubtree(children.get(i));
@@ -110,5 +113,103 @@ public class SummaryStrategyUnderapproximatingRefiner implements Refiner {
 
       return true;
     }
+  }
+
+  private Optional<GhostCFA> getNextStrategy(
+      ARGState refinementState, LocationPrecision locationPrecision) {
+    // TODO: Improve this by making it more dynamic and refactor it into some other class. This is
+    // currently here only for a proof of concept.
+
+    Optional<GhostCFA> currentStrategyBeingUsedOptional = locationPrecision.getCurrentStrategy();
+
+    // TODO: This is an ugly hack since it is hardcoded
+    if (currentStrategyBeingUsedOptional.isPresent()) {
+      GhostCFA currentStrategyBeingUsed = currentStrategyBeingUsedOptional.get();
+      if (currentStrategyBeingUsed.getStrategy()
+          == StrategiesEnum.NONDETVARIABLEASSIGNMENTSTRATEGY) {
+
+        // Get the type of the variable to be replaced. Since there is only a single variable this
+        // is easy to do.
+        CType typeOfVariable =
+            (CType) currentStrategyBeingUsed.getParameterVariables().get(0).getType();
+
+        // Get the already used values
+        List<Number> usedValues = new ArrayList<>();
+        for (List<AExpression> paramList : currentStrategyBeingUsed.getUsedParameters()) {
+          // For this strategy there exists only a single parameter
+          AExpression parameter = paramList.get(0);
+          if (parameter instanceof CIntegerLiteralExpression) {
+            usedValues.add(((CIntegerLiteralExpression) parameter).asLong());
+          } else if (parameter instanceof CFloatLiteralExpression) {
+            usedValues.add(((CFloatLiteralExpression) parameter).getValue().doubleValue());
+          }
+        }
+
+        // Get the next value to be used
+        List<Number> possibleVariableValuesIntegers =
+            List.of(
+                Long.valueOf(0),
+                Long.valueOf(1),
+                Long.valueOf(-1),
+                Long.valueOf(TypeFactory.getUpperLimit(typeOfVariable).longValue()),
+                Long.valueOf(TypeFactory.getLowerLimit(typeOfVariable).longValue()));
+
+        List<Number> possibleVariableValuesDecimal =
+            List.of(
+                Double.valueOf(0),
+                Double.valueOf(1),
+                Double.valueOf(-1),
+                Double.valueOf(TypeFactory.getUpperLimit(typeOfVariable).doubleValue()),
+                Double.valueOf(TypeFactory.getLowerLimit(typeOfVariable).doubleValue()));
+
+        List<Number> possibleVariableValues = new ArrayList<>();
+
+        if (usedValues.get(0) instanceof Long) {
+          possibleVariableValues = possibleVariableValuesIntegers;
+        } else if (usedValues.get(0) instanceof Double) {
+          possibleVariableValues = possibleVariableValuesDecimal;
+        }
+
+        for (Number n : possibleVariableValues) {
+          if (!usedValues.contains(n)) {
+            currentStrategyBeingUsed.updateParameters(
+                List.of(new AExpressionFactory().from(n, typeOfVariable).build()));
+            return Optional.of(currentStrategyBeingUsed);
+          }
+        }
+
+      } else if (currentStrategyBeingUsed.getStrategy()
+          == StrategiesEnum.BOUNDEDLOOPUNROLLINGSTRATEGY) {
+        // TODO: improve this by determining the amount of unrollings at runtime instead of being
+        // hard coded like this.
+        List<Integer> possibleBoundsForUnrolling = List.of(0, 1, 2, 3, 4, 8, 16, 32);
+
+        // Get the type of the variable to be replaced. Since there is only a single variable this
+        // is easy to do.
+        CType typeOfVariable =
+            (CType) currentStrategyBeingUsed.getParameterVariables().get(0).getType();
+
+        // Get the already used values
+        List<Integer> usedValues = new ArrayList<>();
+        for (List<AExpression> paramList : currentStrategyBeingUsed.getUsedParameters()) {
+          // For this strategy there exists only a single parameter
+          AExpression parameter = paramList.get(0);
+          if (parameter instanceof CIntegerLiteralExpression) {
+            usedValues.add((int) ((CIntegerLiteralExpression) parameter).asLong());
+          }
+        }
+
+        for (Integer n : possibleBoundsForUnrolling) {
+          if (!usedValues.contains(n)) {
+            currentStrategyBeingUsed.updateParameters(
+                List.of(new AExpressionFactory().from(n, typeOfVariable).build()));
+            return Optional.of(currentStrategyBeingUsed);
+          }
+        }
+      }
+    }
+
+    return summaryInformation.getBestAllowedStrategy(
+        AbstractStates.extractLocation(refinementState), locationPrecision);
   }
 }

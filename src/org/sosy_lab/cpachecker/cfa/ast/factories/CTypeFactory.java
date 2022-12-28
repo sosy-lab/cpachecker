@@ -69,16 +69,46 @@ public class CTypeFactory {
     if (pType instanceof CSimpleType) {
       switch (((CSimpleType) pType).getType()) {
         case BOOL:
+          return 1;
         case CHAR:
-        case UNSPECIFIED:
+          return 127;
         case DOUBLE:
           return null;
         case FLOAT:
+          return null;
         case FLOAT128:
           return null;
         case INT:
-        case INT128:
           return 2147483647;
+        case INT128:
+          return null;
+        case UNSPECIFIED:
+        default:
+          return null;
+      }
+    } else {
+      return null;
+    }
+  }
+
+  public static Number getLowerLimit(CType pType) {
+    if (pType instanceof CSimpleType) {
+      switch (((CSimpleType) pType).getType()) {
+        case BOOL:
+          return 0;
+        case CHAR:
+          return -128;
+        case DOUBLE:
+          return null;
+        case FLOAT:
+          return null;
+        case FLOAT128:
+          return null;
+        case INT:
+          return -2147483648;
+        case INT128:
+          return null;
+        case UNSPECIFIED:
         default:
           return null;
       }

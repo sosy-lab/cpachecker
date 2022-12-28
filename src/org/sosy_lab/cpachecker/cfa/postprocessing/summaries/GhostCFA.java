@@ -8,16 +8,25 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.Strategy.StrategyQualifier;
 
 public class GhostCFA {
@@ -34,6 +43,7 @@ public class GhostCFA {
   private Set<CFANode> allNodes = null;
   private List<AExpression> parameters;
   private StrategyQualifier strategyQualifier;
+  private List<List<AExpression>> usedParameters = new ArrayList<>();
 
   public GhostCFA(
       CFANode pStartGhostCfaNode,
@@ -52,6 +62,7 @@ public class GhostCFA {
     this.strategy = pStrategy;
     this.parameters = pParameters;
     this.strategyQualifier = pStrategyQualifier;
+    this.usedParameters.add(pParameters);
     this.collectEdges();
     this.collectNodes();
   }
@@ -106,6 +117,10 @@ public class GhostCFA {
 
   public StrategiesEnum getStrategy() {
     return strategy;
+  }
+
+  public List<List<AExpression>> getUsedParameters() {
+    return this.usedParameters;
   }
 
   private void setStartNodesConnection(Optional<CFAEdge> pStartNodesConnection) {
@@ -166,16 +181,68 @@ public class GhostCFA {
     }
   }
 
+  public List<AVariableDeclaration> getParameterVariables() {
+
+    List<AVariableDeclaration> parameterVariables = new ArrayList<>();
+
+    CFANode currentNode = startGhostCfaNode;
+    for (int i = 0; i < parameters.size(); i++) {
+      assert currentNode.getNumLeavingEdges() == 1
+          : "The first elements of the ghost CFA should be parameters.";
+
+      CFAEdge currentEdge = currentNode.getLeavingEdge(0);
+      assert currentEdge instanceof CStatementEdge : "Each parameter should be a statement edge.";
+
+      CStatement statement = ((CStatementEdge) currentEdge).getStatement();
+      assert statement instanceof CExpressionAssignmentStatement
+          : "Every parameter should be a variable assignment.";
+
+      CVariableDeclaration parameterVariable =
+          (CVariableDeclaration)
+              ((CIdExpression) ((CExpressionAssignmentStatement) statement).getLeftHandSide())
+                  .getDeclaration();
+
+      parameterVariables.add(parameterVariable);
+    }
+
+    return parameterVariables;
+  }
+
   public void updateParameters(List<AExpression> pParameters) {
     assert pParameters.size() == parameters.size()
         : "Currently changing the amount of parameters is not supported";
 
     parameters = pParameters;
 
-    // TODO Change the CFA in order to match the new parameters
-    // TODO: What should be the interface for the parameters in the CFA?
-    //      For example:
-    //          the first parameters.size() elements being variables and replacing their assignments
+    List<AVariableDeclaration> parameterVariables = getParameterVariables();
+
+    CFANode currentNode = startGhostCfaNode;
+    for (int i = 0; i < parameters.size(); i++) {
+      assert currentNode.getNumLeavingEdges() == 1
+          : "The first elements of the ghost CFA should be parameters.";
+
+      CFAEdge currentEdge = currentNode.getLeavingEdge(0);
+      assert currentEdge instanceof CStatementEdge : "Each parameter should be a statement edge.";
+      CFACreationUtils.removeEdgeFromNodes(currentEdge);
+
+      CVariableDeclaration parameterVariable = (CVariableDeclaration) parameterVariables.get(i);
+
+      CExpressionAssignmentStatement newParameterExpression =
+          (CExpressionAssignmentStatement)
+              new AExpressionFactory().from(pParameters.get(i)).assignTo(parameterVariable);
+
+      CFACreationUtils.addEdgeUnconditionallyToCFA(
+          new CStatementEdge(
+              newParameterExpression.toString(),
+              newParameterExpression,
+              FileLocation.DUMMY,
+              currentEdge.getPredecessor(),
+              currentEdge.getSuccessor()));
+
+      currentNode = currentEdge.getSuccessor();
+    }
+
+    this.usedParameters.add(pParameters);
   }
 
   public Set<CFANode> getAllNodes() {
@@ -183,8 +250,18 @@ public class GhostCFA {
   }
 
   public StrategyQualifier getStrategyQualifier() {
-    // TODO: Make this dependent on the parameters
     return strategyQualifier;
+  }
+
+  public GhostCFA copy() {
+    return new GhostCFA(
+        startGhostCfaNode,
+        stopGhostCfaNode,
+        startOriginalCfaNode,
+        stopOriginalCfaNode,
+        strategy,
+        parameters,
+        strategyQualifier);
   }
 
   @Override
@@ -207,10 +284,21 @@ public class GhostCFA {
     }
 
     for (int i = 0; i < this.parameters.size(); i++) {
-      @SuppressWarnings("unused")
       AExpression expr1 = this.parameters.get(i);
-      @SuppressWarnings("unused")
       AExpression expr2 = otherGhostCFA.parameters.get(i);
+
+      // TODO: Implement equality for AExpressions
+      if (expr1.getClass() != expr2.getClass()) {
+        return false;
+      }
+
+      if (expr1 instanceof AIntegerLiteralExpression) {
+        if (!((AIntegerLiteralExpression) expr1)
+            .getValue()
+            .equals(((AIntegerLiteralExpression) expr2).getValue())) {
+          return false;
+        }
+      }
     }
 
     return this.startOriginalCfaNode == otherGhostCFA.startOriginalCfaNode
