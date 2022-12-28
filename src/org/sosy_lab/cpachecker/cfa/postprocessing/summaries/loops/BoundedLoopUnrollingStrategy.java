@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class BoundedLoopUnrollingStrategy extends LoopStrategy {
 
-  private Integer initialLoopUnrollingsBound = 10;
+  private Integer initialLoopUnrollingsBound = 0;
 
   public BoundedLoopUnrollingStrategy(
       LogManager pLogger,
@@ -79,9 +79,7 @@ public class BoundedLoopUnrollingStrategy extends LoopStrategy {
 
     CExpressionAssignmentStatement amountOfLoopUnrollingsVariableIntialization =
         (CExpressionAssignmentStatement)
-            expressionFactory
-                .from(0, CNumericTypes.SIGNED_LONG_INT)
-                .assignTo(loopUnrollingsAmountVariable);
+            expressionFactory.from(amountOfLoopUnrollings).assignTo(loopUnrollingsAmountVariable);
 
     CFACreationUtils.addEdgeUnconditionallyToCFA(
         new CStatementEdge(
@@ -93,8 +91,37 @@ public class BoundedLoopUnrollingStrategy extends LoopStrategy {
 
     List<AExpression> parametersGhostCFA = Lists.newArrayList(amountOfLoopUnrollings);
 
-    // Generate the for loop which will provide the bounded unrollings of the loop
+    // Create the variable which will be incremented
+    CVariableDeclaration currentLoopUnrollings =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            CNumericTypes.SIGNED_LONG_INT,
+            "__currentLoopUnrollings",
+            "__currentLoopUnrollings",
+            "__currentfLoopUnrollings",
+            null);
+
+    CExpressionAssignmentStatement currentLoopUnrollingIntializationStatement =
+        (CExpressionAssignmentStatement)
+            expressionFactory
+                .from(0, CNumericTypes.SIGNED_LONG_INT)
+                .assignTo(currentLoopUnrollings);
+
     CFANode newGhostNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+
+    CFACreationUtils.addEdgeUnconditionallyToCFA(
+        new CStatementEdge(
+            currentLoopUnrollingIntializationStatement.toString(),
+            currentLoopUnrollingIntializationStatement,
+            FileLocation.DUMMY,
+            currentGhostNode,
+            newGhostNode));
+
+    // Generate the for loop which will provide the bounded unrollings of the loop
+    currentGhostNode = newGhostNode;
+    newGhostNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     CFACreationUtils.addEdgeUnconditionallyToCFA(
         new BlankEdge("", FileLocation.DUMMY, currentGhostNode, newGhostNode, "while"));
 
@@ -104,8 +131,9 @@ public class BoundedLoopUnrollingStrategy extends LoopStrategy {
     CExpression startLoopUnrollingsWhileExpression =
         (CExpression)
             new AExpressionFactory()
-                .from(loopUnrollingsAmountVariable)
-                .binaryOperation(amountOfLoopUnrollings, CBinaryExpression.BinaryOperator.LESS_THAN)
+                .from(currentLoopUnrollings)
+                .binaryOperation(
+                    loopUnrollingsAmountVariable, CBinaryExpression.BinaryOperator.LESS_THAN)
                 .build();
 
     CFACreationUtils.addEdgeUnconditionallyToCFA(
@@ -136,7 +164,22 @@ public class BoundedLoopUnrollingStrategy extends LoopStrategy {
     CFANode endUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getSecond();
 
     CFACreationUtils.connectNodes(newGhostNode, startUnrolledLoopNode);
-    CFACreationUtils.connectNodes(endUnrolledLoopNode, loopStartNode);
+
+    // Increment loop unrolling variable
+    CExpressionAssignmentStatement loopUnrollingsIncrementationStatement =
+        (CExpressionAssignmentStatement)
+            expressionFactory
+                .from(currentLoopUnrollings)
+                .binaryOperation(
+                    1, currentLoopUnrollings.getType(), CBinaryExpression.BinaryOperator.PLUS)
+                .assignTo(currentLoopUnrollings);
+    CFACreationUtils.addEdgeUnconditionallyToCFA(
+        new CStatementEdge(
+            loopUnrollingsIncrementationStatement.toString(),
+            loopUnrollingsIncrementationStatement,
+            FileLocation.DUMMY,
+            endUnrolledLoopNode,
+            loopStartNode));
 
     // Get the leaving successor of the loop
     CFANode leavingSuccessor;
