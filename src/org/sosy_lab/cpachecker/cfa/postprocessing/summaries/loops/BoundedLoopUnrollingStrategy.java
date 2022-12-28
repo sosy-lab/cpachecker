@@ -122,6 +122,7 @@ public class BoundedLoopUnrollingStrategy extends LoopStrategy {
     // Generate the for loop which will provide the bounded unrollings of the loop
     currentGhostNode = newGhostNode;
     newGhostNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+    newGhostNode.setLoopStart();
     CFACreationUtils.addEdgeUnconditionallyToCFA(
         new BlankEdge("", FileLocation.DUMMY, currentGhostNode, newGhostNode, "while"));
 
