@@ -18,11 +18,14 @@ import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
 import org.sosy_lab.cpachecker.cfa.ast.utils.Utils;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -81,6 +84,12 @@ public class NondetVariableAssignmentStrategy extends AbstractStrategy {
       variableType = ((CIdExpression) variable).getExpressionType();
     } else if (variable instanceof CArraySubscriptExpression) {
       variableType = ((CArraySubscriptExpression) variable).getExpressionType();
+    } else if (variable instanceof CPointerExpression) {
+      variableType = ((CPointerExpression) variable).getExpressionType();
+    } else if (variable instanceof CFieldReference) {
+      variableType = ((CFieldReference) variable).getExpressionType();
+    } else if (variable instanceof CComplexCastExpression) {
+      variableType = ((CComplexCastExpression) variable).getExpressionType();
     } else {
       return Optional.empty();
     }
