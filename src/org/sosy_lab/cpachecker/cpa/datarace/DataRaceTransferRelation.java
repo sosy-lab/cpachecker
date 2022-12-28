@@ -116,20 +116,17 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       ImmutableSet.Builder<MemoryAccess> subsequentWritesBuilder =
           prepareSubsequentWritesBuilder(state, threadIds);
       for (MemoryAccess access : state.getMemoryAccesses()) {
-        boolean canSynchronize =
-            access.isWrite() && !state.getAccessesWithSubsequentWrites().contains(access);
-        if (!threadIds.contains(access.getThreadId()) && !canSynchronize) {
+        if (!threadIds.contains(access.getThreadId())) {
           // If the thread that made the access is no longer running,
           // then this access can not conflict with any newer accesses.
-          // If the access can not be used for any synchronizes-with relationships anymore either,
-          // then we do not need to track it any longer.
+          // Therefore, we do not need to track it any longer.
           continue;
         }
         memoryAccessBuilder.add(access);
 
         // Add new synchronizes-with edges, if possible.
         // We do this here to avoid looping over all memory accesses a second time.
-        if (!canSynchronize) {
+        if (!access.isWrite() || state.getAccessesWithSubsequentWrites().contains(access)) {
           continue;
         }
         for (MemoryAccess newAccess : newMemoryAccesses) {
@@ -433,8 +430,17 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     Set<String> threadIds = threadInfo.keySet();
     for (String threadId : threadIds) {
       if (!threadingState.getThreadIds().contains(threadId)) {
-        threadInfo.put(
-            threadId, new ThreadInfo(threadId, threadInfo.get(threadId).getEpoch(), false));
+        int terminatedThreadEpoch = threadInfo.get(threadId).getEpoch();
+        threadInfo.put(threadId, new ThreadInfo(threadId, terminatedThreadEpoch, false));
+        // Add a synchronization with every still running thread
+        for (String otherId : threadIds) {
+          if (!threadInfo.get(otherId).isRunning()) {
+            continue;
+          }
+          synchronizationBuilder.add(
+              new ThreadSynchronization(
+                  threadId, otherId, terminatedThreadEpoch, threadInfo.get(otherId).getEpoch()));
+        }
       }
     }
 
