@@ -19,6 +19,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -287,7 +288,7 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy
     }
 
     Set<AVariableDeclaration> modifiedVariables = loop.getModifiedVariables();
-    Set<AVariableDeclaration> readVariables = loop.getReadVariables();
+    Set<ASimpleDeclaration> readVariables = loop.getReadVariables();
     Set<AVariableDeclaration> readWriteVariables = new HashSet<>(modifiedVariables);
     readWriteVariables.retainAll(readVariables);
     readWriteVariables.retainAll(getModifiedNonLocalVariables(loop));
@@ -321,7 +322,7 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy
     AExpression loopBoundExpression = loopBoundExpressionMaybe.orElseThrow();
 
     Set<AVariableDeclaration> modifiedVariables = loop.getModifiedVariables();
-    Set<AVariableDeclaration> readVariables = loop.getReadVariables();
+    Set<ASimpleDeclaration> readVariables = loop.getReadVariables();
     Set<AVariableDeclaration> readWriteVariables = new HashSet<>(modifiedVariables);
     readWriteVariables.retainAll(readVariables);
     readWriteVariables.retainAll(getModifiedNonLocalVariables(loop));

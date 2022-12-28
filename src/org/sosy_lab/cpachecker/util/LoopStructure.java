@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -130,7 +131,7 @@ public final class LoopStructure implements Serializable {
     private ImmutableSet<CFAEdge> outgoingEdges;
     private Map<String, Integer> loopIncDecVariables;
     private Set<AVariableDeclaration> modifiedVariables;
-    private Set<AVariableDeclaration> readVariables;
+    private Set<ASimpleDeclaration> readVariables;
 
     private transient LinearVariableDependencyGraph linearVariableDependencies;
     private Set<CFAEdge> innerAssumeEdges = null;
@@ -207,11 +208,11 @@ public final class LoopStructure implements Serializable {
       return modifiedVariablesLocal;
     }
 
-    private Set<AVariableDeclaration> collectReadVariables() {
+    private Set<ASimpleDeclaration> collectReadVariables() {
       // TODO: For code reuse consider changing the Set<AVariableDeclaration> into LiveVariables
       // class or something similar.
       VariableCollectorVisitor variableCollectorVisitor = new VariableCollectorVisitor();
-      Set<AVariableDeclaration> readVariablesLocal = new HashSet<>();
+      Set<ASimpleDeclaration> readVariablesLocal = new HashSet<>();
       for (CFAEdge e : this.getInnerLoopEdges()) {
         if (e instanceof AStatementEdge) {
           AStatement statement = ((AStatementEdge) e).getStatement();
@@ -649,7 +650,7 @@ public final class LoopStructure implements Serializable {
       return false;
     }
 
-    public Set<AVariableDeclaration> getReadVariables() {
+    public Set<ASimpleDeclaration> getReadVariables() {
       this.computeSets();
       return readVariables;
     }
