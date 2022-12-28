@@ -52,12 +52,6 @@ public class RefinerComposition implements Refiner, StatisticsProvider {
 
   @Option(
       secure = true,
-      name = "stopAfterTrueCounterexample",
-      description = "Do we stop after finding a true counterexample.")
-  public boolean stopAfterTrueCounterexample = false;
-
-  @Option(
-      secure = true,
       name = "wrappedrefiners",
       required = true,
       description =
@@ -139,6 +133,7 @@ public class RefinerComposition implements Refiner, StatisticsProvider {
 
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+    boolean refinementResult = true;
     for (int i = 0; i < refiners.size(); i++) {
       if (maxAmntInnerRefinements >= 0 && amntRefinements.get(i) >= maxAmntInnerRefinements + 1) {
         amntRefinements.set(i, 0);
@@ -149,12 +144,17 @@ public class RefinerComposition implements Refiner, StatisticsProvider {
 
       Refiner refiner = refiners.get(i);
       amntRefinements.set(i, amntRefinements.get(i) + 1);
-      boolean refinementResult = refiner.performRefinement(pReached);
+      try {
+        refinementResult = refiner.performRefinement(pReached);
+      } catch (IllegalStateException e) {
+        // A true counterexample was found by two refiners, which tried to update the counterexample
+        // information of the target state. There is an explicit check to see if a counterexample
+        // already exists, which is clearly violated in this case. Therefore this try catch block.
+        // TODO: See if it is necessary to perform that null check
+      }
+
       if (refinementResult) {
         return true;
-      } else if (stopAfterTrueCounterexample) {
-        // If an inner refiner already found a true counterexample we may sometimes stop
-        return false;
       }
     }
 
@@ -164,7 +164,15 @@ public class RefinerComposition implements Refiner, StatisticsProvider {
       // TODO: Log statistics
       Refiner refiner = refiners.get(i);
       amntRefinements.set(i, amntRefinements.get(i) + 1);
-      if (refiner.performRefinement(pReached)) {
+      try {
+        refinementResult = refiner.performRefinement(pReached);
+      } catch (IllegalStateException e) {
+        // A true counterexample was found by two refiners, which tried to update the counterexample
+        // information of the target state. There is an explicit check to see if a counterexample
+        // already exists, which is clearly violated in this case. Therefore this try catch block.
+        // TODO: See if it is necessary to perform that null check
+      }
+      if (refinementResult) {
         return true;
       }
     }

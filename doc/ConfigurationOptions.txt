@@ -878,7 +878,7 @@ cfa.summaries.dumpinlinedsummaries = true
 cfa.summaries.maxIterations = 10
 
 # Max amount fo Unrollings for the Unrolling Strategy
-cfa.summaries.maxUnrollingsStrategy = 100
+cfa.summaries.maxUnrollingsStrategy = 10
 
 # directory in which the programs with inlined summaries are stored
 cfa.summaries.outputdirectory = "LA"
@@ -890,7 +890,8 @@ cfa.summaries.strategies = new HashSet<>(
               StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
               StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
               StrategiesEnum.NAIVELOOPACCELERATION,
-              StrategiesEnum.HAVOCSTRATEGY))
+              StrategiesEnum.HAVOCSTRATEGY,
+              StrategiesEnum.LOOPUNROLLING))
 
 # A name of thread_create function
 cfa.threads.threadCreate = "pthread_create"
@@ -4230,9 +4231,6 @@ reachedSet.file = "reached.txt"
 # Max amount of Inner refinements. A negative number deactivates this
 # parameter.
 refiner.composition.maxAmntInnerRefinements = -1
-
-# Do we stop after finding a true counterexample.
-refiner.composition.stopAfterTrueCounterexample = false
 
 # Which wrapped refinement algorithms to use? (give class name, required for
 # CEGAR) If the package name starts with 'org.sosy_lab.cpachecker.', this
