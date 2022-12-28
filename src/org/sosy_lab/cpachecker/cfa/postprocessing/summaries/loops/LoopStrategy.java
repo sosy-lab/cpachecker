@@ -25,7 +25,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -132,8 +132,8 @@ public class LoopStrategy extends AbstractStrategy {
 
   protected static Optional<CFANode> havocNonLocalLoopVars(
       Loop loop, CFANode pBeforeWhile, CFANode currentNode, CFANode newNode) {
-    Set<AVariableDeclaration> modifiedVariables = getModifiedNonLocalVariables(loop);
-    for (AVariableDeclaration pc : modifiedVariables) {
+    Set<ASimpleDeclaration> modifiedVariables = getModifiedNonLocalVariables(loop);
+    for (ASimpleDeclaration pc : modifiedVariables) {
       CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) pc);
       CFunctionCallExpression rightHandSide =
           (CFunctionCallExpression) new AFunctionFactory().callNondetFunction(pc.getType());
@@ -160,8 +160,8 @@ public class LoopStrategy extends AbstractStrategy {
   }
 
   protected static boolean havocVarsAsCode(
-      Set<AVariableDeclaration> variables, StringBuilder builder) {
-    for (AVariableDeclaration pc : variables) {
+      Set<ASimpleDeclaration> variables, StringBuilder builder) {
+    for (ASimpleDeclaration pc : variables) {
       CSimpleDeclaration decl = (CSimpleDeclaration) pc;
       // it is important to use the decl.getOrigName here, otherwise of the variable
       // exists in multiple scopes it will e.g. be called x__1 instead of 1!
@@ -179,8 +179,8 @@ public class LoopStrategy extends AbstractStrategy {
     return true;
   }
 
-  protected static Set<AVariableDeclaration> getModifiedNonLocalVariables(Loop loop) {
-    Set<AVariableDeclaration> modifiedVariables = loop.getModifiedVariables();
+  protected static Set<ASimpleDeclaration> getModifiedNonLocalVariables(Loop loop) {
+    Set<ASimpleDeclaration> modifiedVariables = loop.getModifiedVariables();
     Set<String> outofScopeVariables =
         FluentIterable.from(HavocStrategy.getOutOfScopeVariables(loop))
             .transform(x -> x.getQualifiedName())

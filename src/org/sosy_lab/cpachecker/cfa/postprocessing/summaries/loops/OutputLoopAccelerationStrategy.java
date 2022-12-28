@@ -287,7 +287,17 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy
       return Optional.empty();
     }
 
-    Set<AVariableDeclaration> modifiedVariables = loop.getModifiedVariables();
+    Set<AVariableDeclaration> modifiedVariables = new HashSet<>();
+
+    for (ASimpleDeclaration v : loop.getModifiedVariables()) {
+      if (v instanceof AVariableDeclaration) {
+        modifiedVariables.add((AVariableDeclaration) v);
+      } else {
+        // TODO: Handle the other cases, for example when we are considering an array lookup
+        return Optional.empty();
+      }
+    }
+
     Set<ASimpleDeclaration> readVariables = loop.getReadVariables();
     Set<AVariableDeclaration> readWriteVariables = new HashSet<>(modifiedVariables);
     readWriteVariables.retainAll(readVariables);
@@ -321,9 +331,19 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy
     }
     AExpression loopBoundExpression = loopBoundExpressionMaybe.orElseThrow();
 
-    Set<AVariableDeclaration> modifiedVariables = loop.getModifiedVariables();
+    Set<AVariableDeclaration> modifiedVariables = new HashSet<>();
+
+    for (ASimpleDeclaration v : loop.getModifiedVariables()) {
+      if (v instanceof AVariableDeclaration) {
+        modifiedVariables.add((AVariableDeclaration) v);
+      } else {
+        // TODO: Handle the other cases, for example when we are considering an array lookup
+        return Optional.empty();
+      }
+    }
+
     Set<ASimpleDeclaration> readVariables = loop.getReadVariables();
-    Set<AVariableDeclaration> readWriteVariables = new HashSet<>(modifiedVariables);
+    Set<ASimpleDeclaration> readWriteVariables = new HashSet<>(modifiedVariables);
     readWriteVariables.retainAll(readVariables);
     readWriteVariables.retainAll(getModifiedNonLocalVariables(loop));
 

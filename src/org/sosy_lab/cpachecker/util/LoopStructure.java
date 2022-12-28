@@ -130,7 +130,7 @@ public final class LoopStructure implements Serializable {
     private ImmutableSet<CFAEdge> incomingEdges;
     private ImmutableSet<CFAEdge> outgoingEdges;
     private Map<String, Integer> loopIncDecVariables;
-    private Set<AVariableDeclaration> modifiedVariables;
+    private Set<ASimpleDeclaration> modifiedVariables;
     private Set<ASimpleDeclaration> readVariables;
 
     private transient LinearVariableDependencyGraph linearVariableDependencies;
@@ -190,11 +190,11 @@ public final class LoopStructure implements Serializable {
      * some assignment expression in the loop What the variable is assigned to is not important, for
      * these other collectors are used.
      */
-    private Set<AVariableDeclaration> collectModifiedVariables() {
+    private Set<ASimpleDeclaration> collectModifiedVariables() {
       // TODO: For code reuse consider changing the Set<AVariableDeclaration> into LiveVariables
       // class or something similar.
       VariableCollectorVisitor variableCollectorVisitor = new VariableCollectorVisitor();
-      Set<AVariableDeclaration> modifiedVariablesLocal = new HashSet<>();
+      Set<ASimpleDeclaration> modifiedVariablesLocal = new HashSet<>();
       for (CFAEdge e : this.getInnerLoopEdges()) {
         if (e instanceof AStatementEdge) {
           AStatement statement = ((AStatementEdge) e).getStatement();
@@ -583,7 +583,7 @@ public final class LoopStructure implements Serializable {
       }
     }
 
-    public Set<AVariableDeclaration> getModifiedVariables() {
+    public Set<ASimpleDeclaration> getModifiedVariables() {
       this.computeSets();
       return modifiedVariables;
     }
@@ -591,7 +591,7 @@ public final class LoopStructure implements Serializable {
     public Set<String> getModifiedVariablesNames() {
       this.computeSets();
       Set<String> modifiedVarsNames = new HashSet<>();
-      for (AVariableDeclaration var : this.getModifiedVariables()) {
+      for (ASimpleDeclaration var : this.getModifiedVariables()) {
         modifiedVarsNames.add(var.getQualifiedName());
       }
       return modifiedVarsNames;

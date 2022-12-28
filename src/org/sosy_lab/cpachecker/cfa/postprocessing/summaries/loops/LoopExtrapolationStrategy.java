@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -22,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -238,9 +240,16 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
 
     VariableCollectorVisitor variableCollectorVisitor = new VariableCollectorVisitor();
 
-    Set<AVariableDeclaration> modifiedVariablesLocal;
+    Set<AVariableDeclaration> modifiedVariablesLocal = new HashSet<>();
 
-    modifiedVariablesLocal = pIterations.accept_(variableCollectorVisitor);
+    for (ASimpleDeclaration v : pIterations.accept_(variableCollectorVisitor)) {
+      if (v instanceof AVariableDeclaration) {
+        modifiedVariablesLocal.add((AVariableDeclaration) v);
+      } else {
+        // TODO: Handle the other cases, for example when we are considering an array lookup
+        return Optional.empty();
+      }
+    }
 
     Map<AVariableDeclaration, AVariableDeclaration> mappingFromOriginalToTmpVariables =
         new HashMap<>();

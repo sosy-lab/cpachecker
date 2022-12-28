@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
@@ -21,6 +22,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -124,7 +126,12 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy
     CFANode nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
     // Make Summary of Loop
-    for (AVariableDeclaration var : pLoopStructure.getModifiedVariables()) {
+    for (ASimpleDeclaration var : pLoopStructure.getModifiedVariables()) {
+      if (!(var instanceof AVariableDeclaration)) {
+        // TODO: Handle array lookups i.e. the other types of declarations
+        return Optional.empty();
+      }
+
       Optional<Integer> deltaMaybe = pLoopStructure.getDelta(var.getQualifiedName());
       if (deltaMaybe.isEmpty()) {
         return Optional.empty();
@@ -159,7 +166,7 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy
       AExpressionFactory expressionFactory = new AExpressionFactory();
       CExpressionAssignmentStatement newVariableAssignmentExpression =
           (CExpressionAssignmentStatement)
-              expressionFactory.from(var).assignTo(newVariableForOverflows);
+              expressionFactory.from((AVariableDeclaration) var).assignTo(newVariableForOverflows);
 
       CFAEdge dummyEdge =
           new CStatementEdge(
@@ -191,7 +198,7 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy
 
       CExpressionAssignmentStatement assignmentExpressionExtrapolation =
           (CExpressionAssignmentStatement)
-              new AExpressionFactory().from(leftHandSide).assignTo(var);
+              new AExpressionFactory().from(leftHandSide).assignTo((AVariableDeclaration) var);
 
       CFAEdge extrapolationDummyEdge =
           new CStatementEdge(
@@ -217,7 +224,7 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy
       CExpression overflowExpression =
           (CExpression)
               new AExpressionFactory()
-                  .from(var)
+                  .from((AVariableDeclaration) var)
                   .binaryOperation(leftHandSide, BinaryOperator.NOT_EQUALS)
                   .binaryOperation(
                       TypeFactory.getUpperLimit(var.getType()),
@@ -369,7 +376,17 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy
     }
     AExpression iterations = iterationsMaybe.orElseThrow();
     VariableCollectorVisitor variableCollectorVisitor = new VariableCollectorVisitor();
-    Set<AVariableDeclaration> modifiedVariablesLocal = iterations.accept_(variableCollectorVisitor);
+
+    Set<AVariableDeclaration> modifiedVariablesLocal = new HashSet<>();
+
+    for (ASimpleDeclaration v : iterations.accept_(variableCollectorVisitor)) {
+      if (v instanceof AVariableDeclaration) {
+        modifiedVariablesLocal.add((AVariableDeclaration) v);
+      } else {
+        // TODO: Handle the other cases, for example when we are considering an array lookup
+        return Optional.empty();
+      }
+    }
 
     Map<AVariableDeclaration, AVariableDeclaration> mappingFromOriginalToTmpVariables =
         new HashMap<>();
@@ -427,9 +444,14 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy
     addLine.accept(iterationVariableAssignmentExpression.toASTString());
 
     // Make Summary of Loop
-    for (AVariableDeclaration var : loop.getModifiedVariables()) {
+    for (ASimpleDeclaration var : loop.getModifiedVariables()) {
       Optional<Integer> deltaMaybe = loop.getDelta(var.getQualifiedName());
       if (deltaMaybe.isEmpty() || !(var instanceof CVariableDeclaration)) {
+        return Optional.empty();
+      }
+
+      if (!(var instanceof AVariableDeclaration)) {
+        // TODO: Handle array lookups i.e. the other types of declarations
         return Optional.empty();
       }
 
@@ -452,7 +474,7 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy
       CVariableDeclaration origNameVar =
           new CVariableDeclaration(
               var.getFileLocation(),
-              var.isGlobal(),
+              ((AVariableDeclaration) var).isGlobal(),
               ((CVariableDeclaration) var).getCStorageClass(),
               ((CVariableDeclaration) var).getType(),
               var.getOrigName(), // important
