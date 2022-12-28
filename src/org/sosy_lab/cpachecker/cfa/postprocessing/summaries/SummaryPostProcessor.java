@@ -95,6 +95,12 @@ public class SummaryPostProcessor implements StatisticsProvider {
     List<CFANode> currentNodes = new ArrayList<>();
     List<CFANode> newNodes = new ArrayList<>();
     Set<CFANode> visitedNodes = new HashSet<>();
+
+    // This allows to control what startegies are applied inside of strategies
+    Set<StrategiesEnum> strategiesWhichShouldNotBeFurtherAnalyzed = new HashSet<>();
+    strategiesWhichShouldNotBeFurtherAnalyzed.add(StrategiesEnum.LOOPUNROLLING); // TODO: Make this variable, since it is currently hardcoded
+    Set<CFANode> nodesToBeIgnored = new HashSet<>();
+
     while (!fixpoint) {
       fixpoint = true;
       ghostCfaToBeAdded = new ArrayList<>();
@@ -105,6 +111,10 @@ public class SummaryPostProcessor implements StatisticsProvider {
         nodesAdded = false;
         visitedNodes.addAll(currentNodes);
         for (CFANode node : currentNodes) {
+          if (nodesToBeIgnored.contains(node)) {
+            continue;
+          }
+
           for (Strategy s : strategiesClasses) {
             if (strategyDependencies.apply(s, iterations)) {
               Optional<GhostCFA> maybeGhostCFA = s.summarize(node);
@@ -143,6 +153,9 @@ public class SummaryPostProcessor implements StatisticsProvider {
         gCFA.connectOriginalAndGhostCFA();
         for (CFANode n : gCFA.getAllNodes()) {
           pCfa.addNode(startNode.getFunctionName(), n);
+          if (strategiesWhichShouldNotBeFurtherAnalyzed.contains(gCFA.getStrategy())) {
+            nodesToBeIgnored.add(n);
+          }
         }
         summaryInformation.addGhostCFA(gCFA);
       }

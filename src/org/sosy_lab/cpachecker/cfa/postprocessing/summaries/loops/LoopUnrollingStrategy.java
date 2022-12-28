@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
+import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Optional;
@@ -25,7 +26,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class LoopUnrollingStrategy extends LoopStrategy {
 
-  private Integer maxUnrollingsStrategy = 0;
+  private Integer maxUnrollingsStrategy;
 
   public LoopUnrollingStrategy(
       LogManager pLogger,
@@ -45,6 +46,7 @@ public class LoopUnrollingStrategy extends LoopStrategy {
     CFANode currentSummaryNodeCFA = startNodeGhostCFA;
     CFANode nextCFANode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
+    // Unroll the loop
     for (int i = 0; i < maxUnrollingsStrategy; i++) {
 
       Optional<Pair<CFANode, CFANode>> unrolledLoopNodesMaybe =
@@ -63,7 +65,24 @@ public class LoopUnrollingStrategy extends LoopStrategy {
       nextCFANode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     }
 
-    CFACreationUtils.connectNodes(currentSummaryNodeCFA, endNodeGhostCFA);
+    // Add the original loop after the unrolled loop
+    Optional<Loop> maybeCopyOfLoop = pLoopStructure.deepCopy();
+    if (maybeCopyOfLoop.isEmpty()) {
+      return Optional.empty();
+    }
+
+    Loop copyOfLoop = maybeCopyOfLoop.get();
+    if (copyOfLoop.getLoopHeads().size() != 1) {
+      return Optional.empty();
+    }
+
+    CFANode copiedLoopHead = copyOfLoop.getLoopHeads().asList().get(0);
+    CFACreationUtils.connectNodes(currentSummaryNodeCFA, copiedLoopHead);
+
+    for (CFANode n :
+        FluentIterable.from(copyOfLoop.getOutgoingEdges()).transform(e -> e.getSuccessor())) {
+      CFACreationUtils.connectNodes(n, endNodeGhostCFA);
+    }
 
     CFANode leavingSuccessor;
     Iterator<CFAEdge> iter = pLoopStructure.getOutgoingEdges().iterator();
@@ -84,16 +103,14 @@ public class LoopUnrollingStrategy extends LoopStrategy {
             startNodeGhostCFA,
             endNodeGhostCFA,
             pBeforeWhile,
-            pBeforeWhile,
+            leavingSuccessor,
             this.strategyEnum,
             new ArrayList<>(),
-            StrategyQualifier.Underapproximating));
+            StrategyQualifier.Precise));
   }
 
   @Override
   public Optional<GhostCFA> summarize(final CFANode beforeWhile) {
-    // TODO: Make this a dynamic underapproximating strategy dependent on the amount of loop
-    // unrollings
     Optional<CFANode> maybeLoopHead = this.determineLoopHead(beforeWhile);
     if (maybeLoopHead.isEmpty()) {
       return Optional.empty();

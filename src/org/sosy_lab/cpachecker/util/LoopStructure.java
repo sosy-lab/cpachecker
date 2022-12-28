@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -355,6 +356,42 @@ public final class LoopStructure implements Serializable {
         loopIncDecVariables = collectLoopIncDecVariables();
       }
       return loopIncDecVariables.keySet();
+    }
+
+    /**
+     * Generates a new copy of the current {@link Loop} where each of the {@link CFANode}'s is
+     * replaced by a new node.
+     *
+     * @return Empty if this process fails, else the copy of the loop.
+     */
+    public Optional<Loop> deepCopy() {
+      if (getLoopHeads().size() != 1) {
+        return Optional.empty();
+      }
+
+      CFANode loopHead = getLoopHeads().asList().get(0);
+      String functionName = loopHead.getFunctionName();
+
+      // Start creating the new Loop
+      Map<CFANode, CFANode> originalToNewNodes = new HashMap<>();
+      Set<CFANode> newNodesInInnerLoopNodes = new HashSet<>();
+      CFANode copyLoopHead = CFANode.newDummyCFANode(functionName);
+      originalToNewNodes.put(loopHead, copyLoopHead);
+
+      for (CFANode n1 : FluentIterable.from(getLoopNodes())) {
+        for (CFAEdge e : n1.getLeavingEdges()) {
+          CFANode n2 = e.getSuccessor();
+          originalToNewNodes.putIfAbsent(n1, CFANode.newDummyCFANode(functionName));
+          originalToNewNodes.putIfAbsent(n2, CFANode.newDummyCFANode(functionName));
+          CFANode newNodeN1 = originalToNewNodes.get(n1);
+          CFANode newNodeN2 = originalToNewNodes.get(n2);
+          CFAEdge newEdge = e.copyWith(newNodeN1, newNodeN2);
+          newNodesInInnerLoopNodes.add(newNodeN1);
+          CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
+        }
+      }
+
+      return Optional.of(new Loop(copyLoopHead, newNodesInInnerLoopNodes));
     }
 
     /**

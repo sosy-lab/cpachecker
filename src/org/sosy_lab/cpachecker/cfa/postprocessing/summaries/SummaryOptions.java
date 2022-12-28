@@ -31,13 +31,14 @@ public class SummaryOptions {
               StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
               StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
               StrategiesEnum.NAIVELOOPACCELERATION,
-              StrategiesEnum.HAVOCSTRATEGY));
+              StrategiesEnum.HAVOCSTRATEGY,
+              StrategiesEnum.LOOPUNROLLING));
 
   @Option(
       secure = true,
       name = "cfa.summaries.maxUnrollingsStrategy",
       description = "Max amount fo Unrollings for the Unrolling Strategy")
-  private int maxUnrollingsStrategy = 100;
+  private int maxUnrollingsStrategy = 10;
 
   @Option(
       secure = true,

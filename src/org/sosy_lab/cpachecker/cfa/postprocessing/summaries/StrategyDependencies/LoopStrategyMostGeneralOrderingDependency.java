@@ -30,6 +30,8 @@ public class LoopStrategyMostGeneralOrderingDependency extends LoopStrategyDepen
       preferredStrategies.add(StrategiesEnum.LOOPCONSTANTEXTRAPOLATION);
     } else if (pAvailableStrategies.contains(StrategiesEnum.LOOPLINEAREXTRAPOLATION)) {
       preferredStrategies.add(StrategiesEnum.LOOPLINEAREXTRAPOLATION);
+    } else if (pAvailableStrategies.contains(StrategiesEnum.LOOPUNROLLING)) {
+      preferredStrategies.add(StrategiesEnum.LOOPUNROLLING);
     } else if (pAvailableStrategies.contains(StrategiesEnum.BASE)) {
       preferredStrategies.add(StrategiesEnum.BASE);
     }
