@@ -39,6 +39,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -427,19 +428,19 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Update terminated threads
-    Set<String> threadIds = threadInfo.keySet();
-    for (String threadId : threadIds) {
+    for (Entry<String, ThreadInfo> entry : threadInfo.entrySet()) {
+      String threadId = entry.getKey();
       if (!threadingState.getThreadIds().contains(threadId)) {
-        int terminatedThreadEpoch = threadInfo.get(threadId).getEpoch();
-        threadInfo.put(threadId, new ThreadInfo(threadId, terminatedThreadEpoch, false));
+        int terminatedThreadEpoch = entry.getValue().getEpoch();
+        entry.setValue(new ThreadInfo(threadId, terminatedThreadEpoch, false));
         // Add a synchronization with every still running thread
-        for (String otherId : threadIds) {
-          if (!threadInfo.get(otherId).isRunning()) {
+        for (Entry<String, ThreadInfo> other : threadInfo.entrySet()) {
+          if (!other.getValue().isRunning()) {
             continue;
           }
           synchronizationBuilder.add(
               new ThreadSynchronization(
-                  threadId, otherId, terminatedThreadEpoch, threadInfo.get(otherId).getEpoch()));
+                  threadId, other.getKey(), terminatedThreadEpoch, other.getValue().getEpoch()));
         }
       }
     }
