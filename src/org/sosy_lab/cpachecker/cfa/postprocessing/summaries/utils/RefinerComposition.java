@@ -143,7 +143,7 @@ public class RefinerComposition implements Refiner, StatisticsProvider {
     boolean refinementResult = true;
     for (int i = 0; i < refiners.size(); i++) {
       if (maxAmntInnerRefinements >= 0 && amntRefinements.get(i) >= maxAmntInnerRefinements + 1) {
-        if (!ignoreInnerRefinersAfterMaxAmount) {
+        if (!ignoreInnerRefinersAfterMaxAmount || i == refiners.size() - 1) {
           amntRefinements.set(i, 0);
         }
         continue;

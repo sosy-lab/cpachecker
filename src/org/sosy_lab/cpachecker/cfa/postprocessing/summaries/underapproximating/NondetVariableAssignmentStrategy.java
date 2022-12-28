@@ -17,11 +17,12 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
 import org.sosy_lab.cpachecker.cfa.ast.utils.Utils;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -31,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.AbstractStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class NondetVariableAssignmentStrategy extends AbstractStrategy {
 
@@ -63,8 +65,7 @@ public class NondetVariableAssignmentStrategy extends AbstractStrategy {
 
     CFunctionCallAssignmentStatement statement = (CFunctionCallAssignmentStatement) ((CStatementEdge) leavingEdge).getStatement();
 
-    CVariableDeclaration variable =
-        (CVariableDeclaration) ((CIdExpression) statement.getLeftHandSide()).getDeclaration();
+    CLeftHandSide variable = statement.getLeftHandSide();
     CFunctionCallExpression functionCall = statement.getRightHandSide();
 
     if (!Utils.isNondetCall(functionCall)) {
@@ -75,14 +76,22 @@ public class NondetVariableAssignmentStrategy extends AbstractStrategy {
     CFANode startNodeGhostCFA = CFANode.newDummyCFANode(nondetValueStartNode.getFunctionName());
     CFANode stopNodeGhostCFA = CFANode.newDummyCFANode(nondetValueStartNode.getFunctionName());
 
+    CType variableType;
+    if (variable instanceof CIdExpression) {
+      variableType = ((CIdExpression) variable).getExpressionType();
+    } else if (variable instanceof CArraySubscriptExpression) {
+      variableType = ((CArraySubscriptExpression) variable).getExpressionType();
+    } else {
+      return Optional.empty();
+    }
+
     // Assign variable to some value
     AExpressionFactory expressionFactory = new AExpressionFactory();
     CExpressionAssignmentStatement randomValueAssignmentToVariable =
-        (CExpressionAssignmentStatement)
-            expressionFactory.from(0, variable.getType()).assignTo(variable);
+        (CExpressionAssignmentStatement) expressionFactory.from(0, variableType).assignTo(variable);
 
     List<AExpression> parametersGhostCFA = new ArrayList<>();
-    parametersGhostCFA.add(expressionFactory.from(0, variable.getType()).build());
+    parametersGhostCFA.add(expressionFactory.from(0, variableType).build());
 
     CFAEdge dummyEdge =
         new CStatementEdge(

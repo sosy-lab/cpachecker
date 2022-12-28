@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.factories;
 
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
@@ -123,5 +124,10 @@ public class JExpressionFactory implements ExpressionFactory {
         new JBinaryExpression(
             FileLocation.DUMMY, pOperatorType, this.currentExpression, pExpr, pOperator);
     return this;
+  }
+
+  public AExpressionAssignmentStatement assignTo(JLeftHandSide pVar) {
+    // TODO Auto-generated method stub
+    return null;
   }
 }

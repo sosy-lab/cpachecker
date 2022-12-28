@@ -12,14 +12,17 @@ import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression.ABinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression.AUnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -192,6 +195,16 @@ public class AExpressionFactory implements ExpressionFactory {
     } else if (pVar instanceof JVariableDeclaration
         && this.chosenFactory instanceof JExpressionFactory) {
       return ((JExpressionFactory) this.chosenFactory).assignTo((JVariableDeclaration) pVar);
+    } else {
+      return null;
+    }
+  }
+
+  public AExpressionAssignmentStatement assignTo(ALeftHandSide pVar) {
+    if (pVar instanceof CLeftHandSide && this.chosenFactory instanceof CExpressionFactory) {
+      return ((CExpressionFactory) this.chosenFactory).assignTo((CLeftHandSide) pVar);
+    } else if (pVar instanceof JLeftHandSide && this.chosenFactory instanceof JExpressionFactory) {
+      return ((JExpressionFactory) this.chosenFactory).assignTo((JLeftHandSide) pVar);
     } else {
       return null;
     }
