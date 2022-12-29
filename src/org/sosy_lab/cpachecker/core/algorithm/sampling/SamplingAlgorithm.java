@@ -142,28 +142,30 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
 
-    // Create algorithm for building the ARG
-    Algorithm builderAlgorithm;
-    ConfigurableProgramAnalysis builderCPA;
-    ReachedSet builderReachedSet;
-    Solver solver;
-    Path builderConfig = Path.of("config", "valueAnalysis-predicateAnalysis-Cegar-ABEl.properties");
+    Collection<Loop> loops = cfa.getLoopStructure().get().getAllLoops();
+    if (loops.size() != 1) {
+      // TODO: Support multi-loop programs
+      logger.log(Level.INFO, "Only single-loop programs are currently supported.");
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    }
+    Loop loop = loops.iterator().next();
+
+    Collection<CFANode> targets = getTargetNodes();
+    if (targets.size() != 1) {
+      // TODO: Support multiple-error locations
+      logger.log(Level.INFO, "Only programs with a single error location are currently supported.");
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    }
+    CFANode target = targets.iterator().next();
+
+    // Build the reachedSet for the forward ARG
+    Solver forwardSolver;
     try {
-      Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> buildARG =
-          super.createAlgorithm(
-              builderConfig,
-              extractLocation(reachedSet.getFirstState()),
-              cfa,
-              ShutdownManager.createWithParent(shutdownNotifier),
-              AggregatedReachedSets.empty(),
-              ImmutableSet.of("analysis.useSamplingAlgorithm"),
-              Sets.newHashSet());
-      builderAlgorithm = buildARG.getFirst();
-      builderCPA = buildARG.getSecond();
-      builderReachedSet = buildARG.getThird();
-      solver =
-          CPAs.retrieveCPAOrFail(builderCPA, PredicateCPA.class, SamplingAlgorithm.class)
-              .getSolver();
+      forwardSolver =
+          buildReachedSet(
+              reachedSet,
+              Path.of("config", "valueAnalysis-predicateAnalysis-Cegar-ABEl.properties"),
+              extractLocation(pReachedSet.getFirstState()));
     } catch (InvalidConfigurationException e) {
       logger.log(
           Level.WARNING,
@@ -173,88 +175,90 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       logger.log(Level.WARNING, "Could not load configuration for building ARG");
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
+    ReachedSet forwardReachedSet = reachedSet.getDelegate();
 
-    // Run analysis to create ARG
-    reachedSet.setDelegate(builderReachedSet);
-    logger.log(Level.INFO, "Building ARG...");
-    builderAlgorithm.run(reachedSet);
-    shutdownNotifier.shutdownIfNecessary();
+    // Build the reachedSet for the backward ARG
+    Solver backwardsSolver;
+    try {
+      backwardsSolver =
+          buildReachedSet(
+              reachedSet, Path.of("config", "predicateAnalysisBackward.properties"), target);
+    } catch (InvalidConfigurationException e) {
+      logger.log(
+          Level.WARNING,
+          "Could not create algorithm for building backward ARG due to invalid configuration");
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    } catch (IOException e) {
+      logger.log(Level.WARNING, "Could not load configuration for building backward ARG");
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    }
+    ReachedSet backwardReachedSet = reachedSet.getDelegate();
 
+    // Continuously collect samples until shutdown is requested
     ImmutableSet.Builder<Sample> samples = ImmutableSet.builder();
-
-    // Collect some positive samples using predicate-based and value-based sampling
-    for (Loop loop : cfa.getLoopStructure().get().getAllLoops()) {
-      for (Sample sample : getInitialPositiveSamples(reachedSet, solver, loop, numInitialSamples)) {
+    while (!shutdownNotifier.shouldShutdown()) {
+      // Collect some positive samples using predicate-based and value-based sampling
+      for (Sample sample :
+          getInitialPositiveSamples(forwardReachedSet, forwardSolver, loop, samples.build())) {
         samples.addAll(forwardUnrollingAlgorithm.unrollSample(sample, loop));
       }
-    }
-
-    // Now collect some negative samples for each target location
-    for (CFANode targetNode : getTargetNodes()) {
-      // Create algorithm for building the backward ARG
-      Algorithm backwardsBuilderAlgorithm;
-      ConfigurableProgramAnalysis backwardsBuilderCPA;
-      ReachedSet backwardsBuilderReachedSet;
-      Solver backwardsSolver;
-      Path backwardsBuilderConfig = Path.of("config", "predicateAnalysisBackward.properties");
-      try {
-        Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> buildBackwardARG =
-            super.createAlgorithm(
-                backwardsBuilderConfig,
-                targetNode,
-                cfa,
-                ShutdownManager.createWithParent(shutdownNotifier),
-                AggregatedReachedSets.empty(),
-                ImmutableSet.of("analysis.useSamplingAlgorithm"),
-                Sets.newHashSet());
-        backwardsBuilderAlgorithm = buildBackwardARG.getFirst();
-        backwardsBuilderCPA = buildBackwardARG.getSecond();
-        backwardsBuilderReachedSet = buildBackwardARG.getThird();
-        backwardsSolver =
-            CPAs.retrieveCPAOrFail(backwardsBuilderCPA, PredicateCPA.class, SamplingAlgorithm.class)
-                .getSolver();
-      } catch (InvalidConfigurationException e) {
-        logger.log(
-            Level.WARNING,
-            "Could not create algorithm for building backward ARG due to invalid configuration");
-        return AlgorithmStatus.NO_PROPERTY_CHECKED;
-      } catch (IOException e) {
-        logger.log(Level.WARNING, "Could not load configuration for building backward ARG");
-        return AlgorithmStatus.NO_PROPERTY_CHECKED;
-      }
-
-      // Run analysis to create backward ARG
-      reachedSet.setDelegate(backwardsBuilderReachedSet);
-      logger.log(Level.INFO, "Building backward ARG...");
-      backwardsBuilderAlgorithm.run(reachedSet);
-      shutdownNotifier.shutdownIfNecessary();
 
       // Collect some negative samples using predicate-based and backward sampling
-      for (Loop loop : cfa.getLoopStructure().get().getAllLoops()) {
-        for (Sample sample :
-            getInitialNegativeSamples(reachedSet, backwardsSolver, loop, numInitialSamples)) {
-          samples.addAll(backwardUnrollingAlgorithm.unrollSample(sample, loop));
-        }
+      for (Sample sample :
+          getInitialNegativeSamples(backwardReachedSet, backwardsSolver, loop, samples.build())) {
+        samples.addAll(backwardUnrollingAlgorithm.unrollSample(sample, loop));
       }
-    }
 
-    // Finally, export samples
-    try {
+      // Export samples
       writeSamplesToFile(samples.build());
-    } catch (IOException e) {
-      logger.log(Level.WARNING, "Export of produced samples failed");
     }
 
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  private void writeSamplesToFile(Set<Sample> samples) throws IOException {
+  /**
+   * Collects the states reachable from the initial location and returns the Solver instance used
+   * during the analysis.
+   *
+   * <p>The caller can retrieve the constructed ReachedSet from the ForwardingReachedSet passed as
+   * argument.
+   */
+  private Solver buildReachedSet(
+      ForwardingReachedSet pReachedSet, Path pConfigFile, CFANode pInitialNode)
+      throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
+    // Create components for building the reachedSet
+    Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> components =
+        super.createAlgorithm(
+            pConfigFile,
+            pInitialNode,
+            cfa,
+            ShutdownManager.createWithParent(shutdownNotifier),
+            AggregatedReachedSets.empty(),
+            ImmutableSet.of("analysis.useSamplingAlgorithm"),
+            Sets.newHashSet());
+    Algorithm algorithm = components.getFirst();
+    ConfigurableProgramAnalysis cpa = components.getSecond();
+    ReachedSet reached = components.getThird();
+    Solver solver =
+        CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, SamplingAlgorithm.class).getSolver();
+
+    // Run analysis to create backward ARG
+    pReachedSet.setDelegate(reached);
+    logger.log(Level.INFO, "Building reachedSet...");
+    algorithm.run(pReachedSet);
+    shutdownNotifier.shutdownIfNecessary();
+    return solver;
+  }
+
+  private void writeSamplesToFile(Set<Sample> samples) {
     StringJoiner sj = new StringJoiner(",\n", "[\n", "]\n");
     for (Sample sample : samples) {
       sj.add(sample.export());
     }
     try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
       writer.write(sj.toString());
+    } catch (IOException e) {
+      logger.log(Level.WARNING, "Export of produced samples failed");
     }
   }
 
@@ -282,7 +286,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
    * <p>This function implements predicate-based sampling.
    */
   private Set<Sample> getInitialPositiveSamples(
-      ForwardingReachedSet reachedSet, Solver solver, Loop loop, int numSamples)
+      ReachedSet reachedSet, Solver solver, Loop loop, Set<Sample> existingSamples)
       throws InterruptedException, SolverException {
     BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
 
@@ -308,13 +312,13 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       }
       samples.addAll(
           getSamplesForFormulas(
-              formulaBuilder.build(), solver, loopHead, numSamples, SampleClass.POSITIVE));
+              formulaBuilder.build(), solver, loopHead, existingSamples, SampleClass.POSITIVE));
     }
     return samples;
   }
 
   private Set<Sample> getInitialNegativeSamples(
-      ForwardingReachedSet reachedSet, Solver solver, Loop loop, int numSamples)
+      ReachedSet reachedSet, Solver solver, Loop loop, Set<Sample> existingSamples)
       throws InterruptedException, SolverException {
     BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
 
@@ -340,7 +344,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       }
       samples.addAll(
           getSamplesForFormulas(
-              formulaBuilder.build(), solver, lastNode, numSamples, SampleClass.NEGATIVE));
+              formulaBuilder.build(), solver, lastNode, existingSamples, SampleClass.NEGATIVE));
     }
     return samples;
   }
@@ -349,15 +353,19 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       Set<BooleanFormula> pFormulas,
       Solver pSolver,
       CFANode pLocation,
-      int pNumSamples,
+      Set<Sample> existingSamples,
       SampleClass pSampleClass)
       throws InterruptedException, SolverException {
     Set<Sample> samples = new HashSet<>();
     BooleanFormulaManagerView bfmgr = pSolver.getFormulaManager().getBooleanFormulaManager();
     try (ProverEnvironment prover = pSolver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       for (BooleanFormula formula : pFormulas) {
-        List<List<ValueAssignment>> models = new ArrayList<>(pNumSamples);
+        List<List<ValueAssignment>> models = new ArrayList<>(numInitialSamples);
         prover.push(formula);
+
+        for (Sample exisitingSample : existingSamples) {
+          // TODO: Add constraint to prevent same sample from being found again
+        }
 
         if (prover.isUnsat()) {
           // Formula is UNSAT even without additional constraints, there is nothing to do
@@ -410,7 +418,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
         }
 
         // Collect some satisfying models
-        while (models.size() < pNumSamples) {
+        while (models.size() < numInitialSamples) {
           if (prover.isUnsat()) {
             logger.logf(
                 Level.INFO,
