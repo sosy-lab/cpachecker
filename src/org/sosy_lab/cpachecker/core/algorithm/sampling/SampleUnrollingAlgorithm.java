@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.sampling;
 
 import com.google.common.base.Functions;
-import com.google.common.base.Objects;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -18,6 +17,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
@@ -224,16 +224,16 @@ public class SampleUnrollingAlgorithm {
       if (this == pO) {
         return true;
       }
-      if (pO == null || getClass() != pO.getClass()) {
+      if (!(pO instanceof SampleTreeNode)) {
         return false;
       }
       SampleTreeNode that = (SampleTreeNode) pO;
-      return Objects.equal(sample, that.sample) && Objects.equal(location, that.location);
+      return sample.equals(that.sample) && location.equals(that.location);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hashCode(sample, location);
+      return Objects.hash(sample, location);
     }
   }
 }

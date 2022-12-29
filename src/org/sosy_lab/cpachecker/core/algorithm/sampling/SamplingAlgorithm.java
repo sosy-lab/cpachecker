@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -144,7 +145,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
 
-    Collection<Loop> loops = cfa.getLoopStructure().get().getAllLoops();
+    Collection<Loop> loops = cfa.getLoopStructure().orElseThrow().getAllLoops();
     if (loops.size() != 1) {
       // TODO: Support multi-loop programs
       logger.log(Level.INFO, "Only single-loop programs are currently supported.");
@@ -238,7 +239,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
             ShutdownManager.createWithParent(shutdownNotifier),
             AggregatedReachedSets.empty(),
             ImmutableSet.of("analysis.useSamplingAlgorithm"),
-            Sets.newHashSet());
+            new CopyOnWriteArrayList<>());
     Algorithm algorithm = components.getFirst();
     ConfigurableProgramAnalysis cpa = components.getSecond();
     ReachedSet reached = components.getThird();

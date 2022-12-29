@@ -69,7 +69,7 @@ public class ClassificationTest {
     CFA cfa = createCFAForProgram(fileName);
     assertThat(cfa.getAllLoopHeads().isPresent()).isTrue();
 
-    for (CFANode loopHead : cfa.getAllLoopHeads().get()) {
+    for (CFANode loopHead : cfa.getAllLoopHeads().orElseThrow()) {
 
       MemoryLocation varX = MemoryLocation.forIdentifier("x");
       MemoryLocation varY = MemoryLocation.forIdentifier("y");

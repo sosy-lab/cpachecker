@@ -70,7 +70,7 @@ public class Sample {
         builder.put(memoryLocation, valueState.getValueAndTypeFor(memoryLocation));
       }
     }
-    return new Sample(builder.build(), location, pSampleClass);
+    return new Sample(builder.buildOrThrow(), location, pSampleClass);
   }
 
   public Map<MemoryLocation, ValueAndType> getVariableValues() {
