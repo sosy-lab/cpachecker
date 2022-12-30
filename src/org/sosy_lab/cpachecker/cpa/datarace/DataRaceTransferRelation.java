@@ -373,7 +373,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
             if (functionName.equals(THREAD_MUTEX_UNLOCK)) {
               assert lock.getLockType() == LockType.MUTEX;
-              newReleases.put(lockId, new LockRelease(lockId, activeThread, epoch));
+              newReleases.replaceValues(
+                  lockId, ImmutableSet.of(new LockRelease(lockId, activeThread, epoch)));
             } else {
               assert lock.getLockType() == LockType.RW_MUTEX;
               boolean isWriteRelease = ((RWLock) lock).wasLastReleaseWriter();
