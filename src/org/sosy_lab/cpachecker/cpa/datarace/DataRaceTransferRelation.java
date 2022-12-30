@@ -247,9 +247,14 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       switch (functionName) {
         case THREAD_START:
           {
-            AExpression threadExpression =
-                pFunctionCall.getFunctionCallExpression().getParameterExpressions().get(0);
-            String newThreadId = ((CUnaryExpression) threadExpression).getOperand().toString();
+            Set<String> newThreadIds =
+                Sets.difference(threadingState.getThreadIds(), threadInfo.keySet());
+            if (newThreadIds.isEmpty()) {
+              // This can happen if the maximum number of threads has been reached in the
+              // ThreadingCPA. In this case, the DataRaceCPA should also not track a new thread.
+              break;
+            }
+            String newThreadId = Iterables.getOnlyElement(newThreadIds);
 
             ThreadInfo addedThreadInfo;
             if (state.getThreadInfo().containsKey(newThreadId)) {
