@@ -203,7 +203,7 @@ public class SummaryStrategyUnderapproximatingRefiner implements Refiner {
           == StrategiesEnum.BOUNDEDLOOPUNROLLINGSTRATEGY) {
         // TODO: improve this by determining the amount of unrollings at runtime instead of being
         // hard coded like this.
-        List<Integer> possibleBoundsForUnrolling = List.of(0, 1, 2, 3, 4, 8, 16, 32);
+        List<Integer> possibleBoundsForUnrolling = List.of(0, 1, 2, 3, 4);
 
         // Get the type of the variable to be replaced. Since there is only a single variable this
         // is easy to do.
