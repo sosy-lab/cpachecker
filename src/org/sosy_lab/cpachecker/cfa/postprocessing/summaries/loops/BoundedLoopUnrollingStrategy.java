@@ -146,12 +146,13 @@ public class BoundedLoopUnrollingStrategy extends LoopStrategy {
             startLoopUnrollingsWhileExpression,
             true));
 
+    CFANode nodeBeforeLeavingStrategy = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     CFACreationUtils.addEdgeUnconditionallyToCFA(
         new CAssumeEdge(
             startLoopUnrollingsWhileExpression.toString(),
             FileLocation.DUMMY,
             loopStartNode,
-            endNodeGhostCFA,
+            nodeBeforeLeavingStrategy,
             startLoopUnrollingsWhileExpression,
             false));
 
@@ -181,6 +182,29 @@ public class BoundedLoopUnrollingStrategy extends LoopStrategy {
             FileLocation.DUMMY,
             endUnrolledLoopNode,
             loopStartNode));
+
+    // When leaving the loop add the checks for leaving it
+    Optional<AExpression> loopBoundExpressionMaybe = pLoop.getBound();
+    if (loopBoundExpressionMaybe.isEmpty()) {
+      return Optional.empty();
+    }
+    AExpression loopBoundExpression = loopBoundExpressionMaybe.orElseThrow();
+
+    CFAEdge loopBoundCFAEdge =
+        new CAssumeEdge(
+            "Loop Bound Assumption",
+            FileLocation.DUMMY,
+            nodeBeforeLeavingStrategy,
+            endNodeGhostCFA,
+            (CExpression) loopBoundExpression,
+            false);
+    CFACreationUtils.addEdgeUnconditionallyToCFA(loopBoundCFAEdge);
+    CFACreationUtils.addEdgeUnconditionallyToCFA(
+        ((CAssumeEdge)
+                loopBoundCFAEdge.copyWith(
+                    nodeBeforeLeavingStrategy,
+                    CFANode.newDummyCFANode(pBeforeWhile.getFunctionName())))
+            .negate());
 
     // Get the leaving successor of the loop
     CFANode leavingSuccessor;
