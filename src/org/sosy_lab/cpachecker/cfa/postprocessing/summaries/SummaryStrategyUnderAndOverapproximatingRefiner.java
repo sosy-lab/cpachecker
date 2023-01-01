@@ -202,10 +202,6 @@ public class SummaryStrategyUnderAndOverapproximatingRefiner implements Refiner 
         Optional<GhostCFA> nextStrategy =
             getNextOverapproximatingStrategy(refinementState, locationPrecision);
 
-        if (nextStrategy.isEmpty() && amountUsedStrategies == 1) {
-          nextStrategy = getNextUnderapproximatingStrategy(refinementState, locationPrecision);
-        }
-
         locationPrecision.setCurrentStrategy(nextStrategy);
 
         // Using reached.removeSubtree does not remove only the children elements, but also the
