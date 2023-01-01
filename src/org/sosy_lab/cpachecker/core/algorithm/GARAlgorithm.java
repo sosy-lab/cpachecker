@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public interface GAR extends Algorithm {
+public interface GARAlgorithm extends Algorithm {
 
   /**
    * Run the algorithm on the given set of abstract states and the given waitlist.
