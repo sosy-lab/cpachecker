@@ -26,6 +26,7 @@ public interface GARAlgorithm extends Algorithm {
     // TODO: Determine the algorithm status from facts about the spaceExploration, projection,
     // refiner and refiner condition functions.
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+    try {
     while (true) {
 
       spaceExploration(reachedSet);
@@ -36,14 +37,18 @@ public interface GARAlgorithm extends Algorithm {
         return status;
       }
     }
+    } finally {
+    }
   }
 
   /**
    * Explore the state space using the given reached set and waitlist.
    *
    * @param reachedSet Input.
+   * @throws CPAException may be thrown by implementors
+   * @throws InterruptedException may be thrown by implementors
    */
-  void spaceExploration(ReachedSet reachedSet);
+  void spaceExploration(ReachedSet reachedSet) throws CPAException, InterruptedException;
 
   /**
    * Projects the reached set which has been proven on some abstraction into a reasonable abstraction of the
@@ -65,6 +70,8 @@ public interface GARAlgorithm extends Algorithm {
    * Refine the current abstraction.
    *
    * @param reachedSet the current abstraction to be refined.
+   * @throws CPAException may be thrown by implementors
+   * @throws InterruptedException may be thrown by implementors
    */
-  void refine(ReachedSet reachedSet);
+  void refine(ReachedSet reachedSet) throws CPAException, InterruptedException;
 }

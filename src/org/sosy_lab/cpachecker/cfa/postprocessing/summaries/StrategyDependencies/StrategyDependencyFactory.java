@@ -25,6 +25,8 @@ public class StrategyDependencyFactory {
         return new NoStrategyDependency();
       case UNDERAPPROXIMATINGDEPENDENCY:
         return new UnderapproximatingStrategyDependency();
+      case UNDERANDOVERAPPROXIMATINGSTRATEGYDEPENDENCY:
+        return new UnderAndOverapproximatingStrategyDependency();
       default:
         return null;
     }

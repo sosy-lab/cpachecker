@@ -38,7 +38,6 @@ public class SummaryStrategyOverapproximatingRefiner implements Refiner {
   private int refinementNumber;
   protected final ARGCPA argCpa;
 
-  @SuppressWarnings("unused")
   private SummaryInformation summaryInformation;
 
   private SummaryStrategyOverapproximatingRefiner(

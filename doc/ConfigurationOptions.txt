@@ -161,6 +161,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -867,7 +868,7 @@ cfa.summaries = false
 cfa.summaries.dependencies = BASESTRATEGYDEPENDENCY
   enum:     [NOSTRATEGYDEPENDENCY, BASESTRATEGYDEPENDENCY, LOOPSTRATEGYDEPENDENCY,
              LOOPSTRATEGYMOSTGENERALORDERINGDEPENDENCY, LOOPSTRATEGYOVERFLOWDEPENDENCY,
-             UNDERAPPROXIMATINGDEPENDENCY]
+             UNDERAPPROXIMATINGDEPENDENCY, UNDERANDOVERAPPROXIMATINGSTRATEGYDEPENDENCY]
 
 # once enabled, this will create a copy of the input program in the output
 # directory where parts of the program have been replaced by the
@@ -3776,6 +3777,14 @@ log.usedOptions.export = false
 # directory in which the programs with inlined summaries are stored
 loopabstraction.outputdirectory = "LA"
 
+# Max number of refinement iterations, -1 for no limit
+loopabstractiongar.maxIterations = -1
+
+# Which refinement algorithm to use? (give class name, required for PGAR) If
+# the package name starts with 'org.sosy_lab.cpachecker.', this prefix can be
+# omitted.
+loopabstractiongar.refiner = no default value
+
 # When checking for memory cleanup properties, use this configuration file
 # instead of the current one.
 memorycleanup.config = no default value
@@ -4430,7 +4439,7 @@ stop = "SEP"
 summaries.transfer = BASESTRATEGYDEPENDENCY
   enum:     [NOSTRATEGYDEPENDENCY, BASESTRATEGYDEPENDENCY, LOOPSTRATEGYDEPENDENCY,
              LOOPSTRATEGYMOSTGENERALORDERINGDEPENDENCY, LOOPSTRATEGYOVERFLOWDEPENDENCY,
-             UNDERAPPROXIMATINGDEPENDENCY]
+             UNDERAPPROXIMATINGDEPENDENCY, UNDERANDOVERAPPROXIMATINGSTRATEGYDEPENDENCY]
 
 # compress the produced violation-witness automata using GZIP compression.
 termination.compressWitness = true

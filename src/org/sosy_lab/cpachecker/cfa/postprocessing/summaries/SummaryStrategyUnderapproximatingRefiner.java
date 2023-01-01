@@ -18,6 +18,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -138,6 +139,8 @@ public class SummaryStrategyUnderapproximatingRefiner implements Refiner {
         CType typeOfVariable;
         if (parameterVariable instanceof AVariableDeclaration) {
           typeOfVariable = (CType) ((AVariableDeclaration) parameterVariable).getType();
+        } else if (parameterVariable instanceof AIdExpression) {
+          typeOfVariable = (CType) ((AIdExpression) parameterVariable).getDeclaration().getType();
         } else if (parameterVariable instanceof AArraySubscriptExpression) {
           typeOfVariable =
               (CType)
@@ -208,6 +211,8 @@ public class SummaryStrategyUnderapproximatingRefiner implements Refiner {
         CType typeOfVariable;
         if (parameterVariable instanceof AVariableDeclaration) {
           typeOfVariable = (CType) ((AVariableDeclaration) parameterVariable).getType();
+        } else if (parameterVariable instanceof AIdExpression) {
+          typeOfVariable = (CType) ((AIdExpression) parameterVariable).getDeclaration().getType();
         } else if (parameterVariable instanceof AArraySubscriptExpression) {
           typeOfVariable =
               (CType)
