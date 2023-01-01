@@ -229,7 +229,13 @@ analysis.algorithm.faultLocalization.by_traceformula = false
 analysis.algorithm.impact = false
 
 # Use algorithm that calculates abstractions for loops in the program.
-analysis.algorithm.loopabstraction = false
+analysis.algorithm.loopAbstraction = false
+
+# use the loop Abstraction GAR algorithm for lazy proof and counterexample
+# guided analysis
+# You need to specify a refiner with the cegar.refiner option.
+# Currently all refiner require the use of the ARGCPA.
+analysis.algorithm.loopAbstractionGAR = false
 
 # use nontermination witness validator to check a violation witness for
 # termination

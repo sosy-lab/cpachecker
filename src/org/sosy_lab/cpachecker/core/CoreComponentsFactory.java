@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.InvariantExportAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.LoopAbstractionAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.LoopAbstractionGARAlgorithm.LoopAbstractionGARAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.PGARAlgorithm.PGARAlgorithmFactory;
@@ -127,6 +128,15 @@ public class CoreComponentsFactory {
               + "\nYou need to specify a refiner with the cegar.refiner option."
               + "\nCurrently all refiner require the use of the ARGCPA.")
   private boolean usePGAR = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.loopAbstractionGAR",
+      description =
+          "use the loop Abstraction GAR algorithm for lazy proof and counterexample guided analysis"
+              + "\nYou need to specify a refiner with the cegar.refiner option."
+              + "\nCurrently all refiner require the use of the ARGCPA.")
+  private boolean useLoopAbstractionGAR = false;
 
   @Option(
       secure = true,
@@ -401,7 +411,7 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.loopabstraction",
+      name = "algorithm.loopAbstraction",
       description = "Use algorithm that calculates abstractions for loops in the program.")
   private boolean useLoopAbstractionAlgorithm = false;
 
@@ -600,6 +610,12 @@ public class CoreComponentsFactory {
         // Strategies
         algorithm =
             new PGARAlgorithmFactory(algorithm, cpa, logger, config, shutdownNotifier)
+                .newInstance();
+      }
+
+      if (useLoopAbstractionGAR) {
+        algorithm =
+            new LoopAbstractionGARAlgorithmFactory(algorithm, cpa, logger, config, shutdownNotifier)
                 .newInstance();
       }
 

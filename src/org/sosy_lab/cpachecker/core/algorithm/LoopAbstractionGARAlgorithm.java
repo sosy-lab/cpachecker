@@ -173,6 +173,8 @@ public class LoopAbstractionGARAlgorithm
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+
+    stats.totalTimer.start();
     try {
       while (true) {
         spaceExploration(reachedSet);
