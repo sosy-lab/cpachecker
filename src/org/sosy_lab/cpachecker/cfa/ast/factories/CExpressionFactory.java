@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 
 public class CExpressionFactory implements ExpressionFactory {
 
@@ -54,9 +55,14 @@ public class CExpressionFactory implements ExpressionFactory {
     if (pType instanceof CSimpleType) {
       if (((CSimpleType) pType).getType() == CBasicType.INT
           || ((CSimpleType) pType).getType() == CBasicType.INT128
+          || ((CSimpleType) pType).getType() == CBasicType.CHAR
+          || ((CSimpleType) pType).getType() == CBasicType.BOOL
           || ((CSimpleType) pType).isLong()
           || ((CSimpleType) pType).isLongLong()
-          || ((CSimpleType) pType).isUnsigned()) {
+          || ((CSimpleType) pType).isUnsigned()
+          || ((CSimpleType) pType).isShort()) {
+        // TODO: Boolean and Chars should be handled sepparately, especially char should get a Char
+        // and not a Number
         this.currentExpression =
             CIntegerLiteralExpression.createDummyLiteral(pValue.longValue(), pType);
       } else if (((CSimpleType) pType).getType() == CBasicType.FLOAT
@@ -65,6 +71,8 @@ public class CExpressionFactory implements ExpressionFactory {
         this.currentExpression =
             CFloatLiteralExpression.createDummyLiteral(pValue.doubleValue(), pType);
       }
+    } else if (pType instanceof CTypedefType) {
+      return from(pValue, ((CTypedefType) pType).getRealType());
     } else {
       return null;
     }

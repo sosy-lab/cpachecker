@@ -16,12 +16,16 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
 import org.sosy_lab.cpachecker.cfa.ast.factories.TypeFactory;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.Strategy.StrategyQualifier;
+import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -130,8 +134,22 @@ public class SummaryStrategyUnderapproximatingRefiner implements Refiner {
 
         // Get the type of the variable to be replaced. Since there is only a single variable this
         // is easy to do.
-        CType typeOfVariable =
-            (CType) currentStrategyBeingUsed.getParameterVariables().get(0).getType();
+        ALeftHandSide parameterVariable = currentStrategyBeingUsed.getParameterVariables().get(0);
+        CType typeOfVariable;
+        if (parameterVariable instanceof AVariableDeclaration) {
+          typeOfVariable = (CType) ((AVariableDeclaration) parameterVariable).getType();
+        } else if (parameterVariable instanceof AArraySubscriptExpression) {
+          typeOfVariable =
+              (CType)
+                  ((AArrayType)
+                          ((AArraySubscriptExpression) parameterVariable)
+                              .getArrayExpression()
+                              .getExpressionType())
+                      .getType();
+        } else {
+          return Optional.empty();
+        }
+
 
         // Get the already used values
         List<Number> usedValues = new ArrayList<>();
@@ -186,8 +204,19 @@ public class SummaryStrategyUnderapproximatingRefiner implements Refiner {
 
         // Get the type of the variable to be replaced. Since there is only a single variable this
         // is easy to do.
-        CType typeOfVariable =
-            (CType) currentStrategyBeingUsed.getParameterVariables().get(0).getType();
+        ALeftHandSide parameterVariable = currentStrategyBeingUsed.getParameterVariables().get(0);
+        CType typeOfVariable;
+        if (parameterVariable instanceof AVariableDeclaration) {
+          typeOfVariable = (CType) ((AVariableDeclaration) parameterVariable).getType();
+        } else if (parameterVariable instanceof AArraySubscriptExpression) {
+          typeOfVariable =
+              (CType)
+                  ((AArraySubscriptExpression) parameterVariable)
+                      .getArrayExpression()
+                      .getExpressionType();
+        } else {
+          return Optional.empty();
+        }
 
         // Get the already used values
         List<Integer> usedValues = new ArrayList<>();

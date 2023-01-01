@@ -66,9 +66,9 @@ public class BoundedLoopUnrollingStrategy extends LoopStrategy {
             false,
             CStorageClass.AUTO,
             CNumericTypes.SIGNED_LONG_INT,
-            "__amountOfLoopUnrollings",
-            "__amountOfLoopUnrollings",
-            "__amountOfLoopUnrollings",
+            "__amountOfLoopUnrollingsForNode" + startNodeGhostCFA.getNodeNumber(),
+            "__amountOfLoopUnrollingsForNode" + startNodeGhostCFA.getNodeNumber(),
+            "__amountOfLoopUnrollingsForNode" + startNodeGhostCFA.getNodeNumber(),
             null);
 
     CExpression amountOfLoopUnrollings =
@@ -98,9 +98,9 @@ public class BoundedLoopUnrollingStrategy extends LoopStrategy {
             false,
             CStorageClass.AUTO,
             CNumericTypes.SIGNED_LONG_INT,
-            "__currentLoopUnrollings",
-            "__currentLoopUnrollings",
-            "__currentfLoopUnrollings",
+            "__currentLoopUnrollingsForNode" + startNodeGhostCFA.getNodeNumber(),
+            "__currentLoopUnrollingsForNode" + startNodeGhostCFA.getNodeNumber(),
+            "__currentfLoopUnrollingsForNode" + startNodeGhostCFA.getNodeNumber(),
             null);
 
     CExpressionAssignmentStatement currentLoopUnrollingIntializationStatement =

@@ -16,12 +16,10 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.factories.AExpressionFactory;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -181,9 +179,9 @@ public class GhostCFA {
     }
   }
 
-  public List<AVariableDeclaration> getParameterVariables() {
+  public List<ALeftHandSide> getParameterVariables() {
 
-    List<AVariableDeclaration> parameterVariables = new ArrayList<>();
+    List<ALeftHandSide> parameterVariables = new ArrayList<>();
 
     CFANode currentNode = startGhostCfaNode;
     for (int i = 0; i < parameters.size(); i++) {
@@ -197,10 +195,8 @@ public class GhostCFA {
       assert statement instanceof CExpressionAssignmentStatement
           : "Every parameter should be a variable assignment.";
 
-      CVariableDeclaration parameterVariable =
-          (CVariableDeclaration)
-              ((CIdExpression) ((CExpressionAssignmentStatement) statement).getLeftHandSide())
-                  .getDeclaration();
+      ALeftHandSide parameterVariable =
+          ((CExpressionAssignmentStatement) statement).getLeftHandSide();
 
       parameterVariables.add(parameterVariable);
     }
@@ -214,7 +210,7 @@ public class GhostCFA {
 
     parameters = pParameters;
 
-    List<AVariableDeclaration> parameterVariables = getParameterVariables();
+    List<ALeftHandSide> parameterVariables = getParameterVariables();
 
     CFANode currentNode = startGhostCfaNode;
     for (int i = 0; i < parameters.size(); i++) {
@@ -225,11 +221,13 @@ public class GhostCFA {
       assert currentEdge instanceof CStatementEdge : "Each parameter should be a statement edge.";
       CFACreationUtils.removeEdgeFromNodes(currentEdge);
 
-      CVariableDeclaration parameterVariable = (CVariableDeclaration) parameterVariables.get(i);
+      ALeftHandSide parameterVariable = parameterVariables.get(i);
 
       CExpressionAssignmentStatement newParameterExpression =
           (CExpressionAssignmentStatement)
-              new AExpressionFactory().from(pParameters.get(i)).assignTo(parameterVariable);
+              new AExpressionFactory()
+                  .from(pParameters.get(i))
+                  .assignTo(parameterVariable);
 
       CFACreationUtils.addEdgeUnconditionallyToCFA(
           new CStatementEdge(

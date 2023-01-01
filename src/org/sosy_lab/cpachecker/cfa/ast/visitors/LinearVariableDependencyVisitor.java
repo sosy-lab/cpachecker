@@ -152,9 +152,15 @@ public class LinearVariableDependencyVisitor
   @Override
   public Optional<LinearVariableDependency> visit(AIdExpression pExp) {
     LinearVariableDependency linVarDependency = new LinearVariableDependency();
-    linVarDependency.insertOrOverwriteDependency(
-        (AVariableDeclaration) pExp.getDeclaration(),
-        new AExpressionFactory().from(1, pExp.getDeclaration().getType()).build());
+    if (pExp.getDeclaration() instanceof AVariableDeclaration) {
+      linVarDependency.insertOrOverwriteDependency(
+          (AVariableDeclaration) pExp.getDeclaration(),
+          new AExpressionFactory().from(1, pExp.getDeclaration().getType()).build());
+    } else {
+      // TODO: Support arrays and Parameters
+      return Optional.empty();
+    }
+
     return Optional.of(linVarDependency);
   }
 
