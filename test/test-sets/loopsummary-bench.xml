@@ -12,6 +12,31 @@
   <!--<resultfiles>output/LA/*.*</resultfiles>-->
 	<option name="-setprop">cfa.summaries.outputdirectory=LA</option>
 	<option name="-setprop">cfa.summaries.strategies=OUTPUTLOOPACCELERATION,LOOPCONSTANTEXTRAPOLATION,NAIVELOOPACCELERATION,HAVOCSTRATEGY</option>
+    
+  <rundefinition name="value-loopsummary-gar">
+    <option name="-config">config/loopsummary/valueAnalysis-loopsummary-gar.properties</option>
+    <option name="-benchmark"/>
+  </rundefinition>
+  
+  <rundefinition name="predicate-loopsummary-gar">
+    <option name="-config">config/loopsummary/predicateAnalysis-loopsummary-gar.properties</option>
+    <option name="-benchmark"/>
+  </rundefinition>
+  
+  <rundefinition name="value-loopsummary-pgar">
+    <option name="-config">config/loopsummary/valueAnalysis-loopsummary-pgar.properties</option>
+    <option name="-benchmark"/>
+  </rundefinition>
+  
+  <rundefinition name="predicate-loopsummary-pgar">
+    <option name="-config">config/loopsummary/predicateAnalysis-loopsummary-pgar.properties</option>
+    <option name="-benchmark"/>
+  </rundefinition>
+  
+  <rundefinition name="predicate-value">
+    <option name="-config">config/loopsummary/predicateAnalysis-valueAnalysis.properties</option>
+    <option name="-benchmark"/>
+  </rundefinition>
  
   <rundefinition name="loopsummary-predicate">
 	  <option name="-config">cpachecker/config/loopsummary/predicateAnalysis-loopsummary.properties</option>
