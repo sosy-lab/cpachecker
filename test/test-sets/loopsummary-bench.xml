@@ -39,32 +39,32 @@
   </rundefinition>
  
   <rundefinition name="loopsummary-predicate">
-	  <option name="-config">cpachecker/config/loopsummary/predicateAnalysis-loopsummary.properties</option>
+	  <option name="-config">config/loopsummary/predicateAnalysis-loopsummary.properties</option>
 	  <option name="-benchmark"/>
   </rundefinition>
 
   <rundefinition name="predicate">
-	  <option name="-config">cpachecker/config/predicateAnalysis.properties</option>
+	  <option name="-config">config/predicateAnalysis.properties</option>
 	  <option name="-benchmark"/>
   </rundefinition>
 
   <rundefinition name="loopsummary-value">
-	  <option name="-config">cpachecker/config/loopsummary/valueAnalysis-loopsummary.properties</option>
+	  <option name="-config">config/loopsummary/valueAnalysis-loopsummary.properties</option>
 	  <option name="-benchmark"/>
   </rundefinition>
 
   <rundefinition name="value">
-	  <option name="-config">cpachecker/config/valueAnalysis.properties</option>
+	  <option name="-config">config/valueAnalysis.properties</option>
  	  <option name="-benchmark"/>
   </rundefinition>
 
   <rundefinition name="loopsummary-bmc">
-    <option name="-config">cpachecker/config/loopsummary/bmc-incremental-loopsummary.properties</option>
+    <option name="-config">config/loopsummary/bmc-incremental-loopsummary.properties</option>
     <option name="-benchmark"/>
   </rundefinition>
 
   <rundefinition name="bmc">
-    <option name="-config">cpachecker/config/loopsummary/bmc-incremental.properties</option>
+    <option name="-config">config/loopsummary/bmc-incremental.properties</option>
     <option name="-benchmark"/>
   </rundefinition>
 

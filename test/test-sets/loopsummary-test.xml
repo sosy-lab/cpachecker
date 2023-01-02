@@ -70,12 +70,12 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
   
   <rundefinition name="loopsummary-bmc">
-    <option name="-config">cpachecker/config/loopsummary/bmc-incremental-loopsummary.properties</option>
+    <option name="-config">config/loopsummary/bmc-incremental-loopsummary.properties</option>
     <option name="-benchmark"/>
   </rundefinition>
 
   <rundefinition name="bmc">
-    <option name="-config">cpachecker/config/loopsummary/bmc-incremental.properties</option>
+    <option name="-config">config/loopsummary/bmc-incremental.properties</option>
     <option name="-benchmark"/>
   </rundefinition>
   
