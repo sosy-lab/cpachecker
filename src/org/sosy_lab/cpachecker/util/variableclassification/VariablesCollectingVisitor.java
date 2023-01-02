@@ -44,7 +44,7 @@ class VariablesCollectingVisitor implements CExpressionVisitor<Set<String>, NoEx
   private Set<BigInteger> values = new TreeSet<>();
 
   public VariablesCollectingVisitor(CFANode pre) {
-    this.predecessor = checkNotNull(pre);
+    predecessor = checkNotNull(pre);
   }
 
   public Set<BigInteger> getValues() {

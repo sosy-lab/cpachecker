@@ -31,38 +31,30 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 /**
- * This class provides strategies for iterating through a CFA
- * (a set of {@link CFANode}s connected by {@link CFAEdge}s).
- * Strategies differ for example in the direction (forwards/backwards),
- * and whether summary edges are recognized.
+ * This class provides strategies for iterating through a CFA (a set of {@link CFANode}s connected
+ * by {@link CFAEdge}s). Strategies differ for example in the direction (forwards/backwards), and
+ * whether summary edges are recognized.
  *
- * Instances of this class are always immutable, thread-safe and may be re-used.
- * Thus, care must be taken when calling methods of this class which return a
- * CFATraversal instance. This never mutate the instance on which they are called!
+ * <p>Instances of this class are always immutable, thread-safe and may be re-used. Thus, care must
+ * be taken when calling methods of this class which return a CFATraversal instance. This never
+ * mutate the instance on which they are called!
  *
- * Right code:
- * <code>
+ * <p>Right code: <code>
  * CFATraversal traversal = CFATraversal.allEdgesForward();
  * traversal = traversal.backwards();
  * traversal.traverse(...);
- * </code>
- *
- * Wrong code:
- * <code>
+ * </code> Wrong code: <code>
  * CFATraversal traversal = CFATraversal.allEdgesForward();
  * traversal.backwards(); // WRONG!!! Has no effect!
  * traversal.traverse(...);
- * </code>
+ * </code> For traversing the CFA, a {@link CFAVisitor} needs to be given. Several default
+ * implementations are available.
  *
- * For traversing the CFA, a {@link CFAVisitor} needs to be given.
- * Several default implementations are available.
- *
- * Important: The instances of this class do not track a set of already visited
- * nodes. Thus a visitor may be called several times for a single node.
- * If the visitor never specifies to stop the traversal and the CFA contains loops,
- * this will produce an infinite loop!
- * It is strongly recommended to use the {@link NodeCollectingCFAVisitor} to
- * prevent this and visit each node only once (wrap your own visitor in it).
+ * <p>Important: The instances of this class do not track a set of already visited nodes. Thus a
+ * visitor may be called several times for a single node. If the visitor never specifies to stop the
+ * traversal and the CFA contains loops, this will produce an infinite loop! It is strongly
+ * recommended to use the {@link NodeCollectingCFAVisitor} to prevent this and visit each node only
+ * once (wrap your own visitor in it).
  */
 public class CFATraversal {
 
@@ -81,25 +73,26 @@ public class CFATraversal {
   // predicate for whether an edge should be ignored
   private final Predicate<CFAEdge> ignoreEdge;
 
-  protected CFATraversal(Function<CFANode, Iterable<CFAEdge>> pEdgeSupplier,
-      Function<CFAEdge, CFANode> pSuccessorSupplier, Predicate<CFAEdge> pIgnoreEdge) {
+  protected CFATraversal(
+      Function<CFANode, Iterable<CFAEdge>> pEdgeSupplier,
+      Function<CFAEdge, CFANode> pSuccessorSupplier,
+      Predicate<CFAEdge> pIgnoreEdge) {
     edgeSupplier = pEdgeSupplier;
     successorSupplier = pSuccessorSupplier;
     ignoreEdge = pIgnoreEdge;
   }
 
   /**
-   * Returns a default instance of this class, which iterates forward through
-   * the CFA, visiting all nodes and edges in a DFS-like strategy.
+   * Returns a default instance of this class, which iterates forward through the CFA, visiting all
+   * nodes and edges in a DFS-like strategy.
    */
   public static CFATraversal dfs() {
     return new CFATraversal(FORWARD_EDGE_SUPPLIER, CFAEdge::getSuccessor, Predicates.alwaysFalse());
   }
 
   /**
-   * Returns a new instance of this class which behaves exactly like the current
-   * instance, except its traversal direction is reversed (e.g., going backwards
-   * instead of going forwards).
+   * Returns a new instance of this class which behaves exactly like the current instance, except
+   * its traversal direction is reversed (e.g., going backwards instead of going forwards).
    */
   public CFATraversal backwards() {
     if (edgeSupplier == FORWARD_EDGE_SUPPLIER) {
@@ -112,10 +105,9 @@ public class CFATraversal {
   }
 
   /**
-   * Returns a new instance of this class which behaves exactly like the current
-   * instance, except it ignores summary edges ({@link FunctionSummaryEdge}s).
-   * It will not call the visitor for them, and it will not follow this edge
-   * during traversing.
+   * Returns a new instance of this class which behaves exactly like the current instance, except it
+   * ignores summary edges ({@link FunctionSummaryEdge}s). It will not call the visitor for them,
+   * and it will not follow this edge during traversing.
    */
   public CFATraversal ignoreSummaryEdges() {
     return new CFATraversal(
@@ -125,10 +117,9 @@ public class CFATraversal {
   }
 
   /**
-   * Returns a new instance of this class which behaves exactly like the current
-   * instance, except it ignores function call and return edges.
-   * It will not call the visitor for them, and it will not follow this edge
-   * during traversing. Thus it will always stay inside the current function.
+   * Returns a new instance of this class which behaves exactly like the current instance, except it
+   * ignores function call and return edges. It will not call the visitor for them, and it will not
+   * follow this edge during traversing. Thus it will always stay inside the current function.
    */
   @SuppressWarnings("unchecked")
   public CFATraversal ignoreFunctionCalls() {
@@ -194,13 +185,11 @@ public class CFATraversal {
   }
 
   /**
-   * Traverse through the CFA according to the strategy represented by the
-   * current instance, starting at a given node and passing each
-   * encountered node and edge to a given visitor.
+   * Traverse through the CFA according to the strategy represented by the current instance,
+   * starting at a given node and passing each encountered node and edge to a given visitor.
    *
-   * Each node will be visited only once.
-   * This method does the same as wrapping the given visitor in a
-   * {@link NodeCollectingCFAVisitor} and calling {@link #traverse(CFANode, CFAVisitor)}.
+   * <p>Each node will be visited only once. This method does the same as wrapping the given visitor
+   * in a {@link NodeCollectingCFAVisitor} and calling {@link #traverse(CFANode, CFAVisitor)}.
    *
    * @param startingNode The starting node.
    * @param visitor The visitor to notify.
@@ -210,60 +199,61 @@ public class CFATraversal {
   }
 
   /**
-   * Traverse through the CFA according to the strategy represented by the
-   * current instance, starting at a given node and collecting all encountered nodes.
+   * Traverse through the CFA according to the strategy represented by the current instance,
+   * starting at a given node and collecting all encountered nodes.
+   *
    * @param startingNode The starting node.
    * @return A modifiable reference to the set of visited nodes.
    */
   public Set<CFANode> collectNodesReachableFrom(final CFANode startingNode) {
     NodeCollectingCFAVisitor visitor = new NodeCollectingCFAVisitor();
-    this.traverse(startingNode, visitor);
+    traverse(startingNode, visitor);
     return visitor.getVisitedNodes();
   }
 
   /**
-   * Traverse through the CFA according to the strategy represented by the
-   * current instance, starting at a given node and collecting all encountered nodes
-   * up to a given end node
+   * Traverse through the CFA according to the strategy represented by the current instance,
+   * starting at a given node and collecting all encountered nodes up to a given end node
+   *
    * @param startingNode The starting node.
    * @param endingNode The ending node
    * @return A modifiable reference to the set of visited nodes.
    */
-  public Set<CFANode> collectNodesReachableFromTo(final CFANode startingNode,
-                                                  final CFANode endingNode) {
+  public Set<CFANode> collectNodesReachableFromTo(
+      final CFANode startingNode, final CFANode endingNode) {
     NodeCollectingCFAVisitor visitor = new NodeCollectingCFAVisitor();
     visitor.stopVisitingNode = endingNode;
-    this.traverse(startingNode, visitor);
+    traverse(startingNode, visitor);
     return visitor.getVisitedNodes();
   }
 
   // --- Useful visitor implementations ---
 
   /**
-   * An implementation of {@link CFAVisitor} which does two things:
-   * - It keeps a set of all visited nodes, and provides this set after the traversal process.
-   * - It prevents the traversal process from visiting a node twice.
+   * An implementation of {@link CFAVisitor} which does two things: - It keeps a set of all visited
+   * nodes, and provides this set after the traversal process. - It prevents the traversal process
+   * from visiting a node twice.
    *
-   * Because of the last point it is suggested to always use this visitor.
+   * <p>Because of the last point it is suggested to always use this visitor.
    *
-   * Instances of this visitor may be re-used.
-   * In this case, the following uses will re-use the set of visited nodes from
-   * the first time (i.e., a node visited in the first traversal will not be
-   * visited in the second traversal)
+   * <p>Instances of this visitor may be re-used. In this case, the following uses will re-use the
+   * set of visited nodes from the first time (i.e., a node visited in the first traversal will not
+   * be visited in the second traversal)
    */
-  public final static class NodeCollectingCFAVisitor extends ForwardingCFAVisitor {
+  public static final class NodeCollectingCFAVisitor extends ForwardingCFAVisitor {
 
     private final Set<CFANode> visitedNodes = new HashSet<>();
 
     /**
-     * A Node where the visitor should stop calling the visit method of its
-     * super class. This is used by {@link CFATraversal#collectNodesReachableFromTo(CFANode, CFANode)}.
+     * A Node where the visitor should stop calling the visit method of its super class. This is
+     * used by {@link CFATraversal#collectNodesReachableFromTo(CFANode, CFANode)}.
      */
     private CFANode stopVisitingNode = null;
 
     /**
-     * Creates a new instance which delegates calls to another visitor, but
-     * never calls that visitor twice for the same node.
+     * Creates a new instance which delegates calls to another visitor, but never calls that visitor
+     * twice for the same node.
+     *
      * @param pDelegate The visitor to delegate to.
      */
     public NodeCollectingCFAVisitor(CFAVisitor pDelegate) {
@@ -271,8 +261,8 @@ public class CFATraversal {
     }
 
     /**
-     * Convenience constructor for cases when you only need the functionality
-     * of this visitor and no other visitor.
+     * Convenience constructor for cases when you only need the functionality of this visitor and no
+     * other visitor.
      */
     public NodeCollectingCFAVisitor() {
       super(DefaultCFAVisitor.INSTANCE);
@@ -289,12 +279,12 @@ public class CFATraversal {
     }
 
     /**
-     * Get the set of nodes this visitor has seen so far.
-     * This set may be modified by the caller. Nodes put in this set will not be
-     * visited by this visitor, nodes removed from this set may be visited again.
+     * Get the set of nodes this visitor has seen so far. This set may be modified by the caller.
+     * Nodes put in this set will not be visited by this visitor, nodes removed from this set may be
+     * visited again.
      *
-     * This method may be called even before the first time this visitor is used.
-     * The returned set may not be modified during a traversal process.
+     * <p>This method may be called even before the first time this visitor is used. The returned
+     * set may not be modified during a traversal process.
      *
      * @return A modifiable reference to the set of visited nodes.
      */
@@ -303,16 +293,14 @@ public class CFATraversal {
     }
   }
 
-  /**
-   * An implementation of {@link CFAVisitor} which keeps track of all visited
-   * edges.
-   */
-  public final static class EdgeCollectingCFAVisitor extends ForwardingCFAVisitor {
+  /** An implementation of {@link CFAVisitor} which keeps track of all visited edges. */
+  public static final class EdgeCollectingCFAVisitor extends ForwardingCFAVisitor {
 
     private final List<CFAEdge> visitedEdges = new ArrayList<>();
 
     /**
      * Creates a new instance which delegates calls to another visitor.
+     *
      * @param pDelegate The visitor to delegate to.
      */
     public EdgeCollectingCFAVisitor(CFAVisitor pDelegate) {
@@ -320,8 +308,8 @@ public class CFATraversal {
     }
 
     /**
-     * Convenience constructor for cases when you only need the functionality
-     * of this visitor and a {@link NodeCollectingCFAVisitor}.
+     * Convenience constructor for cases when you only need the functionality of this visitor and a
+     * {@link NodeCollectingCFAVisitor}.
      */
     public EdgeCollectingCFAVisitor() {
       super(new NodeCollectingCFAVisitor());
@@ -334,14 +322,12 @@ public class CFATraversal {
     }
 
     /**
-     * Get the list of edges this visitor has seen so far in chronological order.
-     * The list may contain edges twice, if they were visited several times.
-     * Note that this is not the case if the {@link NodeCollectingCFAVisitor}
-     * is used.
+     * Get the list of edges this visitor has seen so far in chronological order. The list may
+     * contain edges twice, if they were visited several times. Note that this is not the case if
+     * the {@link NodeCollectingCFAVisitor} is used.
      *
-     * The returned list may be modified, but not during the traversal process.
-     * This will have no effect on the visitor, aside from the results of future
-     * calls to this method.
+     * <p>The returned list may be modified, but not during the traversal process. This will have no
+     * effect on the visitor, aside from the results of future calls to this method.
      *
      * @return A reference to the set of visited nodes.
      */
@@ -465,10 +451,11 @@ public class CFATraversal {
   // --- Types and classes for implementors of CFAVisitors
 
   /**
-   * Interface for CFA traversal visitors used by {@link CFATraversal#traverse(CFANode, CFAVisitor)}.
+   * Interface for CFA traversal visitors used by {@link CFATraversal#traverse(CFANode,
+   * CFAVisitor)}.
    *
-   * If any of these method throws an exception, the traversal process is
-   * immediately aborted and the exception is passed to the caller.
+   * <p>If any of these method throws an exception, the traversal process is immediately aborted and
+   * the exception is passed to the caller.
    *
    * @see CFATraversal
    */
@@ -476,6 +463,7 @@ public class CFATraversal {
 
     /**
      * Called for each edge the traversal process encounters.
+     *
      * @param edge The current CFAEdge.
      * @return A value of {@link TraversalProcess} to steer the traversal process.
      */
@@ -483,6 +471,7 @@ public class CFATraversal {
 
     /**
      * Called for each node the traversal process encounters.
+     *
      * @param node The current CFANode.
      * @return A value of {@link TraversalProcess} to steer the traversal process.
      */
@@ -491,9 +480,7 @@ public class CFATraversal {
 
   /** An enum for possible actions a visitor can tell the traversal strategy to do next. */
   public enum TraversalProcess {
-   /**
-     * Continue normally.
-     */
+    /** Continue normally. */
     CONTINUE,
 
     /**
@@ -502,14 +489,15 @@ public class CFATraversal {
     SKIP,
 
     /**
-     * Completely abort the traversal process (forgetting all nodes and edges which are still to be visited).
+     * Completely abort the traversal process (forgetting all nodes and edges which are still to be
+     * visited).
      */
     ABORT
   }
 
   /**
-   * A default implementation of {@link CFAVisitor} which does nothing and
-   * always returns {@link TraversalProcess#CONTINUE}.
+   * A default implementation of {@link CFAVisitor} which does nothing and always returns {@link
+   * TraversalProcess#CONTINUE}.
    */
   public static class DefaultCFAVisitor implements CFAVisitor {
 
@@ -527,8 +515,7 @@ public class CFATraversal {
   }
 
   /**
-   * A default implementation of {@link CFAVisitor} which forwards everything to
-   * another visitor.
+   * A default implementation of {@link CFAVisitor} which forwards everything to another visitor.
    */
   public abstract static class ForwardingCFAVisitor implements CFAVisitor {
 

@@ -7,9 +7,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * This package consists of precisions to track variables.
- * The tracking can be based on configuration-options like "track-all-booleans"
- * or updated during refinement, depending on the used class.
+ * This package consists of precisions to track variables. The tracking can be based on
+ * configuration-options like "track-all-booleans" or updated during refinement, depending on the
+ * used class.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault

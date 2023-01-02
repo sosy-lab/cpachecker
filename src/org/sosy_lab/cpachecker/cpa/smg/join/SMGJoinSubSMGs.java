@@ -23,13 +23,14 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter.SMGEdgeHasValueFilterByObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 final class SMGJoinSubSMGs {
-  static private boolean performChecks = false;
+  private static boolean performChecks = false;
 
   private SMGJoinStatus status;
   private boolean defined = false;
@@ -83,9 +84,10 @@ final class SMGJoinSubSMGs {
 
     // Algorithm 4 from FIT-TR-2012-04, line 2 and 3 interleaved
     // TODO seems to be buggy, does not fully match the algorithm from TR.
-    SMGEdgeHasValueFilter filterOnSMG1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
-    SMGEdgeHasValueFilter filterOnSMG2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
-    Map<SMGValue, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates = new HashMap<>();
+    SMGEdgeHasValueFilterByObject filterOnSMG1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
+    SMGEdgeHasValueFilterByObject filterOnSMG2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
+    Map<SMGValue, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates =
+        new HashMap<>();
     boolean allValuesDefined = true;
 
     int prevLevel = pLevelMap.get(SMGJoinLevel.valueOf(pObj1.getLevel(), pObj2.getLevel()));
@@ -100,8 +102,18 @@ final class SMGJoinSubSMGs {
     }
 
     for (SMGEdgeHasValue hvIn1 : hvEdgesIn1) {
-      filterOnSMG2.filterAtOffset(hvIn1.getOffset()).filterWithoutSize();
-      SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(inputSMG2.getHVEdges(filterOnSMG2));
+      Iterable<SMGEdgeHasValue> hvEdges2 =
+          hvEdgesIn2.filter(
+              new SMGEdgeHasValueFilter().filterAtOffset(hvIn1.getOffset()).filterWithoutSize());
+
+      // FIXME: check why it is possible to have no edges
+      if (Iterables.size(hvEdges2) != 1) {
+        defined = false;
+        status = SMGJoinStatus.INCOMPARABLE;
+        return;
+      }
+
+      SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(hvEdges2);
 
       int value1Level = getValueLevel(pObj1, hvIn1.getValue(), inputSMG1);
       int value2Level = getValueLevel(pObj2, hvIn2.getValue(), inputSMG2);
@@ -177,42 +189,49 @@ final class SMGJoinSubSMGs {
     }
 
     /* If the join is defined without abstraction candidates in
-       sub smgs, we don't need to perform abstraction.*/
+    sub smgs, we don't need to perform abstraction.*/
     if (allValuesDefined && valueAbstractionCandidates.isEmpty()) {
       defined = true;
-      //subSmgAbstractionCandidates = ImmutableList.of();
+      // subSmgAbstractionCandidates = ImmutableList.of();
       return;
     }
 
-    //SMGJoinAbstractionManager abstractionManager = new SMGJoinAbstractionManager(pObj1, pObj2, inputSMG1, inputSMG2, pNewObject, destSMG);
-    //subSmgAbstractionCandidates = abstractionManager.calculateCandidates(valueAbstractionCandidates);
+    // SMGJoinAbstractionManager abstractionManager = new SMGJoinAbstractionManager(pObj1, pObj2,
+    // inputSMG1, inputSMG2, pNewObject, destSMG);
+    // subSmgAbstractionCandidates =
+    // abstractionManager.calculateCandidates(valueAbstractionCandidates);
 
     /*If abstraction candidates can be found for this sub Smg, then the join for this sub smg
      *  is defined under the assumption, that the abstraction of one abstraction candidate is executed.*/
-    //if (!subSmgAbstractionCandidates.isEmpty()) {
-      //defined = true;
-      //return;
-    //}
+    // if (!subSmgAbstractionCandidates.isEmpty()) {
+    // defined = true;
+    // return;
+    // }
 
     /* If no abstraction can be found for this sub Smg, then the join is only defined,
      * if all values are defined. For values that are defined under the assumption,
      * that a abstraction candidate is execued for the destination smg, execute the abstraction
      * so that the join of this sub SMG is complete.*/
-    if(!allValuesDefined) {
+    if (!allValuesDefined) {
       status = SMGJoinStatus.INCOMPARABLE;
       defined = false;
       return;
     }
 
-    for(List<SMGGenericAbstractionCandidate> abstractionCandidates : valueAbstractionCandidates.values()) {
+    for (List<SMGGenericAbstractionCandidate> abstractionCandidates :
+        valueAbstractionCandidates.values()) {
       abstractionCandidates.iterator().next().execute(destSMG);
     }
 
     defined = true;
   }
 
-  private SMGLevelMapping updateLevelMap(int pValue1Level, int pValue2Level,
-      SMGLevelMapping pLevelMap, int pObjectLevel, int pObjectLevel2) {
+  private SMGLevelMapping updateLevelMap(
+      int pValue1Level,
+      int pValue2Level,
+      SMGLevelMapping pLevelMap,
+      int pObjectLevel,
+      int pObjectLevel2) {
 
     SMGJoinLevel joinLevel = SMGJoinLevel.valueOf(pValue1Level, pValue2Level);
 

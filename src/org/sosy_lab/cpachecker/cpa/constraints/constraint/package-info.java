@@ -7,8 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * This package contains the <code>Constraint</code> class and everything related to it.
- * This includes the ConstraintFactory class for creating <code>Constraint</code>s.
+ * This package contains the <code>Constraint</code> class and everything related to it. This
+ * includes the ConstraintFactory class for creating <code>Constraint</code>s.
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
-

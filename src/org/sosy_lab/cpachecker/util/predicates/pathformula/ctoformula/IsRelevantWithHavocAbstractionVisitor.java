@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class IsRelevantWithHavocAbstractionVisitor extends IsRelevantLhsVisitor
-  implements CRightHandSideVisitor<Boolean, NoException>{
+    implements CRightHandSideVisitor<Boolean, NoException> {
 
   public IsRelevantWithHavocAbstractionVisitor(CtoFormulaConverter pConv) {
     super(pConv);

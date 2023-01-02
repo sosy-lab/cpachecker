@@ -112,8 +112,8 @@ class ReachedSetExecutor {
    * state from the waitlist temporary until the sub-RSE is finished, and re-add it afterwards to be
    * analyzed again, such the the computed block abstraction can be applied.
    *
-   * Synchronized access guaranteed by only instance-local access in the current
-   * {@link ReachedSetExecutor}!
+   * <p>Synchronized access guaranteed by only instance-local access in the current {@link
+   * ReachedSetExecutor}!
    */
   private final Set<AbstractState> dependsOn = new LinkedHashSet<>();
 

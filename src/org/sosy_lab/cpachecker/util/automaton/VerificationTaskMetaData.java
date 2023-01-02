@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.util.automaton;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -25,8 +25,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 
 public class VerificationTaskMetaData {
@@ -40,14 +40,12 @@ public class VerificationTaskMetaData {
   private static class HackyOptions {
 
     @Option(
-      secure = true,
-      name = "invariantGeneration.kInduction.invariantsAutomatonFile",
-      description =
-          "Provides additional candidate invariants to the k-induction invariant generator."
-    )
+        secure = true,
+        name = "invariantGeneration.kInduction.invariantsAutomatonFile",
+        description =
+            "Provides additional candidate invariants to the k-induction invariant generator.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private Path invariantsAutomatonFile = null;
-
   }
 
   private final VerificationTaskMetaData.HackyOptions hackyOptions = new HackyOptions();
@@ -81,29 +79,17 @@ public class VerificationTaskMetaData {
    */
   public List<Path> getNonPropertySpecificationFiles() throws IOException {
     classifyAutomataFiles();
-    Set<Path> pathsAssociatedWithPropertyFiles =
-        FluentIterable.from(getProperties())
-            .transform(SpecificationProperty::getInternalSpecificationPath)
-            .filter(Optional::isPresent)
-            .transform(Optional::get)
-            .toSet();
-    return FluentIterable.from(nonWitnessAutomatonFiles)
-        .filter(p -> !pathsAssociatedWithPropertyFiles.contains(p))
-        .toList();
+    return nonWitnessAutomatonFiles;
   }
 
-  /**
-   * The specification properties considered for this verification task.
-   *
-   * @return the specification properties considered for this verification task.
-   */
-  public Set<SpecificationProperty> getProperties() {
+  /** Return the properties considered for this verification task. */
+  public Set<Property> getProperties() {
     return specification.getProperties();
   }
 
   /**
-   * Returns a string that describes the program that produced an output file.
-   * This is primarily intended for use in the producer field of verification witnesses.
+   * Returns a string that describes the program that produced an output file. This is primarily
+   * intended for use in the producer field of verification witnesses.
    */
   public String getProducerString() {
     return producerString;
@@ -114,12 +100,14 @@ public class VerificationTaskMetaData {
       assert witnessAutomatonFiles == null;
       ImmutableList.Builder<Path> nonWitnessAutomatonFilesBuilder = ImmutableList.builder();
       ImmutableList.Builder<Path> witnessAutomatonFilesBuilder = ImmutableList.builder();
-      Set<Path> specs = transformedImmutableSetCopy(specification.getSpecFiles(), Path::normalize);
+      Set<Path> specs = transformedImmutableSetCopy(specification.getFiles(), Path::normalize);
       for (Path path : specs) {
-        if (AutomatonGraphmlParser.isGraphmlAutomaton(path)) {
-          witnessAutomatonFilesBuilder.add(path);
-        } else {
-          nonWitnessAutomatonFilesBuilder.add(path);
+        if (!MoreFiles.getFileExtension(path).equals("prp")) {
+          if (AutomatonGraphmlParser.isGraphmlAutomaton(path)) {
+            witnessAutomatonFilesBuilder.add(path);
+          } else {
+            nonWitnessAutomatonFilesBuilder.add(path);
+          }
         }
       }
       Optional<Path> correctnessWitness =

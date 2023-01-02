@@ -15,10 +15,11 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
- * Encapsulates a {@link CParser} instance and processes all files first
- * with a {@link CPreprocessor}.
+ * Encapsulates a {@link CParser} instance and processes all files first with a {@link
+ * CPreprocessor}.
  */
 class CParserWithPreprocessor implements CParser {
 
@@ -32,7 +33,7 @@ class CParserWithPreprocessor implements CParser {
 
   @Override
   public ParseResult parseString(
-      String pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope) {
+      Path pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope) {
     // TODO
     throw new UnsupportedOperationException();
   }
@@ -49,7 +50,7 @@ class CParserWithPreprocessor implements CParser {
 
   @Override
   public ParseResult parseFiles(List<String> pFilenames)
-      throws CParserException, InterruptedException {
+      throws ParserException, InterruptedException {
 
     List<FileContentToParse> programs = new ArrayList<>(pFilenames.size());
     for (String f : pFilenames) {

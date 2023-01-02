@@ -19,11 +19,8 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
-/**
- * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C)
- */
+/** Class implementing join algorithm from FIT-TR-2013-4 (Appendix C) */
 public class SMGAbstractJoin {
-
 
   protected SMGJoinStatus status;
   protected SMG inputSMG1;
@@ -123,5 +120,4 @@ public class SMGAbstractJoin {
   public SMGValue getValue() {
     return value;
   }
-
 }

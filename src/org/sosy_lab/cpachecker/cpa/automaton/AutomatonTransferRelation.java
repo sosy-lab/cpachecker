@@ -69,9 +69,9 @@ public class AutomatonTransferRelation implements TransferRelation {
       LogManager pLogger,
       MachineModel pMachineModel,
       AutomatonStatistics pStats) {
-    this.cpa = pCpa;
-    this.logger = pLogger;
-    this.machineModel = pMachineModel;
+    cpa = pCpa;
+    logger = pLogger;
+    machineModel = pMachineModel;
 
     totalPostTime = pStats.totalPostTime.getNewTimer();
     matchTime = pStats.matchTime.getNewTimer();
@@ -89,7 +89,8 @@ public class AutomatonTransferRelation implements TransferRelation {
 
     if (pElement instanceof AutomatonUnknownState) {
       // the last CFA edge could not be processed properly
-      // (strengthen was not called on the AutomatonUnknownState or the strengthen operation had not enough information to determine a new following state.)
+      // (strengthen was not called on the AutomatonUnknownState or the strengthen operation had not
+      // enough information to determine a new following state.)
       return ImmutableSet.of(cpa.getTopState());
     }
 
@@ -114,7 +115,7 @@ public class AutomatonTransferRelation implements TransferRelation {
         // happens only inside MultiEdges,
         // here we have no chance (because strengthen is called only at the end of the edge),
         // so we just stay in the previous state
-        pElement = ((AutomatonUnknownState)pElement).getPreviousState();
+        pElement = ((AutomatonUnknownState) pElement).getPreviousState();
       }
 
       return getFollowStates(pElement, null, pCfaEdge, false, pPrecision);
@@ -163,7 +164,8 @@ public class AutomatonTransferRelation implements TransferRelation {
     }
 
     ImmutableSet.Builder<AutomatonState> lSuccessors = ImmutableSet.builderWithExpectedSize(2);
-    AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(state, state.getVars(), otherElements, edge, logger);
+    AutomatonExpressionArguments exprArgs =
+        new AutomatonExpressionArguments(state, state.getVars(), otherElements, edge, logger);
     boolean edgeMatched = false;
     int failedMatches = 0;
     boolean nonDetState = state.getInternalState().isNonDetState();
@@ -222,9 +224,9 @@ public class AutomatonTransferRelation implements TransferRelation {
 
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
-            final String desc = Strings.nullToEmpty(t.getViolatedPropertyDescription(exprArgs));
-            AutomatonSafetyProperty prop =
-                new AutomatonSafetyProperty(state.getOwningAutomaton(), t, desc);
+            final String desc = Strings.nullToEmpty(t.getTargetInformation(exprArgs));
+            AutomatonTargetInformation prop =
+                new AutomatonTargetInformation(state.getOwningAutomaton(), t, desc);
 
             AutomatonState errorState =
                 AutomatonState.automatonStateFactory(
@@ -266,10 +268,10 @@ public class AutomatonTransferRelation implements TransferRelation {
         t.executeActions(exprArgs);
         actionTime.stop();
 
-        AutomatonSafetyProperty violatedProperty = null;
+        AutomatonTargetInformation targetInformation = null;
         if (t.getFollowState().isTarget()) {
-          final String desc = Strings.nullToEmpty(t.getViolatedPropertyDescription(exprArgs));
-          violatedProperty = new AutomatonSafetyProperty(state.getOwningAutomaton(), t, desc);
+          final String desc = Strings.nullToEmpty(t.getTargetInformation(exprArgs));
+          targetInformation = new AutomatonTargetInformation(state.getOwningAutomaton(), t, desc);
         }
 
         logger.log(Level.ALL, "Replace variables in automata assumptions");
@@ -285,7 +287,7 @@ public class AutomatonTransferRelation implements TransferRelation {
                 t.getCandidateInvariants(),
                 state.getMatches() + 1,
                 state.getFailedMatches(),
-                violatedProperty,
+                targetInformation,
                 state.isTreatingErrorsAsTarget());
 
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {

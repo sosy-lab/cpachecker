@@ -44,9 +44,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 enum CexTraceAnalysisDirection {
-  /**
-   * Just the trace as it is
-   */
+  /** Just the trace as it is */
   FORWARDS {
     @Override
     public ImmutableIntArray orderFormulas(
@@ -59,9 +57,7 @@ enum CexTraceAnalysisDirection {
     }
   },
 
-  /**
-   * The trace when traversed backwards
-   */
+  /** The trace when traversed backwards */
   BACKWARDS {
     @Override
     public ImmutableIntArray orderFormulas(
@@ -71,17 +67,14 @@ enum CexTraceAnalysisDirection {
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
       ImmutableIntArray.Builder order = ImmutableIntArray.builder(traceFormulas.size());
-      for (int i = traceFormulas.size()-1; i >= 0; i--) {
+      for (int i = traceFormulas.size() - 1; i >= 0; i--) {
         order.add(i);
       }
       return order.build();
     }
   },
 
-  /**
-   * Takes alternatingly one element from the front of the trace and one of
-   * the back
-   */
+  /** Takes alternatingly one element from the front of the trace and one of the back */
   ZIGZAG {
     @Override
     public ImmutableIntArray orderFormulas(
@@ -105,8 +98,8 @@ enum CexTraceAnalysisDirection {
   },
 
   /**
-   * Those parts of the trace that are in no loops or in less loops than
-   * others are sorted to the front
+   * Those parts of the trace that are in no loops or in less loops than others are sorted to the
+   * front
    */
   LOOP_FREE_FIRST {
     @Override
@@ -125,9 +118,7 @@ enum CexTraceAnalysisDirection {
     }
   },
 
-  /**
-   * A random order of the trace
-   */
+  /** A random order of the trace */
   RANDOM {
     @SuppressWarnings("ImmutableEnumChecker")
     private final Random rnd = new Random(0);
@@ -156,8 +147,8 @@ enum CexTraceAnalysisDirection {
   },
 
   /**
-   * Formulas with the lowest average score for their variables according
-   * to some calculations in the VariableClassification are sorted to the front
+   * Formulas with the lowest average score for their variables according to some calculations in
+   * the VariableClassification are sorted to the front
    */
   LOWEST_AVG_SCORE {
     @Override
@@ -176,8 +167,8 @@ enum CexTraceAnalysisDirection {
   },
 
   /**
-   * Formulas with the highest average score for their variables according
-   * to some calculations in the VariableClassification are sorted to the front
+   * Formulas with the highest average score for their variables according to some calculations in
+   * the VariableClassification are sorted to the front
    */
   HIGHEST_AVG_SCORE {
     @Override
@@ -197,9 +188,8 @@ enum CexTraceAnalysisDirection {
   },
 
   /**
-   * Combination of loop free first and backwards, for each loop level, we iterate
-   * backwards through the found formulas to have those that are closest to
-   * the error location at first.
+   * Combination of loop free first and backwards, for each loop level, we iterate backwards through
+   * the found formulas to have those that are closest to the error location at first.
    */
   LOOP_FREE_FIRST_BACKWARDS {
     @Override
@@ -249,16 +239,19 @@ enum CexTraceAnalysisDirection {
   }
 
   /**
-   * This method computes a score for a set of variables regarding the domain
-   * types of these variables.
+   * This method computes a score for a set of variables regarding the domain types of these
+   * variables.
+   *
    * @return the average score over all given variables
    */
-  private static double getAVGScoreForVariables(BooleanFormula formula,
-                                                VariableClassification variableClassification,
-                                                FormulaManagerView fmgr,
-                                                LoopStructure loopStructure) {
+  private static double getAVGScoreForVariables(
+      BooleanFormula formula,
+      VariableClassification variableClassification,
+      FormulaManagerView fmgr,
+      LoopStructure loopStructure) {
 
-    Set<String> varNames = from(fmgr.extractVariableNames(formula))
+    Set<String> varNames =
+        from(fmgr.extractVariableNames(formula))
             .transform(
                 variable -> {
                   Pair<String, OptionalInt> name = FormulaManagerView.parseName(variable);
@@ -275,11 +268,11 @@ enum CexTraceAnalysisDirection {
       if (variableClassification.getIntBoolVars().contains(variableName)) {
         currentScore += 2;
 
-      // little harder but still good variables
+        // little harder but still good variables
       } else if (variableClassification.getIntEqualVars().contains(variableName)) {
         currentScore += 4;
 
-      // unknown type, potentially much harder than other variables
+        // unknown type, potentially much harder than other variables
       } else {
         currentScore += 16;
       }
@@ -290,7 +283,7 @@ enum CexTraceAnalysisDirection {
       }
 
       // check for overflow
-      if(currentScore < 0) {
+      if (currentScore < 0) {
         return Double.MAX_VALUE / varNames.size();
       }
     }
@@ -320,8 +313,8 @@ enum CexTraceAnalysisDirection {
 
     // move on as long as there occurs no loop-head in the ARG path
     while (!isCFANodeALoopHead
-           && actLevelStack.isEmpty()
-           && actARGState < pAbstractionStates.size()) {
+        && actLevelStack.isEmpty()
+        && actARGState < pAbstractionStates.size()) {
 
       actCFANode = AbstractStates.extractLocation(pAbstractionStates.get(actARGState));
 
@@ -366,15 +359,14 @@ enum CexTraceAnalysisDirection {
       // point, in order to know if the current node is in the loop on this
       // level or on a lower one
       if (actCFANode.getFunctionName().equals(lastLoopNode.getFunctionName())) {
-        actCFANode = getPrevFunctionNode((ARGState)actState,
-                                         (ARGState)lastState,
-                                         lastLoopNode.getFunctionName());
+        actCFANode =
+            getPrevFunctionNode(
+                (ARGState) actState, (ARGState) lastState, lastLoopNode.getFunctionName());
       }
 
       // the lastLoopNode cannot be reached from the actState
       // so decrease the actLevelStack
-      if (actCFANode == null
-          || !isNodePartOfLoop(lastLoopNode, actCFANode, loopStructure)) {
+      if (actCFANode == null || !isNodePartOfLoop(lastLoopNode, actCFANode, loopStructure)) {
         it.remove();
         continue;
 
@@ -398,7 +390,8 @@ enum CexTraceAnalysisDirection {
         pAbstractionStates, loopLevelsToIndexMap, actLevelStack, loopStructure);
   }
 
-  private static boolean isNodePartOfLoop(CFANode loopHead, CFANode potentialLoopNode, LoopStructure loopStructure) {
+  private static boolean isNodePartOfLoop(
+      CFANode loopHead, CFANode potentialLoopNode, LoopStructure loopStructure) {
     for (Loop loop : loopStructure.getLoopsForLoopHead(loopHead)) {
       if (loop.getLoopNodes().contains(potentialLoopNode)) {
         return true;
@@ -407,7 +400,8 @@ enum CexTraceAnalysisDirection {
     return false;
   }
 
-  private static CFANode getPrevFunctionNode(ARGState argState, ARGState lastState, String wantedFunction) {
+  private static CFANode getPrevFunctionNode(
+      ARGState argState, ARGState lastState, String wantedFunction) {
     CFANode returnNode = AbstractStates.extractLocation(argState);
     while (!returnNode.getFunctionName().equals(wantedFunction)) {
       argState = argState.getParents().iterator().next();
@@ -422,5 +416,4 @@ enum CexTraceAnalysisDirection {
 
     return returnNode;
   }
-
 }

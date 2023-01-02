@@ -29,9 +29,9 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       AutomatonState pTopState,
       PrecisionAdjustment pWrappedPrecisionAdjustment,
       boolean pTopOnFinalSelfLoopingState) {
-    this.topState = pTopState;
-    this.wrappedPrec = pWrappedPrecisionAdjustment;
-    this.topOnFinalSelfLoopingState = pTopOnFinalSelfLoopingState;
+    topState = pTopState;
+    wrappedPrec = pWrappedPrecisionAdjustment;
+    topOnFinalSelfLoopingState = pTopOnFinalSelfLoopingState;
   }
 
   @Override
@@ -41,10 +41,10 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       UnmodifiableReachedSet pStates,
       Function<AbstractState, AbstractState> pStateProjection,
       AbstractState pFullState)
-    throws CPAException, InterruptedException {
+      throws CPAException, InterruptedException {
 
-    Optional<PrecisionAdjustmentResult> wrappedPrecResult = wrappedPrec.prec(pState,
-        pPrecision, pStates, pStateProjection, pFullState);
+    Optional<PrecisionAdjustmentResult> wrappedPrecResult =
+        wrappedPrec.prec(pState, pPrecision, pStates, pStateProjection, pFullState);
 
     if (!wrappedPrecResult.isPresent()) {
       return wrappedPrecResult;
@@ -58,17 +58,14 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     }
 
     // Handle SINK state
-    if (topOnFinalSelfLoopingState
-        && internalState.isFinalSelfLoopingState()) {
+    if (topOnFinalSelfLoopingState && internalState.isFinalSelfLoopingState()) {
 
       AbstractState adjustedSate = topState;
       Precision adjustedPrecision = pPrecision;
-      return Optional.of(PrecisionAdjustmentResult.create(
-          adjustedSate,
-          adjustedPrecision, Action.CONTINUE));
+      return Optional.of(
+          PrecisionAdjustmentResult.create(adjustedSate, adjustedPrecision, Action.CONTINUE));
     }
 
     return wrappedPrecResult;
   }
-
 }

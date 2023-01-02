@@ -36,7 +36,7 @@ int main(){
 	// current position.
 	int i = 0;
 
-	while(!isSorted(a,len)) {
+	while(!isSorted(a,len)) { // FIX: while(isSorted(a, len)), isSorted returns opposite
 		// swap entries if not sorted
 		int buff = a[i];
 		a[i] = a[i+1];

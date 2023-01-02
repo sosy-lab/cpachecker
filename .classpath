@@ -52,6 +52,7 @@ SPDX-License-Identifier: Apache-2.0
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-library-smtlib.jar" sourcepath="lib/java-contrib/ultimate-library-smtlib-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-library-smtlib-utils.jar" sourcepath="lib/java-contrib/ultimate-library-smtlib-utils-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/smtinterpol.jar" sourcepath="lib/java-contrib/smtinterpol-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/commons-io.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/truth-java8-extension.jar" sourcepath="lib/java-contrib/truth-java8-extension-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/checker-qual.jar" sourcepath="lib/java-contrib/checker-qual-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/jhoafparser.jar"/>
@@ -80,7 +81,13 @@ SPDX-License-Identifier: Apache-2.0
 	<classpathentry kind="lib" path="lib/java/runtime/antlr4-runtime.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/com.microsoft.z3.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/CVC4.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/cvc5.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/princess_2.13.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/scala-library.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/jackson-annotations.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/jackson-core.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/jackson-databind.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/jackson-dataformat-yaml.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/snakeyaml.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

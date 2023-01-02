@@ -124,9 +124,8 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
   }
 
   /**
-   * check if
-   * - the current node is before a function-block and
-   * - the block was entered before (and thus is part of the stack).
+   * check if - the current node is before a function-block and - the block was entered before (and
+   * thus is part of the stack).
    */
   protected boolean isRecursiveCall(final CFANode node) {
     if (!partitioning.isCallNode(node)) {
@@ -146,11 +145,10 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
   }
 
   /**
-   * Enters a new block and performs a new analysis by recursively initiating
-   * {@link CPAAlgorithm}, or returns a cached result from {@link BAMCache}.
+   * Enters a new block and performs a new analysis by recursively initiating {@link CPAAlgorithm},
+   * or returns a cached result from {@link BAMCache}.
    *
-   * <p>Postcondition: sets the {@code currentBlock} variable to the currently
-   * processed block.
+   * <p>Postcondition: sets the {@code currentBlock} variable to the currently processed block.
    *
    * <p>Postcondition: pushes the current recursive level on the {@code stack}.
    *
@@ -164,17 +162,18 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       final AbstractState initialState, final Precision pPrecision, final CFANode node)
       throws CPAException, InterruptedException {
 
-    //Create ReachSet with node as initial element (+ add corresponding Location+CallStackElement)
-    //do an CPA analysis to get the complete reachset
-    //if lastElement is error State
+    // Create ReachSet with node as initial element (+ add corresponding Location+CallStackElement)
+    // do an CPA analysis to get the complete reachset
+    // if lastElement is error State
     // -> return lastElement and break at precision adjustment
-    //else
+    // else
     // -> compute which states refer to return nodes
     // -> return these states as successor
     // -> cache the result
 
-    final Block outerSubtree = getBlockForState((ARGState)initialState);
-    assert outerSubtree == (stack.isEmpty() ? partitioning.getMainBlock() : stack.peek().getThird());
+    final Block outerSubtree = getBlockForState((ARGState) initialState);
+    assert outerSubtree
+        == (stack.isEmpty() ? partitioning.getMainBlock() : stack.peek().getThird());
     final Block innerSubtree = partitioning.getBlockForCallNode(node);
     bamPccManager.setCurrentBlock(innerSubtree);
     assert innerSubtree.getCallNodes().contains(node);
@@ -308,8 +307,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     } else {
       final ReachedSet cachedReached = entry.getReachedSet();
       Preconditions.checkNotNull(cachedReached);
-      @Nullable
-      final Set<AbstractState> cachedReturnStates = entry.getExitStates();
+      @Nullable final Set<AbstractState> cachedReturnStates = entry.getExitStates();
       if (isCacheHit(cachedReached, cachedReturnStates)) { // FULL HIT
         // cache hit, return element from cache
         logger.log(
@@ -412,7 +410,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
         }
       }
       if (pSearchTargetStatesOnExit) {
-        for (AbstractState targetState : Iterables.filter(reached, AbstractStates::isTargetState)) {
+        for (AbstractState targetState : AbstractStates.getTargetStates(reached)) {
           assert ((ARGState) targetState).getChildren().isEmpty();
           returnStates.add(targetState);
         }

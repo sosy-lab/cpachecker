@@ -64,8 +64,8 @@ public interface Algorithm {
     }
 
     /**
-     * Create a new instance of {@link AlgorithmStatus} where both SOUND and PRECISE
-     * are a *conjunction* of this instance's and the other's fields.
+     * Create a new instance of {@link AlgorithmStatus} where both SOUND and PRECISE are a
+     * *conjunction* of this instance's and the other's fields.
      */
     @CheckReturnValue
     public AlgorithmStatus update(AlgorithmStatus other) {
@@ -76,8 +76,8 @@ public interface Algorithm {
     }
 
     /**
-     * Create a new instance of {@link AlgorithmStatus} where SOUND is as given,
-     * and PRECISE is as in this instance.
+     * Create a new instance of {@link AlgorithmStatus} where SOUND is as given, and PRECISE is as
+     * in this instance.
      */
     @CheckReturnValue
     public AlgorithmStatus withSound(boolean pIsSound) {
@@ -85,8 +85,8 @@ public interface Algorithm {
     }
 
     /**
-     * Create a new instance of {@link AlgorithmStatus} where PRECISE is as given,
-     * and SOUND is as in this instance.
+     * Create a new instance of {@link AlgorithmStatus} where PRECISE is as given, and SOUND is as
+     * in this instance.
      */
     @CheckReturnValue
     public AlgorithmStatus withPrecise(boolean pIsPrecise) {

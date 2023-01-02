@@ -26,7 +26,7 @@ int main(){
 		for (int j = i - 1; j < 4; j++) {
 			int s = 0;
 			// Calculate the sum in the given interval
-			for (int k = i; k <= j; k++) {
+			for (int k = i; k <= j; k++) { // FIX: k <= j + 1
 				s = s + a[k - 1];
 			}
 			// Is the sum greater than the current maxscore?

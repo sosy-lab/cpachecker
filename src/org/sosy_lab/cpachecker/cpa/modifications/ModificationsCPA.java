@@ -52,11 +52,10 @@ public class ModificationsCPA implements ConfigurableProgramAnalysis {
   private Path originalProgram = null;
 
   @Option(
-    secure = true,
-    description =
-        "ignore declarations when detecting modifications, "
-            + "be careful when variables are renamed (could be unsound)"
-  )
+      secure = true,
+      description =
+          "ignore declarations when detecting modifications, "
+              + "be careful when variables are renamed (could be unsound)")
   private boolean ignoreDeclarations = false;
 
   private final Configuration config;

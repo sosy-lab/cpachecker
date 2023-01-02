@@ -35,8 +35,8 @@ public final class SubtractionExpression extends BinarySymbolicExpression {
 
   @Override
   public SubtractionExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
-    return new SubtractionExpression(getOperand1(), getOperand2(), getType(), getCalculationType(),
-        pRepresentedLocation);
+    return new SubtractionExpression(
+        getOperand1(), getOperand2(), getType(), getCalculationType(), pRepresentedLocation);
   }
 
   @Override

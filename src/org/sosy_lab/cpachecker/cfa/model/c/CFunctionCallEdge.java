@@ -17,18 +17,19 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 
-public class CFunctionCallEdge extends FunctionCallEdge {
-
-
+public class CFunctionCallEdge extends FunctionCallEdge implements CCfaEdge {
 
   private static final long serialVersionUID = -3203684033841624723L;
 
-  public CFunctionCallEdge(String pRawStatement,
-      FileLocation pFileLocation, CFANode pPredecessor, CFunctionEntryNode pSuccessor,
-      CFunctionCall pFunctionCall, CFunctionSummaryEdge pSummaryEdge) {
+  public CFunctionCallEdge(
+      String pRawStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFunctionEntryNode pSuccessor,
+      CFunctionCall pFunctionCall,
+      CFunctionSummaryEdge pSummaryEdge) {
 
     super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pFunctionCall, pSummaryEdge);
-
   }
 
   @Override
@@ -64,6 +65,11 @@ public class CFunctionCallEdge extends FunctionCallEdge {
   @Override
   public CFunctionEntryNode getSuccessor() {
     // the constructor enforces that the successor is always a FunctionEntryNode
-    return (CFunctionEntryNode)super.getSuccessor();
+    return (CFunctionEntryNode) super.getSuccessor();
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CCfaEdgeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
   }
 }

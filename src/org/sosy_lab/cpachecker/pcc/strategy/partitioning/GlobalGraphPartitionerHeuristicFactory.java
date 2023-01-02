@@ -15,8 +15,9 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.WeightedBalancedGraphPartitio
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.BestFirstEvaluationFunctionFactory.BestFirstEvaluationFunctions;
 
 /**
- * A factory class, to generate global partitioning strategies. These strategies are pure global strategies.
- * Not like FM or Multilevel, which both implement the WeightedBalancedGraphPartitioner interface as well.
+ * A factory class, to generate global partitioning strategies. These strategies are pure global
+ * strategies. Not like FM or Multilevel, which both implement the WeightedBalancedGraphPartitioner
+ * interface as well.
  */
 public class GlobalGraphPartitionerHeuristicFactory {
 
@@ -29,23 +30,22 @@ public class GlobalGraphPartitionerHeuristicFactory {
     BEST_IMPROVEMENT_FIRST
   }
 
-  public static WeightedBalancedGraphPartitioner createPartitioner(final Configuration pConfig,
+  public static WeightedBalancedGraphPartitioner createPartitioner(
+      final Configuration pConfig,
       final LogManager pLogger,
       final GlobalPartitioningHeuristics pHeuristic)
-          throws InvalidConfigurationException {
+      throws InvalidConfigurationException {
     switch (pHeuristic) {
       case RANDOM:
         return new RandomBalancedWeightedGraphPartitioner();
       case DFS:
-       return new BestFirstWeightedBalancedGraphPartitioner(pConfig, pLogger,
-            BestFirstEvaluationFunctions.DEPTH_FIRST);
+        return new BestFirstWeightedBalancedGraphPartitioner(
+            pConfig, pLogger, BestFirstEvaluationFunctions.DEPTH_FIRST);
       case BFS:
-        return new BestFirstWeightedBalancedGraphPartitioner(pConfig, pLogger,
-            BestFirstEvaluationFunctions.BREADTH_FIRST);
-      default: //BEST_IMPROVEMENT_FIRST
+        return new BestFirstWeightedBalancedGraphPartitioner(
+            pConfig, pLogger, BestFirstEvaluationFunctions.BREADTH_FIRST);
+      default: // BEST_IMPROVEMENT_FIRST
         return new BestFirstWeightedBalancedGraphPartitioner(pConfig, pLogger);
     }
   }
-
-
 }

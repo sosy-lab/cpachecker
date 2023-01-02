@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
@@ -43,7 +43,7 @@ public class Witness {
   private final Multimap<String, Edge> enteringEdges;
   private final WitnessOptions witnessOptions;
   private final SetMultimap<String, NodeFlag> nodeFlags;
-  private final Multimap<String, Property> violatedProperties;
+  private final Multimap<String, TargetInformation> violatedProperties;
   private final Map<String, ExpressionTree<Object>> stateInvariants;
   private final Map<String, ExpressionTree<Object>> stateQuasiInvariants;
   private final Map<String, String> stateScopes;
@@ -61,7 +61,7 @@ public class Witness {
       Multimap<String, Edge> pEnteringEdges,
       WitnessOptions pWitnessOptions,
       SetMultimap<String, NodeFlag> pNodeFlags,
-      Multimap<String, Property> pViolatedProperties,
+      Multimap<String, TargetInformation> pViolatedProperties,
       Map<String, ExpressionTree<Object>> pStateInvariants,
       Map<String, ExpressionTree<Object>> pStateQuasiInvariants,
       Map<String, String> pStateScopes,
@@ -125,7 +125,7 @@ public class Witness {
     return nodeFlags;
   }
 
-  public Multimap<String, Property> getViolatedProperties() {
+  public Multimap<String, TargetInformation> getViolatedProperties() {
     return violatedProperties;
   }
 

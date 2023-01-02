@@ -51,7 +51,9 @@ public class SMGJoinMapTargetAddressTest {
     UnmodifiableSMG origDestSMG = destSMG.copyOf();
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
 
-    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping1, SMGZeroValue.INSTANCE, SMGZeroValue.INSTANCE);
+    SMGJoinMapTargetAddress mta =
+        new SMGJoinMapTargetAddress(
+            smg1, smg1, destSMG, mapping1, mapping1, SMGZeroValue.INSTANCE, SMGZeroValue.INSTANCE);
     assertThat(mta.getSMG()).isEqualTo(origDestSMG);
     assertThat(mta.mapping1).isEqualTo(origMapping1);
     assertThat(mta.getValue()).isSameInstanceAs(SMGZeroValue.INSTANCE);
@@ -74,7 +76,8 @@ public class SMGJoinMapTargetAddressTest {
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
     UnmodifiableSMG origDestSMG = destSMG.copyOf();
 
-    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping1, value1, value1);
+    SMGJoinMapTargetAddress mta =
+        new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping1, value1, value1);
     assertThat(mta.getSMG()).isEqualTo(origDestSMG);
     assertThat(mta.mapping1).isEqualTo(origMapping1);
     assertThat(mta.getValue()).isSameInstanceAs(destValue);
@@ -94,7 +97,8 @@ public class SMGJoinMapTargetAddressTest {
     SMGNodeMapping origMapping2 = new SMGNodeMapping(mapping2);
     UnmodifiableSMG origDestSMG = destSMG.copyOf();
 
-    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping2, value1, value2);
+    SMGJoinMapTargetAddress mta =
+        new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping2, value1, value2);
     assertThat(mta.getSMG()).isNotEqualTo(origDestSMG);
     assertThat(mta.mapping1).isNotEqualTo(origMapping1);
     assertThat(mta.mapping2).isNotEqualTo(origMapping2);

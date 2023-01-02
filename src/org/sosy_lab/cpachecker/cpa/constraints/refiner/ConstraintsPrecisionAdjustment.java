@@ -41,19 +41,15 @@ public class ConstraintsPrecisionAdjustment implements PrecisionAdjustment {
       final Precision pPrecision,
       final UnmodifiableReachedSet pReachedStates,
       final Function<AbstractState, AbstractState> pStateProjection,
-      final AbstractState pFullState
-  ) {
+      final AbstractState pFullState) {
 
-    return prec((ConstraintsState) pStateToAdjust,
-                (ConstraintsPrecision) pPrecision,
-                pFullState);
+    return prec((ConstraintsState) pStateToAdjust, (ConstraintsPrecision) pPrecision, pFullState);
   }
 
   private Optional<PrecisionAdjustmentResult> prec(
       final ConstraintsState pStateToAdjust,
       final ConstraintsPrecision pPrecision,
-      final AbstractState pFullState
-  ) {
+      final AbstractState pFullState) {
 
     int constraintsBefore = 0;
     int constraintsAfter = 0;

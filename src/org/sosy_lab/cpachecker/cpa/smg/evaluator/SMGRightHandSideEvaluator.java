@@ -49,13 +49,11 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * The class {@link SMGExpressionEvaluator} is meant to evaluate
- * a expression using an arbitrary SMGState. Thats why it does not
- * permit semantic changes of the state it uses. This class implements
- * additionally the changes that occur while calculating the next smgState
- * in the Transfer Relation. These mainly include changes when evaluating
- * functions. They also contain code that should only be executed during
- * the calculation of the next SMG State, e.g. logging.
+ * The class {@link SMGExpressionEvaluator} is meant to evaluate a expression using an arbitrary
+ * SMGState. Thats why it does not permit semantic changes of the state it uses. This class
+ * implements additionally the changes that occur while calculating the next smgState in the
+ * Transfer Relation. These mainly include changes when evaluating functions. They also contain code
+ * that should only be executed during the calculation of the next SMG State, e.g. logging.
  */
 public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
@@ -88,11 +86,12 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       return SMGExplicitValueAndState.of(v.getState(), SMGUnknownValue.INSTANCE);
     }
 
-    return SMGExplicitValueAndState.of(v.getState(),
-        SMGKnownExpValue.valueOf(val.asNumericValue().longValue()));
+    return SMGExplicitValueAndState.of(
+        v.getState(), SMGKnownExpValue.valueOf(val.asNumericValue().longValue()));
   }
 
-  public SMGState deriveFurtherInformation(SMGState pNewState, boolean pTruthValue, CFAEdge pCfaEdge, CExpression rValue)
+  public SMGState deriveFurtherInformation(
+      SMGState pNewState, boolean pTruthValue, CFAEdge pCfaEdge, CExpression rValue)
       throws CPATransferException {
     AssigningValueVisitor v = new AssigningValueVisitor(this, pNewState, pTruthValue, pCfaEdge);
 
@@ -112,19 +111,28 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     }
 
     long fieldOffset = pOffset.getAsLong();
-    int typeBitSize = getBitSizeof(pEdge, pType, pSmgState);
-    int objectBitSize = pObject.getSize();
+    long typeBitSize = getBitSizeof(pEdge, pType, pSmgState);
+    long objectBitSize = pObject.getSize();
 
-    //FIXME Does not work with variable array length.
-    boolean doesNotFitIntoObject = fieldOffset < 0
-        || fieldOffset + typeBitSize > objectBitSize;
+    // FIXME Does not work with variable array length.
+    boolean doesNotFitIntoObject = fieldOffset < 0 || fieldOffset + typeBitSize > objectBitSize;
 
     if (doesNotFitIntoObject) {
       SMGState errState = pSmgState.withInvalidRead();
       // Field does not fit size of declared Memory
-      logger.log(Level.INFO, pEdge.getFileLocation(), ":", "Field ", "(",
-           fieldOffset, ", ", pType.toASTString(""), ")",
-          " does not fit object ", pObject, ".");
+      logger.log(
+          Level.INFO,
+          pEdge.getFileLocation(),
+          ":",
+          "Field ",
+          "(",
+          fieldOffset,
+          ", ",
+          pType.toASTString(""),
+          ")",
+          " does not fit object ",
+          pObject,
+          ".");
       final String description;
       if (!pObject.equals(SMGNullObject.INSTANCE)) {
         if (typeBitSize % 8 != 0 || fieldOffset % 8 != 0 || objectBitSize % 8 != 0) {
@@ -172,8 +180,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
     // FIXME Does not work with variable array length.
     // TODO: write value with bit precise size
-    int memoryBitSize = pMemoryOfField.getSize();
-    int rValueTypeBitSize = getBitSizeof(pEdge, pRValueType, pState);
+    long memoryBitSize = pMemoryOfField.getSize();
+    long rValueTypeBitSize = getBitSizeof(pEdge, pRValueType, pState);
     boolean doesNotFitIntoObject =
         pFieldOffset < 0 || pFieldOffset + rValueTypeBitSize > memoryBitSize;
 
@@ -190,9 +198,12 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
                   pMemoryOfField));
       SMGState newState = pState.withInvalidWrite();
       if (!pMemoryOfField.equals(SMGNullObject.INSTANCE)) {
-        newState = newState.withErrorDescription(String.format(
-            "Field with size %d bit can't be written at offset %d bit of object %d bit size",
-            rValueTypeBitSize, pFieldOffset, memoryBitSize));
+        newState =
+            newState.withErrorDescription(
+                String.format(
+                    "Field with size %d bit can't be written at offset %d bit of object %d bit"
+                        + " size",
+                    rValueTypeBitSize, pFieldOffset, memoryBitSize));
         newState.addInvalidObject(pMemoryOfField);
       } else {
         newState = newState.withErrorDescription("NULL pointer dereference on write");
@@ -232,7 +243,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       CType rValueType)
       throws UnrecognizedCodeException, SMGInconsistentException {
 
-    int sizeOfField = getBitSizeof(cfaEdge, rValueType, newState);
+    long sizeOfField = getBitSizeof(cfaEdge, rValueType, newState);
 
     // FIXME Does not work with variable array length.
     if (memoryOfField.getSize() < sizeOfField) {

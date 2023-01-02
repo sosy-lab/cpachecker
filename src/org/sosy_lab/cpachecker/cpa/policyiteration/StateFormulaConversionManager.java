@@ -39,10 +39,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-/**
- * Class responsible for converting states to formulas.
- */
-@Options(prefix="cpa.lpi")
+/** Class responsible for converting states to formulas. */
+@Options(prefix = "cpa.lpi")
 public class StateFormulaConversionManager {
 
   @Option(secure = true, description = "Remove redundant items when abstract values.")
@@ -50,8 +48,7 @@ public class StateFormulaConversionManager {
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
-  private final TemplateToFormulaConversionManager
-      templateToFormulaConversionManager;
+  private final TemplateToFormulaConversionManager templateToFormulaConversionManager;
   private final Configuration configuration;
   private final CFA cfa;
   private final LogManager logger;
@@ -89,24 +86,18 @@ public class StateFormulaConversionManager {
    * @param attachExtraInvariant Attach the invariant supplied by other analysis.
    */
   List<BooleanFormula> abstractStateToConstraints(
-      FormulaManagerView fmgrv,
-      PolicyAbstractedState abstractState,
-      boolean attachExtraInvariant) {
+      FormulaManagerView fmgrv, PolicyAbstractedState abstractState, boolean attachExtraInvariant) {
 
     // Returns the abstract state together with the conjoined extra invariant.
     List<BooleanFormula> constraints = new ArrayList<>();
 
     PathFormulaManager pfmgrv;
     try {
-      pfmgrv = new PathFormulaManagerImpl(
-          fmgrv, configuration, logger,
-          shutdownNotifier,
-          cfa,
-          AnalysisDirection.FORWARD
-      );
+      pfmgrv =
+          new PathFormulaManagerImpl(
+              fmgrv, configuration, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
     } catch (InvalidConfigurationException pE) {
-      throw new UnsupportedOperationException("Could not construct path "
-          + "formula manager", pE);
+      throw new UnsupportedOperationException("Could not construct path " + "formula manager", pE);
     }
 
     PathFormula inputPath = getPathFormula(abstractState, attachExtraInvariant);
@@ -117,16 +108,14 @@ public class StateFormulaConversionManager {
     if (attachExtraInvariant) {
 
       // Extra invariant.
-      constraints.add(fmgrv.instantiate(
-          abstractState.getExtraInvariant(), inputPath.getSsa()));
+      constraints.add(fmgrv.instantiate(abstractState.getExtraInvariant(), inputPath.getSsa()));
     }
 
     for (Entry<Template, PolicyBound> entry : abstractState) {
       Template template = entry.getKey();
       PolicyBound bound = entry.getValue();
 
-      constraints.add(
-          templateToConstraint(template, bound, pfmgrv, fmgrv, inputPath));
+      constraints.add(templateToConstraint(template, bound, pfmgrv, fmgrv, inputPath));
     }
     return constraints;
   }
@@ -136,19 +125,13 @@ public class StateFormulaConversionManager {
       PolicyBound bound,
       PathFormulaManager pfmgrv,
       FormulaManagerView fmgrv,
-      PathFormula inputPath
-      ) {
-    Formula t = templateToFormulaConversionManager.toFormula(
-        pfmgrv, fmgrv, template, inputPath);
-    return fmgrv.makeLessOrEqual(
-        t, fmgrv.makeNumber(t, bound.getBound()), true);
-
+      PathFormula inputPath) {
+    Formula t = templateToFormulaConversionManager.toFormula(pfmgrv, fmgrv, template, inputPath);
+    return fmgrv.makeLessOrEqual(t, fmgrv.makeNumber(t, bound.getBound()), true);
   }
 
-  public BooleanFormula getStartConstraintsWithExtraInvariant(
-      PolicyIntermediateState state) {
-    return bfmgr.and(abstractStateToConstraints(
-        fmgr, state.getBackpointerState(), true));
+  public BooleanFormula getStartConstraintsWithExtraInvariant(PolicyIntermediateState state) {
+    return bfmgr.and(abstractStateToConstraints(fmgr, state.getBackpointerState(), true));
   }
 
   /** Return representation of an {@code abstractState} as a {@link PolicyIntermediateState}. */
@@ -166,9 +149,7 @@ public class StateFormulaConversionManager {
    *
    * @param attachExtraInvariant Whether the extra invariant should be attached.
    */
-  PathFormula getPathFormula(
-      PolicyAbstractedState abstractState,
-      boolean attachExtraInvariant) {
+  PathFormula getPathFormula(PolicyAbstractedState abstractState, boolean attachExtraInvariant) {
     PathFormula result =
         pfmgr.makeEmptyPathFormulaWithContext(
             abstractState.getSSA(), abstractState.getPointerTargetSet());
@@ -198,8 +179,7 @@ public class StateFormulaConversionManager {
 
       // if others imply the constraint, remove it.
       BooleanFormula othersConstraint =
-          nonRedundant
-              .stream()
+          nonRedundant.stream()
               .filter(t2 -> t2 != t)
               .map(templatesToConstraints::get)
               .collect(bfmgr.toConjunction());
@@ -208,16 +188,18 @@ public class StateFormulaConversionManager {
         if (solver.implies(othersConstraint, constraint)) {
           nonRedundant.remove(t);
         }
-      } catch (SolverException|InterruptedException pE) {
-        logger.logException(Level.WARNING, pE, "Failed simplifying the "
-            + "abstraction before rendering, converting as it is.");
+      } catch (SolverException | InterruptedException pE) {
+        logger.logException(
+            Level.WARNING,
+            pE,
+            "Failed simplifying the " + "abstraction before rendering, converting as it is.");
         simplifyDotOutput = false;
         return dotWriter.toDOTLabel(pAbstraction);
       }
     }
 
-    Map<Template, PolicyBound> filteredAbstraction = Maps.filterKeys(
-        pAbstraction, t -> nonRedundant.contains(t));
+    Map<Template, PolicyBound> filteredAbstraction =
+        Maps.filterKeys(pAbstraction, t -> nonRedundant.contains(t));
     return dotWriter.toDOTLabel(filteredAbstraction);
   }
 }

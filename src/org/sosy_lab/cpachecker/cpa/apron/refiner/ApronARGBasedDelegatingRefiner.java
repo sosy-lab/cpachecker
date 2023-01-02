@@ -56,38 +56,35 @@ import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator},
- * and if this fails, optionally delegates also to {@link PredicateCPARefiner}.
+ * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator}, and if this
+ * fails, optionally delegates also to {@link PredicateCPARefiner}.
  */
-@Options(prefix="cpa.apron.refiner")
+@Options(prefix = "cpa.apron.refiner")
 class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, StatisticsProvider {
 
-  /**
-   * refiner used for value-analysis interpolation refinement
-   */
+  /** refiner used for value-analysis interpolation refinement */
   private final ValueAnalysisPathInterpolator interpolatingRefiner;
 
   private final FeasibilityChecker<ValueAnalysisState> valueAnalysisChecker;
 
-  /**
-   * the hash code of the previous error path
-   */
+  /** the hash code of the previous error path */
   private int previousErrorPathID = -1;
 
-  @Option(secure=true, description="Timelimit for the backup feasibility check with the apron analysis."
-      + "(use seconds or specify a unit; 0 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-                  defaultUserUnit=TimeUnit.SECONDS,
-                  min=0)
+  @Option(
+      secure = true,
+      description =
+          "Timelimit for the backup feasibility check with the apron analysis."
+              + "(use seconds or specify a unit; 0 for infinite)")
+  @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
   private TimeSpan timeForApronFeasibilityCheck = TimeSpan.ofNanos(0);
 
   // statistics
-  private int numberOfValueAnalysisRefinements           = 0;
+  private int numberOfValueAnalysisRefinements = 0;
   private int numberOfSuccessfulValueAnalysisRefinements = 0;
 
-  /** if this variable is toggled, only octagon refinements will be done as
-   * value analysis refinements will make no sense any more because they are too
-   * imprecise
+  /**
+   * if this variable is toggled, only octagon refinements will be done as value analysis
+   * refinements will make no sense any more because they are too imprecise
    */
   private boolean existsExplicitApronRefinement = false;
 
@@ -163,18 +160,24 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
    * @return true, if the value-analysis refinement was successful, else false
    * @throws CPAException when value-analysis interpolation fails
    */
-  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
+  private boolean performValueAnalysisRefinement(
+      final ARGReachedSet reached, final ARGPath errorPath)
+      throws CPAException, InterruptedException {
     numberOfValueAnalysisRefinements++;
 
-    UnmodifiableReachedSet reachedSet       = reached.asReachedSet();
-    Precision precision                     = reachedSet.getPrecision(reachedSet.getLastState());
-    VariableTrackingPrecision apronPrecision = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class)).get(0);
+    UnmodifiableReachedSet reachedSet = reached.asReachedSet();
+    Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
+    VariableTrackingPrecision apronPrecision =
+        (VariableTrackingPrecision)
+            Precisions.asIterable(precision)
+                .filter(VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class))
+                .get(0);
 
     VariableTrackingPrecision refinedApronPrecision;
     Pair<ARGState, CFAEdge> refinementRoot;
 
-
-    Multimap<CFANode, MemoryLocation> increment = interpolatingRefiner.determinePrecisionIncrement(errorPath);
+    Multimap<CFANode, MemoryLocation> increment =
+        interpolatingRefiner.determinePrecisionIncrement(errorPath);
     refinementRoot = interpolatingRefiner.determineRefinementRoot(errorPath, increment);
 
     // no increment - value-analysis refinement was not successful
@@ -182,13 +185,14 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
       return false;
     }
 
-    refinedApronPrecision  = apronPrecision.withIncrement(increment);
+    refinedApronPrecision = apronPrecision.withIncrement(increment);
 
     if (valueAnalysisRefinementWasSuccessful(errorPath, apronPrecision, refinedApronPrecision)) {
       numberOfSuccessfulValueAnalysisRefinements++;
-      reached.removeSubtree(refinementRoot.getFirst(),
-                            refinedApronPrecision,
-                            VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class));
+      reached.removeSubtree(
+          refinementRoot.getFirst(),
+          refinedApronPrecision,
+          VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class));
       return true;
 
     } else {
@@ -199,41 +203,55 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
   private boolean performApronAnalysisRefinement(
       final ARGReachedSet reached, final OctagonAnalysisFeasibilityChecker checker)
       throws InterruptedException {
-    UnmodifiableReachedSet reachedSet       = reached.asReachedSet();
-    Precision precision                     = reachedSet.getPrecision(reachedSet.getLastState());
-    VariableTrackingPrecision apronPrecision = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class)).get(0);
+    UnmodifiableReachedSet reachedSet = reached.asReachedSet();
+    Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
+    VariableTrackingPrecision apronPrecision =
+        (VariableTrackingPrecision)
+            Precisions.asIterable(precision)
+                .filter(VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class))
+                .get(0);
 
     Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement();
-    // no newly tracked variables, so the refinement was not successful // TODO why is this commented out
+    // no newly tracked variables, so the refinement was not successful // TODO why is this
+    // commented out
     if (increment.isEmpty()) {
-    //  return false;
+      //  return false;
     }
 
-    reached.removeSubtree(((ARGState)reachedSet.getFirstState()).getChildren().iterator().next(),
-                          apronPrecision.withIncrement(increment),
-                          VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class));
+    reached.removeSubtree(
+        ((ARGState) reachedSet.getFirstState()).getChildren().iterator().next(),
+        apronPrecision.withIncrement(increment),
+        VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class));
 
-    logger.log(Level.INFO, "Refinement successful, precision incremented, following variables are now tracked additionally:\n" + new TreeSet<>(increment.values()));
+    logger.log(
+        Level.INFO,
+        "Refinement successful, precision incremented, following variables are now tracked"
+            + " additionally:\n"
+            + new TreeSet<>(increment.values()));
 
     return true;
   }
 
   /**
-   * This helper method checks if the refinement was successful, i.e.,
-   * that either the counterexample is not a repeated counterexample, or that the precision did grow.
+   * This helper method checks if the refinement was successful, i.e., that either the
+   * counterexample is not a repeated counterexample, or that the precision did grow.
    *
-   * Repeated counterexamples might occur when combining the analysis with thresholding,
-   * or when ignoring variable classes, i.e. when combined with BDD analysis (i.e. cpa.value.precision.ignoreBoolean).
+   * <p>Repeated counterexamples might occur when combining the analysis with thresholding, or when
+   * ignoring variable classes, i.e. when combined with BDD analysis (i.e.
+   * cpa.value.precision.ignoreBoolean).
    *
    * @param errorPath the current error path
    * @param valueAnalysisPrecision the previous precision
    * @param refinedValueAnalysisPrecision the refined precision
    */
-  private boolean valueAnalysisRefinementWasSuccessful(ARGPath errorPath, VariableTrackingPrecision valueAnalysisPrecision,
+  private boolean valueAnalysisRefinementWasSuccessful(
+      ARGPath errorPath,
+      VariableTrackingPrecision valueAnalysisPrecision,
       VariableTrackingPrecision refinedValueAnalysisPrecision) {
     // new error path or precision refined -> success
-    boolean success = (errorPath.toString().hashCode() != previousErrorPathID)
-        || (refinedValueAnalysisPrecision.getSize() > valueAnalysisPrecision.getSize());
+    boolean success =
+        (errorPath.toString().hashCode() != previousErrorPathID)
+            || (refinedValueAnalysisPrecision.getSize() > valueAnalysisPrecision.getSize());
 
     previousErrorPathID = errorPath.toString().hashCode();
 
@@ -253,8 +271,12 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    out.println("  number of value analysis refinements:                " + numberOfValueAnalysisRefinements);
-    out.println("  number of successful valueAnalysis refinements:      " + numberOfSuccessfulValueAnalysisRefinements);
+    out.println(
+        "  number of value analysis refinements:                "
+            + numberOfValueAnalysisRefinements);
+    out.println(
+        "  number of successful valueAnalysis refinements:      "
+            + numberOfSuccessfulValueAnalysisRefinements);
   }
 
   /**
@@ -310,5 +332,4 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
       throw new CPAException("counterexample-check failed: ", e);
     }
   }
-
 }

@@ -38,34 +38,39 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 
 /**
- * CPA for path conditions ({@link PathCondition}).
- * It can be configured to work with any condition that implements this interface.
+ * CPA for path conditions ({@link PathCondition}). It can be configured to work with any condition
+ * that implements this interface.
  */
-@Options(prefix="cpa.conditions.path")
-public class PathConditionsCPA implements ConfigurableProgramAnalysisWithBAM, AdjustableConditionCPA, StatisticsProvider {
+@Options(prefix = "cpa.conditions.path")
+public class PathConditionsCPA
+    implements ConfigurableProgramAnalysisWithBAM, AdjustableConditionCPA, StatisticsProvider {
 
   @Option(secure = true, description = "The condition", name = "condition", required = true)
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.conditions.path")
   private PathCondition.Factory conditionClass;
 
-  @Option(secure = true,
-      description = "Number of times the path condition may be adjusted, i.e., the path condition threshold may be increased (-1 to always adjust)",
+  @Option(
+      secure = true,
+      description =
+          "Number of times the path condition may be adjusted, i.e., the path condition threshold"
+              + " may be increased (-1 to always adjust)",
       name = "adjustment.threshold")
-  @IntegerOption(min=-1)
+  @IntegerOption(min = -1)
   private int adjustmentThreshold = -1;
+
   private int performedAdjustments = 0;
 
   private final PathCondition condition;
 
   private final AbstractDomain domain = new FlatLatticeDomain();
-  private final TransferRelation transfer = new SingleEdgeTransferRelation() {
-      @Override
-      public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-          AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
-        return Collections.singleton(condition.getAbstractSuccessor(pState, pCfaEdge));
-      }
-    };
-
+  private final TransferRelation transfer =
+      new SingleEdgeTransferRelation() {
+        @Override
+        public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+            AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
+          return Collections.singleton(condition.getAbstractSuccessor(pState, pCfaEdge));
+        }
+      };
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PathConditionsCPA.class);
@@ -79,10 +84,10 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysisWithBAM, Ad
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (condition instanceof StatisticsProvider) {
-      ((StatisticsProvider)condition).collectStatistics(pStatsCollection);
+      ((StatisticsProvider) condition).collectStatistics(pStatsCollection);
 
     } else if (condition instanceof Statistics) {
-      pStatsCollection.add((Statistics)condition);
+      pStatsCollection.add((Statistics) condition);
     }
   }
 

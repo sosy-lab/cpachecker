@@ -68,33 +68,45 @@ class JavaBDDRegionManager implements RegionManager {
   private static final Level LOG_LEVEL = Level.FINE;
 
   // Statistics
-  private final StatInt cleanupQueueSize = new StatInt(StatKind.AVG, "Size of BDD node cleanup queue");
+  private final StatInt cleanupQueueSize =
+      new StatInt(StatKind.AVG, "Size of BDD node cleanup queue");
   private final StatTimer cleanupTimer = new StatTimer("Time for BDD node cleanup");
   private final LogManager logger;
   private final BDDFactory factory;
   private final Region trueFormula;
   private final Region falseFormula;
   // The reference objects will appear in this queue as soon as their target object was GCed.
-  private final ReferenceQueue<JavaBDDRegion> referenceQueue =
-      new ReferenceQueue<>();
+  private final ReferenceQueue<JavaBDDRegion> referenceQueue = new ReferenceQueue<>();
   // In this map we store the info which BDD to free after a JavaBDDRegion object was GCed.
   private final IdentityHashMap<Reference<? extends JavaBDDRegion>, BDD> referenceMap =
       new IdentityHashMap<>();
 
-  @Option(secure = true, description = "Initial size of the BDD node table in percentage of available Java heap memory (only used if initTableSize is 0).")
+  @Option(
+      secure = true,
+      description =
+          "Initial size of the BDD node table in percentage of available Java heap memory (only"
+              + " used if initTableSize is 0).")
   private double initTableRatio = 0.001;
 
-  @Option(secure = true, description = "Initial size of the BDD node table, use 0 for size based on initTableRatio.")
+  @Option(
+      secure = true,
+      description = "Initial size of the BDD node table, use 0 for size based on initTableRatio.")
   @IntegerOption(min = 0)
   private int initTableSize = 0;
 
-  @Option(secure = true, description = "Initial size of the BDD cache, use 0 for cacheRatio*initTableSize.")
+  @Option(
+      secure = true,
+      description = "Initial size of the BDD cache, use 0 for cacheRatio*initTableSize.")
   @IntegerOption(min = 0)
   private int cacheSize = 0;
 
-  @Option(secure = true,
-      description = "Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD cache size).")
+  @Option(
+      secure = true,
+      description =
+          "Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD"
+              + " cache size).")
   private double cacheRatio = 0.1;
+
   private int nextvar = 0;
   private int varcount = 100;
 
@@ -104,44 +116,46 @@ class JavaBDDRegionManager implements RegionManager {
     config.inject(this);
     logger = pLogger;
     if (initTableRatio <= 0 || initTableRatio >= 1) {
-      throw new InvalidConfigurationException("Invalid value " + initTableRatio
-          + " for option bdd.javabdd.initTableRatio, needs to be between 0 and 1.");
+      throw new InvalidConfigurationException(
+          "Invalid value "
+              + initTableRatio
+              + " for option bdd.javabdd.initTableRatio, needs to be between 0 and 1.");
     }
     if (initTableSize == 0) {
       // JFactory uses 5 ints of 4 byte sizes for each entry in the BDD table
       double size = Runtime.getRuntime().maxMemory() * initTableRatio / 5 / 4;
-      initTableSize = (size > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int)size;
+      initTableSize = (size > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) size;
       logger.log(Level.CONFIG, "Setting value of bdd.javabdd.initTableSize to", initTableSize);
     }
 
     if (cacheRatio < 0) {
-      throw new InvalidConfigurationException("Invalid value " + cacheRatio
-          + " for option bdd.javabdd.cacheRatio, cannot be negative.");
+      throw new InvalidConfigurationException(
+          "Invalid value "
+              + cacheRatio
+              + " for option bdd.javabdd.cacheRatio, cannot be negative.");
     }
     if (cacheSize == 0) {
-      cacheSize = (int)(initTableSize * cacheRatio);
+      cacheSize = (int) (initTableSize * cacheRatio);
     }
-    factory =
-        BDDFactory.init(bddPackage.toLowerCase(), initTableSize, cacheSize);
+    factory = BDDFactory.init(bddPackage.toLowerCase(), initTableSize, cacheSize);
 
     // register callbacks for logging
     try {
       Method gcCallback =
-          JavaBDDRegionManager.class.getDeclaredMethod("gcCallback",
-              Integer.class, BDDFactory.GCStats.class);
+          JavaBDDRegionManager.class.getDeclaredMethod(
+              "gcCallback", Integer.class, BDDFactory.GCStats.class);
       gcCallback.setAccessible(true);
       factory.registerGCCallback(this, gcCallback);
 
       Method resizeCallback =
-          JavaBDDRegionManager.class.getDeclaredMethod("resizeCallback",
-              Integer.class, Integer.class);
+          JavaBDDRegionManager.class.getDeclaredMethod(
+              "resizeCallback", Integer.class, Integer.class);
       resizeCallback.setAccessible(true);
       factory.registerResizeCallback(this, resizeCallback);
 
       Method reorderCallback =
-          JavaBDDRegionManager.class
-              .getDeclaredMethod("reorderCallback", Integer.class,
-                  BDDFactory.ReorderStats.class);
+          JavaBDDRegionManager.class.getDeclaredMethod(
+              "reorderCallback", Integer.class, BDDFactory.ReorderStats.class);
       reorderCallback.setAccessible(true);
       factory.registerReorderCallback(this, reorderCallback);
 
@@ -184,8 +198,7 @@ class JavaBDDRegionManager implements RegionManager {
 
   @SuppressWarnings("unused")
   private void resizeCallback(Integer oldSize, Integer newSize) {
-    logger.log(LOG_LEVEL, "BDD node table resized from", oldSize, "to",
-        newSize);
+    logger.log(LOG_LEVEL, "BDD node table resized from", oldSize, "to", newSize);
   }
 
   @SuppressWarnings("unused")
@@ -218,8 +231,7 @@ class JavaBDDRegionManager implements RegionManager {
           .put(cleanupTimer)
           .put(
               "Time for BDD garbage collection",
-              TimeSpan.ofMillis(stats.sumtime).formatAs(SECONDS)
-                  + " (in " + stats.num + " runs)");
+              TimeSpan.ofMillis(stats.sumtime).formatAs(SECONDS) + " (in " + stats.num + " runs)");
 
       // Cache stats are disabled in JFactory (CACHESTATS = false)
       // out.println(factory.getCacheStats());
@@ -245,7 +257,7 @@ class JavaBDDRegionManager implements RegionManager {
           tableField.setAccessible(true);
           Object table = tableField.get(cache);
           if (table instanceof Object[]) {
-            return ((Object[])table).length;
+            return ((Object[]) table).length;
           }
         }
       } catch (ReflectiveOperationException | SecurityException e) {
@@ -281,19 +293,16 @@ class JavaBDDRegionManager implements RegionManager {
   }
 
   /**
-   * Cleanup all references to BDDs that are no longer needed.
-   * We call this method from all public methods, so that this gets done as soon
-   * as possible.
-   * Usually we would do this in a daemon thread in the background, but the
-   * BDD library is not multi-threaded.
+   * Cleanup all references to BDDs that are no longer needed. We call this method from all public
+   * methods, so that this gets done as soon as possible. Usually we would do this in a daemon
+   * thread in the background, but the BDD library is not multi-threaded.
    */
   private void cleanupReferences() {
     cleanupTimer.start();
     try {
       int count = 0;
       Reference<? extends JavaBDDRegion> ref;
-      while ((ref = referenceQueue
-              .poll()) != null) {
+      while ((ref = referenceQueue.poll()) != null) {
         count++;
 
         BDD bdd = referenceMap.remove(ref);
@@ -307,9 +316,9 @@ class JavaBDDRegionManager implements RegionManager {
   }
 
   /**
-   * Wrap a BDD object in a JavaBDDRegion and register it so that we can free the
-   * BDD after the JavaBDDRegion was garbage collected.
-   * Always use this method, and never the JavaBDDRegion constructor directly.
+   * Wrap a BDD object in a JavaBDDRegion and register it so that we can free the BDD after the
+   * JavaBDDRegion was garbage collected. Always use this method, and never the JavaBDDRegion
+   * constructor directly.
    */
   private JavaBDDRegion wrap(BDD bdd) {
     JavaBDDRegion region = new JavaBDDRegion(bdd);
@@ -386,7 +395,6 @@ class JavaBDDRegionManager implements RegionManager {
     return wrap(unwrap(pF1).xor(unwrap(pF2)));
   }
 
-
   @Override
   public Region makeIte(Region pF1, Region pF2, Region pF3) {
     cleanupReferences();
@@ -431,8 +439,8 @@ class JavaBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public Region fromFormula(BooleanFormula pF, FormulaManagerView fmgr,
-      Function<BooleanFormula, Region> atomToRegion) {
+  public Region fromFormula(
+      BooleanFormula pF, FormulaManagerView fmgr, Function<BooleanFormula, Region> atomToRegion) {
     cleanupReferences();
 
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
@@ -444,8 +452,7 @@ class JavaBDDRegionManager implements RegionManager {
       return makeTrue();
     }
 
-    try (FormulaToRegionConverter converter =
-             new FormulaToRegionConverter(fmgr, atomToRegion)) {
+    try (FormulaToRegionConverter converter = new FormulaToRegionConverter(fmgr, atomToRegion)) {
       return wrap(bfmgr.visit(pF, converter));
     }
   }
@@ -545,14 +552,14 @@ class JavaBDDRegionManager implements RegionManager {
     public void addPositiveRegion(Region r) {
       checkState(currentCube != null);
       // call id() for copy
-      currentCube.andWith(((JavaBDDRegion)r).getBDD().id());
+      currentCube.andWith(((JavaBDDRegion) r).getBDD().id());
     }
 
     @Override
     public void addNegativeRegion(Region r) {
       checkState(currentCube != null);
       // not() creates new BDD
-      currentCube.andWith(((JavaBDDRegion)r).getBDD().not());
+      currentCube.andWith(((JavaBDDRegion) r).getBDD().not());
     }
 
     @Override
@@ -615,22 +622,19 @@ class JavaBDDRegionManager implements RegionManager {
   }
 
   /**
-   * Class for creating BDDs out of a formula. This class directly uses the BDD objects and their manual reference
-   * counting, because for large formulas, the
-   * performance impact of creating JavaBDDRegion objects, putting them into the referenceMap and referenceQueue, gc'ing
-   * the BDDRegions again, and calling
-   * cleanupReferences() would be too big.
+   * Class for creating BDDs out of a formula. This class directly uses the BDD objects and their
+   * manual reference counting, because for large formulas, the performance impact of creating
+   * JavaBDDRegion objects, putting them into the referenceMap and referenceQueue, gc'ing the
+   * BDDRegions again, and calling cleanupReferences() would be too big.
    */
-  private class FormulaToRegionConverter
-      implements AutoCloseable,
-                BooleanFormulaVisitor<BDD> {
+  private class FormulaToRegionConverter implements AutoCloseable, BooleanFormulaVisitor<BDD> {
 
     private final Function<BooleanFormula, Region> atomToRegion;
     private final Map<BooleanFormula, BDD> cache = new HashMap<>();
     private final BooleanFormulaManager bfmgr;
 
-    FormulaToRegionConverter(FormulaManagerView pFmgr,
-        Function<BooleanFormula, Region> pAtomToRegion) {
+    FormulaToRegionConverter(
+        FormulaManagerView pFmgr, Function<BooleanFormula, Region> pAtomToRegion) {
       atomToRegion = pAtomToRegion;
       bfmgr = pFmgr.getBooleanFormulaManager();
     }
@@ -647,7 +651,7 @@ class JavaBDDRegionManager implements RegionManager {
 
     @Override
     public BDD visitAtom(BooleanFormula pAtom, FunctionDeclaration<BooleanFormula> decl) {
-      return ((JavaBDDRegion)atomToRegion.apply(pAtom)).getBDD().id();
+      return ((JavaBDDRegion) atomToRegion.apply(pAtom)).getBDD().id();
     }
 
     private BDD convert(BooleanFormula pOperand) {
@@ -675,8 +679,8 @@ class JavaBDDRegionManager implements RegionManager {
       return result;
     }
 
-    private BDD visitBinary(BooleanFormula pOperand1,
-        BooleanFormula pOperand2, BDDFactory.BDDOp operator) {
+    private BDD visitBinary(
+        BooleanFormula pOperand1, BooleanFormula pOperand2, BDDFactory.BDDOp operator) {
 
       BDD operand1 = convert(pOperand1);
       BDD operand2 = convert(pOperand2);
@@ -740,8 +744,8 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitQuantifier(Quantifier q, BooleanFormula quantifiedAST, List<Formula> args,
-                               BooleanFormula pBody) {
+    public BDD visitQuantifier(
+        Quantifier q, BooleanFormula quantifiedAST, List<Formula> args, BooleanFormula pBody) {
       throw new UnsupportedOperationException();
     }
   }

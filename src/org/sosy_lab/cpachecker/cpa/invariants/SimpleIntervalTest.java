@@ -131,7 +131,8 @@ public class SimpleIntervalTest {
     SimpleInterval two = SimpleInterval.singleton(BigInteger.valueOf(2));
     SimpleInterval negFiveToTen = SimpleInterval.of(BigInteger.valueOf(-5), BigInteger.TEN);
     SimpleInterval fiveToFifteen = SimpleInterval.of(BigInteger.valueOf(5), BigInteger.valueOf(15));
-    SimpleInterval twentyToFifty = SimpleInterval.of(BigInteger.valueOf(20), BigInteger.valueOf(50));
+    SimpleInterval twentyToFifty =
+        SimpleInterval.of(BigInteger.valueOf(20), BigInteger.valueOf(50));
     SimpleInterval oneToThousand = SimpleInterval.of(BigInteger.ONE, BigInteger.valueOf(1000));
     assertThat(zero.intersectsWith(one)).isFalse();
     assertThat(one.intersectsWith(zero)).isFalse();

@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAdditionalInfo.Level;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
@@ -123,8 +122,8 @@ public class AdditionalInfoExtractor {
               .filterAtOffset(edgeHasValue.getOffset())
               .filterHavingValue(edgeHasValue.getValue())
               .filterBySize(edgeHasValue.getSizeInBits());
-      SMGHasValueEdges edges = smg.getHVEdges(filter);
-      return edges.size() != 0;
+      Iterable<SMGEdgeHasValue> edges = smg.getHVEdges(filter);
+      return edges.iterator().hasNext();
     } else if (elem instanceof SMGEdgePointsTo) {
       SMGEdgePointsTo edgePointsTo = (SMGEdgePointsTo) elem;
       SMGEdgePointsToFilter filter =

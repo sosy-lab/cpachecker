@@ -13,7 +13,6 @@ import java.lang.ref.ReferenceQueue;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class Octagon {
 
   private final long octId;
@@ -34,7 +33,7 @@ public class Octagon {
   public static void removePhantomReferences() {
     Reference<? extends Octagon> reference;
     while ((reference = referenceQueue.poll()) != null) {
-      ((OctagonPhantomReference)reference).cleanup();
+      ((OctagonPhantomReference) reference).cleanup();
     }
   }
 
@@ -48,7 +47,7 @@ public class Octagon {
 
   @Override
   public int hashCode() {
-    return (int)octId;
+    return (int) octId;
   }
 
   @Override
@@ -58,7 +57,8 @@ public class Octagon {
     }
     Octagon otherOct = (Octagon) pObj;
 
-    return manager.dimension(this) == otherOct.manager.dimension(otherOct) && manager.isEqual(this, otherOct);
+    return manager.dimension(this) == otherOct.manager.dimension(otherOct)
+        && manager.isEqual(this, otherOct);
   }
 
   @Override

@@ -72,32 +72,29 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   private boolean deleteInCPAEnabledAnalysis = false;
 
   @Option(
-    secure = true,
-    description =
-        "whether to keep covered states in the reached set as addition to keeping them in the ARG"
-  )
+      secure = true,
+      description =
+          "whether to keep covered states in the reached set as addition to keeping them in the"
+              + " ARG")
   private boolean keepCoveredStatesInReached = false;
 
   @Option(
       secure = true,
       description =
-          "If this option is enabled, ARG states will also be merged if the first wrapped state "
-              + "is subsumed by the second wrapped state (and the parents are not yet subsumed).")
-  private boolean mergeOnWrappedSubsumption = false;
+          "prevent the stop-operator from aborting the stop-check early when it crosses a target"
+              + " state")
+  private boolean coverTargetStates = false;
 
   @Option(
       secure = true,
       description =
-    "prevent the stop-operator from aborting the stop-check early when it crosses a target state")
-  private boolean coverTargetStates = false;
-
-  @Option(
-    secure = true,
-    description = "Enable reduction for nested abstract states when entering or leaving a block abstraction for BAM. The reduction can lead to a higher cache-hit-rate for BAM and a faster sub-analysis for blocks.")
+          "Enable reduction for nested abstract states when entering or leaving a block abstraction"
+              + " for BAM. The reduction can lead to a higher cache-hit-rate for BAM and a faster"
+              + " sub-analysis for blocks.")
   private boolean enableStateReduction = true;
 
   private final LogManager logger;
-
+  private final ARGMergeJoin.MergeOptions mergeOptions;
   private final ARGStatistics stats;
 
   private ARGCPA(
@@ -110,6 +107,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA
     super(cpa);
     config.inject(this);
     this.logger = logger;
+    mergeOptions = new ARGMergeJoin.MergeOptions(config);
     stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
   }
 
@@ -132,7 +130,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA
       return new ARGMergeJoinCPAEnabledAnalysis(wrappedMergeOperator, deleteInCPAEnabledAnalysis);
     } else {
       return new ARGMergeJoin(
-          wrappedMergeOperator, getWrappedCpa().getAbstractDomain(), mergeOnWrappedSubsumption);
+          wrappedMergeOperator, getWrappedCpa().getAbstractDomain(), logger, mergeOptions);
     }
   }
 
@@ -171,8 +169,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
-    // TODO some code relies on the fact that this method is called only once and the result is the root of the ARG
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
+    // TODO some code relies on the fact that this method is called only once and the result is the
+    // root of the ARG
     return new ARGState(getWrappedCpa().getInitialState(pNode, pPartition), null);
   }
 
@@ -197,12 +197,13 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   }
 
   @Override
-  public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge,
-      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
+  public boolean areAbstractSuccessors(
+      AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
+      throws CPATransferException, InterruptedException {
     Preconditions.checkState(
         getWrappedCpa() instanceof ProofChecker,
         "Wrapped CPA has to implement ProofChecker interface");
-    ProofChecker wrappedProofChecker = (ProofChecker)getWrappedCpa();
+    ProofChecker wrappedProofChecker = (ProofChecker) getWrappedCpa();
     ARGState element = (ARGState) pElement;
 
     assert Iterables.elementsEqual(element.getChildren(), pSuccessors);
@@ -229,11 +230,12 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement)
+      throws CPAException, InterruptedException {
     Preconditions.checkState(
         getWrappedCpa() instanceof ProofChecker,
         "Wrapped CPA has to implement ProofChecker interface");
-    ProofChecker wrappedProofChecker = (ProofChecker)getWrappedCpa();
+    ProofChecker wrappedProofChecker = (ProofChecker) getWrappedCpa();
     AbstractState wrappedState = ((ARGState) pElement).getWrappedState();
     AbstractState wrappedOtherElement = ((ARGState) pOtherElement).getWrappedState();
     return wrappedProofChecker.isCoveredBy(wrappedState, wrappedOtherElement);

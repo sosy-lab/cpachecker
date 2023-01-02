@@ -20,12 +20,14 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-predicateAnalysis"/>
   </rundefinition>
 
+  <!--
   <columns>
     <column title="post operator"     >Time for post operator</column>
     <column title="abstraction"       >Time for abstraction</column>
     <column title="model enumeration" >Model enumeration time</column>
     <column title="cex analysis"      >Counterexample analysis</column>
   </columns>
+  -->
 
   <!-- SV-Comp files assume that malloc always succeeds -->
   <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
@@ -93,14 +95,21 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/ReachSafety-Combinations.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
-
-  <tasks name="ConcurrencySafety-Main">
-    <includesfile>../programs/benchmarks/ConcurrencySafety-Main.set</includesfile>
+  <tasks name="ReachSafety-Hardware">
+    <includesfile>../programs/benchmarks/ReachSafety-Hardware.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 
   <tasks name="SoftwareSystems-AWS-C-Common-ReachSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common-ReachSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-BusyBox-ReachSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox-ReachSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-coreutils-ReachSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-coreutils-ReachSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">

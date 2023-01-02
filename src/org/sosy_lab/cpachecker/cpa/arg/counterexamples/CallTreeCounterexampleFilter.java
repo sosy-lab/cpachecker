@@ -24,29 +24,28 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
- * A {@link CounterexampleFilter} that ignores the concrete edges of paths
- * and looks only at the function call trees.
- * If those are equal, the paths are considered similar.
+ * A {@link CounterexampleFilter} that ignores the concrete edges of paths and looks only at the
+ * function call trees. If those are equal, the paths are considered similar.
  *
- * Note that in the following program, paths through both branches are similar
- * (call locations are ignored, only function names matter):
- * <code>
+ * <p>Note that in the following program, paths through both branches are similar (call locations
+ * are ignored, only function names matter): <code>
  * void f() { }
  * void main() {
  *   if (...) { f(); } else { f(); }
  * }
- * </code>
- *
- * This filter is cheap and subsumes {@link PathEqualityCounterexampleFilter}.
+ * </code> This filter is cheap and subsumes {@link PathEqualityCounterexampleFilter}.
  */
-public class CallTreeCounterexampleFilter extends AbstractSetBasedCounterexampleFilter<ImmutableList<CFANode>> {
+public class CallTreeCounterexampleFilter
+    extends AbstractSetBasedCounterexampleFilter<ImmutableList<CFANode>> {
 
-  public CallTreeCounterexampleFilter(Configuration pConfig, LogManager pLogger, ConfigurableProgramAnalysis pCpa) {
+  public CallTreeCounterexampleFilter(
+      Configuration pConfig, LogManager pLogger, ConfigurableProgramAnalysis pCpa) {
     super(pConfig, pLogger, pCpa);
   }
 
   @Override
-  protected Optional<ImmutableList<CFANode>> getCounterexampleRepresentation(CounterexampleInfo counterexample) {
+  protected Optional<ImmutableList<CFANode>> getCounterexampleRepresentation(
+      CounterexampleInfo counterexample) {
     return Optional.of(
         from(counterexample.getTargetPath().asStatesList())
             .transform(AbstractStates::extractLocation)

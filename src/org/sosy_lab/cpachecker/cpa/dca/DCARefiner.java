@@ -31,12 +31,14 @@ import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -155,9 +157,9 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
   @Option(
       secure = true,
       description =
-          "The max amount of refinements for the trace abstraction algorithm. "
-              + "Setting it to 0 leads to an analysis of the ARG without executing any refinements. "
-              + "This is used for debugging purposes.")
+          "The max amount of refinements for the trace abstraction algorithm. Setting it to 0 leads"
+              + " to an analysis of the ARG without executing any refinements. This is used for"
+              + " debugging purposes.")
   private int maxRefinementIterations = 10;
 
   @Option(
@@ -362,14 +364,14 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
     } else {
       logger.logf(
           Level.INFO,
-          "Not removing any infeasible predicate dummy states. There are in total %d of such states",
+          "Not removing any infeasible predicate dummy states. There are in total %d of such"
+              + " states",
           infeasibleDummyStates.size());
     }
 
     shutdownNotifier.shutdownIfNecessary();
     Set<StronglyConnectedComponent> SCCs =
-        GraphUtils.retrieveSCCs(reached)
-            .stream()
+        GraphUtils.retrieveSCCs(reached).stream()
             .filter(x -> x.getNodes().size() > 1)
             .filter(StronglyConnectedComponent::hasTargetStates)
             .collect(ImmutableSet.toImmutableSet());
@@ -517,9 +519,10 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                 interpolationManager.buildCounterexampleTrace(
                     BlockFormulas.createFromPathFormulas(stemAndLoopPathFormulaList),
                     transformedImmutableListCopy(
-                        stemAndLoopStates, PredicateAbstractState::getPredicateState));
+                        stemAndLoopStates, PredicateAbstractState::getPredicateState),
+                    Optional.of(stemAndLoopPath));
             CounterexampleInfo cexInfo =
-                pathChecker.createCounterexample(stemAndLoopPath, cexTraceInfo);
+                pathChecker.handleFeasibleCounterexample(cexTraceInfo, stemAndLoopPath);
 
             stemAndLoopPath.getLastState().addCounterexampleInformation(cexInfo);
             // return false;
@@ -612,8 +615,9 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
             interpolationManager.buildCounterexampleTrace(
                 BlockFormulas.createFromPathFormulas(pathFormulaList),
                 transformedImmutableListCopy(
-                    path.asStatesList(), PredicateAbstractState::getPredicateState));
-        CounterexampleInfo cexInfo = pathChecker.createCounterexample(path, cexTraceInfo);
+                    path.asStatesList(), PredicateAbstractState::getPredicateState),
+                Optional.of(path));
+        CounterexampleInfo cexInfo = pathChecker.handleFeasibleCounterexample(cexTraceInfo, path);
 
         path.getLastState().addCounterexampleInformation(cexInfo);
         return false;
@@ -653,11 +657,12 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
 
   private boolean refineFinitePrefixes(ARGPath pPath, List<PathFormula> pPathFormulaList)
       throws CPAException, InterruptedException {
-    CounterexampleTraceInfo cexTraceInfo =
-        interpolationManager.buildCounterexampleTrace(
-            BlockFormulas.createFromPathFormulas(pPathFormulaList));
-
-    List<BooleanFormula> interpolants = cexTraceInfo.getInterpolants();
+    List<BooleanFormula> interpolants =
+        interpolationManager
+            .interpolate(
+                Collections3.transformedImmutableListCopy(
+                    pPathFormulaList, PathFormula::getFormula))
+            .orElseThrow();
     logger.logf(
         Level.FINE,
         "Mapping of interpolants to arg-states:\n%s",
@@ -674,11 +679,11 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
         if (dotExportFile != null) {
           try (Writer w =
               IO.openOutputFile(
-                  dotExportFile.getPath(automaton.getName()),
-                  Charset.defaultCharset())) {
+                  dotExportFile.getPath(automaton.getName()), Charset.defaultCharset())) {
             automaton.writeDotFile(w);
           } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not write the automaton to a DOT file");
+            logger.logUserException(
+                Level.WARNING, e, "Could not write the automaton to a DOT file");
           }
         }
       }

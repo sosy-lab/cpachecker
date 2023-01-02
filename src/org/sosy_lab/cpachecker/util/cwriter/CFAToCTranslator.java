@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -44,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -107,6 +107,10 @@ public class CFAToCTranslator {
       throw new InvalidConfigurationException(
           "CFA can only be written to C for C programs, at the moment");
     }
+
+    // the final C program may contain `abort()` statements, so we need a suitable declaration
+    globalDefinitionsList.add("extern void abort();");
+
     for (FunctionEntryNode func : pCfa.getAllFunctionHeads()) {
       translate((CFunctionEntryNode) func);
     }
@@ -169,7 +173,7 @@ public class CFAToCTranslator {
     }
   }
 
-  private Statement createLabel(CLabelNode pNode) {
+  private Statement createLabel(CFALabelNode pNode) {
     Statement s = new Label(pNode.getLabel());
     createdStatements.put(pNode, s);
     return s;
@@ -247,8 +251,8 @@ public class CFAToCTranslator {
       return ImmutableList.of();
     }
 
-    if (pNode instanceof CLabelNode) {
-      pBlock.addStatement(createLabel((CLabelNode) pNode));
+    if (pNode instanceof CFALabelNode) {
+      pBlock.addStatement(createLabel((CFALabelNode) pNode));
     }
 
     Collection<Pair<CFAEdge, CompoundStatement>> outgoingEdges =
@@ -325,7 +329,7 @@ public class CFAToCTranslator {
       // if there are more than one children, then this must be a branching
       assert outgoingEdges.size() == 2
           : "branches with more than two options not supported (was the program prepocessed with"
-                + " CIL?)";
+              + " CIL?)";
       for (CFAEdge edgeToChild : outgoingEdges) {
         assert edgeToChild instanceof CAssumeEdge
             : "something wrong: branch in CFA without condition: " + edgeToChild;
@@ -355,7 +359,7 @@ public class CFAToCTranslator {
         } else {
           // must be else-branch, second in list
           assert ifAndElseEdge.get(1) == currentEdge;
-          cond = "else ";
+          cond = "else";
         }
 
         // create a new block starting with this condition

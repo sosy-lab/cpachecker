@@ -35,8 +35,8 @@ public final class DivisionExpression extends BinarySymbolicExpression {
 
   @Override
   public DivisionExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
-    return new DivisionExpression(getOperand1(), getOperand2(), getType(), getCalculationType(),
-        pRepresentedLocation);
+    return new DivisionExpression(
+        getOperand1(), getOperand2(), getType(), getCalculationType(), pRepresentedLocation);
   }
 
   @Override

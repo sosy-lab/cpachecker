@@ -6,9 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Interfaces for theoretical core concepts of CPAchecker.
- */
+/** Interfaces for theoretical core concepts of CPAchecker. */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault

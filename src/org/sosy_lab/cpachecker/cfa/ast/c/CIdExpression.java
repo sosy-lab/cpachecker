@@ -9,18 +9,20 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CIdExpression extends AIdExpression implements CLeftHandSide {
 
-
   private static final long serialVersionUID = -608459029930942264L;
 
-  public CIdExpression(final FileLocation pFileLocation,
-                          final CType pType, final String pName,
-                          final CSimpleDeclaration pDeclaration) {
+  public CIdExpression(
+      final FileLocation pFileLocation,
+      final CType pType,
+      final String pName,
+      final CSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType, pName, pDeclaration);
   }
 
@@ -30,16 +32,15 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
 
   @Override
   public CType getExpressionType() {
-    return (CType)super.getExpressionType();
+    return (CType) super.getExpressionType();
   }
 
   /**
-   * Get the declaration of the variable.
-   * The result may be null if the variable was not declared.
+   * Get the declaration of the variable. The result may be null if the variable was not declared.
    */
   @Override
   public CSimpleDeclaration getDeclaration() {
-    return  (CSimpleDeclaration) super.getDeclaration();
+    return (CSimpleDeclaration) super.getDeclaration();
   }
 
   @Override
@@ -85,12 +86,14 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
     // In C, there might be several declarations declaring the same variable,
     // so we sometimes need to return true even with different declarations.
 
-    CIdExpression other = (CIdExpression)obj;
+    CIdExpression other = (CIdExpression) obj;
 
-    if (getDeclaration() == null) {
-      return other.getDeclaration() == null;
+    @Nullable CSimpleDeclaration decl = getDeclaration();
+    @Nullable CSimpleDeclaration otherDecl = other.getDeclaration();
+    if (decl == null || otherDecl == null) {
+      return decl == otherDecl;
     } else {
-      return Objects.equals(getDeclaration().getQualifiedName(), other.getDeclaration().getQualifiedName());
+      return Objects.equals(decl.getQualifiedName(), otherDecl.getQualifiedName());
     }
   }
 }

@@ -13,7 +13,6 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AArraySubscriptExpression extends AbstractLeftHandSide {
 
-
   private static final long serialVersionUID = 8359800949073538182L;
   private final AExpression arrayExpression;
   private final AExpression subscriptExpression;
@@ -26,7 +25,6 @@ public abstract class AArraySubscriptExpression extends AbstractLeftHandSide {
     super(pFileLocation, pType);
     arrayExpression = pArrayExpression;
     subscriptExpression = pSubscriptExpression;
-
   }
 
   public AExpression getArrayExpression() {
@@ -62,15 +60,13 @@ public abstract class AArraySubscriptExpression extends AbstractLeftHandSide {
       return true;
     }
 
-    if (!(obj instanceof AArraySubscriptExpression)
-        || !super.equals(obj)) {
+    if (!(obj instanceof AArraySubscriptExpression) || !super.equals(obj)) {
       return false;
     }
 
     AArraySubscriptExpression other = (AArraySubscriptExpression) obj;
 
     return Objects.equals(other.arrayExpression, arrayExpression)
-            && Objects.equals(other.subscriptExpression, subscriptExpression);
+        && Objects.equals(other.subscriptExpression, subscriptExpression);
   }
-
 }

@@ -7,8 +7,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Algorithm proving (non-)termination.
- * "Termination proofs for systems code", Cook, Podelski and Rybalchenko, PLDI 2006
+ * Algorithm proving (non-)termination. "Termination proofs for systems code", Cook, Podelski and
+ * Rybalchenko, PLDI 2006
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault

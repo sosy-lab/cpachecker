@@ -10,33 +10,31 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-
+import java.util.List;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.util.List;
 
 class CompositeDomain implements AbstractDomain {
 
   private final ImmutableList<AbstractDomain> domains;
 
   CompositeDomain(ImmutableList<AbstractDomain> domains) {
-      this.domains = domains;
+    this.domains = domains;
   }
 
   @Override
-  public AbstractState join(AbstractState pElement1,
-      AbstractState pElement2) throws CPAException {
+  public AbstractState join(AbstractState pElement1, AbstractState pElement2) throws CPAException {
     // a simple join is here not possible, because it would over-approximate,
     // but join needs to return the least upper bound
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2) throws CPAException, InterruptedException {
-    CompositeState comp1 = (CompositeState)pElement1;
-    CompositeState comp2 = (CompositeState)pElement2;
+  public boolean isLessOrEqual(AbstractState pElement1, AbstractState pElement2)
+      throws CPAException, InterruptedException {
+    CompositeState comp1 = (CompositeState) pElement1;
+    CompositeState comp2 = (CompositeState) pElement2;
 
     List<AbstractState> comp1Elements = comp1.getWrappedStates();
     List<AbstractState> comp2Elements = comp2.getWrappedStates();

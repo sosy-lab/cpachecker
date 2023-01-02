@@ -29,11 +29,10 @@ import org.sosy_lab.cpachecker.util.ltl.generated.LtlLexer;
 /**
  * Class to transform ltl-formulas (either given as plain string or in a file) into strongly typed
  * {@link LtlFormula}s. These formulas can be either given in plain ltl syntax, or instead as a
- * syntax as specified in the rules for the SVComp (see
- * <a href="https://sv-comp.sosy-lab.org/2018/rules.php">rules for SVComp 2018</a>).
+ * syntax as specified in the rules for the SVComp (see <a
+ * href="https://sv-comp.sosy-lab.org/2018/rules.php">rules for SVComp 2018</a>).
  *
- * <p>
- * Examples for property-files can be found <a href=
+ * <p>Examples for property-files can be found <a href=
  * "https://github.com/ultimate-pa/ultimate/tree/dev/trunk/examples/LTL/svcomp17format/ltl-eca">
  * within the ultimate-repository</a>
  */
@@ -64,7 +63,7 @@ public abstract class LtlParser extends LtlGrammarParserBaseVisitor<LtlFormula> 
    *
    * @param pPath path to a file containing a ltl property in valid SVComp syntax.
    * @return a {@link LabelledFormula} which contains the {@link LtlFormula} and its atomic
-   *         propositions
+   *     propositions
    * @throws LtlParseException if the syntax of the ltl-property is invalid.
    */
   public static LabelledFormula parseSpecificationFromFile(Path pPath) throws LtlParseException {

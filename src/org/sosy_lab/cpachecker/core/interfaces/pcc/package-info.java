@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Interfaces for the proof-carrying-code (PCC) part of CPAchecker.
- */
+/** Interfaces for the proof-carrying-code (PCC) part of CPAchecker. */
 package org.sosy_lab.cpachecker.core.interfaces.pcc;

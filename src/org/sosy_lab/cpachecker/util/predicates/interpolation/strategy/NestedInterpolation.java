@@ -52,9 +52,18 @@ public class NestedInterpolation extends AbstractTreeInterpolation {
         ImmutableList.builderWithExpectedSize(formulasWithStatesAndGroupdIds.size() - 1);
     BooleanFormula lastItp = bfmgr.makeTrue(); // PSI_0 = True
     final Deque<Pair<BooleanFormula, BooleanFormula>> callstack = new ArrayDeque<>();
-    for (int positionOfA = 0; positionOfA < formulasWithStatesAndGroupdIds.size() - 1; positionOfA++) {
+    for (int positionOfA = 0;
+        positionOfA < formulasWithStatesAndGroupdIds.size() - 1;
+        positionOfA++) {
       // use a new prover, because we use several distinct queries
-      lastItp = getNestedInterpolant(formulasWithStatesAndGroupdIds, interpolants, callstack, interpolator, positionOfA, lastItp);
+      lastItp =
+          getNestedInterpolant(
+              formulasWithStatesAndGroupdIds,
+              interpolants,
+              callstack,
+              interpolator,
+              positionOfA,
+              lastItp);
     }
     final ImmutableList<BooleanFormula> result = interpolants.build();
     assert formulasWithStatesAndGroupdIds.size() == result.size() + 1;
@@ -106,7 +115,8 @@ public class NestedInterpolation extends AbstractTreeInterpolation {
       A.add(itpProver.push(formulasWithStatesAndGroupdIds.get(positionOfA).getFirst()));
 
       // add all remaining PHI_j
-      for (Triple<BooleanFormula, AbstractState, T> t : Iterables.skip(formulasWithStatesAndGroupdIds, positionOfA + 1)) {
+      for (Triple<BooleanFormula, AbstractState, T> t :
+          Iterables.skip(formulasWithStatesAndGroupdIds, positionOfA + 1)) {
         B.add(itpProver.push(t.getFirst()));
       }
 

@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Operators for bit vector intervals and compound bit vector intervals.
- */
+/** Operators for bit vector intervals and compound bit vector intervals. */
 package org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector;

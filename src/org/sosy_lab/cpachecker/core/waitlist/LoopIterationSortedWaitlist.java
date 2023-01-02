@@ -20,8 +20,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class LoopIterationSortedWaitlist extends AbstractSortedWaitlist<Integer> {
   private final int multiplier;
 
-  private LoopIterationSortedWaitlist(WaitlistFactory pSecondaryStrategy,
-      int pMultiplier) {
+  private LoopIterationSortedWaitlist(WaitlistFactory pSecondaryStrategy, int pMultiplier) {
     super(pSecondaryStrategy);
     multiplier = pMultiplier;
   }
@@ -38,8 +37,7 @@ public class LoopIterationSortedWaitlist extends AbstractSortedWaitlist<Integer>
     return () -> new LoopIterationSortedWaitlist(pSecondaryStrategy, 1);
   }
 
-  public static WaitlistFactory reversedFactory(
-      final WaitlistFactory pSecondaryStrategy) {
+  public static WaitlistFactory reversedFactory(final WaitlistFactory pSecondaryStrategy) {
     return () -> new LoopIterationSortedWaitlist(pSecondaryStrategy, -1);
   }
 }

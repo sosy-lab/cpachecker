@@ -12,9 +12,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 
 /**
- * Implementations of this interface provide the concrete state
- * with the name of the allocated memory, which stores the value for
- * the given address and expression.
+ * Implementations of this interface provide the concrete state with the name of the allocated
+ * memory, which stores the value for the given address and expression.
  */
 public interface MemoryName {
 

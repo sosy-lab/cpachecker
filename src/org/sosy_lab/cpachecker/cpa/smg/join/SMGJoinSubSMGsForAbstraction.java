@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
-final public class SMGJoinSubSMGsForAbstraction {
+public final class SMGJoinSubSMGsForAbstraction {
 
   private final SMGJoinStatus status;
   private final UnmodifiableCLangSMG resultSMG;
@@ -73,7 +73,8 @@ final public class SMGJoinSubSMGsForAbstraction {
       int lengthObj2 = getMinLength(obj2);
 
       int length = lengthObj1 + lengthObj2;
-      SMGObject dll = new SMGDoublyLinkedList(obj1.getSize(), hfo, nfo, pfo, length, obj1.getLevel());
+      SMGObject dll =
+          new SMGDoublyLinkedList(obj1.getSize(), hfo, nfo, pfo, length, obj1.getLevel());
       smg.addHeapObject(dll);
       newAbstractObject = dll;
 
@@ -159,9 +160,24 @@ final public class SMGJoinSubSMGsForAbstraction {
     SMGLevelMapping levelMap = new SMGLevelMapping();
     levelMap.put(SMGJoinLevel.valueOf(obj1.getLevel(), obj2.getLevel()), destLevel);
 
-    SMGJoinSubSMGs jss = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, inputSMG, inputSMG, smg, mapping1, mapping2, levelMap, obj1, obj2, newAbstractObject, lDiff, true, pStateOfSmg, pStateOfSmg);
+    SMGJoinSubSMGs jss =
+        new SMGJoinSubSMGs(
+            SMGJoinStatus.EQUAL,
+            inputSMG,
+            inputSMG,
+            smg,
+            mapping1,
+            mapping2,
+            levelMap,
+            obj1,
+            obj2,
+            newAbstractObject,
+            lDiff,
+            true,
+            pStateOfSmg,
+            pStateOfSmg);
 
-    if(!jss.isDefined()) {
+    if (!jss.isDefined()) {
       status = SMGJoinStatus.INCOMPARABLE;
       defined = false;
       resultSMG = null;
@@ -174,14 +190,16 @@ final public class SMGJoinSubSMGsForAbstraction {
 
     SMGJoinStatus s = jss.getStatus();
 
-    //TODO Contains abstract 0Cycle?
+    // TODO Contains abstract 0Cycle?
 
     boolean bothObjectsAreRegOrOpt = shouldAbstractionIncreaseLevel(obj1, obj2);
 
     if (bothObjectsAreRegOrOpt) {
       for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(newAbstractObject, smg)) {
         smg.removePointsToEdge(pte.getValue());
-        smg.addPointsToEdge(new SMGEdgePointsTo(pte.getValue(), pte.getObject(), pte.getOffset(), SMGTargetSpecifier.ALL));
+        smg.addPointsToEdge(
+            new SMGEdgePointsTo(
+                pte.getValue(), pte.getObject(), pte.getOffset(), SMGTargetSpecifier.ALL));
       }
     }
 
@@ -204,13 +222,13 @@ final public class SMGJoinSubSMGsForAbstraction {
     nonSharedValuesFromSMG2 = new HashSet<>();
 
     for (Entry<SMGObject, SMGObject> entry : mapping1.getObject_mapEntrySet()) {
-      if(origObjects.contains(entry.getKey())) {
+      if (origObjects.contains(entry.getKey())) {
         nonSharedObjectsFromSMG1.add(entry.getKey());
       }
     }
 
     for (Entry<SMGObject, SMGObject> entry : mapping2.getObject_mapEntrySet()) {
-      if(origObjects.contains(entry.getKey())) {
+      if (origObjects.contains(entry.getKey())) {
         nonSharedObjectsFromSMG2.add(entry.getKey());
       }
     }

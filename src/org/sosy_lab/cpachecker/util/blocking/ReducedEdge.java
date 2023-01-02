@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.blocking;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 class ReducedEdge {
@@ -18,18 +17,18 @@ class ReducedEdge {
   private final ReducedNode pointsTo;
 
   public void addEdge(CFAEdge pEdge) {
-    this.summarizes.add(pEdge);
+    summarizes.add(pEdge);
   }
 
   public void addEdge(ReducedEdge pEdge) {
-    this.summarizes.addAll(pEdge.summarizes);
+    summarizes.addAll(pEdge.summarizes);
   }
 
   public ReducedEdge(ReducedNode pPointsTo) {
-    this.pointsTo = pPointsTo;
+    pointsTo = pPointsTo;
   }
 
   public ReducedNode getPointsTo() {
-    return this.pointsTo;
+    return pointsTo;
   }
 }

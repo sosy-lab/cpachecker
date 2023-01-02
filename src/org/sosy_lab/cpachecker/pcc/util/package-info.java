@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Utility package containing classes to support various functionality which is not
- * directly needed for strategies to work properly but help to better understand proofs.
+ * Utility package containing classes to support various functionality which is not directly needed
+ * for strategies to work properly but help to better understand proofs.
  */
 package org.sosy_lab.cpachecker.pcc.util;

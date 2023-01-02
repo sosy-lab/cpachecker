@@ -13,12 +13,16 @@ import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.CPAs;
 
-public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm implements PartialReachedConstructionAlgorithm {
+public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm
+    implements PartialReachedConstructionAlgorithm {
 
   private final boolean returnARGStates;
   private final boolean withCMC;
@@ -30,13 +34,20 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
   }
 
   @Override
-  public AbstractState[] computePartialReachedSet(final UnmodifiableReachedSet pReached)
+  public AbstractState[] computePartialReachedSet(
+      final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    if (!(pReached.getFirstState() instanceof ARGState)) { throw new InvalidConfigurationException(
-        "May only compute partial reached set with this algorithm if an ARG is constructed and ARG is top level state."); }
+    if (!(pReached.getFirstState() instanceof ARGState)) {
+      throw new InvalidConfigurationException(
+          "May only compute partial reached set with this algorithm if an ARG is constructed and"
+              + " ARG is top level state.");
+    }
+    ARGCPA argCpa =
+        CPAs.retrieveCPAOrFail(
+            pCpa, ARGCPA.class, ARGBasedPartialReachedSetConstructionAlgorithm.class);
     ARGState root = (ARGState) pReached.getFirstState();
 
-    NodeSelectionARGPass argPass = getARGPass(pReached.getPrecision(root), root);
+    NodeSelectionARGPass argPass = getARGPass(pReached.getPrecision(root), root, argCpa);
     argPass.passARG(root);
 
     List<? extends AbstractState> reachedSetSubset = argPass.getSelectedNodes();
@@ -48,13 +59,14 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
    *
    * @param pRootPrecision the root precision
    * @param pRoot the root state
+   * @param pCpa the CPA that corresponds to these states
    * @throws InvalidConfigurationException may be thrown in subclasses
    */
-  protected NodeSelectionARGPass getARGPass(final Precision pRootPrecision, final ARGState pRoot)
+  protected NodeSelectionARGPass getARGPass(
+      final Precision pRootPrecision, final ARGState pRoot, final ARGCPA pCpa)
       throws InvalidConfigurationException {
     return new NodeSelectionARGPass(pRoot);
   }
-
 
   protected class NodeSelectionARGPass extends AbstractARGPass {
 
@@ -102,8 +114,5 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
         return wrappedARGStates;
       }
     }
-
   }
-
-
 }

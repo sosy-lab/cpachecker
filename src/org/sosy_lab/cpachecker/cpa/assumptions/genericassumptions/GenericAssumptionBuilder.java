@@ -13,16 +13,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-/**
- * Abstraction of a class that generates generic
- * assumption invariants from CFA edges
- */
+/** Abstraction of a class that generates generic assumption invariants from CFA edges */
 public interface GenericAssumptionBuilder {
 
   /**
-   * Return a set of assumption predicate that the system assumes when
-   * it encounters the given edge. The assumptions are evaluated in
-   * the pre-state of the edge.
+   * Return a set of assumption predicate that the system assumes when it encounters the given edge.
+   * The assumptions are evaluated in the pre-state of the edge.
    *
    * @return A non-null, possibly empty list of predicates representing the assumptions
    */

@@ -15,7 +15,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -121,8 +120,6 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
     SingleIdentifier pId = usage.getId();
     List<CFAEdge> path = usage.getPath();
 
-    Iterator<CFAEdge> iterator = from(path).filter(this::hasRelevantFileLocation).iterator();
-
     CFAEdge warning =
         Lists.reverse(path).stream()
             .filter(e -> Objects.equals(e.getSuccessor(), usage.getCFANode()))
@@ -143,9 +140,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
       printEdge = true;
     }
 
-    while (iterator.hasNext()) {
-      CFAEdge pEdge = iterator.next();
-
+    for (CFAEdge pEdge : from(path).filter(this::hasRelevantFileLocation)) {
       if (!printEdge
           && pEdge.getEdgeType() != CFAEdgeType.DeclarationEdge
           && pEdge.getEdgeType() != CFAEdgeType.BlankEdge) {
@@ -210,7 +205,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
     }
 
     FileLocation location = pEdge.getFileLocation();
-    assert (location != null) : "should be filtered";
+    assert location != null : "should be filtered";
     builder.addDataElementChild(result, KeyDef.ORIGINFILE, location.getFileName().toString());
     builder.addDataElementChild(
         result, KeyDef.STARTLINE, Integer.toString(location.getStartingLineInOrigin()));

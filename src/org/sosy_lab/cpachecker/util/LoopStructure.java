@@ -60,48 +60,35 @@ import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-/**
- * Class collecting and containing information about all loops in a CFA.
- */
+/** Class collecting and containing information about all loops in a CFA. */
 public final class LoopStructure implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
   /**
-   * Class representing one loop in a CFA.
-   * A loop is a subset of CFA nodes which are strongly connected,
-   * i.e., it is possible to find infinite paths within this subset.
+   * Class representing one loop in a CFA. A loop is a subset of CFA nodes which are strongly
+   * connected, i.e., it is possible to find infinite paths within this subset.
    *
-   * Note that this definition is based on the structure of the CFA,
-   * not on the syntax of the program.
-   * This means that loops created with "goto" (without and "while" or "for" keyword)
-   * are considered loops, while something like "while (1) { break; }" is not.
+   * <p>Note that this definition is based on the structure of the CFA, not on the syntax of the
+   * program. This means that loops created with "goto" (without and "while" or "for" keyword) are
+   * considered loops, while something like "while (1) { break; }" is not.
    *
-   * Loops represented by this class do not span across several functions,
-   * i.e., if there is a function call inside a loop,
-   * the called function is not considered part of the loop.
+   * <p>Loops represented by this class do not span across several functions, i.e., if there is a
+   * function call inside a loop, the called function is not considered part of the loop.
    *
-   * For finding all loops in a CFA, use {@link LoopStructure#getLoopStructure(MutableCFA)}.
-   * However, when you already have a {@link org.sosy_lab.cpachecker.cfa.CFA} object
-   * (as you have inside any analysis),
-   * use {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()}.
+   * <p>For finding all loops in a CFA, use {@link LoopStructure#getLoopStructure(MutableCFA)}.
+   * However, when you already have a {@link org.sosy_lab.cpachecker.cfa.CFA} object (as you have
+   * inside any analysis), use {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()}.
    *
-   * Usual loop-detection algorithms for graphs
-   * do not distinguish between nested loops,
-   * but as this is a somewhat important concept at source code level,
-   * the algorithm we use to find loops tries to do so.
-   * A loop is nested in another loop if the outer loop contains all
-   * incoming and outgoing edges of the inner loop
-   * (this also means that the outer loop has a super-set of inner edges
-   * and loop nodes of the inner loop).
-   * The loop-head nodes of two nested nodes are usually not related.
-   * This definition works quite well for "typical" nested loops,
-   * i.e., two nested "while" statements,
-   * but may not cover some edge-cases
-   * (for example, when there is an edge from the inner loop
-   * directly leaving both loops).
-   * In such cases, both loops are considered only one loop
-   * (which is legal according to the definition above).
+   * <p>Usual loop-detection algorithms for graphs do not distinguish between nested loops, but as
+   * this is a somewhat important concept at source code level, the algorithm we use to find loops
+   * tries to do so. A loop is nested in another loop if the outer loop contains all incoming and
+   * outgoing edges of the inner loop (this also means that the outer loop has a super-set of inner
+   * edges and loop nodes of the inner loop). The loop-head nodes of two nested nodes are usually
+   * not related. This definition works quite well for "typical" nested loops, i.e., two nested
+   * "while" statements, but may not cover some edge-cases (for example, when there is an edge from
+   * the inner loop directly leaving both loops). In such cases, both loops are considered only one
+   * loop (which is legal according to the definition above).
    */
   public static class Loop implements Serializable, Comparable<Loop> {
 
@@ -127,10 +114,7 @@ public final class LoopStructure implements Serializable {
 
     private Loop(CFANode loopHead, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.of(loopHead);
-      nodes = ImmutableSortedSet.<CFANode>naturalOrder()
-                                .addAll(pNodes)
-                                .add(loopHead)
-                                .build();
+      nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).add(loopHead).build();
     }
 
     private void computeSets() {
@@ -156,15 +140,12 @@ public final class LoopStructure implements Serializable {
 
       assert !newIncomingEdges.isEmpty() : "Unreachable loop?";
 
-      this.incomingEdges = ImmutableSet.copyOf(newIncomingEdges);
-      this.outgoingEdges = ImmutableSet.copyOf(newOutgoingEdges);
+      incomingEdges = ImmutableSet.copyOf(newIncomingEdges);
+      outgoingEdges = ImmutableSet.copyOf(newOutgoingEdges);
     }
 
     private void addNodes(Loop l) {
-      nodes = ImmutableSortedSet.<CFANode>naturalOrder()
-                                .addAll(nodes)
-                                .addAll(l.nodes)
-                                .build();
+      nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(nodes).addAll(l.nodes).build();
 
       innerLoopEdges = null;
       incomingEdges = null;
@@ -181,20 +162,21 @@ public final class LoopStructure implements Serializable {
     }
 
     /**
-     * Check if this loop is an outer loop of a given one
-     * according to the above definition (c.f. {@link Loop}).
+     * Check if this loop is an outer loop of a given one according to the above definition (c.f.
+     * {@link Loop}).
      */
     public boolean isOuterLoopOf(Loop other) {
-      this.computeSets();
+      computeSets();
       other.computeSets();
 
-      return this.innerLoopEdges.containsAll(other.incomingEdges)
-          && this.innerLoopEdges.containsAll(other.outgoingEdges);
+      return innerLoopEdges.containsAll(other.incomingEdges)
+          && innerLoopEdges.containsAll(other.outgoingEdges);
     }
 
     /**
-     * Get the set of all CFA nodes that are part of this loop.
-     * This also contains the nodes of any inner nested loops.
+     * Get the set of all CFA nodes that are part of this loop. This also contains the nodes of any
+     * inner nested loops.
+     *
      * @return a non-empty set of CFA nodes (sorted according to the natural ordering of CFANodes)
      */
     public ImmutableSortedSet<CFANode> getLoopNodes() {
@@ -202,9 +184,9 @@ public final class LoopStructure implements Serializable {
     }
 
     /**
-     * Get the set of all CFA edges that are inside the loop,
-     * i.e., which connect two CFA nodes of the loop.
-     * This also contains the edges of any inner nested loops.
+     * Get the set of all CFA edges that are inside the loop, i.e., which connect two CFA nodes of
+     * the loop. This also contains the edges of any inner nested loops.
+     *
      * @return a non-empty set of CFA edges
      */
     public ImmutableSet<CFAEdge> getInnerLoopEdges() {
@@ -215,21 +197,16 @@ public final class LoopStructure implements Serializable {
     /**
      * Get the set of loop-head nodes of this loop.
      *
-     * Important: The definition of loop head is not related to the syntax
-     * of the program, i.e., a loop head is not necessarily related
-     * to the first node after a "which" statement.
+     * <p>Important: The definition of loop head is not related to the syntax of the program, i.e.,
+     * a loop head is not necessarily related to the first node after a "which" statement.
      *
-     * The set of loop heads is a subset of the set of all loop nodes
-     * such that all infinite paths inside the loop
-     * visit at least one of the loop-head nodes infinitely often.
-     * (In practice, this means there is at least one loop head visited
-     * in every loop iteration.)
+     * <p>The set of loop heads is a subset of the set of all loop nodes such that all infinite
+     * paths inside the loop visit at least one of the loop-head nodes infinitely often. (In
+     * practice, this means there is at least one loop head visited in every loop iteration.)
      *
-     * The heuristic that selects loop heads tries to
-     * - select as few nodes as possible,
-     * - select nodes close to the beginning of the loop,
-     * - select nodes that are visited even on paths with zero loop iterations, and
-     * - select nodes that are also syntactic loop heads if possible.
+     * <p>The heuristic that selects loop heads tries to - select as few nodes as possible, - select
+     * nodes close to the beginning of the loop, - select nodes that are visited even on paths with
+     * zero loop iterations, and - select nodes that are also syntactic loop heads if possible.
      * However, all of this is not guaranteed for strange loops created with gotos.
      *
      * @return non-empty subset of {@link #getLoopNodes()}
@@ -239,10 +216,10 @@ public final class LoopStructure implements Serializable {
     }
 
     /**
-     * Get the set of all incoming CFA edges,
-     * i.e., edges which connect a non-loop CFA node inside the same function with a loop node.
-     * Although called functions are not considered loop nodes,
+     * Get the set of all incoming CFA edges, i.e., edges which connect a non-loop CFA node inside
+     * the same function with a loop node. Although called functions are not considered loop nodes,
      * this set does not contain any edges from called functions to inside the loop.
+     *
      * @return a non-empty set of CFA edges
      */
     public ImmutableSet<CFAEdge> getIncomingEdges() {
@@ -251,10 +228,10 @@ public final class LoopStructure implements Serializable {
     }
 
     /**
-     * Get the set of all outgoing CFA edges,
-     * i.e., edges which connect a loop node with a non-loop CFA node inside the same function.
-     * Although called functions are not considered loop nodes,
+     * Get the set of all outgoing CFA edges, i.e., edges which connect a loop node with a non-loop
+     * CFA node inside the same function. Although called functions are not considered loop nodes,
      * this set does not contain any edges from inside the loop to called functions.
+     *
      * @return a possibly empty (if the loop does never terminate) set of CFA edges
      */
     public ImmutableSet<CFAEdge> getOutgoingEdges() {
@@ -265,10 +242,18 @@ public final class LoopStructure implements Serializable {
     @Override
     public String toString() {
       computeSets();
-      return "Loop with heads " + loopHeads + "\n"
-           + "  incoming: " + incomingEdges + "\n"
-           + "  outgoing: " + outgoingEdges + "\n"
-           + "  nodes:    " + nodes + "\n";
+      return "Loop with heads "
+          + loopHeads
+          + "\n"
+          + "  incoming: "
+          + incomingEdges
+          + "\n"
+          + "  outgoing: "
+          + outgoingEdges
+          + "\n"
+          + "  nodes:    "
+          + nodes
+          + "\n";
     }
 
     @Override
@@ -309,30 +294,24 @@ public final class LoopStructure implements Serializable {
     loops = pLoops;
   }
 
-  /**
-   * Get the total number of loops in the program.
-   */
+  /** Get the total number of loops in the program. */
   public int getCount() {
     return loops.size();
   }
 
-  /**
-   * Get all {@link Loop}s in one function.
-   */
+  /** Get all {@link Loop}s in one function. */
   public ImmutableCollection<Loop> getLoopsForFunction(String function) {
     return loops.get(checkNotNull(function));
   }
 
-  /**
-   * Get all {@link Loop}s in the program.
-   */
+  /** Get all {@link Loop}s in the program. */
   public ImmutableCollection<Loop> getAllLoops() {
     return loops.values();
   }
 
   /**
-   * Get all loop head nodes (as returned by {@link Loop#getLoopHeads()})
-   * for all loops in the program.
+   * Get all loop head nodes (as returned by {@link Loop#getLoopHeads()}) for all loops in the
+   * program.
    */
   public ImmutableSet<CFANode> getAllLoopHeads() {
     if (loopHeads == null) {
@@ -346,9 +325,8 @@ public final class LoopStructure implements Serializable {
   }
 
   /**
-   * Return all variables appearing in loop exit conditions.
-   * The variable names are scoped in the same way as {@link VariableClassification}
-   * does.
+   * Return all variables appearing in loop exit conditions. The variable names are scoped in the
+   * same way as {@link VariableClassification} does.
    */
   public Set<String> getLoopExitConditionVariables() {
     if (loopExitConditionVariables == null) {
@@ -368,10 +346,8 @@ public final class LoopStructure implements Serializable {
   }
 
   /**
-   * Return all variables that are incremented or decremented by a fixed constant
-   * inside loops.
-   * The variable names are scoped in the same way as {@link VariableClassification}
-   * does.
+   * Return all variables that are incremented or decremented by a fixed constant inside loops. The
+   * variable names are scoped in the same way as {@link VariableClassification} does.
    */
   public Set<String> getLoopIncDecVariables() {
     if (loopIncDecVariables == null) {
@@ -383,7 +359,7 @@ public final class LoopStructure implements Serializable {
   private ImmutableSet<String> collectLoopIncDecVariables() {
     ImmutableSet.Builder<String> result = ImmutableSet.builder();
     for (Loop l : loops.values()) {
-     // Get all variables that are incremented or decrement by literal values
+      // Get all variables that are incremented or decrement by literal values
       for (CFAEdge e : l.getInnerLoopEdges()) {
         String var = obtainIncDecVariable(e);
         if (var != null) {
@@ -395,8 +371,9 @@ public final class LoopStructure implements Serializable {
   }
 
   /**
-   * This method obtains a variable referenced in this edge that are incremented or decremented by a constant
-   * (if there is one such variable).
+   * This method obtains a variable referenced in this edge that are incremented or decremented by a
+   * constant (if there is one such variable).
+   *
    * @param e the edge from which to obtain variables
    * @return a variable name or null
    */
@@ -461,9 +438,9 @@ public final class LoopStructure implements Serializable {
   }
 
   /**
-   * Build loop-structure information for a CFA.
-   * Do not call this method outside of the frontend,
+   * Build loop-structure information for a CFA. Do not call this method outside of the frontend,
    * use {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()} instead.
+   *
    * @throws ParserException If the structure of the CFA is too complex for determining loops.
    */
   public static LoopStructure getLoopStructure(MutableCFA cfa) throws ParserException {
@@ -507,7 +484,7 @@ public final class LoopStructure implements Serializable {
         // of loop head nodes that does not contain what most users would consider
         // the most important loop head node of a function.
         if (!initialChain.isEmpty()) {
-          initialChain.remove(initialChain.size()-1);
+          initialChain.remove(initialChain.size() - 1);
         }
 
         if (!hasBackWardsEdges(startNode)) {
@@ -538,16 +515,22 @@ public final class LoopStructure implements Serializable {
     // all edges of the graph
     // Iff there is an edge from nodes[i] to nodes[j], edges[i][j] is not null.
     // The set edges[i][j].nodes contains all nodes that were eliminated and merged into this edge.
-    final Edge[][] edges =  new Edge[size][size];
+    final Edge[][] edges = new Edge[size][size];
 
     List<Loop> loops = new ArrayList<>();
 
     // FIRST step: initialize arrays
     for (CFANode n : nodes) {
       int i = arrayIndexForNode.apply(n);
-      assert nodesArray[i] == null : "reverse post-order id is not unique, "
-          + i + " occurs twice in function " + n.getFunctionName()
-          + " at " + n + " and " + nodesArray[i];
+      assert nodesArray[i] == null
+          : "reverse post-order id is not unique, "
+              + i
+              + " occurs twice in function "
+              + n.getFunctionName()
+              + " at "
+              + n
+              + " and "
+              + nodesArray[i];
       nodesArray[i] = n;
 
       for (CFAEdge edge : leavingEdges(n)) {
@@ -598,16 +581,15 @@ public final class LoopStructure implements Serializable {
 
     } while (changed && !nodes.isEmpty()); // stop if nothing has changed or nodes is empty
 
-
     // check that the complete graph has collapsed
     if (!nodes.isEmpty()) {
       switch (language) {
-      case C:
-        throw new CParserException("Code structure is too complex, could not detect all loops!");
-      case JAVA:
-        throw new JParserException("Code structure is too complex, could not detect all loops!");
-      default:
-        throw new AssertionError("unknown language");
+        case C:
+          throw new CParserException("Code structure is too complex, could not detect all loops!");
+        case JAVA:
+          throw new JParserException("Code structure is too complex, could not detect all loops!");
+        default:
+          throw new AssertionError("unknown language");
       }
     }
 
@@ -620,7 +602,7 @@ public final class LoopStructure implements Serializable {
       for (int i1 = 0; i1 < loops.size(); i1++) {
         Loop l1 = loops.get(i1);
 
-        for (int i2 = i1+1; i2 < loops.size(); i2++) {
+        for (int i2 = i1 + 1; i2 < loops.size(); i2++) {
           Loop l2 = loops.get(i2);
 
           if (!l1.intersectsWith(l2)) {
@@ -667,82 +649,81 @@ public final class LoopStructure implements Serializable {
 
     boolean changed = false;
 
-      // merge nodes with their neighbors, if possible
-      Iterator<CFANode> it = nodes.iterator();
-      while (it.hasNext()) {
-        final CFANode currentNode = it.next();
-        final int current = arrayIndexForNode.apply(currentNode);
+    // merge nodes with their neighbors, if possible
+    Iterator<CFANode> it = nodes.iterator();
+    while (it.hasNext()) {
+      final CFANode currentNode = it.next();
+      final int current = arrayIndexForNode.apply(currentNode);
 
-        // find edges of current
-        final int predecessor = findSingleIncomingEdgeOfNode(current, edges);
-        final int successor   = findSingleOutgoingEdgeOfNode(current, edges);
+      // find edges of current
+      final int predecessor = findSingleIncomingEdgeOfNode(current, edges);
+      final int successor = findSingleOutgoingEdgeOfNode(current, edges);
 
-        if ((predecessor == -1) && (successor == -1)) {
-          // no edges, eliminate node
-          it.remove(); // delete currentNode
+      if ((predecessor == -1) && (successor == -1)) {
+        // no edges, eliminate node
+        it.remove(); // delete currentNode
 
-        } else if ((predecessor == -1) && (successor > -1)) {
-          // no incoming edges, one outgoing edge
-          final int successor2 = findSingleOutgoingEdgeOfNode(successor, edges);
-          if (successor2 == -1) {
-            // the current node is a source that is only connected with a sink
-            // we can remove it
-            edges[current][successor] = null;
-            it.remove(); // delete currentNode
-          }
-
-        } else if ((successor == -1) && (predecessor > -1)) {
-          // one incoming edge, no outgoing edges
-          final int predecessor2 = findSingleIncomingEdgeOfNode(predecessor, edges);
-          if (predecessor2 == -1) {
-            // the current node is a sink that is only connected with a source
-            // we can remove it
-            edges[predecessor][current] =  null;
-            it.remove(); // delete currentNode
-          }
-
-        } else if ((predecessor > -1) && (successor != -1)) {
-          // current has a single incoming edge from predecessor and is no sink, eliminate current
-          changed = true;
-
-          // copy all outgoing edges (current,j) to (predecessor,j)
-          moveOutgoingEdges(currentNode, current, predecessor, edges);
-
-          // delete from graph
-          edges[predecessor][current] = null;
-          it.remove(); // delete currentNode
-
-          // now predecessor node might have gained a self-edge
-          if (edges[predecessor][predecessor] != null) {
-            CFANode pred = nodesArray[predecessor];
-            handleLoop(pred, predecessor, edges, loops);
-          }
-
-
-        } else if (reverseMerge && (successor > -1) && (predecessor != -1)) {
-          // current has a single outgoing edge to successor and is no source, eliminate current
-          changed = true;
-
-          // copy all incoming edges (j,current) to (j,successor)
-          moveIncomingEdges(currentNode, current, successor, edges);
-
-          // delete from graph
+      } else if ((predecessor == -1) && (successor > -1)) {
+        // no incoming edges, one outgoing edge
+        final int successor2 = findSingleOutgoingEdgeOfNode(successor, edges);
+        if (successor2 == -1) {
+          // the current node is a source that is only connected with a sink
+          // we can remove it
           edges[current][successor] = null;
           it.remove(); // delete currentNode
+        }
 
-          // now successor node might have gained a self-edge
-          if (edges[successor][successor] != null) {
-            CFANode succ = nodesArray[successor];
-            handleLoop(succ, successor, edges, loops);
-          }
+      } else if ((successor == -1) && (predecessor > -1)) {
+        // one incoming edge, no outgoing edges
+        final int predecessor2 = findSingleIncomingEdgeOfNode(predecessor, edges);
+        if (predecessor2 == -1) {
+          // the current node is a sink that is only connected with a source
+          // we can remove it
+          edges[predecessor][current] = null;
+          it.remove(); // delete currentNode
+        }
+
+      } else if ((predecessor > -1) && (successor != -1)) {
+        // current has a single incoming edge from predecessor and is no sink, eliminate current
+        changed = true;
+
+        // copy all outgoing edges (current,j) to (predecessor,j)
+        moveOutgoingEdges(currentNode, current, predecessor, edges);
+
+        // delete from graph
+        edges[predecessor][current] = null;
+        it.remove(); // delete currentNode
+
+        // now predecessor node might have gained a self-edge
+        if (edges[predecessor][predecessor] != null) {
+          CFANode pred = nodesArray[predecessor];
+          handleLoop(pred, predecessor, edges, loops);
+        }
+
+      } else if (reverseMerge && (successor > -1) && (predecessor != -1)) {
+        // current has a single outgoing edge to successor and is no source, eliminate current
+        changed = true;
+
+        // copy all incoming edges (j,current) to (j,successor)
+        moveIncomingEdges(currentNode, current, successor, edges);
+
+        // delete from graph
+        edges[current][successor] = null;
+        it.remove(); // delete currentNode
+
+        // now successor node might have gained a self-edge
+        if (edges[successor][successor] != null) {
+          CFANode succ = nodesArray[successor];
+          handleLoop(succ, successor, edges, loops);
         }
       }
+    }
 
-      return changed;
+    return changed;
   }
 
-  private static void moveIncomingEdges(final CFANode fromNode, final int from, final int to,
-      final Edge[][] edges) {
+  private static void moveIncomingEdges(
+      final CFANode fromNode, final int from, final int to, final Edge[][] edges) {
     Edge edgeFromTo = edges[from][to];
 
     for (int j = 0; j < edges.length; j++) {
@@ -760,11 +741,9 @@ public final class LoopStructure implements Serializable {
     }
   }
 
-  /**
-   * Copy all outgoing edges of "from" to "to", and delete them from "from" afterwards.
-   */
-  private static void moveOutgoingEdges(final CFANode fromNode, final int from, final int to,
-      final Edge[][] edges) {
+  /** Copy all outgoing edges of "from" to "to", and delete them from "from" afterwards. */
+  private static void moveOutgoingEdges(
+      final CFANode fromNode, final int from, final int to, final Edge[][] edges) {
     Edge edgeToFrom = edges[to][from];
 
     for (int j = 0; j < edges.length; j++) {
@@ -782,8 +761,12 @@ public final class LoopStructure implements Serializable {
     }
   }
 
-  private static void mergeNodeIntoSuccessors(CFANode currentNode, final int current,
-      final CFANode[] nodesArray, final Edge[][] edges, List<Loop> loops) {
+  private static void mergeNodeIntoSuccessors(
+      CFANode currentNode,
+      final int current,
+      final CFANode[] nodesArray,
+      final Edge[][] edges,
+      List<Loop> loops) {
     List<Integer> predecessors = new ArrayList<>();
     List<Integer> successors = new ArrayList<>();
     for (int i = 0; i < edges.length; i++) {
@@ -802,7 +785,6 @@ public final class LoopStructure implements Serializable {
         targetEdge.add(edges[predecessor][current]);
         targetEdge.add(edges[current][successor]);
         targetEdge.add(currentNode);
-
       }
       if (edges[successor][successor] != null) {
         CFANode succ = nodesArray[successor];
@@ -829,8 +811,8 @@ public final class LoopStructure implements Serializable {
   }
 
   // create a loop from a node with a self-edge
-  private static void handleLoop(final CFANode loopHead, int loopHeadIndex,
-      final Edge[][] edges, Collection<Loop> loops) {
+  private static void handleLoop(
+      final CFANode loopHead, int loopHeadIndex, final Edge[][] edges, Collection<Loop> loops) {
     assert loopHead != null;
 
     // store loop

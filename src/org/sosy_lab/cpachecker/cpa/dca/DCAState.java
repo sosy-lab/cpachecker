@@ -25,13 +25,16 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public class DCAState implements AbstractQueryableState, Targetable, Graphable, Serializable,
-    AbstractStateWithAssumptions {
+public class DCAState
+    implements AbstractQueryableState,
+        Targetable,
+        Graphable,
+        Serializable,
+        AbstractStateWithAssumptions {
 
   private static final long serialVersionUID = -3454798281550882095L;
 
@@ -56,11 +59,10 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
   }
 
   @Override
-  public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
+  public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
     checkArgument(isTarget());
-    return productStates
-        .stream()
-        .flatMap(x -> x.getViolatedProperties().stream())
+    return productStates.stream()
+        .flatMap(x -> x.getTargetInformation().stream())
         .collect(ImmutableSet.toImmutableSet());
   }
 
@@ -79,8 +81,7 @@ public class DCAState implements AbstractQueryableState, Targetable, Graphable, 
 
   @Override
   public ImmutableList<AExpression> getAssumptions() {
-    return productStates
-        .stream()
+    return productStates.stream()
         .flatMap(x -> x.getAssumptions().stream())
         .distinct()
         .collect(ImmutableList.toImmutableList());

@@ -178,7 +178,7 @@ class ASTConverter {
           .put("java.lang.Short", JBasicType.SHORT)
           .put("java.lang.Double", JBasicType.DOUBLE)
           .put("java.lang.Void", JBasicType.VOID)
-          .build();
+          .buildOrThrow();
 
   /**
    * Create a new AST Converter, which can be used to convert JDT AST Statements to CFA AST
@@ -488,13 +488,13 @@ class ASTConverter {
     @SuppressWarnings("unchecked")
     ModifierBean mB = ModifierBean.getModifiers(vds.modifiers());
 
-    assert (!mB.isAbstract()) : "Local Variable has abstract modifier?";
-    assert (!mB.isNative()) : "Local Variable has native modifier?";
+    assert !mB.isAbstract() : "Local Variable has abstract modifier?";
+    assert !mB.isNative() : "Local Variable has native modifier?";
     assert (mB.getVisibility() == VisibilityModifier.NONE)
         : "Local Variable has Visibility modifier?";
-    assert (!mB.isStatic()) : "Local Variable has static modifier?";
-    assert (!mB.isStrictFp()) : "Local Variable has strictFp modifier?";
-    assert (!mB.isSynchronized()) : "Local Variable has synchronized modifier?";
+    assert !mB.isStatic() : "Local Variable has static modifier?";
+    assert !mB.isStrictFp() : "Local Variable has strictFp modifier?";
+    assert !mB.isSynchronized() : "Local Variable has synchronized modifier?";
 
     for (VariableDeclarationFragment vdf : variableDeclarationFragments) {
 
@@ -531,12 +531,12 @@ class ASTConverter {
     @SuppressWarnings("unchecked")
     ModifierBean mB = ModifierBean.getModifiers(d.modifiers());
 
-    assert (!mB.isAbstract) : "Local Variable has abstract modifier?";
-    assert (!mB.isNative) : "Local Variable has native modifier?";
-    assert (mB.visibility == VisibilityModifier.NONE) : "Local Variable has Visibility modifier?";
-    assert (!mB.isStatic) : "Local Variable has static modifier?";
-    assert (!mB.isStrictFp) : "Local Variable has strictFp modifier?";
-    assert (!mB.isSynchronized) : "Local Variable has synchronized modifier?";
+    assert !mB.isAbstract : "Local Variable has abstract modifier?";
+    assert !mB.isNative : "Local Variable has native modifier?";
+    assert mB.visibility == VisibilityModifier.NONE : "Local Variable has Visibility modifier?";
+    assert !mB.isStatic : "Local Variable has static modifier?";
+    assert !mB.isStrictFp : "Local Variable has strictFp modifier?";
+    assert !mB.isSynchronized : "Local Variable has synchronized modifier?";
 
     JInitializerExpression initializerExpression = null;
 
@@ -1027,13 +1027,13 @@ class ASTConverter {
     @SuppressWarnings("unchecked")
     ModifierBean mB = ModifierBean.getModifiers(vde.modifiers());
 
-    assert (!mB.isAbstract()) : "Local Variable has abstract modifier?";
-    assert (!mB.isNative()) : "Local Variable has native modifier?";
+    assert !mB.isAbstract() : "Local Variable has abstract modifier?";
+    assert !mB.isNative() : "Local Variable has native modifier?";
     assert (mB.getVisibility() == VisibilityModifier.NONE)
         : "Local Variable has Visibility modifier?";
-    assert (!mB.isStatic()) : "Local Variable has static modifier?";
-    assert (!mB.isStrictFp()) : "Local Variable has strictFp modifier?";
-    assert (!mB.isSynchronized()) : "Local Variable has synchronized modifier?";
+    assert !mB.isStatic() : "Local Variable has static modifier?";
+    assert !mB.isStrictFp() : "Local Variable has strictFp modifier?";
+    assert !mB.isSynchronized() : "Local Variable has synchronized modifier?";
 
     for (VariableDeclarationFragment vdf : variableDeclarationFragments) {
 
@@ -2234,7 +2234,7 @@ class ASTConverter {
     JMethodDeclaration declaration = null;
     JExpression referencedVariableName = null;
 
-    if (mb != null && !mb.isStatic) {
+    if (mb != null && !mb.isStatic && mi.getExpression() != null) {
       referencedVariableName = convertExpressionWithoutSideEffects(mi.getExpression());
     }
 

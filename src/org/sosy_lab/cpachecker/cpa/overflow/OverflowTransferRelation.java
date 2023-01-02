@@ -92,7 +92,7 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {
-      OverflowState overflowState = (OverflowState) state;
-      return Collections.singleton(overflowState);
+    OverflowState overflowState = (OverflowState) state;
+    return Collections.singleton(overflowState);
   }
 }

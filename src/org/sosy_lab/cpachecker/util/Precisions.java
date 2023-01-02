@@ -17,38 +17,40 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
 public class Precisions {
 
-  private Precisions() { }
+  private Precisions() {}
 
   /**
-   * Retrieve one of the wrapped precisions by type. If the hierarchy of
-   * (wrapped) precisions has several levels, this method searches through
-   * them recursively.
+   * Retrieve one of the wrapped precisions by type. If the hierarchy of (wrapped) precisions has
+   * several levels, this method searches through them recursively.
    *
-   * The type does not need to match exactly, the returned element has just to
-   * be a sub-type of the type passed as argument.
+   * <p>The type does not need to match exactly, the returned element has just to be a sub-type of
+   * the type passed as argument.
    *
    * @param <T> The type of the wrapped element.
    * @param pType The class object of the type of the wrapped element.
    * @return An instance of an element with type T or null if there is none.
    */
-  public static <T extends Precision> T extractPrecisionByType(Precision pPrecision, Class<T> pType) {
+  public static <T extends Precision> T extractPrecisionByType(
+      Precision pPrecision, Class<T> pType) {
     if (pType.isInstance(pPrecision)) {
       return pType.cast(pPrecision);
 
     } else if (pPrecision instanceof WrapperPrecision) {
-      return ((WrapperPrecision)pPrecision).retrieveWrappedPrecision(pType);
+      return ((WrapperPrecision) pPrecision).retrieveWrappedPrecision(pType);
     }
 
     return null;
   }
 
   /**
-   * Creates a {@link FluentIterable} that enumerates all the <code>Precision</code>
-   * contained in a given precision pre-order. The root precision itself is included, the
-   * precisions are unwrapped recursively.
+   * Creates a {@link FluentIterable} that enumerates all the <code>Precision</code> contained in a
+   * given precision pre-order. The root precision itself is included, the precisions are unwrapped
+   * recursively.
    *
-   * <p><b>Example</b>: Precision A wraps precisions B and C. Precision B wraps precisions D and E.<br />
-   *             The resulting tree (see below) is traversed pre-order.
+   * <p><b>Example</b>: Precision A wraps precisions B and C. Precision B wraps precisions D and E.
+   * <br>
+   * The resulting tree (see below) is traversed pre-order.
+   *
    * <pre>
    *                  A
    *                 / \
@@ -56,14 +58,13 @@ public class Precisions {
    *               / \
    *              D   E
    * </pre>
-   * The returned <code>FluentIterable</code> iterates over the items in the following
-   * order : A, B, D, E, C.
-   * </p>
+   *
+   * The returned <code>FluentIterable</code> iterates over the items in the following order : A, B,
+   * D, E, C.
    *
    * @param prec the root precision
-   *
-   * @return a <code>FluentIterable</code> over the given root precision and all precisions
-   *         that are wrapped in it, recursively
+   * @return a <code>FluentIterable</code> over the given root precision and all precisions that are
+   *     wrapped in it, recursively
    */
   public static FluentIterable<Precision> asIterable(final Precision prec) {
     return FluentIterable.from(
@@ -75,9 +76,13 @@ public class Precisions {
             .depthFirstPreOrder(prec));
   }
 
-  public static Precision replaceByType(Precision pOldPrecision, Precision pNewPrecision, Predicate<? super Precision> pPrecisionType) {
+  public static Precision replaceByType(
+      Precision pOldPrecision,
+      Precision pNewPrecision,
+      Predicate<? super Precision> pPrecisionType) {
     if (pOldPrecision instanceof WrapperPrecision) {
-      return ((WrapperPrecision)pOldPrecision).replaceWrappedPrecision(pNewPrecision, pPrecisionType);
+      return ((WrapperPrecision) pOldPrecision)
+          .replaceWrappedPrecision(pNewPrecision, pPrecisionType);
     } else {
       assert pNewPrecision.getClass().isAssignableFrom(pOldPrecision.getClass());
 

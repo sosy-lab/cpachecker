@@ -31,21 +31,28 @@ class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator 
   }
 
   @Override
-  public boolean stop(AbstractState element, Collection<AbstractState> reached, Precision precision) throws CPAException, InterruptedException {
+  public boolean stop(AbstractState element, Collection<AbstractState> reached, Precision precision)
+      throws CPAException, InterruptedException {
     CompositeState compositeState = (CompositeState) element;
     CompositePrecision compositePrecision = (CompositePrecision) precision;
 
     for (AbstractState e : reached) {
-      if (stop(compositeState, (CompositeState)e, compositePrecision)) {
+      if (stop(compositeState, (CompositeState) e, compositePrecision)) {
         return true;
       }
     }
     return false;
   }
 
-  private boolean stop(CompositeState compositeState, CompositeState compositeReachedState, CompositePrecision compositePrecision) throws CPAException, InterruptedException {
+  private boolean stop(
+      CompositeState compositeState,
+      CompositeState compositeReachedState,
+      CompositePrecision compositePrecision)
+      throws CPAException, InterruptedException {
     List<AbstractState> compositeElements = compositeState.getWrappedStates();
-    checkArgument(compositeElements.size() == stopOperators.size(), "State with wrong number of component states given");
+    checkArgument(
+        compositeElements.size() == stopOperators.size(),
+        "State with wrong number of component states given");
     List<AbstractState> compositeReachedStates = compositeReachedState.getWrappedStates();
 
     List<Precision> compositePrecisions = compositePrecision.getWrappedPrecisions();
@@ -64,9 +71,11 @@ class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator 
     return true;
   }
 
-  boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement, List<ConfigurableProgramAnalysis> cpas) throws CPAException, InterruptedException {
-    CompositeState compositeState = (CompositeState)pElement;
-    CompositeState compositeOtherElement = (CompositeState)pOtherElement;
+  boolean isCoveredBy(
+      AbstractState pElement, AbstractState pOtherElement, List<ConfigurableProgramAnalysis> cpas)
+      throws CPAException, InterruptedException {
+    CompositeState compositeState = (CompositeState) pElement;
+    CompositeState compositeOtherElement = (CompositeState) pOtherElement;
 
     List<AbstractState> componentElements = compositeState.getWrappedStates();
     List<AbstractState> componentOtherElements = compositeOtherElement.getWrappedStates();
@@ -76,7 +85,7 @@ class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator 
     }
 
     for (int idx = 0; idx < componentElements.size(); idx++) {
-      ProofChecker componentProofChecker = (ProofChecker)cpas.get(idx);
+      ProofChecker componentProofChecker = (ProofChecker) cpas.get(idx);
 
       AbstractState absElem1 = componentElements.get(idx);
       AbstractState absElem2 = componentOtherElements.get(idx);
@@ -90,11 +99,13 @@ class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator 
   }
 
   @Override
-  public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedState, Precision pPrecision) throws CPAException, InterruptedException {
+  public boolean isForcedCoveringPossible(
+      AbstractState pElement, AbstractState pReachedState, Precision pPrecision)
+      throws CPAException, InterruptedException {
 
-    CompositeState compositeState = (CompositeState)pElement;
-    CompositeState compositeReachedState = (CompositeState)pReachedState;
-    CompositePrecision compositePrecision = (CompositePrecision)pPrecision;
+    CompositeState compositeState = (CompositeState) pElement;
+    CompositeState compositeReachedState = (CompositeState) pReachedState;
+    CompositePrecision compositePrecision = (CompositePrecision) pPrecision;
 
     List<AbstractState> compositeElements = compositeState.getWrappedStates();
     List<AbstractState> compositeReachedStates = compositeReachedState.getWrappedStates();
@@ -110,7 +121,9 @@ class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator 
       boolean possible;
       if (stopOp instanceof ForcedCoveringStopOperator) {
 
-        possible = ((ForcedCoveringStopOperator)stopOp).isForcedCoveringPossible(wrappedState, wrappedReachedState, prec);
+        possible =
+            ((ForcedCoveringStopOperator) stopOp)
+                .isForcedCoveringPossible(wrappedState, wrappedReachedState, prec);
 
       } else {
         possible = stopOp.stop(wrappedState, Collections.singleton(wrappedReachedState), prec);

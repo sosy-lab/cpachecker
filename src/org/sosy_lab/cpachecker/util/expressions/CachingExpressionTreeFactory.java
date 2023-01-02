@@ -16,15 +16,19 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * This is the default implementation of {@linkplain ExpressionTreeFactory}, which uses a cache
- * in order to reuse generated {@link ExpressionTree}s when they are requested again.
- * @param <LeafType> the type to use for the leaves of the {@link ExpressionTree} that this factory generates
+ * This is the default implementation of {@linkplain ExpressionTreeFactory}, which uses a cache in
+ * order to reuse generated {@link ExpressionTree}s when they are requested again.
+ *
+ * @param <LeafType> the type to use for the leaves of the {@link ExpressionTree} that this factory
+ *     generates
  */
 public class CachingExpressionTreeFactory<LeafType> implements ExpressionTreeFactory<LeafType> {
 
   private final Map<ExpressionTree<LeafType>, ExpressionTree<LeafType>> leafCache = new HashMap<>();
-  private final Map<Set<ExpressionTree<LeafType>>, ExpressionTree<LeafType>> andCache = new HashMap<>();
-  private final Map<Set<ExpressionTree<LeafType>>, ExpressionTree<LeafType>> orCache = new HashMap<>();
+  private final Map<Set<ExpressionTree<LeafType>>, ExpressionTree<LeafType>> andCache =
+      new HashMap<>();
+  private final Map<Set<ExpressionTree<LeafType>>, ExpressionTree<LeafType>> orCache =
+      new HashMap<>();
 
   @Override
   public ExpressionTree<LeafType> leaf(LeafType pLeafType) {

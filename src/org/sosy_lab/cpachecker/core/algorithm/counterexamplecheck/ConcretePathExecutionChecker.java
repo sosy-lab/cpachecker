@@ -45,28 +45,37 @@ import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 
 /**
- * Counterexample checker that creates a C program out of a given path program.
- * The generated C program is ONE concrete path. There may and will be many other
- * possible concrete paths but only one is checked.
+ * Counterexample checker that creates a C program out of a given path program. The generated C
+ * program is ONE concrete path. There may and will be many other possible concrete paths but only
+ * one is checked.
  */
 @Options(prefix = "counterexample.concrete")
 @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
 public class ConcretePathExecutionChecker implements CounterexampleChecker, Statistics {
 
-  @Option(secure = false, description = "Path to the compiler. Can be absolute or"
-                            + " only the name of the program if it is in the PATH")
+  @Option(
+      secure = false,
+      description =
+          "Path to the compiler. Can be absolute or"
+              + " only the name of the program if it is in the PATH")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path pathToCompiler = Path.of("/usr/bin/gcc");
 
-  @Option(secure=true, description = "The file in which the generated C code is saved.")
+  @Option(secure = true, description = "The file in which the generated C code is saved.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private @Nullable Path dumpFile = null;
 
-  @Option(secure=true, description="Maximum time limit for the concrete execution checker.\n"
-                                 + "This limit is used for compilation as well as execution "
-                                 + "so overall, twice the time of this limit may be consumed.\n"
-                                 + "(use milliseconds or specify a unit; 0 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS, defaultUserUnit = TimeUnit.MILLISECONDS, min = 0)
+  @Option(
+      secure = true,
+      description =
+          "Maximum time limit for the concrete execution checker.\n"
+              + "This limit is used for compilation as well as execution "
+              + "so overall, twice the time of this limit may be consumed.\n"
+              + "(use milliseconds or specify a unit; 0 for infinite)")
+  @TimeSpanOption(
+      codeUnit = TimeUnit.MILLISECONDS,
+      defaultUserUnit = TimeUnit.MILLISECONDS,
+      min = 0)
   private TimeSpan timelimit = TimeSpan.ofMillis(0);
 
   private final LogManager logger;
@@ -75,7 +84,8 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
   public ConcretePathExecutionChecker(Configuration config, LogManager logger, CFA cfa)
       throws InvalidConfigurationException {
     if (cfa.getLanguage() != Language.C) {
-      throw new UnsupportedOperationException("Concrete execution checker can only be used with C.");
+      throw new UnsupportedOperationException(
+          "Concrete execution checker can only be used with C.");
     }
 
     config.inject(this);
@@ -83,8 +93,9 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
   }
 
   @Override
-  public boolean checkCounterexample(ARGState pRootState, ARGState pErrorState,
-      Set<ARGState> pErrorPathStates) throws CPAException, InterruptedException {
+  public boolean checkCounterexample(
+      ARGState pRootState, ARGState pErrorState, Set<ARGState> pErrorPathStates)
+      throws CPAException, InterruptedException {
 
     if (dumpFile != null) {
       return checkCounterexample(pRootState, pErrorState, pErrorPathStates, dumpFile);
@@ -97,26 +108,29 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
         return checkCounterexample(pRootState, pErrorState, pErrorPathStates, tempFile.toPath());
 
       } catch (IOException e) {
-        throw new CounterexampleAnalysisFailed("Could not create temporary file " + e.getMessage(), e);
+        throw new CounterexampleAnalysisFailed(
+            "Could not create temporary file " + e.getMessage(), e);
       }
     }
   }
 
   /**
-   * Compiles the program given in the global variable "dumpFile" and saves the
-   * output in the file given in the global variable "executable". The return
-   * value indicates the success of the compilation process.
+   * Compiles the program given in the global variable "dumpFile" and saves the output in the file
+   * given in the global variable "executable". The return value indicates the success of the
+   * compilation process.
    */
-  private void compilePathProgram(String absFilePath) throws CounterexampleAnalysisFailed, InterruptedException, IOException, TimeoutException {
+  private void compilePathProgram(String absFilePath)
+      throws CounterexampleAnalysisFailed, InterruptedException, IOException, TimeoutException {
     logger.log(Level.FINE, "Compiling concrete error path.");
     String[] cmdLine = {
       pathToCompiler.toAbsolutePath().toString(), absFilePath, "-o", absFilePath + ".exe", "-w"
     };
 
-    ProcessExecutor<CounterexampleAnalysisFailed> exec = new ProcessExecutor<>(logger, CounterexampleAnalysisFailed.class, System.getenv(), cmdLine);
+    ProcessExecutor<CounterexampleAnalysisFailed> exec =
+        new ProcessExecutor<>(logger, CounterexampleAnalysisFailed.class, System.getenv(), cmdLine);
     // 0 means compilation terminated without errors
     int exitCode = exec.join(timelimit.asMillis());
-    if(exitCode != 0) {
+    if (exitCode != 0) {
       StringBuilder errorOut = new StringBuilder();
       for (String str : exec.getErrorOutput()) {
         errorOut.append(str);
@@ -129,39 +143,49 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
     }
   }
 
-  private boolean runConcretePathProgram(String absFilePath) throws CounterexampleAnalysisFailed, InterruptedException, IOException, TimeoutException {
+  private boolean runConcretePathProgram(String absFilePath)
+      throws CounterexampleAnalysisFailed, InterruptedException, IOException, TimeoutException {
     String[] cmdLine = {absFilePath + ".exe"};
 
-    ProcessExecutor<CounterexampleAnalysisFailed> exec = new ProcessExecutor<>(logger, CounterexampleAnalysisFailed.class, System.getenv(), cmdLine);
+    ProcessExecutor<CounterexampleAnalysisFailed> exec =
+        new ProcessExecutor<>(logger, CounterexampleAnalysisFailed.class, System.getenv(), cmdLine);
     int exitCode = exec.join(timelimit.asMillis());
 
     switch (exitCode) {
       case 0: // Verification successful (Path is infeasible)
-        logger.log(Level.FINER, "Concrete path program was executed, the error location was infeasible.");
+        logger.log(
+            Level.FINER, "Concrete path program was executed, the error location was infeasible.");
         return false;
       case 1: // Verification failed (Path is feasible)
-        logger.log(Level.FINER, "Concrete path program was executed, the error location was reached.");
+        logger.log(
+            Level.FINER, "Concrete path program was executed, the error location was reached.");
         return true;
       default:
-        // as only 0 and 1 should occur as exit codes this is probably a bug with the code generation
-        throw new CounterexampleAnalysisFailed("Executing the concrete path program lead to invalid exitcode: " + exitCode);
+        // as only 0 and 1 should occur as exit codes this is probably a bug with the code
+        // generation
+        throw new CounterexampleAnalysisFailed(
+            "Executing the concrete path program lead to invalid exitcode: " + exitCode);
     }
   }
 
-  private boolean checkCounterexample(ARGState pRootState, ARGState pErrorState,
-      Set<ARGState> pErrorPathStates, Path cFile) throws CPAException, InterruptedException {
+  private boolean checkCounterexample(
+      ARGState pRootState, ARGState pErrorState, Set<ARGState> pErrorPathStates, Path cFile)
+      throws CPAException, InterruptedException {
     assert cFile != null;
 
     timer.start();
     CounterexampleInfo ceInfo = pErrorState.getCounterexampleInformation().orElseThrow();
 
-    Appender pathProgram = PathToConcreteProgramTranslator.translatePaths(pRootState, pErrorPathStates, ceInfo.getCFAPathWithAssignments());
+    Appender pathProgram =
+        PathToConcreteProgramTranslator.translatePaths(
+            pRootState, pErrorPathStates, ceInfo.getCFAPathWithAssignments());
 
     // write program to disk
     try (Writer w = IO.openOutputFile(cFile, Charset.defaultCharset())) {
       pathProgram.appendTo(w);
     } catch (IOException e) {
-      throw new CounterexampleAnalysisFailed("Could not write path program to file " + e.getMessage(), e);
+      throw new CounterexampleAnalysisFailed(
+          "Could not write path program to file " + e.getMessage(), e);
     }
 
     String absFile = cFile.toAbsolutePath().toString();
@@ -176,7 +200,8 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
       throw new CounterexampleAnalysisFailed(e.getMessage(), e);
 
     } catch (TimeoutException e) {
-      throw new CounterexampleAnalysisFailed("Execution of concrete counterexample path program took too long.");
+      throw new CounterexampleAnalysisFailed(
+          "Execution of concrete counterexample path program took too long.");
 
     } finally {
       timer.stop();
@@ -193,5 +218,4 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
   public String getName() {
     return "Concrete-Execution Counterexample Check";
   }
-
 }

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ComparisonChain;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
@@ -52,7 +53,7 @@ public class SMGEdgeHasValue extends SMGEdge implements Comparable<SMGEdgeHasVal
 
   @Override
   public boolean isConsistentWith(SMGEdge other) {
-    if (! (other instanceof SMGEdgeHasValue)) {
+    if (!(other instanceof SMGEdgeHasValue)) {
       return false;
     }
 
@@ -82,10 +83,10 @@ public class SMGEdgeHasValue extends SMGEdge implements Comparable<SMGEdgeHasVal
     long myEnd = myStart + getSizeInBits();
 
     if (myStart < pOtStart) {
-      return (myEnd > pOtStart);
+      return myEnd > pOtStart;
 
     } else if (pOtStart < myStart) {
-      return (pOtEnd > myStart);
+      return pOtEnd > myStart;
     }
 
     // Start offsets are equal, always overlap
@@ -108,18 +109,11 @@ public class SMGEdgeHasValue extends SMGEdge implements Comparable<SMGEdgeHasVal
 
   @Override
   public int compareTo(SMGEdgeHasValue o) {
-    int result = object.compareTo(o.object);
-    if (result != 0) {
-      return result;
-    }
-    result = Long.compare(getOffset(), o.getOffset());
-    if (result != 0) {
-      return result;
-    }
-    result = value.compareTo(o.value);
-    if (result != 0) {
-      return result;
-    }
-    return sizeInBits.compareTo(o.sizeInBits);
+    return ComparisonChain.start()
+        .compare(object, o.object)
+        .compare(getOffset(), o.getOffset())
+        .compare(value, o.value)
+        .compare(sizeInBits, o.sizeInBits)
+        .result();
   }
 }

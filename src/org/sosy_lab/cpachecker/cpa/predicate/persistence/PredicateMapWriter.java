@@ -33,19 +33,22 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 /**
- * This class writes a set of predicates to a file in the same format that is
- * also used by {@link PredicateMapParser}.
+ * This class writes a set of predicates to a file in the same format that is also used by {@link
+ * PredicateMapParser}.
  */
-@Options(prefix="cpa.predicate")
+@Options(prefix = "cpa.predicate")
 public class PredicateMapWriter {
 
-  @Option(secure=true, name="predmap.predicateFormat",
-      description="Format for exporting predicates from precisions.")
+  @Option(
+      secure = true,
+      name = "predmap.predicateFormat",
+      description = "Format for exporting predicates from precisions.")
   private PredicateDumpFormat format = PredicateDumpFormat.SMTLIB2;
 
   private final FormulaManagerView fmgr;
 
-  public PredicateMapWriter(Configuration config, FormulaManagerView pFmgr) throws InvalidConfigurationException {
+  public PredicateMapWriter(Configuration config, FormulaManagerView pFmgr)
+      throws InvalidConfigurationException {
     config.inject(this);
     fmgr = pFmgr;
   }
@@ -89,7 +92,8 @@ public class PredicateMapWriter {
 
     writeSetOfPredicates(sb, "*", globalPredicates, predToString);
 
-    for (Entry<String, Collection<AbstractionPredicate>> e : functionPredicates.asMap().entrySet()) {
+    for (Entry<String, Collection<AbstractionPredicate>> e :
+        functionPredicates.asMap().entrySet()) {
       writeSetOfPredicates(sb, e.getKey(), e.getValue(), predToString);
     }
 
@@ -103,16 +107,17 @@ public class PredicateMapWriter {
       String key =
           String.format(
               "%s %s@%d",
-              e.getKey().getFunctionName(),
-              e.getKey().getLocation(),
-              e.getKey().getInstance());
+              e.getKey().getFunctionName(), e.getKey().getLocation(), e.getKey().getInstance());
       writeSetOfPredicates(sb, key, e.getValue(), predToString);
     }
   }
 
-  private void writeSetOfPredicates(Appendable sb, String key,
+  private void writeSetOfPredicates(
+      Appendable sb,
+      String key,
       Collection<AbstractionPredicate> predicates,
-      Map<AbstractionPredicate, String> predToString) throws IOException {
+      Map<AbstractionPredicate, String> predToString)
+      throws IOException {
     if (!predicates.isEmpty()) {
       sb.append(key);
       sb.append(":\n");

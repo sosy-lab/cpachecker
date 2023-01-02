@@ -10,12 +10,12 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.NavigableMap;
 import java.util.NavigableSet;
-import java.util.NoSuchElementException;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -191,55 +191,9 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
   }
 
   @Override
-  public SMGHasValueEdges filter(SMGEdgeHasValueFilter pFilter) {
-    SMGHasValueEdgeSet filtered = this;
-    SMGObject filterObject = pFilter.getObject();
-    Long filterOffset = pFilter.getOffset();
-    SMGValue filterValue = pFilter.getValue();
-    long filterSize = pFilter.getSize();
-    if (filterObject != null) {
-      filtered = getEdgesForObject(filterObject);
-      if (filterOffset == null && filterValue == null && filterSize == -1) {
-        return filtered;
-      }
-    }
-    NavigableSet<Entry<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>>> entries =
-        filtered.map.entrySet();
-    for (Entry<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>> entry : entries) {
-      filtered = filtered.removeAllEdgesOfObjectAndCopy(entry.getKey());
-      PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets = entry.getValue();
-      if (filterOffset != null) {
-        Entry<Long, SMGEdgeHasValue> candidateEntry = sortedByOffsets.floorEntry(filterOffset);
-        if (candidateEntry != null) {
-          SMGEdgeHasValue candidate = candidateEntry.getValue();
-
-          // also return part of zero edge
-          if (candidate.getValue().isZero()) {
-            long newSize = candidate.getSizeInBits() - (filterOffset - candidate.getOffset());
-            if (filterSize >= 0 && newSize > filterSize) {
-              newSize = filterSize;
-            }
-            if (newSize > 0 || (newSize == 0 && candidate.getSizeInBits() == 0)) {
-              candidate =
-                  new SMGEdgeHasValue(
-                      newSize, filterOffset, candidate.getObject(), candidate.getValue());
-            } else {
-              continue;
-            }
-          }
-          if (pFilter.holdsFor(candidate)) {
-            filtered = filtered.addEdgeAndCopy(candidate);
-          }
-        }
-      } else {
-        for (SMGEdgeHasValue candidate : sortedByOffsets.values()) {
-          if (pFilter.holdsFor(candidate)) {
-            filtered = filtered.addEdgeAndCopy(candidate);
-          }
-        }
-      }
-    }
-    return filtered;
+  public Iterable<SMGEdgeHasValue> filter(SMGEdgeHasValueFilter pFilter) {
+    SMGHasValueEdgeSet smgEdgeHasValues = this;
+    return () -> new SMGHasValueEdgeSetIteratorWithFilter(smgEdgeHasValues, pFilter);
   }
 
   @Override
@@ -264,72 +218,17 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
 
   @Override
   public boolean contains(SMGEdgeHasValue pHv) {
+    SMGEdgeHasValueFilter filter =
+        SMGEdgeHasValueFilter.objectFilter(pHv.getObject())
+            .filterAtOffset(pHv.getOffset())
+            .filterHavingValue(pHv.getValue())
+            .filterBySize(pHv.getSizeInBits());
 
-    PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets = map.get(pHv.getObject());
-    if (sortedByOffsets == null) {
-      return false;
-    }
-    if (pHv.getValue().isZero()) {
-      Entry<Long, SMGEdgeHasValue> floorEntryCandidate =
-          sortedByOffsets.floorEntry(pHv.getOffset());
-      if (floorEntryCandidate != null) {
-        SMGEdgeHasValue edgeCandidate = floorEntryCandidate.getValue();
-        if (edgeCandidate.getValue().isZero()) {
-          long edgeCandidateOffset = edgeCandidate.getOffset();
-          long edgeCandidateEndOffset = edgeCandidateOffset + edgeCandidate.getSizeInBits();
-          return pHv.getOffset() + pHv.getSizeInBits() <= edgeCandidateEndOffset;
-        }
-      }
-    }
-    return pHv.equals(sortedByOffsets.get(pHv.getOffset()));
+    return filter(filter).iterator().hasNext();
   }
 
   @Override
-  public Iterable<SMGEdgeHasValue> getOverlapping(SMGEdgeHasValue pNew_edge) {
-    PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets = map.get(pNew_edge.getObject());
-    if (sortedByOffsets == null) {
-      return ImmutableSet.of();
-    }
-    long startOffset = pNew_edge.getOffset();
-    long endOffset = startOffset + pNew_edge.getSizeInBits();
-    Entry<Long, SMGEdgeHasValue> floorEntryCandidate = sortedByOffsets.floorEntry(startOffset);
-    if (floorEntryCandidate != null) {
-      SMGEdgeHasValue edgeCandidate = floorEntryCandidate.getValue();
-      long edgeCandidateOffset = edgeCandidate.getOffset();
-      long edgeCandidateEndOffset = edgeCandidateOffset + edgeCandidate.getSizeInBits();
-      if (edgeCandidateEndOffset > startOffset) {
-        startOffset = edgeCandidateOffset;
-      }
-    }
-    NavigableMap<Long, SMGEdgeHasValue> filteredMap =
-        sortedByOffsets.subMap(startOffset, endOffset);
-    return filteredMap.values();
-  }
-
-  @Override
-  public boolean overlapsWith(SMGEdgeHasValue pNewHve) {
-    PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets = map.get(pNewHve.getObject());
-    if (sortedByOffsets == null) {
-      return false;
-    }
-    long startOffset = pNewHve.getOffset();
-    long endOffset = startOffset + pNewHve.getSizeInBits();
-    Entry<Long, SMGEdgeHasValue> floorEntryCandidate = sortedByOffsets.floorEntry(startOffset);
-    if (floorEntryCandidate != null) {
-      SMGEdgeHasValue edgeCandidate = floorEntryCandidate.getValue();
-      long edgeCandidateOffset = edgeCandidate.getOffset();
-      long edgeCandidateEndOffset = edgeCandidateOffset + edgeCandidate.getSizeInBits();
-      if (edgeCandidateEndOffset > startOffset) {
-        return true;
-      }
-    }
-    NavigableMap<Long, SMGEdgeHasValue> filteredMap =
-        sortedByOffsets.subMap(startOffset, endOffset);
-    return !filteredMap.isEmpty();
-  }
-
-  @Override
-  public SMGHasValueEdgeSet addEdgesForObject(SMGHasValueEdges pEdgesSet) {
+  public SMGHasValueEdgeSet addEdgesForObject(Iterable<SMGEdgeHasValue> pEdgesSet) {
     checkArgument(
         (pEdgesSet instanceof SMGHasValueEdgeSet),
         "Can't use different SMGHasValueEdges implementations");
@@ -373,11 +272,116 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
   }
 
   @Override
-  public Iterator<SMGEdgeHasValue> iterator() {
+  public AbstractIterator<SMGEdgeHasValue> iterator() {
     return new SMGHasValueEdgeSetIterator(this);
   }
 
-  private static class SMGHasValueEdgeSetIterator implements Iterator<SMGEdgeHasValue> {
+  private static class SMGHasValueEdgeSetIteratorWithFilter
+      extends AbstractIterator<SMGEdgeHasValue> {
+    SMGEdgeHasValueFilter filter;
+    Iterator<PersistentSortedMap<Long, SMGEdgeHasValue>> iteratorMain;
+    Iterator<SMGEdgeHasValue> iteratorSecond;
+
+    protected SMGHasValueEdgeSetIteratorWithFilter(
+        SMGHasValueEdgeSet pSMGEdgeHasValues, SMGEdgeHasValueFilter pFilter) {
+      SMGObject filterObject = pFilter.getObject();
+      SMGEdgeHasValue filterOverlapsWith = pFilter.getOverlapsWith();
+      SMGHasValueEdgeSet filtered;
+
+      if (filterObject != null) {
+        filtered = pSMGEdgeHasValues.getEdgesForObject(filterObject);
+      } else {
+        filtered = pSMGEdgeHasValues;
+      }
+
+      if (filterOverlapsWith != null) {
+        filtered = filtered.getEdgesForObject(filterOverlapsWith.getObject());
+      }
+
+      iteratorMain = filtered.map.values().iterator();
+      iteratorSecond = null;
+      filter = pFilter;
+    }
+
+    @Override
+    protected SMGEdgeHasValue computeNext() {
+      while (iteratorMain.hasNext() || iteratorSecond != null) {
+        if (iteratorSecond != null) {
+          while (iteratorSecond.hasNext()) {
+            SMGEdgeHasValue result = iteratorSecond.next();
+            if (filter.holdsFor(result)) {
+              return result;
+            }
+          }
+          iteratorSecond = null;
+        } else {
+          iteratorSecond = computeSecondLevelIterator(iteratorMain.next(), filter);
+        }
+      }
+      return endOfData();
+    }
+
+    private Iterator<SMGEdgeHasValue> computeSecondLevelIterator(
+        PersistentSortedMap<Long, SMGEdgeHasValue> pMap, SMGEdgeHasValueFilter pFilter) {
+      Long filterOffset = pFilter.getOffset();
+      SMGValue filterValue = pFilter.getValue();
+      long filterSize = pFilter.getSize();
+      SMGEdgeHasValue filterOverlapsWith = pFilter.getOverlapsWith();
+      Collection<SMGEdgeHasValue> candidateSet = ImmutableSet.of();
+
+      if (filterOffset == null
+          && filterValue == null
+          && filterSize == -1
+          && filterOverlapsWith == null) {
+        return pMap.values().iterator();
+      }
+
+      if (filterOffset != null) {
+        Entry<Long, SMGEdgeHasValue> candidateEntry = pMap.floorEntry(filterOffset);
+        if (candidateEntry != null) {
+          SMGEdgeHasValue candidate = candidateEntry.getValue();
+
+          if (candidate.getValue().isZero()) {
+            long newSize = candidate.getSizeInBits() - (filterOffset - candidate.getOffset());
+            if (filterSize >= 0 && newSize > filterSize) {
+              newSize = filterSize;
+            }
+            if (newSize > 0 || (newSize == 0 && candidate.getSizeInBits() == 0)) {
+              candidate =
+                  new SMGEdgeHasValue(
+                      newSize, filterOffset, candidate.getObject(), candidate.getValue());
+            }
+          }
+
+          if (pFilter.holdsFor(candidate)) {
+            candidateSet = ImmutableSet.of(candidate);
+            return candidateSet.iterator();
+          }
+        }
+
+        return candidateSet.iterator();
+      }
+
+      if (filterOverlapsWith != null) {
+        long startOffset = filterOverlapsWith.getOffset();
+        long endOffset = startOffset + filterOverlapsWith.getSizeInBits();
+        Entry<Long, SMGEdgeHasValue> floorEntryCandidate = pMap.floorEntry(startOffset);
+        if (floorEntryCandidate != null) {
+          SMGEdgeHasValue edgeCandidate = floorEntryCandidate.getValue();
+          long edgeCandidateOffset = edgeCandidate.getOffset();
+          long edgeCandidateEndOffset = edgeCandidateOffset + edgeCandidate.getSizeInBits();
+          if (edgeCandidateEndOffset > startOffset) {
+            startOffset = edgeCandidateOffset;
+          }
+        }
+        return pMap.subMap(startOffset, endOffset).values().iterator();
+      }
+
+      return pMap.values().iterator();
+    }
+  }
+
+  private static class SMGHasValueEdgeSetIterator extends AbstractIterator<SMGEdgeHasValue> {
     Iterator<PersistentSortedMap<Long, SMGEdgeHasValue>> firstLevelIterator;
     Iterator<SMGEdgeHasValue> secondLevelIterator = null;
 
@@ -390,17 +394,9 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
     }
 
     @Override
-    public boolean hasNext() {
+    protected SMGEdgeHasValue computeNext() {
       if (secondLevelIterator == null) {
-        return false;
-      }
-      return secondLevelIterator.hasNext();
-    }
-
-    @Override
-    public SMGEdgeHasValue next() {
-      if (secondLevelIterator == null) {
-        throw new NoSuchElementException();
+        return endOfData();
       }
       SMGEdgeHasValue result = secondLevelIterator.next();
       if (!secondLevelIterator.hasNext()) {

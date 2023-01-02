@@ -21,9 +21,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-/**
- * Statistics for formula slicing.
- */
+/** Statistics for formula slicing. */
 class FormulaSlicingStatistics implements Statistics {
 
   private final CachingPathFormulaManager cachingPathFormulaManager;
@@ -34,21 +32,16 @@ class FormulaSlicingStatistics implements Statistics {
     solver = pSolver;
   }
 
-  /**
-   * Time spent constructing formulas.
-   */
+  /** Time spent constructing formulas. */
   final Timer propagation = new Timer();
 
-  /**
-   * Time spent in inductive weakening.
-   */
+  /** Time spent in inductive weakening. */
   final Timer inductiveWeakening = new Timer();
+
   final Multiset<CFANode> inductiveWeakeningLocations = HashMultiset.create();
   int cachedInductiveWeakenings = 0;
 
-  /**
-   * Reachability statistics.
-   */
+  /** Reachability statistics. */
   final Multiset<CFANode> satChecksLocations = HashMultiset.create();
 
   final Timer reachabilityTargetTimer = new Timer();
@@ -56,19 +49,15 @@ class FormulaSlicingStatistics implements Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    printTimer(out, propagation, "propagating formulas",
-        cachingPathFormulaManager.pathFormulaCacheHits);
+    printTimer(
+        out, propagation, "propagating formulas", cachingPathFormulaManager.pathFormulaCacheHits);
 
-    printTimer(out, inductiveWeakening, "inductive weakening",
-        cachedInductiveWeakenings);
+    printTimer(out, inductiveWeakening, "inductive weakening", cachedInductiveWeakenings);
 
-    printTimer(out, solver.solverTime,
-        "checking reachability",
-        solver.cachedSatChecks);
-    printTimer(out, reachabilityTargetTimer,
-        "checking reachability for target states", "?");
-    printTimer(out, reachabilityAbstractionTimer,
-        "checking reachability for abstraction states", "?");
+    printTimer(out, solver.solverTime, "checking reachability", solver.cachedSatChecks);
+    printTimer(out, reachabilityTargetTimer, "checking reachability for target states", "?");
+    printTimer(
+        out, reachabilityAbstractionTimer, "checking reachability for abstraction states", "?");
     out.printf("Locations for checking reachability: %s%n", satChecksLocations);
   }
 
@@ -77,10 +66,9 @@ class FormulaSlicingStatistics implements Statistics {
     return "Formula Slicing Manager";
   }
 
-  private void printTimer(PrintStream out, Timer t, String name,
-                          Object cacheHits) {
-    out.printf("Time spent in %s: %s (Max: %s), (Avg: %s), (#calls = %s), "
-        + "(#cached = %s) %n",
+  private void printTimer(PrintStream out, Timer t, String name, Object cacheHits) {
+    out.printf(
+        "Time spent in %s: %s (Max: %s), (Avg: %s), (#calls = %s), " + "(#cached = %s) %n",
         name,
         t.getSumTime().formatAs(TimeUnit.SECONDS),
         t.getMaxTime().formatAs(TimeUnit.SECONDS),

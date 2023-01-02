@@ -62,6 +62,8 @@ SPDX-License-Identifier: Apache-2.0
       <exclude reason="timeout">../programs/benchmarks/loop-new/*</exclude>
       <exclude reason="timeout">../programs/benchmarks/loop-crafted/*</exclude>
       <exclude reason="timeout">../programs/benchmarks/loop-lit/*</exclude>
+      <exclude>../programs/benchmarks/loop-acceleration/array_2-1.yml</exclude> <!-- flapping timeout -->
+      <exclude>../programs/benchmarks/loop-acceleration/array_2-2.yml</exclude> <!-- flapping timeout -->
       <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
       <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
       <option name="-setprop">analysis.algorithm.CEGAR=false</option>

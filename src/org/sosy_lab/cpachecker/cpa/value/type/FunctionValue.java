@@ -21,6 +21,7 @@ public final class FunctionValue implements Value, Serializable {
 
   /**
    * Creates a new <code>FunctionValue</code>.
+   *
    * @param pString the value of the function
    */
   public FunctionValue(String pString) {
@@ -73,9 +74,9 @@ public final class FunctionValue implements Value, Serializable {
 
   @Override
   public boolean equals(Object obj) {
-  //equals is only called if this object is a function pointer
-  //always false when comparing a functional pointer with zero
-  //if this object is not a functional pointer, then equals is not called.
+    // equals is only called if this object is a function pointer
+    // always false when comparing a functional pointer with zero
+    // if this object is not a functional pointer, then equals is not called.
     if (this == obj) {
       return true;
     }

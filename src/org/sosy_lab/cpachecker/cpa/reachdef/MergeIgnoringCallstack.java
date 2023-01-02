@@ -19,10 +19,11 @@ import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.DefinitionPoint;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class MergeIgnoringCallstack implements MergeOperator{
+public class MergeIgnoringCallstack implements MergeOperator {
 
   @Override
-  public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision) throws CPAException {
+  public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision)
+      throws CPAException {
     if (pState1 instanceof ReachingDefState && pState2 instanceof ReachingDefState) {
       ReachingDefState e1 = (ReachingDefState) pState1;
       ReachingDefState e2 = (ReachingDefState) pState2;
@@ -30,7 +31,8 @@ public class MergeIgnoringCallstack implements MergeOperator{
           unionMaps(e1.getLocalReachingDefinitions(), e2.getLocalReachingDefinitions());
       Map<MemoryLocation, Set<DefinitionPoint>> global =
           unionMaps(e1.getGlobalReachingDefinitions(), e2.getGlobalReachingDefinitions());
-      if (local != e2.getLocalReachingDefinitions() || global != e2.getGlobalReachingDefinitions()) {
+      if (local != e2.getLocalReachingDefinitions()
+          || global != e2.getGlobalReachingDefinitions()) {
         return new ReachingDefState(local, global);
       }
     }
@@ -52,14 +54,14 @@ public class MergeIgnoringCallstack implements MergeOperator{
     }
     for (MemoryLocation var : vars) {
       // decrease merge time, avoid building union if unnecessary
-      if (map1.get(var)== map2.get(var)) {
+      if (map1.get(var) == map2.get(var)) {
         newMap.put(var, map2.get(var));
         continue;
       }
 
-      if (map1.get(var)==null) {
+      if (map1.get(var) == null) {
         newMap.put(var, map2.get(var));
-      } else if(map2.get(var)==null) {
+      } else if (map2.get(var) == null) {
         newMap.put(var, map1.get(var));
         changed = true;
       } else {
@@ -72,9 +74,9 @@ public class MergeIgnoringCallstack implements MergeOperator{
         newMap.put(var, unionResult);
       }
     }
-    if (changed) { return newMap; }
+    if (changed) {
+      return newMap;
+    }
     return map2;
   }
-
-
 }

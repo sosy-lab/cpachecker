@@ -27,9 +27,10 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.PotentialFix;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
 /**
- * Provides useful methods for converting objects in this package to a HTML format.
- * Extend this class and override the methods to create a different HTML-representation.
- * Change the FaultReportWriter in FaultLocalizationInfo by calling the method <code>replaceHtmlWriter</code>
+ * Provides useful methods for converting objects in this package to a HTML format. Extend this
+ * class and override the methods to create a different HTML-representation. Change the
+ * FaultReportWriter in FaultLocalizationInfo by calling the method <code>replaceHtmlWriter</code>
+ *
  * @see FaultLocalizationInfo#replaceHtmlWriter(FaultReportWriter)
  */
 public class FaultReportWriter {
@@ -45,14 +46,14 @@ public class FaultReportWriter {
     hideTypes(pHideTypes);
   }
 
-  public void hideTypes(InfoType... types){
+  public void hideTypes(InfoType... types) {
     hideTypes.clear();
     hideTypes.addAll(Arrays.asList(types));
   }
 
   public String toHtml(FaultInfo info) {
     String description = info.getDescription();
-    if(info.getType().equals(InfoType.RANK_INFO)){
+    if (info.getType().equals(InfoType.RANK_INFO)) {
       double likelihood = info.getScore();
       String percent = "<strong>" + ((int) (likelihood * 10000)) / 100d + "%</strong>";
       return description + " (" + percent + ")";
@@ -81,18 +82,19 @@ public class FaultReportWriter {
 
   /**
    * Convert this object to a HTML string for the report.
+   *
    * @param correspondingEdges the corresponding edges to the fault
    * @param infos the FaultInfos appended to a Fault(Contribution)
    * @return hmtl code of this instance
    */
-  protected String toHtml(List<FaultInfo> infos, List<CFAEdge> correspondingEdges){
+  protected String toHtml(List<FaultInfo> infos, List<CFAEdge> correspondingEdges) {
     List<FaultReason> faultReasons = new ArrayList<>();
     List<RankInfo> faultInfo = new ArrayList<>();
     List<PotentialFix> faultFix = new ArrayList<>();
 
-    //Sorted insert
+    // Sorted insert
     for (FaultInfo info : infos) {
-      switch(info.getType()){
+      switch (info.getType()) {
         case FIX:
           faultFix.add((PotentialFix) info);
           break;
@@ -158,26 +160,22 @@ public class FaultReportWriter {
           .append("<br>");
     }
 
-    if (!faultInfo.isEmpty()  && !hideTypes.contains(InfoType.RANK_INFO)) {
-      html.append(printList("The score is obtained by:", "", faultInfo, true))
-          .append("<br>");
+    if (!faultInfo.isEmpty() && !hideTypes.contains(InfoType.RANK_INFO)) {
+      html.append(printList("The score is obtained by:", "", faultInfo, true)).append("<br>");
     }
 
     return header + "<br>" + html;
   }
 
   protected String printList(
-      String headline,
-      String htmlId,
-      List<? extends FaultInfo> infos,
-      boolean useOrderedList){
+      String headline, String htmlId, List<? extends FaultInfo> infos, boolean useOrderedList) {
     List<? extends FaultInfo> copy = ImmutableList.sortedCopyOf(infos);
-    String listType = useOrderedList? "ol":"ul";
+    String listType = useOrderedList ? "ol" : "ul";
     String id = "";
-    if(!htmlId.isEmpty()){
+    if (!htmlId.isEmpty()) {
       id = " id=\"" + htmlId + "\"";
     }
-    StringBuilder out = new StringBuilder(headline + "<br><"  + listType + id + ">");
+    StringBuilder out = new StringBuilder(headline + "<br><" + listType + id + ">");
     for (FaultInfo info : copy) {
       out.append("<li>").append(toHtml(info)).append("</li>");
     }
@@ -210,5 +208,4 @@ public class FaultReportWriter {
         + " and "
         + sortedNumbers.get(lastIndex);
   }
-
 }

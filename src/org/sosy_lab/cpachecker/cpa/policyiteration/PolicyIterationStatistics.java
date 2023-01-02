@@ -24,8 +24,7 @@ import org.sosy_lab.cpachecker.util.templates.Template;
 
 public class PolicyIterationStatistics implements Statistics {
 
-  final Multiset<TemplateUpdateEvent> templateUpdateCounter
-      = HashMultiset.create();
+  final Multiset<TemplateUpdateEvent> templateUpdateCounter = HashMultiset.create();
   final Multiset<Integer> abstractMergeCounter = HashMultiset.create();
   final Multiset<Integer> updateCounter = HashMultiset.create();
 
@@ -65,8 +64,7 @@ public class PolicyIterationStatistics implements Statistics {
     printTimer(out, polyhedraWideningTimer, "computing polyhedra widening");
     printTimer(out, ackermannizationTimer, "performing ackermannization on policies");
 
-    out.printf("Number of templates generated through widening: %s%n",
-        wideningTemplatesGenerated);
+    out.printf("Number of templates generated through widening: %s%n", wideningTemplatesGenerated);
 
     UpdateStats<?> updateStats = getUpdateStats(updateCounter);
     UpdateStats<?> templateUpdateStats = getUpdateStats(templateUpdateCounter);
@@ -81,13 +79,9 @@ public class PolicyIterationStatistics implements Statistics {
   }
 
   private void printStats(PrintStream out, UpdateStats<?> stats, String description) {
-    out.printf("Max number of %s: %d, for object: %s%n",
-        description, stats.max, stats.maxObject);
-    out.printf("Min number of %s: %d, for object: %s%n",
-        description, stats.min, stats.minObject);
-    out.printf("Avg number of %s: %.1f%n",
-        description, stats.avg);
-
+    out.printf("Max number of %s: %d, for object: %s%n", description, stats.max, stats.maxObject);
+    out.printf("Min number of %s: %d, for object: %s%n", description, stats.min, stats.minObject);
+    out.printf("Avg number of %s: %.1f%n", description, stats.avg);
   }
 
   private static class UpdateStats<T> {
@@ -95,6 +89,7 @@ public class PolicyIterationStatistics implements Statistics {
     final T minObject;
     final int max, min;
     final double avg;
+
     UpdateStats(int pMax, int pMin, double pAvg, T pMaxObject, T pMinObject) {
       max = pMax;
       min = pMin;
@@ -130,8 +125,11 @@ public class PolicyIterationStatistics implements Statistics {
   }
 
   private void printTimer(PrintStream out, Timer t, String name) {
-    out.printf("Time spent in %s: %s (Max: %s), (Avg: %s), (#intervals = %s)%n",
-        name, t, t.getMaxTime().formatAs(TimeUnit.SECONDS),
+    out.printf(
+        "Time spent in %s: %s (Max: %s), (Avg: %s), (#intervals = %s)%n",
+        name,
+        t,
+        t.getMaxTime().formatAs(TimeUnit.SECONDS),
         t.getAvgTime().formatAs(TimeUnit.SECONDS),
         t.getNumberOfIntervals());
   }
@@ -154,15 +152,13 @@ public class PolicyIterationStatistics implements Statistics {
       return new TemplateUpdateEvent(pLocationID, pTemplate);
     }
 
-
     @Override
     public boolean equals(Object o) {
       if (!(o instanceof TemplateUpdateEvent)) {
         return false;
       }
       TemplateUpdateEvent other = (TemplateUpdateEvent) o;
-      return locationID == other.locationID &&
-          template.equals(other.template);
+      return locationID == other.locationID && template.equals(other.template);
     }
 
     @Override

@@ -14,7 +14,7 @@ public abstract class SMGAbstractList<S> extends SMGObject implements SMGAbstrac
   private final S shape;
 
   protected SMGAbstractList(
-      int pSize, String label, int level, SMGObjectKind kind, S pShape, int pMinLength) {
+      long pSize, String label, int level, SMGObjectKind kind, S pShape, int pMinLength) {
     super(pSize, label, level, kind);
     shape = pShape;
     minimumLength = pMinLength;

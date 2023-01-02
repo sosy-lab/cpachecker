@@ -70,7 +70,7 @@ Develop CPAchecker from within Eclipse
 
 1. Install [Eclipse](http://www.eclipse.org/) with at least version 4.6, with JDT.
 
-2. IMPORTANT: Install the Eclipse plugin for [google-java-format](https://github.com/google/google-java-format/):
+2. Install the Eclipse plugin for [google-java-format](https://github.com/google/google-java-format/):
    Download the `google-java-format-eclipse-plugin-*.jar`
    from the most recent [google-java-format release](https://github.com/google/google-java-format/releases)
    and put it into the `dropins` folder of your Eclipse installation
@@ -183,6 +183,11 @@ Releasing a New Version
 4. Update homepage:
    - Add release archives to `/html` in the repository.
    - Put changelog of newest into `/html/NEWS-<version>.txt`.
+   - Publish new CPAchecker version on Zenodo under https://doi.org/10.5281/zenodo.3816620:
+     - Assign new DOI and upload archive.
+     - Update description with entries for new version in [`NEWS.md`](../NEWS.md).
+     - Update version field and publication date.
+     - Update list of contributors according to [`Authors.md`](../Authors.md).
    - Add links to `/html/download.php`.
    - Move the old download links to `/html/download-oldversions.php`.
    - Update section News on `/html/index.php`.

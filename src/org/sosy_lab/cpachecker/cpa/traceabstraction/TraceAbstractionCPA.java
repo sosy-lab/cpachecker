@@ -14,6 +14,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -66,15 +67,7 @@ public class TraceAbstractionCPA extends AbstractSingleWrapperCPA {
   @SuppressWarnings("resource")
   @Override
   public TransferRelation getTransferRelation() {
-    PredicateCPA wrappedCpa = (PredicateCPA) getWrappedCpa();
-
-    return new TraceAbstractionTransferRelation(
-        wrappedCpa.getTransferRelation(),
-        wrappedCpa.getSolver().getFormulaManager(),
-        predicateManager,
-        itpSequenceStorage,
-        logger,
-        shutdownNotifier);
+    return new TraceAbstractionTransferRelation(super.getTransferRelation());
   }
 
   InterpolationSequenceStorage getInterpolationSequenceStorage() {
@@ -93,11 +86,21 @@ public class TraceAbstractionCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public StopOperator getStopOperator() {
-    return new TraceAbstractionStopOperator(super.getStopOperator());
+    return new StopSepOperator(getAbstractDomain());
   }
 
+  @SuppressWarnings("resource")
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return new TraceAbstractionPrecisionAdjustment(super.getPrecisionAdjustment());
+    PredicateCPA predicateCpa = (PredicateCPA) getWrappedCpa();
+
+    return new TraceAbstractionPrecisionAdjustment(
+        predicateCpa.getPrecisionAdjustment(),
+        predicateCpa.getSolver().getFormulaManager(),
+        predicateManager,
+        predicateCpa.getAbstractionManager(),
+        itpSequenceStorage,
+        logger,
+        shutdownNotifier);
   }
 }

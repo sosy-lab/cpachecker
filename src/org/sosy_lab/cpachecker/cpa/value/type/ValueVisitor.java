@@ -14,11 +14,18 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 public interface ValueVisitor<T> {
 
   T visit(EnumConstantValue pValue);
+
   T visit(SymbolicValue pValue);
+
   T visit(UnknownValue pValue);
+
   T visit(ArrayValue pValue);
+
   T visit(BooleanValue pValue);
+
   T visit(FunctionValue pValue);
+
   T visit(NumericValue pValue);
+
   T visit(NullValue pValue);
 }

@@ -8,18 +8,15 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints;
 
-import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionToCExpressionTransformer;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -31,13 +28,12 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
 /**
- * Creator for {@link Formula}s using a given {@link CtoFormulaConverter} for creating
- * {@link BooleanFormula}s out of {@link Constraint}s.
+ * Creator for {@link Formula}s using a given {@link CtoFormulaConverter} for creating {@link
+ * BooleanFormula}s out of {@link Constraint}s.
  *
- * The properties responsible for the behaviour of PredicateCPA's formula handling influence the
- * behaviour of this class, too.
- * A number of important properties can be found in the classes {@link FormulaEncodingOptions}
- * and {@link FormulaManagerView}.
+ * <p>The properties responsible for the behaviour of PredicateCPA's formula handling influence the
+ * behaviour of this class, too. A number of important properties can be found in the classes {@link
+ * FormulaEncodingOptions} and {@link FormulaManagerView}.
  */
 public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
@@ -46,9 +42,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
   private final String functionName;
 
   public FormulaCreatorUsingCConverter(
-      final CtoFormulaConverter pConverter,
-      final String pFunctionName
-  ) {
+      final CtoFormulaConverter pConverter, final String pFunctionName) {
     toFormulaTransformer = pConverter;
     functionName = pFunctionName;
   }
@@ -85,13 +79,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
     private final CFANode dummyNode;
 
     private DummyEdge(String pFunctionName) {
-      dummyNode =
-          new CFANode(
-              new CFunctionDeclaration(
-                  FileLocation.DUMMY,
-                  CFunctionType.NO_ARGS_VOID_FUNCTION,
-                  pFunctionName,
-                  ImmutableList.of()));
+      dummyNode = CFANode.newDummyCFANode(pFunctionName);
     }
 
     public static DummyEdge getInstance(String pFunctionName) {

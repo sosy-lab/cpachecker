@@ -27,51 +27,58 @@ public class FunctionApplicationManager {
 
   protected FunctionApplicationManager(
       FormulaManagerView pFmgr, LogManager pLogger, UFCheckingProverOptions pOptions) {
-    this.fmgr = pFmgr;
-    this.logger = pLogger;
-    this.options = pOptions;
+    fmgr = pFmgr;
+    logger = pLogger;
+    options = pOptions;
   }
 
   /**
-   * For a UF (with a matching signature and name), we produce the correct result,
-   * and build an assignment (equality) of the UF and the correct result and return it.
-   * If we cannot compute a result or UF is unknown, we return TRUE.
+   * For a UF (with a matching signature and name), we produce the correct result, and build an
+   * assignment (equality) of the UF and the correct result and return it. If we cannot compute a
+   * result or UF is unknown, we return TRUE.
    */
-  public BooleanFormula evaluate(
-      ValueAssignment entry,
-      Object value) {
+  public BooleanFormula evaluate(ValueAssignment entry, Object value) {
     String functionName = entry.getName();
 
     // Stateful shortcut.
 
     switch (functionName) {
-      case "Integer__*_": {
-        return INTEGER_MULT.apply(entry, value);
-      }
-      case "Integer__/_": {
-        return INTEGER_DIV.apply(entry, value);
-      }
-      case "Integer__%_": {
-        return INTEGER_MOD.apply(entry, value);
-      }
-      case "_<<_": {
-        return INTEGER_SHIFT_LEFT.apply(entry, value);
-      }
-      case "_>>_": {
-        return INTEGER_SHIFT_RIGHT.apply(entry, value);
-      }
-      case "_&_": {
-        return INTEGER_AND.apply(entry, value);
-      }
-      case "_!!_": {
-        return INTEGER_OR.apply(entry, value);
-      }
-      case "_^_": {
-        return INTEGER_XOR.apply(entry, value);
-      }
-      case "_~_": {
-        return INTEGER_NOT.apply(entry, value);
-      }
+      case "Integer__*_":
+        {
+          return INTEGER_MULT.apply(entry, value);
+        }
+      case "Integer__/_":
+        {
+          return INTEGER_DIV.apply(entry, value);
+        }
+      case "Integer__%_":
+        {
+          return INTEGER_MOD.apply(entry, value);
+        }
+      case "_<<_":
+        {
+          return INTEGER_SHIFT_LEFT.apply(entry, value);
+        }
+      case "_>>_":
+        {
+          return INTEGER_SHIFT_RIGHT.apply(entry, value);
+        }
+      case "_&_":
+        {
+          return INTEGER_AND.apply(entry, value);
+        }
+      case "_!!_":
+        {
+          return INTEGER_OR.apply(entry, value);
+        }
+      case "_^_":
+        {
+          return INTEGER_XOR.apply(entry, value);
+        }
+      case "_~_":
+        {
+          return INTEGER_NOT.apply(entry, value);
+        }
       default:
         // $FALL-THROUGH$
     }
@@ -84,10 +91,15 @@ public class FunctionApplicationManager {
     return fmgr.getBooleanFormulaManager().makeTrue();
   }
 
-  /** if the new valid result is equal to the old value, we return just TRUE, else we return the new assignment. */
-  private BooleanFormula makeAssignmentOrTrue(Number validResult, Object value, Formula uf, BooleanFormula newAssignment) {
+  /**
+   * if the new valid result is equal to the old value, we return just TRUE, else we return the new
+   * assignment.
+   */
+  private BooleanFormula makeAssignmentOrTrue(
+      Number validResult, Object value, Formula uf, BooleanFormula newAssignment) {
     if (!validResult.equals(value)) {
-      logger.logf(Level.ALL, "replacing UF '%s' with value '%s' through '%s'.", uf, value, newAssignment);
+      logger.logf(
+          Level.ALL, "replacing UF '%s' with value '%s' through '%s'.", uf, value, newAssignment);
       return newAssignment;
     } else {
       return fmgr.getBooleanFormulaManager().makeTrue();
@@ -97,10 +109,7 @@ public class FunctionApplicationManager {
   /** common interface for all function-evaluators. */
   private interface FunctionApplication {
 
-    /**
-     * returns a constraint "UF(params) == result"
-     * or TRUE if we cannot evaluate the UF.
-     */
+    /** returns a constraint "UF(params) == result" or TRUE if we cannot evaluate the UF. */
     BooleanFormula apply(ValueAssignment func, Object pValue);
   }
 
@@ -119,11 +128,13 @@ public class FunctionApplicationManager {
         return fmgr.getBooleanFormulaManager().makeTrue();
       }
 
-      Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUF(
-          func.getName(),
-          getType(),
-          fmgr.makeNumber(getType(), arg1),
-          fmgr.makeNumber(getType(), arg2));
+      Formula uf =
+          fmgr.getFunctionFormulaManager()
+              .declareAndCallUF(
+                  func.getName(),
+                  getType(),
+                  fmgr.makeNumber(getType(), arg1),
+                  fmgr.makeNumber(getType(), arg2));
 
       BooleanFormula newAssignment = fmgr.makeEqual(uf, fmgr.makeNumber(getType(), validResult));
 
@@ -137,7 +148,6 @@ public class FunctionApplicationManager {
 
     /** returns the correct result of the computation. */
     abstract BigInteger compute(BigInteger p1, BigInteger p2);
-
   }
 
   private abstract class UnaryFunctionApplication implements FunctionApplication {
@@ -152,10 +162,9 @@ public class FunctionApplicationManager {
         return fmgr.getBooleanFormulaManager().makeTrue();
       }
 
-      Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUF(
-          func.getName(),
-          getType(),
-          fmgr.makeNumber(getType(), p1));
+      Formula uf =
+          fmgr.getFunctionFormulaManager()
+              .declareAndCallUF(func.getName(), getType(), fmgr.makeNumber(getType(), p1));
 
       BooleanFormula newAssignment = fmgr.makeEqual(uf, fmgr.makeNumber(getType(), validResult));
 
@@ -169,128 +178,138 @@ public class FunctionApplicationManager {
 
     /** returns the correct result of the computation. */
     abstract BigInteger compute(ValueAssignment func, BigInteger p2);
-
   }
 
-  private final FunctionApplication INTEGER_MULT = new BinaryArithmeticFunctionApplication() {
+  private final FunctionApplication INTEGER_MULT =
+      new BinaryArithmeticFunctionApplication() {
 
-    @Override
-    BigInteger compute(BigInteger p1, BigInteger p2) {
-      return p1.multiply(p2);
-    }
-  };
+        @Override
+        BigInteger compute(BigInteger p1, BigInteger p2) {
+          return p1.multiply(p2);
+        }
+      };
 
-  private final FunctionApplication INTEGER_DIV = new BinaryArithmeticFunctionApplication() {
+  private final FunctionApplication INTEGER_DIV =
+      new BinaryArithmeticFunctionApplication() {
 
-    @Override
-    BigInteger compute(BigInteger p1, BigInteger p2) {
-      if (BigInteger.ZERO.equals(p2)) {
-        return null;
-      } else {
-        return p1.divide(p2);
-      }
-    }
-  };
+        @Override
+        BigInteger compute(BigInteger p1, BigInteger p2) {
+          if (BigInteger.ZERO.equals(p2)) {
+            return null;
+          } else {
+            return p1.divide(p2);
+          }
+        }
+      };
 
-  private final FunctionApplication INTEGER_MOD = new BinaryArithmeticFunctionApplication() {
+  private final FunctionApplication INTEGER_MOD =
+      new BinaryArithmeticFunctionApplication() {
 
-    @Override
-    BigInteger compute(BigInteger p1, BigInteger p2) {
-      if (BigInteger.ZERO.equals(p2)) {
-        return null;
-      } else {
-        return p1.remainder(p2);
-      }
-    }
-  };
+        @Override
+        BigInteger compute(BigInteger p1, BigInteger p2) {
+          if (BigInteger.ZERO.equals(p2)) {
+            return null;
+          } else {
+            return p1.remainder(p2);
+          }
+        }
+      };
 
-  private final FunctionApplication INTEGER_SHIFT_LEFT = new BinaryArithmeticFunctionApplication() {
+  private final FunctionApplication INTEGER_SHIFT_LEFT =
+      new BinaryArithmeticFunctionApplication() {
 
-    @Override
-    BigInteger compute(BigInteger p1, BigInteger p2) {
-      int v = p2.intValue();
-      if (v < 0) {
-        return null;
-      }
-      return p1.shiftLeft(v);
-    }
-  };
+        @Override
+        BigInteger compute(BigInteger p1, BigInteger p2) {
+          int v = p2.intValue();
+          if (v < 0) {
+            return null;
+          }
+          return p1.shiftLeft(v);
+        }
+      };
 
-  private final FunctionApplication INTEGER_SHIFT_RIGHT = new BinaryArithmeticFunctionApplication() {
+  private final FunctionApplication INTEGER_SHIFT_RIGHT =
+      new BinaryArithmeticFunctionApplication() {
 
-    @Override
-    BigInteger compute(BigInteger p1, BigInteger p2) {
-      int v = p2.intValue();
-      if (v < 0) {
-        return null;
-      }
-      return p1.shiftRight(v);
-    }
-  };
+        @Override
+        BigInteger compute(BigInteger p1, BigInteger p2) {
+          int v = p2.intValue();
+          if (v < 0) {
+            return null;
+          }
+          return p1.shiftRight(v);
+        }
+      };
 
-  private final FunctionApplication INTEGER_AND = new BinaryArithmeticFunctionApplication() {
+  private final FunctionApplication INTEGER_AND =
+      new BinaryArithmeticFunctionApplication() {
 
-    @Override
-    BigInteger compute(BigInteger p1, BigInteger p2) {
-      return p1.and(p2);
-    }
-  };
+        @Override
+        BigInteger compute(BigInteger p1, BigInteger p2) {
+          return p1.and(p2);
+        }
+      };
 
-  private final FunctionApplication INTEGER_OR = new BinaryArithmeticFunctionApplication() {
+  private final FunctionApplication INTEGER_OR =
+      new BinaryArithmeticFunctionApplication() {
 
-    @Override
-    BigInteger compute(BigInteger p1, BigInteger p2) {
-      return p1.or(p2);
-    }
-  };
+        @Override
+        BigInteger compute(BigInteger p1, BigInteger p2) {
+          return p1.or(p2);
+        }
+      };
 
-  private final FunctionApplication INTEGER_XOR = new BinaryArithmeticFunctionApplication() {
+  private final FunctionApplication INTEGER_XOR =
+      new BinaryArithmeticFunctionApplication() {
 
-    @Override
-    BigInteger compute(BigInteger p1, BigInteger p2) {
-      return p1.xor(p2);
-    }
-  };
+        @Override
+        BigInteger compute(BigInteger p1, BigInteger p2) {
+          return p1.xor(p2);
+        }
+      };
 
-  private final FunctionApplication INTEGER_NOT = new UnaryFunctionApplication() {
+  private final FunctionApplication INTEGER_NOT =
+      new UnaryFunctionApplication() {
 
-    @Override
-    BigInteger compute(ValueAssignment pFunc, BigInteger p1) {
-      return p1.not();
-    }
-  };
+        @Override
+        BigInteger compute(ValueAssignment pFunc, BigInteger p1) {
+          return p1.not();
+        }
+      };
 
-  private final FunctionApplication OVERFLOW = new UnaryFunctionApplication() {
+  private final FunctionApplication OVERFLOW =
+      new UnaryFunctionApplication() {
 
-    @Override
-    BigInteger compute(ValueAssignment func, BigInteger p1) {
-      final String name = func.getName();
-      assert name.startsWith("_overflowSigned") || name.startsWith("_overflowUnsigned");
-      final boolean signed = name.startsWith("_overflowSigned");
-      String length = name.substring(name.indexOf("(") + 1, name.indexOf(")"));
-      return overflow(signed, Integer.parseInt(length), p1);
-    }
+        @Override
+        BigInteger compute(ValueAssignment func, BigInteger p1) {
+          final String name = func.getName();
+          assert name.startsWith("_overflowSigned") || name.startsWith("_overflowUnsigned");
+          final boolean signed = name.startsWith("_overflowSigned");
+          String length = name.substring(name.indexOf("(") + 1, name.indexOf(")"));
+          return overflow(signed, Integer.parseInt(length), p1);
+        }
 
-    private BigInteger overflow(boolean signed, int bitsize, BigInteger value) {
+        private BigInteger overflow(boolean signed, int bitsize, BigInteger value) {
 
-      if (signed && !options.isSignedOverflowSafe()) {
-        // According to C99-standard, signed integer overflow is not specified.
-        // Thus no evaluation is possible, every value is allowed.
-        // As the SMT-solver has a satisfiable term with this value, just return NULL to ignore the value.
-        return null;
-      }
+          if (signed && !options.isSignedOverflowSafe()) {
+            // According to C99-standard, signed integer overflow is not specified.
+            // Thus no evaluation is possible, every value is allowed.
+            // As the SMT-solver has a satisfiable term with this value, just return NULL to ignore
+            // the value.
+            return null;
+          }
 
-      final BigInteger range = BigInteger.ONE.shiftLeft(bitsize);
+          final BigInteger range = BigInteger.ONE.shiftLeft(bitsize);
 
-      // (value % range) is guaranteed to be in range, and always >=0.
-      value = value.mod(range);
+          // (value % range) is guaranteed to be in range, and always >=0.
+          value = value.mod(range);
 
-      // if (value >= 2**31): value -= 2**31
-      final BigInteger max = BigInteger.ONE.shiftLeft(bitsize - 1);
-      if (signed && value.compareTo(max) >= 0) {
-        value = value.subtract(range);
-      }
-      return value;
-    }
-  };
+          // if (value >= 2**31): value -= 2**31
+          final BigInteger max = BigInteger.ONE.shiftLeft(bitsize - 1);
+          if (signed && value.compareTo(max) >= 0) {
+            value = value.subtract(range);
+          }
+          return value;
+        }
+      };
 }

@@ -52,7 +52,7 @@ Verifying a Program with CPAchecker
    Example: `doc/examples/example.c` or `doc/examples/example_bug.c`
    A good source for more example programs is the benchmark set of the
    [International Competition on Software Verification](http://sv-comp.sosy-lab.org/),
-   which can be checked out from https://github.com/sosy-lab/sv-benchmarks.
+   which can be checked out from https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks.
 
 2. If you want to enable certain analyses like predicate analysis,
    choose a configuration file. This file defines for example which CPAs are used.

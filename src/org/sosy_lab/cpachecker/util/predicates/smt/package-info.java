@@ -7,17 +7,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Extensions of the pure {@link org.sosy_lab.java_smt.api.FormulaManager}
- * interface and its related interfaces
- * that make it easier to use by client code.
- * This package can be used regardless of which SMT solver is the backend.
+ * Extensions of the pure {@link org.sosy_lab.java_smt.api.FormulaManager} interface and its related
+ * interfaces that make it easier to use by client code. This package can be used regardless of
+ * which SMT solver is the backend.
  *
- * The most important feature of this package is to replace an SMT theory
- * with another one, simulating the semantics of the replaced theory
- * with other theories.
- * This can be used to allow working with {@link org.sosy_lab.java_smt.api.BitvectorFormula}
- * even if the solver does not support the theory of bitvectors.
- * Bitvectors will then be approximated with rationals or integers.
+ * <p>The most important feature of this package is to replace an SMT theory with another one,
+ * simulating the semantics of the replaced theory with other theories. This can be used to allow
+ * working with {@link org.sosy_lab.java_smt.api.BitvectorFormula} even if the solver does not
+ * support the theory of bitvectors. Bitvectors will then be approximated with rationals or
+ * integers.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault

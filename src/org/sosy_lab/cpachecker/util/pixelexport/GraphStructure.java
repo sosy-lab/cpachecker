@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.pixelexport;
 
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -35,7 +34,4 @@ public class GraphStructure implements Iterable<GraphLevel> {
   public int getDepth() {
     return levels.size();
   }
-
-
-
 }

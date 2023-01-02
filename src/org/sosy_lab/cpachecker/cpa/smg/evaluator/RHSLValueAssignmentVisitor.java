@@ -18,13 +18,13 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 class RHSLValueAssignmentVisitor extends LValueAssignmentVisitor {
 
-  public RHSLValueAssignmentVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
+  public RHSLValueAssignmentVisitor(
+      SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
     super(pSmgExpressionEvaluator, pEdge, pSmgState);
   }
 
   @Override
-  public List<SMGAddressAndState> visit(CPointerExpression pLValue)
-      throws CPATransferException {
+  public List<SMGAddressAndState> visit(CPointerExpression pLValue) throws CPATransferException {
     List<SMGAddressAndState> results = new ArrayList<>();
     for (SMGAddressAndState address : super.visit(pLValue)) {
       if (address.getObject().isUnknown()) {

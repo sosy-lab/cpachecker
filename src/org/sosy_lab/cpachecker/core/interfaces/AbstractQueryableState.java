@@ -11,20 +11,20 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
- * An AbstractState that evaluates Properties (String-encoded) and
- * returns whether they are satisfied in concrete states represented by the AbstractState.
+ * An AbstractState that evaluates Properties (String-encoded) and returns whether they are
+ * satisfied in concrete states represented by the AbstractState.
  */
 public interface AbstractQueryableState extends AbstractState {
 
   String getCPAName();
 
   /**
-   * Checks whether this AbstractState satisfies the property.
-   * Each CPA defines which properties can be evaluated.
+   * Checks whether this AbstractState satisfies the property. Each CPA defines which properties can
+   * be evaluated.
    *
-   * This method is never called from outside, but it can be used as a convenience method
-   * for boolean queries, if {@link #evaluateProperty(String)} delegates to this method
-   * (which it does by default).
+   * <p>This method is never called from outside, but it can be used as a convenience method for
+   * boolean queries, if {@link #evaluateProperty(String)} delegates to this method (which it does
+   * by default).
    *
    * @param property the property to be checked
    * @return if the property is satisfied
@@ -35,8 +35,8 @@ public interface AbstractQueryableState extends AbstractState {
   }
 
   /**
-   * Evaluates some property with regard to this AbstractState and returns a value.
-   * Each CPA defines which properties can be evaluated.
+   * Evaluates some property with regard to this AbstractState and returns a value. Each CPA defines
+   * which properties can be evaluated.
    *
    * @param property the property to be checked
    * @return if the property is satisfied
@@ -47,8 +47,9 @@ public interface AbstractQueryableState extends AbstractState {
   }
 
   /**
-   * Modifies the internal state of this AbstractState.
-   * Each CPA defines a separate language for definition of modifications.
+   * Modifies the internal state of this AbstractState. Each CPA defines a separate language for
+   * definition of modifications.
+   *
    * @param modification how the state should be modified
    * @throws InvalidQueryException if the modification is not given in the (CPA-specific) syntax
    */

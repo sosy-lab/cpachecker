@@ -20,8 +20,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 @SuppressWarnings({"checkstyle:IllegalType", "JdkObsolete"})
 public class RandomWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> {
 
-  private static final long serialVersionUID = 1L;
-
   private final Random rand = new Random(0);
 
   protected RandomWaitlist() {

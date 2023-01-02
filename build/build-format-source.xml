@@ -30,53 +30,19 @@ SPDX-License-Identifier: Apache-2.0
             <classpath>
                 <fileset dir="${ivy.lib.dir}" includes="format-source/*.jar"/>
             </classpath>
+            <!-- Make it work under Java 17 until https://github.com/google/google-java-format/issues/787 is fixed. -->
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED"/>
+            <jvmarg value="--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED"/>
+            <jvmarg value="--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED"/>
             <arg value="-i"/>
             <arg line="'${source.files}'"/>
         </java>
-    </target>
-
-    <target name="format-selection" depends="resolve-dependencies"
-        description="Reformat the files in property format.selection">
-        <java fork="true" classname="com.google.googlejavaformat.java.Main">
-            <classpath>
-                <fileset dir="${ivy.lib.dir}" includes="format-source/*.jar"/>
-            </classpath>
-            <arg value="-i"/>
-            <arg line="'${format.selection}'"/>
-        </java>
-    </target>
-
-    <target name="format-diff" depends="resolve-dependencies"
-        description="Reformat all lines that are currently changed but not yet committed">
-        <exec executable="svn"
-                outputproperty="svn.diff"
-                failonerror="false" failifexecutionfails="false"
-                logError="false" error="/dev/null">
-            <arg value="diff"/>
-            <arg value="--diff-cmd"/>
-            <arg value="diff"/>
-            <arg value="-x"/>
-            <arg value="-u0"/>
-            <arg value="${source.dir}"/>
-        </exec>
-        <exec executable="git"
-                outputproperty="git.diff"
-                failonerror="false" failifexecutionfails="false"
-                logError="false" error="/dev/null">
-            <arg value="diff"/>
-            <arg value="--cached"/>
-            <arg value="-U0"/>
-            <arg value="--no-prefix"/>
-            <arg value="${source.dir}"/>
-        </exec>
-
-        <condition property="diff" value="${svn.diff}" else="${git.diff}">
-            <not><equals arg1="${svn.diff}" arg2=""/></not>
-        </condition>
-
-        <exec executable="build/google-java-format-diff.py"
-                inputstring="${diff}">
-            <arg value="-i"/>
-        </exec>
     </target>
 </project>

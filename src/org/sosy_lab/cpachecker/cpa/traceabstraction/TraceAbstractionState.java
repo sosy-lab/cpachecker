@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Objects;
@@ -17,7 +15,6 @@ import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 class TraceAbstractionState extends AbstractSingleWrapperState implements Graphable {
 
@@ -31,11 +28,11 @@ class TraceAbstractionState extends AbstractSingleWrapperState implements Grapha
    * state. Only entries with non-trivial predicates are contained (i.e., other than true and
    * false).
    */
-  private final ImmutableMap<InterpolationSequence, AbstractionPredicate> activePredicates;
+  private final ImmutableMap<InterpolationSequence, IndexedAbstractionPredicate> activePredicates;
 
   TraceAbstractionState(
       AbstractState pWrappedState,
-      Map<InterpolationSequence, AbstractionPredicate> pActivePredicates) {
+      Map<InterpolationSequence, IndexedAbstractionPredicate> pActivePredicates) {
     super(pWrappedState);
     activePredicates = ImmutableMap.copyOf(pActivePredicates);
   }
@@ -44,7 +41,7 @@ class TraceAbstractionState extends AbstractSingleWrapperState implements Grapha
     return !activePredicates.isEmpty();
   }
 
-  ImmutableMap<InterpolationSequence, AbstractionPredicate> getActivePredicates() {
+  ImmutableMap<InterpolationSequence, IndexedAbstractionPredicate> getActivePredicates() {
     return activePredicates;
   }
 
@@ -53,6 +50,12 @@ class TraceAbstractionState extends AbstractSingleWrapperState implements Grapha
       return this;
     }
     return new TraceAbstractionState(pWrappedState, getActivePredicates());
+  }
+
+  boolean isLessOrEqual(TraceAbstractionState pOther) {
+    // TODO: For now the states are only checked for equality.
+    // 'activePredicates' might need to be additionally checked for a lesser-relation.
+    return equals(pOther);
   }
 
   @Override
@@ -78,13 +81,15 @@ class TraceAbstractionState extends AbstractSingleWrapperState implements Grapha
       return super.toString() + "\n_empty_preds_";
     }
 
-    return FluentIterable.from(activePredicates.entrySet())
-        .transform(x -> x.getKey() + ":" + x.getValue())
-        .join(Joiner.on("; "));
+    return createString();
   }
 
   @Override
   public String toDOTLabel() {
+    return createString();
+  }
+
+  private String createString() {
     StringBuilder sb = new StringBuilder();
 
     AbstractState wrappedState = getWrappedState();
@@ -94,11 +99,9 @@ class TraceAbstractionState extends AbstractSingleWrapperState implements Grapha
     }
 
     sb.append(
-        activePredicates
-            .values()
-            .stream()
-            .map(pred -> pred.getSymbolicAtom().toString())
-            .collect(Collectors.joining("; ")));
+        activePredicates.values().stream()
+            .map(indexedPred -> indexedPred.getPredicate().getSymbolicAtom().toString())
+            .collect(Collectors.joining("\n")));
     return sb.toString();
   }
 

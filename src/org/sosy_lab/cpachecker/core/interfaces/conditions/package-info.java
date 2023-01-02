@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Interfaces for conditional model checking.
- */
+/** Interfaces for conditional model checking. */
 package org.sosy_lab.cpachecker.core.interfaces.conditions;

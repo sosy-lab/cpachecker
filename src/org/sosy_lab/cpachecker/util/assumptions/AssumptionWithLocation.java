@@ -23,9 +23,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
-/**
- * Representation of an assumption of the form \land_i. pc = l_i ==> \phi_i
- */
+/** Representation of an assumption of the form \land_i. pc = l_i ==> \phi_i */
 public class AssumptionWithLocation implements Appender {
 
   private final FormulaManagerView manager;
@@ -43,9 +41,7 @@ public class AssumptionWithLocation implements Appender {
     return result;
   }
 
-  /**
-   * Return the number of locations for which we have an assumption.
-   */
+  /** Return the number of locations for which we have an assumption. */
   public int getNumberOfLocations() {
     return map.size();
   }

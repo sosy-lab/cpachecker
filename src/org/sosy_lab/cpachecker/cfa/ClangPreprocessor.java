@@ -11,14 +11,19 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Strings;
+import com.google.common.io.Files;
 import java.nio.file.Path;
+import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.llvm_j.binding.LLVMLibrary;
+import org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmUtils;
+import org.sosy_lab.cpachecker.exceptions.ClangParserException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 @Options(prefix = "parser")
 public class ClangPreprocessor extends Preprocessor {
@@ -30,7 +35,7 @@ public class ClangPreprocessor extends Preprocessor {
               + "The source file name will be appended to this string. "
               + "Clang needs to print the output to stdout.")
   private String clang =
-      "clang-" + extractVersionNumberFromLlvmJ() + " -S -emit-llvm -o /dev/stdout";
+      "clang-" + LlvmUtils.extractVersionNumberFromLlvmJ() + " -S -emit-llvm -o /dev/stdout";
 
   @Option(
       name = "clang.dumpResults",
@@ -50,10 +55,17 @@ public class ClangPreprocessor extends Preprocessor {
    * @param dumpDirectory The required dump directory where the dump file will be written to.
    * @return The path denoting the dump file.
    */
-  public Path preprocessAndGetDumpedFile(Path file, Path dumpDirectory)
-      throws CParserException, InterruptedException {
+  public @Nullable Path preprocessAndGetDumpedFile(Path file, Path dumpDirectory)
+      throws ParserException, InterruptedException {
     checkNotNull(dumpDirectory, "Using the clang preprocessor requires a dump directory.");
+    if (Files.getFileExtension(file.toString()).isEmpty()) {
+      assumeLanguageC();
+      logger.log(Level.FINE, "Assuming language C for preprocessing with clang");
+    }
     String result = preprocess0(file);
+    if (Strings.isNullOrEmpty(result)) {
+      throw new ClangParserException("Clang could not preprocess the given file.");
+    }
     return getAndWriteDumpFile(result, file, dumpDirectory);
   }
 
@@ -68,16 +80,30 @@ public class ClangPreprocessor extends Preprocessor {
   }
 
   @Override
+  protected ParserException createCorrespondingParserException(String pMsg) {
+    return new ClangParserException(pMsg);
+  }
+
+  @Override
+  protected ParserException createCorrespondingParserException(String pMsg, Throwable pCause) {
+    return new ClangParserException(pMsg, pCause);
+  }
+
+  @Override
   protected boolean dumpResults() {
     return dumpResults;
   }
 
   @Override
   protected String getDumpFileOfFile(String file) {
-    return file.replaceFirst("(\\.c|\\.i)$", ".ll");
+    String llvmSuffix = ".ll";
+    if (Files.getFileExtension(file).isEmpty()) {
+      return file + llvmSuffix;
+    }
+    return file.replaceFirst("(\\.c|\\.i)$", llvmSuffix);
   }
 
-  private String extractVersionNumberFromLlvmJ() {
-    return LLVMLibrary.JNA_LIBRARY_NAME.substring("LLVM-".length());
+  private void assumeLanguageC() {
+    clang += " -x c";
   }
 }

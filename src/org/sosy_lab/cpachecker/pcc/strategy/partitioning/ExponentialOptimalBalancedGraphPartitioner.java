@@ -16,7 +16,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 
-
 public class ExponentialOptimalBalancedGraphPartitioner implements BalancedGraphPartitioner {
 
   private final ShutdownNotifier shutdown;
@@ -26,15 +25,17 @@ public class ExponentialOptimalBalancedGraphPartitioner implements BalancedGraph
   }
 
   @Override
-  public List<Set<Integer>> computePartitioning(final int pNumPartitions, final PartialReachedSetDirectedGraph pGraph)
+  public List<Set<Integer>> computePartitioning(
+      final int pNumPartitions, final PartialReachedSetDirectedGraph pGraph)
       throws InterruptedException {
     List<Integer> permutationIndices = initPermutationIndices(pGraph.getNumNodes());
 
     // compute partition for current order of nodes
-    List<Set<Integer>> currentPartitioning, bestPartitioning =
-        computePermutation(permutationIndices, pNumPartitions);
+    List<Set<Integer>> currentPartitioning,
+        bestPartitioning = computePermutation(permutationIndices, pNumPartitions);
 
-    long currentNumCrossingEdges, minNumCrossingEdges = getNumberOfPartitionCrossingEdges(pGraph, bestPartitioning);
+    long currentNumCrossingEdges,
+        minNumCrossingEdges = getNumberOfPartitionCrossingEdges(pGraph, bestPartitioning);
 
     while (hasNextPermutation(permutationIndices)) {
       shutdown.shutdownIfNecessary();
@@ -65,7 +66,8 @@ public class ExponentialOptimalBalancedGraphPartitioner implements BalancedGraph
     return result;
   }
 
-  private List<Set<Integer>> computePermutation(final List<Integer> pPermutationIndices, final int pNumPartitions) {
+  private List<Set<Integer>> computePermutation(
+      final List<Integer> pPermutationIndices, final int pNumPartitions) {
 
     List<Integer> orderedNodes = new ArrayList<>();
     for (int j = pPermutationIndices.size() - 1; j >= 0; j--) {
@@ -88,7 +90,9 @@ public class ExponentialOptimalBalancedGraphPartitioner implements BalancedGraph
 
     for (int i = 0; i < pNumPartitions - numSmaller; i++) {
       currentPartition = result.get(i);
-      for (int j = i * maxSize + numSmaller * (maxSize - 1); j < (i + 1) * maxSize + numSmaller * (maxSize - 1); j++) {
+      for (int j = i * maxSize + numSmaller * (maxSize - 1);
+          j < (i + 1) * maxSize + numSmaller * (maxSize - 1);
+          j++) {
         currentPartition.add(orderedNodes.get(j));
       }
     }
@@ -97,12 +101,15 @@ public class ExponentialOptimalBalancedGraphPartitioner implements BalancedGraph
 
   private boolean hasNextPermutation(final List<Integer> pPermutationIndices) {
     for (int i = 0, j = pPermutationIndices.size() - 1; i < pPermutationIndices.size(); i++, j--) {
-      if (pPermutationIndices.get(i) < j) { return true; }
+      if (pPermutationIndices.get(i) < j) {
+        return true;
+      }
     }
     return false;
   }
 
-  private List<Set<Integer>> computeNextPermutation(final List<Integer> pPermutationIndices, final int pNumPartitions) {
+  private List<Set<Integer>> computeNextPermutation(
+      final List<Integer> pPermutationIndices, final int pNumPartitions) {
     for (int j = pPermutationIndices.size() - 1, i = 0; j >= 0; j--, i++) {
       if (pPermutationIndices.get(j) < i) {
         pPermutationIndices.set(j, pPermutationIndices.get(j) + 1);
@@ -114,8 +121,8 @@ public class ExponentialOptimalBalancedGraphPartitioner implements BalancedGraph
     return computePermutation(pPermutationIndices, pNumPartitions);
   }
 
-  private long getNumberOfPartitionCrossingEdges(final PartialReachedSetDirectedGraph pGraph,
-      final List<Set<Integer>> partitioning) {
+  private long getNumberOfPartitionCrossingEdges(
+      final PartialReachedSetDirectedGraph pGraph, final List<Set<Integer>> partitioning) {
     long result = 0;
     for (Set<Integer> partition : partitioning) {
       result += pGraph.getNumSuccessorNodesOutsideSet(partition);

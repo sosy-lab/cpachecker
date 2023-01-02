@@ -60,10 +60,7 @@ public class ARGToDotWriter {
       throws IOException {
 
     ARGToDotWriter toDotWriter = new ARGToDotWriter(sb);
-    toDotWriter.writeSubgraph(rootState,
-        successorFunction,
-        displayedElements,
-        highlightEdge);
+    toDotWriter.writeSubgraph(rootState, successorFunction, displayedElements, highlightEdge);
     toDotWriter.finish();
   }
 
@@ -84,7 +81,7 @@ public class ARGToDotWriter {
       }
       sb.append(determineNode(state));
       sb.append(determineStateHint(state));
-      for (ARGState child: state.getChildren()) {
+      for (ARGState child : state.getChildren()) {
         sb.append(determineEdge(BiPredicates.alwaysFalse(), state, child));
       }
     }
@@ -116,15 +113,13 @@ public class ARGToDotWriter {
 
     ARGToDotWriter toDotWriter = new ARGToDotWriter(sb);
     for (ARGState rootState : rootStates) {
-      toDotWriter.enterSubgraph("cluster_" + rootState.getStateId(), "reachedset_" + rootState.getStateId());
-      toDotWriter.writeSubgraph(rootState,
-              successorFunction,
-              displayedElements,
-              highlightEdge);
+      toDotWriter.enterSubgraph(
+          "cluster_" + rootState.getStateId(), "reachedset_" + rootState.getStateId());
+      toDotWriter.writeSubgraph(rootState, successorFunction, displayedElements, highlightEdge);
       toDotWriter.leaveSubgraph();
     }
 
-    for (Map.Entry<ARGState,ARGState> connection : connections.entries()) {
+    for (Map.Entry<ARGState, ARGState> connection : connections.entries()) {
       sb.append(connection.getKey().getStateId() + " -> " + connection.getValue().getStateId());
       sb.append(" [color=green style=bold]\n");
     }
@@ -274,12 +269,13 @@ public class ARGToDotWriter {
     final String hintNodeId = stateNodeId + "hint";
 
     String hintLabel = "";
-//    PredicateAbstractState abstraction = AbstractStates.extractStateByType(currentElement, PredicateAbstractState.class);
-//    if (abstraction != null && abstraction.isAbstractionState()) {
-//      final StringBuilder labelBuilder = new StringBuilder();
-//      labelBuilder.append(abstraction.getAbstractionFormula().asFormula().toString());
-//      hintLabel = labelBuilder.toString();
-//    }
+    //    PredicateAbstractState abstraction = AbstractStates.extractStateByType(currentElement,
+    // PredicateAbstractState.class);
+    //    if (abstraction != null && abstraction.isAbstractionState()) {
+    //      final StringBuilder labelBuilder = new StringBuilder();
+    //      labelBuilder.append(abstraction.getAbstractionFormula().asFormula().toString());
+    //      hintLabel = labelBuilder.toString();
+    //    }
 
     final StringBuilder builder = new StringBuilder();
 
@@ -343,8 +339,7 @@ public class ARGToDotWriter {
       builder.append("\\n");
     }
 
-    builder.append(
-        DOTBuilder.escapeGraphvizLabel(currentElement.toDOTLabel(), "\\\\n"));
+    builder.append(DOTBuilder.escapeGraphvizLabel(currentElement.toDOTLabel(), "\\\\n"));
 
     return builder.toString().trim();
   }

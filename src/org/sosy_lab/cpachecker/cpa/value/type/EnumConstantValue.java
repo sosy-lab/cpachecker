@@ -10,9 +10,7 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-/**
- * Stores an enum constant that can be tracked by the ValueAnalysisCPA.
- */
+/** Stores an enum constant that can be tracked by the ValueAnalysisCPA. */
 public class EnumConstantValue implements Value {
 
   private static final long serialVersionUID = 2745087444102463717L;
@@ -48,8 +46,8 @@ public class EnumConstantValue implements Value {
   }
 
   /**
-   * Always returns <code>false</code> since every
-   * <code>EnumConstantValue</code> has to represent a specific value.
+   * Always returns <code>false</code> since every <code>EnumConstantValue</code> has to represent a
+   * specific value.
    *
    * @return always returns <code>false</code>
    */
@@ -59,8 +57,8 @@ public class EnumConstantValue implements Value {
   }
 
   /**
-   * Always returns <code>true</code> since every
-   * <code>EnumConstantValue</code> represents one specific value.
+   * Always returns <code>true</code> since every <code>EnumConstantValue</code> represents one
+   * specific value.
    *
    * @return always returns <code>true</code>
    */
@@ -70,8 +68,8 @@ public class EnumConstantValue implements Value {
   }
 
   /**
-   * This method is not implemented and will lead to an <code>AssertionError</code>.
-   * Enum constants can't be represented by a number.
+   * This method is not implemented and will lead to an <code>AssertionError</code>. Enum constants
+   * can't be represented by a number.
    */
   @Override
   public NumericValue asNumericValue() {
@@ -79,8 +77,7 @@ public class EnumConstantValue implements Value {
   }
 
   /**
-   * This method always returns <code>null</code>.
-   * Enum constants can't be represented by a number.
+   * This method always returns <code>null</code>. Enum constants can't be represented by a number.
    */
   @Override
   public Long asLong(CType pType) {

@@ -8,13 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.value.type;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-import java.util.Optional;
-
 /**
- * This class represents a boolean value.
- * It may store the values <code>false</code> and <code>true</code>.
+ * This class represents a boolean value. It may store the values <code>false</code> and <code>true
+ * </code>.
  */
 public class BooleanValue implements Value {
 
@@ -31,8 +30,7 @@ public class BooleanValue implements Value {
   }
 
   /**
-   * Returns an instance of a <code>BooleanValue</code> object
-   * with the specified value.
+   * Returns an instance of a <code>BooleanValue</code> object with the specified value.
    *
    * @param value the value the returned object should hold
    * @return an instance of <code>BooleanValue</code> with the specified value
@@ -46,14 +44,14 @@ public class BooleanValue implements Value {
   }
 
   /**
-   * Returns an instance of a <code>BooleanValue</code> object representing the
-   * boolean meaning of the given value, if one exists.
-   * If none exists, an <code>Optional</code> with no contained reference is returned.
+   * Returns an instance of a <code>BooleanValue</code> object representing the boolean meaning of
+   * the given value, if one exists. If none exists, an <code>Optional</code> with no contained
+   * reference is returned.
    *
    * @param pValue the {@link Value} whose boolean meaning should be returned
-   * @return an <code>Optional</code> instance containing a reference to the
-   * <code>BooleanValue</code> object representing the boolean meaning of the given value,
-   * if one exists. An empty <code>Optional</code> instance, otherwise.
+   * @return an <code>Optional</code> instance containing a reference to the <code>BooleanValue
+   *     </code> object representing the boolean meaning of the given value, if one exists. An empty
+   *     <code>Optional</code> instance, otherwise.
    */
   public static Optional<BooleanValue> valueOf(Value pValue) {
     if (pValue.isUnknown()) {
@@ -81,11 +79,9 @@ public class BooleanValue implements Value {
   }
 
   /**
-   * Returns whether this object represents the boolean value
-   * <code>true</code>.
+   * Returns whether this object represents the boolean value <code>true</code>.
    *
-   * @return <code>true</code> if this object represents <code>true</code>,
-   *         false otherwise
+   * @return <code>true</code> if this object represents <code>true</code>, false otherwise
    */
   public boolean isTrue() {
     return value;
@@ -94,17 +90,16 @@ public class BooleanValue implements Value {
   /**
    * Returns the negation of this <code>BooleanValue</code>.
    *
-   * @return a <code>BooleanValue</code> object representing <code>true</code>
-   *         if this object represents <code>false</code>.
-   *         An object representing <code>false</code> otherwise.
+   * @return a <code>BooleanValue</code> object representing <code>true</code> if this object
+   *     represents <code>false</code>. An object representing <code>false</code> otherwise.
    */
   public BooleanValue negate() {
     return value ? FALSE_VALUE : TRUE_VALUE;
   }
 
   /**
-   * Always returns <code>false</code> because <code>BooleanValue</code>
-   * always stores a boolean and never a number.
+   * Always returns <code>false</code> because <code>BooleanValue</code> always stores a boolean and
+   * never a number.
    *
    * @return always <code>false</code>
    */
@@ -114,9 +109,8 @@ public class BooleanValue implements Value {
   }
 
   /**
-   * Always returns <code>false</code>. <code>BooleanValue</code>
-   * always stores either <code>true</code> or <code>false</code> and
-   * never an unknown value.
+   * Always returns <code>false</code>. <code>BooleanValue</code> always stores either <code>true
+   * </code> or <code>false</code> and never an unknown value.
    *
    * @return always <code>false</code>
    */
@@ -126,8 +120,7 @@ public class BooleanValue implements Value {
   }
 
   /**
-   * Always returns <code>true</code>. <code>BooleanValue</code>
-   * always stores a specific value.
+   * Always returns <code>true</code>. <code>BooleanValue</code> always stores a specific value.
    *
    * @return always <code>true</code>
    */
@@ -137,11 +130,12 @@ public class BooleanValue implements Value {
   }
 
   /**
-   * Returns a {@link NumericValue} object holding the numeric representation of this object's value.
+   * Returns a {@link NumericValue} object holding the numeric representation of this object's
+   * value.
    *
-   * @return <p>Returns a <code>NumericValue</code> object with value
-   *         <code>1</code>, if this object's value is <code>true</code>.
-   *         Returns an object with value <code>0</code> otherwise.
+   * @return
+   *     <p>Returns a <code>NumericValue</code> object with value <code>1</code>, if this object's
+   *     value is <code>true</code>. Returns an object with value <code>0</code> otherwise.
    */
   @Override
   public NumericValue asNumericValue() {
@@ -155,7 +149,7 @@ public class BooleanValue implements Value {
   /**
    * Always throws an <code>AssertionError</code>.
    *
-   * <p>There is no use for this method in the case of boolean values.</p>
+   * <p>There is no use for this method in the case of boolean values.
    */
   @Override
   public Long asLong(CType pType) {
@@ -170,12 +164,10 @@ public class BooleanValue implements Value {
   /**
    * Returns whether the given object and this object are equal.
    *
-   * Two <code>BooleanValue</code> objects are equal when they represent
-   * the same boolean value.
+   * <p>Two <code>BooleanValue</code> objects are equal when they represent the same boolean value.
    *
    * @param other the object to compare to this object
-   * @return <code>true</code> if the objects are equal, <code>false</code>
-   *         otherwise
+   * @return <code>true</code> if the objects are equal, <code>false</code> otherwise
    */
   @Override
   public boolean equals(Object other) {

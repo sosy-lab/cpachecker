@@ -10,14 +10,17 @@ package org.sosy_lab.cpachecker.pcc.strategy.partialcertificate;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
-public class CompleteCertificateConstructionAlgorithm implements PartialReachedConstructionAlgorithm{
+public class CompleteCertificateConstructionAlgorithm
+    implements PartialReachedConstructionAlgorithm {
 
   @Override
-  public AbstractState[] computePartialReachedSet(UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
+  public AbstractState[] computePartialReachedSet(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     return pReached.asCollection().toArray(new AbstractState[0]);
   }
-
 }

@@ -10,18 +10,19 @@ package org.sosy_lab.cpachecker.core.interfaces.pcc;
 
 import java.util.List;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 
 /**
  * Interface for algorithms that compute balanced graph partitionings.
  *
- * Since the problem is NP complete and no polytime approximation exists, almost equal size partitions may be computed.
+ * <p>Since the problem is NP complete and no polytime approximation exists, almost equal size
+ * partitions may be computed.
  */
 public interface BalancedGraphPartitioner {
 
   /**
-   * Divides the node of <code>pGraph</code> into <code>pNumPartitions</code> disjunct sets of almost equal size.
+   * Divides the node of <code>pGraph</code> into <code>pNumPartitions</code> disjunct sets of
+   * almost equal size.
    *
    * @param pNumPartitions - number of disjunct sets, greater 1
    * @param pGraph - directed graph whose nodes should be partitioned

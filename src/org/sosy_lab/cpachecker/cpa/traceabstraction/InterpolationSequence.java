@@ -8,15 +8,25 @@
 
 package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
+import static com.google.common.base.Verify.verify;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Collection;
-import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.NavigableSet;
 import java.util.Objects;
-import java.util.Set;
+import java.util.Optional;
+import java.util.TreeSet;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -29,128 +39,148 @@ class InterpolationSequence {
 
   static class Builder {
 
-    private final Multimap<String, AbstractionPredicate> functionPredicates;
-    private final Set<AbstractionPredicate> globalPredicates;
+    private static final UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
 
+    private final NavigableSet<IndexedAbstractionPredicate> navigablePredicates;
+
+    private final Multimap<CFANode, IndexedAbstractionPredicate> localPredicates;
+    private final Multimap<CFANode, AbstractionPredicate> localPredCache;
+
+    /**
+     * Builder for {@link InterpolationSequence} that stores all predicates only once and in the
+     * order in which they first appear.
+     */
     Builder() {
-      // We want all predicates to be stored only once and in the ordering in which they first
-      // appeared in the respective collection. This yields for every location type
-      // (function, global, etc.)
-      functionPredicates = MultimapBuilder.linkedHashKeys().linkedHashSetValues().build();
-      globalPredicates = new LinkedHashSet<>();
+      // To achieve the ordering for predicates a keyset with naturally-ordered tree-structure is
+      // used. The predicates get numerically indexed when added to the respective collection.
+
+      // The predicates are mapped to a set of location nodes. They are the scope in which the
+      // predicates may hold.
+      navigablePredicates = new TreeSet<>();
+
+      localPredicates = MultimapBuilder.treeKeys().hashSetValues().build();
+      localPredCache = HashMultimap.create();
     }
 
-    Builder addFunctionPredicates(
-        String pFunctionName, Set<AbstractionPredicate> pFunctionPredicates) {
-      assert checkOrdering(functionPredicates.get(pFunctionName), pFunctionPredicates)
-          : "Sequence of interpolants is inconsistent";
-      functionPredicates.putAll(pFunctionName, pFunctionPredicates);
-      return this;
-    }
+    @CanIgnoreReturnValue
+    Builder addPredicates(
+        LocationInstance pLocInstance, Collection<AbstractionPredicate> pPredicates) {
+      for (AbstractionPredicate abstractionPredicate : pPredicates) {
+        if (localPredCache.put(pLocInstance.getLocation(), abstractionPredicate)) {
+          // There was no such value previously associated with the given key, meaning
+          // this specific key-value pair is now added for the first time.
+          IndexedAbstractionPredicate indexedPred =
+              new IndexedAbstractionPredicate(ID_GENERATOR.getFreshId(), abstractionPredicate);
 
-    Builder addGlobalPredicate(AbstractionPredicate pGlobalPredicate) {
-      assert checkOrdering(globalPredicates, pGlobalPredicate)
-          : "Sequence of interpolants is inconsistent";
-      globalPredicates.add(pGlobalPredicate);
+          // verify that the added predicate is unique and has not already been there before
+          verify(navigablePredicates.add(indexedPred));
+          verify(localPredicates.put(pLocInstance.getLocation(), indexedPred));
+        }
+      }
       return this;
     }
 
     InterpolationSequence build() {
-      assert sanityCheck()
-          : "InterpolationSequence consists of more than *one* set of predicates "
-              + "(either one of global-, local-, or function-predicates are allowed)";
-      return new InterpolationSequence(functionPredicates, globalPredicates);
-    }
-
-    private boolean checkOrdering(
-        Collection<AbstractionPredicate> pPredicates, Set<AbstractionPredicate> pPredicatesToAdd) {
-      if (pPredicatesToAdd.size() > 1) {
-        throw new UnsupportedOperationException(
-            "InterpolationSequence only allows to add one new predicate at a time");
-      }
-
-      return checkOrdering(pPredicates, Iterables.getOnlyElement(pPredicatesToAdd));
-    }
-
-    /**
-     * Check that if a predicate is already contained in the collection, then the position is always
-     * only the direct predecessor
-     *
-     * <p>In other words, if the interpolants a -> a -> b -> b -> c were given before, and c is
-     * again given as interpolant, then c may not appear before the last occurrence of b
-     */
-    private boolean checkOrdering(
-        Collection<AbstractionPredicate> pPredicates, AbstractionPredicate pPredicateToAdd) {
-      return !pPredicates.contains(pPredicateToAdd)
-          || Iterables.getLast(pPredicates).equals(pPredicateToAdd);
-    }
-
-    private boolean sanityCheck() {
-      int count = 0;
-      if (!functionPredicates.isEmpty()) {
-        count++;
-      }
-      if (!globalPredicates.isEmpty()) {
-        count++;
-      }
-      return count == 1;
+      return new InterpolationSequence(navigablePredicates, localPredicates);
     }
   }
 
-  private final ImmutableSetMultimap<String, AbstractionPredicate> functionPredicates;
-  private final ImmutableSet<AbstractionPredicate> globalPredicates;
+  /**
+   * Set containing predicates in the order in which the solver has returned them as part of a
+   * counterexample.
+   */
+  private final ImmutableSortedSet<IndexedAbstractionPredicate> orderedPredicates;
+
+  private final ImmutableSetMultimap<CFANode, IndexedAbstractionPredicate> localPredicates;
 
   private InterpolationSequence(
-      Multimap<String, AbstractionPredicate> pFunctionPredicates,
-      Set<AbstractionPredicate> pGlobalPredicates) {
-    functionPredicates = ImmutableSetMultimap.copyOf(pFunctionPredicates);
-    globalPredicates = ImmutableSet.copyOf(pGlobalPredicates);
+      NavigableSet<IndexedAbstractionPredicate> pNavigablePredicates,
+      Multimap<CFANode, IndexedAbstractionPredicate> pLocalPredicates) {
+    orderedPredicates = ImmutableSortedSet.copyOfSorted(pNavigablePredicates);
+
+    localPredicates = ImmutableSetMultimap.copyOf(pLocalPredicates);
   }
 
-  ImmutableSet<AbstractionPredicate> getPredicates(CFANode loc, int locInstance) {
-    return getPredicates(new LocationInstance(loc, locInstance));
+  private ImmutableSet<IndexedAbstractionPredicate> getPredicates(
+      LocationInstance pLocationInstance) {
+    return localPredicates.get(pLocationInstance.getLocation());
   }
 
-  ImmutableSet<AbstractionPredicate> getPredicates(LocationInstance locationInstance) {
-    ImmutableSet<AbstractionPredicate> result =
-        functionPredicates.get(locationInstance.getFunctionName());
-    if (result.isEmpty()) {
-      result = globalPredicates;
+  boolean isInScopeOf(LocationInstance pLocationInstance) {
+    return !getPredicates(pLocationInstance).isEmpty();
+  }
+
+  Optional<IndexedAbstractionPredicate> getFirst(LocationInstance PLocationInstance) {
+    return getPredicates(PLocationInstance).stream().findFirst();
+  }
+
+  Optional<IndexedAbstractionPredicate> getNextIndex(IndexedAbstractionPredicate pPredicate) {
+    return Optional.ofNullable(orderedPredicates.higher(pPredicate));
+  }
+
+  /**
+   * Returns the next {@link IndexedAbstractionPredicate} from this sequence that has a different
+   * {@link AbstractionPredicate} than the one passed to this method.
+   *
+   * @return An {@link Optional} containing the next such {@link IndexedAbstractionPredicate}, or
+   *     {@link Optional#empty()} if no such predicate is available.
+   */
+  Optional<IndexedAbstractionPredicate> getNextPredicate(IndexedAbstractionPredicate pPredicate) {
+    IndexedAbstractionPredicate curPred = pPredicate;
+
+    while (true) {
+      IndexedAbstractionPredicate nextPred = orderedPredicates.higher(curPred);
+      if (nextPred == null) {
+        return Optional.empty();
+      }
+
+      if (pPredicate.getPredicate().equals(nextPred.getPredicate())) {
+        curPred = nextPred;
+        continue;
+      }
+
+      return Optional.of(nextPred);
     }
-    return result;
   }
 
-  AbstractionPredicate getFirst(LocationInstance locationInstance) {
-    return getPredicates(locationInstance).stream().findFirst().orElseThrow();
+  boolean isStrictSubsetOf(InterpolationSequence pOtherSequence) {
+    if (equals(pOtherSequence)) {
+      return false;
+    }
+
+    // TODO: implement a better data structure that allows more easily to check
+    // for a subset.
+    // The implementation below is likely quite inefficient and hence only a workaround for now.
+    return convertedPredicates(pOtherSequence.localPredicates.entries())
+        .containsAll(convertedPredicates(localPredicates.entries()));
+  }
+
+  private ImmutableSet<Entry<CFANode, AbstractionPredicate>> convertedPredicates(
+      ImmutableSet<Entry<CFANode, IndexedAbstractionPredicate>> entries) {
+    return transformedImmutableSetCopy(
+        entries, x -> Map.entry(x.getKey(), x.getValue().getPredicate()));
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(functionPredicates, globalPredicates);
+    return Objects.hash(orderedPredicates, localPredicates);
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
+  public boolean equals(Object pObj) {
+    if (this == pObj) {
       return true;
     }
-    if (!(obj instanceof InterpolationSequence)) {
+    if (!(pObj instanceof InterpolationSequence)) {
       return false;
     }
-    InterpolationSequence other = (InterpolationSequence) obj;
-    return Objects.equals(functionPredicates, other.functionPredicates)
-        && Objects.equals(globalPredicates, other.globalPredicates);
+    InterpolationSequence other = (InterpolationSequence) pObj;
+    return Objects.equals(orderedPredicates, other.orderedPredicates)
+        && Objects.equals(localPredicates, other.localPredicates);
   }
 
   @Override
   public String toString() {
-    if (!functionPredicates.isEmpty()) {
-      return functionPredicates.toString();
-    }
-    if (!globalPredicates.isEmpty()) {
-      return globalPredicates.toString();
-    }
-    throw new AssertionError(
-        InterpolationSequence.class.getSimpleName() + " should not have empty predicates");
+    return Joiner.on("\n").join(localPredicates.entries());
   }
 }

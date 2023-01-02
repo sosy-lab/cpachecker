@@ -45,36 +45,33 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SMGEdgeInterpolator {
 
-  /**
-   * the postOperator relation in use
-   */
+  /** the postOperator relation in use */
   private final SMGStrongestPostOperator postOperator;
 
-  /**
-   * the precision for the Feasability check
-   */
+  /** the precision for the Feasability check */
   private final SMGPrecision strongPrecision;
 
   private final SMGInterpolantManager interpolantManager;
 
-  /**
-   * the error path checker to be used for feasibility checks
-   */
+  /** the error path checker to be used for feasibility checks */
   private final SMGFeasibilityChecker checker;
 
   private int numberOfInterpolationQueries = 0;
 
-//  private final SMGState initialState;
+  //  private final SMGState initialState;
 
   private final SMGEdgeHeapAbstractionInterpolator heapAbstractionInterpolator;
 
   private final ShutdownNotifier shutdownNotifier;
   private final BlockOperator blockOperator;
 
-  public SMGEdgeInterpolator(SMGFeasibilityChecker pFeasibilityChecker,
-      SMGStrongestPostOperator pStrongestPostOperator, SMGInterpolantManager pInterpolantManager,
+  public SMGEdgeInterpolator(
+      SMGFeasibilityChecker pFeasibilityChecker,
+      SMGStrongestPostOperator pStrongestPostOperator,
+      SMGInterpolantManager pInterpolantManager,
       ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger, BlockOperator pBlockOperator) {
+      LogManager pLogger,
+      BlockOperator pBlockOperator) {
 
     checker = pFeasibilityChecker;
     postOperator = pStrongestPostOperator;
@@ -87,9 +84,14 @@ public class SMGEdgeInterpolator {
         new SMGEdgeHeapAbstractionInterpolator(pLogger, pFeasibilityChecker, pBlockOperator);
   }
 
-  public List<SMGInterpolant> deriveInterpolant(CFAEdge pCurrentEdge,
-      PathPosition pOffset, SMGInterpolant pInputInterpolant, boolean pAllTargets,
-      ARGReachedSet pReached, ARGState pSuccessorARGstate) throws CPAException, InterruptedException {
+  public List<SMGInterpolant> deriveInterpolant(
+      CFAEdge pCurrentEdge,
+      PathPosition pOffset,
+      SMGInterpolant pInputInterpolant,
+      boolean pAllTargets,
+      ARGReachedSet pReached,
+      ARGState pSuccessorARGstate)
+      throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
 
     // create initial state, based on input interpolant, and create initial successor by consuming
@@ -101,7 +103,7 @@ public class SMGEdgeInterpolator {
       PathIterator it = pOffset.fullPathIterator();
       Collection<SMGState> intermediate = initialStates;
 
-      while(intermediate.isEmpty() || !it.isPositionWithState()) {
+      while (intermediate.isEmpty() || !it.isPositionWithState()) {
 
         Collection<SMGState> newIntermediate = new ArrayList<>();
         for (SMGState state : intermediate) {
@@ -134,7 +136,8 @@ public class SMGEdgeInterpolator {
     // effort
     // Implementation detail: we compare 'Sets' for equality!
     boolean noChange = initialStates.equals(successors) || isFunctionOrTypeDeclaration(currentEdge);
-    SMGPrecision currentPrecision = extractPrecisionByType(
+    SMGPrecision currentPrecision =
+        extractPrecisionByType(
             pReached.asReachedSet().getPrecision(pSuccessorARGstate), SMGPrecision.class);
     if (noChange
         && !currentPrecision.allowsHeapAbstractionOnNode(
@@ -171,8 +174,13 @@ public class SMGEdgeInterpolator {
       if (currentPrecision.getAbstractionOptions().allowsHeapAbstraction()) {
         SMGState originalState = state.copyOf();
         SMGHeapAbstractionInterpoaltionResult heapInterpoaltionResult =
-            interpolateHeapAbstraction(state, remainingErrorPath,
-                currentEdge.getPredecessor(), currentEdge, pAllTargets, currentPrecision);
+            interpolateHeapAbstraction(
+                state,
+                remainingErrorPath,
+                currentEdge.getPredecessor(),
+                currentEdge,
+                pAllTargets,
+                currentPrecision);
 
         if (heapInterpoaltionResult.isChanged()) {
           resultingInterpolants.add(
@@ -205,7 +213,8 @@ public class SMGEdgeInterpolator {
 
     SMGState state = pState;
 
-    for (Entry<MemoryLocation, SMGRegion> memoryLocationEntry : state.getStackVariables().entrySet()) {
+    for (Entry<MemoryLocation, SMGRegion> memoryLocationEntry :
+        state.getStackVariables().entrySet()) {
       shutdownNotifier.shutdownIfNecessary();
       MemoryLocation memoryLocation = memoryLocationEntry.getKey();
       SMGRegion region = memoryLocationEntry.getValue();
@@ -231,7 +240,7 @@ public class SMGEdgeInterpolator {
     for (SMGEdgeHasValue currentHveEdge : state.getHeap().getHVEdges()) {
       shutdownNotifier.shutdownIfNecessary();
 
-      //TODO Robust heap abstracion?
+      // TODO Robust heap abstracion?
       if (currentHveEdge.getObject().isAbstract()) {
         continue;
       }
@@ -248,13 +257,22 @@ public class SMGEdgeInterpolator {
     return state;
   }
 
-  private SMGHeapAbstractionInterpoaltionResult interpolateHeapAbstraction(SMGState pInitialSuccessor,
-      ARGPath pRemainingErrorPath, CFANode pStateLocation, CFAEdge pCurrentEdge,
-      boolean pAllTargets, SMGPrecision pCurrentPrecision)
+  private SMGHeapAbstractionInterpoaltionResult interpolateHeapAbstraction(
+      SMGState pInitialSuccessor,
+      ARGPath pRemainingErrorPath,
+      CFANode pStateLocation,
+      CFAEdge pCurrentEdge,
+      boolean pAllTargets,
+      SMGPrecision pCurrentPrecision)
       throws CPAException, InterruptedException {
 
-    return heapAbstractionInterpolator.calculateHeapAbstractionBlocks(pInitialSuccessor,
-        pRemainingErrorPath, pCurrentPrecision, pStateLocation, pCurrentEdge, pAllTargets);
+    return heapAbstractionInterpolator.calculateHeapAbstractionBlocks(
+        pInitialSuccessor,
+        pRemainingErrorPath,
+        pCurrentPrecision,
+        pStateLocation,
+        pCurrentEdge,
+        pAllTargets);
   }
 
   private Collection<SMGState> getInitialSuccessor(SMGState pState, CFAEdge pCurrentEdge)
@@ -328,8 +346,8 @@ public class SMGEdgeInterpolator {
     private final Set<SMGAbstractionBlock> blocks;
     private final boolean change;
 
-    public SMGHeapAbstractionInterpoaltionResult(Set<SMGAbstractionBlock> pBlocks,
-        boolean pChange) {
+    public SMGHeapAbstractionInterpoaltionResult(
+        Set<SMGAbstractionBlock> pBlocks, boolean pChange) {
       blocks = pBlocks;
       change = pChange;
     }

@@ -15,8 +15,8 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 /**
- * Abstract helper class that does nothing more than providing access
- * to the methods from {@link FormulaWrappingHandler} with less typing.
+ * Abstract helper class that does nothing more than providing access to the methods from {@link
+ * FormulaWrappingHandler} with less typing.
  */
 abstract class BaseManagerView {
 

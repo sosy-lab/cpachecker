@@ -8,12 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import static java.util.Collections.singletonList;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.math.BigInteger;
@@ -54,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter.SMGEdgeHasValueFilterByObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -99,8 +100,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   private final int predecessorId;
   private final int id;
 
-  private final BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues =
-      HashBiMap.create(ImmutableMap.of(SMGZeroValue.INSTANCE, SMGZeroValue.INSTANCE));
+  private PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues;
+
   private final CLangSMG heap;
 
   private final boolean blockEnded;
@@ -116,7 +117,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       logger.log(Level.FINE, pMessage);
     } else if (pUndefinedBehavior) {
       logger.log(Level.FINE, pMessage);
-      logger.log(Level.FINE,
+      logger.log(
+          Level.FINE,
           "Non-target undefined behavior detected. The verification result is unreliable.");
     }
   }
@@ -141,7 +143,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   /**
    * Constructor.
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    *
    * @param pLogger A logger to log any messages
    * @param pMachineModel A machine model for the underlying SMGs
@@ -152,7 +154,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         pOptions,
         new CLangSMG(pMachineModel),
         ID_COUNTER.getFreshId(),
-        ImmutableMap.of());
+        PersistentBiMap.of());
+    explicitValues = explicitValues.putAndCopy(SMGZeroValue.INSTANCE, SMGZeroValue.INSTANCE);
   }
 
   public SMGState(
@@ -160,7 +163,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGOptions pOptions,
       CLangSMG pHeap,
       int pPredId,
-      Map<SMGKnownSymbolicValue, SMGKnownExpValue> pMergedExplicitValues) {
+      PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> pMergedExplicitValues) {
     this(pLogger, pOptions, pHeap, pPredId, pMergedExplicitValues, SMGErrorInfo.of(), false);
   }
 
@@ -170,7 +173,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGOptions pOptions,
       CLangSMG pHeap,
       int pPredId,
-      Map<SMGKnownSymbolicValue, SMGKnownExpValue> pExplicitValues,
+      PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> pExplicitValues,
       SMGErrorInfo pErrorInfo,
       boolean pBlockEnded) {
     options = pOptions;
@@ -178,9 +181,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     logger = pLogger;
     predecessorId = pPredId;
     id = ID_COUNTER.getFreshId();
-    Preconditions.checkArgument(!pExplicitValues.containsKey(null));
-    Preconditions.checkArgument(!pExplicitValues.containsValue(null));
-    explicitValues.putAll(pExplicitValues);
+    explicitValues = pExplicitValues;
     errorInfo = pErrorInfo;
     blockEnded = pBlockEnded;
     sizeOfVoidPointerInBits =
@@ -193,7 +194,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
     id = ID_COUNTER.getFreshId();
-    explicitValues.putAll(pOriginalState.explicitValues);
+    explicitValues = pOriginalState.explicitValues;
     blockEnded = pOriginalState.blockEnded;
     errorInfo = pOriginalState.errorInfo.withProperty(pProperty);
     sizeOfVoidPointerInBits = pOriginalState.sizeOfVoidPointerInBits;
@@ -205,7 +206,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   @Override
-  public SMGState copyWith(CLangSMG pSmg, BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> pValues) {
+  public SMGState copyWith(
+      CLangSMG pSmg, PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> pValues) {
     return new SMGState(logger, options, pSmg, id, pValues, errorInfo, blockEnded);
   }
 
@@ -227,16 +229,15 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   /**
    * Makes SMGState create a new object and put it into the global namespace
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    *
    * @param pTypeSize Size of the type of the new global variable
    * @param pVarName Name of the global variable
    * @return Newly created object
-   *
-   * @throws SMGInconsistentException when resulting SMGState is inconsistent
-   * and the checks are enabled
+   * @throws SMGInconsistentException when resulting SMGState is inconsistent and the checks are
+   *     enabled
    */
-  public SMGObject addGlobalVariable(int pTypeSize, String pVarName)
+  public SMGRegion addGlobalVariable(long pTypeSize, String pVarName)
       throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pTypeSize, pVarName);
 
@@ -246,18 +247,17 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   /**
-   * Makes SMGState create a new object and put it into the current stack
-   * frame.
+   * Makes SMGState create a new object and put it into the current stack frame.
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    *
    * @param pTypeSize Size of the type the new local variable
    * @param pVarName Name of the local variable
    * @return Newly created object
-   * @throws SMGInconsistentException when resulting SMGState is inconsistent
-   * and the checks are enabled
+   * @throws SMGInconsistentException when resulting SMGState is inconsistent and the checks are
+   *     enabled
    */
-  public Optional<SMGObject> addLocalVariable(int pTypeSize, String pVarName)
+  public Optional<SMGObject> addLocalVariable(long pTypeSize, String pVarName)
       throws SMGInconsistentException {
     if (heap.getStackFrames().isEmpty()) {
       return Optional.empty();
@@ -271,18 +271,17 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   /**
-   * Makes SMGState create a new anonymous object and put it into the current stack
-   * frame. Used for string initilizers as function arguments.
+   * Makes SMGState create a new anonymous object and put it into the current stack frame. Used for
+   * string initilizers as function arguments.
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    *
    * @param pTypeSize Size of the type the new local variable
    * @return Newly created object
-   * @throws SMGInconsistentException when resulting SMGState is inconsistent
-   * and the checks are enabled
+   * @throws SMGInconsistentException when resulting SMGState is inconsistent and the checks are
+   *     enabled
    */
-  public Optional<SMGRegion> addAnonymousVariable(int pTypeSize)
-      throws SMGInconsistentException {
+  public Optional<SMGRegion> addAnonymousVariable(long pTypeSize) throws SMGInconsistentException {
     if (heap.getStackFrames().isEmpty()) {
       return Optional.empty();
     }
@@ -294,22 +293,19 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return Optional.of(new_object);
   }
 
-
-
   /**
-   * Makes SMGState create a new object, compares it with the given object, and puts the given object into the current stack
-   * frame.
+   * Makes SMGState create a new object, compares it with the given object, and puts the given
+   * object into the current stack frame.
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    *
    * @param pTypeSize Size of the type of the new variable
    * @param pVarName Name of the local variable
    * @param smgObject object of local variable
-   *
-   * @throws SMGInconsistentException when resulting SMGState is inconsistent
-   * and the checks are enabled
+   * @throws SMGInconsistentException when resulting SMGState is inconsistent and the checks are
+   *     enabled
    */
-  public void addLocalVariable(int pTypeSize, String pVarName, SMGRegion smgObject)
+  public void addLocalVariable(long pTypeSize, String pVarName, SMGRegion smgObject)
       throws SMGInconsistentException {
     SMGRegion new_object2 = new SMGRegion(pTypeSize, pVarName);
 
@@ -325,7 +321,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   /**
    * Adds a new frame for the function.
    *
-   * Keeps consistency: yes
+   * <p>Keeps consistency: yes
    *
    * @param pFunctionDefinition A function for which to create a new stack frame
    */
@@ -345,17 +341,17 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
    * @return The ID of this SMGState
    */
   @Override
-  final public int getId() {
+  public final int getId() {
     return id;
   }
 
   /**
-   * Constant.
-   * .
+   * Constant. .
+   *
    * @return The predecessor state, i.e. one from which this one was copied
    */
   @Override
-  final public int getPredecessorId() {
+  public final int getPredecessorId() {
     return predecessorId;
   }
 
@@ -383,7 +379,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   /**
    * Returns a DOT representation of the SMGState.
    *
-   * Constant.
+   * <p>Constant.
    *
    * @param pName A name of the graph.
    * @param pLocation A location in the program.
@@ -403,6 +399,40 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
             ? "no parent, initial state"
             : "parent [" + getPredecessorId() + "]";
     return String.format("SMGState [%d] <-- %s: %s", getId(), parent, heap);
+  }
+
+  public List<SMGAddressValueAndState> getPointerFromAddress(SMGAddress pAddress)
+      throws SMGInconsistentException {
+    if (pAddress.isUnknown()) {
+      return singletonList(SMGAddressValueAndState.of(this));
+    }
+    SMGObject target = pAddress.getObject();
+    SMGExplicitValue offset = pAddress.getOffset();
+    if (target instanceof SMGRegion) {
+      SMGValue address = getAddress((SMGRegion) target, offset.getAsLong());
+      if (address == null) {
+        return singletonList(
+            SMGAddressValueAndState.of(
+                this, new SMGEdgePointsTo(SMGKnownSymValue.of(), target, offset.getAsLong())));
+      }
+      return getPointerFromValue(address);
+    }
+    if (target == SMGNullObject.INSTANCE) {
+      // TODO return NULL_POINTER instead of new object?
+      return singletonList(
+          SMGAddressValueAndState.of(
+              this, new SMGEdgePointsTo(SMGZeroValue.INSTANCE, target, offset.getAsLong())));
+    }
+    if (target.isAbstract()) {
+      performConsistencyCheck(SMGRuntimeCheck.HALF);
+      SMGKnownSymbolicValue symbolicValue = SMGKnownSymValue.of();
+      heap.addValue(symbolicValue);
+      return handleMaterilisation(
+          new SMGEdgePointsTo(symbolicValue, target, offset.getAsLong(), SMGTargetSpecifier.FIRST),
+          ((SMGAbstractObject) target));
+    }
+
+    throw new AssertionError("Abstraction " + target + " was not materialised.");
   }
 
   /**
@@ -469,7 +499,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   private List<SMGAddressValueAndState> removeOptionalObject(SMGOptionalObject pOptionalObject)
       throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Remove ", pOptionalObject, " in state id ", this.getId());
+    logger.log(Level.ALL, "Remove ", pOptionalObject, " in state id ", getId());
 
     /*Just remove the optional Object and merge all incoming pointer
      * with the one pointer in all fields of the optional edge.
@@ -499,12 +529,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return getPointerFromValue(pointerValue);
   }
 
-  private SMGAddressValueAndState materialiseOptionalObject(SMGOptionalObject pOptionalObject,
-      SMGEdgePointsTo pPointerToAbstractObject) {
+  private SMGAddressValueAndState materialiseOptionalObject(
+      SMGOptionalObject pOptionalObject, SMGEdgePointsTo pPointerToAbstractObject) {
 
     /*Just replace the optional object with a region*/
-    logger.log(Level.ALL,
-        "Materialise ", pOptionalObject, " in state id ", this.getId());
+    logger.log(Level.ALL, "Materialise ", pOptionalObject, " in state id ", getId());
 
     Set<SMGEdgePointsTo> pointer = SMGUtils.getPointerToThisObject(pOptionalObject, heap);
 
@@ -541,7 +570,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGSingleLinkedList pListSeg, SMGEdgePointsTo pPointerToAbstractObject)
       throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Remove ", pListSeg, " in state id ", this.getId());
+    logger.log(Level.ALL, "Remove ", pListSeg, " in state id ", getId());
 
     /*First, set all sub smgs of sll to be removed to invalid.*/
     Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo());
@@ -576,7 +605,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGDoublyLinkedList pListSeg, SMGEdgePointsTo pPointerToAbstractObject)
       throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Remove ", pListSeg, " in state id ", this.getId());
+    logger.log(Level.ALL, "Remove ", pListSeg, " in state id ", getId());
 
     /*First, set all sub smgs of dll to be removed to invalid.*/
     Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo(), pListSeg.getPfo());
@@ -624,13 +653,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
   }
 
-  private SMGAddressValueAndState materialiseSll(SMGSingleLinkedList pListSeg,
-      SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
+  private SMGAddressValueAndState materialiseSll(
+      SMGSingleLinkedList pListSeg, SMGEdgePointsTo pPointerToAbstractObject)
+      throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Materialise ", pListSeg, " in state id ", this.getId());
+    logger.log(Level.ALL, "Materialise ", pListSeg, " in state id ", getId());
 
-    if (pPointerToAbstractObject
-        .getTargetSpecifier() != SMGTargetSpecifier.FIRST) {
+    if (pPointerToAbstractObject.getTargetSpecifier() != SMGTargetSpecifier.FIRST) {
       throw new SMGInconsistentException(
           "Target specifier of pointer "
               + pPointerToAbstractObject.getValue()
@@ -652,13 +681,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     long hfo = pListSeg.getHfo();
     long nfo = pListSeg.getNfo();
 
-    SMGHasValueEdges oldSllFieldsToOldRegion =
+    Iterable<SMGEdgeHasValue> oldSllFieldsToOldRegion =
         heap.getHVEdges(
             SMGEdgeHasValueFilter.objectFilter(pListSeg)
                 .filterAtOffset(nfo)
                 .filterBySize(sizeOfVoidPointerInBits));
     SMGValue oldPointerToRegion = readValue(pListSeg, nfo, sizeOfVoidPointerInBits).getObject();
-    if (!oldSllFieldsToOldRegion.isEmpty()) {
+    if (oldSllFieldsToOldRegion.iterator().hasNext()) {
       SMGEdgeHasValue oldSllFieldToOldRegion = Iterables.getOnlyElement(oldSllFieldsToOldRegion);
       heap.removeHasValueEdge(oldSllFieldToOldRegion);
     }
@@ -672,9 +701,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     heap.markHeapObjectDeletedAndRemoveEdges(pListSeg);
 
-    SMGSingleLinkedList newSll = new SMGSingleLinkedList(pListSeg.getSize(), pListSeg.getHfo(),
-        pListSeg.getNfo(), pListSeg.getMinimumLength() > 0 ? pListSeg.getMinimumLength() - 1 : 0,
-        0);
+    SMGSingleLinkedList newSll =
+        new SMGSingleLinkedList(
+            pListSeg.getSize(),
+            pListSeg.getHfo(),
+            pListSeg.getNfo(),
+            pListSeg.getMinimumLength() > 0 ? pListSeg.getMinimumLength() - 1 : 0,
+            0);
 
     heap.addHeapObject(newSll);
     heap.setValidity(newSll, true);
@@ -695,10 +728,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     /*If you can't find the pointer, use generic pointer type*/
     long sizeOfPointerToSll;
 
-    SMGHasValueEdges fieldsContainingOldPointerToSll =
+    Iterable<SMGEdgeHasValue> fieldsContainingOldPointerToSll =
         heap.getHVEdges(SMGEdgeHasValueFilter.valueFilter(oldPointerToSll));
 
-    if (fieldsContainingOldPointerToSll.size() == 0) {
+    if (!fieldsContainingOldPointerToSll.iterator().hasNext()) {
       sizeOfPointerToSll = sizeOfVoidPointerInBits;
     } else {
       sizeOfPointerToSll = fieldsContainingOldPointerToSll.iterator().next().getSizeInBits();
@@ -732,10 +765,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return SMGAddressValueAndState.of(this, newPtEdgeToNewRegionFromOutsideSMG);
   }
 
-  private SMGAddressValueAndState materialiseDls(SMGDoublyLinkedList pListSeg,
-      SMGEdgePointsTo pPointerToAbstractObject) throws SMGInconsistentException {
+  private SMGAddressValueAndState materialiseDls(
+      SMGDoublyLinkedList pListSeg, SMGEdgePointsTo pPointerToAbstractObject)
+      throws SMGInconsistentException {
 
-    logger.log(Level.ALL, "Materialise ", pListSeg, " in state id ", this.getId());
+    logger.log(Level.ALL, "Materialise ", pListSeg, " in state id ", getId());
 
     SMGRegion newConcreteRegion =
         new SMGRegion(pListSeg.getSize(), "concrete dll segment ID " + SMGCPA.getNewValue(), 0);
@@ -774,14 +808,14 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     long hfo = pListSeg.getHfo();
 
-    SMGHasValueEdges oldDllFieldsToOldRegion =
+    Iterable<SMGEdgeHasValue> oldDllFieldsToOldRegion =
         heap.getHVEdges(
             SMGEdgeHasValueFilter.objectFilter(pListSeg)
                 .filterAtOffset(offsetPointingToRegion)
                 .filterWithoutSize());
     SMGValue oldPointerToRegion =
         readValue(pListSeg, offsetPointingToRegion, sizeOfVoidPointerInBits).getObject();
-    if (!oldDllFieldsToOldRegion.isEmpty()) {
+    if (oldDllFieldsToOldRegion.iterator().hasNext()) {
       SMGEdgeHasValue oldDllFieldToOldRegion = Iterables.getOnlyElement(oldDllFieldsToOldRegion);
 
       // Work around with nullified memory block
@@ -806,9 +840,14 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     heap.markHeapObjectDeletedAndRemoveEdges(pListSeg);
 
-    SMGDoublyLinkedList newDll = new SMGDoublyLinkedList(pListSeg.getSize(), pListSeg.getHfo(),
-        pListSeg.getNfo(), pListSeg.getPfo(),
-        pListSeg.getMinimumLength() > 0 ? pListSeg.getMinimumLength() - 1 : 0, 0);
+    SMGDoublyLinkedList newDll =
+        new SMGDoublyLinkedList(
+            pListSeg.getSize(),
+            pListSeg.getHfo(),
+            pListSeg.getNfo(),
+            pListSeg.getPfo(),
+            pListSeg.getMinimumLength() > 0 ? pListSeg.getMinimumLength() - 1 : 0,
+            0);
 
     heap.addHeapObject(newDll);
     heap.setValidity(newDll, true);
@@ -830,10 +869,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     long sizeOfPointerToDll;
 
-    SMGHasValueEdges fieldsContainingOldPointerToDll =
+    Iterable<SMGEdgeHasValue> fieldsContainingOldPointerToDll =
         heap.getHVEdges(SMGEdgeHasValueFilter.valueFilter(oldPointerToDll));
 
-    if (fieldsContainingOldPointerToDll.isEmpty()) {
+    if (!fieldsContainingOldPointerToDll.iterator().hasNext()) {
       sizeOfPointerToDll = sizeOfVoidPointerInBits;
     } else {
       sizeOfPointerToDll = fieldsContainingOldPointerToDll.iterator().next().getSizeInBits();
@@ -920,8 +959,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
                 newTg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
               }
 
-              SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newVal, copyOfReachedObject,
-                  reachedObjectSubSmgPTEdge.getOffset(), newTg);
+              SMGEdgePointsTo newPtEdge =
+                  new SMGEdgePointsTo(
+                      newVal, copyOfReachedObject, reachedObjectSubSmgPTEdge.getOffset(), newTg);
               heap.addPointsToEdge(newPtEdge);
             }
           }
@@ -1023,9 +1063,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
               newTg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
             }
 
-            SMGEdgePointsTo newPtEdge = new SMGEdgePointsTo(newVal, copyOfReachedObject,
-                reachedObjectSubSmgPTEdge.getOffset(),
-                newTg);
+            SMGEdgePointsTo newPtEdge =
+                new SMGEdgePointsTo(
+                    newVal, copyOfReachedObject, reachedObjectSubSmgPTEdge.getOffset(), newTg);
             heap.addPointsToEdge(newPtEdge);
           }
         }
@@ -1084,8 +1124,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
   }
 
-  private void removeRestrictedSubSmg(SMGObject pObjToCheck,
-      Set<SMGObject> pToBeChecked, Set<SMGObject> reached) {
+  private void removeRestrictedSubSmg(
+      SMGObject pObjToCheck, Set<SMGObject> pToBeChecked, Set<SMGObject> reached) {
 
     for (SMGEdgeHasValue hve : heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck))) {
       SMGValue subDlsValue = hve.getValue();
@@ -1109,9 +1149,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   /**
-   * Read Value in field (object, type) of an Object. If a Value cannot be determined,
-   * but the given object and field is a valid place to read a value, a new value will be
-   * generated and returned. (Does not create a new State but modifies this state).
+   * Read Value in field (object, type) of an Object. If a Value cannot be determined, but the given
+   * object and field is a valid place to read a value, a new value will be generated and returned.
+   * (Does not create a new State but modifies this state).
    *
    * @param pObject SMGObject representing the memory the field belongs to.
    * @param pOffset offset of field being read.
@@ -1178,8 +1218,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         SMGEdgeHasValueFilter.objectFilter(pObject)
             .filterAtOffset(pOffset)
             .filterBySize(pSizeInBits);
-    SMGHasValueEdges matchingEdges = heap.getHVEdges(filter);
-    if (!matchingEdges.isEmpty()) {
+    Iterable<SMGEdgeHasValue> matchingEdges = heap.getHVEdges(filter);
+    if (matchingEdges.iterator().hasNext()) {
       SMGEdgeHasValue object_edge = Iterables.getOnlyElement(matchingEdges);
       performConsistencyCheck(SMGRuntimeCheck.HALF);
       addElementToCurrentChain(object_edge);
@@ -1190,15 +1230,17 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     // TODO this code is ugly and might better be placed inside heap.getHVEdges,
     // but there it removes the existing value from the heap for the rest of the region
     // and that is not wanted. Thus we add this very special case here.
-    SMGEdgeHasValueFilter filterOffsetZero = SMGEdgeHasValueFilter.objectFilter(pObject);
-    SMGHasValueEdges matchingEdgesOffsetZero = heap.getHVEdges(filterOffsetZero);
+    SMGEdgeHasValueFilter filterOffsetZero =
+        new SMGEdgeHasValueFilter()
+            .overlapsWith(
+                new SMGEdgeHasValue(pSizeInBits, pOffset, pObject, SMGZeroValue.INSTANCE));
+    Iterable<SMGEdgeHasValue> matchingEdgesOffsetZero = heap.getHVEdges(filterOffsetZero);
     for (SMGEdgeHasValue object_edge : matchingEdgesOffsetZero) {
       if (pOffset >= object_edge.getOffset()
           && pOffset + pSizeInBits <= object_edge.getOffset() + object_edge.getSizeInBits()) {
         SMGValue symValue = object_edge.getValue();
-        if (symValue instanceof SMGKnownSymbolicValue
-            && isExplicit((SMGKnownSymbolicValue) symValue)) {
-          SMGKnownExpValue expValue = getExplicit((SMGKnownSymbolicValue) symValue);
+        if (isExplicit(symValue)) {
+          SMGKnownExpValue expValue = getExplicit(symValue);
           BigInteger value = expValue.getValue();
 
           // extract the important bits
@@ -1263,10 +1305,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGAddress address = ((SMGAddressValue) pValue).getAddress();
 
       if (!address.isUnknown()) {
-        addPointsToEdge(
-            address.getObject(),
-            address.getOffset().getAsLong(),
-            value);
+        addPointsToEdge(address.getObject(), address.getOffset().getAsLong(), value);
       }
     }
 
@@ -1303,10 +1342,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGEdgeHasValue new_edge = new SMGEdgeHasValue(pSizeInBits, pOffset, pObject, pValue);
 
     // Check if the edge is  not present already
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObject);
+    SMGEdgeHasValueFilter filter =
+        SMGEdgeHasValueFilter.objectFilter(pObject).overlapsWith(new_edge);
 
-    SMGHasValueEdges edges = heap.getHVEdges(filter);
-    if (edges.contains(new_edge)) {
+    Iterable<SMGEdgeHasValue> overlappingEdges = heap.getHVEdges(filter);
+    if (Iterables.contains(overlappingEdges, new_edge)) {
       performConsistencyCheck(SMGRuntimeCheck.HALF);
       return new SMGStateEdgePair(this, new_edge);
     }
@@ -1318,7 +1358,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     /* We need to remove all non-zero overlapping edges
      * and remember all overlapping zero edges to shrink them later
      */
-    Iterable<SMGEdgeHasValue> overlappingEdges = edges.getOverlapping(new_edge);
     for (SMGEdgeHasValue hv : overlappingEdges) {
 
       boolean hvEdgeIsZero = hv.getValue() == SMGZeroValue.INSTANCE;
@@ -1410,8 +1449,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   /**
-   * Computes the join of this abstract State and the reached abstract State,
-   * or returns the reached state, if no join is defined.
+   * Computes the join of this abstract State and the reached abstract State, or returns the reached
+   * state, if no join is defined.
    *
    * @param reachedState the abstract state this state will be joined to.
    * @return the join of the two states or reached state.
@@ -1426,7 +1465,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return reachedState;
     }
 
-    SMGJoin join = new SMGJoin(this.heap, reachedState.getHeap(), this, reachedState);
+    SMGJoin join = new SMGJoin(heap, reachedState.getHeap(), this, reachedState);
 
     if (!(join.getStatus() == SMGJoinStatus.INCOMPARABLE && join.isDefined())) {
       return reachedState;
@@ -1438,11 +1477,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   /**
-   * Computes whether this abstract state is covered by the given abstract state.
-   * A state is covered by another state, if the set of concrete states
-   * a state represents is a subset of the set of concrete states the other
-   * state represents.
-   *
+   * Computes whether this abstract state is covered by the given abstract state. A state is covered
+   * by another state, if the set of concrete states a state represents is a subset of the set of
+   * concrete states the other state represents.
    *
    * @param reachedState already reached state, that may cover this state already.
    * @return True, if this state is covered by the given state, false otherwise.
@@ -1450,7 +1487,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   @Override
   public boolean isLessOrEqual(UnmodifiableSMGState reachedState) throws SMGInconsistentException {
 
-    if(!getErrorPredicateRelation().isEmpty() || !reachedState.getErrorPredicateRelation().isEmpty()) {
+    if (!getErrorPredicateRelation().isEmpty()
+        || !reachedState.getErrorPredicateRelation().isEmpty()) {
       return false;
     }
 
@@ -1469,10 +1507,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       // Only stop if either reached has memleak or this state has no memleak
       // to avoid losing memleak information.
       SMGState s1 = reachedState.copyOf();
-      SMGState s2 = this.copyOf();
+      SMGState s2 = copyOf();
       s1.pruneUnreachable();
       s2.pruneUnreachable();
-      logger.log(Level.ALL, this.getId(), " is Less or Equal ", reachedState.getId());
+      logger.log(Level.ALL, getId(), " is Less or Equal ", reachedState.getId());
       return s1.errorInfo.hasMemoryLeak() == s2.errorInfo.hasMemoryLeak();
 
     } else {
@@ -1489,7 +1527,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     switch (pProperty) {
       case "toString":
-        return this.toString();
+        return toString();
       case "heapObjects":
         return heap.getHeapObjects();
       default:
@@ -1503,28 +1541,28 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     switch (pProperty) {
       case HAS_LEAKS:
         if (errorInfo.hasMemoryLeak()) {
-          //TODO: Give more information
+          // TODO: Give more information
           issueMemoryError("Memory leak found", false);
           return true;
         }
         return false;
       case HAS_INVALID_WRITES:
         if (errorInfo.isInvalidWrite()) {
-          //TODO: Give more information
+          // TODO: Give more information
           issueMemoryError("Invalid write found", true);
           return true;
         }
         return false;
       case HAS_INVALID_READS:
         if (errorInfo.isInvalidRead()) {
-          //TODO: Give more information
+          // TODO: Give more information
           issueMemoryError("Invalid read found", true);
           return true;
         }
         return false;
       case HAS_INVALID_FREES:
         if (errorInfo.isInvalidFree()) {
-          //TODO: Give more information
+          // TODO: Give more information
           issueMemoryError("Invalid free found", true);
           return true;
         }
@@ -1621,7 +1659,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   public SMGSymbolicValue getAddress(SMGObject memory, long offset, SMGTargetSpecifier tg) {
 
     SMGEdgePointsToFilter filter =
-        SMGEdgePointsToFilter.targetObjectFilter(memory).filterAtTargetOffset(offset)
+        SMGEdgePointsToFilter.targetObjectFilter(memory)
+            .filterAtTargetOffset(offset)
             .filterByTargetSpecifier(tg);
 
     Set<SMGEdgePointsTo> edges = heap.getPtEdges(filter);
@@ -1677,7 +1716,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     heap.setValidity(smgObject, false);
     heap.setExternallyAllocatedFlag(smgObject, false);
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(smgObject);
+    SMGEdgeHasValueFilterByObject filter = SMGEdgeHasValueFilter.objectFilter(smgObject);
 
     for (SMGEdgeHasValue edge : heap.getHVEdges(filter)) {
       heap.removeHasValueEdge(edge);
@@ -1717,10 +1756,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     errorInfo = errorInfo.moveCurrentChainToInvalidChain();
   }
 
-  /**
-   * Drop the stack frame representing the stack of
-   * the function with the given name
-   */
+  /** Drop the stack frame representing the stack of the function with the given name */
   public void dropStackFrame() throws SMGInconsistentException {
     heap.dropStackFrame();
     performConsistencyCheck(SMGRuntimeCheck.FULL);
@@ -1735,7 +1771,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       }
       setMemLeak("Memory leak of " + error + " is detected", unreachable);
     }
-    //TODO: Explicit values pruning
+    // TODO: Explicit values pruning
     performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
@@ -1745,29 +1781,37 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   @VisibleForTesting
-  SMGHasValueEdges getHVEdges(SMGEdgeHasValueFilter pFilter) {
+  Iterable<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
+    return heap.getHVEdges(pFilter);
+  }
+
+  SMGHasValueEdges getHVEdges(SMGEdgeHasValueFilterByObject pFilter) {
     return heap.getHVEdges(pFilter);
   }
 
   /**
-   * Copys (shallow) the hv-edges of source in the given source range
-   * to the target at the given target offset. Note that the source
-   * range (pSourceLastCopyBitOffset - pSourceOffset) has to fit into
-   * the target range ( size of pTarget - pTargetOffset).
-   * Also, pSourceOffset has to be less or equal to the size
-   * of the source Object.
+   * Copys (shallow) the hv-edges of source in the given source range to the target at the given
+   * target offset. Note that the source range (pSourceLastCopyBitOffset - pSourceOffset) has to fit
+   * into the target range ( size of pTarget - pTargetOffset). Also, pSourceOffset has to be less or
+   * equal to the size of the source Object.
    *
-   * This method is mainly used to assign struct variables.
+   * <p>This method is mainly used to assign struct variables.
    *
    * @param pSource the SMGObject providing the hv-edges
    * @param pTarget the target of the copy process
    * @param pTargetOffset begin the copy of source at this offset
-   * @param pSourceLastCopyBitOffset the size of the copy of source (not the size of the copy, but the size to the last bit of the source which should be copied).
+   * @param pSourceLastCopyBitOffset the size of the copy of source (not the size of the copy, but
+   *     the size to the last bit of the source which should be copied).
    * @param pSourceOffset insert the copy of source into target at this offset
    * @throws SMGInconsistentException thrown if the copying leads to an inconsistent SMG.
    */
-  public SMGState copy(SMGObject pSource, SMGObject pTarget, long pSourceOffset,
-      long pSourceLastCopyBitOffset, long pTargetOffset) throws SMGInconsistentException {
+  public SMGState copy(
+      SMGObject pSource,
+      SMGObject pTarget,
+      long pSourceOffset,
+      long pSourceLastCopyBitOffset,
+      long pTargetOffset)
+      throws SMGInconsistentException {
 
     SMGState newSMGState = this;
 
@@ -1780,7 +1824,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     assert copyRange <= pTarget.getSize();
 
     // If copy range is 0, do nothing
-    if (copyRange == 0) { return newSMGState; }
+    if (copyRange == 0) {
+      return newSMGState;
+    }
 
     // If self assignment, do nothing
     // TODO this check should not be necessary,
@@ -1791,8 +1837,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     long targetRangeSize = pTargetOffset + copyRange;
 
-    SMGEdgeHasValueFilter filterSource = SMGEdgeHasValueFilter.objectFilter(pSource);
-    SMGEdgeHasValueFilter filterTarget = SMGEdgeHasValueFilter.objectFilter(pTarget);
+    SMGEdgeHasValueFilterByObject filterSource = SMGEdgeHasValueFilter.objectFilter(pSource);
+    SMGEdgeHasValueFilterByObject filterTarget = SMGEdgeHasValueFilter.objectFilter(pTarget);
 
     // Remove all target edges in range
     for (SMGEdgeHasValue edge : getHVEdges(filterTarget)) {
@@ -1807,17 +1853,14 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           if (zeroEdgeOffset < pTargetOffset) {
             heap.addHasValueEdge(
                 new SMGEdgeHasValue(
-                    Math.toIntExact(pTargetOffset - zeroEdgeOffset),
-                    zeroEdgeOffset,
-                    object,
-                    SMGZeroValue.INSTANCE));
+                    pTargetOffset - zeroEdgeOffset, zeroEdgeOffset, object, SMGZeroValue.INSTANCE));
           }
 
           long zeroEdgeOffset2 = zeroEdgeOffset + edge.getSizeInBits();
           if (targetRangeSize < zeroEdgeOffset2) {
             heap.addHasValueEdge(
                 new SMGEdgeHasValue(
-                    Math.toIntExact(zeroEdgeOffset2 - targetRangeSize),
+                    zeroEdgeOffset2 - targetRangeSize,
                     targetRangeSize,
                     object,
                     SMGZeroValue.INSTANCE));
@@ -1829,18 +1872,33 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     // Shift the source edge offset depending on the target range offset
     long copyShift = pTargetOffset - pSourceOffset;
     for (SMGEdgeHasValue edge : getHVEdges(filterSource)) {
+      SMGValue newValue = edge.getValue();
       if (edge.overlapsWith(pSourceOffset, pSourceLastCopyBitOffset)) {
-        long offset = edge.getOffset() + copyShift;
-        newSMGState =
-            writeValue0(pTarget, offset, edge.getSizeInBits(), edge.getValue()).getState();
+        long newSize = edge.getSizeInBits();
+        long edgeOffset = edge.getOffset();
+        long edgeEndOffset = edgeOffset + newSize;
+        boolean writeEdge = true;
+        if (edgeEndOffset > pSourceLastCopyBitOffset) {
+          newSize = newSize - (edgeEndOffset - pSourceLastCopyBitOffset);
+          writeEdge = newValue.isZero();
+        }
+        long newOffset = edgeOffset + copyShift;
+        if (edgeOffset < pSourceOffset) {
+          newOffset = pTargetOffset;
+          newSize = newSize - (pSourceOffset - edgeOffset);
+          writeEdge = newValue.isZero();
+        }
+        if (writeEdge) {
+          newSMGState = writeValue0(pTarget, newOffset, newSize, newValue).getState();
+        }
       }
     }
 
     performConsistencyCheck(SMGRuntimeCheck.FULL);
     // TODO Why do I do this here?
-    Set<SMGObject> unreachable = heap.pruneUnreachable();
+    Set<SMGObject> unreachable = newSMGState.heap.pruneUnreachable();
     if (!unreachable.isEmpty()) {
-      setMemLeak("Memory leak is detected", unreachable);
+      newSMGState.setMemLeak("Memory leak is detected", unreachable);
     }
     performConsistencyCheck(SMGRuntimeCheck.FULL);
     return newSMGState;
@@ -1849,7 +1907,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   @Override
   public SMGState withUnknownDereference() {
     // TODO: accurate define SMG change on unknown dereference with predicate knowledge
-    if (options.isHandleUnknownDereferenceAsSafe() && isTrackPredicatesEnabled()) {
+    if (options.isHandleUnknownDereferenceAsSafe() && isTrackErrorPredicatesEnabled()) {
       // doesn't stop analysis on unknown dereference
       return this;
     }
@@ -1859,10 +1917,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return new SMGState(this, Property.INVALID_WRITE).withErrorDescription("Unknown dereference");
   }
 
-  public void identifyEqualValues(SMGKnownSymbolicValue pKnownVal1, SMGKnownSymbolicValue pKnownVal2) {
+  public void identifyEqualValues(
+      SMGKnownSymbolicValue pKnownVal1, SMGKnownSymbolicValue pKnownVal2) {
 
-    assert !(explicitValues.get(pKnownVal1) != null &&
-        explicitValues.get(pKnownVal1).equals(explicitValues.get(pKnownVal2)));
+    assert !(explicitValues.get(pKnownVal1) != null
+        && explicitValues.get(pKnownVal1).equals(explicitValues.get(pKnownVal2)));
 
     // Avoid remove NULL value on merge
     if (pKnownVal2.isZero()) {
@@ -1890,19 +1949,29 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     heap.replaceValue(pKnownVal1, pKnownVal2);
     Preconditions.checkArgument(!pKnownVal2.isZero());
-    SMGKnownExpValue expVal = explicitValues.remove(pKnownVal2);
+    SMGKnownExpValue expVal = explicitValues.get(pKnownVal2);
+    explicitValues = explicitValues.removeAndCopy(pKnownVal2);
     if (expVal != null) {
-      explicitValues.put(pKnownVal1, expVal);
+      explicitValues = explicitValues.putAndCopy(pKnownVal1, expVal);
     }
   }
 
-  public void identifyNonEqualValues(SMGKnownSymbolicValue pKnownVal1, SMGKnownSymbolicValue pKnownVal2) {
+  public void identifyNonEqualValues(
+      SMGKnownSymbolicValue pKnownVal1, SMGKnownSymbolicValue pKnownVal2) {
     heap.addNeqRelation(pKnownVal1, pKnownVal2);
   }
 
   @Override
   public boolean isTrackPredicatesEnabled() {
     return options.trackPredicates();
+  }
+
+  public boolean isTrackErrorPredicatesEnabled() {
+    return options.trackErrorPredicates();
+  }
+
+  public boolean isCrashOnUnknownEnabled() {
+    return options.crashOnUnknown();
   }
 
   public void addPredicateRelation(
@@ -1912,18 +1981,18 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGType pSMGType2,
       BinaryOperator pOp,
       CFAEdge pEdge) {
-  if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge) {
-    BinaryOperator temp;
-    if (((CAssumeEdge) pEdge).getTruthAssumption()) {
-      temp = pOp;
-    } else {
-      temp = pOp.getOppositLogicalOperator();
-    }
+    if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge) {
+      BinaryOperator temp;
+      if (((CAssumeEdge) pEdge).getTruthAssumption()) {
+        temp = pOp;
+      } else {
+        temp = pOp.getOppositLogicalOperator();
+      }
       logger.logf(
           Level.FINER, "SymValue1 %s %s SymValue2 %s AddPredicate: %s", pV1, temp, pV2, pEdge);
       getPathPredicateRelation().addRelation(pV1, pSMGType1, pV2, pSMGType2, temp);
+    }
   }
-}
 
   public void addPredicateRelation(
       SMGValue pV1, SMGType pSMGType1, SMGExplicitValue pV2, BinaryOperator pOp, CFAEdge pEdge) {
@@ -1950,10 +2019,16 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGType pSymbolicSMGType,
       SMGExplicitValue pExplicitValue,
       CFAEdge pEdge) {
-    if (isTrackPredicatesEnabled()) {
-      logger.log(Level.FINER, "Add Error Predicate: SymValue  ",
-          pSymbolicValue, " ; ExplValue", " ",
-          pExplicitValue, "; on edge: ", pEdge);
+    if (isTrackErrorPredicatesEnabled()) {
+      logger.log(
+          Level.FINER,
+          "Add Error Predicate: SymValue  ",
+          pSymbolicValue,
+          " ; ExplValue",
+          " ",
+          pExplicitValue,
+          "; on edge: ",
+          pEdge);
       getErrorPredicateRelation()
           .addExplicitRelation(
               pSymbolicValue, pSymbolicSMGType, pExplicitValue, BinaryOperator.GREATER_THAN);
@@ -1989,9 +2064,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           heap.replaceValue(symValue, pKey);
         } else {
           Preconditions.checkArgument(!symValue.isZero());
-          explicitValues.remove(symValue);
+          explicitValues = explicitValues.removeAndCopy(symValue);
           heap.replaceValue(pKey, symValue);
-          explicitValues.put(pKey, pValue);
+          explicitValues = explicitValues.putAndCopy(pKey, pValue);
           return symValue;
         }
       }
@@ -1999,24 +2074,24 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return null;
     }
 
-    explicitValues.put(pKey, pValue);
+    explicitValues = explicitValues.putAndCopy(pKey, pValue);
     return null;
   }
 
   @Deprecated // unused
   public void clearExplicit(SMGKnownSymbolicValue pKey) {
     Preconditions.checkArgument(!pKey.isZero());
-    explicitValues.remove(pKey);
+    explicitValues = explicitValues.removeAndCopy(pKey);
   }
 
   @Override
-  public boolean isExplicit(SMGKnownSymbolicValue value) {
+  public boolean isExplicit(SMGValue value) {
     return explicitValues.containsKey(value);
   }
 
   @Override
   @Nullable
-  public SMGKnownExpValue getExplicit(SMGKnownSymbolicValue pKey) {
+  public SMGKnownExpValue getExplicit(SMGValue pKey) {
     return explicitValues.get(pKey);
   }
 
@@ -2050,16 +2125,18 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     if (pValue1.isUnknown() || pValue2.isUnknown() || pValue1.equals(pValue2)) {
       return false;
-    } else {
-      if (heap.isPointer(pValue1) && heap.isPointer(pValue2)) {
-        SMGObject object1 = heap.getObjectPointedBy(pValue1);
-        SMGObject object2 = heap.getObjectPointedBy(pValue2);
-        if (!object1.equals(object2)) {
-          return !heap.arePossibleEquals(object1, object2);
-        }
+    } else if (pValue1 instanceof SMGExplicitValue && pValue2 instanceof SMGExplicitValue) {
+      return !pValue1.equals(pValue2);
+    } else if (isExplicit(pValue1) && isExplicit(pValue2)) {
+      return !getExplicit(pValue1).equals(getExplicit(pValue2));
+    } else if (heap.isPointer(pValue1) && heap.isPointer(pValue2)) {
+      SMGObject object1 = heap.getObjectPointedBy(pValue1);
+      SMGObject object2 = heap.getObjectPointedBy(pValue2);
+      if (!object1.equals(object2)) {
+        return !heap.arePossibleEquals(object1, object2);
       }
-      return heap.haveNeqRelation(pValue1, pValue2);
     }
+    return heap.haveNeqRelation(pValue1, pValue2);
   }
 
   @Override
@@ -2153,7 +2230,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     for (SMGEdgeHasValue edge : heap.getHVEdges()) {
 
-      //TODO Robust heap abstraction?
+      // TODO Robust heap abstraction?
       if (edge.getObject().isAbstract()) {
         trackedValues.add(edge.getValue());
         continue;
@@ -2246,13 +2323,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return heap.forgetStackVariable(pMemoryLocation);
   }
 
-  public void remember(MemoryLocation pMemoryLocation, SMGRegion pRegion,
-      SMGStateInformation pInfo) {
+  public void remember(
+      MemoryLocation pMemoryLocation, SMGRegion pRegion, SMGStateInformation pInfo) {
     heap.remember(pMemoryLocation, pRegion, pInfo);
   }
 
   public void unknownWrite() {
-    if (!isTrackPredicatesEnabled()) {
+    if (!isTrackErrorPredicatesEnabled()) {
       heap.clearValues();
     }
   }

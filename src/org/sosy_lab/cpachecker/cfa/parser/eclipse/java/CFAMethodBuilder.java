@@ -85,10 +85,10 @@ import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
@@ -125,7 +125,7 @@ class CFAMethodBuilder extends ASTVisitor {
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
 
   // Data structures for label , continue , break
-  private final Map<String, CLabelNode> labelMap = new HashMap<>();
+  private final Map<String, CFALabelNode> labelMap = new HashMap<>();
   private final Map<String, List<Pair<CFANode, ContinueStatement>>> registeredContinues =
       new HashMap<>();
 
@@ -257,7 +257,7 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public boolean visit(final VariableDeclarationStatement sd) {
 
-    assert (!locStack.isEmpty()) : "not in a methods's scope";
+    assert !locStack.isEmpty() : "not in a methods's scope";
 
     CFANode prevNode = locStack.pop();
 
@@ -272,7 +272,7 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public boolean visit(final SingleVariableDeclaration sd) {
 
-    assert (!locStack.isEmpty()) : "not in a methods's scope";
+    assert !locStack.isEmpty() : "not in a methods's scope";
 
     CFANode prevNode = locStack.pop();
 
@@ -289,7 +289,9 @@ class CFAMethodBuilder extends ASTVisitor {
     assert cb.isClass() : cb.getName() + " is no Object Return";
 
     CFANode prevNode = locStack.pop();
-    FunctionExitNode functionExitNode = cfa.getExitNode();
+    // During method CFA construction, every function entry node must have a function exit node
+    // (unreachable function exit nodes have not been removed yet).
+    FunctionExitNode functionExitNode = cfa.getExitNode().orElseThrow();
 
     JReturnStatement cfaObjectReturn = astCreator.getConstructorObjectReturn(cb);
 
@@ -325,9 +327,12 @@ class CFAMethodBuilder extends ASTVisitor {
 
     CFANode lastNode = locStack.pop();
 
+    // During method CFA construction, every function entry node must have a function exit node
+    // (unreachable function exit nodes have not been removed yet).
+    FunctionExitNode functionExitNode = cfa.getExitNode().orElseThrow();
     if (isReachableNode(lastNode)) {
       BlankEdge blankEdge =
-          new BlankEdge("", FileLocation.DUMMY, lastNode, cfa.getExitNode(), "default return");
+          new BlankEdge("", FileLocation.DUMMY, lastNode, functionExitNode, "default return");
       addToCFA(blankEdge);
     }
 
@@ -336,6 +341,11 @@ class CFAMethodBuilder extends ASTVisitor {
     // if node was created but isn't part of CFA (e.g. because of dead code),
     // then remove node from current CFANodes
     cfaNodes.removeIf(n -> !reachableNodes.contains(n));
+
+    // if the function exit node doesn't have entering edges, it's unreachable and we remove it
+    if (functionExitNode.getNumEnteringEdges() == 0) {
+      cfa.removeExitNode();
+    }
 
     scope.leaveMethod();
   }
@@ -1666,7 +1676,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     AFunctionDeclaration methodName = cfa.getFunction();
     // In Java label Node is placed after Label Body
-    CLabelNode labelNode = new CLabelNode(methodName, labelName);
+    CFALabelNode labelNode = new CFALabelNode(methodName, labelName);
     cfaNodes.add(labelNode);
     labelMap.put(labelName, labelNode);
 
@@ -1699,7 +1709,7 @@ class CFAMethodBuilder extends ASTVisitor {
             + "out of scope, but scope does not contain it";
 
     // Add Edge from end of Label Body to Label
-    CLabelNode labelNode = labelMap.get(labelStatement.getLabel().getIdentifier());
+    CFALabelNode labelNode = labelMap.get(labelStatement.getLabel().getIdentifier());
     CFANode prevNode = locStack.pop();
 
     if (isReachableNode(prevNode)) {
@@ -2448,7 +2458,9 @@ class CFAMethodBuilder extends ASTVisitor {
     CFANode nextNode = new CFANode(cfa.getFunction());
     cfaNodes.add(nextNode);
 
-    FunctionExitNode functionExitNode = cfa.getExitNode();
+    // During method CFA construction, every function entry node must have a function exit node
+    // (unreachable function exit nodes have not been removed yet).
+    FunctionExitNode functionExitNode = cfa.getExitNode().orElseThrow();
 
     JReturnStatement cfJReturnStatement = astCreator.convert(returnStatement);
 

@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGVa
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
@@ -61,8 +60,12 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
    */
   private final List<SMGState> smgStatesToBeProccessed = new ArrayList<>();
 
-  public ExplicitValueVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, SMGState pSmgState, String pFunctionName,
-      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger,
+  public ExplicitValueVisitor(
+      SMGExpressionEvaluator pSmgExpressionEvaluator,
+      SMGState pSmgState,
+      String pFunctionName,
+      MachineModel pMachineModel,
+      LogManagerWithoutDuplicates pLogger,
       CFAEdge pEdge) {
     super(pFunctionName, pMachineModel, pLogger);
     smgExpressionEvaluator = pSmgExpressionEvaluator;
@@ -93,17 +96,11 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     if (pValue instanceof SMGKnownExpValue) {
       return (SMGExplicitValue) pValue;
     }
-    Preconditions.checkState(
-        pValue instanceof SMGKnownSymbolicValue,
-        "known value '%s' has invalid type '%s'",
-        pValue,
-        pValue.getClass());
-    if (!getState().isExplicit((SMGKnownSymbolicValue) pValue)) {
+    if (!getState().isExplicit(pValue)) {
       return SMGUnknownValue.INSTANCE;
     }
     return Preconditions.checkNotNull(
-        getState().getExplicit((SMGKnownSymbolicValue) pValue),
-        "known and existing value cannot be read from state");
+        getState().getExplicit(pValue), "known and existing value cannot be read from state");
   }
 
   @Override
@@ -117,25 +114,25 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
         List<? extends SMGValueAndState> symValueAndStates;
 
-      try {
-        symValueAndStates =
-            smgExpressionEvaluator.evaluateAssumptionValue(getState(), edge, binaryExp);
-      } catch (CPATransferException e) {
-        UnrecognizedCodeException e2 =
-            new UnrecognizedCodeException("SMG cannot be evaluated", binaryExp);
-        e2.initCause(e);
-        throw e2;
-      }
+        try {
+          symValueAndStates =
+              smgExpressionEvaluator.evaluateAssumptionValue(getState(), edge, binaryExp);
+        } catch (CPATransferException e) {
+          UnrecognizedCodeException e2 =
+              new UnrecognizedCodeException("SMG cannot be evaluated", binaryExp);
+          e2.initCause(e);
+          throw e2;
+        }
 
-      SMGValueAndState symValueAndState = getStateAndAddRestForLater(symValueAndStates);
-      SMGValue symValue = symValueAndState.getObject();
-      setState(symValueAndState.getSmgState());
+        SMGValueAndState symValueAndState = getStateAndAddRestForLater(symValueAndStates);
+        SMGValue symValue = symValueAndState.getObject();
+        setState(symValueAndState.getSmgState());
 
-      if (symValue.equals(SMGKnownSymValue.TRUE)) {
-        return new NumericValue(1);
-      } else if (symValue.equals(SMGZeroValue.INSTANCE)) {
-        return new NumericValue(0);
-      }
+        if (symValue.equals(SMGKnownSymValue.TRUE)) {
+          return new NumericValue(1);
+        } else if (symValue.equals(SMGZeroValue.INSTANCE)) {
+          return new NumericValue(0);
+        }
       } else if (BinaryOperator.MINUS == binaryExp.getOperator()) {
         /* We may be able to get an explicit Value from pointer comparisons. */
         // TODO without the redirection to the explicit value visitor above,

@@ -65,7 +65,8 @@ public class JClassInstanceCreation extends JMethodInvocationExpression implemen
 
   @Override
   public String toASTString(boolean pQualified) {
-    return "new " + getExpressionType().toASTString(getFunctionNameExpression().toASTString(pQualified));
+    return "new "
+        + getExpressionType().toASTString(getFunctionNameExpression().toASTString(pQualified));
   }
 
   @Override

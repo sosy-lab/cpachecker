@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -41,7 +40,8 @@ public class SMGSingleLinkedListFinderTest {
     assertThat(!candidates.isEmpty()).isTrue();
     SMGAbstractionCandidate candidate = getBestCandidate(candidates);
     assertThat(candidate).isInstanceOf(SMGSingleLinkedListCandidateSequence.class);
-    SMGSingleLinkedListCandidateSequence sllCandidate = (SMGSingleLinkedListCandidateSequence)candidate;
+    SMGSingleLinkedListCandidateSequence sllCandidate =
+        (SMGSingleLinkedListCandidateSequence) candidate;
     assertThat(sllCandidate.getLength()).isEqualTo(5);
     assertThat(sllCandidate.getCandidate().getShape().getNfo()).isEqualTo(64);
     SMGRegion expectedStart = (SMGRegion) smg.getPointer(root.getValue()).getObject();
@@ -67,7 +67,7 @@ public class SMGSingleLinkedListFinderTest {
 
     TestHelpers.createGlobalList(smg, 2, 128, 64, "pointer");
 
-    SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder(2,2,2);
+    SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder(2, 2, 2);
     Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null, ImmutableSet.of());
     assertThat(candidates).hasSize(1);
   }
@@ -82,10 +82,7 @@ public class SMGSingleLinkedListFinderTest {
     SMGObject inside = new SMGRegion(128, "pointed_at");
     SMGEdgeHasValue tailConnection =
         new SMGEdgeHasValue(
-            smg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID),
-            64,
-            inside,
-            tail);
+            smg.getMachineModel().getSizeofInBits(CPointerType.POINTER_TO_VOID), 64, inside, tail);
 
     SMGValue addressOfInside = SMGKnownSymValue.of();
     SMGEdgePointsTo insidePT = new SMGEdgePointsTo(addressOfInside, inside, 0);
@@ -104,9 +101,9 @@ public class SMGSingleLinkedListFinderTest {
           SMGEdgeHasValueFilter.objectFilter(lastFromHead)
               .filterAtOffset(64)
               .filterBySize(smg.getSizeofPtrInBits());
-      SMGHasValueEdges connections = smg.getHVEdges(filter);
+      Iterable<SMGEdgeHasValue> connections = smg.getHVEdges(filter);
       connection = null;
-      if (!connections.isEmpty()) {
+      if (connections.iterator().hasNext()) {
         connection = Iterables.getOnlyElement(connections);
         lastFromHead = smg.getPointer(connection.getValue()).getObject();
       }

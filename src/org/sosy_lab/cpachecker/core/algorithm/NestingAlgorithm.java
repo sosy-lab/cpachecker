@@ -48,7 +48,6 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
 
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
-  protected final CFA cfa;
   protected final Configuration globalConfig;
   protected final Specification specification;
 
@@ -56,9 +55,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      Specification pSpecification,
-      CFA pCfa) {
-    cfa = Objects.requireNonNull(pCfa);
+      Specification pSpecification) {
     shutdownNotifier = Objects.requireNonNull(pShutdownNotifier);
     globalConfig = Objects.requireNonNull(pConfig);
     specification = Objects.requireNonNull(pSpecification);
@@ -67,7 +64,8 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
 
   protected Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
       Path singleConfigFileName,
-      CFANode mainFunction,
+      CFANode initialNode,
+      CFA pCfa,
       ShutdownManager singleShutdownManager,
       AggregatedReachedSets aggregateReached,
       Collection<String> ignoreOptions,
@@ -84,10 +82,10 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(
             singleConfig, singleLogger, singleShutdownManager.getNotifier(), aggregateReached);
-    ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
+    ConfigurableProgramAnalysis cpa = coreComponents.createCPA(pCfa, specification);
     GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-    Algorithm algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
-    ReachedSet reached = createInitialReachedSet(cpa, mainFunction, coreComponents, singleLogger);
+    Algorithm algorithm = coreComponents.createAlgorithm(cpa, pCfa, specification);
+    ReachedSet reached = createInitialReachedSet(cpa, initialNode, coreComponents, singleLogger);
 
     if (cpa instanceof StatisticsProvider) {
       ((StatisticsProvider) cpa).collectStatistics(stats);
@@ -130,7 +128,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     Precision initialPrecision =
         cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition());
 
-    ReachedSet reached = pFactory.createReachedSet();
+    ReachedSet reached = pFactory.createReachedSet(cpa);
     reached.add(initialState, initialPrecision);
     return reached;
   }
@@ -149,7 +147,8 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
       if (single.containsKey(key) && !value.equals(single.get(key))) {
         pLogger.logf(
             Level.INFO,
-            "Mismatch of configuration options when loading from '%s': '%s' has two values '%s' and '%s'. Using '%s'.",
+            "Mismatch of configuration options when loading from '%s': '%s' has two values '%s' and"
+                + " '%s'. Using '%s'.",
             pSingleConfigFileName,
             key,
             value,
@@ -166,7 +165,8 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
       String value = entry.getValue();
       if (key.startsWith("cfa.") && !(global.containsKey(key) && value.equals(global.get(key)))) {
         throw new InvalidConfigurationException(
-            "CFA option of a nested sub-configuration must also be present in the outer configuration!\n"
+            "CFA option of a nested sub-configuration must also be present in the outer"
+                + " configuration!\n"
                 + String.format(
                     "inner config: \"%s = %s\" ; outer config: \"%s = %s\" ",
                     key, value, key, global.get(key)));

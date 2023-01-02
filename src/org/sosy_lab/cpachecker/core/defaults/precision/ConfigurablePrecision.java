@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.defaults.precision;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Multimap;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Objects;
@@ -25,83 +26,71 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 @Options(prefix = "precision")
 public class ConfigurablePrecision extends VariableTrackingPrecision {
 
-  private static final long serialVersionUID = 1L;
-
   @Option(
-    secure = true,
-    name = "variableBlacklist",
-    description =
-        "blacklist regex for variables that won't be tracked by the CPA using this precision"
-  )
+      secure = true,
+      name = "variableBlacklist",
+      description =
+          "blacklist regex for variables that won't be tracked by the CPA using this precision")
   private Pattern variableBlacklist = Pattern.compile("");
 
   @Option(
-    secure = true,
-    name = "variableWhitelist",
-    description =
-        "whitelist regex for variables that will always be tracked by the CPA using this precision"
-  )
+      secure = true,
+      name = "variableWhitelist",
+      description =
+          "whitelist regex for variables that will always be tracked by the CPA using this"
+              + " precision")
   private Pattern variableWhitelist = Pattern.compile("");
 
   @Option(secure = true, description = "If this option is used, booleans from the cfa are tracked.")
   private boolean trackBooleanVariables = true;
 
   @Option(
-    secure = true,
-    description =
-        "If this option is used, variables that are only compared" + " for equality are tracked."
-  )
+      secure = true,
+      description =
+          "If this option is used, variables that are only compared" + " for equality are tracked.")
   private boolean trackIntEqualVariables = true;
-
-  @Option(
-    secure = true,
-    description =
-        "If this option is used, variables, that are only used in"
-            + " simple calculations (add, sub, lt, gt, eq) are tracked."
-  )
-  private boolean trackIntAddVariables = true;
-
-  @Option(
-    secure = true,
-    description =
-        "If this option is used, variables that have type double" + " or float are tracked."
-  )
-  private boolean trackFloatVariables = true;
-
-  @Option(
-    secure = true,
-    description =
-        "If this option is used, variables that are addressed"
-            + " may get tracked depending on the rest of the precision. When this option"
-            + " is disabled, a variable that is addressed is definitely not tracked."
-  )
-  private boolean trackAddressedVariables = true;
-
-  @Option(
-    secure = true,
-    description =
-        "If this option is used, all variables that are"
-            + " of a different classification than IntAdd, IntEq and Boolean get tracked"
-            + " by the precision."
-  )
-  private boolean trackVariablesBesidesEqAddBool = true;
 
   @Option(
       secure = true,
       description =
-          "If this option is used, variables that are irrelevant"
-              + "are also tracked."
-  )
+          "If this option is used, variables, that are only used in"
+              + " simple calculations (add, sub, lt, gt, eq) are tracked.")
+  private boolean trackIntAddVariables = true;
+
+  @Option(
+      secure = true,
+      description =
+          "If this option is used, variables that have type double" + " or float are tracked.")
+  private boolean trackFloatVariables = true;
+
+  @Option(
+      secure = true,
+      description =
+          "If this option is used, variables that are addressed"
+              + " may get tracked depending on the rest of the precision. When this option"
+              + " is disabled, a variable that is addressed is definitely not tracked.")
+  private boolean trackAddressedVariables = true;
+
+  @Option(
+      secure = true,
+      description =
+          "If this option is used, all variables that are"
+              + " of a different classification than IntAdd, IntEq and Boolean get tracked"
+              + " by the precision.")
+  private boolean trackVariablesBesidesEqAddBool = true;
+
+  @Option(
+      secure = true,
+      description = "If this option is used, variables that are irrelevant" + "are also tracked.")
   private boolean trackIrrelevantVariables = true;
 
-  private transient Optional<VariableClassification> vc;
+  private final Optional<VariableClassification> vc;
   private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
   ConfigurablePrecision(
@@ -111,13 +100,12 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       throws InvalidConfigurationException {
     config.inject(this);
     this.cpaClass = cpaClass;
-    this.vc = pVc;
+    vc = pVc;
   }
 
   @Override
   public boolean allowsAbstraction() {
-    return
-        !trackIrrelevantVariables
+    return !trackIrrelevantVariables
         || !trackBooleanVariables
         || !trackIntEqualVariables
         || !trackIntAddVariables
@@ -227,6 +215,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     writer.write("# configured precision used - nothing to show here");
   }
 
+  @CanIgnoreReturnValue
   @Override
   public VariableTrackingPrecision join(VariableTrackingPrecision consolidatedPrecision) {
     Preconditions.checkArgument(getClass().equals(consolidatedPrecision.getClass()));
@@ -314,11 +303,5 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
         .add("trackFloatVariables", trackFloatVariables)
         .add("trackAddressedVariables", trackAddressedVariables)
         .toString();
-  }
-
-  @SuppressWarnings("UnusedVariable") // parameter is required by API
-  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-    in.defaultReadObject();
-    vc = GlobalInfo.getInstance().getCFAInfo().orElseThrow().getCFA().getVarClassification();
   }
 }

@@ -7,14 +7,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Encoding of (possibly-aliased) C pointers into formulas,
- * including conditional updates for maybe-aliased pointers.
- * This package assumes that pointers of different types are never aliased.
+ * Encoding of (possibly-aliased) C pointers into formulas, including conditional updates for
+ * maybe-aliased pointers. This package assumes that pointers of different types are never aliased.
  */
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(
-  value = "SE_BAD_FIELD",
-  justification = "serialization of formulas is currently unsupported"
-)
+    value = "SE_BAD_FIELD",
+    justification = "serialization of formulas is currently unsupported")
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault

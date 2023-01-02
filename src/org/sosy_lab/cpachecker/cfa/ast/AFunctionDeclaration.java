@@ -31,7 +31,7 @@ public abstract class AFunctionDeclaration extends AbstractDeclaration {
 
   @Override
   public IAFunctionType getType() {
-    return  (IAFunctionType) super.getType();
+    return (IAFunctionType) super.getType();
   }
 
   public List<? extends AParameterDeclaration> getParameters() {
@@ -54,8 +54,7 @@ public abstract class AFunctionDeclaration extends AbstractDeclaration {
       return true;
     }
 
-    if (!(obj instanceof AFunctionDeclaration)
-        || !super.equals(obj)) {
+    if (!(obj instanceof AFunctionDeclaration) || !super.equals(obj)) {
       return false;
     }
 

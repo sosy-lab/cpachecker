@@ -17,8 +17,7 @@ import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
-public class CReturnStatementEdge extends AReturnStatementEdge {
-
+public class CReturnStatementEdge extends AReturnStatementEdge implements CCfaEdge {
 
   private static final long serialVersionUID = 8753970625917047772L;
 
@@ -45,5 +44,10 @@ public class CReturnStatementEdge extends AReturnStatementEdge {
   @Override
   public Optional<CAssignment> asAssignment() {
     return getReturnStatement().asAssignment();
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CCfaEdgeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
   }
 }

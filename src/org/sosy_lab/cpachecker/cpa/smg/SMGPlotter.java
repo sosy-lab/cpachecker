@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
@@ -43,12 +42,13 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
 
 public final class SMGPlotter {
   private static final class SMGObjectNode {
     private final String name;
     private final String definition;
-    static private int counter = 0;
+    private static int counter = 0;
 
     public SMGObjectNode(String pType, String pDefinition) {
       name = "node_" + pType + "_" + counter++;
@@ -82,8 +82,17 @@ public final class SMGPlotter {
       return new SMGObjectNode(label, defaultDefinition(color, "rectangle", "dashed", obj));
     }
 
-    private String defaultDefinition(String pColor, String pShape, String pStyle, SMGObject pObject) {
-      return "color=" + pColor + ", shape=" + pShape + ", style=" + pStyle + ", label =\"" + pObject + "\"";
+    private String defaultDefinition(
+        String pColor, String pShape, String pStyle, SMGObject pObject) {
+      return "color="
+          + pColor
+          + ", shape="
+          + pShape
+          + ", style="
+          + pStyle
+          + ", label =\""
+          + pObject
+          + "\"";
     }
 
     @Override
@@ -133,7 +142,7 @@ public final class SMGPlotter {
   public static void debuggingPlot(
       UnmodifiableCLangSMG pSmg,
       String pId,
-      Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues)
+      PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues)
       throws IOException {
     PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg-debug-%s.dot");
     pId = pId.replace("\"", "");
@@ -147,12 +156,12 @@ public final class SMGPlotter {
   }
 
   private final Map<SMGObject, SMGObjectNode> objectIndex = new HashMap<>();
-  static private int nulls = 0;
+  private static int nulls = 0;
   private int offset = 0;
 
   public SMGPlotter() {} /* utility class */
 
-  static public String convertToValidDot(String original) {
+  public static String convertToValidDot(String original) {
     return CharMatcher.anyOf("[]:").replaceFrom(original, "_");
   }
 
@@ -160,7 +169,7 @@ public final class SMGPlotter {
       UnmodifiableCLangSMG smg,
       String name,
       String location,
-      Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
+      PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
     StringBuilder sb = new StringBuilder();
 
     sb.append("digraph gr_").append(name.replace('-', '_')).append("{\n");
@@ -173,7 +182,7 @@ public final class SMGPlotter {
     SMGNodeDotVisitor visitor = new SMGNodeDotVisitor(smg);
 
     for (SMGObject heapObject : smg.getHeapObjects()) {
-      if (! objectIndex.containsKey(heapObject)) {
+      if (!objectIndex.containsKey(heapObject)) {
         objectIndex.put(heapObject, heapObject.accept(visitor));
       }
       if (heapObject != SMGNullObject.INSTANCE) {
@@ -193,7 +202,7 @@ public final class SMGPlotter {
     for (SMGValue value : smg.getValues()) {
       if (!value.isZero()) {
         for (SMGValue neqValue : smg.getNeqsForValue(value)) {
-          if (! processed.contains(neqValue)) {
+          if (!processed.contains(neqValue)) {
             sb.append(newLineWithOffset(neqRelationAsDot(value, neqValue, explicitValues)));
           }
         }
@@ -203,7 +212,7 @@ public final class SMGPlotter {
 
     // merge edges with same object and value and print only one edge per source/target.
     Table<SMGObject, SMGValue, Set<SMGEdgeHasValue>> mergedEdges = HashBasedTable.create();
-    for (SMGEdgeHasValue edge: smg.getHVEdges()) {
+    for (SMGEdgeHasValue edge : smg.getHVEdges()) {
       Set<SMGEdgeHasValue> edges = mergedEdges.get(edge.getObject(), edge.getValue());
       if (edges == null) {
         edges = new LinkedHashSet<>();
@@ -265,7 +274,13 @@ public final class SMGPlotter {
             "subgraph cluster_stack_" + pStackFrame.getFunctionDeclaration().getName() + " {"));
     offset += 2;
     pSb.append(newLineWithOffset("fontcolor=blue;"));
-    pSb.append(newLineWithOffset("label=\"#" + pIndex + ": " + pStackFrame.getFunctionDeclaration().toASTString() + "\";"));
+    pSb.append(
+        newLineWithOffset(
+            "label=\"#"
+                + pIndex
+                + ": "
+                + pStackFrame.getFunctionDeclaration().toASTString()
+                + "\";"));
 
     Map<String, SMGRegion> to_print = new LinkedHashMap<>(pStackFrame.getVariables());
 
@@ -278,7 +293,6 @@ public final class SMGPlotter {
 
     offset -= 2;
     pSb.append(newLineWithOffset("}"));
-
   }
 
   private String smgScopeFrameAsDot(Map<String, SMGRegion> pNamespace, String structId) {
@@ -325,7 +339,7 @@ public final class SMGPlotter {
   }
 
   private static String smgValueAsDot(
-      SMGValue value, Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
+      SMGValue value, PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
     String label = "#" + value.asDotId();
     String color = "red";
     if (value instanceof SMGKnownExpValue) {
@@ -344,7 +358,7 @@ public final class SMGPlotter {
   private static String neqRelationAsDot(
       SMGValue v1,
       SMGValue v2,
-      Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
+      PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
     String toNodeStr, toNode;
     if (v2.isZero()) {
       final String newLabel = newNullLabel();
@@ -356,12 +370,10 @@ public final class SMGPlotter {
     }
     return String.format(
         "%s%n  value_%s -> %s [color=\"red\", fontcolor=\"red\", label=\"neq\"];",
-        toNodeStr,
-        v1.asDotId(),
-        toNode);
+        toNodeStr, v1.asDotId(), toNode);
   }
 
   private String newLineWithOffset(String pLine) {
-    return  Strings.repeat(" ", offset) + pLine + "\n";
+    return " ".repeat(offset) + pLine + "\n";
   }
 }

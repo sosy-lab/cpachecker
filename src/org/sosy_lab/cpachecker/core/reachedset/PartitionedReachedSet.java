@@ -12,41 +12,36 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 /**
- * Special implementation of the reached set that partitions the set by keys that
- * depend on the abstract state.
- * Which key is used for an abstract state can be changed by overriding
- * {@link #getPartitionKey(AbstractState)} in a sub-class.
- * By default, this implementation needs abstract states which implement
- * {@link Partitionable} and uses the return value of {@link Partitionable#getPartitionKey()}
- * as the key.
+ * Special implementation of the reached set that partitions the set by keys that depend on the
+ * abstract state. Which key is used for an abstract state can be changed by overriding {@link
+ * #getPartitionKey(AbstractState)} in a sub-class. By default, this implementation needs abstract
+ * states which implement {@link Partitionable} and uses the return value of {@link
+ * Partitionable#getPartitionKey()} as the key.
  *
- * Whenever the method {@link PartitionedReachedSet#getReached(AbstractState)}
- * is called (which is usually done by the CPAAlgorithm to get the candidates
- * for merging and coverage checks), it will return a subset of the set of all
- * reached states. This subset contains exactly those states, whose partition
- * key is equal to the key of the state given as a parameter.
+ * <p>Whenever the method {@link PartitionedReachedSet#getReached(AbstractState)} is called (which
+ * is usually done by the CPAAlgorithm to get the candidates for merging and coverage checks), it
+ * will return a subset of the set of all reached states. This subset contains exactly those states,
+ * whose partition key is equal to the key of the state given as a parameter.
  */
 public class PartitionedReachedSet extends DefaultReachedSet {
 
-  private static final long serialVersionUID = 1L;
+  private final Multimap<Object, AbstractState> partitionedReached =
+      LinkedHashMultimap.create(100, 1);
 
-  @SuppressFBWarnings("SE_BAD_FIELD")
-  private final Multimap<Object, AbstractState> partitionedReached = LinkedHashMultimap.create(100, 1);
-
-  public PartitionedReachedSet(WaitlistFactory waitlistFactory) {
-    super(waitlistFactory);
+  public PartitionedReachedSet(ConfigurableProgramAnalysis pCpa, WaitlistFactory waitlistFactory) {
+    super(pCpa, waitlistFactory);
   }
 
   @Override
@@ -83,7 +78,8 @@ public class PartitionedReachedSet extends DefaultReachedSet {
     int max = 0;
     Map.Entry<Object, Collection<AbstractState>> maxPartition = null;
 
-    for (Map.Entry<Object, Collection<AbstractState>> partition : partitionedReached.asMap().entrySet()) {
+    for (Map.Entry<Object, Collection<AbstractState>> partition :
+        partitionedReached.asMap().entrySet()) {
       int size = partition.getValue().size();
       if (size > max) {
         max = partition.getValue().size();
@@ -95,8 +91,9 @@ public class PartitionedReachedSet extends DefaultReachedSet {
 
   protected Object getPartitionKey(AbstractState pState) {
     checkNotNull(pState);
-    assert pState instanceof Partitionable : "Partitionable states necessary for PartitionedReachedSet";
-    return ((Partitionable)pState).getPartitionKey();
+    assert pState instanceof Partitionable
+        : "Partitionable states necessary for PartitionedReachedSet";
+    return ((Partitionable) pState).getPartitionKey();
   }
 
   protected Collection<AbstractState> getReachedForKey(@Nullable Object key) {

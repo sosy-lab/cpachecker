@@ -9,17 +9,12 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.LinkedList;
 import java.util.Random;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 /**
  * Waitlist that implements DFS behavior with random selection of branching path.
@@ -34,11 +29,9 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 @SuppressWarnings({"checkstyle:IllegalType", "JdkObsolete"})
 public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> {
 
-  private static final long serialVersionUID = 1L;
-
   private final Random rand = new Random(0);
   private int successorsOfParent;
-  private transient @Nullable CFANode parent;
+  private @Nullable CFANode parent;
 
   protected RandomPathWaitlist() {
     super(new LinkedList<>());
@@ -57,7 +50,6 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
     }
   }
 
-
   @Override
   public AbstractState pop() {
     AbstractState state;
@@ -72,21 +64,8 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
       successorsOfParent--;
       parent = AbstractStates.extractLocation(state);
     } else {
-      parent = null;//TODO not sure if a reset to no parent is correct.
+      parent = null; // TODO not sure if a reset to no parent is correct.
     }
     return state;
-  }
-
-  private void writeObject(ObjectOutputStream s) throws IOException {
-    s.defaultWriteObject();
-    s.writeObject(parent.getNodeNumber());
-  }
-
-  @SuppressWarnings("UnusedVariable") // parameter is required by API
-  private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
-    s.defaultReadObject();
-    Integer nodeNumber = (Integer) s.readObject();
-    CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
-    parent = nodeNumber == null ? null : cfaInfo.getNodeByNodeNumber(nodeNumber);
   }
 }

@@ -12,15 +12,15 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.FiducciaMattheysesOptimizer;
 
 public class FiducciaMattheysesOptimzerFactory {
 
-  private FiducciaMattheysesOptimzerFactory(){}
+  private FiducciaMattheysesOptimzerFactory() {}
 
   public enum OptimizationCriteria {
     EDGECUT,
     NODECUT
   }
 
-  public static FiducciaMattheysesOptimizer createFMOptimizer(OptimizationCriteria criterion){
-    switch(criterion){
+  public static FiducciaMattheysesOptimizer createFMOptimizer(OptimizationCriteria criterion) {
+    switch (criterion) {
       case EDGECUT:
         return new EdgeCutOptimizer();
       default:

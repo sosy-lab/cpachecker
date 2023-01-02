@@ -16,7 +16,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
@@ -34,7 +33,8 @@ public abstract class AbstractSingleWrapperState
   private final @Nullable AbstractState wrappedState;
 
   protected AbstractSingleWrapperState(@Nullable AbstractState pWrappedState) {
-    // TODO this collides with some CPAs' way of handling dummy states, but it should really be not null here
+    // TODO this collides with some CPAs' way of handling dummy states, but it should really be not
+    // null here
     // Preconditions.checkNotNull(pWrappedState);
     wrappedState = pWrappedState;
   }
@@ -46,22 +46,22 @@ public abstract class AbstractSingleWrapperState
   @Override
   public boolean isTarget() {
     if (wrappedState instanceof Targetable) {
-      return ((Targetable)wrappedState).isTarget();
+      return ((Targetable) wrappedState).isTarget();
     } else {
       return false;
     }
   }
 
   @Override
-  public Set<Property> getViolatedProperties() throws IllegalStateException {
+  public Set<TargetInformation> getTargetInformation() throws IllegalStateException {
     checkState(isTarget());
-    return ((Targetable)wrappedState).getViolatedProperties();
+    return ((Targetable) wrappedState).getTargetInformation();
   }
 
   @Override
   public Object getPartitionKey() {
     if (wrappedState instanceof Partitionable) {
-      return ((Partitionable)wrappedState).getPartitionKey();
+      return ((Partitionable) wrappedState).getPartitionKey();
     } else {
       return null;
     }

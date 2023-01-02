@@ -99,7 +99,11 @@ public enum InvariantsSpecificationAutomatonBuilder {
 
     @Override
     public Automaton build(
-        Automaton pAutomaton, Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
+        Automaton pAutomaton,
+        Configuration pConfig,
+        LogManager pLogger,
+        ShutdownNotifier pShutdownNotifier,
+        CFA pCfa)
         throws InterruptedException {
       try {
         WitnessInvariantsExtractor extractor =
@@ -124,8 +128,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
           @SuppressWarnings("unchecked")
           ExpressionTree<AExpression> inv =
               (ExpressionTree<AExpression>) (ExpressionTree<?>) invariant.asExpressionTree();
-          CExpression cExpr =
-              inv.accept(new ToCExpressionVisitor(pCfa.getMachineModel(), pLogger));
+          CExpression cExpr = inv.accept(new ToCExpressionVisitor(pCfa.getMachineModel(), pLogger));
           if (inv instanceof LeafExpression<?>) {
             // we must swap the c expression when assume truth is false
             if (!((LeafExpression<?>) inv).assumeTruth()) {
@@ -160,7 +163,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
       return new AutomatonTransition.Builder(
               createQueryLocationString(pLocation), AutomatonInternalState.ERROR)
           .withAssumptions(pAssumptions)
-          .withViolatedPropertyDescription(new StringExpression("Invariant not valid"))
+          .withTargetInformation(new StringExpression("Invariant not valid"))
           .build();
     }
 
@@ -300,7 +303,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
       return new AutomatonTransition.Builder(
               createQueryLocationString(pSuccessor), createStateName(pSuccessor))
           .withAssumptions(pAssumptions)
-          .withViolatedPropertyDescription(new StringExpression("Invariant not valid"))
+          .withTargetInformation(new StringExpression("Invariant not valid"))
           .build();
     }
 

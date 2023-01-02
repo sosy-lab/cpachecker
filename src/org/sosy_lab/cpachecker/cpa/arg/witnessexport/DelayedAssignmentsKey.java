@@ -21,9 +21,9 @@ class DelayedAssignmentsKey {
   private final ARGState state;
 
   public DelayedAssignmentsKey(String pFrom, CFAEdge pEdge, ARGState pState) {
-    this.from = pFrom;
-    this.edge = pEdge;
-    this.state = pState;
+    from = pFrom;
+    edge = pEdge;
+    state = pState;
   }
 
   @Override

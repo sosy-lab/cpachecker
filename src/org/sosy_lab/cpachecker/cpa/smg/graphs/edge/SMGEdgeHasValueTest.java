@@ -114,7 +114,7 @@ public class SMGEdgeHasValueTest {
     assertThat(obj1_at0.equals(obj2_12at0)).isFalse();
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testIllegalOverlapsWith() {
     SMGObject object1 = new SMGRegion(96, "object1");
     SMGObject object2 = new SMGRegion(96, "object2");
@@ -168,7 +168,7 @@ public class SMGEdgeHasValueTest {
     assertThat(filter.holdsFor(hv21at0)).isTrue();
     assertThat(filter.holdsFor(hv22at4)).isTrue();
 
-    filter.filterByObject(object1);
+    filter = filter.filterByObject(object1);
 
     assertThat(filter.holdsFor(hv11at0)).isTrue();
     assertThat(filter.holdsFor(hv12at4)).isTrue();
@@ -200,9 +200,8 @@ public class SMGEdgeHasValueTest {
     allEdges = allEdges.addEdgeAndCopy(hv21at0);
     allEdges = allEdges.addEdgeAndCopy(hv22at4);
 
-    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
-
-    filter.filterAtOffset(0).filterWithoutSize();
+    SMGEdgeHasValueFilter filter =
+        new SMGEdgeHasValueFilter().filterAtOffset(0).filterWithoutSize();
 
     assertThat(filter.holdsFor(hv11at0)).isTrue();
     assertThat(filter.holdsFor(hv12at4)).isFalse();
@@ -234,9 +233,7 @@ public class SMGEdgeHasValueTest {
     allEdges = allEdges.addEdgeAndCopy(hv21at0);
     allEdges = allEdges.addEdgeAndCopy(hv22at4);
 
-    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
-
-    filter.filterHavingValue(value1);
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter().filterHavingValue(value1);
 
     assertThat(filter.holdsFor(hv11at0)).isTrue();
     assertThat(filter.holdsFor(hv12at4)).isFalse();
@@ -249,7 +246,7 @@ public class SMGEdgeHasValueTest {
     assertThat(filteredSet).contains(hv11at0);
     assertThat(filteredSet).contains(hv21at0);
 
-    filter.filterNotHavingValue(value1);
+    filter = filter.filterNotHavingValue(value1);
 
     assertThat(filter.holdsFor(hv11at0)).isFalse();
     assertThat(filter.holdsFor(hv12at4)).isTrue();

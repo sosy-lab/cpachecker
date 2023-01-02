@@ -7,9 +7,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * CPA which is used by the
- * {@link org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm}
- * to encode ranking relations in the program and check their validity.
+ * CPA which is used by the {@link
+ * org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm} to encode ranking
+ * relations in the program and check their validity.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault

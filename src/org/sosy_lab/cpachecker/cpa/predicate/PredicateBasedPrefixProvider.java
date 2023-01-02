@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner.filterAbstractionStates;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -38,9 +39,9 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix="cpa.predicate.refinement")
+@Options(prefix = "cpa.predicate.refinement")
 public class PredicateBasedPrefixProvider implements PrefixProvider {
-  @Option(secure=true, description="Max. number of prefixes to extract")
+  @Option(secure = true, description = "Max. number of prefixes to extract")
   private int maxPrefixCount = 64;
 
   @Option(
@@ -68,7 +69,11 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     try {
       config.inject(this);
     } catch (InvalidConfigurationException e) {
-      pLogger.log(Level.INFO, "Invalid configuration given to " + getClass().getSimpleName() + ". Using defaults instead.");
+      pLogger.log(
+          Level.INFO,
+          "Invalid configuration given to "
+              + getClass().getSimpleName()
+              + ". Using defaults instead.");
     }
 
     logger = pLogger;
@@ -109,7 +114,8 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     // doing it that way avoids problems with SMTInterpol (cf. commit 20405)
     List<InfeasiblePrefix> infeasiblePrefixes = new ArrayList<>(rawPrefixes.size());
     for (RawInfeasiblePrefix rawPrefix : rawPrefixes) {
-      infeasiblePrefixes.add(InfeasiblePrefix.buildForPredicateDomain(rawPrefix, solver.getFormulaManager()));
+      infeasiblePrefixes.add(
+          InfeasiblePrefix.buildForPredicateDomain(rawPrefix, solver.getFormulaManager()));
     }
 
     return infeasiblePrefixes;
@@ -136,8 +142,8 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
 
       ARGState currentState = iterator.getAbstractState();
 
-      if(iterator.getIndex() == 0) {
-        assert(isAbstractionState(currentState));
+      if (iterator.getIndex() == 0) {
+        assert isAbstractionState(currentState);
       }
 
       // only compute prefixes at abstraction states
@@ -152,14 +158,17 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
 
           if (checkUnsat(pPath, iterator.getOutgoingEdge()) && prover.isUnsat()) {
 
-            logger.log(Level.FINE, "found infeasible prefix, ending with edge ",
+            logger.log(
+                Level.FINE,
+                "found infeasible prefix, ending with edge ",
                 iterator.getOutgoingEdge(),
                 " in block # ",
                 currentBlockIndex,
                 ", that resulted in an unsat-formula");
 
-            List<BooleanFormula> interpolantSequence = extractInterpolantSequence(terms, prover);
-            List<BooleanFormula> finalPathFormula = new ArrayList<>(pathFormula);
+            ImmutableList<BooleanFormula> interpolantSequence =
+                extractInterpolantSequence(terms, prover);
+            ImmutableList<BooleanFormula> finalPathFormula = ImmutableList.copyOf(pathFormula);
 
             // create and add infeasible prefix, mind that the ARGPath has not (!)
             // failing assume operations replaced with no-ops, as this is not needed here,
@@ -167,9 +176,8 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
             ARGPath currentPrefixPath = ARGUtils.getOnePathTo(currentState);
 
             // put prefix data into a simple container for now
-            rawPrefixes.add(new RawInfeasiblePrefix(currentPrefixPath,
-                interpolantSequence,
-                finalPathFormula));
+            rawPrefixes.add(
+                new RawInfeasiblePrefix(currentPrefixPath, interpolantSequence, finalPathFormula));
 
             // stop once threshold for max. length of prefix is reached, relevant
             // e.g., for ECA programs where error paths often exceed 10.000 transition
@@ -188,9 +196,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
             pathFormula.remove(pathFormula.size() - 1);
             pathFormula.add(makeTrue());
           }
-        }
-
-        catch (SolverException e) {
+        } catch (SolverException e) {
           throw new CPAException("Error during computation of prefixes: " + e.getMessage(), e);
         }
 
@@ -208,23 +214,23 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     return rawPrefixes;
   }
 
-  private <T> List<BooleanFormula> extractInterpolantSequence(
+  private <T> ImmutableList<BooleanFormula> extractInterpolantSequence(
       final List<T> pTerms, final InterpolatingProverEnvironment<T> pProver)
       throws SolverException, InterruptedException {
 
-    List<BooleanFormula> interpolantSequence = new ArrayList<>();
+    ImmutableList.Builder<BooleanFormula> interpolantSequence = ImmutableList.builder();
 
-    for(int i = 1; i < pTerms.size(); i++) {
+    for (int i = 1; i < pTerms.size(); i++) {
       interpolantSequence.add(pProver.getInterpolant(pTerms.subList(0, i)));
     }
 
-    return interpolantSequence;
+    return interpolantSequence.build();
   }
 
   /**
-   * This method checks if a unsat call is necessary. It the path is not single-block encoded,
-   * then unsatisfiability has to be checked always. In case it is single-block encoded,
-   * then it suffices to check unsatisfiability at assume edges.
+   * This method checks if a unsat call is necessary. It the path is not single-block encoded, then
+   * unsatisfiability has to be checked always. In case it is single-block encoded, then it suffices
+   * to check unsatisfiability at assume edges.
    *
    * @param pPath the path to check
    * @param pCfaEdge the current edge
@@ -247,8 +253,8 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
   }
 
   /**
-   * This method checks if the given path is single-block-encoded, which is the case,
-   * if all states in the path are abstraction states.
+   * This method checks if the given path is single-block-encoded, which is the case, if all states
+   * in the path are abstraction states.
    *
    * @param pPath the path to check
    * @return true, if all states in the path are abstraction states, else false

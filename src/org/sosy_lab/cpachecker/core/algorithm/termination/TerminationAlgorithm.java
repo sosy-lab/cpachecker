@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.termination;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Comparator.comparingInt;
 import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.INFO;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -51,10 +52,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -68,21 +74,22 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAn
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelation;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
+import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.waitlist.AlwaysEmptyWaitlist;
+import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -93,6 +100,7 @@ import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -102,14 +110,12 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-/**
- * Algorithm that uses a safety-analysis to prove (non-)termination.
- */
+/** Algorithm that uses a safety-analysis to prove (non-)termination. */
 @Options(prefix = "termination")
 public class TerminationAlgorithm implements Algorithm, AutoCloseable, StatisticsProvider {
 
-  private static final ImmutableSet<Property> TERMINATION_PROPERTY =
-      NamedProperty.singleton("termination");
+  private static final ImmutableSet<TargetInformation> TERMINATION_PROPERTY =
+      SimpleTargetInformation.singleton("termination");
 
   private enum ResetReachedSetStrategy {
     REMOVE_TARGET_STATE,
@@ -118,25 +124,24 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   @Option(
-    secure = true,
-    description =
-        "Strategy used to prepare reched set and ARG for next iteration "
-            + "after successful refinement of the termination argument."
-  )
+      secure = true,
+      description =
+          "Strategy used to prepare reched set and ARG for next iteration "
+              + "after successful refinement of the termination argument.")
   private ResetReachedSetStrategy resetReachedSetStrategy = ResetReachedSetStrategy.REMOVE_LOOP;
 
   @Option(
-    secure = true,
-    description = "maximal number of repeated ranking functions per loop before stopping analysis"
-  )
+      secure = true,
+      description =
+          "maximal number of repeated ranking functions per loop before stopping analysis")
   @IntegerOption(min = 1)
   private int maxRepeatedRankingFunctionsPerLoop = 10;
 
   @Option(
-    secure = true,
-    description =
-        "consider counterexamples for loops for which only pointer variables are relevant or which check that pointer is unequal to null pointer to be imprecise"
-  )
+      secure = true,
+      description =
+          "consider counterexamples for loops for which only pointer variables are relevant or"
+              + " which check that pointer is unequal to null pointer to be imprecise")
   private boolean useCexImpreciseHeuristic = false;
 
   @Option(secure = true, description = "enable to also analyze whether recursive calls terminate")
@@ -196,11 +201,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
                         "Loop structure is not present, but required for termination analysis."));
 
     statistics =
-        new TerminationStatistics(
-            pConfig,
-            logger,
-            loopStructure.getAllLoops().size(),
-            pCfa);
+        new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size(), pCfa);
     lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, pCfa, statistics);
   }
 
@@ -298,6 +299,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     Result result = Result.TRUE;
+    Optional<CounterexampleInfo> foundCounterexample = Optional.empty();
     while (pReachedSet.hasWaitingState() && result != Result.FALSE) {
       shutdownNotifier.shutdownIfNecessary();
       statistics.safetyAnalysisStarted(pLoop);
@@ -331,6 +333,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         if (lassoAnalysisResult.hasNonTerminationArgument()) {
           removeIntermediateStates(pReachedSet, targetState);
           result = Result.FALSE;
+          foundCounterexample = Optional.of(counterexample);
 
           statistics.setNonterminatingLoop(pLoop);
 
@@ -384,7 +387,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     if (useCexImpreciseHeuristic && result == Result.FALSE) {
-      if (allRelevantVarsArePointers(relevantVariables)) {
+      if (allRelevantVarsArePointers(relevantVariables)
+          || doesImpreciseOperationOccur(foundCounterexample)) {
+        logger.logf(INFO, "Counterexample to termination found, but deemed imprecise");
         return Result.UNKNOWN;
       } else {
         for (CFAEdge edge : pLoop.getOutgoingEdges()) {
@@ -397,6 +402,103 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     return result;
+  }
+
+  private boolean doesImpreciseOperationOccur(Optional<CounterexampleInfo> pCounterexampleInfo) {
+    if (pCounterexampleInfo.isEmpty()) {
+      return false;
+    }
+    CounterexampleInfo cex = pCounterexampleInfo.orElseThrow();
+
+    List<CFAEdge> edgesOnCex = cex.getTargetPath().getFullPath();
+    for (CFAEdge edge : edgesOnCex) {
+      CRightHandSide expression = CFAEdgeUtils.getRightHandSide(edge);
+      if (expression != null && containsBinaryOperation(expression)) {
+        return true;
+      }
+      if (edge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
+        if (containsBinaryOperation(((CAssumeEdge) edge).getExpression())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean containsBinaryOperation(CRightHandSide expression) {
+    if (expression instanceof CBinaryExpression) {
+      CBinaryExpression binaryExp = (CBinaryExpression) expression;
+      BinaryOperator operator = binaryExp.getOperator();
+
+      if (isBitwiseBinaryOperation(operator)
+          || isMultiplicationWithEqualFactors(operator, binaryExp)) {
+        return true;
+      }
+
+      return containsBinaryOperation(binaryExp.getOperand1())
+          || containsBinaryOperation(binaryExp.getOperand2());
+    }
+    if (expression instanceof CUnaryExpression) {
+      CUnaryExpression unaryExp = (CUnaryExpression) expression;
+      UnaryOperator operator = unaryExp.getOperator();
+
+      if (operator.equals(UnaryOperator.TILDE)) {
+        return true;
+      }
+      return containsBinaryOperation(unaryExp.getOperand());
+    }
+    return false;
+  }
+
+  private boolean isBitwiseBinaryOperation(BinaryOperator pOperator) {
+    switch (pOperator) {
+      case BINARY_AND:
+      case BINARY_XOR:
+      case BINARY_OR:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * This method filters out multiplication operations that contain equal factors, since LassoRanker
+   * is not able to compute precise counterexamples for those.
+   *
+   * <p>As an example, the operation (n * m * n <= x) is filtered out due to the factor n being
+   * there twice (multiplied with itself). An operation (n * m * k <= x) is however unproblematic
+   * and therefore left in place.
+   */
+  private boolean isMultiplicationWithEqualFactors(
+      BinaryOperator pOperator, CBinaryExpression pExpression) {
+
+    if (pOperator == BinaryOperator.MULTIPLY) {
+      Set<CIdExpression> factors = new HashSet<>();
+      return containsEqualFactors(pExpression, factors);
+    }
+
+    return false;
+  }
+
+  private boolean containsEqualFactors(CRightHandSide pExpression, Set<CIdExpression> pFactors) {
+    if (pExpression instanceof CIdExpression) {
+      if (!pFactors.add((CIdExpression) pExpression)) {
+        // The expression was not added to the set because there is already one that is equal
+        return true;
+      }
+    }
+
+    boolean equalFactorsFound = false;
+    if (pExpression instanceof CBinaryExpression) {
+
+      CBinaryExpression binaryExpression = (CBinaryExpression) pExpression;
+      if (binaryExpression.getOperator() == BinaryOperator.MULTIPLY) {
+        equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand1(), pFactors);
+        equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand2(), pFactors);
+      }
+    }
+
+    return equalFactorsFound;
   }
 
   private boolean allRelevantVarsArePointers(final Set<CVariableDeclaration> pRelevantVariables) {
@@ -431,7 +533,11 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     // Create dummy reached set as holder for invariants. We do not use the reached-set factory
     // from configuration because that could require features that our dummy states do not support.
     // We use LocationMappedReachedSet because that seems useful to callers.
-    ReachedSet dummy = new LocationMappedReachedSet(AlwaysEmptyWaitlist.factory());
+    // Using AlwaysTopCPA as dummy is ok as long as UnmodifiableReachedSet does not have getCPA(),
+    // because the AggregatedReachedSet only exposes reached sets as UnmodifiableReachedSet,
+    // so no other code will be able to call dummy.getCPA().
+    ReachedSet dummy =
+        new LocationMappedReachedSet(AlwaysTopCPA.INSTANCE, AlwaysEmptyWaitlist.factory());
     CFANode location = AbstractStates.extractLocation(loopHeadState);
     FormulaManagerView fmgr = rankingRelation.getFormulaManager();
 
@@ -519,13 +625,14 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private ARGState createNonTerminationState(AbstractState loopHead) {
     TerminationState terminationState = extractStateByType(loopHead, TerminationState.class);
     AbstractState newTerminationState =
-        terminationState.withViolatedProperties(TERMINATION_PROPERTY);
+        terminationState.withTargetInformation(TERMINATION_PROPERTY);
     ARGState newTargetState = new ARGState(newTerminationState, null);
     return newTargetState;
   }
 
   /**
    * Removes all intermediate states from the counterexample.
+   *
    * @param counterexample the {@link CounterexampleInfo} to remove the states from
    * @param newTargetState the new target state which is the last state of the counterexample
    * @return the created {@link CounterexampleInfo}
@@ -581,7 +688,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     // the safety analysis will fail if the program is recursive
     try {
       terminationInformation.reset();
-      ReachedSet reachedSet = reachedSetFactory.create();
+      ReachedSet reachedSet = reachedSetFactory.create(safetyCPA);
       resetReachedSet(reachedSet, initialLocation);
       return safetyAlgorithm.run(reachedSet);
     } finally {
@@ -612,9 +719,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
   }
 
-  /**
-   * Removes <code>pTargetState</code> from reached set and ARG.
-   */
+  /** Removes <code>pTargetState</code> from reached set and ARG. */
   private void removeTargetState(ReachedSet pReachedSet, ARGState pTargetState) {
     assert pTargetState.isTarget();
     pReachedSet.remove(pTargetState);
@@ -692,8 +797,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         String functionName = pNode.getFunctionName();
         List<CParameterDeclaration> parameters =
             ((CFunctionEntryNode) pNode).getFunctionParameters();
-        parameters
-            .stream()
+        parameters.stream()
             .map(CParameterDeclaration::asVariableDeclaration)
             .forEach(localDeclarations.get(functionName)::add);
       }

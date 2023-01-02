@@ -12,10 +12,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
-/**
- * Intermediate class in ABE, which simply represents the formula between two
- * blocks.
- */
+/** Intermediate class in ABE, which simply represents the formula between two blocks. */
 public final class ABEIntermediateState<A extends ABEAbstractedState<A>> implements ABEState<A> {
 
   private final PathFormula pathFormula;
@@ -25,9 +22,7 @@ public final class ABEIntermediateState<A extends ABEAbstractedState<A>> impleme
   private transient int hashCache = 0;
 
   private ABEIntermediateState(
-      PathFormula pPathFormula,
-      ABEAbstractedState<A> pStartingAbstraction,
-      CFANode pNode) {
+      PathFormula pPathFormula, ABEAbstractedState<A> pStartingAbstraction, CFANode pNode) {
     pathFormula = pPathFormula;
     startingAbstraction = pStartingAbstraction;
     node = pNode;
@@ -42,10 +37,7 @@ public final class ABEIntermediateState<A extends ABEAbstractedState<A>> impleme
    * @param <A> class of the abstracted state.
    */
   public static <A extends ABEAbstractedState<A>> ABEIntermediateState<A> of(
-      CFANode node,
-      PathFormula pPathFormula,
-      ABEAbstractedState<A> backpointer
-  ) {
+      CFANode node, PathFormula pPathFormula, ABEAbstractedState<A> backpointer) {
     return new ABEIntermediateState<>(pPathFormula, backpointer, node);
   }
 
@@ -53,9 +45,7 @@ public final class ABEIntermediateState<A extends ABEAbstractedState<A>> impleme
     return startingAbstraction;
   }
 
-  /**
-   * Optimizations for coverage checking.
-   */
+  /** Optimizations for coverage checking. */
   public void setMergedInto(ABEIntermediateState<A> other) {
     mergedInto = other;
   }
@@ -92,9 +82,9 @@ public final class ABEIntermediateState<A extends ABEAbstractedState<A>> impleme
       return false;
     }
     ABEIntermediateState<?> that = (ABEIntermediateState<?>) pO;
-    return Objects.equals(pathFormula, that.pathFormula) &&
-        Objects.equals(startingAbstraction, that.startingAbstraction) &&
-        Objects.equals(node, that.node);
+    return Objects.equals(pathFormula, that.pathFormula)
+        && Objects.equals(startingAbstraction, that.startingAbstraction)
+        && Objects.equals(node, that.node);
   }
 
   @Override

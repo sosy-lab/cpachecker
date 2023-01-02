@@ -54,13 +54,11 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
     return fmgrView.makeAnd(result, additionalAxioms);
   }
 
-  /**
-   * Replaces non-linear multiplication by linear formulas and an auxiliary variable.
-   */
+  /** Replaces non-linear multiplication by linear formulas and an auxiliary variable. */
   private static class NonLinearMultiplicationTransformation
       extends DefaultFormulaVisitor<Formula> {
 
-    private final static UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
+    private static final UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
 
     private final FormulaManagerView fmgrView;
     private final FormulaManager fmgr;
@@ -136,10 +134,9 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
     }
 
     /**
-     * Transform a non linear multiplication operation into a new linear {@link Formula}
-     * and adds it to {@link #additionalAxioms}.
-     * The returned {@link Formula} represents the multiplication opertion's result
-     * if that {@link Formula} is satisfied.
+     * Transform a non linear multiplication operation into a new linear {@link Formula} and adds it
+     * to {@link #additionalAxioms}. The returned {@link Formula} represents the multiplication
+     * opertion's result if that {@link Formula} is satisfied.
      *
      * @return a {@link Formula} representing the result of the multiplication operation
      */

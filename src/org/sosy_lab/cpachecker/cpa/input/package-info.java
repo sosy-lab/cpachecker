@@ -6,8 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * The InputCPA flags states in which input from an external function call is
- * received.
- */
+/** The InputCPA flags states in which input from an external function call is received. */
 package org.sosy_lab.cpachecker.cpa.input;

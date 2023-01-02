@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -34,12 +33,16 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
 
   @VisibleForTesting
-  public SMGSingleLinkedListFinder() {
-  }
+  public SMGSingleLinkedListFinder() {}
 
-  public SMGSingleLinkedListFinder(int pSeqLengthEqualityThreshold,
-      int pSeqLengthEntailmentThreshold, int pSeqLengthIncomparableThreshold) {
-    super(pSeqLengthEqualityThreshold,pSeqLengthEntailmentThreshold,pSeqLengthIncomparableThreshold);
+  public SMGSingleLinkedListFinder(
+      int pSeqLengthEqualityThreshold,
+      int pSeqLengthEntailmentThreshold,
+      int pSeqLengthIncomparableThreshold) {
+    super(
+        pSeqLengthEqualityThreshold,
+        pSeqLengthEntailmentThreshold,
+        pSeqLengthIncomparableThreshold);
   }
 
   @Override
@@ -92,7 +95,9 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
       return;
     }
 
-    if(!(pObject.getKind() == SMGObjectKind.SLL || pObject.getKind() == SMGObjectKind.REG || pObject.getKind() == SMGObjectKind.OPTIONAL)) {
+    if (!(pObject.getKind() == SMGObjectKind.SLL
+        || pObject.getKind() == SMGObjectKind.REG
+        || pObject.getKind() == SMGObjectKind.OPTIONAL)) {
       return;
     }
 
@@ -117,7 +122,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
 
       SMGObject nextObject = nextPointerEdge.getObject();
 
-      if(pObject == nextObject) {
+      if (pObject == nextObject) {
         continue;
       }
 
@@ -125,7 +130,9 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         continue;
       }
 
-      if(!(nextObject.getKind() == SMGObjectKind.SLL || nextObject.getKind() == SMGObjectKind.REG || nextObject.getKind() == SMGObjectKind.OPTIONAL)) {
+      if (!(nextObject.getKind() == SMGObjectKind.SLL
+          || nextObject.getKind() == SMGObjectKind.REG
+          || nextObject.getKind() == SMGObjectKind.OPTIONAL)) {
         continue;
       }
 
@@ -136,7 +143,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
       Set<Long> typeSizesOfThisObject = new HashSet<>();
 
       for (SMGEdgePointsTo edge : SMGUtils.getPointerToThisObject(pObject, pSmg)) {
-        SMGHasValueEdges hves =
+        Iterable<SMGEdgeHasValue> hves =
             pSmg.getHVEdges(
                 SMGEdgeHasValueFilter.valueFilter(edge.getValue())
                     .filterBySize(pSmg.getSizeofPtrInBits()));
@@ -171,7 +178,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
     SMGObject startObject = pPrevCandidate.getStartObject();
 
     // First, calculate the longest mergeable sequence of the next object
-    if(!pSmg.isHeapObject(nextObject)) {
+    if (!pSmg.isHeapObject(nextObject)) {
       return;
     }
 
@@ -193,19 +200,21 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         return;
       }
 
-      if(!(nextObject.getKind() == SMGObjectKind.SLL || nextObject.getKind() == SMGObjectKind.REG || nextObject.getKind() == SMGObjectKind.OPTIONAL)) {
+      if (!(nextObject.getKind() == SMGObjectKind.SLL
+          || nextObject.getKind() == SMGObjectKind.REG
+          || nextObject.getKind() == SMGObjectKind.OPTIONAL)) {
         return;
       }
 
       // TODO At the moment, we still demand that a value is found at prev or next.
 
-      SMGHasValueEdges nextObjectNextPointer =
+      Iterable<SMGEdgeHasValue> nextObjectNextPointer =
           pSmg.getHVEdges(
               SMGEdgeHasValueFilter.objectFilter(nextObject)
                   .filterAtOffset(nfo)
                   .filterBySize(pSmg.getSizeofPtrInBits()));
 
-      if (nextObjectNextPointer.size() != 1) {
+      if (Iterables.size(nextObjectNextPointer) != 1) {
         return;
       }
 
@@ -233,7 +242,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         new SMGJoinSubSMGsForAbstraction(
             pSmg.copyOf(), startObject, nextObject, candidate, pSmgState);
 
-    if(!join.isDefined()) {
+    if (!join.isDefined()) {
       return;
     }
 
@@ -257,18 +266,19 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
     // TODO Investigate, is this okay?
     nonSharedValues2.remove(pValue);
 
-    // Third, calculate if the respective nfo restricted subsmgs are only reachable from their candidate objects
-    if (!isSubSmgSeperate(nonSharedObject1, nonSharedValues1, pSmg, objectsOfSubSmg1,
-        valuesOfSubSmg1, startObject)) {
-      isSubSmgSeperate(nonSharedObject1, nonSharedValues1, pSmg, objectsOfSubSmg1,
-          valuesOfSubSmg1, startObject);
+    // Third, calculate if the respective nfo restricted subsmgs are only reachable from their
+    // candidate objects
+    if (!isSubSmgSeperate(
+        nonSharedObject1, nonSharedValues1, pSmg, objectsOfSubSmg1, valuesOfSubSmg1, startObject)) {
+      isSubSmgSeperate(
+          nonSharedObject1, nonSharedValues1, pSmg, objectsOfSubSmg1, valuesOfSubSmg1, startObject);
       return;
     }
 
-    if (!isSubSmgSeperate(nonSharedObject2, nonSharedValues2, pSmg, objectsOfSubSmg2,
-        valuesOfSubSmg2, nextObject)) {
-      isSubSmgSeperate(nonSharedObject2, nonSharedValues2, pSmg, objectsOfSubSmg2,
-          valuesOfSubSmg2, nextObject);
+    if (!isSubSmgSeperate(
+        nonSharedObject2, nonSharedValues2, pSmg, objectsOfSubSmg2, valuesOfSubSmg2, nextObject)) {
+      isSubSmgSeperate(
+          nonSharedObject2, nonSharedValues2, pSmg, objectsOfSubSmg2, valuesOfSubSmg2, nextObject);
       return;
     }
 
@@ -291,9 +301,10 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         /* Nothing besides the one link from the prev object pointer may
          * point to the next object in a sll
          */
-        SMGHasValueEdges prevs = pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
+        Iterable<SMGEdgeHasValue> prevs =
+            pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
-        if (prevs.size() != 1) {
+        if (Iterables.size(prevs) != 1) {
           return;
         }
       }

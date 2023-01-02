@@ -29,7 +29,7 @@ SPDX-License-Identifier: Apache-2.0
 - Specifications
   - [Automata](SpecificationAutomata.md)
   - LTL
-  - [Properties used in SV-COMP](https://github.com/sosy-lab/sv-benchmarks/tree/master/c/properties)
+  - [Properties used in SV-COMP](https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks/-/tree/main/c/properties)
       (mostly supported by CPAchecker)
 - [Tutorials](tutorials)
   - [Examples](examples) for tutorials

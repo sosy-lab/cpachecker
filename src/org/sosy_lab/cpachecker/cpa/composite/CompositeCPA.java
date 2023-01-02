@@ -14,6 +14,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Supplier;
@@ -72,14 +73,13 @@ public final class CompositeCPA
   @Option(
       secure = true,
       description =
-          "By enabling this option the CompositeTransferRelation"
-              + " will compute abstract successors for as many edges as possible in one call. For"
-              + " any chain of edges in the CFA which does not have more than one outgoing or leaving"
-              + " edge the components of the CompositeCPA are called for each of the edges in this"
-              + " chain. Strengthening is still computed after every edge."
-              + " The main difference is that while this option is enabled not every ARGState may"
-              + " have a single edge connecting to the child/parent ARGState but it may instead"
-              + " be a list.")
+          "By enabling this option the CompositeTransferRelation will compute abstract successors"
+              + " for as many edges as possible in one call. For any chain of edges in the CFA"
+              + " which does not have more than one outgoing or leaving edge the components of the"
+              + " CompositeCPA are called for each of the edges in this chain. Strengthening is"
+              + " still computed after every edge. The main difference is that while this option is"
+              + " enabled not every ARGState may have a single edge connecting to the child/parent"
+              + " ARGState but it may instead be a list.")
   private boolean aggregateBasicBlocks = false;
 
   private static class CompositeCPAFactory extends AbstractCPAFactory {
@@ -100,6 +100,7 @@ public final class CompositeCPA
       throw new UnsupportedOperationException("Use CompositeCPA to wrap several CPAs!");
     }
 
+    @CanIgnoreReturnValue
     @Override
     public CPAFactory setChildren(List<ConfigurableProgramAnalysis> pChildren) {
       Preconditions.checkNotNull(pChildren);
@@ -113,7 +114,7 @@ public final class CompositeCPA
     @Override
     public <T> CPAFactory set(T pObject, Class<T> pClass) throws UnsupportedOperationException {
       if (pClass.equals(CFA.class)) {
-        cfa = (CFA)pObject;
+        cfa = (CFA) pObject;
       }
       return super.set(pObject, pClass);
     }
@@ -131,7 +132,7 @@ public final class CompositeCPA
       Configuration config, CFA pCfa, ImmutableList<ConfigurableProgramAnalysis> cpas)
       throws InvalidConfigurationException {
     config.inject(this);
-    this.cfa = pCfa;
+    cfa = pCfa;
     this.cpas = cpas;
     mergeSupplier = buildMergeOperatorSupplier();
   }
@@ -220,8 +221,7 @@ public final class CompositeCPA
       ImmutableList<SimplePrecisionAdjustment> simplePrecisionAdjustments =
           (ImmutableList<SimplePrecisionAdjustment>)
               (ImmutableList<? extends PrecisionAdjustment>) precisionAdjustments;
-      return new CompositeSimplePrecisionAdjustment(
-          simplePrecisionAdjustments);
+      return new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments);
 
     } else {
       return new CompositePrecisionAdjustment(precisionAdjustments);
@@ -242,7 +242,8 @@ public final class CompositeCPA
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
     Preconditions.checkNotNull(pNode);
 
     ImmutableList.Builder<AbstractState> initialStates = ImmutableList.builder();
@@ -254,7 +255,8 @@ public final class CompositeCPA
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition partition) throws InterruptedException {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition partition)
+      throws InterruptedException {
     Preconditions.checkNotNull(pNode);
 
     ImmutableList.Builder<Precision> initialPrecisions = ImmutableList.builder();
@@ -280,7 +282,7 @@ public final class CompositeCPA
       if (pType.isAssignableFrom(cpa.getClass())) {
         return pType.cast(cpa);
       } else if (cpa instanceof WrapperCPA) {
-        T result = ((WrapperCPA)cpa).retrieveWrappedCpa(pType);
+        T result = ((WrapperCPA) cpa).retrieveWrappedCpa(pType);
         if (result != null) {
           return result;
         }
@@ -295,12 +297,15 @@ public final class CompositeCPA
   }
 
   @Override
-  public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
+  public boolean areAbstractSuccessors(
+      AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
+      throws CPATransferException, InterruptedException {
     return getTransferRelation().areAbstractSuccessors(pElement, pCfaEdge, pSuccessors, cpas);
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement)
+      throws CPAException, InterruptedException {
     return getStopOperator().isCoveredBy(pElement, pOtherElement, cpas);
   }
 

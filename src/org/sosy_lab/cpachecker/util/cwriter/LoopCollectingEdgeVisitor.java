@@ -33,19 +33,23 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
-@Options(prefix="cwriter.withLoops")
+@Options(prefix = "cwriter.withLoops")
 public class LoopCollectingEdgeVisitor implements EdgeVisitor {
 
   enum LoopDetectionStrategy {
-    ALL_LOOPS, ONLY_LAST_LOOP
+    ALL_LOOPS,
+    ONLY_LAST_LOOP
   }
 
-  @Option(toUppercase=true,
-        description="Option to change the behaviour of the loop detection for"
-            + " generating the Counterexample-C-Code that will probably be used to generate"
-            + " invariants. Note that last loop means the first loop encountered when"
-            + " backwards traversing the given ARGPath, thus, the last loop may contain"
-            + " other loops, which are in turn also counted to the last loop.", secure=true)
+  @Option(
+      toUppercase = true,
+      description =
+          "Option to change the behaviour of the loop detection for"
+              + " generating the Counterexample-C-Code that will probably be used to generate"
+              + " invariants. Note that last loop means the first loop encountered when"
+              + " backwards traversing the given ARGPath, thus, the last loop may contain"
+              + " other loops, which are in turn also counted to the last loop.",
+      secure = true)
   private LoopDetectionStrategy loopDetectionStrategy = LoopDetectionStrategy.ALL_LOOPS;
 
   private final LoopStructure loopStructure;
@@ -55,14 +59,13 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
   private final List<Loop> finishedLoops = new ArrayList<>();
   private boolean lastLoopFound = false;
 
-  public LoopCollectingEdgeVisitor(LoopStructure pLoopStructure, Configuration config) throws InvalidConfigurationException {
+  public LoopCollectingEdgeVisitor(LoopStructure pLoopStructure, Configuration config)
+      throws InvalidConfigurationException {
     config.inject(this);
     loopStructure = pLoopStructure;
   }
 
-  /**
-   * Resets the state of this visitor, such that it works as if it was created newly.
-   */
+  /** Resets the state of this visitor, such that it works as if it was created newly. */
   public void reset() {
     cfaPath.clear();
     loopStack.clear();
@@ -78,8 +81,8 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
 
   public Map<Loop, Set<ARGState>> getRelevantLoops() {
     ListIterator<Pair<CFAEdge, ARGState>> cfaIterator = cfaPath.listIterator(cfaPath.size());
-    CFAEdge edge = cfaPath.get(cfaPath.size()-1).getFirst();
-    ARGState state = cfaPath.get(cfaPath.size()-2).getSecond();
+    CFAEdge edge = cfaPath.get(cfaPath.size() - 1).getFirst();
+    ARGState state = cfaPath.get(cfaPath.size() - 2).getSecond();
 
     // Creates the initial loopStack, as seen from the error state's location
     handleLoopStack(edge, state);
@@ -90,7 +93,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
       // one is here)
       Pair<CFAEdge, ARGState> tmp = cfaIterator.previous();
       edge = tmp.getFirst();
-      if(cfaIterator.hasPrevious()) {
+      if (cfaIterator.hasPrevious()) {
         state = cfaIterator.previous().getSecond();
         cfaIterator.next();
       } else {
@@ -106,7 +109,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
           tmp = cfaIterator.previous();
           if (Objects.equals(tmp.getFirst().getPredecessor(), beforeFunctionCall)) {
             edge = tmp.getFirst();
-            if(cfaIterator.hasPrevious()) {
+            if (cfaIterator.hasPrevious()) {
               state = cfaIterator.previous().getSecond();
               cfaIterator.next();
             }
@@ -120,7 +123,8 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
       // if we have found the last loop and all belonging states,
       // so we can skip further computation here
       if (loopDetectionStrategy == LoopDetectionStrategy.ONLY_LAST_LOOP
-          && lastLoopFound && loopStack.isEmpty()) {
+          && lastLoopFound
+          && loopStack.isEmpty()) {
         break;
       }
     }
@@ -128,9 +132,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
     return relevantLoops;
   }
 
-  /**
-   * Updates the loop information in loopStack of a given edge
-   */
+  /** Updates the loop information in loopStack of a given edge */
   private void handleLoopStack(CFAEdge edge, ARGState state) {
     // if the edge is null we can just add the ARGState to the current topmost
     // loop if there is one, the loopstack won't change in such situations
@@ -162,7 +164,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
     if (!loopStack.isEmpty()) {
       relevantLoops.get(loopStack.peek()).add(state);
       int startPushingIndex = loops.size();
-      while (loops.get(startPushingIndex-1) != loopStack.peek()) {
+      while (loops.get(startPushingIndex - 1) != loopStack.peek()) {
         startPushingIndex--;
       }
       for (int i = startPushingIndex; i < loops.size(); i++) {
@@ -194,17 +196,14 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
     }
   }
 
-  /**
-   * Checks if a given CFANode is part of any loop.
-   */
+  /** Checks if a given CFANode is part of any loop. */
   static boolean isInAnyLoop(LoopStructure loopStructure, final CFANode node) {
     return from(loopStructure.getAllLoops())
         .anyMatch(pInput -> pInput.getLoopNodes().contains(node));
   }
 
   /**
-   * Returns the Loops in which the given node is located from the outermost
-   * to the innermost loop.
+   * Returns the Loops in which the given node is located from the outermost to the innermost loop.
    */
   static List<Loop> getLoopsOfNode(LoopStructure loopStructure, final CFANode node) {
     return from(loopStructure.getAllLoops())

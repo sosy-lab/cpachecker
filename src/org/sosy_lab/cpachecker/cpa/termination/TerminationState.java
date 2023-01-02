@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -33,8 +32,8 @@ public class TerminationState extends AbstractSingleWrapperState
     implements AbstractStateWithDummyLocation, FormulaReportingState, Graphable {
 
   /**
-   * The location where the loop of the lasso was entered
-   * or <code>null</code> iff this state is part of the stem
+   * The location where the loop of the lasso was entered or <code>null</code> iff this state is
+   * part of the stem
    */
   private final @Nullable CFANode hondaLocation;
 
@@ -42,7 +41,7 @@ public class TerminationState extends AbstractSingleWrapperState
 
   private final Collection<CFAEdge> enteringEdges;
 
-  @Nullable private final Set<Property> violatedProperties;
+  @Nullable private final Set<TargetInformation> targetInformation;
 
   @Nullable private final RankingRelation unsatisfiedRankingRelation;
 
@@ -51,14 +50,14 @@ public class TerminationState extends AbstractSingleWrapperState
       @Nullable CFANode pHondaLocation,
       boolean pDummyLocation,
       Collection<CFAEdge> pEnteringEdges,
-      @Nullable Set<Property> pviolatedProperties,
+      @Nullable Set<TargetInformation> pTargetInformation,
       @Nullable RankingRelation pUnsatisfiedRankingRelation) {
     super(checkNotNull(pWrappedState));
     Preconditions.checkArgument(pDummyLocation || pEnteringEdges.isEmpty());
     hondaLocation = pHondaLocation;
     dummyLocation = pDummyLocation;
     enteringEdges = checkNotNull(pEnteringEdges);
-    violatedProperties = pviolatedProperties;
+    targetInformation = pTargetInformation;
     unsatisfiedRankingRelation = pUnsatisfiedRankingRelation;
   }
 
@@ -71,11 +70,10 @@ public class TerminationState extends AbstractSingleWrapperState
   }
 
   /**
-   * Creates a new {@link TerminationState} that is part of the
-   * lasso's stem and has no dummy location.
+   * Creates a new {@link TerminationState} that is part of the lasso's stem and has no dummy
+   * location.
    *
-   * @param pWrappedState
-   *          the {@link AbstractState} to wrap
+   * @param pWrappedState the {@link AbstractState} to wrap
    * @return the created {@link TerminationState}
    */
   public static TerminationState createStemState(AbstractState pWrappedState) {
@@ -83,11 +81,10 @@ public class TerminationState extends AbstractSingleWrapperState
   }
 
   /**
-   * Creates a new {@link TerminationState} from this {@link TerminationState}
-   * but with the given <code>pWrappedState</code>.
+   * Creates a new {@link TerminationState} from this {@link TerminationState} but with the given
+   * <code>pWrappedState</code>.
    *
-   * @param pWrappedState
-   *            the {@link AbstractState} to wrap
+   * @param pWrappedState the {@link AbstractState} to wrap
    * @return the created {@link TerminationState}
    */
   public TerminationState withWrappedState(AbstractState pWrappedState) {
@@ -96,19 +93,19 @@ public class TerminationState extends AbstractSingleWrapperState
 
   /**
    * Creates a new {@link TerminationState} that is the first state of the lasso's loop.
+   *
    * @param pHondaLocation the first location of the loop
    * @return the created {@link TerminationState}
    */
   public TerminationState enterLoop(CFANode pHondaLocation) {
-    checkArgument(isPartOfStem(), "% is entered the lasso's loop at %s", this, hondaLocation);
+    checkArgument(isPartOfStem(), "%s is entered the lasso's loop at %s", this, hondaLocation);
     return new TerminationState(getWrappedState(), pHondaLocation, dummyLocation, enteringEdges);
   }
 
   /**
-   * Creates a new {@link TerminationState} with a dummy location and  the given entering edges.
+   * Creates a new {@link TerminationState} with a dummy location and the given entering edges.
    *
-   * @param pEnteringEdges
-   *         the edges entering the location represented by the created state
+   * @param pEnteringEdges the edges entering the location represented by the created state
    * @return the created {@link TerminationState}
    */
   public TerminationState withDummyLocation(Collection<CFAEdge> pEnteringEdges) {
@@ -116,24 +113,22 @@ public class TerminationState extends AbstractSingleWrapperState
   }
 
   /**
-   * Creates a new {@link TerminationState} with the given violated properties.
+   * Creates a new {@link TerminationState} with the given target information.
    *
-   * @param pViolatedProperties
-   *         the edges entering the location represented by the created state
+   * @param pTargetInformation the edges entering the location represented by the created state
    * @return the created {@link TerminationState}
    */
-  public TerminationState withViolatedProperties(Set<Property> pViolatedProperties) {
-    Preconditions.checkNotNull(pViolatedProperties);
-    Preconditions.checkArgument(!pViolatedProperties.isEmpty());
+  public TerminationState withTargetInformation(Set<TargetInformation> pTargetInformation) {
+    Preconditions.checkNotNull(pTargetInformation);
+    Preconditions.checkArgument(!pTargetInformation.isEmpty());
     return new TerminationState(
-        getWrappedState(), hondaLocation, dummyLocation, enteringEdges, pViolatedProperties, null);
+        getWrappedState(), hondaLocation, dummyLocation, enteringEdges, pTargetInformation, null);
   }
 
   /**
    * Creates a new {@link TerminationState} with the given unsatisfied {@link RankingRelation}
    *
-   * @param pUnsatisfiedRankingRelation
-   *         the {@link RankingRelation} not satisfied at this state
+   * @param pUnsatisfiedRankingRelation the {@link RankingRelation} not satisfied at this state
    * @return the created {@link TerminationState}
    */
   public TerminationState withUnsatisfiedRankingRelation(
@@ -144,7 +139,7 @@ public class TerminationState extends AbstractSingleWrapperState
         hondaLocation,
         dummyLocation,
         enteringEdges,
-        violatedProperties,
+        targetInformation,
         pUnsatisfiedRankingRelation);
   }
 
@@ -183,15 +178,15 @@ public class TerminationState extends AbstractSingleWrapperState
 
   @Override
   public boolean isTarget() {
-    return violatedProperties != null || super.isTarget();
+    return targetInformation != null || super.isTarget();
   }
 
   @Override
-  public Set<Property> getViolatedProperties() throws IllegalStateException {
-    if (violatedProperties != null) {
-      return violatedProperties;
+  public Set<TargetInformation> getTargetInformation() throws IllegalStateException {
+    if (targetInformation != null) {
+      return targetInformation;
     } else {
-      return super.getViolatedProperties();
+      return super.getTargetInformation();
     }
   }
 

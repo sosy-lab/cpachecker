@@ -55,8 +55,8 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
   private final boolean acceptConstrained;
 
   public NondeterminismTransferRelation(CFA pCFA, boolean pAcceptConstrained) {
-    this.cfa = pCFA;
-    this.acceptConstrained = pAcceptConstrained;
+    cfa = pCFA;
+    acceptConstrained = pAcceptConstrained;
   }
 
   @Override

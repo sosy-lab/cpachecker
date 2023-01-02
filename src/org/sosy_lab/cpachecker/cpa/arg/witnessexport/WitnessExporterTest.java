@@ -10,13 +10,13 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.truth.Truth.assertWithMessage;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -102,6 +103,7 @@ public class WitnessExporterTest {
   }
 
   @Test(timeout = 90000)
+  @Ignore // TODO takes too long and needs replacement, cf. #926
   public void concurrency_false_fib_bench() throws Exception {
     new WitnessTester(
             "fib_bench-2.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.BDD_CONCURRENCY)
@@ -109,6 +111,7 @@ public class WitnessExporterTest {
   }
 
   @Test(timeout = 200000)
+  @Ignore // TODO takes too long and needs replacement, cf. #926
   public void concurrency_false_mix000_power() throws Exception {
     new WitnessTester(
             "mix000_power.oepc.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.BDD_CONCURRENCY)
@@ -125,21 +128,20 @@ public class WitnessExporterTest {
   @Test(timeout = 90000)
   public void rule60_list2_false_2() throws Exception {
     new WitnessTester(
-        "rule60_list2.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.VALUE_ANALYSIS)
+            "rule60_list2.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.VALUE_ANALYSIS)
         .performTest();
   }
 
   @Test(timeout = 90000)
   public void valueInvariant_true() throws Exception {
     new WitnessTester(
-        "valueInvariant.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
+            "valueInvariant.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
         .performTest();
   }
 
   @Test(timeout = 90000)
   public void valueInvariant_true_2() throws Exception {
-    new WitnessTester(
-        "valueInvariant.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.BAM)
+    new WitnessTester("valueInvariant.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.BAM)
         .performTest();
   }
 
@@ -150,15 +152,16 @@ public class WitnessExporterTest {
 
   @Test(timeout = 90000)
   public void weekdays_true() throws Exception {
-    new WitnessTester(
-            "weekdays.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
+    new WitnessTester("weekdays.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
         .performTest();
   }
 
   @Test(timeout = 90000)
   public void weekdays_no_termination_true() throws Exception {
     new WitnessTester(
-        "weekdays_no_termination.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
+            "weekdays_no_termination.c",
+            ExpectedVerdict.TRUE,
+            WitnessGenerationConfig.VALUE_ANALYSIS)
         .performTest();
   }
 
@@ -202,7 +205,7 @@ public class WitnessExporterTest {
     } else {
       overrideOptions.put("cpa.arg.proofWitness", pWitnessPath.uncompressedFilePath.toString());
     }
-    if(pExpected.equals(ExpectedVerdict.TRUE)) {
+    if (pExpected.equals(ExpectedVerdict.TRUE)) {
       overrideOptions.put("cpa.arg.compressWitness", "false");
     }
     Configuration generationConfig =
@@ -233,7 +236,7 @@ public class WitnessExporterTest {
     invGenConfigFile.toFile().deleteOnExit();
     Files.copy(origInvGenConfigFile, invGenConfigFile);
     List<String> lines = Files.readAllLines(invGenConfigFile);
-    try (Writer writer = IO.openOutputFile(invGenConfigFile, Charsets.UTF_8)) {
+    try (Writer writer = IO.openOutputFile(invGenConfigFile, StandardCharsets.UTF_8)) {
       for (String line : lines) {
         Matcher matcher = PROOF_WITNESS_OPTION_PATTERN.matcher(line);
         if (matcher.matches()) {
@@ -319,7 +322,8 @@ public class WitnessExporterTest {
               .toAbsolutePath();
       Path compressedFileNamePath = compressedFilePath.getFileName();
       if (compressedFileNamePath == null) {
-        throw new AssertionError("Files obtained from TempFile.builder().create() should always have a file name.");
+        throw new AssertionError(
+            "Files obtained from TempFile.builder().create() should always have a file name.");
       }
       String fileName = compressedFileNamePath.toString();
       String uncompressedFileName =
@@ -385,7 +389,7 @@ public class WitnessExporterTest {
           specificationFile,
           expected,
           generationConfig,
-          overrideOptionsBuilder.build());
+          overrideOptionsBuilder.buildOrThrow());
     }
   }
 }

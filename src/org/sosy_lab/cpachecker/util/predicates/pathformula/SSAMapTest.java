@@ -36,22 +36,23 @@ public class SSAMapTest {
     // until that class gets mockable
     Constructor<?> ptsConstructor = PointerTargetSet.class.getDeclaredConstructors()[0];
     ptsConstructor.setAccessible(true);
-    PointerTargetSet dummyPTS = (PointerTargetSet)ptsConstructor.newInstance(
-        PathCopyingPersistentTreeMap.<String, CType>of().putAndCopy("foo", CVoidType.VOID),
-        PathCopyingPersistentTreeMap.of(),
-        PersistentLinkedList.of(),
-        PathCopyingPersistentTreeMap.of(),
-        PersistentLinkedList.of(),
-        0
-        );
+    PointerTargetSet dummyPTS =
+        (PointerTargetSet)
+            ptsConstructor.newInstance(
+                PathCopyingPersistentTreeMap.<String, CType>of().putAndCopy("foo", CVoidType.VOID),
+                PathCopyingPersistentTreeMap.of(),
+                PersistentLinkedList.of(),
+                PathCopyingPersistentTreeMap.of(),
+                PersistentLinkedList.of(),
+                0);
 
     return new ClassSanityTester()
-        .setDistinctValues(SSAMap.class,
+        .setDistinctValues(
+            SSAMap.class,
             SSAMap.emptySSAMap(),
             SSAMap.emptySSAMap().builder().setIndex("a", CVoidType.VOID, 1).build())
-        .setDistinctValues(PointerTargetSet.class,
-            PointerTargetSet.emptyPointerTargetSet(),
-            dummyPTS);
+        .setDistinctValues(
+            PointerTargetSet.class, PointerTargetSet.emptyPointerTargetSet(), dummyPTS);
   }
 
   private SSAMapBuilder builder;

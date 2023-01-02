@@ -16,15 +16,13 @@ import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 public class CFAInfo {
   private final ImmutableMap<Integer, CFANode> nodeNumberToNode;
   private LocationStateFactory locationStateFactory;
-  private final CFA cfa;
 
   CFAInfo(CFA cfa) {
     ImmutableMap.Builder<Integer, CFANode> nodeNumberToNode0 = ImmutableMap.builder();
     for (CFANode node : cfa.getAllNodes()) {
       nodeNumberToNode0.put(node.getNodeNumber(), node);
     }
-    this.nodeNumberToNode = nodeNumberToNode0.build();
-    this.cfa = cfa;
+    nodeNumberToNode = nodeNumberToNode0.buildOrThrow();
   }
 
   public CFANode getNodeByNodeNumber(int nodeNumber) {
@@ -37,9 +35,5 @@ public class CFAInfo {
 
   public LocationStateFactory getLocationStateFactory() {
     return locationStateFactory;
-  }
-
-  public CFA getCFA() {
-    return cfa;
   }
 }

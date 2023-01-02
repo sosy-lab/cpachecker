@@ -10,21 +10,17 @@ package org.sosy_lab.cpachecker.exceptions;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-/**
- * Exception thrown if a CPA cannot handle a specific CFAEdge.
- */
+/** Exception thrown if a CPA cannot handle a specific CFAEdge. */
 public class UnrecognizedCFAEdgeException extends CPATransferException {
 
-    public UnrecognizedCFAEdgeException(CFAEdge edge) {
-        super(createMessage(edge));
-    }
+  public UnrecognizedCFAEdgeException(CFAEdge edge) {
+    super(createMessage(edge));
+  }
 
-    private static String createMessage(CFAEdge edge) {
-      return "Unknown CFA edge: " + edge.getEdgeType() + " (" + edge.getDescription() + ")";
-    }
+  private static String createMessage(CFAEdge edge) {
+    return "Unknown CFA edge: " + edge.getEdgeType() + " (" + edge.getDescription() + ")";
+  }
 
-    /**
-     * auto-generated UID
-     */
-    private static final long serialVersionUID = -5106215499745787051L;
+  /** auto-generated UID */
+  private static final long serialVersionUID = -5106215499745787051L;
 }

@@ -16,17 +16,18 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageInfoSet;
 import org.sosy_lab.cpachecker.util.Pair;
 
-
-public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageInfoSet>, Pair<UsageInfo, UsageInfo>>{
+public class UsagePairIterator
+    extends GenericIterator<Pair<UsageInfoSet, UsageInfoSet>, Pair<UsageInfo, UsageInfo>> {
   private final LogManager logger;
 
-  //internal state
+  // internal state
   private Iterator<UsageInfo> firstUsageIterator;
   private Iterator<UsageInfo> secondUsageIterator;
   private UsageInfo firstUsage = null;
   private UsageInfoSet secondUsageInfoSet;
 
-  public UsagePairIterator(ConfigurableRefinementBlock<Pair<UsageInfo, UsageInfo>> pWrapper, LogManager l) {
+  public UsagePairIterator(
+      ConfigurableRefinementBlock<Pair<UsageInfo, UsageInfo>> pWrapper, LogManager l) {
     super(pWrapper);
     logger = l;
   }
@@ -46,7 +47,7 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
   @Override
   protected Pair<UsageInfo, UsageInfo> getNext(Pair<UsageInfoSet, UsageInfoSet> pInput) {
     if (firstUsage == null) {
-      //first call - initialize it
+      // first call - initialize it
       if (firstUsageIterator.hasNext()) {
         firstUsage = firstUsageIterator.next();
       } else {
@@ -88,11 +89,15 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
     List<UsageInfo> unreachableUsages = (List<UsageInfo>) r.getInfo(PathPairIterator.class);
 
     if (unreachableUsages != null && unreachableUsages.contains(second)) {
-      logger.log(Level.FINE, "Usage " + secondUsageIterator + " is not reachable, remove it from container");
+      logger.log(
+          Level.FINE,
+          "Usage " + secondUsageIterator + " is not reachable, remove it from container");
       secondUsageIterator.remove();
     }
     if (unreachableUsages != null && unreachableUsages.contains(first)) {
-      logger.log(Level.FINE, "Usage " + firstUsageIterator + " is not reachable, remove it from container");
+      logger.log(
+          Level.FINE,
+          "Usage " + firstUsageIterator + " is not reachable, remove it from container");
       firstUsageIterator.remove();
       firstUsage = null;
       secondUsageIterator = secondUsageInfoSet.iterator();

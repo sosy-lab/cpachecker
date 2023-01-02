@@ -9,65 +9,22 @@
 package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
 import static com.google.common.base.Verify.verify;
-import static com.google.common.base.Verify.verifyNotNull;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.MoreStrings;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.SolverException;
 
 class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRelation {
 
-  private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
-  private final InterpolationSequenceStorage itpSequenceStorage;
-
-  private final PredicateAbstractionManager predicateAbstractionManager;
-  private final BooleanFormulaManagerView bFMgrView;
-
-  TraceAbstractionTransferRelation(
-      TransferRelation pDelegateTransferRelation,
-      FormulaManagerView pFormulaManagerView,
-      PredicateAbstractionManager pPredicateAbstractionManager,
-      InterpolationSequenceStorage pItpSequenceStorage,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier) {
+  TraceAbstractionTransferRelation(TransferRelation pDelegateTransferRelation) {
     super(pDelegateTransferRelation);
-
-    itpSequenceStorage = pItpSequenceStorage;
-    logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
-    predicateAbstractionManager = pPredicateAbstractionManager;
-    bFMgrView = pFormulaManagerView.getBooleanFormulaManager();
   }
 
   @Override
@@ -98,197 +55,18 @@ class TraceAbstractionTransferRelation extends AbstractSingleWrapperTransferRela
       @Nullable CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
-
     TraceAbstractionState taState = (TraceAbstractionState) pState;
 
     Collection<? extends AbstractState> delegateStrengthenedStates =
         getWrappedTR().strengthen(taState.getWrappedState(), pOtherStates, pCfaEdge, pPrecision);
     verify(delegateStrengthenedStates.size() == 1);
 
-    PredicateAbstractState predSuccessorState =
-        (PredicateAbstractState) Iterables.getOnlyElement(delegateStrengthenedStates);
-
-    if (itpSequenceStorage.isEmpty() && !taState.containsPredicates()) {
-      // The predecessor states have not yet been part of a refinement.
-      // There are hence no predicates available for further processing.
-      return ImmutableList.of(taState.withWrappedState(predSuccessorState));
-    }
-
-    verifyNotNull(pCfaEdge, "cfaEdge may not be null.");
-
-    PathFormula pathFormula = predSuccessorState.getPathFormula();
-    AbstractionFormula abstractionFormula = predSuccessorState.getAbstractionFormula();
-
-    verify(
-        abstractionFormula.isTrue(),
-        "AbstractionFormula is expected to not getting changed in TraceAbstraction refinement");
-
-    Optional<CallstackStateEqualsWrapper> callstackWrapper =
-        FluentIterable.from(pOtherStates)
-            .filter(CallstackState.class)
-            .first()
-            .transform(CallstackStateEqualsWrapper::new)
-            .toJavaUtil();
-
-    logger.logf(
-        Level.FINER,
-        "Taking edge: N%s -> N%s // %s\n",
-        pCfaEdge.getPredecessor().getNodeNumber(),
-        pCfaEdge.getSuccessor().getNodeNumber(),
-        pCfaEdge.getDescription());
-
-    ImmutableMap.Builder<InterpolationSequence, AbstractionPredicate> newStatePreds =
-        ImmutableMap.builder();
-
-    // TAStates contain only predicates that actually hold in that state
-    ImmutableMap<InterpolationSequence, AbstractionPredicate> statePredicates =
-        taState.getActivePredicates();
-
-    // TODO: correctly handle the actual location instance.
-    // This can be ignored for now, as currently only function-predicates are considered
-    // (more specifically, the 'locationInstancePredicates' are not considered yet).
-    LocationInstance locInstance =
-        new PredicatePrecision.LocationInstance(pCfaEdge.getPredecessor(), 0);
-
-    logger.log(Level.FINER, "Computing abstractions");
-    for (Entry<InterpolationSequence, AbstractionPredicate> entry : statePredicates.entrySet()) {
-      // TODO: check the next predicate in addition to the current one if it is non-trivial
-      // TODO: remove interpolation sequences from states once they leave their scopes
-      //       (e.g., remove function predicates from the current TAState when the function
-      //        changes)
-      AbstractionPredicate preconditionPreds = entry.getValue();
-
-      AbstractionFormula computedPostCondition =
-          buildAbstraction(
-              pCfaEdge,
-              callstackWrapper,
-              abstractionFormula,
-              pathFormula,
-              ImmutableSet.of(preconditionPreds));
-
-      if (computedPostCondition.isTrue()) {
-        // Abstraction formula is true; stay in the current (interpolation) state
-        newStatePreds.put(entry);
-        continue;
-      }
-
-      if (computedPostCondition.isFalse()) {
-        // Abstraction is false, return bottom (represented by empty set)
-        logger.log(Level.FINEST, "Abstraction is false, node is not reachable");
-        return ImmutableSet.of();
-      }
-
-      // A non-trivial abstraction was computed
-      if (preconditionPreds.getSymbolicAtom().equals(computedPostCondition.asFormula())) {
-        // Pre- and postcondition are the same; keep current pred in TAState
-        newStatePreds.put(entry.getKey(), preconditionPreds);
-      } else if (preconditionPreds
-          .getSymbolicAtom()
-          .equals(bFMgrView.not(computedPostCondition.asFormula()))) {
-        // Pre- and postcondition are negated to each other. The Hoare triple is of the following
-        // form: [x=0] x==0 [x!=0]
-
-        // The next state is hence unsatisfiable.
-        logger.log(
-            Level.FINEST,
-            "Abstraction is contradictory to the given input preds; node is not reachable");
-        return ImmutableSet.of();
-      } else {
-
-        // The postcondition is ambiguous. We cannot tell anything about the next
-        // state. For now an exception is thrown until this is handled accordingly to make it
-        // visible in the log
-        throw new UnsupportedCodeException(
-            "Interpolant <false> is following on an interpolant <true>. This is not yet handled",
-            pCfaEdge);
-      }
-    }
-
-    for (InterpolationSequence itpSequence :
-        itpSequenceStorage.difference(statePredicates.keySet())) {
-      AbstractionPredicate preconditionPreds = itpSequence.getFirst(locInstance);
-
-      AbstractionFormula computedPostCondition =
-          buildAbstraction(
-              pCfaEdge,
-              callstackWrapper,
-              abstractionFormula,
-              pathFormula,
-              ImmutableSet.of(preconditionPreds));
-
-      if (computedPostCondition.isTrue()) {
-        // Abstraction formula yields result <true>; discard the current itpSequence in this state
-        continue;
-      }
-
-      if (computedPostCondition.isFalse()) {
-        // Abstraction is false, this node is infeasible.
-        // TODO: this needs to be handled accordingly (i.e. return bottom state)
-        // Until then an exception is thrown to make this visible in the log output
-        throw new UnsupportedCodeException(
-            "Interpolant <false> is following on an interpolant <true>. This is not yet handled",
-            pCfaEdge);
-      }
-
-      // A non-trivial abstraction was computed
-      if (preconditionPreds.getSymbolicAtom().equals(computedPostCondition.asFormula())) {
-        // Pre- and postcondition are the same; it is the first from the current interpolation
-        // sequence
-        newStatePreds.put(itpSequence, preconditionPreds);
-      }
-    }
-
-    ImmutableMap<InterpolationSequence, AbstractionPredicate> newPreds = newStatePreds.build();
-    logger.logf(Level.FINER, "Active predicates in the next state: %s\n", newPreds);
-    return ImmutableSet.of(new TraceAbstractionState(predSuccessorState, newPreds));
+    return ImmutableList.of(
+        taState.withWrappedState(Iterables.getOnlyElement(delegateStrengthenedStates)));
   }
 
   private TransferRelation getWrappedTR() {
     return Iterables.getOnlyElement(super.getWrappedTransferRelations());
-  }
-
-  private AbstractionFormula buildAbstraction(
-      CFAEdge pCfaEdge,
-      Optional<CallstackStateEqualsWrapper> callstackWrapper,
-      AbstractionFormula abstractionFormula,
-      PathFormula pathFormula,
-      ImmutableSet<AbstractionPredicate> relevantPreds)
-      throws InterruptedException, CPATransferException {
-    try {
-      logger.logf(Level.FINER, "Predicates: %s\n", relevantPreds);
-      shutdownNotifier.shutdownIfNecessary();
-
-      AbstractionFormula abstractionResult =
-          predicateAbstractionManager.buildAbstraction(
-              ImmutableSet.of(pCfaEdge.getPredecessor()),
-              callstackWrapper,
-              abstractionFormula,
-              pathFormula,
-              relevantPreds);
-
-      logger.logf(Level.FINER, "New abstraction formula: %s\n", abstractionFormula);
-      printHoareTriple(relevantPreds, abstractionResult);
-
-      return abstractionResult;
-    } catch (SolverException e) {
-      throw new CPATransferException("Solver Failure: " + e.getMessage(), e);
-    }
-  }
-
-  private void printHoareTriple(
-      Collection<AbstractionPredicate> pPredicates, AbstractionFormula resultFormula) {
-    Object prettyPrintPredicateList =
-        MoreStrings.lazyString(
-            () ->
-                FluentIterable.from(pPredicates)
-                    .transform(x -> x.getSymbolicAtom())
-                    .join(Joiner.on(", ")));
-    logger.logf(
-        Level.FINER,
-        "[%s] --- %s --- %s",
-        prettyPrintPredicateList,
-        resultFormula.getBlockFormula(),
-        resultFormula.asInstantiatedFormula());
   }
 
   @Override

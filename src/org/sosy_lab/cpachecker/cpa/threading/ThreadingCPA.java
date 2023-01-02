@@ -26,12 +26,14 @@ public class ThreadingCPA extends AbstractCPA {
     return AutomaticCPAFactory.forType(ThreadingCPA.class);
   }
 
-  public ThreadingCPA(Configuration config, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
+  public ThreadingCPA(Configuration config, LogManager pLogger, CFA pCfa)
+      throws InvalidConfigurationException {
     super("sep", "sep", new ThreadingTransferRelation(config, pCfa, pLogger));
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
     Preconditions.checkNotNull(pNode);
     // We create an empty ThreadingState and enter the main function with the first thread.
     // We use the main function's name as thread identifier.

@@ -32,13 +32,23 @@ public class UninitializedVariablesCPA extends AbstractCPA implements Statistics
     return AutomaticCPAFactory.forType(UninitializedVariablesCPA.class);
   }
 
-  @Option(secure=true, description="print warnings during analysis when uninitialized variables are used")
+  @Option(
+      secure = true,
+      description = "print warnings during analysis when uninitialized variables are used")
   private String printWarnings = "true";
-  @Option(secure=true, name="merge", values={"sep", "join"},
-      description="which merge operator to use for UninitializedVariablesCPA?")
+
+  @Option(
+      secure = true,
+      name = "merge",
+      values = {"sep", "join"},
+      description = "which merge operator to use for UninitializedVariablesCPA?")
   private String mergeType = "sep";
-  @Option(secure=true, name="stop", values={"sep", "join"},
-      description="which stop operator to use for UninitializedVariablesCPA?")
+
+  @Option(
+      secure = true,
+      name = "stop",
+      values = {"sep", "join"},
+      description = "which stop operator to use for UninitializedVariablesCPA?")
   private String stopType = "sep";
 
   private final UninitializedVariablesStatistics statistics;
@@ -73,5 +83,4 @@ public class UninitializedVariablesCPA extends AbstractCPA implements Statistics
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
   }
-
 }

@@ -19,8 +19,7 @@ module.exports = {
   mode: "production",
   entry: "./report.js",
   output: {
-    filename: "bundle.js",
-    chunkFilename: "[name].js",
+    filename: "[name].js",
     path: path.join(`${__dirname}/build`),
   },
   devServer: {
@@ -33,8 +32,7 @@ module.exports = {
   },
   plugins: [
     new MiniCssExtractPlugin({
-      filename: "bundle.css",
-      chunkFilename: "[name].css",
+      filename: "[name].css",
     }),
   ],
   module: {
@@ -85,7 +83,7 @@ module.exports = {
     splitChunks: {
       chunks: "all",
       cacheGroups: {
-        vendors: {
+        defaultVendors: {
           chunks: "all",
           name: "vendors",
           test: /(node_modules)|(build_tmp\/dependencies\.json)|(vendor)/,
@@ -97,8 +95,6 @@ module.exports = {
         },
       },
     },
-    // Make vendor bundle change less often even if our own code changes.
-    occurrenceOrder: false,
   },
   resolve: {
     alias: {
