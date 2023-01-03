@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.UUID;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -38,30 +39,32 @@ public class Sample {
   private final ImmutableMap<MemoryLocation, ValueAndType> variableValues;
   // Location where this sample occurs
   private final CFANode location;
-
+  private final Sample previous;
   private final SampleClass sampleClass;
-
-  public Sample(Map<MemoryLocation, ValueAndType> pVariableValues, CFANode pLocation) {
-    this(pVariableValues, pLocation, SampleClass.UNKNOWN);
-  }
+  private final UUID uuid = UUID.randomUUID();
 
   public Sample(
       Map<MemoryLocation, ValueAndType> pVariableValues,
       CFANode pLocation,
+      Sample pPrevious,
       SampleClass pSampleClass) {
     variableValues = ImmutableMap.copyOf(pVariableValues);
     location = pLocation;
+    previous = pPrevious;
     sampleClass = pSampleClass;
   }
 
   public static Sample fromAbstractState(
-      AbstractState pState, Set<MemoryLocation> relevantVariables, SampleClass pSampleClass) {
+      AbstractState pState,
+      Set<MemoryLocation> relevantVariables,
+      Sample pPrevious,
+      SampleClass pSampleClass) {
     CFANode location = AbstractStates.extractLocation(pState);
 
     ValueAnalysisState valueState =
         AbstractStates.extractStateByType(pState, ValueAnalysisState.class);
     if (valueState == null) {
-      return new Sample(ImmutableMap.of(), location, SampleClass.UNKNOWN);
+      return new Sample(ImmutableMap.of(), location, pPrevious, SampleClass.UNKNOWN);
     }
 
     ImmutableMap.Builder<MemoryLocation, ValueAndType> builder = ImmutableMap.builder();
@@ -70,7 +73,7 @@ public class Sample {
         builder.put(memoryLocation, valueState.getValueAndTypeFor(memoryLocation));
       }
     }
-    return new Sample(builder.buildOrThrow(), location, pSampleClass);
+    return new Sample(builder.buildOrThrow(), location, pPrevious, pSampleClass);
   }
 
   public Map<MemoryLocation, ValueAndType> getVariableValues() {
@@ -85,9 +88,16 @@ public class Sample {
     return sampleClass;
   }
 
+  public UUID getId() {
+    return uuid;
+  }
+
   public String export() {
-    StringBuilder sb =
-        new StringBuilder().append(String.format("{\"sampleClass\": \"%s\", ", sampleClass));
+    StringBuilder sb = new StringBuilder().append(String.format("{\"id\": \"%s\", ", uuid));
+    if (previous != null) {
+      sb.append((String.format("\"previousSample\": \"%s\", ", previous.getId())));
+    }
+    sb.append(String.format("\"sampleClass\": \"%s\", ", sampleClass));
 
     Path filename = location.getFunction().getFileLocation().getFileName();
     String function = location.getFunction().getOrigName();

@@ -13,7 +13,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.Writer;
 import java.math.BigInteger;
@@ -485,7 +484,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       }
       variableValues.put(var, valueAndType);
     }
-    return new Sample(variableValues, location, sampleClass);
+    return new Sample(variableValues, location, null, sampleClass);
   }
 
   @Override

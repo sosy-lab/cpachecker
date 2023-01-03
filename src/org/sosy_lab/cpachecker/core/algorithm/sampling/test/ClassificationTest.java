@@ -78,7 +78,12 @@ public class ClassificationTest {
       Type type = CNumericTypes.INT;
       ValueAndType valueAndType = new ValueAndType(value, type);
 
-      Sample sample = new Sample(ImmutableMap.of(varX, valueAndType, varY, valueAndType), loopHead);
+      Sample sample =
+          new Sample(
+              ImmutableMap.of(varX, valueAndType, varY, valueAndType),
+              loopHead,
+              null,
+              SampleClass.UNKNOWN);
       performTest(cfa, sample, expected);
     }
     // TODO: Make more tests, but probably better to automize first -> read in samples from file (or

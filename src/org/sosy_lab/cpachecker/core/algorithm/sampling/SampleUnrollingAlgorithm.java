@@ -146,7 +146,7 @@ public class SampleUnrollingAlgorithm {
       AbstractState state = reachedSet.popFromWaitlist();
       Precision precision = reachedSet.getPrecision(state);
       SampleTreeNode node = nodes.get(state);
-      Sample sample = Sample.fromAbstractState(state, relevantVariables, sampleClass);
+      Sample sample = node.getSample();
       for (AbstractState successor : transferRelation.getAbstractSuccessors(state, precision)) {
         Optional<PrecisionAdjustmentResult> precAdjustmentOptional =
             precisionAdjustment.prec(
@@ -159,8 +159,9 @@ public class SampleUnrollingAlgorithm {
         Precision successorPrecision = precAdjustmentResult.precision();
 
         Sample successorSample =
-            Sample.fromAbstractState(successor, relevantVariables, sampleClass);
-        if (!successorSample.equals(sample)) {
+            Sample.fromAbstractState(successor, relevantVariables, sample, sampleClass);
+        if (!successorSample.getVariableValues().equals(sample.getVariableValues())
+            || !successorSample.getLocation().equals(sample.getLocation())) {
           SampleTreeNode nextNode =
               new SampleTreeNode(successorSample, getLocationForState(successor));
           boolean isRepeated = root.contains(nextNode);
