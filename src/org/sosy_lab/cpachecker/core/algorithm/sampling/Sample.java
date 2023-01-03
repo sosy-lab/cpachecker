@@ -19,6 +19,9 @@ import java.util.UUID;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
@@ -33,6 +36,24 @@ public class Sample {
     POSITIVE,
     NEGATIVE,
     UNKNOWN
+  }
+
+  /** Variable types supported by the sample format. */
+  private enum VariableType {
+    INT("Int"),
+    BOOL("Bool"),
+    STRING("String");
+
+    private final String name;
+
+    VariableType(String pName) {
+      name = pName;
+    }
+
+    @Override
+    public String toString() {
+      return name;
+    }
   }
 
   // Mapping of variables to their respective values and types
@@ -134,14 +155,26 @@ public class Sample {
 
     StringJoiner stringJoiner = new StringJoiner(",", "[", "]}");
     for (Entry<MemoryLocation, ValueAndType> entry : variableValues.entrySet()) {
-      // TODO: Currently only numeric values are supported
+      // TODO: Support more types
       assert entry.getValue().getValue().isNumericValue();
+      Type type = entry.getValue().getType();
+      assert type instanceof CSimpleType;
+      CSimpleType simpleType = (CSimpleType) type;
+
+      VariableType variableType = null;
+      if (simpleType.getType() == CBasicType.BOOL) {
+        variableType = VariableType.BOOL;
+      } else if (simpleType.getType().isIntegerType()) {
+        variableType = VariableType.INT;
+      }
+      assert variableType != null;
+
       stringJoiner.add(
           String.format(
               "{\"variable\": \"%s\", \"value\": \"%s\", \"type\": \"%s\"}",
               entry.getKey().getIdentifier(),
               ((NumericValue) entry.getValue().getValue()).getNumber(),
-              entry.getValue().getType()));
+              variableType));
     }
     return sb.append(stringJoiner).toString();
   }
