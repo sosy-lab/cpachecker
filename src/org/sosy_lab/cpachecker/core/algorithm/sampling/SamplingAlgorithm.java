@@ -398,7 +398,6 @@ public class SamplingAlgorithm extends NestingAlgorithm {
           }
           variableFormulas.add(assignment.getKey());
         }
-        logger.log(Level.INFO, variableFormulas);
 
         // Add some constraints to keep the variable values small
         BitvectorFormulaManagerView bvmgr =
