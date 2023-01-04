@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
@@ -198,7 +199,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
 
     // Continuously collect samples until shutdown is requested
     ImmutableSet.Builder<Sample> samples = ImmutableSet.builder();
-    Map<BooleanFormula, FormulaManagerView> constraints = new HashMap<>();
+    Map<Sample, Pair<BooleanFormula, FormulaManagerView>> constraints = new HashMap<>();
     while (!shutdownNotifier.shouldShutdown()) {
       // Collect some positive samples using predicate-based and value-based sampling
       for (Sample sample :
@@ -292,7 +293,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       ReachedSet reachedSet,
       Solver solver,
       Loop loop,
-      Map<BooleanFormula, FormulaManagerView> constraints)
+      Map<Sample, Pair<BooleanFormula, FormulaManagerView>> constraints)
       throws InterruptedException, SolverException {
     BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
 
@@ -327,7 +328,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       ReachedSet reachedSet,
       Solver solver,
       Loop loop,
-      Map<BooleanFormula, FormulaManagerView> constraints)
+      Map<Sample, Pair<BooleanFormula, FormulaManagerView>> constraints)
       throws InterruptedException, SolverException {
     BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
 
@@ -362,7 +363,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       Set<BooleanFormula> pFormulas,
       Solver pSolver,
       CFANode pLocation,
-      Map<BooleanFormula, FormulaManagerView> pConstraints,
+      Map<Sample, Pair<BooleanFormula, FormulaManagerView>> pConstraints,
       SampleClass pSampleClass)
       throws InterruptedException, SolverException {
     Set<Sample> samples = new HashSet<>();
@@ -374,10 +375,17 @@ public class SamplingAlgorithm extends NestingAlgorithm {
         prover.push(formula);
 
         // Add constraints to prevent previously found samples from being found again
-        for (Entry<BooleanFormula, FormulaManagerView> constraint : pConstraints.entrySet()) {
-          BooleanFormula constraintFormula =
-              pSolver.getFormulaManager().translateFrom(constraint.getKey(), constraint.getValue());
-          prover.addConstraint(constraintFormula);
+        for (Entry<Sample, Pair<BooleanFormula, FormulaManagerView>> entry :
+            pConstraints.entrySet()) {
+          Sample sample = entry.getKey();
+          if (sample.getSampleClass().equals(pSampleClass)
+              && sample.getLocation().equals(pLocation)) {
+            BooleanFormula constraintFormula =
+                pSolver
+                    .getFormulaManager()
+                    .translateFrom(entry.getValue().getFirst(), entry.getValue().getSecond());
+            prover.addConstraint(constraintFormula);
+          }
         }
 
         if (prover.isUnsat()) {
@@ -440,18 +448,19 @@ public class SamplingAlgorithm extends NestingAlgorithm {
           }
           models.add(prover.getModelAssignments());
 
+          // Extract sample
+          Sample sample =
+              extractSampleFromModel(prover.getModelAssignments(), pLocation, pSampleClass);
+          samples.add(sample);
+
           // Add constraint to avoid getting the same model again
           List<BooleanFormula> modelFormulas = new ArrayList<>();
           for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
             modelFormulas.add(modelAssignment.getAssignmentAsFormula());
           }
           BooleanFormula constraint = bfmgr.not(bfmgr.and(modelFormulas));
-          pConstraints.put(constraint, fmgr);
+          pConstraints.put(sample, Pair.of(constraint, fmgr));
           prover.addConstraint(constraint);
-
-          // Extract sample
-          samples.add(
-              extractSampleFromModel(prover.getModelAssignments(), pLocation, pSampleClass));
         }
         prover.pop();
       }
