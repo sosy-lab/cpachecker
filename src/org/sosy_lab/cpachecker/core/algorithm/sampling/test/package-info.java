@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * This package contains tests for the sampling algorithms.
- */
+/** This package contains tests for the sampling algorithms. */
 package org.sosy_lab.cpachecker.core.algorithm.sampling.test;
