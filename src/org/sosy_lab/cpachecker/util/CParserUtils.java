@@ -538,7 +538,8 @@ public class CParserUtils {
         }
       }
     }
-    return pParserTools.expressionTreeSimplifier.simplify(memo.get(pEntry.getExitNode()));
+    return pParserTools.expressionTreeSimplifier.simplify(
+        memo.get(pEntry.getExitNode().orElseThrow()));
   }
 
   private static AExpression replaceCPAcheckerTMPVariables(

@@ -173,10 +173,10 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
         pNestingLevel,
         pSize,
         pOffset,
-        prevOffset,
+        headOffset,
         nextOffset,
-        Integer.min(length1, length2),
-        headOffset);
+        prevOffset,
+        Integer.min(length1, length2));
   }
 
   /**

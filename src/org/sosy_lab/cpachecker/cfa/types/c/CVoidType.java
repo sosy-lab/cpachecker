@@ -61,6 +61,13 @@ public final class CVoidType implements CType {
   }
 
   @Override
+  public boolean hasKnownConstantSize() {
+    // C standards says "false" because it is incomplete, but GCC allows sizeof(void) as an
+    // extension, so we return "true" to signal that its size can be computed.
+    return true;
+  }
+
+  @Override
   public <R, X extends Exception> R accept(CTypeVisitor<R, X> pVisitor) throws X {
     return pVisitor.visit(this);
   }

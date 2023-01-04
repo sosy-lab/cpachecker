@@ -72,6 +72,7 @@ public enum MachineModel {
       1, // void
       1, // bool
       4, // pointer
+      8, // malloc
       true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
       ),
@@ -105,6 +106,7 @@ public enum MachineModel {
       1, // void
       1, // bool
       8, // pointer
+      16, // malloc
       true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
       ),
@@ -138,6 +140,7 @@ public enum MachineModel {
       1, // void
       1, // bool
       4, // pointer
+      8, // malloc
       false, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
       ),
@@ -171,6 +174,7 @@ public enum MachineModel {
       1, // void
       1, // bool
       8, // pointer
+      16, // malloc
       false, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
       );
@@ -204,6 +208,7 @@ public enum MachineModel {
   private final int alignofVoid;
   private final int alignofBool;
   private final int alignofPtr;
+  private final int alignofMalloc;
 
   // according to ANSI C, sizeof(char) is always 1
   private final int mSizeofChar = 1;
@@ -235,6 +240,7 @@ public enum MachineModel {
       int pAlignofVoid,
       int pAlignofBool,
       int pAlignofPtr,
+      int pAlignofMalloc,
       boolean pDefaultCharSigned,
       ByteOrder pEndianness) {
     sizeofShort = pSizeofShort;
@@ -258,6 +264,7 @@ public enum MachineModel {
     alignofVoid = pAlignofVoid;
     alignofBool = pAlignofBool;
     alignofPtr = pAlignofPtr;
+    alignofMalloc = pAlignofMalloc;
     defaultCharSigned = pDefaultCharSigned;
     endianness = pEndianness;
 
@@ -487,6 +494,14 @@ public enum MachineModel {
 
   public int getAlignofPtr() {
     return alignofPtr;
+  }
+
+  /**
+   * Return the alignment that malloc needs to guarantee for the returned memory. Source:
+   * https://www.gnu.org/software/libc/manual/html_node/Malloc-Examples.html
+   */
+  public int getAlignofMalloc() {
+    return alignofMalloc;
   }
 
   /** returns INT, if the type is smaller than INT, else the type itself. */
@@ -732,10 +747,9 @@ public enum MachineModel {
         case STRUCT:
         case UNION:
           int alignof = 1;
-          int alignOfType = 0;
           // TODO: Take possible padding into account
           for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
-            alignOfType = decl.getType().accept(this);
+            int alignOfType = decl.getType().accept(this);
             alignof = Math.max(alignof, alignOfType);
           }
           return alignof;
@@ -754,7 +768,7 @@ public enum MachineModel {
       }
 
       if (pElaboratedType.getKind() == ComplexTypeKind.ENUM) {
-        return model.getSizeofInt();
+        return model.getAlignofInt();
       }
 
       throw new IllegalArgumentException(

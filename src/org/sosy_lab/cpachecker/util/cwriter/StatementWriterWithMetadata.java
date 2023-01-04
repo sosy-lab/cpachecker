@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.cwriter;
 
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Writer;
@@ -158,6 +159,7 @@ public class StatementWriterWithMetadata extends StatementWriter
       return lineCount;
     }
 
+    @CanIgnoreReturnValue
     @Override
     public Appendable append(CharSequence csq) throws IOException {
       if (csq.toString().contains("\n")) {
@@ -171,6 +173,7 @@ public class StatementWriterWithMetadata extends StatementWriter
       return this;
     }
 
+    @CanIgnoreReturnValue
     @Override
     public Appendable append(CharSequence csq, int start, int end) throws IOException {
       if (csq.toString().contains("\n")) {
@@ -184,6 +187,7 @@ public class StatementWriterWithMetadata extends StatementWriter
       return this;
     }
 
+    @CanIgnoreReturnValue
     @Override
     public Appendable append(char c) throws IOException {
       if (c == '\n') {

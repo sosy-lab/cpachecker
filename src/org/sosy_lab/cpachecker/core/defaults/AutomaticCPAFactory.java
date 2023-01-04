@@ -15,6 +15,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.MutableClassToInstanceMap;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -188,28 +189,33 @@ public class AutomaticCPAFactory implements CPAFactory {
     }
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CPAFactory setLogger(LogManager pLogger) {
     set(pLogger, LogManager.class);
     return this;
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CPAFactory setConfiguration(Configuration pConfiguration) {
     return set(pConfiguration, Configuration.class);
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CPAFactory setShutdownNotifier(ShutdownNotifier pShutdownNotifier) {
     return set(pShutdownNotifier, ShutdownNotifier.class);
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CPAFactory setChild(ConfigurableProgramAnalysis pChild)
       throws UnsupportedOperationException {
     return set(pChild, ConfigurableProgramAnalysis.class);
   }
 
+  @CanIgnoreReturnValue
   @Override
   public <T> CPAFactory set(T obj, Class<T> cls) throws UnsupportedOperationException {
     Preconditions.checkNotNull(cls);

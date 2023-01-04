@@ -30,6 +30,17 @@ SPDX-License-Identifier: Apache-2.0
             <classpath>
                 <fileset dir="${ivy.lib.dir}" includes="format-source/*.jar"/>
             </classpath>
+            <!-- Make it work under Java 17 until https://github.com/google/google-java-format/issues/787 is fixed. -->
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED"/>
+            <jvmarg value="--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED"/>
+            <jvmarg value="--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED"/>
             <arg value="-i"/>
             <arg line="'${source.files}'"/>
         </java>
