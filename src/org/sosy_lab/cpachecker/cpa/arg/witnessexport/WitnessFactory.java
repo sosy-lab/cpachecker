@@ -1139,12 +1139,15 @@ class WitnessFactory implements EdgeAppender {
    * witness graph, i.e., we compute an abstraction of the ARG-based graph without redundant or
    * irrelevant information.
    */
-  private void mergeRepeatedEdges(boolean mergeMetaInformation, Predicate<Edge> isIrrelevant) throws InterruptedException {
+  private void mergeRepeatedEdges(boolean mergeMetaInformation, Predicate<Edge> isIrrelevant)
+      throws InterruptedException {
     NavigableSet<Edge> waitlist = new TreeSet<>(leavingEdges.values());
     while (!waitlist.isEmpty()) {
       Edge edge = waitlist.pollFirst();
       // If the edge still exists in the graph and is irrelevant, remove it
-      if (leavingEdges.get(edge.getSource()).contains(edge) && isIrrelevant.test(edge) && canBeMerged(edge)) {
+      if (leavingEdges.get(edge.getSource()).contains(edge)
+          && isIrrelevant.test(edge)
+          && canBeMerged(edge)) {
         Iterables.addAll(waitlist, mergeNodes(edge, mergeMetaInformation));
         assert leavingEdges.isEmpty() || leavingEdges.containsKey(ENTRY_NODE_ID);
       }
@@ -1155,8 +1158,8 @@ class WitnessFactory implements EdgeAppender {
   }
 
   /**
-   * Returns whether the source and target nodes of the given edge can be merged, i.e. whether
-   * the edge may be used as parameter for {@link #mergeNodes}.
+   * Returns whether the source and target nodes of the given edge can be merged, i.e. whether the
+   * edge may be used as parameter for {@link #mergeNodes}.
    */
   private boolean canBeMerged(Edge pEdge) {
     String source = pEdge.getSource();
