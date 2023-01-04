@@ -150,7 +150,8 @@ public class Sample {
     assert line > 0;
     sb.append(
         String.format(
-            "\"location\": {\"filename\": \"%s\", \"function\": \"%s\", \"line\": %d, \"column\": %d}, \"assignments\": ",
+            "\"location\": {\"filename\": \"%s\", \"function\": \"%s\", \"line\": %d, \"column\":"
+                + " %d}, \"assignments\": ",
             filename, function, line, column));
 
     StringJoiner stringJoiner = new StringJoiner(",", "[", "]}");
