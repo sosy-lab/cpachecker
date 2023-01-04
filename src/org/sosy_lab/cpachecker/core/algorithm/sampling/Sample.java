@@ -116,7 +116,7 @@ public class Sample {
   public String export() {
     StringBuilder sb = new StringBuilder().append(String.format("{\"id\": \"%s\", ", uuid));
     if (previous != null) {
-      sb.append((String.format("\"previousSample\": \"%s\", ", previous.getId())));
+      sb.append(String.format("\"previousSample\": \"%s\", ", previous.getId()));
     }
     sb.append(String.format("\"sampleClass\": \"%s\", ", sampleClass));
 
