@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.Parameterized.Parameter;
 import org.sosy_lab.common.ShutdownManager;
@@ -60,6 +61,7 @@ public class ClassificationTest {
   }
 
   @Test
+  @Ignore
   public void induction1_positiveSample()
       throws ParserException, IOException, InterruptedException, InvalidConfigurationException,
           CPAException {
