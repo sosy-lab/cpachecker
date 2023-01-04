@@ -515,6 +515,9 @@ analysis.useParallelAnalyses = false
 # generate random test cases
 analysis.useRandomTestCaseGeneratorAlgorithm = false
 
+# Use sampling algorithm to generate samples for invariant generation.
+analysis.useSamplingAlgorithm = false
+
 # generate test cases for covered test targets
 analysis.useTestCaseGeneratorAlgorithm = false
 
@@ -4327,6 +4330,12 @@ restartAlgorithm.printIntermediateStatistics = true
 # let each component of the restart algorithm write output files and not only
 # the last one that is excuted
 restartAlgorithm.writeIntermediateOutputFiles = false
+
+# The number of initial samples to collect before unrolling.
+samplingAlgorithm.numInitialSamples = 5
+
+# The file where generated samples should be written to.
+samplingAlgorithm.outFile = "samples.json"
 
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"
