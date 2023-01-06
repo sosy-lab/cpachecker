@@ -392,21 +392,14 @@ public class SamplingAlgorithm extends NestingAlgorithm {
         if (prover.isUnsat()) {
           // Formula is UNSAT even without additional constraints, there is nothing to do
           logger.log(Level.INFO, "Encountered unsatisfiable formula, no samples exist");
-          break;
+          continue;
         }
-        // Query solver for a random model so we get easy access to the variable representations
+        // Query solver for a random model, so we get easy access to the variable representations
         // (this is a hack)
-        List<Formula> variableFormulas = new ArrayList<>();
         List<ValueAssignment> assignments = prover.getModelAssignments();
-        for (ValueAssignment assignment : assignments) {
-          List<String> parts = Splitter.on("@").splitToList(assignment.getName());
-          if (!parts.get(0).contains("::")) {
-            // Current assignment is a function result
-            // TODO: Can this really not be an unqualified variable?
-            continue;
-          }
-          variableFormulas.add(assignment.getKey());
-        }
+        Iterable<Formula> variableFormulas =
+            FluentIterable.from(getRelevantAssignments(assignments, pLocation))
+                .transform(ValueAssignment::getKey);
 
         // Add some constraints to keep the variable values small
         BitvectorFormulaManagerView bvmgr =
@@ -430,7 +423,6 @@ public class SamplingAlgorithm extends NestingAlgorithm {
             // vary in size
             prover.pop();
             if (unsat) {
-              prover.pop();
               max_value *= 10;
             } else {
               prover.addConstraint(bfmgr.and(upper, lower));
