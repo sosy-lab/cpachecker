@@ -442,7 +442,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
           models.add(prover.getModelAssignments());
 
           // Extract sample
-          Set<ValueAssignment> relevantAssignments =
+          Iterable<ValueAssignment> relevantAssignments =
               getRelevantAssignments(prover.getModelAssignments(), pLocation);
           Sample sample = extractSampleFromModel(relevantAssignments, pLocation, pSampleClass);
           samples.add(sample);
@@ -466,32 +466,35 @@ public class SamplingAlgorithm extends NestingAlgorithm {
    * Filter the given model for relevant assignments. Relevant for sampling are only the most recent
    * variable assignments to variables in the current function.
    */
-  private Set<ValueAssignment> getRelevantAssignments(
+  private Iterable<ValueAssignment> getRelevantAssignments(
       List<ValueAssignment> model, CFANode pLocation) {
-    Map<ValueAssignment, Integer> highestIndizes = new HashMap<>();
+    Map<String, Integer> highestIndizes = new HashMap<>();
+    Map<String, ValueAssignment> latestAssignments = new HashMap<>();
     for (ValueAssignment assignment : model) {
       List<String> parts = Splitter.on("@").splitToList(assignment.getName());
-      if (!parts.get(0).contains("::")) {
+      String qualifiedVar = parts.get(0);
+      if (!qualifiedVar.contains("::")) {
         // Current assignment is a function result
         // TODO: Can this really not be an unqualified variable?
         continue;
       }
-      String function = Splitter.on("::").splitToList(parts.get(0)).get(0);
+      String function = Splitter.on("::").splitToList(qualifiedVar).get(0);
       if (!function.equals(pLocation.getFunctionName())) {
         continue;
       }
       Integer index = Integer.valueOf(parts.get(1));
-      if (index < highestIndizes.getOrDefault(assignment, 0)) {
+      if (index < highestIndizes.getOrDefault(qualifiedVar, 0)) {
         // We are interested in the most recent values of each variable
         continue;
       }
-      highestIndizes.put(assignment, index);
+      highestIndizes.put(qualifiedVar, index);
+      latestAssignments.put(qualifiedVar, assignment);
     }
-    return highestIndizes.keySet();
+    return latestAssignments.values();
   }
 
   private Sample extractSampleFromModel(
-      Set<ValueAssignment> assignments, CFANode location, SampleClass sampleClass) {
+      Iterable<ValueAssignment> assignments, CFANode location, SampleClass sampleClass) {
     Map<MemoryLocation, ValueAndType> variableValues = new HashMap<>();
     for (ValueAssignment assignment : assignments) {
       List<String> parts = Splitter.on("@").splitToList(assignment.getName());
