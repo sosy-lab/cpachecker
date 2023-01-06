@@ -451,7 +451,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
 
           // Extract sample
           Set<ValueAssignment> relevantAssignments =
-              getRelevantAssignments(prover.getModelAssignments());
+              getRelevantAssignments(prover.getModelAssignments(), pLocation);
           Sample sample = extractSampleFromModel(relevantAssignments, pLocation, pSampleClass);
           samples.add(sample);
 
@@ -470,13 +470,22 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     return samples;
   }
 
-  private Set<ValueAssignment> getRelevantAssignments(List<ValueAssignment> model) {
+  /**
+   * Filter the given model for relevant assignments. Relevant for sampling are only the most recent
+   * variable assignments to variables in the current function.
+   */
+  private Set<ValueAssignment> getRelevantAssignments(
+      List<ValueAssignment> model, CFANode pLocation) {
     Map<ValueAssignment, Integer> highestIndizes = new HashMap<>();
     for (ValueAssignment assignment : model) {
       List<String> parts = Splitter.on("@").splitToList(assignment.getName());
       if (!parts.get(0).contains("::")) {
         // Current assignment is a function result
         // TODO: Can this really not be an unqualified variable?
+        continue;
+      }
+      String function = Splitter.on("::").splitToList(parts.get(0)).get(0);
+      if (!function.equals(pLocation.getFunctionName())) {
         continue;
       }
       Integer index = Integer.valueOf(parts.get(1));
