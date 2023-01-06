@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.sampling;
 
 import com.google.common.base.Functions;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
