@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.sampling;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Map;
@@ -57,7 +57,7 @@ public class Sample {
   }
 
   // Mapping of variables to their respective values and types
-  private final ImmutableMap<MemoryLocation, ValueAndType> variableValues;
+  private final ImmutableSortedMap<MemoryLocation, ValueAndType> variableValues;
   // Location where this sample occurs
   private final CFANode location;
   private final Sample previous;
@@ -69,7 +69,7 @@ public class Sample {
       CFANode pLocation,
       Sample pPrevious,
       SampleClass pSampleClass) {
-    variableValues = ImmutableMap.copyOf(pVariableValues);
+    variableValues = ImmutableSortedMap.copyOf(pVariableValues);
     location = pLocation;
     previous = pPrevious;
     sampleClass = pSampleClass;
@@ -85,10 +85,11 @@ public class Sample {
     ValueAnalysisState valueState =
         AbstractStates.extractStateByType(pState, ValueAnalysisState.class);
     if (valueState == null) {
-      return new Sample(ImmutableMap.of(), location, pPrevious, SampleClass.UNKNOWN);
+      return new Sample(ImmutableSortedMap.of(), location, pPrevious, SampleClass.UNKNOWN);
     }
 
-    ImmutableMap.Builder<MemoryLocation, ValueAndType> builder = ImmutableMap.builder();
+    ImmutableSortedMap.Builder<MemoryLocation, ValueAndType> builder =
+        ImmutableSortedMap.naturalOrder();
     for (MemoryLocation memoryLocation : valueState.createInterpolant().getMemoryLocations()) {
       if (relevantVariables.contains(memoryLocation)) {
         builder.put(memoryLocation, valueState.getValueAndTypeFor(memoryLocation));
