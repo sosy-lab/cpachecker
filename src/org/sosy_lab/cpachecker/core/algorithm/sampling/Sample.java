@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.UUID;
@@ -179,5 +180,22 @@ public class Sample {
   @Override
   public String toString() {
     return variableValues.toString();
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (!(pO instanceof Sample)) {
+      return false;
+    }
+    Sample sample = (Sample) pO;
+    return variableValues.equals(sample.variableValues) && location.equals(sample.location);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(variableValues, location);
   }
 }
