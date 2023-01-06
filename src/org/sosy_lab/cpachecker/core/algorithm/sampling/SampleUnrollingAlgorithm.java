@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.sampling;
 
 import com.google.common.base.Functions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
@@ -99,7 +100,6 @@ public class SampleUnrollingAlgorithm {
   }
 
   private AbstractState makeInitialState(Sample sample) throws InterruptedException {
-    // Get initial state
     AbstractState initialState =
         cpa.getInitialState(sample.getLocation(), StateSpacePartition.getDefaultPartition());
 
@@ -124,7 +124,6 @@ public class SampleUnrollingAlgorithm {
     ValueAnalysisCPA valueCPA = CPAs.retrieveCPA(cpa, ValueAnalysisCPA.class);
     valueCPA.incrementPrecision(valuePrecisionIncrement);
 
-    // Get initial precision
     return cpa.getInitialPrecision(sample.getLocation(), StateSpacePartition.getDefaultPartition());
   }
 
@@ -135,7 +134,8 @@ public class SampleUnrollingAlgorithm {
     Set<MemoryLocation> relevantVariables = initialSample.getVariableValues().keySet();
 
     AbstractState first = reachedSet.getFirstState();
-    SampleTreeNode root = new SampleTreeNode(initialSample, getLocationForState(first));
+    assert initialSample.getLocation().equals(getLocationForState(first));
+    SampleTreeNode root = new SampleTreeNode(initialSample);
     Map<AbstractState, SampleTreeNode> nodes = new HashMap<>();
     nodes.put(first, root);
 
@@ -148,6 +148,7 @@ public class SampleUnrollingAlgorithm {
       SampleTreeNode node = nodes.get(state);
       Sample sample = node.getSample();
       for (AbstractState successor : transferRelation.getAbstractSuccessors(state, precision)) {
+        // Update successor via precision adjustment
         Optional<PrecisionAdjustmentResult> precAdjustmentOptional =
             precisionAdjustment.prec(
                 successor, precision, reachedSet, Functions.identity(), successor);
@@ -158,12 +159,24 @@ public class SampleUnrollingAlgorithm {
         successor = precAdjustmentResult.abstractState();
         Precision successorPrecision = precAdjustmentResult.precision();
 
+        // Build sample for successor state
+        ValueAnalysisState valueSuccessor =
+            AbstractStates.extractStateByType(successor, ValueAnalysisState.class);
+        assert valueSuccessor != null;
+        ImmutableMap.Builder<MemoryLocation, ValueAndType> builder = ImmutableMap.builder();
+        for (MemoryLocation memoryLocation :
+            valueSuccessor.createInterpolant().getMemoryLocations()) {
+          if (relevantVariables.contains(memoryLocation)) {
+            builder.put(memoryLocation, valueSuccessor.getValueAndTypeFor(memoryLocation));
+          }
+        }
         Sample successorSample =
-            Sample.fromAbstractState(successor, relevantVariables, sample, sampleClass);
+            new Sample(builder.buildOrThrow(), getLocationForState(successor), sample, sampleClass);
+
+        // Handle successor
         if (!successorSample.getVariableValues().equals(sample.getVariableValues())
             || !successorSample.getLocation().equals(sample.getLocation())) {
-          SampleTreeNode nextNode =
-              new SampleTreeNode(successorSample, getLocationForState(successor));
+          SampleTreeNode nextNode = new SampleTreeNode(successorSample);
           boolean isRepeated = root.contains(nextNode);
           node.addChild(nextNode);
           nodes.put(successor, nextNode);
@@ -192,12 +205,10 @@ public class SampleUnrollingAlgorithm {
   private static class SampleTreeNode {
 
     private final Sample sample;
-    private final CFANode location;
     private final Set<SampleTreeNode> children;
 
-    private SampleTreeNode(Sample pSample, CFANode pLocation) {
+    private SampleTreeNode(Sample pSample) {
       sample = pSample;
-      location = pLocation;
       children = new HashSet<>();
     }
 
@@ -229,12 +240,13 @@ public class SampleUnrollingAlgorithm {
         return false;
       }
       SampleTreeNode that = (SampleTreeNode) pO;
-      return sample.equals(that.sample) && location.equals(that.location);
+      return sample.getVariableValues().equals(that.sample.getVariableValues())
+          && sample.getLocation().equals(that.sample.getLocation());
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(sample, location);
+      return Objects.hash(sample);
     }
   }
 }
