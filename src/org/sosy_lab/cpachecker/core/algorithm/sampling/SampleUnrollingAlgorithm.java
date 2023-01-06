@@ -160,18 +160,12 @@ public class SampleUnrollingAlgorithm {
         Precision successorPrecision = precAdjustmentResult.precision();
 
         // Build sample for successor state
-        ValueAnalysisState valueSuccessor =
-            AbstractStates.extractStateByType(successor, ValueAnalysisState.class);
-        assert valueSuccessor != null;
-        ImmutableMap.Builder<MemoryLocation, ValueAndType> builder = ImmutableMap.builder();
-        for (MemoryLocation memoryLocation :
-            valueSuccessor.createInterpolant().getMemoryLocations()) {
-          if (relevantVariables.contains(memoryLocation)) {
-            builder.put(memoryLocation, valueSuccessor.getValueAndTypeFor(memoryLocation));
-          }
-        }
         Sample successorSample =
-            new Sample(builder.buildOrThrow(), getLocationForState(successor), sample, sampleClass);
+            new Sample(
+                Sample.getValuesAndTypesFromAbstractState(successor, relevantVariables),
+                getLocationForState(successor),
+                sample,
+                sampleClass);
 
         // Handle successor
         if (!successorSample.getVariableValues().equals(sample.getVariableValues())

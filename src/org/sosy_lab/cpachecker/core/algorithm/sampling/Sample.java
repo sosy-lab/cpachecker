@@ -75,17 +75,12 @@ public class Sample {
     sampleClass = pSampleClass;
   }
 
-  public static Sample fromAbstractState(
-      AbstractState pState,
-      Set<MemoryLocation> relevantVariables,
-      Sample pPrevious,
-      SampleClass pSampleClass) {
-    CFANode location = AbstractStates.extractLocation(pState);
-
+  public static Map<MemoryLocation, ValueAndType> getValuesAndTypesFromAbstractState(
+      AbstractState pState, Set<MemoryLocation> relevantVariables) {
     ValueAnalysisState valueState =
         AbstractStates.extractStateByType(pState, ValueAnalysisState.class);
     if (valueState == null) {
-      return new Sample(ImmutableSortedMap.of(), location, pPrevious, SampleClass.UNKNOWN);
+      return ImmutableSortedMap.of();
     }
 
     ImmutableSortedMap.Builder<MemoryLocation, ValueAndType> builder =
@@ -95,7 +90,7 @@ public class Sample {
         builder.put(memoryLocation, valueState.getValueAndTypeFor(memoryLocation));
       }
     }
-    return new Sample(builder.buildOrThrow(), location, pPrevious, pSampleClass);
+    return builder.buildOrThrow();
   }
 
   public Map<MemoryLocation, ValueAndType> getVariableValues() {

@@ -77,10 +77,10 @@ public class SampleClassificationAlgorithm {
 
     Set<MemoryLocation> relevantVariables = sample.getVariableValues().keySet();
     for (AbstractState state : reachedSet) {
-      Sample fromState =
-          Sample.fromAbstractState(state, relevantVariables, null, SampleClass.UNKNOWN);
-      if (sample.getVariableValues().equals(fromState.getVariableValues())
-          && sample.getLocation().equals(fromState.getLocation())) {
+      if (sample.getLocation().equals(AbstractStates.extractLocation(state))
+          && sample
+              .getVariableValues()
+              .equals(Sample.getValuesAndTypesFromAbstractState(state, relevantVariables))) {
         // Sample is reachable from the initial state
         if (status.isSound()) {
           return SampleClass.POSITIVE;
