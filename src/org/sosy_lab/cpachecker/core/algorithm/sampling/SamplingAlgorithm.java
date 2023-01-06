@@ -471,6 +471,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
   private Sample extractSampleFromModel(
       List<ValueAssignment> model, CFANode location, SampleClass sampleClass) {
     Map<MemoryLocation, ValueAndType> variableValues = new HashMap<>();
+    Map<MemoryLocation, Integer> highestIndizes = new HashMap<>();
     for (ValueAssignment assignment : model) {
       String varName = assignment.getName();
       List<String> parts = Splitter.on("@").splitToList(varName);
@@ -480,6 +481,12 @@ public class SamplingAlgorithm extends NestingAlgorithm {
         continue;
       }
       MemoryLocation var = MemoryLocation.fromQualifiedName(parts.get(0));
+      Integer index = Integer.valueOf(parts.get(1));
+      if (index < highestIndizes.getOrDefault(var, 0)) {
+        // We are interested in the most recent values of each variable
+        continue;
+      }
+      highestIndizes.put(var, index);
 
       Object value = assignment.getValue();
       ValueAndType valueAndType;
