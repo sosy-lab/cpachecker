@@ -12,6 +12,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.Writer;
@@ -449,16 +450,17 @@ public class SamplingAlgorithm extends NestingAlgorithm {
           models.add(prover.getModelAssignments());
 
           // Extract sample
-          Sample sample =
-              extractSampleFromModel(prover.getModelAssignments(), pLocation, pSampleClass);
+          Set<ValueAssignment> relevantAssignments =
+              getRelevantAssignments(prover.getModelAssignments());
+          Sample sample = extractSampleFromModel(relevantAssignments, pLocation, pSampleClass);
           samples.add(sample);
 
           // Add constraint to avoid getting the same model again
-          List<BooleanFormula> modelFormulas = new ArrayList<>();
-          for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
-            modelFormulas.add(modelAssignment.getAssignmentAsFormula());
-          }
-          BooleanFormula constraint = bfmgr.not(bfmgr.and(modelFormulas));
+          Set<BooleanFormula> relevantFormulas =
+              FluentIterable.from(relevantAssignments)
+                  .transform(ValueAssignment::getAssignmentAsFormula)
+                  .toSet();
+          BooleanFormula constraint = bfmgr.not(bfmgr.and(relevantFormulas));
           pConstraints.put(sample, Pair.of(constraint, fmgr));
           prover.addConstraint(constraint);
         }
@@ -468,25 +470,31 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     return samples;
   }
 
-  private Sample extractSampleFromModel(
-      List<ValueAssignment> model, CFANode location, SampleClass sampleClass) {
-    Map<MemoryLocation, ValueAndType> variableValues = new HashMap<>();
-    Map<MemoryLocation, Integer> highestIndizes = new HashMap<>();
+  private Set<ValueAssignment> getRelevantAssignments(List<ValueAssignment> model) {
+    Map<ValueAssignment, Integer> highestIndizes = new HashMap<>();
     for (ValueAssignment assignment : model) {
-      String varName = assignment.getName();
-      List<String> parts = Splitter.on("@").splitToList(varName);
+      List<String> parts = Splitter.on("@").splitToList(assignment.getName());
       if (!parts.get(0).contains("::")) {
         // Current assignment is a function result
         // TODO: Can this really not be an unqualified variable?
         continue;
       }
-      MemoryLocation var = MemoryLocation.fromQualifiedName(parts.get(0));
       Integer index = Integer.valueOf(parts.get(1));
-      if (index < highestIndizes.getOrDefault(var, 0)) {
+      if (index < highestIndizes.getOrDefault(assignment, 0)) {
         // We are interested in the most recent values of each variable
         continue;
       }
-      highestIndizes.put(var, index);
+      highestIndizes.put(assignment, index);
+    }
+    return highestIndizes.keySet();
+  }
+
+  private Sample extractSampleFromModel(
+      Set<ValueAssignment> assignments, CFANode location, SampleClass sampleClass) {
+    Map<MemoryLocation, ValueAndType> variableValues = new HashMap<>();
+    for (ValueAssignment assignment : assignments) {
+      List<String> parts = Splitter.on("@").splitToList(assignment.getName());
+      MemoryLocation var = MemoryLocation.fromQualifiedName(parts.get(0));
 
       Object value = assignment.getValue();
       ValueAndType valueAndType;
