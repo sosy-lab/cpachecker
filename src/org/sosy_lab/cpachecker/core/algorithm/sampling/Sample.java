@@ -181,11 +181,6 @@ public class Sample {
     return sb.append(stringJoiner).toString();
   }
 
-  public String writePrecisionFile() {
-    // TODO
-    return null;
-  }
-
   @Override
   public String toString() {
     return variableValues.toString();
