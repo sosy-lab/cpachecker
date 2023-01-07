@@ -89,7 +89,22 @@ public class SamplingAlgorithm extends NestingAlgorithm {
   @FileOption(Type.OUTPUT_FILE)
   private Path outFile = Path.of("samples.json");
 
+  @Option(
+      secure = true,
+      name = "initial.forward.config",
+      description = "The configuration file to use for building the forward ARG.")
+  @FileOption(Type.REQUIRED_INPUT_FILE)
+  private Path initialForwardConfig;
+
+  @Option(
+      secure = true,
+      name = "initial.backward.config",
+      description = "The configuration file to use for building the backward ARG.")
+  @FileOption(Type.REQUIRED_INPUT_FILE)
+  private Path initialBackwardConfig;
+
   private final CFA cfa;
+  private final Specification samplingSpecification;
   private final SampleUnrollingAlgorithm forwardUnrollingAlgorithm;
   private final SampleUnrollingAlgorithm backwardUnrollingAlgorithm;
 
@@ -103,6 +118,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     super(pConfig, pLogger, pShutdownManager.getNotifier(), Specification.alwaysSatisfied());
     pConfig.inject(this);
     cfa = pCfa;
+    samplingSpecification = pSpecification;
 
     ConfigurationBuilder unrollingConfigBuilder =
         Configuration.builder()
@@ -167,9 +183,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     try {
       forwardSolver =
           buildReachedSet(
-              reachedSet,
-              Path.of("config", "valueAnalysis-predicateAnalysis-Cegar-ABEl.properties"),
-              extractLocation(pReachedSet.getFirstState()));
+              reachedSet, initialForwardConfig, extractLocation(pReachedSet.getFirstState()));
     } catch (InvalidConfigurationException e) {
       logger.log(
           Level.WARNING,
@@ -184,9 +198,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     // Build the reachedSet for the backward ARG
     Solver backwardsSolver;
     try {
-      backwardsSolver =
-          buildReachedSet(
-              reachedSet, Path.of("config", "predicateAnalysisBackward.properties"), target);
+      backwardsSolver = buildReachedSet(reachedSet, initialBackwardConfig, target);
     } catch (InvalidConfigurationException e) {
       logger.log(
           Level.WARNING,
@@ -267,22 +279,9 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     }
   }
 
-  private ImmutableSet<CFANode> getTargetNodes() throws InterruptedException {
+  private ImmutableSet<CFANode> getTargetNodes() {
     TargetLocationProvider tlp = new TargetLocationProviderImpl(shutdownNotifier, logger, cfa);
-    Specification spec;
-    try {
-      spec =
-          Specification.fromFiles(
-              ImmutableSet.of(Path.of("config", "specification", "default.spc")),
-              cfa,
-              globalConfig,
-              logger,
-              shutdownNotifier);
-    } catch (InvalidConfigurationException pE) {
-      logger.log(Level.WARNING, "Could not determine target due to invalid configuration");
-      return ImmutableSet.of();
-    }
-    return tlp.tryGetAutomatonTargetLocations(cfa.getMainFunction(), spec);
+    return tlp.tryGetAutomatonTargetLocations(cfa.getMainFunction(), samplingSpecification);
   }
 
   /**
