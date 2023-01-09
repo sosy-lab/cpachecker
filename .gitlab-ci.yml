@@ -14,7 +14,7 @@ variables:
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
   REFASTER_REPO_REVISION: 0287f114a4fa2af2e4e743b9cbf86d179d89553a
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.15.0
+  REFASTER_VERSION: 2.17.0
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
   npm_config_cache: "${CI_PROJECT_DIR}/.cache/npm"
   npm_config_prefer_offline: "true"
@@ -337,9 +337,6 @@ refaster:
   # so far does not work with Java 17:
   # https://github.com/google/error-prone/issues/3553
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
-  # https://github.com/google/error-prone/issues/3484 has started to appear with Error Prone 2.15 as well,
-  # we have to wait for a fix in Error Prone 2.17
-  allow_failure: true
 
 
 # Disable some checks because they are not used for CPAchecker
