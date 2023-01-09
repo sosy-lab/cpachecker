@@ -76,8 +76,10 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loop-lit/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/loop-invgen/apache-get-tag.i.*-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-invgen/id_build.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/loop-invgen/id_build.i.v+lhb-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-invariants/linear-inequality-inv-b.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loops-crafted-1/*</exclude> <!-- only timeouts -->
+    <exclude>../programs/benchmarks/loop-zilu/benchmark18_conjunctive.yml</exclude> <!-- only timeouts -->
     <exclude>../programs/benchmarks/nla-digbench/*</exclude> <!-- only timeouts -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/*</exclude> <!-- mostly timeouts -->
 

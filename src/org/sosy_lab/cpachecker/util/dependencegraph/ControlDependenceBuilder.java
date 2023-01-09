@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -82,9 +81,12 @@ final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdg
     ControlDependenceBuilder<?> controlDependenceBuilder =
         new ControlDependenceBuilder<>(pBuilder, pEntryNode);
 
-    DomTree<CFANode> postDomTree = DominanceUtils.createFunctionPostDomTree(pEntryNode);
-    Set<CFANode> postDomTreeNodes = new HashSet<>();
-    Iterators.addAll(postDomTreeNodes, postDomTree.iterator());
+    DomTree<CFANode> postDomTree =
+        pEntryNode
+            .getExitNode()
+            .map(DominanceUtils::createFunctionPostDomTree)
+            .orElse(DomTree.empty());
+    ImmutableSet<CFANode> postDomTreeNodes = ImmutableSet.copyOf(postDomTree);
 
     controlDependenceBuilder.insertControlDependencies(
         postDomTree, postDomTreeNodes, pDependOnBothAssumptions);

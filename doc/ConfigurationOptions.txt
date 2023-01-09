@@ -324,7 +324,7 @@ analysis.functionPointerTargets = {
           FunctionSet.EQ_PARAM_COUNT}
 
 # What CFA nodes should be the starting point of the analysis?
-analysis.initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY)
+analysis.initialStatesFor = {InitialStatesFor.ENTRY}
 
 # run interprocedural analysis
 analysis.interprocedural = true

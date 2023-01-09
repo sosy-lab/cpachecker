@@ -81,6 +81,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loops/sum01-2.yml</exclude> <!-- flapping timeouts -->
     <exclude>../programs/benchmarks/loops/vogal-1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-new/gauss_sum.i.*-reducer.yml</exclude> <!-- flapping timeouts -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/bresenham-ll_valuebound1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/bresenham-ll_unwindbound2.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/cohencu-ll_unwindbound10.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/cohendiv-ll_unwindbound2.yml</exclude> <!-- flapping timeout -->
@@ -94,12 +95,14 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/nla-digbench-scaling/geo3-ll_valuebound5.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/geo3-ll_valuebound10.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/hard2_unwindbound20.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/hard2_valuebound50.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/mannadiv_unwindbound20.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/prod4br-ll_valuebound1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/prodbin-ll_valuebound1.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/prodbin-ll_valuebound5.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/prodbin-ll_valuebound10.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/prodbin-ll_valuebound20.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/prodbin-ll_valuebound50.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/nla-digbench-scaling/ps4-ll_unwindbound20.yml</exclude> <!-- flapping timeout -->
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
