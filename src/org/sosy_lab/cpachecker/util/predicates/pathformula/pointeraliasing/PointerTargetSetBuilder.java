@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
@@ -46,7 +47,14 @@ import org.sosy_lab.java_smt.api.Formula;
 
 public interface PointerTargetSetBuilder {
 
-  void prepareBase(String name, CType type, @Nullable Formula size, Constraints constraints);
+  void addNextBaseAddressConstraints(
+      String newBase,
+      @Nullable CType type,
+      @Nullable Formula allocationSize,
+      boolean isDynamicAllocation,
+      Constraints constraints);
+
+  void prepareBase(String name, CType type);
 
   void shareBase(String name, CType type);
 
@@ -54,7 +62,7 @@ public interface PointerTargetSetBuilder {
    * Adds the newly allocated base of the given type for tracking along with all its tracked
    * (sub)fields (if its a structure/union) or all its elements (if its an array).
    */
-  void addBase(String name, CType type, @Nullable Formula size, Constraints constraints);
+  void addBase(String name, CType type);
 
   boolean tracksField(CompositeField field);
 
@@ -63,7 +71,7 @@ public interface PointerTargetSetBuilder {
   void addEssentialFields(final List<CompositeField> fields);
 
   void addTemporaryDeferredAllocation(
-      boolean isZeroed, Optional<CIntegerLiteralExpression> size, Formula sizeExp, String base);
+      boolean isZeroed, Optional<CIntegerLiteralExpression> size, String base);
 
   void addDeferredAllocationPointer(String newPointer, String originalPointer);
 
@@ -139,6 +147,10 @@ public interface PointerTargetSetBuilder {
       bases = pointerTargetSet.getBases();
       fields = pointerTargetSet.getFields();
       deferredAllocations = pointerTargetSet.getDeferredAllocations();
+      verify(
+          pOptions.revealAllocationTypeFromLHS()
+              || pOptions.deferUntypedAllocations()
+              || deferredAllocations.isEmpty());
       if (pOptions.useArraysForHeap()) {
         verify(pointerTargetSet.getTargets() == null || pointerTargetSet.getTargets().isEmpty());
         verify(pointerTargetSet.getFields().isEmpty());
@@ -172,15 +184,16 @@ public interface PointerTargetSetBuilder {
     }
 
     /**
-     * Returns a boolean formula for a prepared base of a pointer.
+     * Prepare the newly allocated base of the given type for tracking later on.
+     *
+     * <p>Make sure to call {@link #addNextBaseAddressConstraints(String, CType, Formula, boolean,
+     * Constraints)} before calling this method!
      *
      * @param name The name of the variable.
      * @param type The type of the variable.
-     * @param sizeExp An expression for the size in bytes of the new base.
      */
     @Override
-    public void prepareBase(
-        final String name, CType type, final @Nullable Formula sizeExp, Constraints constraints) {
+    public void prepareBase(final String name, CType type) {
       checkIsSimplified(type);
       if (bases.containsKey(name)) {
         // The base has already been added
@@ -191,8 +204,6 @@ public interface PointerTargetSetBuilder {
       // If size is not known, we can use a dummy size because it is only used for the fake base.
       long size = type.hasKnownConstantSize() ? typeHandler.getSizeof(type) : 0;
       bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(size));
-
-      makeNextBaseAddressInequality(name, type, sizeExp, constraints);
     }
 
     /**
@@ -225,13 +236,15 @@ public interface PointerTargetSetBuilder {
      * Adds the newly allocated base of the given type for tracking along with all its tracked
      * (sub)fields (if it is a structure/union) or all its elements (if it is an array).
      *
+     * <p>Make sure to call {@link #addNextBaseAddressConstraints(String, CType, Formula, boolean,
+     * Constraints)} before calling this method, but not if this was a deferred allocation and the
+     * method was called before!
+     *
      * @param name The name of the base
      * @param type The type of the base
-     * @param size An expression for the size in bytes of the new base.
      */
     @Override
-    public void addBase(
-        final String name, CType type, final @Nullable Formula size, Constraints constraints) {
+    public void addBase(final String name, CType type) {
       checkIsSimplified(type);
       if (bases.containsKey(name)) {
         // The base has already been added
@@ -240,29 +253,43 @@ public interface PointerTargetSetBuilder {
 
       addTargets(name, type);
       bases = bases.putAndCopy(name, type);
-
-      makeNextBaseAddressInequality(name, type, size, constraints);
     }
 
     /**
      * Create the constraints for inequality between existing bases and a new base (to prevent
-     * overlapping), and store the new base as highest allocated address for when the next base is
-     * created.
+     * overlapping) as well as for alignment, and store the new base as highest allocated address
+     * for when the next base is created.
+     *
+     * <p>This method needs to be called before the new base is added.
+     *
+     * <p>Either type or allocationSize need to be given.
      *
      * @param newBase The name of the next base.
      * @param type The type of the next base.
      * @param allocationSize An expression for the size in bytes of the new base.
+     * @param isDynamicAllocation Whether this is an allocation from malloc etc.
      * @param constraints Where the constraints about addresses will be added to.
      */
-    private void makeNextBaseAddressInequality(
+    @Override
+    public void addNextBaseAddressConstraints(
         final String newBase,
-        final CType type,
+        final @Nullable CType type,
         final @Nullable Formula allocationSize,
+        final boolean isDynamicAllocation,
         final Constraints constraints) {
+      if (bases.containsKey(newBase)) {
+        // The base has already been added, duplicate constraints would be unsound
+        return;
+      }
 
       highestAllocatedAddresses =
           ptsMgr.makeBaseAddressConstraints(
-              newBase, type, allocationSize, highestAllocatedAddresses, constraints);
+              newBase,
+              type,
+              allocationSize,
+              isDynamicAllocation,
+              highestAllocatedAddresses,
+              constraints);
     }
 
     /**
@@ -469,24 +496,27 @@ public interface PointerTargetSetBuilder {
      * yet unknown type to be allocated. This version is specifically for temporary variables used
      * in between allocation in the RHS and (possibly) revealing the type from the LHS.
      *
+     * <p>Make sure to call {@link #addNextBaseAddressConstraints(String, CType, Formula, boolean,
+     * Constraints)} before calling this method!
+     *
      * @param isZeroed A flag indicating if the allocated object is zeroed (e.g. allocated with
      *     kzalloc).
      * @param size The size of the allocated memory (usually specified as allocation function
      *     argument).
-     * @param sizeExp A formula representing the size of the allocation.
      * @param base The name of the corresponding base.
      */
     @Override
     public void addTemporaryDeferredAllocation(
-        final boolean isZeroed,
-        final Optional<CIntegerLiteralExpression> size,
-        final Formula sizeExp,
-        final String base) {
+        final boolean isZeroed, final Optional<CIntegerLiteralExpression> size, final String base) {
+      verify(options.revealAllocationTypeFromLHS() || options.deferUntypedAllocations());
       final Pair<String, DeferredAllocation> p =
-          Pair.of(base, new DeferredAllocation(base, size, sizeExp, isZeroed));
-      if (!deferredAllocations.contains(p)) {
-        deferredAllocations = deferredAllocations.with(p);
-      }
+          Pair.of(base, new DeferredAllocation(base, size, isZeroed));
+
+      // This base needs to be fresh!
+      checkState(!bases.containsKey(base));
+      checkState(!deferredAllocations.contains(p));
+
+      deferredAllocations = deferredAllocations.with(p);
     }
 
     /**
@@ -742,8 +772,17 @@ public interface PointerTargetSetBuilder {
     INSTANCE;
 
     @Override
-    public void prepareBase(
-        String pName, CType pType, @Nullable Formula pSize, Constraints constraints) {
+    public void addNextBaseAddressConstraints(
+        String pNewBase,
+        @Nullable CType pType,
+        @Nullable Formula pAllocationSize,
+        boolean isDynamicAllocation,
+        Constraints pConstraints) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void prepareBase(String pName, CType pType) {
       throw new UnsupportedOperationException();
     }
 
@@ -753,8 +792,7 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public void addBase(
-        String pName, CType pType, @Nullable Formula pSize, Constraints constraints) {
+    public void addBase(String pName, CType pType) {
       throw new UnsupportedOperationException();
     }
 
@@ -775,10 +813,7 @@ public interface PointerTargetSetBuilder {
 
     @Override
     public void addTemporaryDeferredAllocation(
-        boolean pIsZeroed,
-        Optional<CIntegerLiteralExpression> pSize,
-        Formula pSizeExp,
-        String pBase) {
+        boolean pIsZeroed, Optional<CIntegerLiteralExpression> pSize, String pBase) {
       throw new UnsupportedOperationException();
     }
 

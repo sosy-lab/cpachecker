@@ -184,7 +184,9 @@ public final class PointerTargetSet implements Serializable {
   // This includes allocated memory regions and global/local structs/arrays.
   // The key of the map is the name of the base (without the BASE_PREFIX).
   // There are also "fake" bases in the map for variables that have their address
-  // taken somewhere but are not yet tracked.
+  // taken somewhere but are not yet tracked. These are marked with a special fake-base type.
+  // Apart from distinguishing between "fake" and real bases,
+  // the type for each base is mostly relevant for the UF-based encoding.
   private final PersistentSortedMap<String, CType> bases;
 
   // The set of "shared" fields that are accessed directly via pointers,
@@ -193,6 +195,9 @@ public final class PointerTargetSet implements Serializable {
   // and will be empty in the latter case.
   private final PersistentSortedMap<CompositeField, Boolean> fields;
 
+  // This is a list of allocations that have already occurred were not yet added to bases
+  // because we do not know the type of the allocation yet and hope to find out later.
+  // This is only used if revealAllocationTypeFromLhs or deferUntypedAllocations are true.
   private final PersistentList<Pair<String, DeferredAllocation>> deferredAllocations;
 
   // The complete set of tracked memory locations.

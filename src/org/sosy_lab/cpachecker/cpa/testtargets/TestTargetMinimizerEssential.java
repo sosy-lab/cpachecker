@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -104,8 +105,10 @@ public class TestTargetMinimizerEssential {
       }
     }
     // complete dummy graph has been created
-    return Pair.of(
-        origCFANodeToCopyMap.get(pEntryNode), origCFANodeToCopyMap.get(pEntryNode.getExitNode()));
+
+    @Nullable CFANode exitNodeCopy =
+        pEntryNode.getExitNode().map(exitNode -> origCFANodeToCopyMap.get(exitNode)).orElse(null);
+    return Pair.of(origCFANodeToCopyMap.get(pEntryNode), exitNodeCopy);
   }
 
   private boolean isSelfLoop(final CFAEdge pEdge) {
