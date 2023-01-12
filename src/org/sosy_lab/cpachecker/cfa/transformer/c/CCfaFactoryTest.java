@@ -45,7 +45,6 @@ public final class CCfaFactoryTest {
 
   /** Returns a new dummy CFA that contains a single node. */
   private static CFA createSingleNodeDummyCfa() {
-
     FunctionExitNode mainFunctionExitNode = new FunctionExitNode(CFunctionDeclaration.DUMMY);
     FunctionEntryNode mainFunctionEntryNode =
         new CFunctionEntryNode(
@@ -67,7 +66,6 @@ public final class CCfaFactoryTest {
 
   @Test
   public void testCCfaFactoryStepOrder() {
-
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
     CFA singleNodeCfa = createSingleNodeDummyCfa();
@@ -111,7 +109,6 @@ public final class CCfaFactoryTest {
     @Override
     public MutableCFA execute(
         MutableCFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-
       CFANode currentNode = pCfa.getMetadata().getMainFunctionEntry();
       MutableCfaNetwork nodeChainNetwork = MutableCfaNetwork.wrap(pCfa);
 

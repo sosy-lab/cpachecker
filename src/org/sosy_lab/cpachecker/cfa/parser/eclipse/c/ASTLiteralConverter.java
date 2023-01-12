@@ -193,8 +193,16 @@ class ASTLiteralConverter {
   }
 
   @VisibleForTesting
-  char parseCharacterLiteral(String s, final IASTNode e) {
+  char parseCharacterLiteral(String s, final IASTLiteralExpression e) {
     check(s.length() >= 3, "invalid character literal (too short)", e);
+    if (s.charAt(0) == 'L' || s.charAt(0) == 'u' || s.charAt(0) == 'U') {
+      try {
+        return parseCharacterLiteral(s.substring(1), e);
+      } catch (CFAGenerationRuntimeException ex) {
+        throw parseContext.parseError("Unsupported wide character literal", e);
+      }
+    }
+
     check(
         s.charAt(0) == '\'' && s.charAt(s.length() - 1) == '\'',
         "character literal without quotation marks",

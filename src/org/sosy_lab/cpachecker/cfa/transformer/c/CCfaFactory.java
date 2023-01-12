@@ -92,7 +92,6 @@ public final class CCfaFactory {
    */
   public static CfaFactories.InitialCfaFactory<CCfaNodeTransformer, CCfaEdgeTransformer>
       toUnconnectedFunctions() {
-
     CfaFactories.Step<CCfaNodeTransformer, CCfaEdgeTransformer> step =
         (state, logger, shutdownNotifier) -> {
           CfaNetwork cfaWithoutSuperEdges = state.getCfaNetwork().withoutSuperEdges();

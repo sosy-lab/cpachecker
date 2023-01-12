@@ -275,7 +275,6 @@ public class CFASimplifier implements CfaPostProcessor {
   @Override
   public MutableCFA execute(
       MutableCFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-
     simplifyCFA(pCfa);
 
     return pCfa;

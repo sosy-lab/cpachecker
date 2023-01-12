@@ -174,7 +174,7 @@ final class SliceToCfaConverter implements CfaTransformer {
 
       FunctionEntryNode mainEntryNode = pCfaMetadata.getMainFunctionEntry();
       graph.addNode(mainEntryNode);
-      graph.addNode(mainEntryNode.getExitNode());
+      mainEntryNode.getExitNode().ifPresent(graph::addNode);
 
       return CCfaFactory.CLONER.createCfa(graph, pCfaMetadata, pLogger, pShutdownNotifier);
     }
@@ -216,7 +216,6 @@ final class SliceToCfaConverter implements CfaTransformer {
     @Override
     public Optional<CVariableDeclaration> apply(
         CFunctionEntryNode pFunctionEntryNode, Optional<CVariableDeclaration> pReturnVariable) {
-
       CFunctionDeclaration functionDeclaration =
           (CFunctionDeclaration) pFunctionEntryNode.getFunction();
       CFunctionDeclaration relevantFunctionDeclaration =

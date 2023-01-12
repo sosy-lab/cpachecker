@@ -20,6 +20,10 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
 
   /** The static value 0 */
   private static final SMGValue ZERO_VALUE = new SMGValue(0);
+  // Floats and doubles can have all bits as 0. We need to save them as different values though to
+  // not lose track of their types
+  private static final SMGValue ZERO_FLOAT_VALUE = new SMGValue(0);
+  private static final SMGValue ZERO_DOUBLE_VALUE = new SMGValue(0);
 
   /* Unique id to idendify this value. This is better than hashCodes as it does not clash. */
   private final int id;
@@ -40,6 +44,11 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
     id = U_ID_GENERATOR.getFreshId();
   }
 
+  private SMGValue(int pId, int pNestingLevel) {
+    nestingLevel = pNestingLevel;
+    id = pId;
+  }
+
   public static SMGValue of(int pNestingLevel) {
     return new SMGValue(pNestingLevel);
   }
@@ -53,18 +62,24 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
     return nestingLevel;
   }
 
-  /**
-   * @return The static SMGValue = 0.
-   */
+  /** Returns the static SMGValue = 0. */
   public static SMGValue zeroValue() {
     return ZERO_VALUE;
   }
 
-  /**
-   * @return True if this SMGValue is equal to 0.
-   */
+  /** Returns the static SMGValue = 0f. */
+  public static SMGValue zeroFloatValue() {
+    return ZERO_FLOAT_VALUE;
+  }
+
+  /** Returns the static SMGValue = 0 as Double. */
+  public static SMGValue zeroDoubleValue() {
+    return ZERO_DOUBLE_VALUE;
+  }
+
+  /** Returns true if this SMGValue is equal to 0. */
   public boolean isZero() {
-    return equals(ZERO_VALUE);
+    return equals(ZERO_VALUE) || equals(ZERO_FLOAT_VALUE) || equals(ZERO_DOUBLE_VALUE);
   }
 
   @Override
@@ -90,7 +105,16 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
   }
 
   @Override
-  public void increaseLevelBy(int pByX) {
-    nestingLevel += pByX;
+  public SMGValue withNestingLevelAndCopy(int newLevel) {
+    return new SMGValue(id, newLevel);
+  }
+
+  @Override
+  public String toString() {
+    if (isZero()) {
+      return "ZERO";
+    } else {
+      return "Value" + id;
+    }
   }
 }

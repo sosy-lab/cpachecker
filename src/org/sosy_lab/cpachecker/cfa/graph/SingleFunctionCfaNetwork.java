@@ -56,7 +56,6 @@ final class SingleFunctionCfaNetwork extends AbstractCfaNetwork {
 
           @Override
           protected @Nullable CFANode computeNext() {
-
             while (!waitlist.isEmpty()) {
 
               CFANode node = waitlist.remove();

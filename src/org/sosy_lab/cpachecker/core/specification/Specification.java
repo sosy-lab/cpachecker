@@ -70,6 +70,7 @@ public final class Specification {
           .put(CommonVerificationProperty.VALID_MEMTRACK, "sv-comp-memorysafety")
           .put(CommonVerificationProperty.VALID_MEMCLEANUP, "sv-comp-memorycleanup")
           .put(CommonVerificationProperty.OVERFLOW, "sv-comp-overflow")
+          .put(CommonVerificationProperty.DATA_RACE, "sv-comp-datarace")
           .put(CommonVerificationProperty.DEADLOCK, "deadlock")
           .put(CommonVerificationProperty.ASSERT, "JavaAssertion")
           // .put(CommonPropertyType.TERMINATION, "none needed")

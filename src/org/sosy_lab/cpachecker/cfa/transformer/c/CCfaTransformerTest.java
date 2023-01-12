@@ -86,14 +86,15 @@ public final class CCfaTransformerTest {
    * <p>Only CFA nodes and edges reachable from the main function entry node are considered.
    *
    * <p>If a CFA node has multiple leaving edges, we use {@link MultipleLeavingEdgesOrder} which
-   * makes comparing CFAs a lot easier and faster (i.e., O(V + E)).
+   * makes comparing CFAs a lot easier and faster (i.e., O(V + E) node/edge comparisons (without
+   * edge sorting), sorting multiple leaving edges is also quite fast because the branching factor
+   * is rather small).
    */
   private static void assertCfaEquivalence(
       CFA pSomeCfa,
       CFA pOtherCfa,
       Equivalence<CFANode> pNodeEquivalence,
       Equivalence<CFAEdge> pEdgeEquivalence) {
-
     Set<CFANode> someWaitlisted = new HashSet<>(ImmutableList.of(pSomeCfa.getMainFunction()));
     Deque<CFANode> someWaitlist = new ArrayDeque<>(someWaitlisted);
     Set<CFANode> otherWaitlisted = new HashSet<>(ImmutableList.of(pOtherCfa.getMainFunction()));
@@ -145,7 +146,6 @@ public final class CCfaTransformerTest {
   @Test
   public void testCloningCCfaTransformer()
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
-
     Configuration config = TestDataTools.configurationForTest().build();
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();
@@ -167,7 +167,6 @@ public final class CCfaTransformerTest {
         CfaMetadata pCfaMetadata,
         LogManager pLogger,
         ShutdownNotifier pShutdownNotifier) {
-
       return CCfaFactory.CLONER.createCfa(pCfaNetwork, pCfaMetadata, pLogger, pShutdownNotifier);
     }
   }
@@ -231,7 +230,6 @@ public final class CCfaTransformerTest {
     // `CCfaTransformerTest`. Fix the actual test if any of those assertion fails.
     @SuppressWarnings("UseCorrectAssertInTests")
     public int compare(CFAEdge pSomeEdge, CFAEdge pOtherEdge) {
-
       // function summary edge first
       if (pSomeEdge instanceof FunctionSummaryEdge) {
         assert !(pOtherEdge instanceof FunctionSummaryEdge);

@@ -66,7 +66,6 @@ public final class CfaBuilder {
       CfaNodeTransformer pCfaNodeTransformer,
       CfaEdgeTransformer pCfaEdgeTransformer,
       CfaNetwork pCfaNetwork) {
-
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
@@ -106,7 +105,6 @@ public final class CfaBuilder {
       CfaEdgeTransformer pCfaEdgeTransformer,
       CfaNetwork pCfaNetwork,
       CfaMetadata pCfaMetadata) {
-
     checkArgument(
         pCfaNetwork.nodes().contains(pCfaMetadata.getMainFunctionEntry()),
         "Function entry node is not part of the CFA: %s",
@@ -143,7 +141,6 @@ public final class CfaBuilder {
    * @throws NullPointerException if {@code pOldNode == null}
    */
   private CFANode toNew(CFANode pOldNode) {
-
     @Nullable CFANode newNode = oldNodeToNewNode.get(checkNotNull(pOldNode));
     if (newNode != null) {
       return newNode;
@@ -166,7 +163,6 @@ public final class CfaBuilder {
    * @throws NullPointerException if {@code pOldEdge == null}
    */
   private CFAEdge toNew(CFAEdge pOldEdge) {
-
     @Nullable CFAEdge newEdge = oldEdgeToNewEdge.get(checkNotNull(pOldEdge));
     if (newEdge != null) {
       return newEdge;
@@ -197,7 +193,6 @@ public final class CfaBuilder {
    */
   @CanIgnoreReturnValue
   private CfaBuilder initializeMutableCfa(CfaMetadata pCfaMetadata) {
-
     checkState(mutableCfa == null, "Internal MutableCFA already initialized");
 
     CfaMetadata cfaMetadata =
@@ -243,7 +238,6 @@ public final class CfaBuilder {
    */
   @CanIgnoreReturnValue
   public CfaBuilder runPostProcessor(CfaPostProcessor pCfaPostProcessor) {
-
     mutableCfa = checkNotNull(pCfaPostProcessor.execute(mutableCfa, logger, shutdownNotifier));
 
     return this;
@@ -258,7 +252,6 @@ public final class CfaBuilder {
    */
   @CanIgnoreReturnValue
   public CfaBuilder toSupergraph() {
-
     CfaMetadata cfaMetadata = mutableCfa.getMetadata();
     checkState(
         cfaMetadata.getConnectedness() != CfaConnectedness.SUPERGRAPH,
@@ -289,7 +282,6 @@ public final class CfaBuilder {
    * @throws IllegalStateException if this method has already been invoked
    */
   public CFA createCfa() {
-
     checkState(mutableCfa != null, "Builder has already created a CFA and is not reusable");
 
     CFA cfa = mutableCfa.makeImmutableCFA(mutableCfa.getVarClassification());

@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleStoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationByImport;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.InvariantExportAlgorithm;
@@ -49,7 +50,6 @@ import org.sosy_lab.cpachecker.core.algorithm.WitnessToACSLAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.WitnessToInvariantWitnessAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.ISMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
@@ -163,14 +163,6 @@ public class CoreComponentsFactory {
           "use McMillan's interpolation-based model checking algorithm, "
               + "works only with PredicateCPA and large-block encoding")
   private boolean useIMC = false;
-
-  @Option(
-      secure = true,
-      name = "algorithm.ISMC",
-      description =
-          "use interpolation-sequence based model checking algorithm, "
-              + "works only with PredicateCPA and large-block encoding")
-  private boolean useISMC = false;
 
   @Option(
       secure = true,
@@ -392,6 +384,12 @@ public class CoreComponentsFactory {
       description = "Distribute predicate analysis to multiple workers")
   private boolean useConfigurableComponents = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.importFaults",
+      description = "Import faults stored in a JSON format.")
+  private boolean useImportFaults = false;
+
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
@@ -450,7 +448,7 @@ public class CoreComponentsFactory {
         && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
-        && (useBMC || useIMC || useISMC || useInvariantExportAlgorithm);
+        && (useBMC || useIMC || useInvariantExportAlgorithm);
   }
 
   public Algorithm createAlgorithm(
@@ -625,19 +623,17 @@ public class CoreComponentsFactory {
                 aggregatedReachedSets);
       }
 
-      if (useISMC) {
-        verifyNotNull(shutdownManager);
+      if (useTerminationAlgorithm) {
         algorithm =
-            new ISMCAlgorithm(
-                algorithm,
-                cpa,
+            new TerminationAlgorithm(
                 config,
                 logger,
-                reachedSetFactory,
-                shutdownManager,
+                shutdownNotifier,
                 cfa,
-                specification,
-                aggregatedReachedSets);
+                reachedSetFactory,
+                aggregatedReachedSetManager,
+                algorithm,
+                cpa);
       }
 
       if (checkCounterexamples) {
@@ -708,19 +704,6 @@ public class CoreComponentsFactory {
         algorithm = new RestrictedProgramDomainAlgorithm(algorithm, cfa);
       }
 
-      if (useTerminationAlgorithm) {
-        algorithm =
-            new TerminationAlgorithm(
-                config,
-                logger,
-                shutdownNotifier,
-                cfa,
-                reachedSetFactory,
-                aggregatedReachedSetManager,
-                algorithm,
-                cpa);
-      }
-
       if (cpa instanceof ARGCPA && forceCexStore) {
         algorithm =
             new CounterexampleStoreAlgorithm(algorithm, cpa, config, logger, cfa.getMachineModel());
@@ -746,6 +729,9 @@ public class CoreComponentsFactory {
       if (useFaultLocalizationWithTraceFormulas) {
         algorithm =
             new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
+      }
+      if (useImportFaults) {
+        algorithm = new FaultLocalizationByImport(config, algorithm, cfa, logger);
       }
     }
 
