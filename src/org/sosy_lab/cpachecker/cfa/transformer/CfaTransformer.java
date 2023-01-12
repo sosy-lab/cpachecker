@@ -44,7 +44,6 @@ public interface CfaTransformer {
    */
   public static CfaTransformer combine(
       CfaTransformer pTransformer, CfaTransformer... pTransformers) {
-
     checkNotNull(pTransformer);
 
     ImmutableList<CfaTransformer> transformers = ImmutableList.copyOf(pTransformers);
@@ -57,7 +56,6 @@ public interface CfaTransformer {
           CfaMetadata pCfaMetadata,
           LogManager pLogger,
           ShutdownNotifier pShutdownNotifier) {
-
         CFA transformedCfa =
             pTransformer.transform(pCfaNetwork, pCfaMetadata, pLogger, pShutdownNotifier);
         for (CfaTransformer transformer : transformers) {

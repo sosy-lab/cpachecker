@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.com
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
+import java.util.Objects;
 
 @Immutable
 public class TargetRecord {
@@ -45,12 +46,7 @@ public class TargetRecord {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((fileHash == null) ? 0 : fileHash.hashCode());
-    result = prime * result + ((type == null) ? 0 : type.hashCode());
-    result = prime * result + ((uuid == null) ? 0 : uuid.hashCode());
-    return result;
+    return Objects.hash(fileHash, type, uuid);
   }
 
   @Override
@@ -65,25 +61,13 @@ public class TargetRecord {
       return false;
     }
     TargetRecord other = (TargetRecord) obj;
-    if (fileHash == null) {
-      if (other.fileHash != null) {
-        return false;
-      }
-    } else if (!fileHash.equals(other.fileHash)) {
+    if (!Objects.equals(fileHash, other.fileHash)) {
       return false;
     }
-    if (type == null) {
-      if (other.type != null) {
-        return false;
-      }
-    } else if (!type.equals(other.type)) {
+    if (!Objects.equals(type, other.type)) {
       return false;
     }
-    if (uuid == null) {
-      if (other.uuid != null) {
-        return false;
-      }
-    } else if (!uuid.equals(other.uuid)) {
+    if (!Objects.equals(uuid, other.uuid)) {
       return false;
     }
     return true;

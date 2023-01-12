@@ -27,7 +27,7 @@ public final class ConstantSymbolicExpression extends SymbolicExpression {
    * @param pValue the value of the new object
    * @param pType the type of the value of the new object
    */
-  ConstantSymbolicExpression(Value pValue, Type pType) {
+  public ConstantSymbolicExpression(Value pValue, Type pType) {
     value = pValue;
     type = pType;
   }
@@ -40,7 +40,7 @@ public final class ConstantSymbolicExpression extends SymbolicExpression {
    * @param pType the type of the value of the new object
    * @param pRepresentedLocation the memory location this symbolic expression represents
    */
-  ConstantSymbolicExpression(
+  public ConstantSymbolicExpression(
       final Value pValue, final Type pType, final MemoryLocation pRepresentedLocation) {
     super(pRepresentedLocation);
     value = pValue;
@@ -101,7 +101,7 @@ public final class ConstantSymbolicExpression extends SymbolicExpression {
 
   @Override
   public int hashCode() {
-    int result = value.hashCode();
+    int result = value != null ? value.hashCode() : 71;
     result = type != null ? 31 * result + type.hashCode() : result;
     return result;
   }

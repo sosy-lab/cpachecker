@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleStoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationByImport;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.InvariantExportAlgorithm;
@@ -383,6 +384,12 @@ public class CoreComponentsFactory {
       description = "Distribute predicate analysis to multiple workers")
   private boolean useConfigurableComponents = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.importFaults",
+      description = "Import faults stored in a JSON format.")
+  private boolean useImportFaults = false;
+
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
@@ -616,6 +623,19 @@ public class CoreComponentsFactory {
                 aggregatedReachedSets);
       }
 
+      if (useTerminationAlgorithm) {
+        algorithm =
+            new TerminationAlgorithm(
+                config,
+                logger,
+                shutdownNotifier,
+                cfa,
+                reachedSetFactory,
+                aggregatedReachedSetManager,
+                algorithm,
+                cpa);
+      }
+
       if (checkCounterexamples) {
         if (cpa instanceof BAMCPA) {
           algorithm =
@@ -684,19 +704,6 @@ public class CoreComponentsFactory {
         algorithm = new RestrictedProgramDomainAlgorithm(algorithm, cfa);
       }
 
-      if (useTerminationAlgorithm) {
-        algorithm =
-            new TerminationAlgorithm(
-                config,
-                logger,
-                shutdownNotifier,
-                cfa,
-                reachedSetFactory,
-                aggregatedReachedSetManager,
-                algorithm,
-                cpa);
-      }
-
       if (cpa instanceof ARGCPA && forceCexStore) {
         algorithm =
             new CounterexampleStoreAlgorithm(algorithm, cpa, config, logger, cfa.getMachineModel());
@@ -722,6 +729,9 @@ public class CoreComponentsFactory {
       if (useFaultLocalizationWithTraceFormulas) {
         algorithm =
             new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
+      }
+      if (useImportFaults) {
+        algorithm = new FaultLocalizationByImport(config, algorithm, cfa, logger);
       }
     }
 

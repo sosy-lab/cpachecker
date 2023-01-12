@@ -194,7 +194,7 @@ final class SliceToCfaConversion {
 
       FunctionEntryNode mainEntryNode = pSlice.getOriginalCfa().getMainFunction();
       graph.addNode(mainEntryNode);
-      graph.addNode(mainEntryNode.getExitNode());
+      mainEntryNode.getExitNode().ifPresent(graph::addNode);
 
       return CCfaFactory.CLONER.createCfa(
           graph, pSlice.getOriginalCfa().getMetadata(), pLogger, pShutdownNotifier);
@@ -230,7 +230,6 @@ final class SliceToCfaConversion {
     private RelevantNodeAstSubstitution(
         Slice pSlice,
         Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode) {
-
       functionTransformingVisitor =
           new RelevantFunctionDeclarationTransformingVisitor(pSlice, pFunctionToEntryNode);
     }
@@ -243,7 +242,6 @@ final class SliceToCfaConversion {
     @Override
     public Optional<CVariableDeclaration> apply(
         CFunctionEntryNode pFunctionEntryNode, Optional<CVariableDeclaration> pReturnVariable) {
-
       CFunctionDeclaration functionDeclaration =
           (CFunctionDeclaration) pFunctionEntryNode.getFunction();
       CFunctionDeclaration relevantFunctionDeclaration =

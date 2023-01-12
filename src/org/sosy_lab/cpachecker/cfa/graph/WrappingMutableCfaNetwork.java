@@ -16,6 +16,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -55,7 +56,6 @@ final class WrappingMutableCfaNetwork implements MutableCfaNetwork, ForwardingCf
 
   @Override
   public boolean addEdge(CFANode pPredecessor, CFANode pSuccessor, CFAEdge pEdge) {
-
     checkArgument(
         pPredecessor.equals(pEdge.getPredecessor()),
         "Mismatch between specified predecessor and edge endpoint: %s not equal to %s",
@@ -104,7 +104,6 @@ final class WrappingMutableCfaNetwork implements MutableCfaNetwork, ForwardingCf
 
   @Override
   public boolean addEdge(EndpointPair<CFANode> pEndpoints, CFAEdge pNewEdge) {
-
     checkArgument(pEndpoints.isOrdered(), "Endpoints must be ordered");
 
     return addEdge(pEndpoints.source(), pEndpoints.target(), pNewEdge);
@@ -112,11 +111,14 @@ final class WrappingMutableCfaNetwork implements MutableCfaNetwork, ForwardingCf
 
   @Override
   public boolean removeNode(CFANode pNode) {
-
     checkNotNull(pNode);
 
     if (mutableCfa.getAllNodes().contains(pNode)) {
       return mutableCfa.removeNode(pNode);
+    }
+
+    if (pNode instanceof FunctionExitNode) {
+      ((FunctionExitNode) pNode).getEntryNode().removeExitNode();
     }
 
     return false;
@@ -124,7 +126,6 @@ final class WrappingMutableCfaNetwork implements MutableCfaNetwork, ForwardingCf
 
   @Override
   public boolean removeEdge(CFAEdge pEdge) {
-
     CFANode predecessor = predecessor(pEdge);
     CFANode successor = successor(pEdge);
     Set<CFANode> nodes = nodes();

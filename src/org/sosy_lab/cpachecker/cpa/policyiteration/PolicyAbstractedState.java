@@ -146,8 +146,8 @@ public final class PolicyAbstractedState extends PolicyState
   }
 
   /**
-   * @return {@link PolicyBound} for the given {@link Template} <code>e</code> or an empty optional
-   *     if it is unbounded.
+   * Returns {@link PolicyBound} for the given {@link Template} <code>e</code> or an empty optional
+   * if it is unbounded.
    */
   Optional<PolicyBound> getBound(Template e) {
     return Optional.ofNullable(upperBounds.get(e));

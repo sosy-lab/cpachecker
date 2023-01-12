@@ -404,7 +404,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * @param currentState the state for which to check
    * @return true, if a non-trivial interpolant is present, else false
    */
-  private boolean stateHasNonTrivialInterpolant(final ARGState currentState) {
+  public boolean stateHasNonTrivialInterpolant(final ARGState currentState) {
     return interpolants.containsKey(currentState) && !interpolants.get(currentState).isTrivial();
   }
 
@@ -414,7 +414,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * @param currentState the state for which to check
    * @return true, if a false interpolant is present, else false
    */
-  private boolean stateHasFalseInterpolant(final ARGState currentState) {
+  public boolean stateHasFalseInterpolant(final ARGState currentState) {
     return interpolants.containsKey(currentState) && interpolants.get(currentState).isFalse();
   }
 

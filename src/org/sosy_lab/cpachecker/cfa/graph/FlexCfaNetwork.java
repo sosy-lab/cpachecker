@@ -52,7 +52,6 @@ public interface FlexCfaNetwork extends MutableCfaNetwork {
    * @throws NullPointerException if {@code pCfaNetwork == null}
    */
   public static FlexCfaNetwork copy(CfaNetwork pCfaNetwork) {
-
     MutableNetwork<CFANode, CFAEdge> mutableNetwork =
         NetworkBuilder.directed().allowsSelfLoops(true).build();
 

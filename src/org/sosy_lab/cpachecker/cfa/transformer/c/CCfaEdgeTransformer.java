@@ -63,7 +63,6 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
             CfaNetwork pCfa,
             CfaNodeProvider pNodeProvider,
             CfaEdgeProvider pEdgeProvider) {
-
           CFAEdge transformedEdge = CLONER.transform(pEdge, pCfa, pNodeProvider, pEdgeProvider);
 
           if (transformedEdge instanceof CFunctionSummaryEdge) {
@@ -101,7 +100,6 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
           ImmutableList.copyOf(pEdgeAstSubstitutions);
 
       private CAstNode applyEdgeAstSubstitutions(CFAEdge pEdge, CAstNode pAstNode) {
-
         CAstNode astNode = pAstNode;
         for (CCfaEdgeAstSubstitution edgeAstSubstitution : edgeAstSubstitutions) {
           astNode = checkNotNull(edgeAstSubstitution.apply(pEdge, astNode));
@@ -116,7 +114,6 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
           CfaNetwork pCfaNetwork,
           CfaNodeProvider pNodeProvider,
           CfaEdgeProvider pEdgeProvider) {
-
         EndpointPair<CFANode> oldEndpoints = pCfaNetwork.incidentNodes(pEdge);
 
         CFANode newPredecessor = pNodeProvider.get(oldEndpoints.source());
@@ -137,7 +134,6 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
 
               @Override
               public CFAEdge visit(CAssumeEdge pCAssumeEdge) {
-
                 CExpression newExpression =
                     (CExpression)
                         applyEdgeAstSubstitutions(pCAssumeEdge, pCAssumeEdge.getExpression());
@@ -155,7 +151,6 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
 
               @Override
               public CFAEdge visit(CDeclarationEdge pCDeclarationEdge) {
-
                 CDeclaration newDeclaration =
                     (CDeclaration)
                         applyEdgeAstSubstitutions(
@@ -171,7 +166,6 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
 
               @Override
               public CFAEdge visit(CStatementEdge pCStatementEdge) {
-
                 CStatement newStatement =
                     (CStatement)
                         applyEdgeAstSubstitutions(pCStatementEdge, pCStatementEdge.getStatement());
@@ -186,7 +180,6 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
 
               @Override
               public CFAEdge visit(CFunctionCallEdge pCFunctionCallEdge) {
-
                 FunctionSummaryEdge oldFunctionSummaryEdge =
                     pCfaNetwork.functionSummaryEdge(pCFunctionCallEdge);
                 CFunctionSummaryEdge newFunctionSummaryEdge =
@@ -208,7 +201,6 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
 
               @Override
               public CFAEdge visit(CFunctionReturnEdge pCFunctionReturnEdge) {
-
                 FunctionSummaryEdge oldFunctionSummaryEdge =
                     pCfaNetwork.functionSummaryEdge(pCFunctionReturnEdge);
                 CFunctionSummaryEdge newFunctionSummaryEdge =
@@ -223,7 +215,6 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
 
               @Override
               public CFAEdge visit(CFunctionSummaryEdge pCFunctionSummaryEdge) {
-
                 CFunctionCall newFunctionCall =
                     (CFunctionCall)
                         applyEdgeAstSubstitutions(
@@ -245,7 +236,6 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
 
               @Override
               public CFAEdge visit(CReturnStatementEdge pCReturnStatementEdge) {
-
                 CReturnStatement newReturnStatement =
                     (CReturnStatement)
                         applyEdgeAstSubstitutions(
@@ -261,7 +251,6 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
 
               @Override
               public CFAEdge visit(CFunctionSummaryStatementEdge pCFunctionSummaryStatementEdge) {
-
                 CStatement newStatement =
                     (CStatement)
                         applyEdgeAstSubstitutions(

@@ -132,7 +132,6 @@ public final class CfaFactories {
         N pCfaNodeTransformer,
         E pCfaEdgeTransformer,
         @Nullable CfaBuilder pCfaBuilder) {
-
       cfaNetwork = pCfaNetwork;
       cfaMetadata = pCfaMetadata;
 
@@ -152,7 +151,6 @@ public final class CfaFactories {
 
     private CfaBuilder getCfaBuilderOrCreate(
         LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-
       if (cfaBuilder != null) {
         return cfaBuilder;
       }
@@ -264,7 +262,6 @@ public final class CfaFactories {
         CfaMetadata pCfaMetadata,
         LogManager pLogger,
         ShutdownNotifier pShutdownNotifier) {
-
       State<N, E> state = initialState.withCfaNetwork(pCfaNetwork).withCfaMetadata(pCfaMetadata);
       for (Step<N, E> step : steps) {
         state = step.execute(state, pLogger, pShutdownNotifier);
@@ -297,7 +294,6 @@ public final class CfaFactories {
      * @throws NullPointerException if {@code pCfaNodeTransformer == null}
      */
     default StepCfaFactory<N, E> transformNodes(N pCfaNodeTransformer) {
-
       checkNotNull(pCfaNodeTransformer);
 
       Step<N, E> step =
@@ -329,7 +325,6 @@ public final class CfaFactories {
      * @throws NullPointerException if {@code pCfaEdgeTransformer == null}
      */
     default StepCfaFactory<N, E> transformEdges(E pCfaEdgeTransformer) {
-
       checkNotNull(pCfaEdgeTransformer);
 
       Step<N, E> step =
@@ -373,7 +368,6 @@ public final class CfaFactories {
      * @throws NullPointerException if {@code pCfaPostProcessor == null}
      */
     default StepCfaFactory<N, E> executePostProcessor(CfaPostProcessor pCfaPostProcessor) {
-
       Step<N, E> step = createCfaPostProcessorStep(pCfaPostProcessor);
 
       return new AbstractCfaFactory<>(
@@ -397,7 +391,6 @@ public final class CfaFactories {
      */
     default StepCfaFactory<N, E> executePostProcessors(
         Iterable<CfaPostProcessor> pCfaPostProcessors) {
-
       checkNotNull(pCfaPostProcessors);
 
       ImmutableList.Builder<Step<N, E>> steps = ImmutableList.builder();
@@ -424,7 +417,6 @@ public final class CfaFactories {
      *     supergraph
      */
     default StepCfaFactory<N, E> toSupergraph() {
-
       Step<N, E> step =
           (state, logger, shutdownNotifier) -> {
             CfaBuilder cfaBuilder = state.getCfaBuilderOrCreate(logger, shutdownNotifier);

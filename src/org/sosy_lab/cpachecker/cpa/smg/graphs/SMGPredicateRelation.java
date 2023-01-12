@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.HashSet;
@@ -66,8 +67,10 @@ public final class SMGPredicateRelation {
 
     @Override
     public int compareTo(SMGValuesPair pSMGValuesPair) {
-      int cmp = first.compareTo(pSMGValuesPair.first);
-      return cmp == 0 ? second.compareTo(pSMGValuesPair.second) : cmp;
+      return ComparisonChain.start()
+          .compare(first, pSMGValuesPair.first)
+          .compare(second, pSMGValuesPair.second)
+          .result();
     }
   }
   /** The Multimap is used as Bi-Map, i.e. each pair (K,V) is also inserted as pair (V,K). */
