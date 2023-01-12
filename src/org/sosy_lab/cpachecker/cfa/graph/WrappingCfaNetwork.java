@@ -77,7 +77,6 @@ final class WrappingCfaNetwork extends AbstractCfaNetwork {
 
   @Override
   public Set<CFAEdge> inEdges(CFANode pNode) {
-
     checkNotNull(pNode);
 
     return new UnmodifiableSetView<>() {
@@ -96,7 +95,6 @@ final class WrappingCfaNetwork extends AbstractCfaNetwork {
 
   @Override
   public Set<CFAEdge> outEdges(CFANode pNode) {
-
     checkNotNull(pNode);
 
     return new UnmodifiableSetView<>() {
@@ -115,7 +113,6 @@ final class WrappingCfaNetwork extends AbstractCfaNetwork {
 
   @Override
   public int inDegree(CFANode pNode) {
-
     int inDegree = pNode.getNumEnteringEdges();
 
     if (pNode.getEnteringSummaryEdge() != null) {
@@ -127,7 +124,6 @@ final class WrappingCfaNetwork extends AbstractCfaNetwork {
 
   @Override
   public int outDegree(CFANode pNode) {
-
     int outDegree = pNode.getNumLeavingEdges();
 
     if (pNode.getLeavingSummaryEdge() != null) {

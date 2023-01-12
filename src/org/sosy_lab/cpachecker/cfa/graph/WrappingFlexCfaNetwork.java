@@ -97,7 +97,6 @@ final class WrappingFlexCfaNetwork
 
   @Override
   public void insertPredecessor(CFANode pNewPredecessor, CFAEdge pNewInEdge, CFANode pNode) {
-
     // diagram: [nodePredecessors.get(i)] --- nodeInEdges.get(i) --->
     ImmutableList<CFAEdge> nodeInEdges = ImmutableList.copyOf(inEdges(pNode));
     List<CFANode> nodePredecessors = new ArrayList<>(nodeInEdges.size());
@@ -118,7 +117,6 @@ final class WrappingFlexCfaNetwork
 
   @Override
   public void insertSuccessor(CFANode pNode, CFAEdge pNewOutEdge, CFANode pNewSuccessor) {
-
     // diagram: --- nodeOutEdges.get(i) ---> [nodeSuccessors.get(i)]
     ImmutableList<CFAEdge> nodeOutEdges = ImmutableList.copyOf(outEdges(pNode));
     List<CFANode> nodeSuccessors = new ArrayList<>(nodeOutEdges.size());
@@ -139,7 +137,6 @@ final class WrappingFlexCfaNetwork
 
   @Override
   public void replaceNode(CFANode pNode, CFANode pNewNode) {
-
     addNode(pNewNode);
 
     // copy of in-edges due to modification during iteration
@@ -161,7 +158,6 @@ final class WrappingFlexCfaNetwork
 
   @Override
   public void replaceEdge(CFAEdge pEdge, CFAEdge pNewEdge) {
-
     EndpointPair<CFANode> endpoints = incidentNodes(pEdge);
     removeEdge(pEdge);
     addEdge(endpoints, pNewEdge);

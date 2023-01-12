@@ -57,7 +57,6 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
           @Override
           protected @Nullable CFAEdge computeNext() {
-
             while (!currentNodeOutEdgeIterator.hasNext()) {
               if (nodeIterator.hasNext()) {
                 CFANode currentNode = nodeIterator.next();
@@ -110,7 +109,6 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public Set<CFANode> predecessors(CFANode pNode) {
-
     checkNotNull(pNode);
 
     return new UnmodifiableSetView<>() {
@@ -129,7 +127,6 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public Set<CFANode> successors(CFANode pNode) {
-
     checkNotNull(pNode);
 
     return new UnmodifiableSetView<>() {
@@ -165,7 +162,6 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
-
     CFANode predecessor = predecessor(pFunctionSummaryEdge);
     Set<CFAEdge> nonSummaryOutEdges = withoutSummaryEdges().outEdges(predecessor);
     checkState(
@@ -186,7 +182,6 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
-
     Set<CFANode> waitlisted = new HashSet<>(ImmutableList.of(pFunctionEntryNode));
     Deque<CFANode> waitlist = new ArrayDeque<>(waitlisted);
 
@@ -214,7 +209,6 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
-
     CFANode predecessor = predecessor(pFunctionCallEdge);
     Set<CFAEdge> nonSuperOutEdges = withoutSuperEdges().outEdges(predecessor);
     checkState(nonSuperOutEdges.size() == 1, "Single non-super out-edge expected: %s", predecessor);
@@ -229,7 +223,6 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
-
     CFANode successor = successor(pFunctionReturnEdge);
     Set<CFAEdge> nonSuperInEdges = withoutSuperEdges().inEdges(successor);
     checkState(nonSuperInEdges.size() == 1, "Single non-super in-edge expected: %s", successor);

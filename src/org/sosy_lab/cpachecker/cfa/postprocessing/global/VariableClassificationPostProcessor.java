@@ -31,7 +31,6 @@ public final class VariableClassificationPostProcessor implements CfaPostProcess
   @Override
   public MutableCFA execute(
       MutableCFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-
     try {
       VariableClassificationBuilder builder =
           new VariableClassificationBuilder(configuration, pLogger);

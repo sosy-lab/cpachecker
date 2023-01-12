@@ -46,7 +46,6 @@ public interface CCfaNodeTransformer extends CfaNodeTransformer {
    */
   public static CCfaNodeTransformer forSubstitutions(
       CCfaNodeAstSubstitution... pNodeAstSubstitutions) {
-
     return new CCfaNodeTransformer() {
 
       private final ImmutableList<CCfaNodeAstSubstitution> nodeAstSubstitutions =
@@ -54,7 +53,6 @@ public interface CCfaNodeTransformer extends CfaNodeTransformer {
 
       private CFunctionDeclaration applyNodeAstSubstitutions(
           CFANode pNode, CFunctionDeclaration pFunction) {
-
         CFunctionDeclaration function = pFunction;
         for (CCfaNodeAstSubstitution nodeAstSubstitution : nodeAstSubstitutions) {
           function = checkNotNull(nodeAstSubstitution.apply(pNode, function));
@@ -65,7 +63,6 @@ public interface CCfaNodeTransformer extends CfaNodeTransformer {
 
       private Optional<CVariableDeclaration> applyNodeAstSubstitutions(
           CFunctionEntryNode pFunctionEntryNode, Optional<CVariableDeclaration> pReturnVariable) {
-
         Optional<CVariableDeclaration> returnVariable = pReturnVariable;
         for (CCfaNodeAstSubstitution nodeAstSubstitution : nodeAstSubstitutions) {
           returnVariable =
@@ -85,7 +82,6 @@ public interface CCfaNodeTransformer extends CfaNodeTransformer {
 
       private CFunctionEntryNode newCFunctionEntryNode(
           CFunctionEntryNode pOldNode, CfaNetwork pCfaNetwork, CfaNodeProvider pNodeProvider) {
-
         @Nullable FunctionExitNode oldExitNode =
             pCfaNetwork.functionExitNode(pOldNode).orElse(null);
         @Nullable FunctionExitNode newExitNode =
@@ -122,7 +118,6 @@ public interface CCfaNodeTransformer extends CfaNodeTransformer {
       @Override
       public CFANode transform(
           CFANode pOldNode, CfaNetwork pCfaNetwork, CfaNodeProvider pNodeProvider) {
-
         if (pOldNode instanceof CFALabelNode) {
           return newCfaLabelNode((CFALabelNode) pOldNode);
         } else if (pOldNode instanceof CFunctionEntryNode) {

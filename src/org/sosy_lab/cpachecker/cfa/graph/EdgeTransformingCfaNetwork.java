@@ -48,7 +48,6 @@ final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
   }
 
   private CFAEdge transformEdge(CFAEdge pEdge) {
-
     CFAEdge transformedEdge = edgeTransformer.apply(pEdge);
     checkArgument(
         haveSameEndpoints(pEdge, transformedEdge),
