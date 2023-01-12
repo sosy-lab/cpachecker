@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CfaPostProcessor;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -117,9 +118,7 @@ public final class MarkingCfaSimplifier implements CfaPostProcessor {
   private static CFAEdge createNewSkipEdge(Section pSection, List<CFAEdge> pSkippedEdges) {
 
     List<FileLocation> skippedFileLocations =
-        pSkippedEdges.stream()
-            .map(edge -> edge.getFileLocation())
-            .collect(ImmutableList.toImmutableList());
+        Collections3.transformedImmutableListCopy(pSkippedEdges, edge -> edge.getFileLocation());
 
     return new BlankEdge(
         "",
