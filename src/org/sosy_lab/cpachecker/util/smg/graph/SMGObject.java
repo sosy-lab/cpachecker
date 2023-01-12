@@ -86,9 +86,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return "SMGObject" + id;
   }
 
-  /**
-   * @return true if the checked {@link SMGObject} is the null instance.
-   */
+  /** Returns true if the checked {@link SMGObject} is the null instance. */
   public boolean isZero() {
     return equals(NULL_OBJECT);
   }
