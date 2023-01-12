@@ -28,8 +28,8 @@ public enum AutomatonInvariantsUtils {
   ;
 
   /**
-   * @throws CPAException if states with invariants were found that are in the specification
-   *     automata, but not in the supplied {@link UnmodifiableReachedSet}
+   * Checks if states with invariants were found that are in the specification automata, but not in
+   * the supplied {@link UnmodifiableReachedSet}, and throws an exception if this is the case.
    */
   public static void checkForMissedInvariants(
       Specification pAutomataAsSpec, UnmodifiableReachedSet pReachedSet) throws CPAException {
