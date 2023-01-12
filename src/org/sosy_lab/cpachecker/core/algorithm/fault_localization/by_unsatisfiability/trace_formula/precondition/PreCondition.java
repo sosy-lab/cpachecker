@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -26,6 +28,7 @@ public class PreCondition {
 
   private final ImmutableList<CFAEdge> edgesForPrecondition;
   private final ImmutableList<CFAEdge> remainingCounterexample;
+  private final ImmutableSet<String> nondetVariables;
   private final BooleanFormula precondition;
 
   /**
@@ -38,10 +41,18 @@ public class PreCondition {
    * @param pPrecondition the actual precondition as {@link BooleanFormula}
    */
   PreCondition(
-      List<CFAEdge> pEdges, List<CFAEdge> pRemainingCounterexample, BooleanFormula pPrecondition) {
+      List<CFAEdge> pEdges,
+      List<CFAEdge> pRemainingCounterexample,
+      BooleanFormula pPrecondition,
+      Set<String> pNondetVariables) {
     edgesForPrecondition = ImmutableList.copyOf(pEdges);
     remainingCounterexample = ImmutableList.copyOf(pRemainingCounterexample);
     precondition = pPrecondition;
+    nondetVariables = ImmutableSet.copyOf(pNondetVariables);
+  }
+
+  public ImmutableSet<String> getNondetVariables() {
+    return nondetVariables;
   }
 
   /**
@@ -51,7 +62,8 @@ public class PreCondition {
    * @return an object of {@link PreCondition} wrapping the provided {@link BooleanFormula}
    */
   public static PreCondition of(BooleanFormula pPrecondition) {
-    return new PreCondition(ImmutableList.of(), ImmutableList.of(), pPrecondition);
+    return new PreCondition(
+        ImmutableList.of(), ImmutableList.of(), pPrecondition, ImmutableSet.of());
   }
 
   public ImmutableList<CFAEdge> getRemainingCounterexample() {
@@ -70,11 +82,21 @@ public class PreCondition {
     return new PreCondition(
         edgesForPrecondition,
         remainingCounterexample,
-        pFmgr.instantiate(pFmgr.uninstantiate(precondition), pSSAMap));
+        pFmgr.instantiate(pFmgr.uninstantiate(precondition), pSSAMap),
+        nondetVariables);
+  }
+
+  public PreCondition replaceRelatedEdgesAndFormula(List<CFAEdge> pEdges, BooleanFormula pFormula) {
+    return new PreCondition(pEdges, remainingCounterexample, pFormula, nondetVariables);
   }
 
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this).add("precondition", precondition).toString();
+  }
+
+  public PreCondition replaceRelatedEdges(List<CFAEdge> pPreconditionEdges) {
+    return new PreCondition(
+        pPreconditionEdges, remainingCounterexample, precondition, nondetVariables);
   }
 }

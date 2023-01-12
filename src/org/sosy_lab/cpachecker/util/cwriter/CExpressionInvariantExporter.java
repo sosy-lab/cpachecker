@@ -357,6 +357,6 @@ public class CExpressionInvariantExporter {
     if (simplify) {
       pInvariant = simplifyInvariant(pInvariant);
     }
-    return formulaToCExpressionConverter.formulaToCExpression(pInvariant).replaceAll("\n", " ");
+    return formulaToCExpressionConverter.formulaToCExpression(pInvariant).replace('\n', ' ');
   }
 }

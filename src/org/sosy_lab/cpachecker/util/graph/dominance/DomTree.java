@@ -361,11 +361,15 @@ public final class DomTree<T> implements Iterable<T> {
   }
 
   /**
-   * Returns an immutable {@link Graph} instance that represents this dominator tree.
+   * Returns a {@link Graph} that represents this dominator tree.
    *
-   * <p>This representation can be used as a convenient way for dominator tree traversal.
+   * <p>The returned directed graph contains an edge from the parent to the child for all
+   * parent-child pairs in the dominator tree.
    *
-   * @return an immutable {@link Graph} instance that represents this dominator tree
+   * <p>The {@link Graph} representation can be used as a convenient way for dominator tree
+   * traversal.
+   *
+   * @return a {@link Graph} that represents this dominator tree
    */
   public ImmutableGraph<T> asGraph() {
 

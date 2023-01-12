@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -36,7 +35,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -122,7 +123,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String VERIFIER_ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
   private static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
   private static final String ATOMIC_LOCK = "__CPAchecker_atomic_lock__";
-  private static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
+  public static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
   private static final String THREAD_ID_SEPARATOR = "__CPAchecker__";
 
   private static final ImmutableSet<String> UNSUPPORTED_THREAD_FUNCTIONS =
@@ -398,7 +399,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   /** the whole program will terminate after this edge */
   private boolean isEndOfMainFunction(CFAEdge edge) {
-    return Objects.equals(cfa.getMainFunction().getExitNode(), edge.getSuccessor());
+    return cfa.getMainFunction()
+        .getExitNode()
+        .map(mainExitNode -> mainExitNode.equals(edge.getSuccessor()))
+        .orElse(false); // if there is no exit node, the edge cannot be the end of main
   }
 
   private ThreadingState exitThreads(ThreadingState tmp) {
@@ -646,6 +650,14 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     if (!(params.get(0) instanceof CUnaryExpression)) {
       throw new UnrecognizedCodeException("unsupported thread locking", params.get(0));
     }
+    CExpression operand = ((CUnaryExpression) params.get(0)).getOperand();
+    if (operand instanceof CArraySubscriptExpression) {
+      CExpression subscriptExpression =
+          ((CArraySubscriptExpression) operand).getSubscriptExpression();
+      if (!(subscriptExpression instanceof ALiteralExpression)) {
+        throw new UnrecognizedCodeException("unsupported thread lock assignment", params.get(0));
+      }
+    }
     //  CExpression expr0 = ((CUnaryExpression)params.get(0)).getOperand();
     //  if (!(expr0 instanceof CIdExpression)) {
     //    throw new UnrecognizedCodeException("unsupported thread lock assignment", expr0);
@@ -727,10 +739,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         }
       case FunctionCallEdge:
         // @Deprecated, for old benchmark tasks
-        return cfaEdge.getSuccessor().getFunctionName().startsWith(VERIFIER_ATOMIC_BEGIN);
+        return cfaEdge.getSuccessor().getFunctionName().startsWith(VERIFIER_ATOMIC);
       case FunctionReturnEdge:
         // @Deprecated, for old benchmark tasks
-        return cfaEdge.getPredecessor().getFunctionName().startsWith(VERIFIER_ATOMIC_END);
+        return cfaEdge.getPredecessor().getFunctionName().startsWith(VERIFIER_ATOMIC);
       default:
         return false;
     }

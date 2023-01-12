@@ -110,7 +110,7 @@ public class ExpressionToFormulaVisitor
 
   private Formula getPointerTargetSizeLiteral(
       final CPointerType pointerType, final CType implicitType) {
-    final int pointerTargetSize = conv.getSizeof(pointerType.getType());
+    final long pointerTargetSize = conv.getSizeof(pointerType.getType());
     return mgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
   }
 
@@ -509,7 +509,7 @@ public class ExpressionToFormulaVisitor
           CType returnType = exp.getExpressionType();
           FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
           if (!returnFormulaType.equals(mgr.getFormulaType(ret))) {
-            ret = conv.makeCast(t, returnType, ret, constraints, edge);
+            ret = conv.makeCast(promoted, returnType, ret, constraints, edge);
           }
           assert returnFormulaType.equals(mgr.getFormulaType(ret))
               : "Returntype "

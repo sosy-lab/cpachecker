@@ -22,7 +22,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -383,10 +382,8 @@ public class AssignmentToPathAllocator {
 
     if (isReference) {
       List<String> fieldNames = new ArrayList<>(references.size() - 1);
-      Iterator<String> fieldNameIterator = references.iterator();
       int i = 0;
-      while (fieldNameIterator.hasNext()) {
-        String fieldName = fieldNameIterator.next();
+      for (String fieldName : references) {
         if (i != NAME_AND_FUNCTION) {
           fieldNames.add(fieldName);
         }

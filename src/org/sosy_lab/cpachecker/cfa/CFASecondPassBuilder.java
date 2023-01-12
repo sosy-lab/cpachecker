@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -180,7 +181,7 @@ public class CFASecondPassBuilder {
     String functionName = functionCallExpression.getDeclaration().getName();
     FileLocation fileLocation = edge.getFileLocation();
     FunctionEntryNode fDefNode = cfa.getFunctionHead(functionName);
-    FunctionExitNode fExitNode = fDefNode.getExitNode();
+    Optional<FunctionExitNode> fExitNode = fDefNode.getExitNode();
 
     // get the parameter expression
     // check if the number of function parameters are right
@@ -290,32 +291,39 @@ public class CFASecondPassBuilder {
     predecessorNode.addLeavingEdge(callEdge);
     fDefNode.addEnteringEdge(callEdge);
 
-    if (fExitNode.getNumEnteringEdges() == 0) {
+    boolean isExitNodeUnreachable =
+        fExitNode.filter(exitNode -> exitNode.getNumEnteringEdges() > 0).isEmpty();
+    if (isExitNodeUnreachable) {
       // exit node of called functions is not reachable, i.e. this function never returns
       // no need to add return edges, instead we can remove the part after this function call
 
       CFACreationUtils.removeChainOfNodesFromCFA(successorNode);
 
+      // remove exit node from entry node if it has not already been removed
+      if (fExitNode.isPresent()) {
+        fDefNode.removeExitNode();
+      }
     } else {
 
+      FunctionExitNode exitNode = fExitNode.orElseThrow();
       FunctionReturnEdge returnEdge;
 
       switch (language) {
         case C:
           returnEdge =
               new CFunctionReturnEdge(
-                  fileLocation, fExitNode, successorNode, (CFunctionSummaryEdge) calltoReturnEdge);
+                  fileLocation, exitNode, successorNode, (CFunctionSummaryEdge) calltoReturnEdge);
           break;
         case JAVA:
           returnEdge =
               new JMethodReturnEdge(
-                  fileLocation, fExitNode, successorNode, (JMethodSummaryEdge) calltoReturnEdge);
+                  fileLocation, exitNode, successorNode, (JMethodSummaryEdge) calltoReturnEdge);
           break;
         default:
           throw new AssertionError();
       }
 
-      fExitNode.addLeavingEdge(returnEdge);
+      exitNode.addLeavingEdge(returnEdge);
       successorNode.addEnteringEdge(returnEdge);
     }
   }
@@ -428,6 +436,14 @@ public class CFASecondPassBuilder {
       CFACreationUtils.removeChainOfNodesFromCFA(edge.getSuccessor());
       cfa.addNode(terminationNode);
       CFACreationUtils.addEdgeUnconditionallyToCFA(edgeToTermination);
+
+      // remove function exit node if it has become unreachable
+      FunctionEntryNode entryNode =
+          cfa.getAllFunctions().get(edge.getSuccessor().getFunction().getQualifiedName());
+      Optional<FunctionExitNode> exitNode = entryNode.getExitNode();
+      if (exitNode.isPresent() && exitNode.orElseThrow().getNumEnteringEdges() == 0) {
+        entryNode.removeExitNode();
+      }
     }
   }
 
