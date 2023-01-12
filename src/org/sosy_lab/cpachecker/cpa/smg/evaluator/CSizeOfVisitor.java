@@ -31,8 +31,11 @@ class CSizeOfVisitor extends BaseSizeofVisitor {
   private final Optional<CExpression> expression;
   private final SMGExpressionEvaluator eval;
 
-  public CSizeOfVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge,
-      SMGState pState, Optional<CExpression> pExpression) {
+  public CSizeOfVisitor(
+      SMGExpressionEvaluator pSmgExpressionEvaluator,
+      CFAEdge pEdge,
+      SMGState pState,
+      Optional<CExpression> pExpression) {
     super(pSmgExpressionEvaluator.machineModel);
     edge = pEdge;
     state = pState;
@@ -54,7 +57,7 @@ class CSizeOfVisitor extends BaseSizeofVisitor {
      */
     BigInteger length;
 
-    if(arrayLength == null) {
+    if (arrayLength == null) {
       // treat size of unknown array length type as ptr
       return super.visit(pArrayType);
     } else if (arrayLength instanceof CIntegerLiteralExpression) {

@@ -365,8 +365,10 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
       // A New Object is created, which is the new classObject scope
     } else if (functionCall instanceof JClassInstanceCreation) {
 
+      // the function exit must be present, because it has entering edges
       JReturnStatementEdge returnEdge =
-          (JReturnStatementEdge) functionEntryNode.getExitNode().getEnteringEdge(RETURN_EDGE);
+          (JReturnStatementEdge)
+              functionEntryNode.getExitNode().orElseThrow().getEnteringEdge(RETURN_EDGE);
       String uniqueObject =
           returnEdge
               .getExpression()

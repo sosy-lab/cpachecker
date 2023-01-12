@@ -62,7 +62,8 @@ public final class SMGJoin {
     smg = new CLangSMG(opSMG1.getMachineModel());
 
     // FIT-TR-2012-04, Alg 10, line 2
-    SMGJoinStatus tmpStatus1 = joinGlobalVariables(opSMG1.getGlobalObjects(), opSMG2.getGlobalObjects());
+    SMGJoinStatus tmpStatus1 =
+        joinGlobalVariables(opSMG1.getGlobalObjects(), opSMG2.getGlobalObjects());
     status = status.updateWith(tmpStatus1);
 
     // FIT-TR-2012-04, Alg 10, line 2
@@ -75,7 +76,22 @@ public final class SMGJoin {
       SMGObject globalInSMG1 = opSMG1.getGlobalObjects().get(entry.getKey());
       SMGObject globalInSMG2 = opSMG2.getGlobalObjects().get(entry.getKey());
       SMGObject destinationGlobal = mapping1.get(globalInSMG1);
-      SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, levelMap, globalInSMG1, globalInSMG2, destinationGlobal, 0,false, pStateOfSmg1, pStateOfSmg2);
+      SMGJoinSubSMGs jss =
+          new SMGJoinSubSMGs(
+              status,
+              opSMG1,
+              opSMG2,
+              smg,
+              mapping1,
+              mapping2,
+              levelMap,
+              globalInSMG1,
+              globalInSMG2,
+              destinationGlobal,
+              0,
+              false,
+              pStateOfSmg1,
+              pStateOfSmg2);
       status = jss.getStatus();
       if (!jss.isDefined()) {
         return;
@@ -96,7 +112,22 @@ public final class SMGJoin {
         SMGObject localInSMG1 = frameInSMG1.getVariable(localVar);
         SMGObject localInSMG2 = frameInSMG2.getVariable(localVar);
         SMGObject destinationLocal = mapping1.get(localInSMG1);
-        SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, levelMap, localInSMG1, localInSMG2, destinationLocal, 0, false, pStateOfSmg1, pStateOfSmg2);
+        SMGJoinSubSMGs jss =
+            new SMGJoinSubSMGs(
+                status,
+                opSMG1,
+                opSMG2,
+                smg,
+                mapping1,
+                mapping2,
+                levelMap,
+                localInSMG1,
+                localInSMG2,
+                destinationLocal,
+                0,
+                false,
+                pStateOfSmg1,
+                pStateOfSmg2);
         status = jss.getStatus();
         if (!jss.isDefined()) {
           return;
@@ -111,8 +142,21 @@ public final class SMGJoin {
         mapping1.map(returnObjectInSmg1, destinationLocal);
         mapping2.map(returnObjectInSmg2, destinationLocal);
         SMGJoinSubSMGs jss =
-            new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, levelMap, returnObjectInSmg1,
-                returnObjectInSmg2, destinationLocal, 0, false, pStateOfSmg1, pStateOfSmg2);
+            new SMGJoinSubSMGs(
+                status,
+                opSMG1,
+                opSMG2,
+                smg,
+                mapping1,
+                mapping2,
+                levelMap,
+                returnObjectInSmg1,
+                returnObjectInSmg2,
+                destinationLocal,
+                0,
+                false,
+                pStateOfSmg1,
+                pStateOfSmg2);
         status = jss.getStatus();
         if (!jss.isDefined()) {
           return;
@@ -160,8 +204,7 @@ public final class SMGJoin {
    * ignore some variables.
    */
   private SMGJoinStatus joinGlobalVariables(
-      Map<String, SMGRegion> globals_in_smg1,
-      Map<String, SMGRegion> globals_in_smg2) {
+      Map<String, SMGRegion> globals_in_smg1, Map<String, SMGRegion> globals_in_smg2) {
     Set<String> globals1 = globals_in_smg1.keySet();
     Set<String> globals2 = globals_in_smg2.keySet();
     for (String globalVar : Sets.intersection(globals1, globals2)) {
@@ -192,8 +235,7 @@ public final class SMGJoin {
    * ignore some variables.
    */
   private SMGJoinStatus joinStackVariables(
-      PersistentStack<CLangStackFrame> stack1,
-      PersistentStack<CLangStackFrame> stack2) {
+      PersistentStack<CLangStackFrame> stack1, PersistentStack<CLangStackFrame> stack2) {
     Iterator<CLangStackFrame> smg1stackIterator = stack1.iterator();
     Iterator<CLangStackFrame> smg2stackIterator = stack2.iterator();
     SMGJoinStatus result = SMGJoinStatus.EQUAL;

@@ -11,8 +11,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 /**
  * Instances of implementing classes are visitors for invariants formulae.
  *
- * @param <ConstantType> the type of the constants used in the visited
- * formulae.
+ * @param <ConstantType> the type of the constants used in the visited formulae.
  * @param <ReturnType> the type of the visit results.
  */
 interface NumeralFormulaVisitor<ConstantType, ReturnType> {
@@ -21,7 +20,6 @@ interface NumeralFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given addition invariants formula.
    *
    * @param pAdd the addition invariants formula to visit.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Add<ConstantType> pAdd);
@@ -30,7 +28,6 @@ interface NumeralFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given binary and invariants formula.
    *
    * @param pAnd the binary and invariants formula to visit.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(BinaryAnd<ConstantType> pAnd);
@@ -39,7 +36,6 @@ interface NumeralFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given binary negation invariants formula.
    *
    * @param pNot the binary negation invariants formula to visit.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(BinaryNot<ConstantType> pNot);
@@ -48,7 +44,6 @@ interface NumeralFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given binary or invariants formula.
    *
    * @param pOr the binary or invariants formula to visit.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(BinaryOr<ConstantType> pOr);
@@ -57,7 +52,6 @@ interface NumeralFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given binary exclusive or invariants formula.
    *
    * @param pXor the binary exclusive or invariants formula to visit.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(BinaryXor<ConstantType> pXor);
@@ -66,7 +60,6 @@ interface NumeralFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given constant invariants formula.
    *
    * @param pConstant the constant invariants formula to visit.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Constant<ConstantType> pConstant);
@@ -75,7 +68,6 @@ interface NumeralFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given fraction invariants formula.
    *
    * @param pDivide the fraction invariants formula to visit.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Divide<ConstantType> pDivide);
@@ -84,7 +76,6 @@ interface NumeralFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given exclusion invariants formula.
    *
    * @param pExclusion the exclusion formula to visit.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Exclusion<ConstantType> pExclusion);
@@ -93,7 +84,6 @@ interface NumeralFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given modulo invariants formula.
    *
    * @param pModulo the modulo invariants formula to visit.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Modulo<ConstantType> pModulo);
@@ -102,7 +92,6 @@ interface NumeralFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given multiplication invariants formula.
    *
    * @param pMultiply the multiplication invariants formula to visit.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Multiply<ConstantType> pMultiply);
@@ -111,7 +100,6 @@ interface NumeralFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given left shift invariants formula.
    *
    * @param pShiftLeft the left shift invariants formula to visit.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(ShiftLeft<ConstantType> pShiftLeft);
@@ -120,7 +108,6 @@ interface NumeralFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given right shift invariants formula.
    *
    * @param pShiftRight the right shift invariants formula to visit.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(ShiftRight<ConstantType> pShiftRight);
@@ -129,7 +116,6 @@ interface NumeralFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given union invariants formula.
    *
    * @param pUnion the union invariants formula to visit.
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Union<ConstantType> pUnion);
@@ -138,7 +124,6 @@ interface NumeralFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given variable invariants formula.
    *
    * @param pVariable the variable invariants formula to visit..
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Variable<ConstantType> pVariable);
@@ -147,7 +132,6 @@ interface NumeralFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given if-then-else invariants formula.
    *
    * @param pIfThenElse the if-then-else invariants formula to visit..
-   *
    * @return the result of the visit.
    */
   ReturnType visit(IfThenElse<ConstantType> pIfThenElse);
@@ -156,10 +140,7 @@ interface NumeralFormulaVisitor<ConstantType, ReturnType> {
    * Visits the given cast invariants formula.
    *
    * @param pCast the cast invariants formula to visit..
-   *
    * @return the result of the visit.
    */
   ReturnType visit(Cast<ConstantType> pCast);
-
-
 }

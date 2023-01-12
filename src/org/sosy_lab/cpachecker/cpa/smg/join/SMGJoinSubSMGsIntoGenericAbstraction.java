@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -76,20 +76,19 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
 
   public Optional<GenericAbstractionCandidate> joinSubSmgsIntoGenericAbstractionCandidate() {
 
-    MatchResult matchResult = subSMGmatchSpecificShape(inputSMG1, rootObject1, mapping1, template,
-        new HashSet<>());
+    MatchResult matchResult =
+        subSMGmatchSpecificShape(inputSMG1, rootObject1, mapping1, template, new HashSet<>());
 
     if (!matchResult.isMatch()) {
       return Optional.empty();
     }
 
-    MatchResult matchResult2 = subSMGmatchSpecificShape(inputSMG2, rootObject2, mapping2, template,
-        new HashSet<>());
+    MatchResult matchResult2 =
+        subSMGmatchSpecificShape(inputSMG2, rootObject2, mapping2, template, new HashSet<>());
 
     if (!matchResult.isMatch()) {
       return Optional.empty();
     }
-
 
     return createGenericAbstractionCandidate(matchResult, matchResult2);
   }
@@ -99,7 +98,9 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
 
     MatchResultBuilder builder = new MatchResultBuilder(template);
 
-    builder.getAbstractToConcretePointerMap().putAll(pMatchResult.getAbstractToConcretePointerMap());
+    builder
+        .getAbstractToConcretePointerMap()
+        .putAll(pMatchResult.getAbstractToConcretePointerMap());
 
     for (Entry<SMGValue, SMGValue> entry :
         pMatchResult.getAbstractToConcretePointerMapInputSMG().entrySet()) {
@@ -107,24 +108,26 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       SMGValue absVal = entry.getKey();
       SMGValue val = entry.getValue();
 
-      if(mapping1.containsKey(val)) {
+      if (mapping1.containsKey(val)) {
         builder.putAbstractToConcretePointerMap(absVal, mapping1.get(val));
       } else {
         return Optional.empty();
       }
     }
 
-    builder.getObjectsToBeRemovedForAbstraction()
+    builder
+        .getObjectsToBeRemovedForAbstraction()
         .addAll(pMatchResult.getObjectsToBeRemovedForAbstraction());
 
     for (SMGObject obj : pMatchResult.getObjectsToBeRemovedForAbstractionInputSMG()) {
-      if(mapping1.containsKey(obj)) {
+      if (mapping1.containsKey(obj)) {
         builder.addObjectsToBeRemovedForAbstraction(mapping1.get(obj));
       }
     }
 
     for (SMGObject obj : pMatchResult2.getObjectsToBeRemovedForAbstractionInputSMG()) {
-      if(mapping2.containsKey(obj) && !builder.getObjectsToBeRemovedForAbstraction().contains(mapping2.get(obj))) {
+      if (mapping2.containsKey(obj)
+          && !builder.getObjectsToBeRemovedForAbstraction().contains(mapping2.get(obj))) {
         return Optional.empty();
       }
     }
@@ -133,9 +136,13 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
 
     MatchResult destres = builder.build();
 
-    return Optional
-        .of(GenericAbstractionCandidate.valueOf(machineModel, destres.getObjectsToBeRemovedForAbstraction(),
-            destres.getAbstractToConcretePointerMap(), template.getMaterlisationStepMap(), score));
+    return Optional.of(
+        GenericAbstractionCandidate.valueOf(
+            machineModel,
+            destres.getObjectsToBeRemovedForAbstraction(),
+            destres.getAbstractToConcretePointerMap(),
+            template.getMaterlisationStepMap(),
+            score));
   }
 
   private MatchResult subSMGmatchSpecificShape(
@@ -154,10 +161,13 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     }
   }
 
-  private MatchResult subSMGmatchSpecificShape(GenericAbstraction pRootObject,
-      GenericAbstractionCandidateTemplate pTemplate,  Set<SMGObject> pAlreadyVisited) {
+  private MatchResult subSMGmatchSpecificShape(
+      GenericAbstraction pRootObject,
+      GenericAbstractionCandidateTemplate pTemplate,
+      Set<SMGObject> pAlreadyVisited) {
 
-    GenericAbstractionCandidateTemplate rootObjectTemaplate = pRootObject.createCandidateTemplate(machineModel);
+    GenericAbstractionCandidateTemplate rootObjectTemaplate =
+        pRootObject.createCandidateTemplate(machineModel);
 
     if (rootObjectTemaplate.isSpecificShape(pTemplate)) {
       return MatchResult.valueOf(machineModel, pRootObject);
@@ -166,8 +176,12 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     }
   }
 
-  private MatchResult subSMGmatchSpecificShape(UnmodifiableSMG pInputSMG, SMGRegion pRootObject,
-                                               SMGNodeMapping pMapping, GenericAbstractionCandidateTemplate pTemplate, Set<SMGObject> pAlreadyVisited) {
+  private MatchResult subSMGmatchSpecificShape(
+      UnmodifiableSMG pInputSMG,
+      SMGRegion pRootObject,
+      SMGNodeMapping pMapping,
+      GenericAbstractionCandidateTemplate pTemplate,
+      Set<SMGObject> pAlreadyVisited) {
 
     MatchResult matchedPreviously =
         wasMatchedPreviously(pInputSMG, pRootObject, pTemplate, pMapping);
@@ -185,7 +199,8 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
      * join as much of the smg into the generic abstraction as possible.*/
     for (MaterlisationStep matStep : toBeChecked) {
       if (!matStep.isStopStep()) {
-        result = subSMGmatchStep(matStep, pInputSMG, pRootObject, pMapping, pAlreadyVisited, pTemplate);
+        result =
+            subSMGmatchStep(matStep, pInputSMG, pRootObject, pMapping, pAlreadyVisited, pTemplate);
 
         if (result.isMatch()) {
           return result;
@@ -196,7 +211,8 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     }
 
     for (MaterlisationStep matStep : stopStep) {
-      result = subSMGmatchStep(matStep, pInputSMG, pRootObject, pMapping, pAlreadyVisited, pTemplate);
+      result =
+          subSMGmatchStep(matStep, pInputSMG, pRootObject, pMapping, pAlreadyVisited, pTemplate);
 
       if (result.isMatch()) {
         return result;
@@ -206,8 +222,13 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     return result;
   }
 
-  private MatchResult subSMGmatchStep(MaterlisationStep pMatStep, UnmodifiableSMG pInputSMG,
-      SMGRegion pRootObject, SMGNodeMapping pMapping, Set<SMGObject> pAlreadyVisited, GenericAbstractionCandidateTemplate pTemplate) {
+  private MatchResult subSMGmatchStep(
+      MaterlisationStep pMatStep,
+      UnmodifiableSMG pInputSMG,
+      SMGRegion pRootObject,
+      SMGNodeMapping pMapping,
+      Set<SMGObject> pAlreadyVisited,
+      GenericAbstractionCandidateTemplate pTemplate) {
 
     Set<SMGRegion> entryRegions = pMatStep.getEntryRegions();
     Set<SMGObject> alreadyVisited = new HashSet<>(pAlreadyVisited);
@@ -216,7 +237,9 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
 
     for (SMGObjectTemplate entryRegion : entryRegions) {
 
-      result = subSMGmatchStep(pMatStep, pInputSMG, pRootObject, entryRegion, pMapping, alreadyVisited, pTemplate);
+      result =
+          subSMGmatchStep(
+              pMatStep, pInputSMG, pRootObject, entryRegion, pMapping, alreadyVisited, pTemplate);
 
       if (result.isMatch()) {
         return result;
@@ -226,12 +249,17 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     return MatchResult.getUnknownInstance();
   }
 
-  private MatchResult subSMGmatchStep(MaterlisationStep pMatStep, UnmodifiableSMG pInputSMG,
-      SMGRegion pRootObject, SMGObjectTemplate pEntryRegion, SMGNodeMapping pMapping,
-      Set<SMGObject> pAlreadyVisited, GenericAbstractionCandidateTemplate pTemplate) {
+  private MatchResult subSMGmatchStep(
+      MaterlisationStep pMatStep,
+      UnmodifiableSMG pInputSMG,
+      SMGRegion pRootObject,
+      SMGObjectTemplate pEntryRegion,
+      SMGNodeMapping pMapping,
+      Set<SMGObject> pAlreadyVisited,
+      GenericAbstractionCandidateTemplate pTemplate) {
 
     /*If entry  region is abstraction, use different matstep to avoid endless loop*/
-    if(pEntryRegion instanceof GenericAbstractionCandidateTemplate) {
+    if (pEntryRegion instanceof GenericAbstractionCandidateTemplate) {
       return MatchResult.getUnknownInstance();
     }
 
@@ -239,7 +267,8 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     templateToInputSmgMapping.put(pEntryRegion, pRootObject);
     pAlreadyVisited.add(pRootObject);
     Set<SMGNodeTemplateAndNode> toBeMatchedLater = new HashSet<>();
-    toBeMatchedLater.add(new SMGNodeTemplateAndNode(new SMGNodeTemplate(pEntryRegion), new SMGNode(pRootObject)));
+    toBeMatchedLater.add(
+        new SMGNodeTemplateAndNode(new SMGNodeTemplate(pEntryRegion), new SMGNode(pRootObject)));
 
     while (!toBeMatchedLater.isEmpty()) {
       Set<SMGNodeTemplateAndNode> toBeMatched = ImmutableSet.copyOf(toBeMatchedLater);
@@ -250,8 +279,16 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
         SMGNode node = templateNodeAndConcreteNode.getNode();
         SMGNodeTemplate nodeTemplate = templateNodeAndConcreteNode.getNodeTemplate();
 
-        boolean match = matchNodeTemplateWithNode(node, nodeTemplate, pMatStep, templateToInputSmgMapping, pInputSMG, toBeMatchedLater, pAlreadyVisited, pMapping);
-
+        boolean match =
+            matchNodeTemplateWithNode(
+                node,
+                nodeTemplate,
+                pMatStep,
+                templateToInputSmgMapping,
+                pInputSMG,
+                toBeMatchedLater,
+                pAlreadyVisited,
+                pMapping);
 
         if (!match) {
           return MatchResult.getUnknownInstance();
@@ -264,14 +301,16 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     return result;
   }
 
-  private MatchResult constructAbstraction(GenericAbstractionCandidateTemplate pTemplate,
-      MaterilisationStepToSubSMGMap pTemplateToInputSmgMapping, MaterlisationStep pMatStep) {
+  private MatchResult constructAbstraction(
+      GenericAbstractionCandidateTemplate pTemplate,
+      MaterilisationStepToSubSMGMap pTemplateToInputSmgMapping,
+      MaterlisationStep pMatStep) {
 
     MatchResultBuilder matchResultBuilder = new MatchResultBuilder(pTemplate);
 
     matchResultBuilder.setMatchTrue();
 
-    for(SMGObject newObjects : pTemplateToInputSmgMapping.objectTemplateToObject.values()) {
+    for (SMGObject newObjects : pTemplateToInputSmgMapping.objectTemplateToObject.values()) {
       matchResultBuilder.addObjectsToBeRemovedForAbstractionInputSMG(newObjects);
     }
 
@@ -280,7 +319,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       SMGValue absVal = values.getKey();
       SMGValue conVal = values.getValue();
 
-      if(pMatStep.abstractInterfaceContains(absVal)) {
+      if (pMatStep.abstractInterfaceContains(absVal)) {
         matchResultBuilder.putAbstractToConcretePointerMapInputSMG(absVal, conVal);
       }
     }
@@ -289,9 +328,11 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
 
     for (MatchResult prevAbs : pTemplateToInputSmgMapping.getAbstractionToMatchMap().values()) {
 
-      matchResultBuilder.getObjectsToBeRemovedForAbstraction()
+      matchResultBuilder
+          .getObjectsToBeRemovedForAbstraction()
           .addAll(prevAbs.getObjectsToBeRemovedForAbstraction());
-      matchResultBuilder.getObjectsToBeRemovedForAbstractionInputSMG()
+      matchResultBuilder
+          .getObjectsToBeRemovedForAbstractionInputSMG()
           .addAll(prevAbs.getObjectsToBeRemovedForAbstractionInputSMG());
 
       if (prevAbs.getScore() > score) {
@@ -305,15 +346,26 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     return matchResultBuilder.build();
   }
 
-  private boolean matchNodeTemplateWithNode(SMGNode pNode, SMGNodeTemplate pNodeTemplate,
-      MaterlisationStep pMatStep, MaterilisationStepToSubSMGMap pTemplateToInputSmgMapping,
+  private boolean matchNodeTemplateWithNode(
+      SMGNode pNode,
+      SMGNodeTemplate pNodeTemplate,
+      MaterlisationStep pMatStep,
+      MaterilisationStepToSubSMGMap pTemplateToInputSmgMapping,
       UnmodifiableSMG pInputSMG,
       Set<SMGNodeTemplateAndNode> pToBeMatchedLater,
-      Set<SMGObject> pAlreadyVisited, SMGNodeMapping pMapping) {
+      Set<SMGObject> pAlreadyVisited,
+      SMGNodeMapping pMapping) {
 
     if (pNode.isValue() && pNodeTemplate.isValueTemplate()) {
-      return matchValueTemplateWithValue(pNode.getValue(), pNodeTemplate.getValueTemplate(),
-          pMatStep, pTemplateToInputSmgMapping, pInputSMG, pToBeMatchedLater, pAlreadyVisited, pMapping);
+      return matchValueTemplateWithValue(
+          pNode.getValue(),
+          pNodeTemplate.getValueTemplate(),
+          pMatStep,
+          pTemplateToInputSmgMapping,
+          pInputSMG,
+          pToBeMatchedLater,
+          pAlreadyVisited,
+          pMapping);
     } else if (pNode.isObject() && pNodeTemplate.isObjectTemplate()) {
 
       SMGObject object = pNode.getObject();
@@ -323,12 +375,17 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
         GenericAbstractionCandidateTemplate genAbsTmp =
             (GenericAbstractionCandidateTemplate) objectTemplate;
 
-        return matchGenericAbstractionTemplateWithGenericAbstraction(genAbsTmp, pInputSMG,
-            pToBeMatchedLater, pTemplateToInputSmgMapping, pMatStep);
+        return matchGenericAbstractionTemplateWithGenericAbstraction(
+            genAbsTmp, pInputSMG, pToBeMatchedLater, pTemplateToInputSmgMapping, pMatStep);
       } else if (objectTemplate instanceof SMGRegion) {
         SMGRegion regionTemplate = (SMGRegion) objectTemplate;
-        return matchRegionTemplateWithObject(regionTemplate, object, pInputSMG,
-            pToBeMatchedLater, pTemplateToInputSmgMapping, pMatStep);
+        return matchRegionTemplateWithObject(
+            regionTemplate,
+            object,
+            pInputSMG,
+            pToBeMatchedLater,
+            pTemplateToInputSmgMapping,
+            pMatStep);
       }
     }
 
@@ -336,9 +393,11 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
   }
 
   private boolean matchGenericAbstractionTemplateWithGenericAbstraction(
-      GenericAbstractionCandidateTemplate pGenAbsTmp, UnmodifiableSMG pInputSMG,
+      GenericAbstractionCandidateTemplate pGenAbsTmp,
+      UnmodifiableSMG pInputSMG,
       Set<SMGNodeTemplateAndNode> pToBeMatchedLater,
-      MaterilisationStepToSubSMGMap pTemplateToInputSmgMapping, MaterlisationStep pMatStep) {
+      MaterilisationStepToSubSMGMap pTemplateToInputSmgMapping,
+      MaterlisationStep pMatStep) {
 
     if (!pTemplateToInputSmgMapping.containsAbstraction(pGenAbsTmp)) {
       return false;
@@ -350,25 +409,26 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       return false;
     }
 
-    Set<SMGEdgePointsTo> pointerToAbstraction = getPointerToThisAbstraction(genAbsMatchResult, pInputSMG);
-    Set<SMGEdgePointsToTemplate> pointerToRegionTemplate = pMatStep.getPointerToThisTemplate(pGenAbsTmp);
+    Set<SMGEdgePointsTo> pointerToAbstraction =
+        getPointerToThisAbstraction(genAbsMatchResult, pInputSMG);
+    Set<SMGEdgePointsToTemplate> pointerToRegionTemplate =
+        pMatStep.getPointerToThisTemplate(pGenAbsTmp);
 
-    if(pointerToAbstraction.size() != pointerToRegionTemplate.size()) {
+    if (pointerToAbstraction.size() != pointerToRegionTemplate.size()) {
       return false;
     }
 
     Map<Long, SMGEdgePointsTo> pointerToRegionMap =
-        FluentIterable.from(pointerToAbstraction).uniqueIndex(SMGEdgePointsTo::getOffset);
+        Maps.uniqueIndex(pointerToAbstraction, SMGEdgePointsTo::getOffset);
 
     Map<Long, SMGEdgePointsToTemplate> pointerToRegionTemplateMap =
-        FluentIterable.from(pointerToRegionTemplate)
-            .uniqueIndex(SMGEdgePointsToTemplate::getOffset);
+        Maps.uniqueIndex(pointerToRegionTemplate, SMGEdgePointsToTemplate::getOffset);
 
-    for(Entry<Long, SMGEdgePointsToTemplate> ptEntry : pointerToRegionTemplateMap.entrySet()) {
+    for (Entry<Long, SMGEdgePointsToTemplate> ptEntry : pointerToRegionTemplateMap.entrySet()) {
       long offset = ptEntry.getKey();
       SMGEdgePointsToTemplate pointerTemplateEdge = ptEntry.getValue();
 
-      if(!pointerToRegionMap.containsKey(offset)) {
+      if (!pointerToRegionMap.containsKey(offset)) {
         return false;
       }
 
@@ -381,7 +441,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
         }
       } else {
         pTemplateToInputSmgMapping.put(pointerTemplate, pointer);
-        if(pMatStep.getAbstractPointers().contains(pointerTemplateEdge)) {
+        if (pMatStep.getAbstractPointers().contains(pointerTemplateEdge)) {
           pToBeMatchedLater.add(new SMGNodeTemplateAndNode(pointerTemplate, pointer));
         }
       }
@@ -395,17 +455,19 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     }
 
     Map<Long, SMGEdgeHasValue> fieldsOfRegionMap =
-        FluentIterable.from(fieldsOfRegion).uniqueIndex(SMGEdgeHasValue::getOffset);
+        Maps.uniqueIndex(fieldsOfRegion, SMGEdgeHasValue::getOffset);
 
-    Set<SMGEdgeHasValueTemplate> fieldsOfTemplateSet = new HashSet<>(fieldsOfTemplate.getFieldTemplateContainingPointer());
+    Set<SMGEdgeHasValueTemplate> fieldsOfTemplateSet =
+        new HashSet<>(fieldsOfTemplate.getFieldTemplateContainingPointer());
     fieldsOfTemplateSet.addAll(fieldsOfTemplate.getFieldTemplateContainingPointerTemplate());
 
     Map<Long, SMGEdgeHasValueTemplate> fieldsOfRegionTemplateMap =
-        FluentIterable.from(fieldsOfTemplateSet).uniqueIndex(SMGEdgeHasValueTemplate::getOffset);
+        Maps.uniqueIndex(fieldsOfTemplateSet, SMGEdgeHasValueTemplate::getOffset);
 
     Map<Long, SMGEdgeHasValueTemplateWithConcreteValue> fieldsOfRegionTemplateCVMap =
-        FluentIterable.from(fieldsOfTemplate.getFieldTemplateContainingValue())
-            .uniqueIndex(SMGEdgeHasValueTemplateWithConcreteValue::getOffset);
+        Maps.uniqueIndex(
+            fieldsOfTemplate.getFieldTemplateContainingValue(),
+            SMGEdgeHasValueTemplateWithConcreteValue::getOffset);
 
     for (Entry<Long, SMGEdgeHasValue> hveEntry : fieldsOfRegionMap.entrySet()) {
 
@@ -423,7 +485,9 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
           }
         } else {
           pTemplateToInputSmgMapping.put(pointerTemplate, pointer);
-          if(pMatStep.getAbstractFieldsToIPointer().contains(fieldsOfRegionTemplateMap.get(offset))) {
+          if (pMatStep
+              .getAbstractFieldsToIPointer()
+              .contains(fieldsOfRegionTemplateMap.get(offset))) {
             pToBeMatchedLater.add(new SMGNodeTemplateAndNode(pointerTemplate, pointer));
           }
         }
@@ -445,7 +509,8 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     return true;
   }
 
-  private Set<SMGEdgeHasValue> getFieldsOfGenAbs(MatchResult pGenAbsMatchResult, UnmodifiableSMG pInputSMG) {
+  private Set<SMGEdgeHasValue> getFieldsOfGenAbs(
+      MatchResult pGenAbsMatchResult, UnmodifiableSMG pInputSMG) {
 
     GenericAbstractionCandidateTemplate abstractionTemplate =
         pGenAbsMatchResult.getGenAbsTemplate();
@@ -465,8 +530,8 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     return result;
   }
 
-  private Set<SMGEdgePointsTo> getPointerToThisAbstraction(MatchResult pGenAbsMatchResult,
-      UnmodifiableSMG pInputSMG) {
+  private Set<SMGEdgePointsTo> getPointerToThisAbstraction(
+      MatchResult pGenAbsMatchResult, UnmodifiableSMG pInputSMG) {
 
     GenericAbstractionCandidateTemplate abstractionTemplate =
         pGenAbsMatchResult.getGenAbsTemplate();
@@ -500,7 +565,8 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       Set<SMGObject> pAlreadyVisited,
       SMGNodeMapping pMapping) {
 
-    if(!pTemplateToInputSmgMapping.contains(pValueTemplate) || pTemplateToInputSmgMapping.get(pValueTemplate) != pValue) {
+    if (!pTemplateToInputSmgMapping.contains(pValueTemplate)
+        || pTemplateToInputSmgMapping.get(pValueTemplate) != pValue) {
       return false;
     }
 
@@ -516,7 +582,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
 
       SMGEdgePointsToTemplate pointerEdgeTemplate = pointerEdgeTemplateOpt.orElseThrow();
 
-      if(pointerEdgeTemplate.getOffset() != pointerEdge.getOffset()) {
+      if (pointerEdgeTemplate.getOffset() != pointerEdge.getOffset()) {
         return false;
       }
 
@@ -526,15 +592,16 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       if (pTemplateToInputSmgMapping.contains(targetTemplate)) {
         SMGObject mappedTarget = pTemplateToInputSmgMapping.get(targetTemplate);
 
-        if(mappedTarget != target) {
+        if (mappedTarget != target) {
           return false;
         }
       } else {
-        if(targetTemplate instanceof GenericAbstractionCandidateTemplate) {
-          GenericAbstractionCandidateTemplate genAbs = (GenericAbstractionCandidateTemplate) targetTemplate;
+        if (targetTemplate instanceof GenericAbstractionCandidateTemplate) {
+          GenericAbstractionCandidateTemplate genAbs =
+              (GenericAbstractionCandidateTemplate) targetTemplate;
 
           MatchResult result;
-          if(pTemplateToInputSmgMapping.containsAbstraction(genAbs)) {
+          if (pTemplateToInputSmgMapping.containsAbstraction(genAbs)) {
             result = pTemplateToInputSmgMapping.getAbstraction(genAbs);
           } else {
             result = subSMGmatchSpecificShape(pInputSMG, target, pMapping, genAbs, pAlreadyVisited);
@@ -542,7 +609,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
             pToBeMatchedLater.add(new SMGNodeTemplateAndNode(targetTemplate, target));
           }
 
-          if(!result.isMatch()) {
+          if (!result.isMatch()) {
             return false;
           }
 
@@ -570,17 +637,17 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     }
 
     Map<Long, SMGEdgeHasValue> fieldOffsetMap =
-        FluentIterable.from(fields).uniqueIndex(SMGEdgeHasValue::getOffset);
+        Maps.uniqueIndex(fields, SMGEdgeHasValue::getOffset);
 
     Map<Long, SMGEdgeHasValueTemplate> fieldOffsetTemplateMap =
-        FluentIterable.from(fieldsTemplate).uniqueIndex(SMGEdgeHasValueTemplate::getOffset);
+        Maps.uniqueIndex(fieldsTemplate, SMGEdgeHasValueTemplate::getOffset);
 
-    for(Entry<Long, SMGEdgeHasValueTemplate> hveTmpEntry : fieldOffsetTemplateMap.entrySet()) {
+    for (Entry<Long, SMGEdgeHasValueTemplate> hveTmpEntry : fieldOffsetTemplateMap.entrySet()) {
 
       long offset = hveTmpEntry.getKey();
       SMGEdgeHasValueTemplate pointerEdgeTemplate = hveTmpEntry.getValue();
 
-      if(!fieldOffsetMap.containsKey(offset)) {
+      if (!fieldOffsetMap.containsKey(offset)) {
         return false;
       }
 
@@ -591,15 +658,16 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       if (pTemplateToInputSmgMapping.contains(targetTemplate)) {
         SMGObject mappedTarget = pTemplateToInputSmgMapping.get(targetTemplate);
 
-        if(mappedTarget != target) {
+        if (mappedTarget != target) {
           return false;
         }
       } else {
-        if(targetTemplate instanceof GenericAbstractionCandidateTemplate) {
-          GenericAbstractionCandidateTemplate genAbs = (GenericAbstractionCandidateTemplate) targetTemplate;
+        if (targetTemplate instanceof GenericAbstractionCandidateTemplate) {
+          GenericAbstractionCandidateTemplate genAbs =
+              (GenericAbstractionCandidateTemplate) targetTemplate;
 
           MatchResult result;
-          if(pTemplateToInputSmgMapping.containsAbstraction(genAbs)) {
+          if (pTemplateToInputSmgMapping.containsAbstraction(genAbs)) {
             result = pTemplateToInputSmgMapping.getAbstraction(genAbs);
           } else {
             result = subSMGmatchSpecificShape(pInputSMG, target, pMapping, genAbs, pAlreadyVisited);
@@ -607,7 +675,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
             pToBeMatchedLater.add(new SMGNodeTemplateAndNode(targetTemplate, target));
           }
 
-          if(!result.isMatch()) {
+          if (!result.isMatch()) {
             return false;
           }
 
@@ -624,33 +692,37 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     return true;
   }
 
-  private boolean matchRegionTemplateWithObject(SMGRegion pTemplate,
-                                                SMGObject pObject, UnmodifiableSMG pInputSMG, Set<SMGNodeTemplateAndNode> pToBeMatchedLater,
-                                                MaterilisationStepToSubSMGMap pMatStepToSubSMGMapping, MaterlisationStep matStep) {
+  private boolean matchRegionTemplateWithObject(
+      SMGRegion pTemplate,
+      SMGObject pObject,
+      UnmodifiableSMG pInputSMG,
+      Set<SMGNodeTemplateAndNode> pToBeMatchedLater,
+      MaterilisationStepToSubSMGMap pMatStepToSubSMGMapping,
+      MaterlisationStep matStep) {
 
-    if(!(pObject instanceof SMGRegion)) {
+    if (!(pObject instanceof SMGRegion)) {
       return false;
     }
 
     SMGRegion region = (SMGRegion) pObject;
 
-    if(region.getSize() != pTemplate.getSize()) {
+    if (region.getSize() != pTemplate.getSize()) {
       return false;
     }
 
     Set<SMGEdgePointsTo> pointerToRegion = SMGUtils.getPointerToThisObject(region, pInputSMG);
-    Set<SMGEdgePointsToTemplate> pointerToRegionTemplate = matStep.getPointerToThisTemplate(pTemplate);
+    Set<SMGEdgePointsToTemplate> pointerToRegionTemplate =
+        matStep.getPointerToThisTemplate(pTemplate);
 
-    if(pointerToRegion.size() != pointerToRegionTemplate.size()) {
+    if (pointerToRegion.size() != pointerToRegionTemplate.size()) {
       return false;
     }
 
     Map<Long, SMGEdgePointsTo> pointerToRegionMap =
-        FluentIterable.from(pointerToRegion).uniqueIndex(SMGEdgePointsTo::getOffset);
+        Maps.uniqueIndex(pointerToRegion, SMGEdgePointsTo::getOffset);
 
     Map<Long, SMGEdgePointsToTemplate> pointerToRegionTemplateMap =
-        FluentIterable.from(pointerToRegionTemplate)
-            .uniqueIndex(SMGEdgePointsToTemplate::getOffset);
+        Maps.uniqueIndex(pointerToRegionTemplate, SMGEdgePointsToTemplate::getOffset);
 
     for (Entry<Long, SMGEdgePointsToTemplate> pteTmp : pointerToRegionTemplateMap.entrySet()) {
 
@@ -670,7 +742,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
         }
       } else {
         pMatStepToSubSMGMapping.put(pointerTemplate, pointer);
-        if(matStep.getAbstractPointers().contains(ptTmp)) {
+        if (matStep.getAbstractPointers().contains(ptTmp)) {
           pToBeMatchedLater.add(new SMGNodeTemplateAndNode(pointerTemplate, pointer));
         }
       }
@@ -684,17 +756,19 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     }
 
     Map<Long, SMGEdgeHasValue> fieldsOfRegionMap =
-        FluentIterable.from(fieldsOfRegion).uniqueIndex(SMGEdgeHasValue::getOffset);
+        Maps.uniqueIndex(fieldsOfRegion, SMGEdgeHasValue::getOffset);
 
-    Set<SMGEdgeHasValueTemplate> fieldsOfTemplateSet = new HashSet<>(fieldsOfTemplate.getFieldTemplateContainingPointer());
+    Set<SMGEdgeHasValueTemplate> fieldsOfTemplateSet =
+        new HashSet<>(fieldsOfTemplate.getFieldTemplateContainingPointer());
     fieldsOfTemplateSet.addAll(fieldsOfTemplate.getFieldTemplateContainingPointerTemplate());
 
     Map<Long, SMGEdgeHasValueTemplate> fieldsOfRegionTemplateMap =
-        FluentIterable.from(fieldsOfTemplateSet).uniqueIndex(SMGEdgeHasValueTemplate::getOffset);
+        Maps.uniqueIndex(fieldsOfTemplateSet, SMGEdgeHasValueTemplate::getOffset);
 
     Map<Long, SMGEdgeHasValueTemplateWithConcreteValue> fieldsOfRegionTemplateCVMap =
-        FluentIterable.from(fieldsOfTemplate.getFieldTemplateContainingValue())
-            .uniqueIndex(SMGEdgeHasValueTemplateWithConcreteValue::getOffset);
+        Maps.uniqueIndex(
+            fieldsOfTemplate.getFieldTemplateContainingValue(),
+            SMGEdgeHasValueTemplateWithConcreteValue::getOffset);
 
     for (Entry<Long, SMGEdgeHasValue> hveEntry : fieldsOfRegionMap.entrySet()) {
 
@@ -712,7 +786,9 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
           }
         } else {
           pMatStepToSubSMGMapping.put(pointerTemplate, pointer);
-          if(matStep.getAbstractFieldsToIPointer().contains(fieldsOfRegionTemplateMap.get(offset))) {
+          if (matStep
+              .getAbstractFieldsToIPointer()
+              .contains(fieldsOfRegionTemplateMap.get(offset))) {
             pToBeMatchedLater.add(new SMGNodeTemplateAndNode(pointerTemplate, pointer));
           }
         }
@@ -734,21 +810,24 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     return true;
   }
 
-  private MatchResult wasMatchedPreviously(UnmodifiableSMG pInputSMG, SMGObject pRootObject,
-                                           GenericAbstractionCandidateTemplate pTemplate, SMGNodeMapping pMapping) {
+  private MatchResult wasMatchedPreviously(
+      UnmodifiableSMG pInputSMG,
+      SMGObject pRootObject,
+      GenericAbstractionCandidateTemplate pTemplate,
+      SMGNodeMapping pMapping) {
 
-    Set<SMGEdgePointsTo> pointsToThisObject = SMGUtils.getPointerToThisObject(pRootObject, pInputSMG);
+    Set<SMGEdgePointsTo> pointsToThisObject =
+        SMGUtils.getPointerToThisObject(pRootObject, pInputSMG);
 
     for (SMGEdgePointsTo pointer : pointsToThisObject) {
       if (pMapping.containsKey(pointer.getValue())) {
         SMGValue destPointerValue = pMapping.get(pointer.getValue());
 
         if (previouslyMatched.containsKey(destPointerValue)) {
-          for (GenericAbstractionCandidate abstractionCandidate : previouslyMatched
-              .get(destPointerValue)) {
+          for (GenericAbstractionCandidate abstractionCandidate :
+              previouslyMatched.get(destPointerValue)) {
 
-            if (pTemplate.equals(abstractionCandidate
-                .createTemplate(machineModel))) {
+            if (pTemplate.equals(abstractionCandidate.createTemplate(machineModel))) {
               return MatchResult.valueOf(machineModel, abstractionCandidate);
             }
           }
@@ -830,7 +909,8 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
 
   private static class MatchResult {
 
-    private static final MatchResult UNKNOWN = new MatchResult(false, null, 0, null, null, null, null);
+    private static final MatchResult UNKNOWN =
+        new MatchResult(false, null, 0, null, null, null, null);
 
     private final boolean match;
     private final Set<SMGObject> objectsToBeRemovedForAbstraction;
@@ -873,13 +953,19 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       template = pMatchResultBuilder.getGenAbsTemplate();
     }
 
-    public static MatchResult valueOf(MachineModel pMachineModel, GenericAbstractionCandidate pAbstractionCandidate) {
+    public static MatchResult valueOf(
+        MachineModel pMachineModel, GenericAbstractionCandidate pAbstractionCandidate) {
 
       Map<SMGValue, SMGValue> abstractToConcretePointerMapInputSMG = ImmutableMap.of();
       Set<SMGObject> objectsToBeRemovedForAbstractionInputSMG = ImmutableSet.of();
-      return new MatchResult(true, pAbstractionCandidate.getObjectsToBeRemoved(),
-          pAbstractionCandidate.getScore(), pAbstractionCandidate.getAbstractToConcretePointerMap(),
-          objectsToBeRemovedForAbstractionInputSMG, abstractToConcretePointerMapInputSMG, pAbstractionCandidate.createTemplate(pMachineModel));
+      return new MatchResult(
+          true,
+          pAbstractionCandidate.getObjectsToBeRemoved(),
+          pAbstractionCandidate.getScore(),
+          pAbstractionCandidate.getAbstractToConcretePointerMap(),
+          objectsToBeRemovedForAbstractionInputSMG,
+          abstractToConcretePointerMapInputSMG,
+          pAbstractionCandidate.createTemplate(pMachineModel));
     }
 
     public static MatchResult valueOf(MachineModel pMachineModel, GenericAbstraction pRootObject) {
@@ -889,8 +975,14 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       Set<SMGObject> emptySet = ImmutableSet.of();
       Map<SMGValue, SMGValue> emptyMap = ImmutableMap.of();
 
-      return new MatchResult(true, emptySet, 100, emptyMap,
-          toBeRemoved, pRootObject.getAbstractToConcretePointerMap(), pRootObject.createCandidateTemplate(pMachineModel));
+      return new MatchResult(
+          true,
+          emptySet,
+          100,
+          emptyMap,
+          toBeRemoved,
+          pRootObject.getAbstractToConcretePointerMap(),
+          pRootObject.createCandidateTemplate(pMachineModel));
     }
 
     public static MatchResult getUnknownInstance() {

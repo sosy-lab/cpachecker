@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
 public class SMGAbstractionManagerTest {
   private CLangSMG smg;
+
   @Before
   public void setUp() {
     smg = new CLangSMG(MachineModel.LINUX64);
@@ -76,8 +77,13 @@ public class SMGAbstractionManagerTest {
 
   @Test
   public void testExecute() throws SMGInconsistentException, InvalidConfigurationException {
-    SMGState dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32, new SMGOptions(Configuration.defaultConfiguration()));
-    SMGAbstractionManager manager = new SMGAbstractionManager(LogManager.createTestLogManager(), smg, dummyState);
+    SMGState dummyState =
+        new SMGState(
+            LogManager.createTestLogManager(),
+            MachineModel.LINUX32,
+            new SMGOptions(Configuration.defaultConfiguration()));
+    SMGAbstractionManager manager =
+        new SMGAbstractionManager(LogManager.createTestLogManager(), smg, dummyState);
     manager.execute();
 
     SMGRegion globalVar = smg.getObjectForVisibleVariable("pointer");

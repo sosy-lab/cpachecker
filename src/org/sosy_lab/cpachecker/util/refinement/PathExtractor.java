@@ -47,14 +47,13 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 @Options
 public class PathExtractor implements Statistics {
 
-  @Option(secure = true,
-      name="cegar.globalRefinement",
-      description="whether or not global refinement is performed")
+  @Option(
+      secure = true,
+      name = "cegar.globalRefinement",
+      description = "whether or not global refinement is performed")
   private boolean globalRefinement = false;
 
-  /**
-   * keep log of feasible targets that were already found
-   */
+  /** keep log of feasible targets that were already found */
   private final Set<ARGState> feasibleTargets = new LinkedHashSet<>();
 
   private final LogManager logger;
@@ -63,7 +62,7 @@ public class PathExtractor implements Statistics {
   private int targetCounter = 0;
 
   public PathExtractor(final LogManager pLogger, Configuration config)
-     throws InvalidConfigurationException {
+      throws InvalidConfigurationException {
 
     config.inject(this, PathExtractor.class);
     logger = pLogger;
@@ -82,14 +81,16 @@ public class PathExtractor implements Statistics {
 
     // extract target locations from and exclude those found to be feasible before,
     // e.g., when analysis.stopAfterError is set to false
-    List<ARGState> targets = extractTargetStatesFromArg(pReached)
-        .transform(s -> (ARGState) s)
-        .filter(Predicates.not(Predicates.in(feasibleTargets))).toList();
+    List<ARGState> targets =
+        extractTargetStatesFromArg(pReached)
+            .transform(s -> (ARGState) s)
+            .filter(Predicates.not(Predicates.in(feasibleTargets)))
+            .toList();
 
     // set of targets may only be empty, if all of them were found feasible previously
     if (targets.isEmpty()) {
-      throw new RefinementFailedException(Reason.RepeatedCounterexample,
-          ARGUtils.getOnePathTo(Iterables.getLast(feasibleTargets)));
+      throw new RefinementFailedException(
+          Reason.RepeatedCounterexample, ARGUtils.getOnePathTo(Iterables.getLast(feasibleTargets)));
     }
 
     logger.log(Level.FINEST, "number of targets found: " + targets.size());
@@ -97,9 +98,7 @@ public class PathExtractor implements Statistics {
     return targets;
   }
 
-  /**
-   * This method extracts the last state from the ARG, which has to be a target state.
-   */
+  /** This method extracts the last state from the ARG, which has to be a target state. */
   private FluentIterable<AbstractState> extractTargetStatesFromArg(final ARGReachedSet pReached) {
     if (globalRefinement) {
       return AbstractStates.getTargetStates(pReached.asReachedSet());
@@ -111,8 +110,8 @@ public class PathExtractor implements Statistics {
   }
 
   /**
-   * This method returns the list of paths to the target states, sorted by the
-   * length of the paths, in ascending order.
+   * This method returns the list of paths to the target states, sorted by the length of the paths,
+   * in ascending order.
    *
    * @param targetStates the target states for which to get the target paths
    * @return the list of paths to the target states

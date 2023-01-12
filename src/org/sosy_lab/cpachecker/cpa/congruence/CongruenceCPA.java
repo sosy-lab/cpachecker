@@ -9,6 +9,7 @@
 
 package org.sosy_lab.cpachecker.cpa.congruence;
 
+import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -40,37 +41,36 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.templates.TemplatePrecision;
 import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager;
 
-import java.util.Collection;
-
-/**
- * A very simple congruence analysis.
- */
-@Options(prefix="cpa.congruence")
+/** A very simple congruence analysis. */
+@Options(prefix = "cpa.congruence")
 public class CongruenceCPA
-    implements ConfigurableProgramAnalysis,
-               StatisticsProvider,
-               AutoCloseable {
+    implements ConfigurableProgramAnalysis, StatisticsProvider, AutoCloseable {
 
-  @Option(secure=true,
-      description="Cache formulas produced by path formula manager")
+  @Option(secure = true, description = "Cache formulas produced by path formula manager")
   private boolean useCachingPathFormulaManager = true;
 
   private final CongruenceStatistics statistics;
   private final ABECPA<CongruenceState, TemplatePrecision> abeCPA;
   private final Solver solver;
 
-  public CongruenceCPA(Configuration pConfiguration,
-                       LogManager pLogger,
-                       ShutdownNotifier pShutdownNotifier,
-                       CFA pCFA)
+  public CongruenceCPA(
+      Configuration pConfiguration,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCFA)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
 
     FormulaManagerView formulaManager = solver.getFormulaManager();
-    PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
-        formulaManager, pConfiguration, pLogger, pShutdownNotifier, pCFA,
-        AnalysisDirection.FORWARD);
+    PathFormulaManager pathFormulaManager =
+        new PathFormulaManagerImpl(
+            formulaManager,
+            pConfiguration,
+            pLogger,
+            pShutdownNotifier,
+            pCFA,
+            AnalysisDirection.FORWARD);
 
     if (useCachingPathFormulaManager) {
       pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
@@ -78,12 +78,19 @@ public class CongruenceCPA
     TemplateToFormulaConversionManager templateToFormulaConversionManager =
         new TemplateToFormulaConversionManager(pCFA, pLogger);
     statistics = new CongruenceStatistics();
-    CongruenceManager congruenceManager = new CongruenceManager(
-        pConfiguration, solver, templateToFormulaConversionManager,
-        formulaManager, statistics, pathFormulaManager, pLogger, pCFA,
-        pShutdownNotifier);
-    abeCPA = new ABECPA<>(pConfiguration, pLogger, pShutdownNotifier, pCFA,
-        congruenceManager, solver);
+    CongruenceManager congruenceManager =
+        new CongruenceManager(
+            pConfiguration,
+            solver,
+            templateToFormulaConversionManager,
+            formulaManager,
+            statistics,
+            pathFormulaManager,
+            pLogger,
+            pCFA,
+            pShutdownNotifier);
+    abeCPA =
+        new ABECPA<>(pConfiguration, pLogger, pShutdownNotifier, pCFA, congruenceManager, solver);
   }
 
   public static CPAFactory factory() {
@@ -116,14 +123,14 @@ public class CongruenceCPA
   }
 
   @Override
-  public AbstractState getInitialState(
-      CFANode node, StateSpacePartition partition) throws InterruptedException {
+  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
     return abeCPA.getInitialState(node, partition);
   }
 
   @Override
-  public Precision getInitialPrecision(
-      CFANode node, StateSpacePartition partition) throws InterruptedException {
+  public Precision getInitialPrecision(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
     return abeCPA.getInitialPrecision(node, partition);
   }
 

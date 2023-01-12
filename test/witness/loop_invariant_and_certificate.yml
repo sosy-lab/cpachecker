@@ -1,0 +1,57 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: loop_invariant
+  metadata:
+    format_version: 0.1
+    uuid: 91023a0f-9f45-4385-88c4-1152ade45537
+    creation_time: 2021-05-05T15:18:43+02:00
+    producer:
+      name: CPAchecker
+      version: 2.0.1-svn
+      configuration: (Optional) svcomp21--04-kInduction
+      description: (Optional)
+      command_line: (Optional)
+    task:
+      input_files:
+        - multivar_1-1.c
+      input_file_hashes:
+        multivar_1-1.c: 511f45a8d763ef520f6d92e4135c8572805994a66531c6216b17157d0dde2f9c
+      specification: CHECK( init(main()), LTL(G ! call(reach_error())) )
+      data_model: ILP32
+      language: C
+  location:
+    file_name: multivar_1-1.c
+    file_hash: 511f45a8d763ef520f6d92e4135c8572805994a66531c6216b17157d0dde2f9c
+    line: 22
+    column: 0
+    function: main
+  loop_invariant:
+    string: (x >= 1024U) && (x <= 4294967295U) && (y == x)
+    type: assertion
+    format: C
+
+- entry_type: loop_invariant_certificate
+  metadata:
+    format_version: 0.1
+    uuid: 954affa9-32e4-4b35-85ae-888da3a6a53b
+    creation_time: 2021-05-05T15:18:43+02:00
+    producer:
+      name: CPAchecker
+      version: 2.0.1-svn
+      configuration: (Optional) svcomp21--04-kInduction
+      description: (Optional)
+      command_line: (Optional)
+  target:
+    uuid: 91023a0f-9f45-4385-88c4-1152ade45537
+    type: loop_invariant
+    file_hash: XXXf45a8d763ef520f6d92e4135c8572805994a66531c6216b17157d0dde2f9c
+  certification:
+    string: confirmed
+    type: verdict
+    format: confirmed | rejected

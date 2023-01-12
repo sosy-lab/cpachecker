@@ -8,12 +8,33 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes from CPAchecker 2.1.1 to CPAchecker 2.2
+-----------------------------------------------
+* Compatibility with Java 18 on non-UTF-8 machines, e.g., Windows  
+  Java 18 changes how encodings are handled,
+  for full details cf. [JEP 400](https://openjdk.java.net/jeps/400),
+  and some adjustments were necessary in CPAchecker.
+  Note that due to the same change, textual output files of CPAchecker
+  on non-UTF-8 machines will be in the system encoding if Java 17 or older is used
+  and in UTF-8 if Java 18 or newer is used
+  (this behavior is the same for all versions of CPAchecker).
+* CPAchecker 2.2 is the last release that works on Java 11,
+  future versions of CPAchecker will require Java 17 or newer.
+* Detection of Data Races
+  CPAchecker now supports detection of data races in C programs
+  via the new configuration `-dataRaceAnalysis`.
+  A data race is undefined behavior triggered by concurrent,
+  conflicting access to the same memory location, and as such
+  it is desirable to verify the absence of these data races.
+
+
 Changes from CPAchecker 2.1 to CPAchecker 2.1.1
 -----------------------------------------------
 * CPAchecker can be used as abstract model explorer
   and precision refiner for component-based CEGAR
   (cf. "Decomposing Software Verification into Off-the-Shelf Components:
   An Application to CEGAR", Proc. ICSE, 2022, to be released).
+
 
 Changes from CPAchecker 2.0 to CPAchecker 2.1
 ---------------------------------------------

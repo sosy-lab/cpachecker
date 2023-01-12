@@ -70,9 +70,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 
-/**
- * Precision object for template-based analysis.
- */
+/** Precision object for template-based analysis. */
 @Options(prefix = "precision.template", deprecatedPrefix = "cpa.lpi")
 public class TemplatePrecision implements Precision {
 
@@ -81,65 +79,63 @@ public class TemplatePrecision implements Precision {
           .thenComparingInt(t -> t.toString().trim().startsWith("-") ? 1 : 0)
           .thenComparing(Template::toString);
 
-  @Option(secure=true, description="Generate templates from assert statements")
+  @Option(secure = true, description = "Generate templates from assert statements")
   private boolean generateFromAsserts = true;
 
-  @Option(secure=true, description="Generate templates from all program "
-      + "statements")
+  @Option(secure = true, description = "Generate templates from all program " + "statements")
   private boolean generateFromStatements = false;
 
-  @Option(secure=true, description="Maximum size for the generated template")
+  @Option(secure = true, description = "Maximum size for the generated template")
   private int maxExpressionSize = 1;
 
-  @Option(secure=true, description="Perform refinement using enumerative template synthesis.")
+  @Option(secure = true, description = "Perform refinement using enumerative template synthesis.")
   private boolean performEnumerativeRefinement = true;
 
-  @Option(secure=true, description="Generate difference constraints."
-      + "This option is redundant for `maxExpressionSize` >= 2.")
+  @Option(
+      secure = true,
+      description =
+          "Generate difference constraints."
+              + "This option is redundant for `maxExpressionSize` >= 2.")
   private boolean generateDifferences = false;
 
   @Option(secure = true, description = "Allowed coefficients in a template.")
   private ImmutableSet<Rational> allowedCoefficients =
       ImmutableSet.of(Rational.NEG_ONE, Rational.ONE);
 
-  @Option(secure=true,
-    description="Strategy for filtering variables out of templates using "
-        + "liveness")
+  @Option(
+      secure = true,
+      description = "Strategy for filtering variables out of templates using " + "liveness")
   private VarFilteringStrategy varFiltering = VarFilteringStrategy.ALL_LIVE;
 
-  @Option(secure=true,
-      description="Do not generate templates with threshold larger than specified."
-          + " Set to '-1' for no limit.")
+  @Option(
+      secure = true,
+      description =
+          "Do not generate templates with threshold larger than specified."
+              + " Set to '-1' for no limit.")
   private long templateConstantThreshold = 100;
 
-  @Option(secure=true,
-      description="Force the inclusion of function parameters into the "
-          + "generated templates. Required for summaries computation.")
+  @Option(
+      secure = true,
+      description =
+          "Force the inclusion of function parameters into the "
+              + "generated templates. Required for summaries computation.")
   private boolean includeFunctionParameters = false;
-
 
   public enum VarFilteringStrategy {
 
-    /**
-     * Generate only templates from variables contained in the created interpolants.
-     */
+    /** Generate only templates from variables contained in the created interpolants. */
     INTERPOLATION_BASED,
 
     /**
-     * Generate only templates where all variables are alive.
-     * Complete for integers and octagons. Can be extended to more complicated cases using
-     * projection.
+     * Generate only templates where all variables are alive. Complete for integers and octagons.
+     * Can be extended to more complicated cases using projection.
      */
     ALL_LIVE,
 
-    /**
-     * Generate only templates where at least one variable is alive.
-     */
+    /** Generate only templates where at least one variable is alive. */
     ONE_LIVE,
 
-    /**
-     * Generate all templates.
-     */
+    /** Generate all templates. */
     ALL
   }
 
@@ -151,13 +147,10 @@ public class TemplatePrecision implements Precision {
   private final Set<Template> extraTemplates;
   private final Set<Template> generatedTemplates;
 
-  /**
-   * Variables contained in the interpolant.
-   */
+  /** Variables contained in the interpolant. */
   private final Multimap<CFANode, ASimpleDeclaration> varsInInterpolant;
 
-  private final TemplateToFormulaConversionManager
-      templateToFormulaConversionManager;
+  private final TemplateToFormulaConversionManager templateToFormulaConversionManager;
 
   // Temporary variables created by CPAchecker.
   private static final String TMP_VARIABLE = "__CPAchecker_TMP";
@@ -166,10 +159,9 @@ public class TemplatePrecision implements Precision {
   private static final String ASSERT_FUNC_NAME = "assert";
   private static final String ASSERT_H_FUNC_NAME = "__assert_fail";
 
-  /**
-   * Cache of generated templates.
-   */
+  /** Cache of generated templates. */
   private final Map<CFANode, ImmutableList<Template>> cache = new HashMap<>();
+
   private final ImmutableSet<ASimpleDeclaration> allVariables;
 
   /**
@@ -183,7 +175,7 @@ public class TemplatePrecision implements Precision {
       Configuration pConfig,
       CFA pCfa,
       TemplateToFormulaConversionManager pTemplateToFormulaConversionManager)
-        throws InvalidConfigurationException {
+      throws InvalidConfigurationException {
     templateToFormulaConversionManager = pTemplateToFormulaConversionManager;
 
     pConfig.inject(this, TemplatePrecision.class);
@@ -199,8 +191,7 @@ public class TemplatePrecision implements Precision {
     } else {
       extractedFromAssertTemplates = ImmutableSet.of();
     }
-    logger.log(Level.FINE, "Generated from assert templates",
-        extractedFromAssertTemplates);
+    logger.log(Level.FINE, "Generated from assert templates", extractedFromAssertTemplates);
 
     if (generateFromStatements) {
       extractedTemplates = extractTemplates();
@@ -218,9 +209,7 @@ public class TemplatePrecision implements Precision {
       for (FunctionEntryNode node : cfa.getAllFunctionHeads()) {
         CFunctionEntryNode casted = (CFunctionEntryNode) node;
 
-        casted
-            .getFunctionParameters()
-            .stream()
+        casted.getFunctionParameters().stream()
             .map(p -> p.asVariableDeclaration())
             .forEach(qualifiedName -> builder.put(node.getFunctionName(), qualifiedName));
       }
@@ -229,17 +218,14 @@ public class TemplatePrecision implements Precision {
     varsInInterpolant = HashMultimap.create();
   }
 
-  /**
-   * Get templates associated with the given node.
-   */
+  /** Get templates associated with the given node. */
   public ImmutableList<Template> getTemplatesForNode(final CFANode node) {
     if (cache.containsKey(node)) {
       return cache.get(node);
     }
 
     ImmutableSet<CIdExpression> vars =
-        getVarsForNode(node)
-            .stream()
+        getVarsForNode(node).stream()
             .filter(this::shouldProcessVariable)
             .map(d -> new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) d))
             .collect(toImmutableSet());
@@ -271,7 +257,6 @@ public class TemplatePrecision implements Precision {
     return sortedTemplates;
   }
 
-
   /**
    * Generate all linear expressions of size up to {@code maxExpressionSize} with coefficients in
    * {@code allowedCoefficients}, over the given variables.
@@ -288,8 +273,7 @@ public class TemplatePrecision implements Precision {
 
     // As a by-product, produces the expressions of all sizes less than
     // {@code maxExpressionSize} as well.
-    return product
-        .stream()
+    return product.stream()
         .map(HashSet::new)
         .distinct() // Eliminate duplicates, and ensure that all combinations are unique.
         .flatMap(
@@ -304,8 +288,7 @@ public class TemplatePrecision implements Precision {
 
               // Convert to a list of all possible linear expressions.
               Stream<LinearExpression<CIdExpression>> linearExpressions =
-                  Lists.cartesianProduct(out)
-                      .stream()
+                  Lists.cartesianProduct(out).stream()
                       .map(l -> l.stream().reduce(LinearExpression.empty(), LinearExpression::add));
 
               return filterRedundantExpressions(linearExpressions)
@@ -318,8 +301,7 @@ public class TemplatePrecision implements Precision {
   private Stream<Template> generateDifferenceTemplates(Collection<CIdExpression> vars) {
     Collection<LinearExpression<CIdExpression>> varExpression =
         Collections2.transform(vars, LinearExpression::ofVariable);
-    return varExpression
-        .stream()
+    return varExpression.stream()
         .flatMap(v1 -> varExpression.stream().map(v2 -> v1.sub(v2)))
         .filter(this::hasSameType)
         .filter(t -> !t.isEmpty())
@@ -336,12 +318,10 @@ public class TemplatePrecision implements Precision {
         coeff -> coeff.isPresent() && coeff.orElseThrow().compareTo(Rational.ONE) > 0;
     Set<LinearExpression<CIdExpression>> linearExpressions =
         pLinearExpressions.collect(toImmutableSet());
-    return linearExpressions
-        .stream()
+    return linearExpressions.stream()
         .filter(
             l ->
-                linearExpressions
-                    .stream()
+                linearExpressions.stream()
                     .noneMatch(l2 -> l2 != l && existsAndMoreThanOne.test(l2.divide(l))));
   }
 
@@ -350,25 +330,18 @@ public class TemplatePrecision implements Precision {
 
   /** Check whether all variables inside a expression have the same type. */
   private boolean hasSameType(LinearExpression<CIdExpression> expr) {
-    return expr.getMap()
-        .keySet()
-        .stream()
-        .allMatch(
-            x -> BASIC_TYPE_EQUIVALENCE.equivalent(x, expr.iterator().next().getKey()));
+    return expr.getMap().keySet().stream()
+        .allMatch(x -> BASIC_TYPE_EQUIVALENCE.equivalent(x, expr.iterator().next().getKey()));
   }
 
-  /**
-   * Ignore temporary variables and pointers.
-   */
+  /** Ignore temporary variables and pointers. */
   private boolean shouldProcessVariable(ASimpleDeclaration var) {
     return !var.getQualifiedName().contains(TMP_VARIABLE)
         && var.getType() instanceof CSimpleType
         && !var.getType().toString().contains("*");
   }
 
-  /**
-   * Generate templates from the calls to assert() functions.
-   */
+  /** Generate templates from the calls to assert() functions. */
   private Set<Template> templatesFromAsserts() {
     Set<Template> templates = new HashSet<>();
 
@@ -379,8 +352,7 @@ public class TemplatePrecision implements Precision {
 
         // todo: use the automaton instead to derive the error conditions,
         // do not hardcode the function names.
-        if (statement.contains(ASSERT_H_FUNC_NAME)
-            && edge instanceof CStatementEdge) {
+        if (statement.contains(ASSERT_H_FUNC_NAME) && edge instanceof CStatementEdge) {
 
           for (CFAEdge enteringEdge : CFAUtils.enteringEdges(node)) {
             if (enteringEdge instanceof CAssumeEdge) {
@@ -391,8 +363,7 @@ public class TemplatePrecision implements Precision {
             }
           }
 
-        } else if (statement.contains(ASSERT_FUNC_NAME) &&
-            edge instanceof CFunctionCallEdge) {
+        } else if (statement.contains(ASSERT_FUNC_NAME) && edge instanceof CFunctionCallEdge) {
 
           CFunctionCallEdge callEdge = (CFunctionCallEdge) edge;
           if (callEdge.getArguments().isEmpty()) {
@@ -426,8 +397,8 @@ public class TemplatePrecision implements Precision {
     LiveVariables liveVariables = cfa.getLiveVariables().orElseThrow();
     for (Entry<CIdExpression, Rational> e : t.getLinearExpression()) {
       CIdExpression id = e.getKey();
-      if (varFiltering == VarFilteringStrategy.ONE_LIVE &&
-          !liveVariables.isVariableLive(id.getDeclaration(), node)) {
+      if (varFiltering == VarFilteringStrategy.ONE_LIVE
+          && !liveVariables.isVariableLive(id.getDeclaration(), node)) {
         return true;
       }
       if (varFiltering == VarFilteringStrategy.ALL_LIVE
@@ -442,8 +413,7 @@ public class TemplatePrecision implements Precision {
   }
 
   private ImmutableSet<Template> extractTemplates() {
-    return cfa.getAllNodes()
-        .stream()
+    return cfa.getAllNodes().stream()
         .flatMap(node -> CFAUtils.allEnteringEdges(node).stream())
         .flatMap(edge -> extractTemplatesFromEdge(edge).stream())
         .filter(t -> t.size() >= 1)
@@ -480,12 +450,10 @@ public class TemplatePrecision implements Precision {
       return expressionToTemplate(((CExpressionStatement) statement).getExpression());
     } else if (statement instanceof CExpressionAssignmentStatement) {
       Set<LinearExpression<CIdExpression>> out = new HashSet<>();
-      CExpressionAssignmentStatement assignment =
-          (CExpressionAssignmentStatement)statement;
-      CLeftHandSide lhs =
-          assignment.getLeftHandSide();
+      CExpressionAssignmentStatement assignment = (CExpressionAssignmentStatement) statement;
+      CLeftHandSide lhs = assignment.getLeftHandSide();
       if (lhs instanceof CIdExpression) {
-        CIdExpression id = (CIdExpression)lhs;
+        CIdExpression id = (CIdExpression) lhs;
         out.addAll(expressionToTemplate(assignment.getRightHandSide()));
         if (!shouldProcessVariable(id.getDeclaration())) {
           return out;
@@ -514,7 +482,7 @@ public class TemplatePrecision implements Precision {
   private Optional<LinearExpression<CIdExpression>> recExpressionToTemplate(
       CExpression expression) {
     if (expression instanceof CBinaryExpression) {
-      CBinaryExpression binaryExpression = (CBinaryExpression)expression;
+      CBinaryExpression binaryExpression = (CBinaryExpression) expression;
       CExpression operand1 = binaryExpression.getOperand1();
       CExpression operand2 = binaryExpression.getOperand2();
 
@@ -523,16 +491,13 @@ public class TemplatePrecision implements Precision {
       Optional<LinearExpression<CIdExpression>> templateB = recExpressionToTemplate(operand2);
 
       // Special handling for constants and multiplication.
-      if (operator == BinaryOperator.MULTIPLY
-          && (templateA.isPresent() || templateB.isPresent())) {
+      if (operator == BinaryOperator.MULTIPLY && (templateA.isPresent() || templateB.isPresent())) {
 
-        if (operand1 instanceof CIntegerLiteralExpression
-            && templateB.isPresent()) {
+        if (operand1 instanceof CIntegerLiteralExpression && templateB.isPresent()) {
 
           return Optional.of(
               useCoeff((CIntegerLiteralExpression) operand1, templateB.orElseThrow()));
-        } else if (operand2 instanceof CIntegerLiteralExpression
-            && templateA.isPresent()) {
+        } else if (operand2 instanceof CIntegerLiteralExpression && templateA.isPresent()) {
 
           return Optional.of(
               useCoeff((CIntegerLiteralExpression) operand2, templateA.orElseThrow()));
@@ -542,7 +507,8 @@ public class TemplatePrecision implements Precision {
       }
 
       // Otherwise just add/subtract templates.
-      if (templateA.isPresent() && templateB.isPresent()
+      if (templateA.isPresent()
+          && templateB.isPresent()
           && binaryExpression.getCalculationType() instanceof CSimpleType) {
         LinearExpression<CIdExpression> a = templateA.orElseThrow();
         LinearExpression<CIdExpression> b = templateB.orElseThrow();
@@ -564,7 +530,7 @@ public class TemplatePrecision implements Precision {
       return Optional.of(LinearExpression.empty());
     } else if (expression instanceof CIdExpression
         && expression.getExpressionType() instanceof CSimpleType) {
-      CIdExpression idExpression = (CIdExpression)expression;
+      CIdExpression idExpression = (CIdExpression) expression;
       return Optional.of(LinearExpression.ofVariable(idExpression));
     } else {
       return Optional.empty();
@@ -604,8 +570,8 @@ public class TemplatePrecision implements Precision {
   }
 
   /**
-   * Generate a new set of templates for each location subject to a higher precision.
-   * Invalidates the cache of already generated templates.
+   * Generate a new set of templates for each location subject to a higher precision. Invalidates
+   * the cache of already generated templates.
    *
    * @return Whether the number of templates was changed.
    */
@@ -616,7 +582,8 @@ public class TemplatePrecision implements Precision {
     }
     try {
       if (changed) {
-        logger.log(Level.INFO,
+        logger.log(
+            Level.INFO,
             "Template Refinement: using templates generated with convex hull",
             generatedTemplates);
         generatedTemplates.clear();
@@ -624,8 +591,9 @@ public class TemplatePrecision implements Precision {
       }
 
       if (!generateFromStatements) {
-        logger.log(Level.INFO, "Template Refinement: Generating templates from all program "
-            + "statements.");
+        logger.log(
+            Level.INFO,
+            "Template Refinement: Generating templates from all program " + "statements.");
         generateFromStatements = true;
         extractedTemplates = extractTemplates();
         return true;
@@ -640,18 +608,14 @@ public class TemplatePrecision implements Precision {
         maxExpressionSize = 2;
         return true;
       }
-      if (maxExpressionSize == 2
-          && !allowedCoefficients.contains(Rational.ofLong(2))) {
-        logger.log(Level.INFO, "Template Refinement: increasing the "
-            + "coefficient size to 2");
+      if (maxExpressionSize == 2 && !allowedCoefficients.contains(Rational.ofLong(2))) {
+        logger.log(Level.INFO, "Template Refinement: increasing the " + "coefficient size to 2");
         allowedCoefficients =
             from(allowedCoefficients).append(Rational.ofLong(2), Rational.ofLong(-2)).toSet();
         return true;
       }
-      if (maxExpressionSize == 2
-          && allowedCoefficients.contains(Rational.ofLong(2))) {
-        logger.log(Level.INFO, "Template Refinement: increasing the "
-            + "expression size to 3");
+      if (maxExpressionSize == 2 && allowedCoefficients.contains(Rational.ofLong(2))) {
+        logger.log(Level.INFO, "Template Refinement: increasing the " + "expression size to 3");
         maxExpressionSize = 3;
         return true;
       }
@@ -663,8 +627,7 @@ public class TemplatePrecision implements Precision {
   }
 
   /**
-   * Add template {@code t} to a set {@code extraTemplates}.
-   * Ignore the template if it is not valid.
+   * Add template {@code t} to a set {@code extraTemplates}. Ignore the template if it is not valid.
    *
    * @return Whether the template was added.
    */
@@ -689,7 +652,6 @@ public class TemplatePrecision implements Precision {
     }
     return true;
   }
-
 
   private Collection<ASimpleDeclaration> getVarsForNode(CFANode node) {
     if (varFiltering == VarFilteringStrategy.ALL_LIVE) {

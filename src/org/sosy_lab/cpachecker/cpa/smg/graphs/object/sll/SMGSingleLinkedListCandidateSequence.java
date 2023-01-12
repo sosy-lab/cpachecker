@@ -27,10 +27,14 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPathCollector;
 
-public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandidateSequence<SMGSingleLinkedListCandidate> {
+public class SMGSingleLinkedListCandidateSequence
+    extends SMGAbstractListCandidateSequence<SMGSingleLinkedListCandidate> {
 
-  public SMGSingleLinkedListCandidateSequence(SMGSingleLinkedListCandidate pCandidate,
-      int pLength, SMGJoinStatus pSmgJoinStatus, boolean pIncludesSll) {
+  public SMGSingleLinkedListCandidateSequence(
+      SMGSingleLinkedListCandidate pCandidate,
+      int pLength,
+      SMGJoinStatus pSmgJoinStatus,
+      boolean pIncludesSll) {
     super(pCandidate, pLength, pSmgJoinStatus, pIncludesSll);
   }
 
@@ -42,7 +46,7 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
     pSmgState.pruneUnreachable();
 
     // Abstraction not reachable
-    if(!pSMG.getHeapObjects().contains(prevObject)) {
+    if (!pSMG.getHeapObjects().contains(prevObject)) {
       return pSMG;
     }
 
@@ -73,7 +77,7 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
       SMGJoinSubSMGsForAbstraction join =
           new SMGJoinSubSMGsForAbstraction(pSMG, prevObject, nextObject, candidate, pSmgState);
 
-      if(!join.isDefined()) {
+      if (!join.isDefined()) {
         throw new AssertionError(
             "Unexpected join failure while abstracting longest mergeable sequence");
       }
@@ -84,8 +88,9 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
         pSMG.removePointsToEdge(pte.getValue());
 
         if (pte.getTargetSpecifier() == SMGTargetSpecifier.ALL) {
-          SMGEdgePointsTo newPte = new SMGEdgePointsTo(pte.getValue(), newAbsObj, pte.getOffset(),
-              SMGTargetSpecifier.ALL);
+          SMGEdgePointsTo newPte =
+              new SMGEdgePointsTo(
+                  pte.getValue(), newAbsObj, pte.getOffset(), SMGTargetSpecifier.ALL);
           pSMG.addPointsToEdge(newPte);
         }
       }
@@ -140,7 +145,7 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
     Map<SMGObject, SMGMemoryPath> map =
         new SMGMemoryPathCollector(pSmgState.getHeap()).getHeapObjectMemoryPaths();
     SMGMemoryPath pPointerToStartObject = map.get(candidate.getStartObject());
-    return new SMGSingleLinkedListCandidateSequenceBlock(candidate.getShape(), length,
-        pPointerToStartObject);
+    return new SMGSingleLinkedListCandidateSequenceBlock(
+        candidate.getShape(), length, pPointerToStartObject);
   }
 }

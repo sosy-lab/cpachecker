@@ -11,9 +11,7 @@ package org.sosy_lab.cpachecker.cfa.blocks;
 import com.google.common.base.CharMatcher;
 import java.util.Set;
 
-/**
- * Represents a reference to a variable in the CFA.
- */
+/** Represents a reference to a variable in the CFA. */
 public class ReferencedVariable {
   private final String ident;
   private final boolean occursInCondition;
@@ -21,11 +19,12 @@ public class ReferencedVariable {
   // This set contains all variables,that are used in assignment of this variable.
   // Example: influencingVariables of "a" are "b" and "c" from "a=b+c;"
   // The Set can be empty, if the variable is not assigned (in the current BAM-block).
-  // Set is not included in equals and hashcode, because it can be changed later and may contain circular references.
+  // Set is not included in equals and hashcode, because it can be changed later and may contain
+  // circular references.
   private final Set<ReferencedVariable> influencingVariables;
 
-  public ReferencedVariable(String pIdent, boolean pOccursInCondition,
-      Set<ReferencedVariable> pInfluencingByVariables) {
+  public ReferencedVariable(
+      String pIdent, boolean pOccursInCondition, Set<ReferencedVariable> pInfluencingByVariables) {
     ident =
         CharMatcher.whitespace()
             .removeFrom(pIdent); // mimic behavior of CtoFormulaConverter.exprToVarName
@@ -51,13 +50,13 @@ public class ReferencedVariable {
       return false;
     }
 
-    ReferencedVariable rhs = (ReferencedVariable)o;
+    ReferencedVariable rhs = (ReferencedVariable) o;
     return ident.equals(rhs.ident) && occursInCondition == rhs.occursInCondition;
   }
 
   @Override
   public int hashCode() {
-    return ident.hashCode() + (occursInCondition?7:0);
+    return ident.hashCode() + (occursInCondition ? 7 : 0);
   }
 
   @Override

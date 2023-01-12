@@ -182,6 +182,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
           "Requires alias handling:                       " + (requiresAliasHandling ? 1 : 0));
       out.println(
           "Requires loop handling:                        " + (requiresLoopHandling ? 1 : 0));
+      out.println("Has a single loop:                             " + (hasSingleLoop ? 1 : 0));
       out.println(
           "Requires composite-type handling:              "
               + (requiresCompositeTypeHandling ? 1 : 0));
@@ -212,10 +213,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path preAnalysisAlgorithmConfig = null;
 
-  @Option(
-    secure = true,
-    description = "Configuration for programs containing recursion."
-  )
+  @Option(secure = true, description = "Configuration for programs containing recursion.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path recursionConfig;
 

@@ -16,7 +16,8 @@ public class CReturnStatement extends AbstractReturnStatement implements CAstNod
 
   private static final long serialVersionUID = -7428161836121584760L;
 
-  public CReturnStatement(final FileLocation pFileLocation,
+  public CReturnStatement(
+      final FileLocation pFileLocation,
       final Optional<CExpression> pExpression,
       final Optional<CAssignment> pAssignment) {
     super(pFileLocation, pExpression, pAssignment);
@@ -36,7 +37,7 @@ public class CReturnStatement extends AbstractReturnStatement implements CAstNod
   @Override
   @SuppressWarnings("unchecked") // safe because Optional is covariant
   public Optional<CAssignment> asAssignment() {
-    return (Optional<CAssignment>)super.asAssignment();
+    return (Optional<CAssignment>) super.asAssignment();
   }
 
   @Override

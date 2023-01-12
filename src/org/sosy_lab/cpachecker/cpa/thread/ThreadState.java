@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.cpa.thread;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Comparators;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import java.util.Iterator;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -40,18 +42,23 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
 
     @Override
     public boolean isCompatibleWith(CompatibleState state) {
-      return !Objects.equals(this.getThreadSet(), ((ThreadState) state).getThreadSet());
+      return !Objects.equals(getThreadSet(), ((ThreadState) state).getThreadSet());
     }
 
     @Override
     public ThreadState prepareToStore() {
-      return new SimpleThreadState(this.getThreadSet(), ImmutableMap.of(), ImmutableList.of());
+      return new SimpleThreadState(getThreadSet(), ImmutableMap.of(), ImmutableList.of());
     }
 
     public static ThreadState emptyState() {
       return new SimpleThreadState(ImmutableMap.of(), ImmutableMap.of(), ImmutableList.of());
     }
   }
+
+  private static final Comparator<Iterable<Map.Entry<String, ThreadStatus>>> THREAD_SET_COMPARATOR =
+      Comparators.lexicographical(
+          Map.Entry.<String, ThreadStatus>comparingByKey()
+              .thenComparing(Map.Entry.comparingByValue()));
 
   private final Map<String, ThreadStatus> threadSet;
   // The removedSet is useless now, but it will be used in future in more complicated cases
@@ -80,8 +87,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     if (this == obj) {
       return true;
     }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     ThreadState other = (ThreadState) obj;
@@ -92,32 +98,10 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
   @Override
   public int compareTo(CompatibleState pOther) {
     ThreadState other = (ThreadState) pOther;
-    int result = other.threadSet.size() - this.threadSet.size(); // decreasing queue
-
-    if (result != 0) {
-      return result;
-    }
-
-    Iterator<Entry<String, ThreadStatus>> thisIterator = this.threadSet.entrySet().iterator();
-    Iterator<Entry<String, ThreadStatus>> otherIterator = other.threadSet.entrySet().iterator();
-
-    while (thisIterator.hasNext() && otherIterator.hasNext()) {
-      Entry<String, ThreadStatus> thisEntry = thisIterator.next();
-      Entry<String, ThreadStatus> otherEntry = otherIterator.next();
-      String thisLabel = thisEntry.getKey();
-      String otherLabel = otherEntry.getKey();
-      result = thisLabel.compareTo(otherLabel);
-      if (result != 0) {
-        return result;
-      }
-      ThreadStatus thisStatus = this.threadSet.get(thisLabel);
-      ThreadStatus otherStatus = other.threadSet.get(otherLabel);
-      result = thisStatus.compareTo(otherStatus);
-      if (result != 0) {
-        return result;
-      }
-    }
-    return 0;
+    return ComparisonChain.start()
+        .compare(other.threadSet.size(), threadSet.size()) // decreasing queue
+        .compare(threadSet.entrySet(), other.threadSet.entrySet(), THREAD_SET_COMPARATOR)
+        .result();
   }
 
   @Override
@@ -144,7 +128,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
 
   @Override
   public ThreadState prepareToStore() {
-    return new ThreadState(this.threadSet, ImmutableMap.of(), ImmutableList.of());
+    return new ThreadState(threadSet, ImmutableMap.of(), ImmutableList.of());
   }
 
   public static ThreadState emptyState() {
@@ -163,7 +147,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
 
   @Override
   public boolean cover(CompatibleNode pNode) {
-    return ((ThreadState)pNode).isLessOrEqual(this);
+    return ((ThreadState) pNode).isLessOrEqual(this);
   }
 
   @Override
@@ -173,8 +157,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
 
   @Override
   public boolean isLessOrEqual(ThreadState pOther) {
-    boolean b =
-        Objects.equals(removedSet, pOther.removedSet);
+    boolean b = Objects.equals(removedSet, pOther.removedSet);
     if (b && pOther.threadSet == threadSet) {
       return true;
     }

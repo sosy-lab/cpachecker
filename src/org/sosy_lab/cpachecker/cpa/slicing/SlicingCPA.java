@@ -72,10 +72,7 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
   private StopOperator stopOperator;
   private PrecisionAdjustment precisionAdjustment;
 
-
-  /**
-   * Returns the factory for creating this CPA.
-   */
+  /** Returns the factory for creating this CPA. */
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(SlicingCPA.class);
   }
@@ -87,7 +84,7 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
       final Configuration pConfig,
       final CFA pCfa,
       final Specification pSpec)
-      throws CPAException, InvalidConfigurationException {
+      throws CPAException, InvalidConfigurationException, InterruptedException {
     super(pCpa);
     pConfig.inject(this);
 
@@ -127,14 +124,14 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
   }
 
   @Override
-  public AbstractState getInitialState(
-      CFANode node, StateSpacePartition partition) throws InterruptedException {
+  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
     return super.getInitialState(node, partition);
   }
 
   @Override
-  public Precision getInitialPrecision(
-      CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
     Precision wrappedPrec = getWrappedCpa().getInitialPrecision(pNode, pPartition);
 
     ImmutableSet<CFAEdge> relevantEdges;

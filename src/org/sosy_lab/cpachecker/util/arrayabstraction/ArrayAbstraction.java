@@ -22,13 +22,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CfaMutableNetwork;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -37,6 +38,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.FlexCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -47,6 +50,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.LoopStructurePostProcessor;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.ReversePostorderPostProcessor;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.VariableClassificationPostProcessor;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaFactory;
+import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaEdgeTransformer;
+import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaFactory;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -88,7 +97,7 @@ public class ArrayAbstraction {
   }
 
   private static ImmutableSet<CFAEdge> getTransformableEdges(
-      CfaMutableNetwork pGraph, TransformableLoop pLoop) {
+      CfaNetwork pGraph, TransformableLoop pLoop) {
 
     ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
 
@@ -187,7 +196,7 @@ public class ArrayAbstraction {
   // Assumptions are used to prevent analyses from skipping some loops by letting these conditions
   // fail which can cause invalid analyses results.
   private static ImmutableMap<TransformableArray, CExpression> insertTransformableArrayAssumes(
-      CfaMutableNetwork pGraph,
+      FlexCfaNetwork pGraph,
       ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
       TransformableLoop pLoop,
       ImmutableSet<TransformableArray> pLoopTransformableArrays,
@@ -247,13 +256,13 @@ public class ArrayAbstraction {
     for (CExpression condition : conditions) {
 
       CAssumeEdge enterBodyEdge = createAssumeEdge(function, condition, true);
-      pGraph.insertSuccessor(pLoopBodyEntryNode, new CFANode(function), enterBodyEdge);
+      pGraph.insertSuccessor(pLoopBodyEntryNode, enterBodyEdge, new CFANode(function));
 
       CAssumeEdge falseEdge = createAssumeEdge(function, condition, false);
       pGraph.addEdge(pLoopBodyEntryNode, new CFATerminationNode(function), falseEdge);
     }
 
-    return arrayPreciseSubscriptExpressionBuilder.build();
+    return arrayPreciseSubscriptExpressionBuilder.buildOrThrow();
   }
 
   // Is this loop even transformable? Yes -> Status.PRECISE, No -> Status.UNCHANGED
@@ -309,7 +318,7 @@ public class ArrayAbstraction {
   }
 
   private static void insertLoopConditions(
-      CfaMutableNetwork pGraph,
+      FlexCfaNetwork pGraph,
       ImmutableSet<TransformableArray> pLoopTransformableArrays,
       TransformableLoop pLoop,
       CFANode pBodyEntryNode,
@@ -335,7 +344,7 @@ public class ArrayAbstraction {
             FileLocation.DUMMY,
             new CFANode(function),
             new CFANode(function));
-    pGraph.insertPredecessor(new CFANode(function), pBodyEntryNode, indexInitStatementEdge);
+    pGraph.insertPredecessor(new CFANode(function), indexInitStatementEdge, pBodyEntryNode);
 
     List<CExpression> conditions = new ArrayList<>();
     CExpression indexStartValueExpression =
@@ -389,7 +398,7 @@ public class ArrayAbstraction {
     for (CExpression condition : conditions) {
 
       CAssumeEdge enterBodyEdge = createAssumeEdge(function, condition, true);
-      pGraph.insertSuccessor(pBodyEntryNode, new CFANode(function), enterBodyEdge);
+      pGraph.insertSuccessor(pBodyEntryNode, enterBodyEdge, new CFANode(function));
 
       CAssumeEdge skipBodyEdge = createAssumeEdge(function, condition, false);
       pGraph.addEdge(pBodyEntryNode, pBodyExitNode, skipBodyEdge);
@@ -397,7 +406,7 @@ public class ArrayAbstraction {
   }
 
   private static Status transformLoop(
-      CfaMutableNetwork pGraph,
+      FlexCfaNetwork pGraph,
       ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
       CFA pCfa,
       LogManager pLogger,
@@ -496,7 +505,7 @@ public class ArrayAbstraction {
       builder.put(transformableArray.getArrayDeclaration(), transformableArray);
     }
 
-    return builder.build();
+    return builder.buildOrThrow();
   }
 
   private static ImmutableSet<CFAEdge> createInnerLoopEdgeSet(
@@ -563,7 +572,7 @@ public class ArrayAbstraction {
   }
 
   private static Status transformEdge(
-      CfaMutableNetwork pGraph,
+      FlexCfaNetwork pGraph,
       ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
       CFA pCfa,
       LogManager pLogger,
@@ -653,8 +662,8 @@ public class ArrayAbstraction {
 
           pGraph.insertPredecessor(
               newPredecessor,
-              edgeEndpoints.nodeU(),
-              createAssumeEdge(function, accessCondition, true));
+              createAssumeEdge(function, accessCondition, true),
+              edgeEndpoints.nodeU());
           pGraph.addEdge(
               newPredecessor,
               edgeEndpoints.nodeV(),
@@ -678,19 +687,28 @@ public class ArrayAbstraction {
   }
 
   private static CFA createSimplifiedCfa(
-      Configuration pConfiguration, LogManager pLogger, CFA pCfa) {
+      Configuration pConfiguration,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa) {
 
     CFA fstCfa =
         CfaSimplifications.simplifyArrayAccesses(
-            pConfiguration, pLogger, pCfa, new VariableGenerator("__array_access_variable_"));
+            pConfiguration,
+            pLogger,
+            pShutdownNotifier,
+            pCfa,
+            new VariableGenerator("__array_access_variable_"));
 
-    CFA sndCfa = CfaSimplifications.simplifyIncDecLoopEdges(pConfiguration, pLogger, fstCfa);
+    CFA sndCfa =
+        CfaSimplifications.simplifyIncDecLoopEdges(
+            pConfiguration, pLogger, pShutdownNotifier, fstCfa);
 
     return sndCfa;
   }
 
   private static void transformArrayDeclarations(
-      CfaMutableNetwork pGraph, ImmutableSet<TransformableArray> pTransformableArrays) {
+      FlexCfaNetwork pGraph, ImmutableSet<TransformableArray> pTransformableArrays) {
 
     for (TransformableArray transformableArray : pTransformableArrays) {
 
@@ -705,12 +723,12 @@ public class ArrayAbstraction {
       AFunctionDeclaration function = arrayDeclarationEdgeNodeV.getFunction();
       pGraph.insertPredecessor(
           new CFANode(function),
-          arrayDeclarationEdgeNodeV,
-          transformableArray.getValueDeclarationEdge());
+          transformableArray.getValueDeclarationEdge(),
+          arrayDeclarationEdgeNodeV);
       pGraph.insertPredecessor(
           new CFANode(function),
-          arrayDeclarationEdgeNodeV,
-          transformableArray.getIndexDeclarationEdge());
+          transformableArray.getIndexDeclarationEdge(),
+          arrayDeclarationEdgeNodeV);
 
       CType arrayIndexType = transformableArray.getIndexDeclaration().getType();
       CIdExpression arrayIndexExpression =
@@ -728,8 +746,8 @@ public class ArrayAbstraction {
 
       pGraph.insertSuccessor(
           arrayDeclarationEdgeNodeV,
-          new CFANode(function),
-          createAssumeEdge(function, minIndexCondition, true));
+          createAssumeEdge(function, minIndexCondition, true),
+          new CFANode(function));
       pGraph.addEdge(
           arrayDeclarationEdgeNodeV,
           new CFATerminationNode(function),
@@ -746,8 +764,8 @@ public class ArrayAbstraction {
 
       pGraph.insertSuccessor(
           arrayDeclarationEdgeNodeV,
-          new CFANode(function),
-          createAssumeEdge(function, maxIndexCondition, true));
+          createAssumeEdge(function, maxIndexCondition, true),
+          new CFANode(function));
       pGraph.addEdge(
           arrayDeclarationEdgeNodeV,
           new CFATerminationNode(function),
@@ -756,13 +774,16 @@ public class ArrayAbstraction {
   }
 
   public static ArrayAbstractionResult transformCfa(
-      Configuration pConfiguration, LogManager pLogger, CFA pCfa) {
+      Configuration pConfiguration,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa) {
 
     checkNotNull(pConfiguration);
     checkNotNull(pLogger);
     checkNotNull(pCfa);
 
-    CFA simplifiedCfa = createSimplifiedCfa(pConfiguration, pLogger, pCfa);
+    CFA simplifiedCfa = createSimplifiedCfa(pConfiguration, pLogger, pShutdownNotifier, pCfa);
 
     ImmutableSet<TransformableLoop> transformableLoops =
         findRelevantTransformableLoops(simplifiedCfa, pLogger);
@@ -775,7 +796,7 @@ public class ArrayAbstraction {
       return ArrayAbstractionResult.createUnchanged(pCfa);
     }
 
-    CfaMutableNetwork graph = CfaMutableNetwork.of(simplifiedCfa);
+    FlexCfaNetwork graph = FlexCfaNetwork.copy(simplifiedCfa);
 
     Status status = Status.PRECISE;
 
@@ -833,16 +854,21 @@ public class ArrayAbstraction {
       }
     }
 
+    BiFunction<CFAEdge, CAstNode, CAstNode> edgeAstSubstitution =
+        (edge, originalAstNode) ->
+            originalAstNode.accept(
+                new SubstitutingCAstNodeVisitor(node -> substitution.getSubstitute(edge, node)));
+
+    CfaFactory cfaFactory =
+        CCfaFactory.toUnconnectedFunctions()
+            .transformEdges(CCfaEdgeTransformer.forSubstitutions(edgeAstSubstitution::apply))
+            .executePostProcessor(new ReversePostorderPostProcessor())
+            .executePostProcessor(new LoopStructurePostProcessor())
+            .toSupergraph()
+            .executePostProcessor(new VariableClassificationPostProcessor(pConfiguration));
+
     CFA transformedCfa =
-        CCfaTransformer.createCfa(
-            pConfiguration,
-            pLogger,
-            simplifiedCfa,
-            graph,
-            (edge, originalAstNode) ->
-                originalAstNode.accept(
-                    new SubstitutingCAstNodeVisitor(
-                        node -> substitution.getSubstitute(edge, node))));
+        cfaFactory.createCfa(graph, simplifiedCfa.getMetadata(), pLogger, pShutdownNotifier);
 
     return new ArrayAbstractionResult(
         status, transformedCfa, transformableArrays, transformableLoops);

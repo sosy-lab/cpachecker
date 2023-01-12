@@ -17,14 +17,13 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-
 public class CInitializerList extends AbstractInitializer implements CInitializer, CAstNode {
 
   private static final long serialVersionUID = 6601820489208683306L;
   private final List<CInitializer> initializerList;
 
-  public CInitializerList(final FileLocation pFileLocation,
-                          final List<CInitializer> pInitializerList) {
+  public CInitializerList(
+      final FileLocation pFileLocation, final List<CInitializer> pInitializerList) {
     super(pFileLocation);
     initializerList = ImmutableList.copyOf(pInitializerList);
   }
@@ -60,8 +59,7 @@ public class CInitializerList extends AbstractInitializer implements CInitialize
       return true;
     }
 
-    if (!(obj instanceof CInitializerList)
-        || !super.equals(obj)) {
+    if (!(obj instanceof CInitializerList) || !super.equals(obj)) {
       return false;
     }
 

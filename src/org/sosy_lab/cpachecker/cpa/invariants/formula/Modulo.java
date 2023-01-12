@@ -17,14 +17,13 @@ final class Modulo<ConstantType> extends AbstractBinaryFormula<ConstantType>
     implements NumeralFormula<ConstantType> {
 
   /**
-   * Creates a new modulo formula over the given numerator and denominator
-   * formulae.
+   * Creates a new modulo formula over the given numerator and denominator formulae.
    *
    * @param pNumerator the numerator of the fraction.
    * @param pDenominator the denominator of the fraction.
    */
-  private Modulo(NumeralFormula<ConstantType> pNumerator,
-      NumeralFormula<ConstantType> pDenominator) {
+  private Modulo(
+      NumeralFormula<ConstantType> pNumerator, NumeralFormula<ConstantType> pDenominator) {
     super("%", false, pNumerator, pDenominator);
   }
 
@@ -53,21 +52,20 @@ final class Modulo<ConstantType> extends AbstractBinaryFormula<ConstantType>
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
+      ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
   /**
-   * Gets an invariants formula representing the modulo operation over the
-   * given operands.
+   * Gets an invariants formula representing the modulo operation over the given operands.
    *
    * @param pNumerator the numerator of the fraction.
    * @param pDenominator the denominator of the fraction.
-   * @return an invariants formula representing the modulo operation over the
-   * given operands.
+   * @return an invariants formula representing the modulo operation over the given operands.
    */
-  static <ConstantType> Modulo<ConstantType> of(NumeralFormula<ConstantType> pNumerator, NumeralFormula<ConstantType> pDenominator) {
+  static <ConstantType> Modulo<ConstantType> of(
+      NumeralFormula<ConstantType> pNumerator, NumeralFormula<ConstantType> pDenominator) {
     return new Modulo<>(pNumerator, pDenominator);
   }
-
 }

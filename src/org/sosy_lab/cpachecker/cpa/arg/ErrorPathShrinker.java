@@ -58,11 +58,10 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.Pair;
 
-
-/** The Class ErrorPathShrinker gets an targetPath and creates a new Path,
- * with only the important edges of the Path. The idea behind this Class is,
- * that not every action (CFAEdge) before an error occurs is important for
- * the error, only a few actions (CFAEdges) are important.
+/**
+ * The Class ErrorPathShrinker gets an targetPath and creates a new Path, with only the important
+ * edges of the Path. The idea behind this Class is, that not every action (CFAEdge) before an error
+ * occurs is important for the error, only a few actions (CFAEdges) are important.
  */
 public final class ErrorPathShrinker {
 
@@ -75,29 +74,35 @@ public final class ErrorPathShrinker {
   /** This is the currently handled CFAEdge. */
   private CFAEdge currentCFAEdge;
 
-  /** This is an important Edge constituted from current handled CFA Edge, plus accumulated assumptions*/
+  /**
+   * This is an important Edge constituted from current handled CFA Edge, plus accumulated
+   * assumptions
+   */
   private CFAEdgeWithAssumptions currentCFAEdgeWithAssumptions;
 
   /** This List contains the accumulated assumptions for the current CFAEdge */
   private ImmutableSet.Builder<AExpressionStatement> assumptions;
 
   /** This is only an UtilityClass. */
-  public ErrorPathShrinker() {
-  }
+  public ErrorPathShrinker() {}
 
-  /** The function shrinkErrorPath gets an targetPath and creates a new Path,
-   * with only the important edges of the Path.
+  /**
+   * The function shrinkErrorPath gets an targetPath and creates a new Path, with only the important
+   * edges of the Path.
    *
    * @param pTargetPath the "long" targetPath
-   * @return errorPath the "short" errorPath */
+   * @return errorPath the "short" errorPath
+   */
 
-  //TODO: step 1: CFAEDgewithAssumptions auch durchiterieren wenn nicht null in der gleichen schleife;
-  public ImmutableList<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkErrorPath(ARGPath pTargetPath, CFAPathWithAssumptions pAssumePath) {
+  // TODO: step 1: CFAEDgewithAssumptions auch durchiterieren wenn nicht null in der gleichen
+  // schleife;
+  public ImmutableList<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkErrorPath(
+      ARGPath pTargetPath, CFAPathWithAssumptions pAssumePath) {
     List<CFAEdge> targetPath = pTargetPath.getFullPath();
 
     List<CFAEdgeWithAssumptions> assumePath = null;
     if (pAssumePath != null) {
-      assumePath = pAssumePath.subList(0,targetPath.size());
+      assumePath = pAssumePath.subList(0, targetPath.size());
     }
 
     // create reverse iterator, from lastNode to firstNode
@@ -118,7 +123,6 @@ public final class ErrorPathShrinker {
     // the short Path, the result
     final Deque<Pair<CFAEdgeWithAssumptions, Boolean>> shortErrorPath = new ArrayDeque<>();
 
-
     /* if the ErrorNode is inside of a function, the long path (pTargetPath) is not handled
      * until the StartNode, but only until the functionCall.
      * so update the sets of variables and call the PathHandler again until
@@ -132,7 +136,8 @@ public final class ErrorPathShrinker {
     return ImmutableList.copyOf(shortErrorPath);
   }
 
-  // this function is probably not needed, as the full path is believed to always end in the target state
+  // this function is probably not needed, as the full path is believed to always end in the target
+  // state
   /* This method iterates a path and copies all the edges until
    * the target state into the result.
    *
@@ -165,15 +170,14 @@ public final class ErrorPathShrinker {
           new CFAEdgeWithAssumptions(currentCFAEdge, nextRevAssumEdge.getExpStmts(), "");
     }
 
-
     // add each edge to the shrinkedErrorPath in the first place
-    if(currentCFAEdgeWithAssumptions != null){
-      Pair<CFAEdgeWithAssumptions, Boolean> normalPair = Pair.of(currentCFAEdgeWithAssumptions, Boolean.FALSE);
+    if (currentCFAEdgeWithAssumptions != null) {
+      Pair<CFAEdgeWithAssumptions, Boolean> normalPair =
+          Pair.of(currentCFAEdgeWithAssumptions, Boolean.FALSE);
       shortPath.addFirst(normalPair);
     }
 
     switch (cfaEdge.getEdgeType()) {
-
       case AssumeEdge:
         handleAssumption(((AssumeEdge) cfaEdge).getExpression());
         break;
@@ -196,9 +200,10 @@ public final class ErrorPathShrinker {
     }
   }
 
-  /** This function handles simple edges like Declarations, Statements,
-   * ReturnStatements and BlankEdges.
-   * They have in common, that they all can be part of an MultiEdge. */
+  /**
+   * This function handles simple edges like Declarations, Statements, ReturnStatements and
+   * BlankEdges. They have in common, that they all can be part of an MultiEdge.
+   */
   @SuppressWarnings("unchecked")
   private void handleSimpleEdge(final CFAEdge cfaEdge) {
 
@@ -247,10 +252,12 @@ public final class ErrorPathShrinker {
   }
 
   /** This method makes a recursive call of handlePath(). */
-  private void handleFunctionReturnEdge(FunctionReturnEdge fnkReturnEdge, AFunctionCall expression) {
+  private void handleFunctionReturnEdge(
+      FunctionReturnEdge fnkReturnEdge, AFunctionCall expression) {
 
     if (expression instanceof AFunctionCallAssignmentStatement) {
-      Optional<? extends AVariableDeclaration> returnVar = fnkReturnEdge.getFunctionEntry().getReturnVariable();
+      Optional<? extends AVariableDeclaration> returnVar =
+          fnkReturnEdge.getFunctionEntry().getReturnVariable();
       if (returnVar.isPresent() && isImportant(returnVar.get())) {
         remove(returnVar.get());
         track(returnVar.get().getQualifiedName());
@@ -258,7 +265,9 @@ public final class ErrorPathShrinker {
     }
   }
 
-  private void handleFunctionCallEdge(List<? extends AExpression> arguments, List<? extends AParameterDeclaration> functionParameters) {
+  private void handleFunctionCallEdge(
+      List<? extends AExpression> arguments,
+      List<? extends AParameterDeclaration> functionParameters) {
 
     addCurrentCFAEdgeToShortPath(); // functioncalls are important
     for (int i = 0; i < functionParameters.size(); i++) {
@@ -276,8 +285,9 @@ public final class ErrorPathShrinker {
 
     // expression is an assignment operation, e.g. a = b;
     if (statementExp instanceof AAssignment) {
-      handleAssignmentToVariable(((AAssignment) statementExp).getLeftHandSide(),
-              ((AAssignment) statementExp).getRightHandSide());
+      handleAssignmentToVariable(
+          ((AAssignment) statementExp).getLeftHandSide(),
+          ((AAssignment) statementExp).getRightHandSide());
     }
 
     // ext(); external functioncall
@@ -286,11 +296,14 @@ public final class ErrorPathShrinker {
     }
   }
 
-  /** This method handles the assignment of a variable (a = ?).
+  /**
+   * This method handles the assignment of a variable (a = ?).
    *
    * @param lParam the local name of the variable to assign to
-   * @param rightExp the assigning expression */
-  private void handleAssignmentToVariable(final ALeftHandSide lParam, final ARightHandSide rightExp) {
+   * @param rightExp the assigning expression
+   */
+  private void handleAssignmentToVariable(
+      final ALeftHandSide lParam, final ARightHandSide rightExp) {
 
     // FIRST add edge to the Path, THEN remove lParam from Set
     if (isImportant(lParam)) {
@@ -307,7 +320,7 @@ public final class ErrorPathShrinker {
   /** This method handles variable declarations ("int a;" or "int b=a+123;"). */
   private void handleDeclarationEdge(ADeclaration declaration) {
 
-      /* If the declared variable is important, the edge is important. */
+    /* If the declared variable is important, the edge is important. */
     if (declaration.getName() != null) {
       if (isImportant(declaration)) {
         addCurrentCFAEdgeToShortPath();
@@ -334,10 +347,11 @@ public final class ErrorPathShrinker {
     }
   }
 
-  /** This method handles assumptions (a==b, a<=b, true, etc.).
-   * Assumptions are not handled as important edges, if they are part of a
-   * switchStatement. Otherwise this method only adds all variables in an
-   * assumption (expression) to the important variables. */
+  /**
+   * This method handles assumptions (a==b, a<=b, true, etc.). Assumptions are not handled as
+   * important edges, if they are part of a switchStatement. Otherwise this method only adds all
+   * variables in an assumption (expression) to the important variables.
+   */
   private void handleAssumption(AExpression assumeExp) {
     if (!isSwitchStatement(assumeExp)) {
       addAllVarsInExpToSet(assumeExp);
@@ -345,70 +359,66 @@ public final class ErrorPathShrinker {
     }
   }
 
-  /** This method checks, if the current assumption is part of a
-   * switchStatement. Therefore it compares the current assumption with
-   * the expression of the last added CFAEdge. It can also check similar
-   * assumptions like  "if(x>3) {if(x>4){...}}".
+  /**
+   * This method checks, if the current assumption is part of a switchStatement. Therefore it
+   * compares the current assumption with the expression of the last added CFAEdge. It can also
+   * check similar assumptions like "if(x>3) {if(x>4){...}}".
    *
    * @param assumeExp the current assumption
-   * @return is the assumption part of a switchStatement? */
+   * @return is the assumption part of a switchStatement?
+   */
   private boolean isSwitchStatement(final AExpression assumeExp) {
 
     // path can be empty at the end of a functionCall ("if (a) return b;")
     if (!shortPath.isEmpty() && shortPath.iterator().next().getSecond()) {
       final CFAEdge lastEdge = shortPath.getFirst().getFirst().getCFAEdge();
 
-        //check, if the last edge was an assumption
-        if (assumeExp instanceof ABinaryExpression
-            && lastEdge instanceof AssumeEdge) {
-          final AssumeEdge lastAss = (AssumeEdge) lastEdge;
-          final AExpression lastExp = lastAss.getExpression();
+      // check, if the last edge was an assumption
+      if (assumeExp instanceof ABinaryExpression && lastEdge instanceof AssumeEdge) {
+        final AssumeEdge lastAss = (AssumeEdge) lastEdge;
+        final AExpression lastExp = lastAss.getExpression();
 
-          // check, if the last edge was like "a==b"
-          if (lastExp instanceof ABinaryExpression) {
-            final AExpression currentBinExpOp1 =
-                ((ABinaryExpression) assumeExp).getOperand1();
-            final AExpression lastBinExpOp1 =
-                ((ABinaryExpression) lastExp).getOperand1();
+        // check, if the last edge was like "a==b"
+        if (lastExp instanceof ABinaryExpression) {
+          final AExpression currentBinExpOp1 = ((ABinaryExpression) assumeExp).getOperand1();
+          final AExpression lastBinExpOp1 = ((ABinaryExpression) lastExp).getOperand1();
 
-            // only the first variable of the assignment is checked
-            final boolean isEqualVarName = currentBinExpOp1.toASTString().
-                equals(lastBinExpOp1.toASTString());
+          // only the first variable of the assignment is checked
+          final boolean isEqualVarName =
+              currentBinExpOp1.toASTString().equals(lastBinExpOp1.toASTString());
 
-            // check, if lastEdge is the true-branch of "==" or the false-branch of "!="
-            ABinaryExpression aLastExp = ((ABinaryExpression) lastExp);
-            final boolean isEqualOp;
+          // check, if lastEdge is the true-branch of "==" or the false-branch of "!="
+          ABinaryExpression aLastExp = ((ABinaryExpression) lastExp);
+          final boolean isEqualOp;
 
-            if (aLastExp instanceof CBinaryExpression) {
-              final CBinaryExpression.BinaryOperator op =
-                  (CBinaryExpression.BinaryOperator) aLastExp.getOperator();
-              isEqualOp =
-                  (op == CBinaryExpression.BinaryOperator.EQUALS && lastAss.getTruthAssumption())
-                      || (op == CBinaryExpression.BinaryOperator.NOT_EQUALS && !lastAss
-                      .getTruthAssumption());
+          if (aLastExp instanceof CBinaryExpression) {
+            final CBinaryExpression.BinaryOperator op =
+                (CBinaryExpression.BinaryOperator) aLastExp.getOperator();
+            isEqualOp =
+                (op == CBinaryExpression.BinaryOperator.EQUALS && lastAss.getTruthAssumption())
+                    || (op == CBinaryExpression.BinaryOperator.NOT_EQUALS
+                        && !lastAss.getTruthAssumption());
 
-            } else {
-              final JBinaryExpression.BinaryOperator op =
-                  (JBinaryExpression.BinaryOperator) aLastExp.getOperator();
-              isEqualOp =
-                  (op == JBinaryExpression.BinaryOperator.EQUALS && lastAss.getTruthAssumption())
-                      || (op == JBinaryExpression.BinaryOperator.NOT_EQUALS && !lastAss
-                      .getTruthAssumption());
-
-            }
-            return isEqualVarName && isEqualOp;
+          } else {
+            final JBinaryExpression.BinaryOperator op =
+                (JBinaryExpression.BinaryOperator) aLastExp.getOperator();
+            isEqualOp =
+                (op == JBinaryExpression.BinaryOperator.EQUALS && lastAss.getTruthAssumption())
+                    || (op == JBinaryExpression.BinaryOperator.NOT_EQUALS
+                        && !lastAss.getTruthAssumption());
           }
+          return isEqualVarName && isEqualOp;
         }
       }
+    }
     return false;
   }
 
-
-  /** This method adds all variables in an expression to a Set.
-   * If the expression exist of more than one sub-expressions,
-   * the expression is divided into smaller parts and the method is called
-   * recursively for each part, until there is only one variable or literal.
-   * Literals are not part of important variables.
+  /**
+   * This method adds all variables in an expression to a Set. If the expression exist of more than
+   * one sub-expressions, the expression is divided into smaller parts and the method is called
+   * recursively for each part, until there is only one variable or literal. Literals are not part
+   * of important variables.
    *
    * @param exp the expression to be divided and added
    */
@@ -418,9 +428,9 @@ public final class ErrorPathShrinker {
 
     // exp = 8.2 or "return;" (when exp == null),
     // this does not change the Set importantVars,
-    if (exp instanceof ALiteralExpression ||
-            exp instanceof AFunctionCallExpression ||
-            exp == null) {
+    if (exp instanceof ALiteralExpression
+        || exp instanceof AFunctionCallExpression
+        || exp == null) {
       // do nothing
     }
 
@@ -495,12 +505,13 @@ public final class ErrorPathShrinker {
   /** This method adds the current CFAEdge in front of the shortPath. */
   private void addCurrentCFAEdgeToShortPath() {
 
-    // when an edge is important, remove the identical edge containing the Boolean value "false" and add the edge again with the Boolean value "true"
+    // when an edge is important, remove the identical edge containing the Boolean value "false" and
+    // add the edge again with the Boolean value "true"
     if (shortPath.getFirst().getFirst() == currentCFAEdgeWithAssumptions) {
       shortPath.removeFirst();
     }
 
-    //Add the set of recent assumptions to the important CFAEdgeWithAssumptions
+    // Add the set of recent assumptions to the important CFAEdgeWithAssumptions
     assumptions.addAll(currentCFAEdgeWithAssumptions.getExpStmts());
 
     Pair<CFAEdgeWithAssumptions, Boolean> importantPair =
@@ -516,5 +527,4 @@ public final class ErrorPathShrinker {
 
     shortPath.addFirst(importantPair);
   }
-
 }

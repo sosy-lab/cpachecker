@@ -16,7 +16,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,10 +47,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACheck;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cmdline.CPAMain;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -92,7 +89,8 @@ public class CPAchecker {
     private final ReachedSet reached;
     private final ShutdownManager shutdownManager;
 
-    public CPAcheckerBean(ReachedSet pReached, LogManager logger, ShutdownManager pShutdownManager) {
+    public CPAcheckerBean(
+        ReachedSet pReached, LogManager logger, ShutdownManager pShutdownManager) {
       super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
       reached = pReached;
       shutdownManager = pShutdownManager;
@@ -107,54 +105,39 @@ public class CPAchecker {
     public void stop() {
       shutdownManager.requestShutdown("A stop request was received via the JMX interface.");
     }
-
   }
 
   @Option(
-    secure = true,
-    name = "analysis.stopAfterError",
-    description = "stop after the first error has been found"
-  )
+      secure = true,
+      name = "analysis.stopAfterError",
+      description = "stop after the first error has been found")
   private boolean stopAfterError = true;
 
   public enum InitialStatesFor {
-    /**
-     * Function entry node of the entry function
-     */
+    /** Function entry node of the entry function */
     ENTRY,
 
-    /**
-     * Set of function entry nodes of all functions.
-     */
+    /** Set of function entry nodes of all functions. */
     FUNCTION_ENTRIES,
 
-    /**
-     * All locations that are possible targets of the analysis.
-     */
+    /** All locations that are possible targets of the analysis. */
     TARGET,
 
-    /**
-     * Function exit node of the entry function.
-     */
+    /** Function exit node of the entry function. */
     EXIT,
 
-    /**
-     * All function exit nodes of all functions and all loop heads of endless loops.
-     */
+    /** All function exit nodes of all functions and all loop heads of endless loops. */
     FUNCTION_SINKS,
 
-    /**
-     * All function exit nodes of the entry function, and all loop heads of endless loops.
-     */
+    /** All function exit nodes of the entry function, and all loop heads of endless loops. */
     PROGRAM_SINKS
   }
 
   @Option(
-    secure = true,
-    name = "analysis.initialStatesFor",
-    description = "What CFA nodes should be the starting point of the analysis?"
-  )
-  private Set<InitialStatesFor> initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY);
+      secure = true,
+      name = "analysis.initialStatesFor",
+      description = "What CFA nodes should be the starting point of the analysis?")
+  private Set<InitialStatesFor> initialStatesFor = ImmutableSet.of(InitialStatesFor.ENTRY);
 
   @Option(
       secure = true,
@@ -177,38 +160,34 @@ public class CPAchecker {
   private List<Path> specificationFiles = ImmutableList.of();
 
   @Option(
-    secure = true,
-    name = "backwardSpecification",
-    description =
-        "comma-separated list of files with specifications that should be used "
-            + "\nin a backwards analysis; used if the analysis starts at the target states!"
-            + "\n(see config/specification/ for examples)"
-  )
+      secure = true,
+      name = "backwardSpecification",
+      description =
+          "comma-separated list of files with specifications that should be used "
+              + "\nin a backwards analysis; used if the analysis starts at the target states!"
+              + "\n(see config/specification/ for examples)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> backwardSpecificationFiles = ImmutableList.of();
 
   @Option(
-    secure = true,
-    name = "analysis.serializedCfaFile",
-    description =
-        "if this option is used, the CFA will be loaded from the given file "
-            + "instead of parsed from sourcefile."
-  )
+      secure = true,
+      name = "analysis.serializedCfaFile",
+      description =
+          "if this option is used, the CFA will be loaded from the given file "
+              + "instead of parsed from sourcefile.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path serializedCfaFile = null;
 
   @Option(
-    secure = true,
-    name = "analysis.unknownAsTrue",
-    description = "Do not report unknown if analysis terminated, report true (UNSOUND!)."
-  )
+      secure = true,
+      name = "analysis.unknownAsTrue",
+      description = "Do not report unknown if analysis terminated, report true (UNSOUND!).")
   private boolean unknownAsTrue = false;
 
   @Option(
       secure = true,
       name = "analysis.counterexampleLimit",
-      description = "Maximum number of counterexamples to be created."
-    )
+      description = "Maximum number of counterexamples to be created.")
   private int cexLimit = 0;
 
   private final LogManager logger;
@@ -221,6 +200,7 @@ public class CPAchecker {
   // ant task "init".
   // To change the version, update the property in build.xml.
   private static final String version;
+
   static {
     String v = "(unknown version)";
     try {
@@ -267,9 +247,9 @@ public class CPAchecker {
     StringJoiner joiner = new StringJoiner(" / ");
     joiner.add("CPAchecker " + getPlainVersion());
     String analysisName = getApproachName(pConfig);
-      if (analysisName != null) {
-        joiner.add(analysisName);
-      }
+    if (analysisName != null) {
+      joiner.add(analysisName);
+    }
     return joiner.toString();
   }
 
@@ -422,10 +402,20 @@ public class CPAchecker {
       logger.logUserException(Level.SEVERE, e, "Parsing failed");
       StringBuilder msg = new StringBuilder();
       msg.append("Please make sure that the code can be compiled by a compiler.\n");
-      if (e.getLanguage() == Language.C) {
-        msg.append(
-            "If the code was not preprocessed, please use a C preprocessor\n"
-                + "or specify the -preprocess command-line argument.\n");
+      switch (e.getLanguage()) {
+        case C:
+          msg.append(
+              "If the code was not preprocessed, please use a C preprocessor\n"
+                  + "or specify the -preprocess command-line argument.\n");
+          break;
+        case LLVM:
+          msg.append(
+              "If you want to use the LLVM frontend, please make sure that\n"
+                  + "the code can be compiled by clang or input valid LLVM code.\n");
+          break;
+        default:
+          // do not log additional messages
+          break;
       }
       msg.append(
           "If the error still occurs, please send this error message\n"
@@ -456,7 +446,7 @@ public class CPAchecker {
 
   private CFA parse(List<String> fileNames, MainCPAStatistics stats)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException,
-      ClassNotFoundException {
+          ClassNotFoundException {
 
     final CFA cfa;
     if (serializedCfaFile == null) {
@@ -501,9 +491,9 @@ public class CPAchecker {
     }
   }
 
-  private AlgorithmStatus runAlgorithm(final Algorithm algorithm,
-      final ReachedSet reached,
-      final MainCPAStatistics stats) throws CPAException, InterruptedException {
+  private AlgorithmStatus runAlgorithm(
+      final Algorithm algorithm, final ReachedSet reached, final MainCPAStatistics stats)
+      throws CPAException, InterruptedException {
 
     logger.log(Level.INFO, "Starting analysis ...");
 
@@ -531,7 +521,9 @@ public class CPAchecker {
         // either run only once (if stopAfterError == true)
         // or until the waitlist is empty
         // or until maximum number of counterexamples is reached
-      } while (!stopAfterError && reached.hasWaitingState() && (cexLimit == 0 || cexLimit > counterExampleCount));
+      } while (!stopAfterError
+          && reached.hasWaitingState()
+          && (cexLimit == 0 || cexLimit > counterExampleCount));
 
       logger.log(Level.INFO, "Stopping analysis ...");
       return status;
@@ -567,12 +559,14 @@ public class CPAchecker {
       final Set<? extends CFANode> pLocations,
       final Object pPartitionKey,
       final ReachedSet pReached,
-      final ConfigurableProgramAnalysis pCpa) throws InterruptedException {
+      final ConfigurableProgramAnalysis pCpa)
+      throws InterruptedException {
 
-    for (CFANode loc: pLocations) {
-      StateSpacePartition putIntoPartition = partitionInitialStates
-          ? StateSpacePartition.getPartitionWithKey(pPartitionKey)
-          : StateSpacePartition.getDefaultPartition();
+    for (CFANode loc : pLocations) {
+      StateSpacePartition putIntoPartition =
+          partitionInitialStates
+              ? StateSpacePartition.getPartitionWithKey(pPartitionKey)
+              : StateSpacePartition.getDefaultPartition();
 
       AbstractState initialState = pCpa.getInitialState(loc, putIntoPartition);
       Precision initialPrecision = pCpa.getInitialPrecision(loc, putIntoPartition);
@@ -590,34 +584,42 @@ public class CPAchecker {
 
     logger.log(Level.FINE, "Creating initial reached set");
 
-    for (InitialStatesFor isf: initialStatesFor) {
+    for (InitialStatesFor isf : initialStatesFor) {
       final ImmutableSet<? extends CFANode> initialLocations;
       switch (isf) {
-      case ENTRY:
-        initialLocations = ImmutableSet.of(pAnalysisEntryFunction);
-        break;
-      case EXIT:
-        initialLocations = ImmutableSet.of(pAnalysisEntryFunction.getExitNode());
-        break;
-      case FUNCTION_ENTRIES:
-        initialLocations = ImmutableSet.copyOf(pCfa.getAllFunctionHeads());
-        break;
-      case FUNCTION_SINKS:
+        case ENTRY:
+          initialLocations = ImmutableSet.of(pAnalysisEntryFunction);
+          break;
+        case EXIT:
+          initialLocations = Optionals.asSet(pAnalysisEntryFunction.getExitNode());
+          if (initialLocations.isEmpty()) {
+            logger.logf(
+                Level.SEVERE,
+                "Cannot use exit node of '%s' because it never returns in a normal way"
+                    + " (because, e.g., it always aborts the program or always executes an obvious"
+                    + " infinite loop)",
+                pAnalysisEntryFunction.getFunction().getOrigName());
+          }
+          break;
+        case FUNCTION_ENTRIES:
+          initialLocations = ImmutableSet.copyOf(pCfa.getAllFunctionHeads());
+          break;
+        case FUNCTION_SINKS:
           initialLocations =
               ImmutableSet.<CFANode>builder()
                   .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
                   .addAll(getAllFunctionExitNodes(pCfa))
                   .build();
-        break;
-      case PROGRAM_SINKS:
+          break;
+        case PROGRAM_SINKS:
           initialLocations =
               ImmutableSet.<CFANode>builder()
                   .addAll(
                       CFAUtils.getProgramSinks(
-                          pCfa, pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
+                          pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
                   .build();
 
-        break;
+          break;
         case TARGET:
           TargetLocationProvider tlp =
               new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa);
@@ -625,14 +627,10 @@ public class CPAchecker {
               tlp.tryGetAutomatonTargetLocations(
                   pAnalysisEntryFunction,
                   Specification.fromFiles(
-                      backwardSpecificationFiles,
-                      pCfa,
-                      config,
-                      logger,
-                      shutdownNotifier));
+                      backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
           break;
-      default:
-        throw new AssertionError("Unhandled case statement: " + initialStatesFor);
+        default:
+          throw new AssertionError("Unhandled case statement: " + initialStatesFor);
       }
 
       addToInitialReachedSet(initialLocations, isf, pReached, pCpa);
@@ -648,17 +646,13 @@ public class CPAchecker {
           "Initial reached set has a waitlist of %d states.",
           pReached.getWaitlist().size());
     }
-
   }
 
   private Set<CFANode> getAllFunctionExitNodes(CFA cfa) {
     Set<CFANode> functionExitNodes = new HashSet<>();
 
     for (FunctionEntryNode node : cfa.getAllFunctionHeads()) {
-      FunctionExitNode exitNode = node.getExitNode();
-      if (cfa.getAllNodes().contains(exitNode)) {
-        functionExitNodes.add(exitNode);
-      }
+      node.getExitNode().ifPresent(functionExitNodes::add);
     }
     return functionExitNodes;
   }

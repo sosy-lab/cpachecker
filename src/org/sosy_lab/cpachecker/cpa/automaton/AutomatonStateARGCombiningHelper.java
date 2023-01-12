@@ -47,8 +47,10 @@ public class AutomatonStateARGCombiningHelper {
     return true;
   }
 
-  public AutomatonState replaceStateByStateInAutomatonOfSameInstance(final AutomatonState toReplace) throws CPAException {
-    String qualifiedName = toReplace.getOwningAutomatonName()+"::" +toReplace.getInternalStateName();
+  public AutomatonState replaceStateByStateInAutomatonOfSameInstance(final AutomatonState toReplace)
+      throws CPAException {
+    String qualifiedName =
+        toReplace.getOwningAutomatonName() + "::" + toReplace.getInternalStateName();
 
     if (qualifiedAutomatonStateNameToInternalState.containsKey(qualifiedName)) {
       AutomatonTargetInformation targetInformation = null;

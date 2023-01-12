@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.model.c;
 
 import java.util.List;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -21,21 +22,18 @@ public class CFunctionEntryNode extends FunctionEntryNode {
 
   private static final long serialVersionUID = -730687961628864953L;
 
-  public CFunctionEntryNode(final FileLocation pFileLocation,
+  public CFunctionEntryNode(
+      final FileLocation pFileLocation,
       final CFunctionDeclaration pFunctionDefinition,
-      final FunctionExitNode pExitNode,
+      final @Nullable FunctionExitNode pExitNode,
       final Optional<CVariableDeclaration> pReturnVariable) {
 
-    super(
-        pFileLocation,
-        pExitNode,
-        pFunctionDefinition,
-        pReturnVariable);
+    super(pFileLocation, pExitNode, pFunctionDefinition, pReturnVariable);
   }
 
   @Override
   public CFunctionDeclaration getFunctionDefinition() {
-    return  (CFunctionDeclaration)super.getFunctionDefinition();
+    return (CFunctionDeclaration) super.getFunctionDefinition();
   }
 
   @Override
@@ -46,6 +44,6 @@ public class CFunctionEntryNode extends FunctionEntryNode {
   @SuppressWarnings("unchecked") // safe because Optional is covariant
   @Override
   public Optional<CVariableDeclaration> getReturnVariable() {
-    return (Optional<CVariableDeclaration>)super.getReturnVariable();
+    return (Optional<CVariableDeclaration>) super.getReturnVariable();
   }
 }

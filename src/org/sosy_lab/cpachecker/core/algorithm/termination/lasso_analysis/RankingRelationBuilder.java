@@ -341,22 +341,22 @@ public class RankingRelationBuilder {
   }
 
   /**
-   * Returns the primed and unprimed variable represented as {@link CExpression}s
-   * for a variable of the ranking function.
-   * @param pRankVar
-   *            the variable of the ranking function to get the primed and unprimed variable for
+   * Returns the primed and unprimed variable represented as {@link CExpression}s for a variable of
+   * the ranking function.
+   *
+   * @param pRankVar the variable of the ranking function to get the primed and unprimed variable
+   *     for
    * @param pRelevantVariables all variable declarations of the original program
    * @return a Pair consisting of the primed and unprimed variable
-   * @throws RankingRelationException
-   *          if it is not possible to create a {@link CExpression} from <code>pRankVar</code>code
+   * @throws RankingRelationException if it is not possible to create a {@link CExpression} from
+   *     <code>pRankVar</code>code
    */
   private Pair<CIdExpression, CExpression> getVariable(
       RankVar pRankVar, Set<CVariableDeclaration> pRelevantVariables)
       throws RankingRelationException {
     String variableName = pRankVar.getGloballyUniqueId();
     Optional<CVariableDeclaration> variableDecl =
-        pRelevantVariables
-            .stream()
+        pRelevantVariables.stream()
             .filter(v -> v.getQualifiedName().equals(variableName))
             .findAny();
 

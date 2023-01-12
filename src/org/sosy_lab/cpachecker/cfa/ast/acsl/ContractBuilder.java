@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -26,6 +27,7 @@ public class ContractBuilder {
     completenessClauses = new ArrayList<>();
   }
 
+  @CanIgnoreReturnValue
   public ContractBuilder add(Object o) {
     if (o instanceof RequiresClause) {
       return add((RequiresClause) o);
@@ -40,26 +42,31 @@ public class ContractBuilder {
     }
   }
 
+  @CanIgnoreReturnValue
   public ContractBuilder add(EnsuresClause ens) {
     ensuresClause = ensuresClause.and(ens);
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ContractBuilder add(RequiresClause req) {
     requiresClause = requiresClause.and(req);
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ContractBuilder add(Behavior behavior) {
     behaviors.add(behavior);
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ContractBuilder add(CompletenessClause completenessClause) {
     completenessClauses.add(completenessClause);
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ContractBuilder addAll(Collection<?> clauses) {
     for (Object clause : clauses) {
       add(clause);

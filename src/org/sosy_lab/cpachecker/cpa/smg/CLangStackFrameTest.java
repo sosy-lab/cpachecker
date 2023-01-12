@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
 public class CLangStackFrameTest {
-  static private final MachineModel usedMachineModel = MachineModel.LINUX64;
+  private static final MachineModel usedMachineModel = MachineModel.LINUX64;
   private CLangStackFrame sf;
 
   @SuppressWarnings("unchecked")
@@ -87,7 +87,7 @@ public class CLangStackFrameTest {
     assertThat(objects).hasSize(2);
   }
 
-  //TODO: Test void functions
+  // TODO: Test void functions
   @Test
   public void CLangFrameReturnValueTest() {
     SMGObject retval = sf.getReturnObject();
@@ -95,13 +95,13 @@ public class CLangStackFrameTest {
         .isEqualTo(usedMachineModel.getSizeofInBits(CNumericTypes.UNSIGNED_LONG_INT));
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void CLangStackFrameAddVariableTwiceTest() {
     sf = sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
     sf = sf.addStackVariable("fooVar", new SMGRegion(128, "newFooVarObject"));
   }
 
-  @Test(expected=NoSuchElementException.class)
+  @Test(expected = NoSuchElementException.class)
   public void CLangStackFrameMissingVariableTest() {
     assert_()
         .withMessage("Non-added variable is not present")

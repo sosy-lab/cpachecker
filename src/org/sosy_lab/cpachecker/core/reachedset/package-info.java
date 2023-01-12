@@ -7,8 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * The reached set, which is used to store the found reachable abstract states
- * during the analysis.
+ * The reached set, which is used to store the found reachable abstract states during the analysis.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault

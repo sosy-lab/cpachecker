@@ -12,8 +12,8 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
-public class Variable<ConstantType> extends AbstractFormula<ConstantType> implements NumeralFormula<ConstantType> {
+public class Variable<ConstantType> extends AbstractFormula<ConstantType>
+    implements NumeralFormula<ConstantType> {
 
   private final MemoryLocation memoryLocation;
 
@@ -56,7 +56,8 @@ public class Variable<ConstantType> extends AbstractFormula<ConstantType> implem
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
+      ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -65,7 +66,6 @@ public class Variable<ConstantType> extends AbstractFormula<ConstantType> implem
    *
    * @param pInfo the type information.
    * @param pMemoryLocation the memory location of the variable.
-   *
    * @return an invariants formula representing the variable with the given memory location.
    */
   static <ConstantType> Variable<ConstantType> of(TypeInfo pInfo, MemoryLocation pMemoryLocation) {

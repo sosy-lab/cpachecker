@@ -22,20 +22,19 @@ import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 enum ISIOperatorFactory {
   INSTANCE;
 
-  /**
-   * The addition operator for adding intervals to big integers.
-   */
-  public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getAdd(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  /** The addition operator for adding intervals to big integers. */
+  public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getAdd(
+      final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<>() {
 
       /**
-       * Computes the interval of possible results from adding any value of
-       * this interval to the given value <code>pValue</code>.
+       * Computes the interval of possible results from adding any value of this interval to the
+       * given value <code>pValue</code>.
        *
        * @param pFirstOperand the simple interval to add the big integer value to.
        * @param pSecondOperand the value to add to the values of the first operand interval.
-       * @return the interval of possible results from adding any value of
-       * the first operand interval to the second operand big integer value.
+       * @return the interval of possible results from adding any value of the first operand
+       *     interval to the second operand big integer value.
        */
       @Override
       public BitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pSecondOperand) {
@@ -55,24 +54,19 @@ enum ISIOperatorFactory {
     };
   }
 
-  /**
-   * The multiplication operator for multiplying intervals with big integers.
-   */
-  public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getMultiply(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  /** The multiplication operator for multiplying intervals with big integers. */
+  public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getMultiply(
+      final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<>() {
 
       /**
-       * Calculates a superset of the possible results obtained by multiplying
-       * any value of the first operand interval with the second operand big
-       * integer value.
+       * Calculates a superset of the possible results obtained by multiplying any value of the
+       * first operand interval with the second operand big integer value.
        *
-       * @param pFirstOperand the simple interval to multiply with the second
-       * operand.
-       * @param pSecondOperand the value to multiply the values of the first
-       * operand interval with.
-       * @return a superset of the possible results obtained by multiplying any
-       * value of the first operand interval with the second operand big
-       * integer value.
+       * @param pFirstOperand the simple interval to multiply with the second operand.
+       * @param pSecondOperand the value to multiply the values of the first operand interval with.
+       * @return a superset of the possible results obtained by multiplying any value of the first
+       *     operand interval with the second operand big integer value.
        */
       @Override
       public BitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pSecondOperand) {
@@ -124,27 +118,23 @@ enum ISIOperatorFactory {
     };
   }
 
-  /**
-   * The division operator for dividing intervals by big integers.
-   */
-  public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getDivide(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  /** The division operator for dividing intervals by big integers. */
+  public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getDivide(
+      final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<>() {
 
       /**
-       * Calculates a superset of the possible results from dividing any
-       * value of the first operand interval by the second operand big
-       * integer.
+       * Calculates a superset of the possible results from dividing any value of the first operand
+       * interval by the second operand big integer.
        *
-       * This will return <code>null</code> iff the second operand is zero.
+       * <p>This will return <code>null</code> iff the second operand is zero.
        *
-       * @param pFirstOperand the interval of values to divide by the
-       * second operand big integer value.
+       * @param pFirstOperand the interval of values to divide by the second operand big integer
+       *     value.
        * @param pSecondOperand the value to divide the values of this range by.
-       *
-       * @return a superset of the possible results from dividing
-       * any value of the first operand interval by the given second
-       * operand big integer or <code>null</code> if
-       * <code>pSecondOperand</code> is zero.
+       * @return a superset of the possible results from dividing any value of the first operand
+       *     interval by the given second operand big integer or <code>null</code> if <code>
+       *     pSecondOperand</code> is zero.
        */
       @Override
       public @Nullable BitVectorInterval apply(
@@ -183,38 +173,30 @@ enum ISIOperatorFactory {
     };
   }
 
-  /**
-   * The modulo operator for computing the remainder of dividing intervals
-   * by big integers.
-   */
-  public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getModulo(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  /** The modulo operator for computing the remainder of dividing intervals by big integers. */
+  public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getModulo(
+      final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<>() {
 
       /**
-       * Computes a superset of the possible values resulting from calculating
-       * for any value <code>a</code> of the first operand interval and the
-       * second operand big integer value <code>pSecondOperand</code> the
-       * operation <code>a%pSecondOperand</code>.
+       * Computes a superset of the possible values resulting from calculating for any value <code>a
+       * </code> of the first operand interval and the second operand big integer value <code>
+       * pSecondOperand</code> the operation <code>a%pSecondOperand</code>.
        *
-       * However, if the second operand (the divisor) is zero, such a superset
-       * cannot be calculated because division by zero is undefined and
-       * therefore the same applies to the modulo operation; in such a case
-       * this function will return <code>null</code>.
+       * <p>However, if the second operand (the divisor) is zero, such a superset cannot be
+       * calculated because division by zero is undefined and therefore the same applies to the
+       * modulo operation; in such a case this function will return <code>null</code>.
        *
-       * This implementation will round towards zero and the
-       * sign of the result will only depend on the sign of the first operand
-       * interval values, not on the sign of the second operand (the divisor), which means that
-       * only the absolute value of the divisor is used. This is also the usual
-       * behavior in C on modern machines.
+       * <p>This implementation will round towards zero and the sign of the result will only depend
+       * on the sign of the first operand interval values, not on the sign of the second operand
+       * (the divisor), which means that only the absolute value of the divisor is used. This is
+       * also the usual behavior in C on modern machines.
        *
-       * @param pFirstOperand the interval of values to be divided by the
-       * second operand.
+       * @param pFirstOperand the interval of values to be divided by the second operand.
        * @param pSecondOperand the modulo divisor.
-       *
-       * @return a superset of the possible results from calculating the modulo
-       * operation between any value of the first operand interval as numerators
-       * and the second operand big integer value as divisor or
-       * <code>null</code> if the given divisor is zero.
+       * @return a superset of the possible results from calculating the modulo operation between
+       *     any value of the first operand interval as numerators and the second operand big
+       *     integer value as divisor or <code>null</code> if the given divisor is zero.
        */
       @Override
       public BitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pSecondOperand) {
@@ -234,8 +216,7 @@ enum ISIOperatorFactory {
           if (pSecondOperand.equals(pFirstOperand.getTypeInfo().getMinValue())) {
             if (pFirstOperand.contains(pSecondOperand)) {
               return BitVectorInterval.span(
-                  pFirstOperand,
-                  BitVectorInterval.singleton(typeInfo, BigInteger.ZERO));
+                  pFirstOperand, BitVectorInterval.singleton(typeInfo, BigInteger.ZERO));
             }
             return pFirstOperand;
           }
@@ -262,10 +243,10 @@ enum ISIOperatorFactory {
         if (pFirstOperand.contains(typeInfo.getMinValue())) {
           BigInteger minValue = typeInfo.getMinValue();
           BigInteger minValueRemainder = minValue.remainder(pSecondOperand);
-          BitVectorInterval rest = BitVectorInterval
-              .singleton(typeInfo, minValue.add(BigInteger.ONE))
-              .extendToMaxValue()
-              .intersectWith(pFirstOperand);
+          BitVectorInterval rest =
+              BitVectorInterval.singleton(typeInfo, minValue.add(BigInteger.ONE))
+                  .extendToMaxValue()
+                  .intersectWith(pFirstOperand);
           return BitVectorInterval.span(
               BitVectorInterval.singleton(typeInfo, minValueRemainder),
               apply(rest, pSecondOperand));
@@ -402,25 +383,20 @@ enum ISIOperatorFactory {
     };
   }
 
-  /**
-   * The left shift operator for left shifting a simple interval by a big
-   * integer value.
-   */
-  public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getShiftLeft(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  /** The left shift operator for left shifting a simple interval by a big integer value. */
+  public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getShiftLeft(
+      final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<>() {
 
       /**
-       * Computes an interval representing a superset of the possible values of
-       * left-shifting any value contained in the first operand interval by the
-       * second operand big integer value.
+       * Computes an interval representing a superset of the possible values of left-shifting any
+       * value contained in the first operand interval by the second operand big integer value.
        *
-       * @param pFirstOperand the interval to shift by the second operand big
-       * integer value.
-       * @param pSecondOperand the second interval big integer value to shift
-       * the values of the first operand interval by.
-       * @return an interval representing a superset of the possible values of
-       * left-shifting any value contained in the first operand interval by the
-       * second operand big integer value.
+       * @param pFirstOperand the interval to shift by the second operand big integer value.
+       * @param pSecondOperand the second interval big integer value to shift the values of the
+       *     first operand interval by.
+       * @return an interval representing a superset of the possible values of left-shifting any
+       *     value contained in the first operand interval by the second operand big integer value.
        */
       @Override
       public BitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pSecondOperand) {
@@ -469,26 +445,23 @@ enum ISIOperatorFactory {
     };
   }
 
-  /**
-   * The right shift operator for right shifting a simple interval by a big
-   * integer value.
-   */
-  public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getShiftRight(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  /** The right shift operator for right shifting a simple interval by a big integer value. */
+  public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getShiftRight(
+      final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<>() {
 
       /**
-       * Computes an interval representing a superset of the possible values
-       * of right-shifting any value contained in the first operand simple
-       * interval by the second operand big integer value.
+       * Computes an interval representing a superset of the possible values of right-shifting any
+       * value contained in the first operand simple interval by the second operand big integer
+       * value.
        *
-       * @param pFirstOperand the simple interval to be shifted by the second
-       * operand big integer value.
-       * @param pSecondOperand the value to shift the values of the first
-       * operand big integer value by.
-       *
-       * @return an interval representing a superset of the possible values
-       * of right-shifting any value contained in the first operand simple
-       * interval by the second operand big integer given value.
+       * @param pFirstOperand the simple interval to be shifted by the second operand big integer
+       *     value.
+       * @param pSecondOperand the value to shift the values of the first operand big integer value
+       *     by.
+       * @return an interval representing a superset of the possible values of right-shifting any
+       *     value contained in the first operand simple interval by the second operand big integer
+       *     given value.
        */
       @Override
       public BitVectorInterval apply(BitVectorInterval pFirstOperand, BigInteger pSecondOperand) {
@@ -536,5 +509,4 @@ enum ISIOperatorFactory {
       }
     };
   }
-
 }

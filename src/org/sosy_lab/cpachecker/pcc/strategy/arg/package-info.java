@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Proof carrying code strategies using ARG as proof structures
- */
+/** Proof carrying code strategies using ARG as proof structures */
 package org.sosy_lab.cpachecker.pcc.strategy.arg;

@@ -57,35 +57,45 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfoExporter;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 
-@Options(prefix="counterexample.export", deprecatedPrefix="cpa.arg.errorPath")
+@Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.arg.errorPath")
 public class CEXExporter {
 
   enum CounterexampleExportType {
-    CBMC, CONCRETE_EXECUTION;
+    CBMC,
+    CONCRETE_EXECUTION;
   }
 
   @Option(
       secure = true,
       name = "compressWitness",
-      description = "compress the produced error-witness automata using GZIP compression."
-  )
+      description = "compress the produced error-witness automata using GZIP compression.")
   private boolean compressWitness = true;
 
-  @Option(secure=true, name="codeStyle",
-      description="exports either CMBC format or a concrete path program")
+  @Option(
+      secure = true,
+      description =
+          "exports a JSON file describing found faults, if fault localization is activated")
+  private boolean exportFaults = true;
+
+  @Option(
+      secure = true,
+      name = "codeStyle",
+      description = "exports either CMBC format or a concrete path program")
   private CounterexampleExportType codeStyle = CounterexampleExportType.CBMC;
 
   @Option(
       secure = true,
       name = "filters",
       description =
-          "Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
-              + " Only relevant with analysis.stopAfterError=false and counterexample.export.exportImmediately=true."
-              + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter."
-  )
+          "Filter for irrelevant counterexamples to reduce the number of similar counterexamples"
+              + " reported. Only relevant with analysis.stopAfterError=false and"
+              + " counterexample.export.exportImmediately=true. Put the weakest and cheapest filter"
+              + " first, e.g., PathEqualityCounterexampleFilter.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.arg.counterexamples")
   private List<CounterexampleFilter.Factory> cexFilterClasses =
       ImmutableList.of(PathEqualityCounterexampleFilter::new);
@@ -97,6 +107,7 @@ public class CEXExporter {
   private final WitnessExporter witnessExporter;
   private final ExtendedWitnessExporter extendedWitnessExporter;
   private final HarnessExporter harnessExporter;
+  private final FaultLocalizationInfoExporter faultExporter;
   private TestCaseExporter testExporter;
 
   public CEXExporter(
@@ -119,10 +130,12 @@ public class CEXExporter {
           CounterexampleFilter.createCounterexampleFilter(config, pLogger, cpa, cexFilterClasses);
       harnessExporter = new HarnessExporter(config, pLogger, cfa);
       testExporter = new TestCaseExporter(cfa, logger, config);
+      faultExporter = new FaultLocalizationInfoExporter(config);
     } else {
       cexFilter = null;
       harnessExporter = null;
       testExporter = null;
+      faultExporter = null;
     }
   }
 
@@ -156,8 +169,20 @@ public class CEXExporter {
       final ARGState targetState, final CounterexampleInfo counterexample) {
     checkNotNull(targetState);
     checkNotNull(counterexample);
+
     if (options.disabledCompletely()) {
       return;
+    }
+
+    if (exportFaults && counterexample instanceof FaultLocalizationInfo && faultExporter != null) {
+      try {
+        CFAPathWithAssumptions errorPath = counterexample.getCFAPathWithAssignments();
+        faultExporter.export(
+            ((FaultLocalizationInfo) counterexample).getRankedList(),
+            errorPath.get(errorPath.size() - 1).getCFAEdge());
+      } catch (IOException pE) {
+        logger.logUserException(Level.WARNING, pE, "Could not export faults as JSON.");
+      }
     }
 
     final ARGPath targetPath = counterexample.getTargetPath();
@@ -187,13 +212,13 @@ public class CEXExporter {
       if (counterexample.isPreciseCounterExample()) {
         targetPAssum = counterexample.getCFAPathWithAssignments();
       }
-        List<Pair<CFAEdgeWithAssumptions, Boolean>>
-          shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath, targetPAssum);
+      List<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkedErrorPath =
+          pathShrinker.shrinkErrorPath(targetPath, targetPAssum);
 
       // present only the important edges in the Counterxample.core.txt output file
       List<CFAEdgeWithAssumptions> importantShrinkedErrorPath = new ArrayList<>();
-      for(Pair<CFAEdgeWithAssumptions, Boolean> pair : shrinkedErrorPath){
-        if(pair.getSecond()){
+      for (Pair<CFAEdgeWithAssumptions, Boolean> pair : shrinkedErrorPath) {
+        if (pair.getSecond()) {
           importantShrinkedErrorPath.add(pair.getFirst());
         }
       }
@@ -210,9 +235,11 @@ public class CEXExporter {
       pathElements = targetPath.getStateSet();
 
       if (options.getSourceFile() != null) {
-        switch(codeStyle) {
+        switch (codeStyle) {
           case CONCRETE_EXECUTION:
-            pathProgram = PathToConcreteProgramTranslator.translateSinglePath(targetPath, counterexample.getCFAPathWithAssignments());
+            pathProgram =
+                PathToConcreteProgramTranslator.translateSinglePath(
+                    targetPath, counterexample.getCFAPathWithAssignments());
             break;
           case CBMC:
             pathProgram = PathToCTranslator.translateSinglePath(targetPath);
@@ -230,9 +257,11 @@ public class CEXExporter {
       pathElements = ARGUtils.getAllStatesOnPathsTo(targetState);
 
       if (options.getSourceFile() != null) {
-        switch(codeStyle) {
+        switch (codeStyle) {
           case CONCRETE_EXECUTION:
-            logger.log(Level.WARNING, "Cannot export imprecise counterexample to C code for concrete execution.");
+            logger.log(
+                Level.WARNING,
+                "Cannot export imprecise counterexample to C code for concrete execution.");
             break;
           case CBMC:
             // "translatePaths" does not work if the ARG branches without assume edge
@@ -340,7 +369,7 @@ public class CEXExporter {
   }
 
   // Copied from org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.addVisitedLine(int)
-  public void addVisitedLine(Map<Integer,Integer> visitedLines, int pLine) {
+  public void addVisitedLine(Map<Integer, Integer> visitedLines, int pLine) {
     checkArgument(pLine > 0);
     if (visitedLines.containsKey(pLine)) {
       visitedLines.put(pLine, visitedLines.get(pLine) + 1);
@@ -367,8 +396,8 @@ public class CEXExporter {
           IO.writeGZIPFile(file, Charset.defaultCharset(), content);
         }
       } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e,
-            "Could not write information about the error path to file");
+        logger.logUserException(
+            Level.WARNING, e, "Could not write information about the error path to file");
       }
     }
   }

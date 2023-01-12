@@ -27,7 +27,7 @@ public class BitvectorManager {
   private final RegionManager rmgr;
 
   public BitvectorManager(RegionManager pRmgr) {
-    this.rmgr = pRmgr;
+    rmgr = pRmgr;
   }
 
   private int getBitSize(Region[] r1, Region[] r2) {
@@ -145,7 +145,6 @@ public class BitvectorManager {
       equality = rmgr.makeAnd(equality, equalPos);
     }
     return equality;
-
   }
 
   /** 1100 ^ 1010 --> 0110 */
@@ -208,7 +207,8 @@ public class BitvectorManager {
   }
 
   /** returns A<=B if equal is true else A<B */
-  private Region makeLess(final Region[] A, final Region[] B, final boolean equal, final boolean signed) {
+  private Region makeLess(
+      final Region[] A, final Region[] B, final boolean equal, final boolean signed) {
     final int bitsize = getBitSize(A, B);
     Region less = equal ? rmgr.makeTrue() : rmgr.makeFalse();
 
@@ -228,10 +228,12 @@ public class BitvectorManager {
     return less;
   }
 
-  /** 101101 << 011 --> 101000,
+  /**
+   * 101101 << 011 --> 101000,
    *
-   * We only use the lower bits of r2, thus r2 can be shorter than r1.
-   * We use r2 like a positive unsigned bit-vector. */
+   * <p>We only use the lower bits of r2, thus r2 can be shorter than r1. We use r2 like a positive
+   * unsigned bit-vector.
+   */
   public Region[] makeShiftLeft(final Region[] r1, final Region[] r2) {
     final int bitsize = r1.length;
     final int shiftsize = IntMath.log2(bitsize, RoundingMode.FLOOR) + 1;
@@ -257,10 +259,12 @@ public class BitvectorManager {
     return result;
   }
 
-  /** 101101 >> 011 --> signed ? 000101 : 111101,
-  *
-  * We only use the lower bits of r2, thus r2 can be shorter than r1.
-  * We use r2 like a positive unsigned bit-vector. */
+  /**
+   * 101101 >> 011 --> signed ? 000101 : 111101,
+   *
+   * <p>We only use the lower bits of r2, thus r2 can be shorter than r1. We use r2 like a positive
+   * unsigned bit-vector.
+   */
   public Region[] makeShiftRight(final Region[] r1, final Region[] r2, final boolean signed) {
     final int bitsize = r1.length;
     final int shiftsize = IntMath.log2(bitsize, RoundingMode.FLOOR) + 1;
@@ -287,14 +291,12 @@ public class BitvectorManager {
   }
 
   /**
-   * Simple multiplier circuit, 1101 * 0101 --> 0001, for -3*5 --> -15.
-   * Requires same input length and returns same output length.
+   * Simple multiplier circuit, 1101 * 0101 --> 0001, for -3*5 --> -15. Requires same input length
+   * and returns same output length.
    *
-   * Strategy:
-   * The multiplication of AAAA (r1) and BBBB (r2) is done in a matrix.
-   * Upper- and lower-case C (line) is the multiplication of bits from A and B.
-   * Upper- and lower-case D (result) is the sum of rows.
-   * Lower-case c and d will be ignored and will not even be computed.
+   * <p>Strategy: The multiplication of AAAA (r1) and BBBB (r2) is done in a matrix. Upper- and
+   * lower-case C (line) is the multiplication of bits from A and B. Upper- and lower-case D
+   * (result) is the sum of rows. Lower-case c and d will be ignored and will not even be computed.
    *
    * <pre>
    * AAAA x BBBB
@@ -336,9 +338,8 @@ public class BitvectorManager {
   /**
    * returns the quotient of r1 and r2, rounded towards zero.
    *
-   * Info:
-   * - division by zero returns 0001 if signed or positive else 1111 (undefined by C99 standard).
-   * - signed MIN_INT divided by -1 returns MIN_INT.
+   * <p>Info: - division by zero returns 0001 if signed or positive else 1111 (undefined by C99
+   * standard). - signed MIN_INT divided by -1 returns MIN_INT.
    */
   public Region[] makeDiv(final Region[] r1, final Region[] r2, final boolean signed) {
     return makeDivMod(r1, r2, signed).getFirst();
@@ -347,8 +348,7 @@ public class BitvectorManager {
   /**
    * returns the remainder of r1 and r2, with same sign as r1.
    *
-   * Info:
-   * - modulo by zero returns r1 for signed and unsigned input (undefined by C99 standard).
+   * <p>Info: - modulo by zero returns r1 for signed and unsigned input (undefined by C99 standard).
    * - signed MIN_INT modulo -1 returns zero.
    */
   public Region[] makeMod(final Region[] r1, final Region[] r2, final boolean signed) {
@@ -427,11 +427,13 @@ public class BitvectorManager {
     return toBitsize(size, false, r);
   }
 
-  /** returns a new Array with given length, that is filled with elements from the old regions.
-   * If the new size is smaller, front elements are ignored.
-   * If the new size is greater, the missing elements are filled as needed to guarantee signedness. */
+  /**
+   * returns a new Array with given length, that is filled with elements from the old regions. If
+   * the new size is smaller, front elements are ignored. If the new size is greater, the missing
+   * elements are filled as needed to guarantee signedness.
+   */
   public Region[] toBitsize(int bitsize, boolean signed, Region... regions) {
-    assert regions != null: "can not expand NULL";
+    assert regions != null : "can not expand NULL";
 
     int min = Math.min(regions.length, bitsize);
     final Region[] newRegions = new Region[bitsize];

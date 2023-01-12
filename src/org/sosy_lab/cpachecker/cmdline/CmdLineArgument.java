@@ -12,6 +12,7 @@ import static org.sosy_lab.cpachecker.cmdline.CmdLineArguments.putIfNotExistent;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -27,6 +28,7 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     names = ImmutableSet.copyOf(pNames);
   }
 
+  @CanIgnoreReturnValue
   CmdLineArgument withDescription(String pDescription) {
     description = pDescription;
     return this;
@@ -61,10 +63,7 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     }
   }
 
-  boolean apply(
-      Map<String, String> properties,
-      String currentArg,
-      Iterator<String> argsIt)
+  boolean apply(Map<String, String> properties, String currentArg, Iterator<String> argsIt)
       throws InvalidCmdlineArgumentException {
     if (names.contains(currentArg)) {
       apply0(properties, currentArg, argsIt);
@@ -73,10 +72,7 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     return false;
   }
 
-  abstract void apply0(
-      Map<String, String> properties,
-      String currentArg,
-      Iterator<String> argsIt)
+  abstract void apply0(Map<String, String> properties, String currentArg, Iterator<String> argsIt)
       throws InvalidCmdlineArgumentException;
 
   /** The arg is a short replacement for an option with 'one' value given as next argument. */
@@ -104,10 +100,7 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     }
 
     @Override
-    final void apply0(
-        Map<String, String> properties,
-        String currentArg,
-        Iterator<String> args)
+    final void apply0(Map<String, String> properties, String currentArg, Iterator<String> args)
         throws InvalidCmdlineArgumentException {
       if (args.hasNext()) {
         handleArg(properties, args.next());
@@ -122,9 +115,7 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
      * @param pProperties the map of configuration properties.
      * @param pArg the value of the configuration option represented by this argument.
      */
-    void handleArg(
-        Map<String, String> pProperties,
-        String pArg)
+    void handleArg(Map<String, String> pProperties, String pArg)
         throws InvalidCmdlineArgumentException {
       putIfNotExistent(pProperties, option, pArg);
     }
@@ -140,21 +131,20 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
       super(pName);
     }
 
+    @CanIgnoreReturnValue
     PropertyAddingCmdLineArgument settingProperty(String pName, String pValue) {
       additionalIfNotExistentArgs.put(pName, pValue);
       return this;
     }
 
+    @CanIgnoreReturnValue
     PropertyAddingCmdLineArgument overridingProperty(String pName, String pValue) {
       additionalArgs.put(pName, pValue);
       return this;
     }
 
     @Override
-    void apply0(
-        Map<String, String> properties,
-        String currentArg,
-        Iterator<String> args)
+    void apply0(Map<String, String> properties, String currentArg, Iterator<String> args)
         throws InvalidCmdlineArgumentException {
       for (Entry<String, String> e : additionalIfNotExistentArgs.entrySet()) {
         putIfNotExistent(properties, e.getKey(), e.getValue());

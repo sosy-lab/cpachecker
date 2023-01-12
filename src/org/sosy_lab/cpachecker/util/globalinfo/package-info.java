@@ -6,8 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Helper for (de-)serializing abstract states,
- * used mostly for PCC.
- */
+/** Helper for (de-)serializing abstract states, used mostly for PCC. */
 package org.sosy_lab.cpachecker.util.globalinfo;

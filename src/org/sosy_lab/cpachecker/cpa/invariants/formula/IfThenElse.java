@@ -75,7 +75,8 @@ class IfThenElse<ConstantType> extends AbstractFormula<ConstantType> {
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
+      ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -85,5 +86,4 @@ class IfThenElse<ConstantType> extends AbstractFormula<ConstantType> {
       NumeralFormula<ConstantType> pNegativeCase) {
     return new IfThenElse<>(pCondition, pPositiveCase, pNegativeCase);
   }
-
 }

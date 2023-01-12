@@ -70,29 +70,29 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-/**
- * Test that the bundled configuration files are all valid.
- */
+/** Test that the bundled configuration files are all valid. */
 @RunWith(Parameterized.class)
 public class ConfigurationFileChecks {
 
   private static final Pattern INDICATES_MISSING_FILES =
       Pattern.compile(
-          ".*File .* does not exist.*"
-              + "|.*Witness file is missing in specification.*"
-              + "|.*Configuration requires exactly one specification automaton, but none were given.*"
-              + "|.*Could not read precision from file.*"
-              + "|.*The SMT solver MATHSAT5 is not available on this machine because of missing libraries \\(no optimathsat5j in java\\.library\\.path.*",
+          ".*File .* does not exist.*|.*Witness file is missing in specification.*|.*Configuration"
+              + " requires exactly one specification automaton, but none were given.*|.*Could not"
+              + " read precision from file.*|.*The SMT solver MATHSAT5 is not available on this"
+              + " machine because of missing libraries \\(no optimathsat5j in"
+              + " java\\.library\\.path.*|.*The SMT solver Z3 is not available on this machine"
+              + " because of missing libraries .* version `GLIBCXX_3.4.26' not found.*",
           Pattern.DOTALL);
 
   private static final Pattern ALLOWED_WARNINGS =
       Pattern.compile(
-          "The following configuration options were specified but are not used:.*"
-              + "|MathSAT5 is available for research and evaluation purposes only.*"
-              + "|Using unsound approximation of (ints with (unbounded integers|rationals))?( and )?(floats with (unbounded integers|rationals))? for encoding program semantics."
-              + "|Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist."
-              + "|Finding target locations was interrupted.*"
-              + "|.*One of the parallel analyses has finished successfully, cancelling all other runs.*",
+          "The following configuration options were specified but are not used:.*|MathSAT5 is"
+              + " available for research and evaluation purposes only.*|Using unsound approximation"
+              + " of (ints with (unbounded integers|rationals))?( and )?(floats with (unbounded"
+              + " integers|rationals))? for encoding program semantics.|Handling of pointer"
+              + " aliasing is disabled, analysis is unsound if aliased pointers exist.|Finding"
+              + " target locations was interrupted.*|.*One of the parallel analyses has finished"
+              + " successfully, cancelling all other runs.*",
           Pattern.DOTALL);
 
   private static final Pattern PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS =
@@ -102,12 +102,14 @@ public class ConfigurationFileChecks {
 
   private static final Pattern MPI_PORTFOLIO_ALGORITHM_ALLOWED_WARNINGS_FOR_MISSING_LIBS =
       Pattern.compile(
-          "Invalid configuration (mpiexec is required for performing the portfolio-analysis, but could not find it in PATH)",
+          "Invalid configuration (mpiexec is required for performing the portfolio-analysis, but"
+              + " could not find it in PATH)",
           Pattern.DOTALL);
 
   private static final Pattern UNMAINTAINED_CPA_WARNING =
       Pattern.compile(
-          "Using ConfigurableProgramAnalysis .*, which is unmaintained and may not work correctly\\.");
+          "Using ConfigurableProgramAnalysis .*, which is unmaintained and may not work"
+              + " correctly\\.");
 
   private static final ImmutableSet<String> UNUSED_OPTIONS =
       ImmutableSet.of(
@@ -126,6 +128,7 @@ public class ConfigurationFileChecks {
           "memorysafety.config",
           "memorycleanup.config",
           "overflow.config",
+          "datarace.config",
           "termination.config",
           "termination.violation.witness",
           // handled by WitnessOptions when path to witness is specified with -witness
@@ -139,6 +142,7 @@ public class ConfigurationFileChecks {
           "pcc.cmc.file",
           // only handled if specification automaton is additionally specified
           "cpa.automaton.breakOnTargetState",
+          "cpa.automaton.treatErrorsAsTargets",
           "WitnessAutomaton.cpa.automaton.treatErrorsAsTargets",
           "witness.stopNotBreakAtSinkStates",
           "witness.invariantsSpecificationAutomaton",
@@ -169,40 +173,40 @@ public class ConfigurationFileChecks {
     private Language language = Language.C;
 
     @Option(
-      secure = true,
-      name = "analysis.restartAfterUnknown",
-      description = "restart the analysis using a different configuration after unknown result"
-    )
+        secure = true,
+        name = "analysis.restartAfterUnknown",
+        description = "restart the analysis using a different configuration after unknown result")
     private boolean useRestartingAlgorithm = false;
 
     @Option(
-      secure = true,
-      name = "analysis.useParallelAnalyses",
-      description =
-          "Use analyses parallely. The resulting reachedset is the one of the first"
-              + " analysis finishing in time. All other analyses are terminated."
-    )
+        secure = true,
+        name = "analysis.useParallelAnalyses",
+        description =
+            "Use analyses parallely. The resulting reachedset is the one of the first"
+                + " analysis finishing in time. All other analyses are terminated.")
     private boolean useParallelAlgorithm = false;
 
     @Option(
-      secure = true,
-      name = "useCompositionAnalysis",
-      description = "select an analysis from a set of analyses after unknown result")
+        secure = true,
+        name = "useCompositionAnalysis",
+        description = "select an analysis from a set of analyses after unknown result")
     private boolean useCompositionAlgorithm = false;
 
     @Option(
-      secure = true,
-      name = "analysis.algorithm.MPI",
-      description = "Use MPI for running analyses in new subprocesses. The resulting reachedset "
-          + "is the one of the first analysis returning in time. All other mpi-processes will "
-          + "get aborted.")
+        secure = true,
+        name = "analysis.algorithm.MPI",
+        description =
+            "Use MPI for running analyses in new subprocesses. The resulting reachedset is the one"
+                + " of the first analysis returning in time. All other mpi-processes will get"
+                + " aborted.")
     private boolean useMPIProcessAlgorithm = false;
 
-    @Option(secure=true, name="limits.time.cpu::required",
-        description="Enforce that the given CPU time limit is set as the value of limits.time.cpu.")
-    @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-        defaultUserUnit=TimeUnit.SECONDS,
-        min=-1)
+    @Option(
+        secure = true,
+        name = "limits.time.cpu::required",
+        description =
+            "Enforce that the given CPU time limit is set as the value of limits.time.cpu.")
+    @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
     private TimeSpan cpuTimeRequired = TimeSpan.ofNanos(-1);
   }
 
@@ -213,9 +217,7 @@ public class ConfigurationFileChecks {
   @Parameters(name = "{0}")
   public static Object[] getConfigFiles() throws IOException {
     Stream<URL> configResources =
-        ClassPath.from(ConfigurationFileChecks.class.getClassLoader())
-            .getResources()
-            .stream()
+        ClassPath.from(ConfigurationFileChecks.class.getClassLoader()).getResources().stream()
             .filter(resource -> resource.getResourceName().endsWith(".properties"))
             .filter(resource -> resource.getResourceName().contains("cpachecker"))
             .map(ResourceInfo::url);
@@ -321,7 +323,8 @@ public class ConfigurationFileChecks {
     if (config.hasProperty(option)) {
       expect
           .withMessage(
-              "Configuration has value for option %s with value '%s', which should usually not be present in config files",
+              "Configuration has value for option %s with value '%s', which should usually not be"
+                  + " present in config files",
               option, config.getProperty(option))
           .fail();
     }
@@ -405,6 +408,12 @@ public class ConfigurationFileChecks {
       } else {
         assertThat(spec).endsWith("specification/overflow.spc");
       }
+    } else if (basePath.toString().toLowerCase().contains("datarace")) {
+      if (isSvcompConfig) {
+        assertThat(spec).endsWith("specification/sv-comp-datarace.spc");
+      } else {
+        assertThat(spec).endsWith("specification/datarace.spc");
+      }
 
     } else if (cpas.contains("cpa.uninitvars.UninitializedVariablesCPA")) {
       assertThat(spec).endsWith("specification/UninitializedVariables.spc");
@@ -434,7 +443,7 @@ public class ConfigurationFileChecks {
       if (!Strings.isNullOrEmpty(spec)) {
         assertThat(spec).endsWith("specification/modifications-present.spc");
       }
-    } else if(isConditionalTesting) {
+    } else if (isConditionalTesting) {
       assertThat(spec).endsWith("specification/StopAtLeaves.spc");
     } else if (spec != null) {
       // TODO should we somehow restrict which configs may specify "no specification"?
@@ -453,7 +462,9 @@ public class ConfigurationFileChecks {
               Path.of("pcc"),
               Path.of("witnessValidation.properties"),
               Path.of("craigInterpolation-violationWitness.properties"),
-              Path.of("wacsl.properties"));
+              Path.of("wacsl.properties"),
+              Path.of("importFaults.properties"),
+              Path.of("distributed-block-summaries"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
@@ -506,9 +517,7 @@ public class ConfigurationFileChecks {
         .withMessage("messages indicating missing input files")
         .about(streams())
         .that(
-            logHandler
-                .getStoredLogRecords()
-                .stream()
+            logHandler.getStoredLogRecords().stream()
                 .map(LogRecord::getMessage)
                 .filter(s -> INDICATES_MISSING_FILES.matcher(s).matches()))
         .isEmpty();
@@ -564,49 +573,57 @@ public class ConfigurationFileChecks {
     return TestDataTools.getEmptyProgram(tempFolder, pIsJava);
   }
 
-  private Stream<String> getSevereMessages(OptionsWithSpecialHandlingInTest pOptions, final TestLogHandler pLogHandler) {
+  private Stream<String> getSevereMessages(
+      OptionsWithSpecialHandlingInTest pOptions, final TestLogHandler pLogHandler) {
     // After one component of a parallel algorithm finishes successfully,
     // other components are interrupted, potentially causing warnings that can be ignored.
     // One such example is if another component uses a RestartAlgorithm that is interrupted
     // during the parsing of configuration files
     Stream<LogRecord> logRecords = pLogHandler.getStoredLogRecords().stream();
     if (pOptions.useParallelAlgorithm) {
-      Iterator<LogRecord> logRecordIterator = new Iterator<>() {
+      Iterator<LogRecord> logRecordIterator =
+          new Iterator<>() {
 
-        private Iterator<LogRecord> underlyingIterator = pLogHandler.getStoredLogRecords().iterator();
+            private Iterator<LogRecord> underlyingIterator =
+                pLogHandler.getStoredLogRecords().iterator();
 
-        private boolean oneComponentSuccessful = false;
+            private boolean oneComponentSuccessful = false;
 
-        @Override
-        public boolean hasNext() {
-          return underlyingIterator.hasNext();
-        }
-
-        @Override
-        public LogRecord next() {
-          LogRecord result = underlyingIterator.next();
-          if (!oneComponentSuccessful && Level.INFO.equals(result.getLevel())) {
-            if (result.getMessage().endsWith("finished successfully.")) {
-              oneComponentSuccessful = true;
-              underlyingIterator = Iterators.filter(
-                  underlyingIterator,
-                      r -> !Level.WARNING.equals(r.getLevel())
-                    || !PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS.matcher(r.getMessage()).matches());
+            @Override
+            public boolean hasNext() {
+              return underlyingIterator.hasNext();
             }
-          }
-          return result;
-        }
 
-      };
+            @Override
+            public LogRecord next() {
+              LogRecord result = underlyingIterator.next();
+              if (!oneComponentSuccessful && Level.INFO.equals(result.getLevel())) {
+                if (result.getMessage().endsWith("finished successfully.")) {
+                  oneComponentSuccessful = true;
+                  underlyingIterator =
+                      Iterators.filter(
+                          underlyingIterator,
+                          r ->
+                              !Level.WARNING.equals(r.getLevel())
+                                  || !PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS
+                                      .matcher(r.getMessage())
+                                      .matches());
+                }
+              }
+              return result;
+            }
+          };
       logRecords = Streams.stream(logRecordIterator);
     }
-    Stream<String> result = logRecords
-        .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
-        .map(LogRecord::getMessage)
-        .filter(s -> !INDICATES_MISSING_FILES.matcher(s).matches())
-        .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches())
-        .filter(
-            s -> MPI_PORTFOLIO_ALGORITHM_ALLOWED_WARNINGS_FOR_MISSING_LIBS.matcher(s).matches());
+    Stream<String> result =
+        logRecords
+            .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
+            .map(LogRecord::getMessage)
+            .filter(s -> !INDICATES_MISSING_FILES.matcher(s).matches())
+            .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches())
+            .filter(
+                s ->
+                    MPI_PORTFOLIO_ALGORITHM_ALLOWED_WARNINGS_FOR_MISSING_LIBS.matcher(s).matches());
 
     if (isUnmaintainedConfig()) {
       result = result.filter(s -> !UNMAINTAINED_CPA_WARNING.matcher(s).matches());

@@ -21,12 +21,13 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageInfoSet, UsageInfoSet>>{
+public class PointIterator
+    extends GenericIterator<SingleIdentifier, Pair<UsageInfoSet, UsageInfoSet>> {
 
   private UsageContainer container;
   private UnsafeDetector detector;
 
-  //Internal state
+  // Internal state
   private UsagePoint firstPoint;
   private UsagePoint secondPoint;
 
@@ -47,7 +48,7 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
 
     assert pointSet instanceof UnrefinedUsagePointSet;
 
-    currentUsagePointSet = (UnrefinedUsagePointSet)pointSet;
+    currentUsagePointSet = (UnrefinedUsagePointSet) pointSet;
     firstPointIterator = currentUsagePointSet.getPointIterator();
     secondPointIterator = currentUsagePointSet.getPointIterator();
     firstPoint = firstPointIterator.next();
@@ -64,7 +65,7 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
 
   @Override
   protected Pair<UsageInfoSet, UsageInfoSet> getNext(SingleIdentifier pInput) {
-    //Sanity check
+    // Sanity check
     AbstractUsagePointSet pointSet = container.getUsages(pInput);
     assert currentUsagePointSet == pointSet;
 
@@ -74,7 +75,7 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
           return null;
         }
         firstPoint = firstPointIterator.next();
-        //Start from first point to save the time
+        // Start from first point to save the time
         secondPointIterator = currentUsagePointSet.getPointIteratorFrom(firstPoint);
         assert secondPointIterator.hasNext();
       }
@@ -94,7 +95,8 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
     return resultingPair;
   }
 
-  private Pair<UsageInfoSet, UsageInfoSet> prepareIterationPair(UsagePoint first, UsagePoint second) {
+  private Pair<UsageInfoSet, UsageInfoSet> prepareIterationPair(
+      UsagePoint first, UsagePoint second) {
     UsageInfoSet firstUsageInfoSet = currentUsagePointSet.getUsageInfo(first);
     UsageInfoSet secondUsageInfoSet = currentUsagePointSet.getUsageInfo(second);
 
@@ -119,18 +121,18 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
     UsageInfoSet secondUsageInfoSet = pPair.getSecond();
 
     if (firstUsageInfoSet.isEmpty()) {
-      //No reachable usages - remove point
+      // No reachable usages - remove point
       toRemove.add(firstPoint);
     }
     if (secondUsageInfoSet.isEmpty()) {
-      //No reachable usages - remove point
+      // No reachable usages - remove point
       toRemove.add(secondPoint);
     }
   }
 
-
   @Override
-  protected void handleUpdateSignal(Class<? extends RefinementInterface> pCallerClass, Object pData) {
+  protected void handleUpdateSignal(
+      Class<? extends RefinementInterface> pCallerClass, Object pData) {
     if (pCallerClass.equals(IdentifierIterator.class)) {
       assert pData instanceof UsageContainer;
       container = (UsageContainer) pData;

@@ -50,9 +50,9 @@ public class SMGOptions {
   @Option(
       secure = true,
       description =
-          "Which unknown function are always considered as safe functions, "
-              + "i.e., free of memory-related side-effects?")
-  private ImmutableSet<String> safeUnknownFunctions = ImmutableSet.of("abort");
+          "Patterns of unknown functions which are always considered as safe functions, i.e., free"
+              + " of memory-related side-effects.")
+  private ImmutableSet<String> safeUnknownFunctionsPatterns = ImmutableSet.of("abort");
 
   public enum UnknownFunctionHandling {
     STRICT,
@@ -81,17 +81,15 @@ public class SMGOptions {
       ImmutableSet.of("malloc", "__kmalloc", "kmalloc", "realloc");
 
   @Option(
-    secure = true,
-    name = "guessSize",
-    description = "Allocation size of memory that cannot be calculated."
-  )
+      secure = true,
+      name = "guessSize",
+      description = "Allocation size of memory that cannot be calculated.")
   private int guessSize = 2;
 
   @Option(
-    secure = true,
-    name = "memoryAllocationFunctionsSizeParameter",
-    description = "Size parameter of memory allocation functions"
-  )
+      secure = true,
+      name = "memoryAllocationFunctionsSizeParameter",
+      description = "Size parameter of memory allocation functions")
   private int memoryAllocationFunctionsSizeParameter = 0;
 
   @Option(
@@ -146,12 +144,11 @@ public class SMGOptions {
   private boolean trackErrorPredicates = false;
 
   @Option(
-    secure = true,
-    name = "handleUnknownDereferenceAsSafe",
-    description =
-        "Handle unknown dereference as safe and check error based on error predicate, "
-            + "depends on trackPredicates"
-  )
+      secure = true,
+      name = "handleUnknownDereferenceAsSafe",
+      description =
+          "Handle unknown dereference as safe and check error based on error predicate, "
+              + "depends on trackPredicates")
   private boolean handleUnknownDereferenceAsSafe = false;
 
   @Option(
@@ -245,8 +242,8 @@ public class SMGOptions {
     return handleUnknownFunctions;
   }
 
-  public ImmutableSet<String> getSafeUnknownFunctions() {
-    return safeUnknownFunctions;
+  public ImmutableSet<String> getSafeUnknownFunctionsPatterns() {
+    return safeUnknownFunctionsPatterns;
   }
 
   public boolean isGCCZeroLengthArray() {

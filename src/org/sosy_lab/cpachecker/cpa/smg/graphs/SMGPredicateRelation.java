@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.HashSet;
@@ -66,8 +67,10 @@ public final class SMGPredicateRelation {
 
     @Override
     public int compareTo(SMGValuesPair pSMGValuesPair) {
-      int cmp = first.compareTo(pSMGValuesPair.first);
-      return cmp == 0 ? second.compareTo(pSMGValuesPair.second) : cmp;
+      return ComparisonChain.start()
+          .compare(first, pSMGValuesPair.first)
+          .compare(second, pSMGValuesPair.second)
+          .result();
     }
   }
   /** The Multimap is used as Bi-Map, i.e. each pair (K,V) is also inserted as pair (V,K). */
@@ -238,11 +241,14 @@ public final class SMGPredicateRelation {
 
   @Override
   public String toString() {
-    return "PredRelation{" +
-        "smgValuesRelation=" + smgValuesRelation +
-        ", smgValuesDependency=" + smgValuesDependency +
-        ", smgExplicitValueRelation=" + smgExplicitValueRelation +
-        '}';
+    return "PredRelation{"
+        + "smgValuesRelation="
+        + smgValuesRelation
+        + ", smgValuesDependency="
+        + smgValuesDependency
+        + ", smgExplicitValueRelation="
+        + smgExplicitValueRelation
+        + '}';
   }
 
   public Collection<ExplicitRelation> getExplicitRelations() {
@@ -263,13 +269,22 @@ public final class SMGPredicateRelation {
     if (smgValuesRelation.size() > pPathPredicateRelation.smgValuesDependency.size()) {
       return false;
     }
-    if (!pPathPredicateRelation.smgValuesDependency.entries().containsAll(smgValuesDependency.entries())) {
+    if (!pPathPredicateRelation
+        .smgValuesDependency
+        .entries()
+        .containsAll(smgValuesDependency.entries())) {
       return false;
     }
-    if (!pPathPredicateRelation.smgExplicitValueRelation.entries().containsAll(smgExplicitValueRelation.entries())) {
+    if (!pPathPredicateRelation
+        .smgExplicitValueRelation
+        .entries()
+        .containsAll(smgExplicitValueRelation.entries())) {
       return false;
     }
-    if (!pPathPredicateRelation.smgValuesRelation.entries().containsAll(smgValuesRelation.entries())) {
+    if (!pPathPredicateRelation
+        .smgValuesRelation
+        .entries()
+        .containsAll(smgValuesRelation.entries())) {
       return false;
     }
     return true;
@@ -279,7 +294,7 @@ public final class SMGPredicateRelation {
     return smgValuesDependency.contains(pSymbolicValue);
   }
 
-  static public class SymbolicRelation {
+  public static class SymbolicRelation {
     private SMGValue valueOne;
     private SMGType firstValSMGType;
     private SMGValue valueTwo;

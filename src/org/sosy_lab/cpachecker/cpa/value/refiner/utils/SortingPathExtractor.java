@@ -32,16 +32,17 @@ import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 
 /**
- * {@link PathExtractor} that sorts paths by their length or interpolant quality.
- * To sort paths by their interpolant quality, set {@link #itpSortedTargets} by specifying
- * configuration property <code>cpa.value.refinement.itpSortedTargets</code>.
+ * {@link PathExtractor} that sorts paths by their length or interpolant quality. To sort paths by
+ * their interpolant quality, set {@link #itpSortedTargets} by specifying configuration property
+ * <code>cpa.value.refinement.itpSortedTargets</code>.
  */
 @Options(prefix = "cpa.value.refinement")
 public class SortingPathExtractor extends PathExtractor {
 
   @Option(
       secure = true,
-      description = "heuristic to sort targets based on the quality of interpolants derivable from them")
+      description =
+          "heuristic to sort targets based on the quality of interpolants derivable from them")
   private boolean itpSortedTargets = false;
 
   private final PrefixSelector prefixSelector;
@@ -51,8 +52,8 @@ public class SortingPathExtractor extends PathExtractor {
       final PrefixProvider pPrefixProvider,
       final PrefixSelector pPrefixSelector,
       final LogManager pLogger,
-      final Configuration pConfig
-  ) throws InvalidConfigurationException {
+      final Configuration pConfig)
+      throws InvalidConfigurationException {
 
     super(pLogger, pConfig);
     pConfig.inject(this, SortingPathExtractor.class);

@@ -16,12 +16,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
 enum AlwaysTopStopOperator implements StopOperator {
-
   INSTANCE;
 
   @Override
-  public boolean stop(AbstractState pElement,
-      Collection<AbstractState> pReached, Precision pPrecision) {
+  public boolean stop(
+      AbstractState pElement, Collection<AbstractState> pReached, Precision pPrecision) {
 
     assert pElement == AlwaysTopState.INSTANCE;
     assert pPrecision == AlwaysTopPrecision.INSTANCE;

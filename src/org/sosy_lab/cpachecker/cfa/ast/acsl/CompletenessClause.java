@@ -89,8 +89,8 @@ public class CompletenessClause {
   }
 
   public enum RelationKind {
-    COMPLETE ("complete"),
-    DISJOINT ("disjoint");
+    COMPLETE("complete"),
+    DISJOINT("disjoint");
 
     private final String kindName;
 

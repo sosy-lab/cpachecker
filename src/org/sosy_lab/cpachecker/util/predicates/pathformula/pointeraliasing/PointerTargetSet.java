@@ -45,6 +45,17 @@ public final class PointerTargetSet implements Serializable {
     return baseName.substring(BASE_PREFIX.length());
   }
 
+  /**
+   * Check whether the given string is a base as it is created for dynamic memory allocation, i.e.,
+   * for malloc. Other bases would be those created for local and global variables.
+   *
+   * @param baseName must be a base as determined by {@link #isBaseName(String)}
+   */
+  public static boolean isMallocBase(final String baseName) {
+    assert isBaseName(baseName);
+    return DynamicMemoryHandler.isAllocVariableName(getBase(baseName));
+  }
+
   PersistentList<PointerTarget> getAllTargets(final String regionName) {
     return targets.getOrDefault(regionName, PersistentLinkedList.of());
   }
@@ -115,7 +126,7 @@ public final class PointerTargetSet implements Serializable {
     if (isEmpty()) {
       // Inside isEmpty(), we do not check the following the targets field.
       // so we assert here that isEmpty() implies that it is also empty.
-      assert targets.isEmpty();
+      assert targets == null || targets.isEmpty();
     }
   }
 
@@ -145,8 +156,9 @@ public final class PointerTargetSet implements Serializable {
     return targets;
   }
 
-  /** Get the highest allocated addresses, i.e., which guarantee that a fresh address that is
-   * larger than all addresses returned here was previously not yet allocated.
+  /**
+   * Get the highest allocated addresses, i.e., which guarantee that a fresh address that is larger
+   * than all addresses returned here was previously not yet allocated.
    */
   PersistentList<Formula> getHighestAllocatedAddresses() {
     return highestAllocatedAddresses;
@@ -172,13 +184,20 @@ public final class PointerTargetSet implements Serializable {
   // This includes allocated memory regions and global/local structs/arrays.
   // The key of the map is the name of the base (without the BASE_PREFIX).
   // There are also "fake" bases in the map for variables that have their address
-  // taken somewhere but are not yet tracked.
+  // taken somewhere but are not yet tracked. These are marked with a special fake-base type.
+  // Apart from distinguishing between "fake" and real bases,
+  // the type for each base is mostly relevant for the UF-based encoding.
   private final PersistentSortedMap<String, CType> bases;
 
   // The set of "shared" fields that are accessed directly via pointers,
   // so they are represented with UFs instead of as variables.
+  // This map is only used for the UF-based encoding (not for the array-based encoding)
+  // and will be empty in the latter case.
   private final PersistentSortedMap<CompositeField, Boolean> fields;
 
+  // This is a list of allocations that have already occurred were not yet added to bases
+  // because we do not know the type of the allocation yet and hope to find out later.
+  // This is only used if revealAllocationTypeFromLhs or deferUntypedAllocations are true.
   private final PersistentList<Pair<String, DeferredAllocation>> deferredAllocations;
 
   // The complete set of tracked memory locations.
@@ -188,6 +207,8 @@ public final class PointerTargetSet implements Serializable {
   // for all values of i from this map).
   // This means that when a location is not present in this map,
   // its value is not tracked and might get lost.
+  // This map is only relevant for the UF-based encoding (not for the array-based encoding)
+  // and will be empty or null in the latter case.
   private final PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
 
   private final PersistentList<Formula> highestAllocatedAddresses;
@@ -225,15 +246,17 @@ public final class PointerTargetSet implements Serializable {
     private SerializationProxy(PointerTargetSet pts) {
       bases = pts.bases;
       fields = pts.fields;
-      this.deferredAllocations = new ArrayList<>(pts.deferredAllocations);
-      this.targets = new HashMap<>(Maps.transformValues(pts.targets, ArrayList::new));
+      deferredAllocations = new ArrayList<>(pts.deferredAllocations);
+      targets =
+          pts.targets == null
+              ? new HashMap<>()
+              : new HashMap<>(Maps.transformValues(pts.targets, ArrayList::new));
       FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       highestAllocatedAddresses =
           new ArrayList<>(
               Lists.transform(pts.highestAllocatedAddresses, mgr::dumpArbitraryFormula));
       allocationCount = pts.allocationCount;
     }
-
 
     private Object readResolve() {
       FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
@@ -246,7 +269,7 @@ public final class PointerTargetSet implements Serializable {
           fields,
           PersistentLinkedList.copyOf(deferredAllocations),
           PathCopyingPersistentTreeMap.copyOf(
-              Maps.transformValues(this.targets, PersistentLinkedList::copyOf)),
+              Maps.transformValues(targets, PersistentLinkedList::copyOf)),
           highestAllocatedAddressesFormulas,
           allocationCount);
     }

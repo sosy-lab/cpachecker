@@ -10,9 +10,7 @@ package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 
-/**
- * A constraint with only one operand. Example: not(..);
- */
+/** A constraint with only one operand. Example: not(..); */
 public interface UnaryConstraint extends Constraint {
 
   SymbolicExpression getOperand();

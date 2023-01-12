@@ -42,16 +42,16 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-setprop">cpa.arg.proofWitness=witness.graphml</option>
   <option name="-setprop">termination.violation.witness=witness.graphml</option>
 
+  <tasks name="Termination-BitVectors">
+    <includesfile>../programs/benchmarks/Termination-BitVectors.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+  </tasks>
   <tasks name="Termination-MainControlFlow">
     <includesfile>../programs/benchmarks/Termination-MainControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
   </tasks>
   <tasks name="Termination-MainHeap">
     <includesfile>../programs/benchmarks/Termination-MainHeap.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
-  </tasks>
-  <tasks name="Termination-BitVectors">
-    <includesfile>../programs/benchmarks/Termination-BitVectors.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
   </tasks>
   <tasks name="Termination-Other">

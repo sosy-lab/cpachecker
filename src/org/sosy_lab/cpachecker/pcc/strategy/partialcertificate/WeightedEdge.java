@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.pcc.strategy.partialcertificate;
 
-
 public class WeightedEdge {
 
   private final WeightedNode startNode;
@@ -41,12 +40,9 @@ public class WeightedEdge {
     weight = pWeight;
   }
 
-  /**
-   * Edge represented by "start--weight-->end"
-   */
+  /** Edge represented by "start--weight-->end" */
   @Override
   public String toString() {
     return startNode + "--" + weight + "-->" + endNode;
   }
-
 }

@@ -23,10 +23,11 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 
-/** This Visitor implements evaluation of simply typed expressions.
- * This Visitor is specialized for boolean expressions. */
-public class BDDBooleanExpressionVisitor
-        extends DefaultCExpressionVisitor<Region, NoException> {
+/**
+ * This Visitor implements evaluation of simply typed expressions. This Visitor is specialized for
+ * boolean expressions.
+ */
+public class BDDBooleanExpressionVisitor extends DefaultCExpressionVisitor<Region, NoException> {
 
   protected static final int BOOLEAN_SIZE = 1;
   protected final PredicateManager predMgr;
@@ -35,11 +36,15 @@ public class BDDBooleanExpressionVisitor
   protected final CFANode location;
 
   /** This Visitor returns the boolean value for an expression. */
-  protected BDDBooleanExpressionVisitor(final PredicateManager pPredMgr, final RegionManager pRmgr, final VariableTrackingPrecision pPrecision, final CFANode pLocation) {
-    this.predMgr = pPredMgr;
-    this.rmgr = pRmgr;
-    this.precision = pPrecision;
-    this.location = pLocation;
+  protected BDDBooleanExpressionVisitor(
+      final PredicateManager pPredMgr,
+      final RegionManager pRmgr,
+      final VariableTrackingPrecision pPrecision,
+      final CFANode pLocation) {
+    predMgr = pPredMgr;
+    rmgr = pRmgr;
+    precision = pPrecision;
+    location = pLocation;
   }
 
   @Override
@@ -57,8 +62,8 @@ public class BDDBooleanExpressionVisitor
     return calculateBinaryOperation(lVal, rVal, rmgr, pE);
   }
 
-  public static Region calculateBinaryOperation(Region l, Region r, final RegionManager rmgr,
-                                                final CBinaryExpression binaryExpr) {
+  public static Region calculateBinaryOperation(
+      Region l, Region r, final RegionManager rmgr, final CBinaryExpression binaryExpr) {
 
     final BinaryOperator binaryOperator = binaryExpr.getOperator();
     switch (binaryOperator) {
@@ -102,7 +107,13 @@ public class BDDBooleanExpressionVisitor
       }
     }
 
-    final Region[] result = predMgr.createPredicate(idExp.getDeclaration().getQualifiedName(), idExp.getExpressionType(), location, BOOLEAN_SIZE, precision);
+    final Region[] result =
+        predMgr.createPredicate(
+            idExp.getDeclaration().getQualifiedName(),
+            idExp.getExpressionType(),
+            location,
+            BOOLEAN_SIZE,
+            precision);
     if (result == null) {
       return null;
     } else {

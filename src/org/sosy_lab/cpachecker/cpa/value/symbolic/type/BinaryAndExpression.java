@@ -35,8 +35,8 @@ public final class BinaryAndExpression extends BinarySymbolicExpression {
 
   @Override
   public BinaryAndExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
-    return new BinaryAndExpression(getOperand1(), getOperand2(), getType(), getCalculationType(),
-        pRepresentedLocation);
+    return new BinaryAndExpression(
+        getOperand1(), getOperand2(), getType(), getCalculationType(), pRepresentedLocation);
   }
 
   @Override

@@ -58,9 +58,8 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
     private boolean alwaysAtJoin = false;
 
     @Option(
-      secure = true,
-      description = "restrict abstraction computations to function calls/returns"
-    )
+        secure = true,
+        description = "restrict abstraction computations to function calls/returns")
     private boolean alwaysAtFunction = false;
 
     @Option(secure = true, description = "restrict abstraction computations to loop heads")
@@ -70,28 +69,26 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
     private boolean doLivenessAbstraction = false;
 
     @Option(
-      secure = true,
-      description =
-          "restrict liveness abstractions to nodes with more than one entering and/or leaving edge"
-    )
+        secure = true,
+        description =
+            "restrict liveness abstractions to nodes with more than one entering and/or leaving"
+                + " edge")
     private boolean onlyAtNonLinearCFA = false;
 
     @Option(
-      secure = true,
-      description =
-          "skip abstraction computations until the given number of iterations are reached,"
-              + " after that decision is based on then current level of determinism,"
-              + " setting the option to -1 always performs abstraction computations"
-    )
+        secure = true,
+        description =
+            "skip abstraction computations until the given number of iterations are reached,"
+                + " after that decision is based on then current level of determinism,"
+                + " setting the option to -1 always performs abstraction computations")
     @IntegerOption(min = -1)
     private int iterationThreshold = -1;
 
     @Option(
-      secure = true,
-      description =
-          "threshold for level of determinism, in percent, up-to which abstraction computations "
-              + "are performed (and iteration threshold was reached)"
-    )
+        secure = true,
+        description =
+            "threshold for level of determinism, in percent, up-to which abstraction computations "
+                + "are performed (and iteration threshold was reached)")
     @IntegerOption(min = 0, max = 100)
     @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "false alarm")
     private int determinismThreshold = 85;
@@ -194,18 +191,23 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Optional<PrecisionAdjustmentResult> prec(AbstractState pState, Precision pPrecision, UnmodifiableReachedSet pStates,
+  public Optional<PrecisionAdjustmentResult> prec(
+      AbstractState pState,
+      Precision pPrecision,
+      UnmodifiableReachedSet pStates,
       Function<AbstractState, AbstractState> projection,
       AbstractState fullState)
       throws CPAException, InterruptedException {
 
-    return prec((ValueAnalysisState)pState,
-        (VariableTrackingPrecision)pPrecision,
+    return prec(
+        (ValueAnalysisState) pState,
+        (VariableTrackingPrecision) pPrecision,
         AbstractStates.extractStateByType(fullState, LocationState.class),
         AbstractStates.extractStateByType(fullState, UniqueAssignmentsInPathConditionState.class));
   }
 
-  private Optional<PrecisionAdjustmentResult> prec(ValueAnalysisState pState,
+  private Optional<PrecisionAdjustmentResult> prec(
+      ValueAnalysisState pState,
       VariableTrackingPrecision pPrecision,
       LocationState location,
       UniqueAssignmentsInPathConditionState assignments) {
@@ -237,9 +239,9 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   /**
-   * This method decides whether or not to perform abstraction computations. These are computed
-   * if the iteration threshold is deactivated, or if the level of determinism ever gets below
-   * the threshold for the level of determinism.
+   * This method decides whether or not to perform abstraction computations. These are computed if
+   * the iteration threshold is deactivated, or if the level of determinism ever gets below the
+   * threshold for the level of determinism.
    *
    * @return true, if abstractions should be computed, else false
    */
@@ -266,10 +268,12 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
     return performPrecisionBasedAbstraction;
   }
 
-  private void enforceLiveness(ValueAnalysisState pState, LocationState location, ValueAnalysisState resultState) {
+  private void enforceLiveness(
+      ValueAnalysisState pState, LocationState location, ValueAnalysisState resultState) {
     CFANode actNode = location.getLocationNode();
 
-    boolean hasMoreThanOneEnteringLeavingEdge = actNode.getNumEnteringEdges() > 1 || actNode.getNumLeavingEdges() > 1;
+    boolean hasMoreThanOneEnteringLeavingEdge =
+        actNode.getNumEnteringEdges() > 1 || actNode.getNumLeavingEdges() > 1;
 
     if (!options.onlyAtNonLinearCFA || hasMoreThanOneEnteringLeavingEdge) {
       boolean onlyBlankEdgesEntering = true;
@@ -299,7 +303,8 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
    * @param state the current state
    * @param precision the current precision
    */
-  private void enforcePrecision(ValueAnalysisState state, LocationState location, VariableTrackingPrecision precision) {
+  private void enforcePrecision(
+      ValueAnalysisState state, LocationState location, VariableTrackingPrecision precision) {
     if (options.abstractAtEachLocation()
         || options.abstractAtBranch(location)
         || options.abstractAtJoin(location)
@@ -320,13 +325,14 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   /**
-   * This method abstracts variables that exceed the threshold of assignments along the current path.
+   * This method abstracts variables that exceed the threshold of assignments along the current
+   * path.
    *
    * @param state the state to abstract
    * @param assignments the assignment information
    */
-  private void enforcePathThreshold(ValueAnalysisState state,
-      UniqueAssignmentsInPathConditionState assignments) {
+  private void enforcePathThreshold(
+      ValueAnalysisState state, UniqueAssignmentsInPathConditionState assignments) {
 
     // forget the value for all variables that exceed their threshold
     for (Entry<MemoryLocation, ValueAndType> e : state.getConstants()) {

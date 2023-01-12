@@ -18,12 +18,12 @@ import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.FunctionInf
 /** Generate coverage information in Gcov format (http://gcc.gnu.org/onlinedocs/gcc/Gcov.html). */
 public class CoverageReportGcov {
 
-  //String constants from gcov format
-  private final static String TEXTNAME = "TN:";
-  private final static String SOURCEFILE = "SF:";
-  private final static String FUNCTION = "FN:";
-  private final static String FUNCTIONDATA = "FNDA:";
-  private final static String LINEDATA = "DA:";
+  // String constants from gcov format
+  private static final String TEXTNAME = "TN:";
+  private static final String SOURCEFILE = "SF:";
+  private static final String FUNCTION = "FN:";
+  private static final String FUNCTIONDATA = "FNDA:";
+  private static final String LINEDATA = "DA:";
 
   public static void write(CoverageData pCoverage, Writer w) throws IOException {
 
@@ -32,14 +32,16 @@ public class CoverageReportGcov {
       String sourcefile = entry.getKey();
       FileCoverageInformation fileInfos = entry.getValue();
 
-      //Convert ./test.c -> /full/path/test.c
+      // Convert ./test.c -> /full/path/test.c
       w.append(TEXTNAME + "\n");
       w.append(SOURCEFILE + Path.of(sourcefile).toAbsolutePath() + "\n");
 
       for (FunctionInfo info : fileInfos.allFunctions) {
         w.append(FUNCTION + info.firstLine + "," + info.name + "\n");
-        //Information about function end isn't used by lcov, but it is useful for some postprocessing
-        //But lcov ignores all unknown lines, so, this additional information can't affect on its work
+        // Information about function end isn't used by lcov, but it is useful for some
+        // postprocessing
+        // But lcov ignores all unknown lines, so, this additional information can't affect on its
+        // work
         w.append("#" + FUNCTION + info.lastLine + "\n");
       }
 

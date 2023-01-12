@@ -33,10 +33,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -44,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -98,28 +94,6 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     partiallyRelevantEdges = pPartiallyRelevantEdges;
   }
 
-  private static ImmutableSet<CFAEdge> getAbortCallEdges(CFA pCfa) {
-
-    ImmutableSet.Builder<CFAEdge> abortCallEdgesBuilder = ImmutableSet.builder();
-
-    for (CFANode node : pCfa.getAllNodes()) {
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-        if (edge instanceof CStatementEdge) {
-          CStatement statement = ((CStatementEdge) edge).getStatement();
-          if (statement instanceof CFunctionCallStatement) {
-            CFunctionDeclaration declaration =
-                ((CFunctionCallStatement) statement).getFunctionCallExpression().getDeclaration();
-            if (declaration != null && declaration.getQualifiedName().equals("abort")) {
-              abortCallEdgesBuilder.add(edge);
-            }
-          }
-        }
-      }
-    }
-
-    return abortCallEdgesBuilder.build();
-  }
-
   private Function<CFAEdge, Iterable<CSystemDependenceGraph.Node>>
       createCfaEdgeToSdgNodesFunction() {
 
@@ -142,11 +116,6 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     slicingTime.start();
 
     Set<CFAEdge> criteriaEdges = new LinkedHashSet<>(pSlicingCriteria);
-
-    // TODO: make this configurable
-    if (!criteriaEdges.isEmpty()) {
-      criteriaEdges.addAll(getAbortCallEdges(pCfa));
-    }
 
     Set<CSystemDependenceGraph.Node> startNodes = new LinkedHashSet<>();
     Function<CFAEdge, Iterable<CSystemDependenceGraph.Node>> cfaEdgeToSdgNodes =
@@ -193,7 +162,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       programEdgesNumber.setNextValue(countProgramEdges(pCfa));
     }
 
-      return slice;
+    return slice;
   }
 
   private int countProgramEdges(CFA pCfa) {
@@ -271,7 +240,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
               .map(ActualNode::new)
               .collect(ImmutableSet.toImmutableSet());
     }
-    
+
     private static boolean isFormalNode(CSystemDependenceGraph.Node pNode) {
       return pNode.getType() == SystemDependenceGraph.NodeType.FORMAL_IN
           || pNode.getType() == SystemDependenceGraph.NodeType.FORMAL_OUT;

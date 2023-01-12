@@ -14,10 +14,7 @@ import com.google.common.base.Strings;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
-/**
- * Exception raised when the refinement procedure fails, or was
- * abandoned.
- */
+/** Exception raised when the refinement procedure fails, or was abandoned. */
 public class RefinementFailedException extends CPAException {
 
   public enum Reason {

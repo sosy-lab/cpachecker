@@ -17,23 +17,23 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 public class DefUseDomain implements AbstractDomain {
   @Override
   public boolean isLessOrEqual(AbstractState element1, AbstractState element2) {
-            DefUseState defUseState1 = (DefUseState) element1;
-            DefUseState defUseState2 = (DefUseState) element2;
+    DefUseState defUseState1 = (DefUseState) element1;
+    DefUseState defUseState2 = (DefUseState) element2;
 
-            return defUseState2.containsAllOf(defUseState1);
-    }
+    return defUseState2.containsAllOf(defUseState1);
+  }
 
-    @Override
-    public AbstractState join(AbstractState element1, AbstractState element2) {
-            // Useless code, but helps to catch bugs by causing cast exceptions
-            DefUseState defUseState1 = (DefUseState) element1;
-            DefUseState defUseState2 = (DefUseState) element2;
+  @Override
+  public AbstractState join(AbstractState element1, AbstractState element2) {
+    // Useless code, but helps to catch bugs by causing cast exceptions
+    DefUseState defUseState1 = (DefUseState) element1;
+    DefUseState defUseState2 = (DefUseState) element2;
 
-            Set<DefUseDefinition> joined = new HashSet<> ();
-            Iterables.addAll(joined, defUseState1);
+    Set<DefUseDefinition> joined = new HashSet<>();
+    Iterables.addAll(joined, defUseState1);
 
-            Iterables.addAll(joined, defUseState2);
+    Iterables.addAll(joined, defUseState2);
 
-            return new DefUseState(joined);
-    }
+    return new DefUseState(joined);
+  }
 }

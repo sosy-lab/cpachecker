@@ -33,10 +33,15 @@ public class AssumptionStoragePrecisionAdjustment implements PrecisionAdjustment
   }
 
   @Override
-  public Optional<PrecisionAdjustmentResult> prec(AbstractState pState, Precision pPrecision,
-      UnmodifiableReachedSet pStates, Function<AbstractState, AbstractState> pStateProjection,
-      AbstractState pFullState) throws CPAException, InterruptedException {
-    return StaticPrecisionAdjustment.getInstance().prec(pState, pPrecision, pStates, pStateProjection, pFullState);
+  public Optional<PrecisionAdjustmentResult> prec(
+      AbstractState pState,
+      Precision pPrecision,
+      UnmodifiableReachedSet pStates,
+      Function<AbstractState, AbstractState> pStateProjection,
+      AbstractState pFullState)
+      throws CPAException, InterruptedException {
+    return StaticPrecisionAdjustment.getInstance()
+        .prec(pState, pPrecision, pStates, pStateProjection, pFullState);
   }
 
   @Override
@@ -64,5 +69,4 @@ public class AssumptionStoragePrecisionAdjustment implements PrecisionAdjustment
     CFANode predecessor = successor; // TODO wtf?
     return new DummyCFAEdge(predecessor, successor);
   }
-
 }

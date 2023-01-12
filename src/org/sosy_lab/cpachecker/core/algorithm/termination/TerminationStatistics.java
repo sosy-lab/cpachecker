@@ -112,19 +112,17 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class TerminationStatistics extends LassoAnalysisStatistics {
 
   @Option(
-    secure = true,
-    description =
-        "A human readable representation of the synthesized (non-)termination arguments is "
-            + "exported to this file."
-  )
+      secure = true,
+      description =
+          "A human readable representation of the synthesized (non-)termination arguments is "
+              + "exported to this file.")
   @FileOption(Type.OUTPUT_FILE)
   private Path resultFile = Path.of("terminationAnalysisResult.txt");
 
   @Option(
-    secure = true,
-    name = "violation.witness",
-    description = "Export termination counterexample to file as GraphML automaton "
-  )
+      secure = true,
+      name = "violation.witness",
+      description = "Export termination counterexample to file as GraphML automaton ")
   @FileOption(Type.OUTPUT_FILE)
   private Path violationWitness = Path.of("nontermination_witness.graphml");
 
@@ -136,10 +134,9 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   private Path violationWitnessDot = Path.of("nontermination_witness.dot");
 
   @Option(
-    secure = true,
-    name = "compressWitness",
-    description = "compress the produced violation-witness automata using GZIP compression."
-  )
+      secure = true,
+      name = "compressWitness",
+      description = "compress the produced violation-witness automata using GZIP compression.")
   private boolean compressWitness = true;
 
   private final int totalLoops;
@@ -163,10 +160,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   private @Nullable Loop nonterminatingLoop = null;
 
   public TerminationStatistics(
-      Configuration pConfig,
-      LogManager pLogger,
-      int pTotalNumberOfLoops,
-      CFA pCFA)
+      Configuration pConfig, LogManager pLogger, int pTotalNumberOfLoops, CFA pCFA)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = checkNotNull(pLogger);
@@ -262,16 +256,12 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     int safetyAnalysisRuns = safetyAnalysisRunsPerLoop.size();
     assert safetyAnalysisRuns == safetyAnalysisTime.getNumberOfIntervals();
     int maxSafetyAnalysisRuns =
-        safetyAnalysisRunsPerLoop
-            .entrySet()
-            .stream()
+        safetyAnalysisRunsPerLoop.entrySet().stream()
             .mapToInt(Multiset.Entry::getCount)
             .max()
             .orElse(0);
     String loopsWithMaxSafetyAnalysisRuns =
-        safetyAnalysisRunsPerLoop
-            .entrySet()
-            .stream()
+        safetyAnalysisRunsPerLoop.entrySet().stream()
             .filter(e -> e.getCount() == maxSafetyAnalysisRuns)
             .map(Multiset.Entry::getElement)
             .map(l -> l.getLoopHeads().toString())
@@ -302,9 +292,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     int maxLassosPerLoop =
         lassosPerLoop.entrySet().stream().mapToInt(Multiset.Entry::getCount).max().orElse(0);
     String loopsWithMaxLassos =
-        lassosPerLoop
-            .entrySet()
-            .stream()
+        lassosPerLoop.entrySet().stream()
             .filter(e -> e.getCount() == maxLassosPerLoop)
             .map(Multiset.Entry::getElement)
             .map(l -> l.getLoopHeads().toString())
@@ -377,10 +365,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     int maxTerminationArgumentsPerLoop =
         terminationArguments.asMap().values().stream().mapToInt(Collection::size).max().orElse(0);
     String loopsWithMaxTerminationArguments =
-        terminationArguments
-            .asMap()
-            .entrySet()
-            .stream()
+        terminationArguments.asMap().entrySet().stream()
             .filter(e -> e.getValue().size() == maxTerminationArgumentsPerLoop)
             .map(Entry::getKey)
             .map(l -> l.getLoopHeads().toString())
@@ -606,7 +591,9 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               newContext = Pair.of(leaveFun.getSuccessor(), context.getSecond());
 
               if (leaveFun instanceof FunctionReturnEdge) {
-                if (!context.getSecond().getCallNode()
+                if (!context
+                    .getSecond()
+                    .getCallNode()
                     .equals(((FunctionReturnEdge) leaveFun).getSummaryEdge().getPredecessor())) {
                   continue; // false context
                 }

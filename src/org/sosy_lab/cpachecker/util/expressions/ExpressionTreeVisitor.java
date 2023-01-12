@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.expressions;
 
-
 public interface ExpressionTreeVisitor<LeafType, T, E extends Throwable> {
 
   T visit(And<LeafType> pAnd) throws E;
@@ -20,5 +19,4 @@ public interface ExpressionTreeVisitor<LeafType, T, E extends Throwable> {
   T visitTrue() throws E;
 
   T visitFalse() throws E;
-
 }

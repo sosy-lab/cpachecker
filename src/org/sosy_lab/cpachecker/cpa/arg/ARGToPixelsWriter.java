@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.primitives.ImmutableIntArray;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.awt.Color;
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -36,7 +37,6 @@ public class ARGToPixelsWriter extends GraphToPixelsWriter<ARGState> {
   private static final Color COLOR_HIGHLIGHT = Color.BLUE;
   private static final Color COLOR_NOTEXPANDED = Color.ORANGE;
   private static final Color COLOR_COVERED = Color.GREEN;
-
 
   public ARGToPixelsWriter(Configuration pConfig) throws InvalidConfigurationException {
     super(pConfig);
@@ -127,7 +127,7 @@ public class ARGToPixelsWriter extends GraphToPixelsWriter<ARGState> {
             width, targets.build(), notExpanded.build(), highlights.build(), covered.build());
       }
 
-
+      @CanIgnoreReturnValue
       @Override
       public Builder addMarkings(ARGState pNode) {
 
@@ -149,6 +149,7 @@ public class ARGToPixelsWriter extends GraphToPixelsWriter<ARGState> {
         return this;
       }
 
+      @CanIgnoreReturnValue
       @Override
       public Builder node() {
         width++;
@@ -156,6 +157,4 @@ public class ARGToPixelsWriter extends GraphToPixelsWriter<ARGState> {
       }
     }
   }
-
-
 }

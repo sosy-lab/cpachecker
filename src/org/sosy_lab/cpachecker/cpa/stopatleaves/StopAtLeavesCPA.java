@@ -19,18 +19,12 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-/**
- * @see org.sosy_lab.cpachecker.cpa.targetreachability.TargetReachabilityCPA
- */
+/** See {@link org.sosy_lab.cpachecker.cpa.targetreachability.TargetReachabilityCPA}. */
 public class StopAtLeavesCPA extends AbstractCPA {
   StopAtLeavesRelation relation;
 
   private StopAtLeavesCPA() {
-    super(
-        "join",
-        "sep",
-        new FlatLatticeDomain(StopAtLeavesState.CONTINUE),
-        null /* never used */);
+    super("join", "sep", new FlatLatticeDomain(StopAtLeavesState.CONTINUE), null /* never used */);
 
     relation = new StopAtLeavesRelation(ImmutableList.of());
   }
@@ -40,8 +34,8 @@ public class StopAtLeavesCPA extends AbstractCPA {
   }
 
   @Override
-  public AbstractState getInitialState(
-      CFANode node, StateSpacePartition partition) throws InterruptedException {
+  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
 
     return StopAtLeavesState.CONTINUE;
   }

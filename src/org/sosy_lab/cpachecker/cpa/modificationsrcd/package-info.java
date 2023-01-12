@@ -8,7 +8,7 @@
 
 /**
  * CPA that tracks which cfa nodes are successors to edges in which potentially changed variables
- * are used in a changed {@link org.sosy_lab.cpachecker.cfa.CFA CFAs} and reports assumptions that
- * go towards these edges.
+ * are used in a changed {@link org.sosy_lab.cpachecker.cfa.CFA CFA} and reports assumptions that go
+ * towards these edges.
  */
 package org.sosy_lab.cpachecker.cpa.modificationsrcd;

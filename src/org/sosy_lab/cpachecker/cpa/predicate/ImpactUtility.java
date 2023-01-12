@@ -32,56 +32,56 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * This class implements the core of all the approaches that are similar
- * to McMillan's Lazy Abstraction with Interpolants ("Impact") approach:
- * the updating of an ARG state given a suitable interpolant for that state.
- * It does not do any more than that, i.e.,
- * it does NOT update the ARG covering relation ship,
- * it does NOT re-add states to the waitlist etc.
+ * This class implements the core of all the approaches that are similar to McMillan's Lazy
+ * Abstraction with Interpolants ("Impact") approach: the updating of an ARG state given a suitable
+ * interpolant for that state. It does not do any more than that, i.e., it does NOT update the ARG
+ * covering relation ship, it does NOT re-add states to the waitlist etc.
  *
- * There are several strategies for handling the interpolant:
- * 1) Do nothing, just convert it into a Region
- * 2) Compute an abstraction of the interpolant.
- * 3) Compute an abstraction of the preceding block using the predicates
- *    from the interpolant just like predicate abstraction would do.
+ * <p>There are several strategies for handling the interpolant: 1) Do nothing, just convert it into
+ * a Region 2) Compute an abstraction of the interpolant. 3) Compute an abstraction of the preceding
+ * block using the predicates from the interpolant just like predicate abstraction would do.
  *
- * All strategies can in principle be applied both with and without using BDDs,
- * although some combinations will not make sense (especially 2) and 3)
- * should be used only with BDDs).
- * Strategy 1 without BDDs is exactly what Impact does and is very cheap.
- * Strategy 3 with BDDs is similar to predicate abstraction,
- * but the abstractions are computed during refinement instead of during the
+ * <p>All strategies can in principle be applied both with and without using BDDs, although some
+ * combinations will not make sense (especially 2) and 3) should be used only with BDDs). Strategy 1
+ * without BDDs is exactly what Impact does and is very cheap. Strategy 3 with BDDs is similar to
+ * predicate abstraction, but the abstractions are computed during refinement instead of during the
  * forward analysis.
  *
- * Note that the decision whether to use BDDs or not is not in the scope
- * of this class (it just uses the given {@link RegionManager}).
+ * <p>Note that the decision whether to use BDDs or not is not in the scope of this class (it just
+ * uses the given {@link RegionManager}).
  */
-@Options(prefix="cpa.predicate.refinement")
+@Options(prefix = "cpa.predicate.refinement")
 final class ImpactUtility {
 
-  @Option(secure=true, description="If an abstraction is computed during refinement, "
-      + "use only the interpolant as input, not the concrete block.")
+  @Option(
+      secure = true,
+      description =
+          "If an abstraction is computed during refinement, "
+              + "use only the interpolant as input, not the concrete block.")
   private boolean abstractInterpolantOnly = false;
 
-  @Option(secure=true, description="Actually compute an abstraction, "
-      + "otherwise just convert the interpolants to BDDs as they are.")
+  @Option(
+      secure = true,
+      description =
+          "Actually compute an abstraction, "
+              + "otherwise just convert the interpolants to BDDs as they are.")
   private boolean doAbstractionComputation = false;
 
   final Timer abstractionTime = new Timer();
-  final Timer itpCheckTime  = new Timer();
+  final Timer itpCheckTime = new Timer();
 
   private final FormulaManagerView fmgr;
   private final PredicateAbstractionManager predAbsMgr;
 
-  ImpactUtility(Configuration config,
-      FormulaManagerView pFmgr, PredicateAbstractionManager pPredAbsMgr)
-          throws InvalidConfigurationException {
+  ImpactUtility(
+      Configuration config, FormulaManagerView pFmgr, PredicateAbstractionManager pPredAbsMgr)
+      throws InvalidConfigurationException {
     config.inject(this);
 
     if (!doAbstractionComputation && abstractInterpolantOnly) {
       throw new InvalidConfigurationException(
-          "Setting cpa.predicate.refinement.abstractInterpolantOnly=true " +
-          "is not possible without cpa.predicate.refinement.doAbstractionComputation=true.");
+          "Setting cpa.predicate.refinement.abstractInterpolantOnly=true "
+              + "is not possible without cpa.predicate.refinement.doAbstractionComputation=true.");
     }
 
     fmgr = pFmgr;
@@ -95,23 +95,21 @@ final class ImpactUtility {
   }
 
   /**
-   * Strengthen a state given a (non-trivial) interpolant
-   * by conjunctively adding the interpolant to the state's state formula.
+   * Strengthen a state given a (non-trivial) interpolant by conjunctively adding the interpolant to
+   * the state's state formula.
    *
    * @param itp The interpolant.
    * @param s The state.
-   * @param lastAbstraction The abstraction that was computed at the beginning
-   *         of the current block (so it is not the abstraction of s,
-   *         but the abstraction of the last predecessor of s that
-   *         is an abstraction state).
-   *         This may be null if {@link #requiresPreviousBlockAbstraction()} returns false.
+   * @param lastAbstraction The abstraction that was computed at the beginning of the current block
+   *     (so it is not the abstraction of s, but the abstraction of the last predecessor of s that
+   *     is an abstraction state). This may be null if {@link #requiresPreviousBlockAbstraction()}
+   *     returns false.
    * @return True if the state was actually changed.
    */
-  boolean strengthenStateWithInterpolant(final BooleanFormula itp,
-      final ARGState s, final AbstractionFormula lastAbstraction)
-          throws SolverException, InterruptedException {
-    checkState(!requiresPreviousBlockAbstraction()
-        || lastAbstraction != null);
+  boolean strengthenStateWithInterpolant(
+      final BooleanFormula itp, final ARGState s, final AbstractionFormula lastAbstraction)
+      throws SolverException, InterruptedException {
+    checkState(!requiresPreviousBlockAbstraction() || lastAbstraction != null);
 
     if (fmgr.getBooleanFormulaManager().isTrue(itp)) {
       return false;
@@ -134,8 +132,8 @@ final class ImpactUtility {
     }
 
     CFANode location = AbstractStates.extractLocation(s);
-    Optional<CallstackStateEqualsWrapper>
-        callstackInfo = AbstractStates.extractOptionalCallstackWraper(s);
+    Optional<CallstackStateEqualsWrapper> callstackInfo =
+        AbstractStates.extractOptionalCallstackWraper(s);
 
     // Compute an abstraction with the new predicates.
     abstractionTime.start();
@@ -147,8 +145,8 @@ final class ImpactUtility {
     } else if (abstractInterpolantOnly) {
       // Compute an abstraction of "itp" using the predicates from "itp".
       Collection<AbstractionPredicate> preds = predAbsMgr.getPredicatesForAtomsOf(itp);
-      newAbstraction = predAbsMgr.buildAbstraction(
-          location, callstackInfo, itp, blockFormula, preds);
+      newAbstraction =
+          predAbsMgr.buildAbstraction(location, callstackInfo, itp, blockFormula, preds);
 
     } else {
       // Compute an abstraction of "lastAbstraction & blockFormula" using the predicates from "itp".

@@ -41,8 +41,13 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
   private final PartialReachedConstructionAlgorithm certificateConstructor;
-  @Option(secure=true,
-      description = "Enables proper PCC but may not work correctly for heuristics. Stops adding newly computed elements to reached set if size saved in proof is reached. If another element must be added, stops certificate checking and returns false.")
+
+  @Option(
+      secure = true,
+      description =
+          "Enables proper PCC but may not work correctly for heuristics. Stops adding newly"
+              + " computed elements to reached set if size saved in proof is reached. If another"
+              + " element must be added, stops certificate checking and returns false.")
   protected boolean stopAddingAtReachedSetSize = false;
 
   protected int savedReachedSetSize;
@@ -57,7 +62,8 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
     super(pConfig, pLogger, pShutdownNotifier, pProofFile, pCpa);
     pConfig.inject(this, PartialReachedSetStrategy.class);
 
-    certificateConstructor = new PartialCertificateTypeProvider(pConfig, true).getPartialCertificateConstructor();
+    certificateConstructor =
+        new PartialCertificateTypeProvider(pConfig, true).getPartialCertificateConstructor();
   }
 
   @Override
@@ -79,10 +85,15 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
   @Override
   protected void prepareForChecking(Object pReadProof) throws InvalidConfigurationException {
-    if (CPAs.retrieveCPA(cpa, LocationCPABackwards.class) != null) { throw new InvalidConfigurationException(
-        "Partial reached set not supported as certificate for backward analysis"); }
-    if (!(pReadProof instanceof Pair)) { throw new InvalidConfigurationException(
-        "Proof Type requires pair of reached set size and reached set as set of abstract states."); }
+    if (CPAs.retrieveCPA(cpa, LocationCPABackwards.class) != null) {
+      throw new InvalidConfigurationException(
+          "Partial reached set not supported as certificate for backward analysis");
+    }
+    if (!(pReadProof instanceof Pair)) {
+      throw new InvalidConfigurationException(
+          "Proof Type requires pair of reached set size and reached set as set of abstract"
+              + " states.");
+    }
     try {
       @SuppressWarnings("unchecked")
       Pair<Integer, AbstractState[]> proof = (Pair<Integer, AbstractState[]>) pReadProof;
@@ -90,12 +101,14 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
       super.prepareForChecking(proof.getSecond());
     } catch (ClassCastException e) {
       throw new InvalidConfigurationException(
-          "Proof Type requires pair of reached set size and reached set as set of abstract states.");
+          "Proof Type requires pair of reached set size and reached set as set of abstract"
+              + " states.");
     }
   }
 
   @Override
-  public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public boolean checkCertificate(final ReachedSet pReachedSet)
+      throws CPAException, InterruptedException {
     int certificateSize = 0;
 
     List<AbstractState> certificate = new ArrayList<>(savedReachedSetSize);
@@ -111,8 +124,14 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
     try {
       stats.stopTimer.start();
-      if (!stop.stop(initialState, statesPerLocation.get(AbstractStates.extractLocation(initialState)), initialPrec)) {
-        logger.log(Level.FINE, "Initial element not in partial reached set.", "Add to elements whose successors ",
+      if (!stop.stop(
+          initialState,
+          statesPerLocation.get(AbstractStates.extractLocation(initialState)),
+          initialPrec)) {
+        logger.log(
+            Level.FINE,
+            "Initial element not in partial reached set.",
+            "Add to elements whose successors ",
             "must be computed.");
         certificate.add(initialState);
       }
@@ -125,7 +144,7 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
 
     // check if elements form transitive closure
     Collection<? extends AbstractState> successors;
-    while (certificateSize<certificate.size()) {
+    while (certificateSize < certificate.size()) {
 
       shutdownNotifier.shutdownIfNecessary();
       stats.countIterations++;
@@ -133,16 +152,25 @@ public class PartialReachedSetStrategy extends ReachedSetStrategy {
       try {
         stats.transferTimer.start();
         successors =
-            cpa.getTransferRelation().getAbstractSuccessors(certificate.get(certificateSize++), initialPrec);
+            cpa.getTransferRelation()
+                .getAbstractSuccessors(certificate.get(certificateSize++), initialPrec);
         stats.transferTimer.stop();
 
         for (AbstractState succ : successors) {
           try {
             stats.stopTimer.start();
-            if (!stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
-              logger.log(Level.FINE, "Successor ", succ, " not in partial reached set.",
-                  "Add to elements whose successors ", "must be computed.");
-              if (stopAddingAtReachedSetSize && savedReachedSetSize == certificate.size()) { return false; }
+            if (!stop.stop(
+                succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
+              logger.log(
+                  Level.FINE,
+                  "Successor ",
+                  succ,
+                  " not in partial reached set.",
+                  "Add to elements whose successors ",
+                  "must be computed.");
+              if (stopAddingAtReachedSetSize && savedReachedSetSize == certificate.size()) {
+                return false;
+              }
               certificate.add(succ);
             }
           } finally {

@@ -23,10 +23,9 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
+import org.sosy_lab.java_smt.api.StringFormula;
 
-/**
- * Wrapping for models.
- */
+/** Wrapping for models. */
 class ModelView implements Model {
 
   private static final Pattern Z3_IRRELEVANT_MODEL_TERM_PATTERN = Pattern.compile(".*![0-9]+");
@@ -45,9 +44,7 @@ class ModelView implements Model {
 
   @Nullable
   private Object evaluateImpl(Formula f) {
-    return delegate.evaluate(
-        wrappingHandler.unwrap(f)
-    );
+    return delegate.evaluate(wrappingHandler.unwrap(f));
   }
 
   @Nullable
@@ -78,6 +75,12 @@ class ModelView implements Model {
   @Override
   public BigInteger evaluate(BitvectorFormula f) {
     return (BigInteger) evaluateImpl(f);
+  }
+
+  @Nullable
+  @Override
+  public String evaluate(StringFormula f) {
+    return (String) evaluateImpl(f);
   }
 
   @Override

@@ -57,15 +57,21 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.KeyValueStatistics;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-@Options(prefix="cpa.predicate")
+@Options(prefix = "cpa.predicate")
 public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
-  @Option(secure=true, name="abstraction.initialPredicates",
-      description="get an initial map of predicates from a list of files (see source doc/examples/predmap.txt for an example)")
+  @Option(
+      secure = true,
+      name = "abstraction.initialPredicates",
+      description =
+          "get an initial map of predicates from a list of files (see source"
+              + " doc/examples/predmap.txt for an example)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> predicatesFiles = ImmutableList.of();
 
-  @Option(secure=true, description="always check satisfiability at end of block, even if precision is empty")
+  @Option(
+      secure = true,
+      description = "always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
 
   @Options(prefix = "cpa.predicate.abstraction.initialPredicates")
@@ -79,13 +85,15 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     @Option(
         secure = true,
         description =
-            "Apply location- and function-specific predicates globally (to all locations in the program)")
+            "Apply location- and function-specific predicates globally (to all locations in the"
+                + " program)")
     private boolean applyGlobally = false;
 
     @Option(
         secure = true,
         description =
-            "when reading predicates from file, convert them from Integer- to BV-theory or reverse.")
+            "when reading predicates from file, convert them from Integer- to BV-theory or"
+                + " reverse.")
     private PrecisionConverter encodePredicates = PrecisionConverter.DISABLE;
 
     @Option(secure = true, description = "initial predicates are added as atomic predicates")
@@ -102,7 +110,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     public PrecisionConverter getPrecisionConverter() {
       return encodePredicates;
     }
-
   }
 
   private final FormulaManagerView formulaManagerView;
@@ -143,8 +150,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
     config.inject(this);
 
-    this.options = new InitialPredicatesOptions();
-    config.inject(this.options);
+    options = new InitialPredicatesOptions();
+    config.inject(options);
   }
 
   private PredicatePrecision internalPrepareInitialPredicates()
@@ -153,8 +160,9 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     PredicatePrecision result = PredicatePrecision.empty();
 
     if (checkBlockFeasibility) {
-      result = result
-          .addGlobalPredicates(Collections.singleton(abstractionManager.makeFalsePredicate()));
+      result =
+          result.addGlobalPredicates(
+              Collections.singleton(abstractionManager.makeFalsePredicate()));
     }
 
     if (!predicatesFiles.isEmpty()) {
@@ -322,8 +330,10 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     PredicatePrecision result = internalPrepareInitialPredicates();
 
     statistics.addKeyValueStatistic("Init. global predicates", result.getGlobalPredicates().size());
-    statistics.addKeyValueStatistic("Init. location predicates", result.getLocalPredicates().size());
-    statistics.addKeyValueStatistic("Init. function predicates", result.getFunctionPredicates().size());
+    statistics.addKeyValueStatistic(
+        "Init. location predicates", result.getLocalPredicates().size());
+    statistics.addKeyValueStatistic(
+        "Init. function predicates", result.getFunctionPredicates().size());
 
     return result;
   }
@@ -332,5 +342,4 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
   }
-
 }

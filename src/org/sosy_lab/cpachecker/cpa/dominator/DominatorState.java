@@ -93,21 +93,20 @@ public class DominatorState extends ForwardingSet<CFANode>
 
   @Override
   public DominatorState join(DominatorState pOther) {
-    if (this.dominators.equals(pOther.dominators)) {
+    if (dominators.equals(pOther.dominators)) {
       return pOther;
     } else {
-      return new DominatorState(Sets.intersection(this.dominators, pOther.dominators));
+      return new DominatorState(Sets.intersection(dominators, pOther.dominators));
     }
   }
 
   /**
-   * Checks whether the given state is less or equal to this state.
-   * A dominator state d1 is less or equal than another dominator state d2,
-   * if d1 contains all dominators that d2 contains.
+   * Checks whether the given state is less or equal to this state. A dominator state d1 is less or
+   * equal than another dominator state d2, if d1 contains all dominators that d2 contains.
    *
    * @param pOther the other state (d2) to check against this one (d1)
-   * @return <code>true</code> if this state is less or equal to the given state,
-   * <code>false</code> otherwise
+   * @return <code>true</code> if this state is less or equal to the given state, <code>false</code>
+   *     otherwise
    */
   @Override
   public boolean isLessOrEqual(DominatorState pOther) {

@@ -123,7 +123,7 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
       AbstractIdentifier initialId = variableBindingRelation.get(pointsFrom);
       AbstractIdentifier pointsTo =
           initialId.cloneWithDereference(initialId.getDereference() + delta);
-      if (this.containsLinks(pointsTo)) {
+      if (containsLinks(pointsTo)) {
         pointsTo = getLinksIfNecessary(pointsTo);
       }
       return pointsTo;
@@ -133,7 +133,7 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
   }
 
   public UsageState copy() {
-    return copy(this.getWrappedState());
+    return copy(getWrappedState());
   }
 
   public UsageState copy(final AbstractState pWrappedState) {
@@ -185,7 +185,7 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
     // If we are here, the wrapped domain return true and the stop depends only on this value
     stats.lessTimer.start();
     // this element is not less or equal than the other element, if that one contains less elements
-    if (this.variableBindingRelation.size() > other.variableBindingRelation.size()) {
+    if (variableBindingRelation.size() > other.variableBindingRelation.size()) {
       stats.lessTimer.stop();
       return false;
     }
@@ -205,7 +205,7 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
         other.addUsage(id, usage);
       }
     }*/
-    if (!this.recentUsages.isSubsetOf(other.recentUsages)) {
+    if (!recentUsages.isSubsetOf(other.recentUsages)) {
       stats.lessTimer.stop();
       return false;
     }
@@ -252,8 +252,8 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
         PathCopyingPersistentTreeMap.of(),
         recentUsages.copy(),
         functionContainer.clone(difference),
-        this.stats,
-        this.isExitState);
+        stats,
+        isExitState);
   }
 
   public void saveUnsafesInContainerIfNecessary(AbstractState abstractState) {
@@ -346,9 +346,9 @@ public final class UsageState extends AbstractSerializableSingleWrapperState
     return new UsageState(
         getWrappedState(),
         PathCopyingPersistentTreeMap.of(),
-        this.recentUsages,
-        this.functionContainer,
-        new StateStatistics(this.functionContainer.getStatistics()),
-        this.isExitState);
+        recentUsages,
+        functionContainer,
+        new StateStatistics(functionContainer.getStatistics()),
+        isExitState);
   }
 }

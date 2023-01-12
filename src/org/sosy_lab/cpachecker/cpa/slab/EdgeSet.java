@@ -31,12 +31,12 @@ public class EdgeSet implements Serializable, Iterable<CFAEdge> {
   public EdgeSet(Collection<CFAEdge> edges) {
     checkArgument(!edges.isEmpty());
     this.edges = new LinkedHashSet<>(edges);
-    this.selected = null;
+    selected = null;
   }
 
   public EdgeSet(EdgeSet other) {
     checkArgument(!other.edges.isEmpty());
-    this.edges = new LinkedHashSet<>(other.edges);
+    edges = new LinkedHashSet<>(other.edges);
   }
 
   /** Returns an iterator over the edges in the set. */
@@ -75,7 +75,7 @@ public class EdgeSet implements Serializable, Iterable<CFAEdge> {
       if (selected == null || !edges.contains(selected)) {
         return edges.iterator().next();
       } else {
-          return selected;
+        return selected;
       }
     }
     return null;

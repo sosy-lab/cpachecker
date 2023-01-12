@@ -30,9 +30,13 @@ public class PowerSetPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Optional<PrecisionAdjustmentResult> prec(AbstractState pState, Precision pPrecision,
-      UnmodifiableReachedSet pStates, Function<AbstractState, AbstractState> pStateProjection,
-      AbstractState pFullState) throws CPAException, InterruptedException {
+  public Optional<PrecisionAdjustmentResult> prec(
+      AbstractState pState,
+      Precision pPrecision,
+      UnmodifiableReachedSet pStates,
+      Function<AbstractState, AbstractState> pStateProjection,
+      AbstractState pFullState)
+      throws CPAException, InterruptedException {
 
     PowerSetState states = (PowerSetState) pState;
     Action action = Action.CONTINUE;
@@ -44,8 +48,13 @@ public class PowerSetPrecisionAdjustment implements PrecisionAdjustment {
     Optional<PrecisionAdjustmentResult> wrappedRes;
 
     for (AbstractState state : states.getWrappedStates()) {
-      wrappedRes = wrappedPrec.prec(state, pPrecision, pStates,
-          Functions.compose(abstractState -> state, pStateProjection), pFullState);
+      wrappedRes =
+          wrappedPrec.prec(
+              state,
+              pPrecision,
+              pStates,
+              Functions.compose(abstractState -> state, pStateProjection),
+              pFullState);
       if (wrappedRes.isPresent()) {
         present = true;
 
@@ -59,14 +68,14 @@ public class PowerSetPrecisionAdjustment implements PrecisionAdjustment {
         if (wrappedRes.orElseThrow().action() == Action.BREAK) {
           action = Action.BREAK;
         }
-
       }
     }
 
-    if (!present) { return Optional.empty(); }
+    if (!present) {
+      return Optional.empty();
+    }
 
     PowerSetState newState = changed ? new PowerSetState(newStates) : states;
     return Optional.of(PrecisionAdjustmentResult.create(newState, pPrecision, action));
   }
-
 }

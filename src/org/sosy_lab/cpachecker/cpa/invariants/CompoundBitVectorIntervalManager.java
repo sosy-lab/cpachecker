@@ -22,11 +22,14 @@ class CompoundBitVectorIntervalManager implements CompoundIntervalManager {
 
   private final OverflowEventHandler overflowEventHandler;
 
-  public CompoundBitVectorIntervalManager(BitVectorInfo pInfo, boolean pAllowSignedWrapAround, OverflowEventHandler pOverflowEventHandler) {
+  public CompoundBitVectorIntervalManager(
+      BitVectorInfo pInfo,
+      boolean pAllowSignedWrapAround,
+      OverflowEventHandler pOverflowEventHandler) {
     Preconditions.checkNotNull(pInfo);
-    this.info = pInfo;
-    this.allowSignedWrapAround = pAllowSignedWrapAround;
-    this.overflowEventHandler = pOverflowEventHandler;
+    info = pInfo;
+    allowSignedWrapAround = pAllowSignedWrapAround;
+    overflowEventHandler = pOverflowEventHandler;
   }
 
   @Override
@@ -41,8 +44,7 @@ class CompoundBitVectorIntervalManager implements CompoundIntervalManager {
     }
     if (pOther instanceof CompoundBitVectorIntervalManager) {
       CompoundBitVectorIntervalManager other = (CompoundBitVectorIntervalManager) pOther;
-      return allowSignedWrapAround == other.allowSignedWrapAround
-          && info.equals(other.info);
+      return allowSignedWrapAround == other.allowSignedWrapAround && info.equals(other.info);
     }
     return false;
   }
@@ -141,7 +143,8 @@ class CompoundBitVectorIntervalManager implements CompoundIntervalManager {
 
   @Override
   public CompoundInterval castedSingleton(BigInteger pValue) {
-    return CompoundBitVectorInterval.cast(info, pValue, pValue, allowSignedWrapAround, OverflowEventHandler.EMPTY);
+    return CompoundBitVectorInterval.cast(
+        info, pValue, pValue, allowSignedWrapAround, OverflowEventHandler.EMPTY);
   }
 
   @Override
@@ -263,7 +266,8 @@ class CompoundBitVectorIntervalManager implements CompoundIntervalManager {
   @Override
   public CompoundInterval negate(CompoundInterval pToNegate) {
     checkOperand(pToNegate);
-    return ((CompoundBitVectorInterval) pToNegate).negate(allowSignedWrapAround, overflowEventHandler);
+    return ((CompoundBitVectorInterval) pToNegate)
+        .negate(allowSignedWrapAround, overflowEventHandler);
   }
 
   @Override
@@ -289,5 +293,4 @@ class CompoundBitVectorIntervalManager implements CompoundIntervalManager {
     checkOperand(pOperand1);
     checkOperand(pOperand2);
   }
-
 }

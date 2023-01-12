@@ -23,7 +23,11 @@ class CallstackOptions {
       description = "Blacklist of extern functions that will make the analysis abort if called")
   private ImmutableSet<String> unsupportedFunctions =
       ImmutableSet.of(
-          "pthread_create", "pthread_key_create", "longjmp", "siglongjmp", "__builtin_va_arg",
+          "pthread_create",
+          "pthread_key_create",
+          "longjmp",
+          "siglongjmp",
+          "__builtin_va_arg",
           "atexit");
 
   @Option(secure = true, name = "depth", description = "depth of recursion bound")
@@ -59,7 +63,8 @@ class CallstackOptions {
       toUppercase = true,
       values = {"FLAT", "FLATPCC"},
       description =
-          "which abstract domain to use for callstack cpa, typically FLAT which is faster since it uses only object equivalence")
+          "which abstract domain to use for callstack cpa, typically FLAT which is faster since it"
+              + " uses only object equivalence")
   private String domainType = "FLAT";
 
   CallstackOptions(Configuration config) throws InvalidConfigurationException {

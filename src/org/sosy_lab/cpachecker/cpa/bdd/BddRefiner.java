@@ -25,9 +25,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
-/**
- * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator}.
- */
+/** Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator}. */
 public abstract class BddRefiner implements Refiner {
 
   public static Refiner create(ConfigurableProgramAnalysis cpa)

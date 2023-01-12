@@ -28,8 +28,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.refinement.GenericFeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
-public class ValueAnalysisFeasibilityChecker
-    extends GenericFeasibilityChecker<ValueAnalysisState> {
+public class ValueAnalysisFeasibilityChecker extends GenericFeasibilityChecker<ValueAnalysisState> {
 
   private final StrongestPostOperator<ValueAnalysisState> strongestPostOp;
   private final VariableTrackingPrecision precision;
@@ -45,8 +44,8 @@ public class ValueAnalysisFeasibilityChecker
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOp,
       final LogManager pLogger,
       final CFA pCfa,
-      final Configuration config
-  ) throws InvalidConfigurationException {
+      final Configuration config)
+      throws InvalidConfigurationException {
 
     super(
         pStrongestPostOp,
@@ -57,7 +56,9 @@ public class ValueAnalysisFeasibilityChecker
         pCfa);
 
     strongestPostOp = pStrongestPostOp;
-    precision = VariableTrackingPrecision.createStaticPrecision(config, pCfa.getVarClassification(), ValueAnalysisCPA.class);
+    precision =
+        VariableTrackingPrecision.createStaticPrecision(
+            config, pCfa.getVarClassification(), ValueAnalysisCPA.class);
     machineModel = pCfa.getMachineModel();
   }
 
@@ -92,7 +93,8 @@ public class ValueAnalysisFeasibilityChecker
 
       return reevaluatedPath;
     } catch (CPATransferException e) {
-      throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
+      throw new CPAException(
+          "Computation of successor failed for checking path: " + e.getMessage(), e);
     }
   }
 }

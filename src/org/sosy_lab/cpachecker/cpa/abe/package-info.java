@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Abstract class for a CPA using SMT and adjustable block encoding.
- */
+/** Abstract class for a CPA using SMT and adjustable block encoding. */
 package org.sosy_lab.cpachecker.cpa.abe;

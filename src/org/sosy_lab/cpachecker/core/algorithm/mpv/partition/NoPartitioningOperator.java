@@ -18,9 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpv.property.MultipleProperties;
  */
 public final class NoPartitioningOperator extends AbstractPartitioningOperator {
 
-  public NoPartitioningOperator(
-      MultipleProperties pProperties,
-      TimeSpan pTimeLimitPerProperty) {
+  public NoPartitioningOperator(MultipleProperties pProperties, TimeSpan pTimeLimitPerProperty) {
     super(pProperties, pTimeLimitPerProperty);
   }
 

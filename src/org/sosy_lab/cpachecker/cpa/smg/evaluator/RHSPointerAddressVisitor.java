@@ -51,15 +51,15 @@ class RHSPointerAddressVisitor extends PointerVisitor {
   protected List<SMGAddressValueAndState> createAddressOfFunction(
       CIdExpression pIdFunctionExpression) throws SMGInconsistentException {
     SMGState state = getInitialSmgState();
-    CFunctionDeclaration functionDcl = (CFunctionDeclaration) pIdFunctionExpression.getDeclaration();
+    CFunctionDeclaration functionDcl =
+        (CFunctionDeclaration) pIdFunctionExpression.getDeclaration();
     SMGObject functionObject = state.getObjectForFunction(functionDcl);
 
     if (functionObject == null) {
       functionObject = state.createObjectForFunction(functionDcl);
     }
 
-    return smgRightHandSideEvaluator.createAddress(
-        state, functionObject, SMGZeroValue.INSTANCE);
+    return smgRightHandSideEvaluator.createAddress(state, functionObject, SMGZeroValue.INSTANCE);
   }
 
   @Override

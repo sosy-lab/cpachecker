@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 
@@ -20,24 +19,16 @@ class BasicBlock {
 
   private static final String SINGLE_INDENT = "  ";
 
-  /**
-   * element id of the ARG element that has the conditional statement
-   */
+  /** element id of the ARG element that has the conditional statement */
   private final int stateId;
 
-  /**
-   * true for if, false for else
-   */
+  /** true for if, false for else */
   private boolean condition;
 
-  /**
-   * flag to determine whether this condition was closed by another merge node before
-   */
+  /** flag to determine whether this condition was closed by another merge node before */
   private boolean isClosedBefore = false;
 
-  /**
-   * the set of declarations already contained in this block
-   */
+  /** the set of declarations already contained in this block */
   private Set<ADeclarationEdge> declarations = new HashSet<>();
 
   // this is the code of this element
@@ -45,15 +36,15 @@ class BasicBlock {
   private final List<Object> codeList;
 
   public BasicBlock(int pElementId, String pFunctionName) {
-    stateId       = pElementId;
-    codeList      = new ArrayList<>();
+    stateId = pElementId;
+    codeList = new ArrayList<>();
     firstCodeLine = pFunctionName;
   }
 
   public BasicBlock(int pElementId, CAssumeEdge pEdge, String pConditionString) {
-    stateId       = pElementId;
-    codeList      = new ArrayList<>();
-    condition     = pEdge.getTruthAssumption();
+    stateId = pElementId;
+    codeList = new ArrayList<>();
+    condition = pEdge.getTruthAssumption();
     firstCodeLine = pConditionString;
   }
 
@@ -74,8 +65,7 @@ class BasicBlock {
   }
 
   public void write(Object pStatement) {
-    if (   !(pStatement instanceof String)
-        || !((String)pStatement).isEmpty()) {
+    if (!(pStatement instanceof String) || !((String) pStatement).isEmpty()) {
       codeList.add(pStatement);
     }
   }
@@ -87,7 +77,8 @@ class BasicBlock {
   /**
    * This method checks whether or nor the given declaration is already part of this block.
    *
-   * This is needed, as some tools (e.g. llbmc, i.e. clang) do not allow re-declaration of a previously declared variable.
+   * <p>This is needed, as some tools (e.g. llbmc, i.e. clang) do not allow re-declaration of a
+   * previously declared variable.
    *
    * @param declarationEdge the edge to check
    * @return true, if the given declaration is already part of this block, else false
@@ -109,14 +100,14 @@ class BasicBlock {
 
     String indent = pIndent + SINGLE_INDENT;
 
-    for (Object obj: codeList) {
+    for (Object obj : codeList) {
       // check whether we have a simple statement
       // or a conditional statement
       if (obj instanceof String) {
         ret.append(indent);
-        ret.append((String)obj);
+        ret.append((String) obj);
       } else if (obj instanceof BasicBlock) {
-        ret.append(((BasicBlock)obj).getCode(indent));
+        ret.append(((BasicBlock) obj).getCode(indent));
       } else {
         throw new AssertionError();
       }
@@ -130,6 +121,11 @@ class BasicBlock {
 
   @Override
   public String toString() {
-    return "Element id: " + stateId + " Condition: " + condition + " .. is closed " + isClosedBefore;
+    return "Element id: "
+        + stateId
+        + " Condition: "
+        + condition
+        + " .. is closed "
+        + isClosedBefore;
   }
 }

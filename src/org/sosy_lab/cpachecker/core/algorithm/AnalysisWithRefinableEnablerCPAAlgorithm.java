@@ -89,8 +89,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix="enabledanalysis")
-public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, StatisticsProvider{
+@Options(prefix = "enabledanalysis")
+public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
@@ -103,12 +103,16 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
   private ARGPath pathToFailure = null;
   private boolean repeatedFailure = false;
   private Precision oldEnablerPrecision = null;
-  private Constructor<?extends AbstractState> locConstructor = null;
+  private Constructor<? extends AbstractState> locConstructor = null;
   private final TransferRelation enablerTransfer;
 
-  @Option(secure = true,
-      description = "Enable to use lazy refinement in current analysis instead of restarting from root after each refinement.")
+  @Option(
+      secure = true,
+      description =
+          "Enable to use lazy refinement in current analysis instead of restarting from root after"
+              + " each refinement.")
   private boolean allowLazyRefinement = false;
+
   @Option(secure = true, description = "Which CPA is used as enabler in the current analysis.")
   private Enabler enablerCPA = Enabler.PREDICATE;
 
@@ -131,9 +135,14 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     }
   }
 
-
-  public AnalysisWithRefinableEnablerCPAAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis cpa, CFA pCfa, LogManager logger,
-      Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  public AnalysisWithRefinableEnablerCPAAlgorithm(
+      Algorithm pAlgorithm,
+      ConfigurableProgramAnalysis cpa,
+      CFA pCfa,
+      LogManager logger,
+      Configuration config,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
     config.inject(this);
     algorithm = pAlgorithm;
     this.cpa = cpa;
@@ -141,12 +150,14 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     this.logger = logger;
     shutdownNotifier = pShutdownNotifier;
 
-
     if (!(cpa instanceof ARGCPA)
-        || (CPAs.retrieveCPA(cpa, LocationCPA.class) == null && CPAs.retrieveCPA(cpa, LocationCPABackwards.class) == null)
-        || CPAs.retrieveCPA(cpa, enablerCPA.cpaClass) == null || CPAs.retrieveCPA(cpa, CompositeCPA.class) == null) { throw new InvalidConfigurationException(
-        "Analysis with enabler CPA requires ARG as top CPA and Composite CPA as child. "
-            + "Furthermore, it needs Location CPA and enabling CPA to work.");
+        || (CPAs.retrieveCPA(cpa, LocationCPA.class) == null
+            && CPAs.retrieveCPA(cpa, LocationCPABackwards.class) == null)
+        || CPAs.retrieveCPA(cpa, enablerCPA.cpaClass) == null
+        || CPAs.retrieveCPA(cpa, CompositeCPA.class) == null) {
+      throw new InvalidConfigurationException(
+          "Analysis with enabler CPA requires ARG as top CPA and Composite CPA as child. "
+              + "Furthermore, it needs Location CPA and enabling CPA to work.");
     }
 
     if (enablerCPA == Enabler.PREDICATE) {
@@ -156,12 +167,15 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     }
 
     try {
-      if (!(CPAs.retrieveCPA(cpa, CompositeCPA.class).getMergeOperator() instanceof MergeSepOperator)) {
-        ((CompositeMergeAgreeCPAEnabledAnalysisOperator) CPAs.retrieveCPA(cpa, CompositeCPA.class).getMergeOperator())
+      if (!(CPAs.retrieveCPA(cpa, CompositeCPA.class).getMergeOperator()
+          instanceof MergeSepOperator)) {
+        ((CompositeMergeAgreeCPAEnabledAnalysisOperator)
+                CPAs.retrieveCPA(cpa, CompositeCPA.class).getMergeOperator())
             .setEnablerStateClass(enablerCPA.stateClass);
       }
     } catch (ClassCastException e) {
-      throw new InvalidConfigurationException("Option cpa.composite.inCPAEnabledAnalysis must be enabled.");
+      throw new InvalidConfigurationException(
+          "Option cpa.composite.inCPAEnabledAnalysis must be enabled.");
     }
 
     enablerTransfer = CPAs.retrieveCPA(cpa, enablerCPA.cpaClass).getTransferRelation();
@@ -173,8 +187,9 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     if (!(cpa.getMergeOperator() instanceof MergeSepOperator
         || cpa.getMergeOperator() instanceof ARGMergeJoinCPAEnabledAnalysis)) {
       throw new InvalidConfigurationException(
-        "ARG CPA must be informed about analysis with enabler CPA. "
-            + "Add cpa.arg.inCPAEnabledAnalysis=true to your configuration options."); }
+          "ARG CPA must be informed about analysis with enabler CPA. "
+              + "Add cpa.arg.inCPAEnabledAnalysis=true to your configuration options.");
+    }
   }
 
   @Override
@@ -182,7 +197,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // delete fake edges from previous run
     logger.log(Level.FINEST, "Clean up from previous run");
-    for (CAssumeEdge edge :fakeEdgesFromLastRun) {
+    for (CAssumeEdge edge : fakeEdgesFromLastRun) {
       edge.getPredecessor().removeLeavingEdge(edge);
       edge.getSuccessor().removeEnteringEdge(edge);
     }
@@ -203,16 +218,19 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     try {
       status = algorithm.run(pReachedSet);
     } catch (CPAEnabledAnalysisPropertyViolationException e) {
-      if(e.getFailureCause()==null){
-        throw new CPAException("Error state not known to analysis with enabler CPA. Cannot continue analysis.");
+      if (e.getFailureCause() == null) {
+        throw new CPAException(
+            "Error state not known to analysis with enabler CPA. Cannot continue analysis.");
       }
-      Precision precision =  pReachedSet.getPrecision(((ARGState)e.getFailureCause()).getParents().iterator().next());
+      Precision precision =
+          pReachedSet.getPrecision(((ARGState) e.getFailureCause()).getParents().iterator().next());
       if (e.getFailureCause() != null
           && !pReachedSet.contains(e.getFailureCause())
           && !((ARGState) e.getFailureCause()).getParents().isEmpty()) {
         // add element
         pReachedSet.add(e.getFailureCause(), precision);
-        // readd parents their may be other siblings in the ARG which are not part of the reached set
+        // readd parents their may be other siblings in the ARG which are not part of the reached
+        // set
         for (ARGState parent : ((ARGState) e.getFailureCause()).getParents()) {
           pReachedSet.reAddToWaitlist(parent);
         }
@@ -221,7 +239,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       // add merged element and clean up
       if (e.isMergeViolationCause()) {
         pReachedSet.add(((ARGState) e.getFailureCause()).getMergedWith(), precision);
-        ((ARGMergeJoinCPAEnabledAnalysis)cpa.getMergeOperator()).cleanUp(pReachedSet);
+        ((ARGMergeJoinCPAEnabledAnalysis) cpa.getMergeOperator()).cleanUp(pReachedSet);
       }
 
       logger.log(Level.FINEST, "Analysis aborted because error state found");
@@ -235,15 +253,19 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       CompositeState comp = AbstractStates.extractStateByType(predecessor, CompositeState.class);
 
       if (!e.isMergeViolationCause()) {
-        predecessor = prepareForCEGARAfterPathExplorationError(predecessor, comp, errorEnablerState, pReachedSet);
+        predecessor =
+            prepareForCEGARAfterPathExplorationError(
+                predecessor, comp, errorEnablerState, pReachedSet);
         errorEnablerState = getEnablerState(predecessor);
         comp = AbstractStates.extractStateByType(predecessor, CompositeState.class);
       }
 
-      // check if it is the same failure (CFA path) as last time if started from scratch after refinement
+      // check if it is the same failure (CFA path) as last time if started from scratch after
+      // refinement
       if (!allowLazyRefinement) {
         ARGPath currentFailurePath = ARGUtils.getOnePathTo(predecessor);
-        repeatedFailure = pathToFailure == null || isSamePathInCFA(pathToFailure, currentFailurePath);
+        repeatedFailure =
+            pathToFailure == null || isSamePathInCFA(pathToFailure, currentFailurePath);
         pathToFailure = currentFailurePath;
       }
 
@@ -255,11 +277,11 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
         // do nothing we require that the edge does not exist
       }*/
 
-
       // create error conditions stored on fake edges
       CFANode predNode = node;
       try {
-        for (AutomatonState s : AbstractStates.asIterable(predecessor).filter(AutomatonState.class)) {
+        for (AutomatonState s :
+            AbstractStates.asIterable(predecessor).filter(AutomatonState.class)) {
           if (s.isTarget()) {
             for (CExpression assume : from(s.getAssumptions()).filter(CExpression.class)) {
               predNode = createFakeEdge(assume, predNode);
@@ -267,31 +289,36 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
           }
         }
       } catch (ClassCastException e2) {
-        throw new CPAException("Analysis with enabler CPA requires that the error condition is specified as a CExpression (statement) in the specification (automata).");
+        throw new CPAException(
+            "Analysis with enabler CPA requires that the error condition is specified as a"
+                + " CExpression (statement) in the specification (automata).");
       }
 
-      if(fakeEdgesFromLastRun.isEmpty()){
+      if (fakeEdgesFromLastRun.isEmpty()) {
         // create fake edge with assumption true
         predNode = createFakeEdge(CIntegerLiteralExpression.ONE, predNode);
       }
 
-      // create fake states, one per fake edge, note that states are the same except for enabler state (may be different)
+      // create fake states, one per fake edge, note that states are the same except for enabler
+      // state (may be different)
       // and location state (will be different)
       if (locConstructor == null) {
         try {
           locConstructor = LocationState.class.getDeclaredConstructor(CFANode.class, boolean.class);
           locConstructor.setAccessible(true);
         } catch (NoSuchMethodException | SecurityException e1) {
-          throw new CPAException("Cannot prepare for refinement because cannot get constructor for location states.", e1);
+          throw new CPAException(
+              "Cannot prepare for refinement because cannot get constructor for location states.",
+              e1);
         }
       }
 
-
       AbstractState fakeEnablerState = errorEnablerState;
-      int i=1;
-      for(CAssumeEdge assumeEdge:fakeEdgesFromLastRun) {
+      int i = 1;
+      for (CAssumeEdge assumeEdge : fakeEdgesFromLastRun) {
         errorEnablerState = fakeEnablerState;
-        fakeEnablerState = buildFakeEnablerState(fakeEnablerState, assumeEdge, i == fakeEdgesFromLastRun.size());
+        fakeEnablerState =
+            buildFakeEnablerState(fakeEnablerState, assumeEdge, i == fakeEdgesFromLastRun.size());
 
         // build composite state
         ImmutableList.Builder<AbstractState> wrappedStates = ImmutableList.builder();
@@ -299,10 +326,13 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
           if (state != errorEnablerState) {
             if (state instanceof LocationState) {
               try {
-                wrappedStates.add(locConstructor.newInstance(assumeEdge.getSuccessor(),true));
-              } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+                wrappedStates.add(locConstructor.newInstance(assumeEdge.getSuccessor(), true));
+              } catch (InstantiationException
+                  | IllegalAccessException
+                  | IllegalArgumentException
                   | InvocationTargetException e1) {
-                throw new CPAException("Cannot prepare for refinement, cannot build necessary fake states.", e1);
+                throw new CPAException(
+                    "Cannot prepare for refinement, cannot build necessary fake states.", e1);
               }
             } else {
               wrappedStates.add(state);
@@ -311,7 +341,6 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
             wrappedStates.add(fakeEnablerState);
           }
         }
-
 
         comp = new CompositeState(wrappedStates.build());
 
@@ -324,9 +353,11 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
         i++;
       }
 
-      if(enablerCPA != Enabler.PREDICATE) {
-        // add another edge after fake edges with assumptions as required by ValueAnalysisPathInterpolator
-        // currently it is used by Value, Apron, Octagon, Interval Refiner (all except predicate refiner)
+      if (enablerCPA != Enabler.PREDICATE) {
+        // add another edge after fake edges with assumptions as required by
+        // ValueAnalysisPathInterpolator
+        // currently it is used by Value, Apron, Octagon, Interval Refiner (all except predicate
+        // refiner)
         createFakeEdge(CIntegerLiteralExpression.ONE, predNode);
       }
 
@@ -343,21 +374,25 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     return AbstractStates.extractStateByType(pPredecessor, enablerCPA.stateClass);
   }
 
-  private ARGState prepareForCEGARAfterPathExplorationError(final ARGState pPredecessor, final CompositeState pComp,
-      final AbstractState pErrorEnablerState, final ReachedSet pReachedSet) {
-   if(enablerCPA == Enabler.PREDICATE){
+  private ARGState prepareForCEGARAfterPathExplorationError(
+      final ARGState pPredecessor,
+      final CompositeState pComp,
+      final AbstractState pErrorEnablerState,
+      final ReachedSet pReachedSet) {
+    if (enablerCPA == Enabler.PREDICATE) {
       PredicateAbstractState predError = (PredicateAbstractState) pErrorEnablerState;
       if (predError.isAbstractionState()) {
-        // we must undo the abstraction because we do not want to separate paths at this location but exclude this that
+        // we must undo the abstraction because we do not want to separate paths at this location
+        // but exclude this that
         // thus we require a new abstraction for the previous abstraction state
 
         PredicateAbstractState prevErrorState =
-            AbstractStates.extractStateByType(pPredecessor.getParents().iterator().next(),
-                PredicateAbstractState.class);
+            AbstractStates.extractStateByType(
+                pPredecessor.getParents().iterator().next(), PredicateAbstractState.class);
 
         PredicateAbstractState errorEnablerStateReplace =
-            PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(predError.getAbstractionFormula()
-                .getBlockFormula(), prevErrorState);
+            PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
+                predError.getAbstractionFormula().getBlockFormula(), prevErrorState);
 
         // build new composite state
         ImmutableList.Builder<AbstractState> wrappedStates = ImmutableList.builder();
@@ -387,53 +422,59 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     return pPredecessor;
   }
 
-  private AbstractState buildFakeEnablerState(final AbstractState pFakeEnablerState,
-      final CAssumeEdge pAssumeEdge, final boolean pLastEdge) throws CPATransferException, InterruptedException {
+  private AbstractState buildFakeEnablerState(
+      final AbstractState pFakeEnablerState, final CAssumeEdge pAssumeEdge, final boolean pLastEdge)
+      throws CPATransferException, InterruptedException {
 
     switch (enablerCPA) {
-    case PREDICATE:
-      PathFormulaManager pfm = predCPA.getPathFormulaManager();
-      PredicateAbstractionManager pam = predCPA.getPredicateManager();
-      PredicateAbstractState predFakeState = (PredicateAbstractState) pFakeEnablerState;
-      // build predicate state, use error condition stored in fake edge
-      PathFormula pf = predFakeState.getPathFormula();
+      case PREDICATE:
+        PathFormulaManager pfm = predCPA.getPathFormulaManager();
+        PredicateAbstractionManager pam = predCPA.getPredicateManager();
+        PredicateAbstractState predFakeState = (PredicateAbstractState) pFakeEnablerState;
+        // build predicate state, use error condition stored in fake edge
+        PathFormula pf = predFakeState.getPathFormula();
 
+        // create path to fake node
+        pf = pfm.makeAnd(pf, pAssumeEdge);
 
-      // create path to fake node
-      pf = pfm.makeAnd(pf, pAssumeEdge);
+        // if last edge on faked path, build abstraction which is needed for refinement, set to
+        // true, we do not know better
+        if (pLastEdge) {
+          AbstractionFormula abf = pam.makeTrueAbstractionFormula(pf);
+          pf = pfm.makeEmptyPathFormulaWithContextFrom(pf);
 
-      // if last edge on faked path, build abstraction which is needed for refinement, set to true, we do not know better
-      if (pLastEdge) {
-        AbstractionFormula abf = pam.makeTrueAbstractionFormula(pf);
-        pf = pfm.makeEmptyPathFormulaWithContextFrom(pf);
+          PersistentMap<CFANode, Integer> abstractionLocations =
+              predFakeState.getAbstractionLocationsOnPath();
+          Integer newLocInstance =
+              abstractionLocations.getOrDefault(pAssumeEdge.getSuccessor(), 0) + 1;
+          abstractionLocations =
+              abstractionLocations.putAndCopy(pAssumeEdge.getSuccessor(), newLocInstance);
 
-        PersistentMap<CFANode, Integer> abstractionLocations = predFakeState.getAbstractionLocationsOnPath();
-        Integer newLocInstance =
-            abstractionLocations.getOrDefault(pAssumeEdge.getSuccessor(), 0) + 1;
-        abstractionLocations = abstractionLocations.putAndCopy(pAssumeEdge.getSuccessor(), newLocInstance);
-
-        // create fake abstraction predicate state
-        predFakeState = PredicateAbstractState.mkAbstractionState(pf, abf,
-            abstractionLocations);
-      } else {
-        // create fake non abstraction predicate state
-        predFakeState = PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(pf, predFakeState);
-      }
-      return predFakeState;
-    case APRON:
-    case INTERVAL:
-    case OCTAGON:
-    case VALUE:
-      Collection<? extends AbstractState> nextFakeStateResult = enablerTransfer
-              .getAbstractSuccessorsForEdge(pFakeEnablerState, SingletonPrecision.getInstance(), pAssumeEdge);
-      if (nextFakeStateResult == null || nextFakeStateResult.isEmpty()) {
-        logger.log(Level.INFO,
-                "Adding error explaining condition makes path infeasible, enabler knows of infeasibility of error, but still try to exclude path");
-        return pFakeEnablerState;
-      }
-      // use first element as one possible reason for failure path
-      return nextFakeStateResult.iterator().next();
-    default:
+          // create fake abstraction predicate state
+          predFakeState = PredicateAbstractState.mkAbstractionState(pf, abf, abstractionLocations);
+        } else {
+          // create fake non abstraction predicate state
+          predFakeState =
+              PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(pf, predFakeState);
+        }
+        return predFakeState;
+      case APRON:
+      case INTERVAL:
+      case OCTAGON:
+      case VALUE:
+        Collection<? extends AbstractState> nextFakeStateResult =
+            enablerTransfer.getAbstractSuccessorsForEdge(
+                pFakeEnablerState, SingletonPrecision.getInstance(), pAssumeEdge);
+        if (nextFakeStateResult == null || nextFakeStateResult.isEmpty()) {
+          logger.log(
+              Level.INFO,
+              "Adding error explaining condition makes path infeasible, enabler knows of"
+                  + " infeasibility of error, but still try to exclude path");
+          return pFakeEnablerState;
+        }
+        // use first element as one possible reason for failure path
+        return nextFakeStateResult.iterator().next();
+      default:
         throw new AssertionError("case should never happen");
     }
   }
@@ -454,11 +495,15 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     return successor;
   }
 
-  private void restartFromScratchAfterRefinement(final ReachedSet pReachedSet) throws RefinementFailedException, InterruptedException {
+  private void restartFromScratchAfterRefinement(final ReachedSet pReachedSet)
+      throws RefinementFailedException, InterruptedException {
     // first build initial precision for current run
     logger.log(Level.FINEST, "Construct precision for current run");
     Precision precision =
-        buildInitialPrecision(pReachedSet.getPrecisions(), cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
+        buildInitialPrecision(
+            pReachedSet.getPrecisions(),
+            cpa.getInitialPrecision(
+                cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
     oldEnablerPrecision = getCurrentEnablerPrecision(precision);
 
     // clear reached set for current run
@@ -466,12 +511,17 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
     // initialize reached set
     if (initialWrappedState == null) {
-      initialWrappedState = ((ARGState) cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition())).getWrappedState();
+      initialWrappedState =
+          ((ARGState)
+                  cpa.getInitialState(
+                      cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()))
+              .getWrappedState();
     }
     pReachedSet.add(new ARGState(initialWrappedState, null), precision);
   }
 
-  private Precision buildInitialPrecision(Collection<Precision> precisions, Precision initialPrecision)
+  private Precision buildInitialPrecision(
+      Collection<Precision> precisions, Precision initialPrecision)
       throws InterruptedException, RefinementFailedException {
     if (precisions.isEmpty()) {
       return initialPrecision;
@@ -486,12 +536,16 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     shutdownNotifier.shutdownIfNecessary();
 
     try {
-      // assure that refinement fails if same path is encountered twice and precision not refined on that path
+      // assure that refinement fails if same path is encountered twice and precision not refined on
+      // that path
       if (repeatedFailure
           && ((enablerCPA == Enabler.PREDICATE
-                  && noNewPredicates((PredicatePrecision) oldEnablerPrecision, (PredicatePrecision) newPrec))
-             || (enablerCPA != Enabler.PREDICATE && noNewVariablesTracked(
-                (VariableTrackingPrecision) oldEnablerPrecision, (VariableTrackingPrecision) newPrec)))) {
+                  && noNewPredicates(
+                      (PredicatePrecision) oldEnablerPrecision, (PredicatePrecision) newPrec))
+              || (enablerCPA != Enabler.PREDICATE
+                  && noNewVariablesTracked(
+                      (VariableTrackingPrecision) oldEnablerPrecision,
+                      (VariableTrackingPrecision) newPrec)))) {
         throw new RefinementFailedException(Reason.RepeatedCounterexample, pathToFailure);
       }
     } catch (SolverException e) {
@@ -507,17 +561,25 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
         Iterables.concat(ImmutableList.of(initialPrecision), pReachedSetPrecisions));
   }
 
-  private Precision builtNewVariableTrackingPrecision(Precision pInitialPrecision, Collection<Precision> pPrecisions) {
-    VariableTrackingPrecision vtPrec = (VariableTrackingPrecision) Precisions.asIterable(pInitialPrecision)
-            .filter(VariableTrackingPrecision.isMatchingCPAClass(enablerCPA.cpaClass)).get(0);
+  private Precision builtNewVariableTrackingPrecision(
+      Precision pInitialPrecision, Collection<Precision> pPrecisions) {
+    VariableTrackingPrecision vtPrec =
+        (VariableTrackingPrecision)
+            Precisions.asIterable(pInitialPrecision)
+                .filter(VariableTrackingPrecision.isMatchingCPAClass(enablerCPA.cpaClass))
+                .get(0);
 
     Set<Precision> seen = new HashSet<>();
     seen.add(pInitialPrecision);
 
-    for(Precision joinPrec : pPrecisions) {
+    for (Precision joinPrec : pPrecisions) {
       if (seen.add(joinPrec)) {
-        vtPrec = vtPrec.join((VariableTrackingPrecision) Precisions.asIterable(joinPrec)
-            .filter(VariableTrackingPrecision.isMatchingCPAClass(enablerCPA.cpaClass)).get(0));
+        vtPrec =
+            vtPrec.join(
+                (VariableTrackingPrecision)
+                    Precisions.asIterable(joinPrec)
+                        .filter(VariableTrackingPrecision.isMatchingCPAClass(enablerCPA.cpaClass))
+                        .get(0));
       }
     }
     return vtPrec;
@@ -528,25 +590,32 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       return Precisions.extractPrecisionByType(pPrecision, PredicatePrecision.class);
     } else {
       return Precisions.asIterable(pPrecision)
-          .filter(VariableTrackingPrecision.isMatchingCPAClass(enablerCPA.cpaClass)).get(0);
+          .filter(VariableTrackingPrecision.isMatchingCPAClass(enablerCPA.cpaClass))
+          .get(0);
     }
   }
 
-  private Precision replaceEnablerPrecision(final Precision pInitialPrecision, final Precision pNewPrec) {
+  private Precision replaceEnablerPrecision(
+      final Precision pInitialPrecision, final Precision pNewPrec) {
     if (enablerCPA == Enabler.PREDICATE) {
-      return Precisions.replaceByType(pInitialPrecision, pNewPrec, Predicates.instanceOf(PredicatePrecision.class));
-    }
-    else {
-      return Precisions.replaceByType(pInitialPrecision, pNewPrec,
+      return Precisions.replaceByType(
+          pInitialPrecision, pNewPrec, Predicates.instanceOf(PredicatePrecision.class));
+    } else {
+      return Precisions.replaceByType(
+          pInitialPrecision,
+          pNewPrec,
           VariableTrackingPrecision.isMatchingCPAClass(enablerCPA.cpaClass));
     }
   }
 
-  private boolean noNewPredicates(final PredicatePrecision oldPrecision, final PredicatePrecision newPrecision)
+  private boolean noNewPredicates(
+      final PredicatePrecision oldPrecision, final PredicatePrecision newPrecision)
       throws SolverException, InterruptedException {
 
     // check if global precision changed
-    if (isMorePrecise(oldPrecision.getGlobalPredicates(), newPrecision.getGlobalPredicates())) { return false; }
+    if (isMorePrecise(oldPrecision.getGlobalPredicates(), newPrecision.getGlobalPredicates())) {
+      return false;
+    }
     // get CFA nodes and function names on failure path
     Set<String> funNames = new HashSet<>();
     Set<CFANode> nodesOnPath = new HashSet<>();
@@ -559,29 +628,37 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
     // check if precision for one of the functions on path changed
     for (String funName : funNames) {
-      if (isMorePrecise(oldPrecision.getFunctionPredicates().get(funName),
-          newPrecision.getFunctionPredicates().get(funName))) { return false; }
+      if (isMorePrecise(
+          oldPrecision.getFunctionPredicates().get(funName),
+          newPrecision.getFunctionPredicates().get(funName))) {
+        return false;
+      }
     }
 
     // check if precision for one of the CFA nodes on path changed
     for (CFANode node : nodesOnPath) {
-      if (isMorePrecise(oldPrecision.getLocalPredicates().get(node),
-          newPrecision.getLocalPredicates().get(node))) { return false; }
+      if (isMorePrecise(
+          oldPrecision.getLocalPredicates().get(node),
+          newPrecision.getLocalPredicates().get(node))) {
+        return false;
+      }
     }
 
     return true;
   }
 
-  private boolean noNewVariablesTracked(VariableTrackingPrecision pOldEnablerPrecision,
-      VariableTrackingPrecision pNewPrec) {
+  private boolean noNewVariablesTracked(
+      VariableTrackingPrecision pOldEnablerPrecision, VariableTrackingPrecision pNewPrec) {
     return pOldEnablerPrecision.tracksTheSameVariablesAs(pNewPrec);
   }
 
-  private boolean isMorePrecise(final Set<AbstractionPredicate> lessPrecise,
-      final Set<AbstractionPredicate> morePrecise)
-          throws SolverException, InterruptedException {
+  private boolean isMorePrecise(
+      final Set<AbstractionPredicate> lessPrecise, final Set<AbstractionPredicate> morePrecise)
+      throws SolverException, InterruptedException {
     if (lessPrecise != null && morePrecise != null) {
-      if (lessPrecise.size() == morePrecise.size() && lessPrecise.equals(morePrecise)) { return false; }
+      if (lessPrecise.size() == morePrecise.size() && lessPrecise.equals(morePrecise)) {
+        return false;
+      }
 
       // build conjunction of predicates
       List<BooleanFormula> list = new ArrayList<>(Math.max(lessPrecise.size(), morePrecise.size()));
@@ -622,8 +699,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
   @Override
   public void collectStatistics(final Collection<Statistics> pStatsCollection) {
     if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
+      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
     }
-
   }
 }

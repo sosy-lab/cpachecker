@@ -23,5 +23,4 @@ public interface ExpressionTreeFactory<LeafType> {
   ExpressionTree<LeafType> or(ExpressionTree<LeafType> pOp1, ExpressionTree<LeafType> pOp2);
 
   ExpressionTree<LeafType> or(Collection<ExpressionTree<LeafType>> pOperands);
-
 }

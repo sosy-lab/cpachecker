@@ -16,12 +16,11 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
- * Abstraction of a  parser that creates CFAs from  code.
+ * Abstraction of a parser that creates CFAs from code.
  *
- * A parser should be state-less and therefore thread-safe as well as reusable.
+ * <p>A parser should be state-less and therefore thread-safe as well as reusable.
  *
- * It may offer timing of it's operations. If present, this is not expected to
- * be thread-safe.
+ * <p>It may offer timing of it's operations. If present, this is not expected to be thread-safe.
  */
 public interface Parser {
 
@@ -46,16 +45,12 @@ public interface Parser {
    */
   ParseResult parseString(Path filename, String code) throws ParserException, InterruptedException;
 
-  /**
-   * Return a timer that measured the time needed for parsing.
-   * Optional method: may return null.
-   */
+  /** Return a timer that measured the time needed for parsing. Optional method: may return null. */
   Timer getParseTime();
 
   /**
-   * Return a timer that measured the time need for CFA construction.
-   * Optional method: may return null.
+   * Return a timer that measured the time need for CFA construction. Optional method: may return
+   * null.
    */
   Timer getCFAConstructionTime();
-
 }

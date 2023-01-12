@@ -33,12 +33,16 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
 
   @VisibleForTesting
-  public SMGSingleLinkedListFinder() {
-  }
+  public SMGSingleLinkedListFinder() {}
 
-  public SMGSingleLinkedListFinder(int pSeqLengthEqualityThreshold,
-      int pSeqLengthEntailmentThreshold, int pSeqLengthIncomparableThreshold) {
-    super(pSeqLengthEqualityThreshold,pSeqLengthEntailmentThreshold,pSeqLengthIncomparableThreshold);
+  public SMGSingleLinkedListFinder(
+      int pSeqLengthEqualityThreshold,
+      int pSeqLengthEntailmentThreshold,
+      int pSeqLengthIncomparableThreshold) {
+    super(
+        pSeqLengthEqualityThreshold,
+        pSeqLengthEntailmentThreshold,
+        pSeqLengthIncomparableThreshold);
   }
 
   @Override
@@ -91,7 +95,9 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
       return;
     }
 
-    if(!(pObject.getKind() == SMGObjectKind.SLL || pObject.getKind() == SMGObjectKind.REG || pObject.getKind() == SMGObjectKind.OPTIONAL)) {
+    if (!(pObject.getKind() == SMGObjectKind.SLL
+        || pObject.getKind() == SMGObjectKind.REG
+        || pObject.getKind() == SMGObjectKind.OPTIONAL)) {
       return;
     }
 
@@ -116,7 +122,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
 
       SMGObject nextObject = nextPointerEdge.getObject();
 
-      if(pObject == nextObject) {
+      if (pObject == nextObject) {
         continue;
       }
 
@@ -124,7 +130,9 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         continue;
       }
 
-      if(!(nextObject.getKind() == SMGObjectKind.SLL || nextObject.getKind() == SMGObjectKind.REG || nextObject.getKind() == SMGObjectKind.OPTIONAL)) {
+      if (!(nextObject.getKind() == SMGObjectKind.SLL
+          || nextObject.getKind() == SMGObjectKind.REG
+          || nextObject.getKind() == SMGObjectKind.OPTIONAL)) {
         continue;
       }
 
@@ -170,7 +178,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
     SMGObject startObject = pPrevCandidate.getStartObject();
 
     // First, calculate the longest mergeable sequence of the next object
-    if(!pSmg.isHeapObject(nextObject)) {
+    if (!pSmg.isHeapObject(nextObject)) {
       return;
     }
 
@@ -192,7 +200,9 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         return;
       }
 
-      if(!(nextObject.getKind() == SMGObjectKind.SLL || nextObject.getKind() == SMGObjectKind.REG || nextObject.getKind() == SMGObjectKind.OPTIONAL)) {
+      if (!(nextObject.getKind() == SMGObjectKind.SLL
+          || nextObject.getKind() == SMGObjectKind.REG
+          || nextObject.getKind() == SMGObjectKind.OPTIONAL)) {
         return;
       }
 
@@ -232,7 +242,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         new SMGJoinSubSMGsForAbstraction(
             pSmg.copyOf(), startObject, nextObject, candidate, pSmgState);
 
-    if(!join.isDefined()) {
+    if (!join.isDefined()) {
       return;
     }
 
@@ -256,18 +266,19 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
     // TODO Investigate, is this okay?
     nonSharedValues2.remove(pValue);
 
-    // Third, calculate if the respective nfo restricted subsmgs are only reachable from their candidate objects
-    if (!isSubSmgSeperate(nonSharedObject1, nonSharedValues1, pSmg, objectsOfSubSmg1,
-        valuesOfSubSmg1, startObject)) {
-      isSubSmgSeperate(nonSharedObject1, nonSharedValues1, pSmg, objectsOfSubSmg1,
-          valuesOfSubSmg1, startObject);
+    // Third, calculate if the respective nfo restricted subsmgs are only reachable from their
+    // candidate objects
+    if (!isSubSmgSeperate(
+        nonSharedObject1, nonSharedValues1, pSmg, objectsOfSubSmg1, valuesOfSubSmg1, startObject)) {
+      isSubSmgSeperate(
+          nonSharedObject1, nonSharedValues1, pSmg, objectsOfSubSmg1, valuesOfSubSmg1, startObject);
       return;
     }
 
-    if (!isSubSmgSeperate(nonSharedObject2, nonSharedValues2, pSmg, objectsOfSubSmg2,
-        valuesOfSubSmg2, nextObject)) {
-      isSubSmgSeperate(nonSharedObject2, nonSharedValues2, pSmg, objectsOfSubSmg2,
-          valuesOfSubSmg2, nextObject);
+    if (!isSubSmgSeperate(
+        nonSharedObject2, nonSharedValues2, pSmg, objectsOfSubSmg2, valuesOfSubSmg2, nextObject)) {
+      isSubSmgSeperate(
+          nonSharedObject2, nonSharedValues2, pSmg, objectsOfSubSmg2, valuesOfSubSmg2, nextObject);
       return;
     }
 

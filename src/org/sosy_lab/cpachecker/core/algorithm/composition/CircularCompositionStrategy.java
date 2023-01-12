@@ -30,9 +30,10 @@ public class CircularCompositionStrategy extends AlgorithmCompositionStrategy
     implements Statistics {
 
   @Option(
-    secure = true,
-    description = "If adaptTimeLimits is set and all configurations support progress reports, "
-        + "in each cycle the time limits per configuration are newly calculated based on the progress")
+      secure = true,
+      description =
+          "If adaptTimeLimits is set and all configurations support progress reports, in each cycle"
+              + " the time limits per configuration are newly calculated based on the progress")
   private boolean adaptTimeLimits = false;
 
   private int inCycleCount;
@@ -73,9 +74,10 @@ public class CircularCompositionStrategy extends AlgorithmCompositionStrategy
       if (mayAdapt) {
         context.adaptTimeLimit(
             AlgorithmContext.DEFAULT_TIME_LIMIT
-                + (int) Math.round(
-                    ((context.getProgress() / context.getTimeLimit()) / totalRelativeProgress)
-                        * totalDistributableTimeBudget));
+                + (int)
+                    Math.round(
+                        ((context.getProgress() / context.getTimeLimit()) / totalRelativeProgress)
+                            * totalDistributableTimeBudget));
       }
     }
   }
@@ -118,12 +120,10 @@ public class CircularCompositionStrategy extends AlgorithmCompositionStrategy
               + ":    "
               + algorithmContexts.get(i).getTotalTimeSpent().asSeconds());
     }
-
   }
 
   @Override
   public @Nullable String getName() {
     return "Circular Composition";
   }
-
 }

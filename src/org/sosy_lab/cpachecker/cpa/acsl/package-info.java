@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * CPA to store representations of ACSL annotations and provide them as invariants.
- */
+/** CPA to store representations of ACSL annotations and provide them as invariants. */
 package org.sosy_lab.cpachecker.cpa.acsl;

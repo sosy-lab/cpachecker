@@ -19,24 +19,26 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-
 public final class PartitioningUtils {
 
   private PartitioningUtils() {}
 
-  public static boolean areElementsCoveredByPartitionElement(final Collection<AbstractState> pInOtherPartitions,
-      Multimap<CFANode, AbstractState> pInPartition, final StopOperator pStop, final Precision pPrec)
+  public static boolean areElementsCoveredByPartitionElement(
+      final Collection<AbstractState> pInOtherPartitions,
+      Multimap<CFANode, AbstractState> pInPartition,
+      final StopOperator pStop,
+      final Precision pPrec)
       throws CPAException, InterruptedException {
     Set<AbstractState> partitionNodes = new HashSet<>(pInPartition.values());
 
     for (AbstractState outState : pInOtherPartitions) {
       if (!partitionNodes.contains(outState)
-          && !pStop.stop(outState, pInPartition.get(AbstractStates.extractLocation(outState)), pPrec)) {
+          && !pStop.stop(
+              outState, pInPartition.get(AbstractStates.extractLocation(outState)), pPrec)) {
         return false;
       }
     }
 
     return true;
   }
-
 }

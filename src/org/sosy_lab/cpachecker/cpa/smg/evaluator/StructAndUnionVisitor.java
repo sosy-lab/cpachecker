@@ -22,23 +22,23 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
- * This class evaluates expressions that evaluate to a
- * struct or union type. The type of every expression visited by this
- * visitor has to be either {@link CElaboratedType} or
- * {@link CComplexType}. Furthermore, it must not be a enum.
- * The result of the evaluation is an {@link SMGAddress}.
- * The object represents the memory this struct is placed in, the offset
- * represents the start of the struct.
+ * This class evaluates expressions that evaluate to a struct or union type. The type of every
+ * expression visited by this visitor has to be either {@link CElaboratedType} or {@link
+ * CComplexType}. Furthermore, it must not be a enum. The result of the evaluation is an {@link
+ * SMGAddress}. The object represents the memory this struct is placed in, the offset represents the
+ * start of the struct.
  */
 class StructAndUnionVisitor extends AddressVisitor
     implements CRightHandSideVisitor<List<SMGAddressAndState>, CPATransferException> {
 
-  public StructAndUnionVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pCfaEdge, SMGState pNewState) {
+  public StructAndUnionVisitor(
+      SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pCfaEdge, SMGState pNewState) {
     super(pSmgExpressionEvaluator, pCfaEdge, pNewState);
   }
 
   @Override
-  public List<SMGAddressAndState> visit(CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
+  public List<SMGAddressAndState> visit(CFunctionCallExpression pIastFunctionCallExpression)
+      throws CPATransferException {
     return visitDefault(pIastFunctionCallExpression);
   }
 
@@ -48,7 +48,7 @@ class StructAndUnionVisitor extends AddressVisitor
     if (SMGExpressionEvaluator.isStructOrUnionType(op.getExpressionType())) {
       return cast.getOperand().accept(this);
     } else {
-      //TODO cast reinterpretation
+      // TODO cast reinterpretation
       return visitDefault(cast);
     }
   }

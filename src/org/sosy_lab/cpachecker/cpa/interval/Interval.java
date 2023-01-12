@@ -19,14 +19,10 @@ import java.util.Objects;
 public final class Interval implements Serializable {
   private static final long serialVersionUID = 4223098080993616295L;
 
-  /**
-   * the lower bound of the interval
-   */
+  /** the lower bound of the interval */
   private final Long low;
 
-  /**
-   * the upper bound of the interval
-   */
+  /** the upper bound of the interval */
   private final Long high;
 
   private static final Interval EMPTY = new Interval(null, null);
@@ -41,9 +37,9 @@ public final class Interval implements Serializable {
    * @param value for the lower and upper bound
    */
   public Interval(Long value) {
-    this.low  = value;
+    low = value;
 
-    this.high = value;
+    high = value;
 
     isSane();
   }
@@ -55,7 +51,7 @@ public final class Interval implements Serializable {
    * @param high the upper bound
    */
   public Interval(Long low, Long high) {
-    this.low  = low;
+    this.low = low;
 
     this.high = high;
 
@@ -90,7 +86,7 @@ public final class Interval implements Serializable {
   @Override
   public boolean equals(Object other) {
     if (other != null && getClass().equals(other.getClass())) {
-      Interval another = (Interval)other;
+      Interval another = (Interval) other;
       return Objects.equals(low, another.low) && Objects.equals(high, another.high);
     }
     return false;
@@ -102,9 +98,11 @@ public final class Interval implements Serializable {
   }
 
   /**
-   * This method creates a new interval instance representing the union of this interval with another interval.
+   * This method creates a new interval instance representing the union of this interval with
+   * another interval.
    *
-   * The lower bound and upper bound of the new interval is the minimum of both lower bounds and the maximum of both upper bounds, respectively.
+   * <p>The lower bound and upper bound of the new interval is the minimum of both lower bounds and
+   * the maximum of both upper bounds, respectively.
    *
    * @param other the other interval
    * @return the new interval with the respective bounds
@@ -122,15 +120,17 @@ public final class Interval implements Serializable {
   }
 
   /**
-   * This method creates a new interval instance representing the intersection of this interval with another interval.
+   * This method creates a new interval instance representing the intersection of this interval with
+   * another interval.
    *
-   * The lower bound and upper bound of the new interval is the maximum of both lower bounds and the minimum of both upper bounds, respectively.
+   * <p>The lower bound and upper bound of the new interval is the maximum of both lower bounds and
+   * the minimum of both upper bounds, respectively.
    *
    * @param other the other interval
    * @return the new interval with the respective bounds
    */
   public Interval intersect(Interval other) {
-    if (this.intersects(other)) {
+    if (intersects(other)) {
       return new Interval(Math.max(low, other.low), Math.min(high, other.high));
     } else {
       return EMPTY;
@@ -141,7 +141,8 @@ public final class Interval implements Serializable {
    * This method determines if this interval is definitely greater than the other interval.
    *
    * @param other interval to compare with
-   * @return true if the lower bound of this interval is always strictly greater than the upper bound of the other interval, else false
+   * @return true if the lower bound of this interval is always strictly greater than the upper
+   *     bound of the other interval, else false
    */
   public boolean isGreaterThan(Interval other) {
     return !isEmpty() && !other.isEmpty() && low > other.high;
@@ -152,7 +153,8 @@ public final class Interval implements Serializable {
    * The equality is only satisfied for one single value!
    *
    * @param other interval to compare with
-   * @return true if the lower bound of this interval is always strictly greater or equal than the upper bound of the other interval, else false
+   * @return true if the lower bound of this interval is always strictly greater or equal than the
+   *     upper bound of the other interval, else false
    */
   public boolean isGreaterOrEqualThan(Interval other) {
     return !isEmpty() && !other.isEmpty() && low >= other.high;
@@ -162,7 +164,8 @@ public final class Interval implements Serializable {
    * This method determines if this interval maybe greater than the other interval.
    *
    * @param other interval to compare with
-   * @return true if the upper bound of this interval is strictly greater than the lower bound of the other interval, else false
+   * @return true if the upper bound of this interval is strictly greater than the lower bound of
+   *     the other interval, else false
    */
   public boolean mayBeGreaterThan(Interval other) {
     return other.isEmpty() || (!isEmpty() && !other.isEmpty() && high > other.low);
@@ -172,7 +175,8 @@ public final class Interval implements Serializable {
    * This method determines if this interval maybe greater or equal than the other interval.
    *
    * @param other interval to compare with
-   * @return true if the upper bound of this interval is strictly greater than the lower bound of the other interval, else false
+   * @return true if the upper bound of this interval is strictly greater than the lower bound of
+   *     the other interval, else false
    */
   public boolean mayBeGreaterOrEqualThan(Interval other) {
     return other.isEmpty() || (!isEmpty() && !other.isEmpty() && high >= other.low);
@@ -215,14 +219,16 @@ public final class Interval implements Serializable {
     // Separate consideration for the case where the divisible number can be negative.
     if (low >= 0) { // If the divisible interval is all positive, the lowest we can ever get is 0.
 
-      // We can only get zero if we include 0 or the number higher than the smallest value of the other interval.
+      // We can only get zero if we include 0 or the number higher than the smallest value of the
+      // other interval.
       if (low == 0 || high >= other.low) {
         newLow = 0;
       } else {
         newLow = low;
       }
     } else {
-      // The remainder can go negative, but it can not be more negative than the negation of the highest value
+      // The remainder can go negative, but it can not be more negative than the negation of the
+      // highest value
       // of the other interval plus 1.
       // (e.g. X mod 14 can not be lower than -13)
 
@@ -238,7 +244,9 @@ public final class Interval implements Serializable {
    * This method returns a new interval with a limited, i.e. higher, lower bound.
    *
    * @param other the interval to limit this interval
-   * @return the new interval with the upper bound of this interval and the lower bound set to the maximum of this interval's and the other interval's lower bound or an empty interval if this interval is less than the other interval.
+   * @return the new interval with the upper bound of this interval and the lower bound set to the
+   *     maximum of this interval's and the other interval's lower bound or an empty interval if
+   *     this interval is less than the other interval.
    */
   public Interval limitLowerBoundBy(Interval other) {
     Interval interval = null;
@@ -256,7 +264,9 @@ public final class Interval implements Serializable {
    * This method returns a new interval with a limited, i.e. lower, upper bound.
    *
    * @param other the interval to limit this interval
-   * @return the new interval with the lower bound of this interval and the upper bound set to the minimum of this interval's and the other interval's upper bound or an empty interval if this interval is greater than the other interval.
+   * @return the new interval with the lower bound of this interval and the upper bound set to the
+   *     minimum of this interval's and the other interval's upper bound or an empty interval if
+   *     this interval is greater than the other interval.
    */
   public Interval limitUpperBoundBy(Interval other) {
     Interval interval = null;
@@ -277,11 +287,11 @@ public final class Interval implements Serializable {
    * @return true if the intervals intersect, else false
    */
   public boolean intersects(Interval other) {
-      if (isEmpty() || other.isEmpty()) {
-        return false;
-      }
+    if (isEmpty() || other.isEmpty()) {
+      return false;
+    }
 
-      return (low >= other.low && low <= other.high)
+    return (low >= other.low && low <= other.high)
         || (high >= other.low && high <= other.high)
         || (low <= other.low && high >= other.high);
   }
@@ -289,18 +299,20 @@ public final class Interval implements Serializable {
   /**
    * This method determines if this interval contains another interval.
    *
-   * The method still returns true, if the borders match. An empty interval does not contain any interval and is not contained in any interval either. So if the callee or parameter is an empty interval, this method will return false.
+   * <p>The method still returns true, if the borders match. An empty interval does not contain any
+   * interval and is not contained in any interval either. So if the callee or parameter is an empty
+   * interval, this method will return false.
    *
    * @param other the other interval
    * @return true if this interval contains the other interval, else false
    */
   public boolean contains(Interval other) {
-     return (!isEmpty() && !other.isEmpty()
-               && low <= other.low && other.high <= high);
+    return (!isEmpty() && !other.isEmpty() && low <= other.low && other.high <= high);
   }
 
   /**
-   * This method adds an interval from this interval, overflow is handled by setting the bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
+   * This method adds an interval from this interval, overflow is handled by setting the bound to
+   * Long.MIN_VALUE or Long.MAX_VALUE respectively.
    *
    * @param interval the interval to add
    * @return a new interval with the respective bounds
@@ -314,7 +326,8 @@ public final class Interval implements Serializable {
   }
 
   /**
-   * This method adds a constant offset to this interval, overflow is handled by setting the bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
+   * This method adds a constant offset to this interval, overflow is handled by setting the bound
+   * to Long.MIN_VALUE or Long.MAX_VALUE respectively.
    *
    * @param offset the constant offset to add
    * @return a new interval with the respective bounds
@@ -324,7 +337,8 @@ public final class Interval implements Serializable {
   }
 
   /**
-   * This method subtracts an interval from this interval, overflow is handled by setting the bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
+   * This method subtracts an interval from this interval, overflow is handled by setting the bound
+   * to Long.MIN_VALUE or Long.MAX_VALUE respectively.
    *
    * @param other interval to subtract
    * @return a new interval with the respective bounds
@@ -334,7 +348,8 @@ public final class Interval implements Serializable {
   }
 
   /**
-   * This method subtracts a constant offset to this interval, overflow is handled by setting the bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
+   * This method subtracts a constant offset to this interval, overflow is handled by setting the
+   * bound to Long.MIN_VALUE or Long.MAX_VALUE respectively.
    *
    * @param offset the constant offset to subtract
    * @return a new interval with the respective bounds
@@ -344,24 +359,26 @@ public final class Interval implements Serializable {
   }
 
   /**
-   * This method multiplies this interval with another interval. In case of an overflow Long.MAX_VALUE and Long.MIN_VALUE are used instead.
+   * This method multiplies this interval with another interval. In case of an overflow
+   * Long.MAX_VALUE and Long.MIN_VALUE are used instead.
    *
    * @param other interval to multiply this interval with
    * @return new interval that represents the result of the multiplication of the two intervals
    */
   public Interval times(Interval other) {
     long[] values = {
-                      saturatedMultiply(low, other.low),
-                      saturatedMultiply(low, other.high),
-                      saturatedMultiply(high, other.low),
-                      saturatedMultiply(high, other.high)
-                    };
+      saturatedMultiply(low, other.low),
+      saturatedMultiply(low, other.high),
+      saturatedMultiply(high, other.low),
+      saturatedMultiply(high, other.high)
+    };
 
     return new Interval(Longs.min(values), Longs.max(values));
   }
 
   /**
-   * This method divides this interval by another interval. If the other interval contains "0" an unbound interval is returned.
+   * This method divides this interval by another interval. If the other interval contains "0" an
+   * unbound interval is returned.
    *
    * @param other interval to divide this interval by
    * @return new interval that represents the result of the division of the two intervals
@@ -371,34 +388,31 @@ public final class Interval implements Serializable {
     if (other.contains(ZERO)) {
       return UNBOUND;
     } else {
-      long[] values = {
-                        low / other.low,
-                        low / other.high,
-                        high / other.low,
-                        high / other.high
-                      };
+      long[] values = {low / other.low, low / other.high, high / other.low, high / other.high};
 
       return new Interval(Longs.min(values), Longs.max(values));
     }
   }
 
   /**
-  * This method performs an arithmetical left shift of the interval bounds.
-  *
-  * @param offset Interval offset to perform an arithmetical left shift on the interval
-  *               bounds. If the offset maybe less than zero an unbound interval is returned.
-  * @return new interval that represents the result of the arithmetical left shift
-  */
+   * This method performs an arithmetical left shift of the interval bounds.
+   *
+   * @param offset Interval offset to perform an arithmetical left shift on the interval bounds. If
+   *     the offset maybe less than zero an unbound interval is returned.
+   * @return new interval that represents the result of the arithmetical left shift
+   */
   public Interval shiftLeft(Interval offset) {
     // create an unbound interval upon trying to shift by a possibly negative offset
     if (ZERO.mayBeGreaterThan(offset)) {
       return UNBOUND;
     } else {
-      // if lower bound is negative, shift it by upper bound of offset, else by lower bound of offset
-      Long newLow   = low << ((low < 0L) ? offset.high : offset.low);
+      // if lower bound is negative, shift it by upper bound of offset, else by lower bound of
+      // offset
+      Long newLow = low << ((low < 0L) ? offset.high : offset.low);
 
-      // if upper bound is negative, shift it by lower bound of offset, else by upper bound of offset
-      Long newHigh  = high << ((high < 0L) ? offset.low : offset.high);
+      // if upper bound is negative, shift it by lower bound of offset, else by upper bound of
+      // offset
+      Long newHigh = high << ((high < 0L) ? offset.low : offset.high);
 
       if ((low < 0 && newLow > low) || (high > 0 && newHigh < high)) {
         return UNBOUND;
@@ -409,21 +423,24 @@ public final class Interval implements Serializable {
   }
 
   /**
-  * This method performs an arithmetical right shift of the interval bounds. If the offset maybe less than zero an unbound interval is returned.
-  *
-  * @param offset Interval offset to perform an arithmetical right shift on the interval bounds
-  * @return new interval that represents the result of the arithmetical right shift
-  */
+   * This method performs an arithmetical right shift of the interval bounds. If the offset maybe
+   * less than zero an unbound interval is returned.
+   *
+   * @param offset Interval offset to perform an arithmetical right shift on the interval bounds
+   * @return new interval that represents the result of the arithmetical right shift
+   */
   public Interval shiftRight(Interval offset) {
     // create an unbound interval upon trying to shift by a possibly negative offset
     if (ZERO.mayBeGreaterThan(offset)) {
       return UNBOUND;
     } else {
-      // if lower bound is negative, shift it by lower bound of offset, else by upper bound of offset
-      Long newLow   = low >> ((low < 0L) ? offset.low : offset.high);
+      // if lower bound is negative, shift it by lower bound of offset, else by upper bound of
+      // offset
+      Long newLow = low >> ((low < 0L) ? offset.low : offset.high);
 
-      // if upper bound is negative, shift it by upper bound of offset, else by lower bound of offset
-      Long newHigh  = high >> ((high < 0L) ? offset.high : offset.low);
+      // if upper bound is negative, shift it by upper bound of offset, else by lower bound of
+      // offset
+      Long newHigh = high >> ((high < 0L) ? offset.high : offset.low);
 
       return new Interval(newLow, newHigh);
     }
@@ -460,7 +477,8 @@ public final class Interval implements Serializable {
    * This method is a factory method for a lower bounded interval.
    *
    * @param lowerBound the lower bound to set
-   * @return a lower bounded interval, i.e. the lower bound is set to the given lower bound, the upper bound is set to Long.MAX_VALUE
+   * @return a lower bounded interval, i.e. the lower bound is set to the given lower bound, the
+   *     upper bound is set to Long.MAX_VALUE
    */
   public static Interval createLowerBoundedInterval(Long lowerBound) {
     return new Interval(lowerBound, Long.MAX_VALUE);
@@ -470,7 +488,8 @@ public final class Interval implements Serializable {
    * This method is a factory method for an upper bounded interval.
    *
    * @param upperBound the upper bound to set
-   * @return an upper bounded interval, i.e. the lower bound is set to Long.MIN_VALUE, the upper bound is set to the given upper bound
+   * @return an upper bounded interval, i.e. the lower bound is set to Long.MIN_VALUE, the upper
+   *     bound is set to the given upper bound
    */
   public static Interval createUpperBoundedInterval(Long upperBound) {
     return new Interval(Long.MIN_VALUE, upperBound);

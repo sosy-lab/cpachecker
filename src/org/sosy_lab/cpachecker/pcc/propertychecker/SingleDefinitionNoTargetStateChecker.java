@@ -9,16 +9,13 @@
 package org.sosy_lab.cpachecker.pcc.propertychecker;
 
 import java.util.Collection;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
-
 
 public class SingleDefinitionNoTargetStateChecker implements PropertyChecker {
 
   private SingleDefinitionChecker defChecker;
   private NoTargetStateChecker targetChecker;
-
 
   public SingleDefinitionNoTargetStateChecker(final String varWithSingleDef) {
     defChecker = new SingleDefinitionChecker(varWithSingleDef);
@@ -36,5 +33,4 @@ public class SingleDefinitionNoTargetStateChecker implements PropertyChecker {
     return defChecker.satisfiesProperty(pCertificate)
         && targetChecker.satisfiesProperty(pCertificate);
   }
-
 }

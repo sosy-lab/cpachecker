@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-
 import java.math.BigDecimal;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -52,8 +51,7 @@ public abstract class AFloatLiteralExpression extends ALiteralExpression {
       return true;
     }
 
-    if (!(obj instanceof AFloatLiteralExpression)
-        || !super.equals(obj)) {
+    if (!(obj instanceof AFloatLiteralExpression) || !super.equals(obj)) {
       return false;
     }
 
@@ -61,5 +59,4 @@ public abstract class AFloatLiteralExpression extends ALiteralExpression {
 
     return Objects.equals(other.value, value);
   }
-
 }

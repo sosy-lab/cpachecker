@@ -73,7 +73,7 @@ public class LocalVariableIdentifier extends VariableIdentifier {
       if (result != 0) {
         return result;
       }
-      return this.function.compareTo(((LocalVariableIdentifier) pO).function);
+      return function.compareTo(((LocalVariableIdentifier) pO).function);
     } else if (pO instanceof GlobalVariableIdentifier) {
       return -1;
     } else {

@@ -21,7 +21,9 @@ public class InIntervalChecker extends PerElementPropertyChecker {
   private final String varName;
   private final Interval allowedValues;
 
-  public InIntervalChecker(final String pVariableName, final String pLabel,
+  public InIntervalChecker(
+      final String pVariableName,
+      final String pLabel,
       // Necessary because called reflectively
       // TODO Better usability would be to pass Configuration object
       // and define all user-specified parameters as individual @Option fields in this class.
@@ -31,22 +33,29 @@ public class InIntervalChecker extends PerElementPropertyChecker {
     label = pLabel;
     varName = pVariableName;
     allowedValues = new Interval(Long.parseLong(pMin), Long.parseLong(pMax));
-
   }
 
-  public InIntervalChecker(final String pVariableName, final String pLabel, final String pMode, final String pValue) {
-    this(pVariableName, pLabel, pMode, Integer.parseInt(pMode) == 0 ? pValue : Long.toString(Long.MIN_VALUE),
+  public InIntervalChecker(
+      final String pVariableName, final String pLabel, final String pMode, final String pValue) {
+    this(
+        pVariableName,
+        pLabel,
+        pMode,
+        Integer.parseInt(pMode) == 0 ? pValue : Long.toString(Long.MIN_VALUE),
         Integer.parseInt(pMode) == 0 ? Long.toString(Long.MAX_VALUE) : pValue);
   }
 
   @Override
-  public boolean satisfiesProperty(AbstractState pElemToCheck) throws UnsupportedOperationException {
+  public boolean satisfiesProperty(AbstractState pElemToCheck)
+      throws UnsupportedOperationException {
     CFANode node = AbstractStates.extractLocation(pElemToCheck);
     if (node instanceof CFALabelNode && ((CFALabelNode) node).getLabel().equals(label)) {
-      IntervalAnalysisState state = AbstractStates.extractStateByType(pElemToCheck, IntervalAnalysisState.class);
+      IntervalAnalysisState state =
+          AbstractStates.extractStateByType(pElemToCheck, IntervalAnalysisState.class);
       if (state != null) {
         Interval interval = state.getInterval(varName);
-        if (interval != null && interval.getHigh() <= allowedValues.getHigh()
+        if (interval != null
+            && interval.getHigh() <= allowedValues.getHigh()
             && interval.getLow() >= allowedValues.getLow()) {
           return true;
         }
@@ -55,5 +64,4 @@ public class InIntervalChecker extends PerElementPropertyChecker {
     }
     return true;
   }
-
 }

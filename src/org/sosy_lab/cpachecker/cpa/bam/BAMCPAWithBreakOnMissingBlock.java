@@ -36,9 +36,8 @@ public class BAMCPAWithBreakOnMissingBlock extends AbstractBAMCPA {
   }
 
   @Option(
-    secure = true,
-    description = "abort current analysis when finding a missing block abstraction"
-  )
+      secure = true,
+      description = "abort current analysis when finding a missing block abstraction")
   private boolean breakForMissingBlock = true;
 
   private final BAMCache cache;

@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Helper data structures for correctly handling certain ACSL annotations.
- */
+/** Helper data structures for correctly handling certain ACSL annotations. */
 package org.sosy_lab.cpachecker.cfa.ast.acsl.util;

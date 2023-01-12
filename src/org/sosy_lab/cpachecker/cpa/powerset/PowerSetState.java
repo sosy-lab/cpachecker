@@ -31,7 +31,8 @@ public class PowerSetState implements AbstractWrapperState, Targetable {
     setOfStates = ImmutableSet.copyOf(states);
   }
 
-  public PowerSetState(final Set<AbstractState> states, final PowerSetState state1, final PowerSetState state2) {
+  public PowerSetState(
+      final Set<AbstractState> states, final PowerSetState state1, final PowerSetState state2) {
     merged1 = state1;
     merged2 = state2;
     setOfStates = ImmutableSet.copyOf(states);
@@ -48,7 +49,9 @@ public class PowerSetState implements AbstractWrapperState, Targetable {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
+    if (this == obj) {
+      return true;
+    }
     return obj instanceof PowerSetState
         && Objects.equals(setOfStates, ((PowerSetState) obj).setOfStates);
   }
@@ -70,5 +73,4 @@ public class PowerSetState implements AbstractWrapperState, Targetable {
         .transformAndConcat(s -> ((Targetable) s).getTargetInformation())
         .toSet();
   }
-
 }

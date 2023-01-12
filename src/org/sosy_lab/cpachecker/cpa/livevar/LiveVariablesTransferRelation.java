@@ -81,19 +81,22 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
- * This transfer relation computes the live variables for each location. For
- * C-Programs addressed variables (e.g. &a) are considered as being always live.
+ * This transfer relation computes the live variables for each location. For C-Programs addressed
+ * variables (e.g. &a) are considered as being always live.
  */
-@Options(prefix="cpa.liveVar")
-public class LiveVariablesTransferRelation extends ForwardingTransferRelation<LiveVariablesState, LiveVariablesState, Precision> {
+@Options(prefix = "cpa.liveVar")
+public class LiveVariablesTransferRelation
+    extends ForwardingTransferRelation<LiveVariablesState, LiveVariablesState, Precision> {
 
   private final Map<CFANode, BitSet> liveVariables = new HashMap<>();
 
-  @Option(secure=true, description="With this option the handling of global variables"
-      + " during the analysis can be fine-tuned. For example while doing a function-wise"
-      + " analysis it is important to assume that all global variables are live. In contrast"
-      + " to that, while doing a global analysis, we do not need to assume global"
-      + " variables being live.")
+  @Option(
+      secure = true,
+      description =
+          "With this option the handling of global variables during the analysis can be fine-tuned."
+              + " For example while doing a function-wise analysis it is important to assume that"
+              + " all global variables are live. In contrast to that, while doing a global"
+              + " analysis, we do not need to assume global variables being live.")
   private boolean assumeGlobalVariablesAreAlwaysLive = true;
 
   private final ImmutableList<Wrapper<ASimpleDeclaration>> allDeclarations;
@@ -108,7 +111,9 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       Optional<VariableClassification> pVarClass,
       Configuration pConfig,
       Language pLang,
-      CFA pCFA, LogManager pLogger) throws InvalidConfigurationException {
+      CFA pCFA,
+      LogManager pLogger)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
     cfa = pCFA;
@@ -129,17 +134,17 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     allDeclarations = gatherAllDeclarations(pCFA);
     ImmutableMap.Builder<Wrapper<? extends ASimpleDeclaration>, Integer> builder =
         ImmutableMap.builder();
-    for (int i=0; i<allDeclarations.size(); i++) {
+    for (int i = 0; i < allDeclarations.size(); i++) {
       builder.put(allDeclarations.get(i), i);
     }
-    declarationListPos = builder.build();
+    declarationListPos = builder.buildOrThrow();
     noVars = allDeclarations.size();
 
     BitSet addressedVars = new BitSet(noVars);
     if (pLang == Language.C) {
       Set<String> addressedVarsSet =
           Preconditions.checkNotNull(variableClassification).getAddressedVariables();
-      for (int i=0; i<noVars; i++) {
+      for (int i = 0; i < noVars; i++) {
         ASimpleDeclaration decl = checkNotNull(allDeclarations.get(i).get());
         if (addressedVarsSet.contains(decl.getQualifiedName())) {
           addressedVars.set(i);
@@ -149,10 +154,9 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
     BitSet globalVars = new BitSet(noVars);
     if (assumeGlobalVariablesAreAlwaysLive) {
-      for (int i=0; i<noVars; i++) {
+      for (int i = 0; i < noVars; i++) {
         ASimpleDeclaration decl = allDeclarations.get(i).get();
-        if (decl instanceof AVariableDeclaration &&
-            ((AVariableDeclaration) decl).isGlobal()) {
+        if (decl instanceof AVariableDeclaration && ((AVariableDeclaration) decl).isGlobal()) {
           globalVars.set(i);
         }
       }
@@ -191,7 +195,10 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       }
 
     } else {
-      logger.log(Level.FINEST, "No FunctionExitNode given, thus creating initial state without having the return variable.");
+      logger.log(
+          Level.FINEST,
+          "No FunctionExitNode given, thus creating initial state without having the return"
+              + " variable.");
       return LiveVariablesState.empty(noVars, this);
     }
   }
@@ -232,7 +239,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   @Override
-  protected Collection<LiveVariablesState> postProcessing(@Nullable LiveVariablesState successor, CFAEdge edge) {
+  protected Collection<LiveVariablesState> postProcessing(
+      @Nullable LiveVariablesState successor, CFAEdge edge) {
     if (successor == null) {
       return ImmutableSet.of();
     }
@@ -242,12 +250,9 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     return Collections.singleton(successor);
   }
 
-
   @Override
-  protected  LiveVariablesState handleAssumption(
-      AssumeEdge cfaEdge,
-      AExpression expression,
-      boolean truthAssumption)
+  protected LiveVariablesState handleAssumption(
+      AssumeEdge cfaEdge, AExpression expression, boolean truthAssumption)
       throws CPATransferException {
 
     // all variables in assumption become live
@@ -285,7 +290,6 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
     return LiveVariablesState.ofUnique(out, this);
   }
-
 
   @Override
   protected LiveVariablesState handleStatementEdge(AStatementEdge cfaEdge, AStatement statement)
@@ -328,9 +332,12 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   @Override
-  protected LiveVariablesState handleFunctionCallEdge(FunctionCallEdge cfaEdge,
-      List<? extends AExpression> arguments, List<? extends AParameterDeclaration> parameters,
-      String calledFunctionName) throws CPATransferException {
+  protected LiveVariablesState handleFunctionCallEdge(
+      FunctionCallEdge cfaEdge,
+      List<? extends AExpression> arguments,
+      List<? extends AParameterDeclaration> parameters,
+      String calledFunctionName)
+      throws CPATransferException {
     /* This analysis is (mostly) used during cfa creation, when no edges between
      * different functions exist, thus this function is mainly unused. However
      * for the purpose of having a complete CPA which works on the graph with
@@ -343,16 +350,18 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     }
 
     for (AParameterDeclaration decl : parameters) {
-      data.clear(
-          declarationListPos.get(LIVE_DECL_EQUIVALENCE.wrap(decl)));
+      data.clear(declarationListPos.get(LIVE_DECL_EQUIVALENCE.wrap(decl)));
     }
 
     return LiveVariablesState.ofUnique(data, this);
   }
 
   @Override
-  protected LiveVariablesState handleFunctionReturnEdge(FunctionReturnEdge cfaEdge,
-      FunctionSummaryEdge fnkCall, AFunctionCall summaryExpr, String callerFunctionName)
+  protected LiveVariablesState handleFunctionReturnEdge(
+      FunctionReturnEdge cfaEdge,
+      FunctionSummaryEdge fnkCall,
+      AFunctionCall summaryExpr,
+      String callerFunctionName)
       throws CPATransferException {
     /* This analysis is (mostly) used during cfa creation, when no edges between
      * different functions exist, thus this function is mainly unused. However
@@ -362,8 +371,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
     // we can remove the assigned variable from the live variables
     if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
-      boolean isLeftHandsideLive = isLeftHandSideLive(
-          ((AFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide());
+      boolean isLeftHandsideLive =
+          isLeftHandSideLive(((AFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide());
       ASimpleDeclaration retVal = cfaEdge.getFunctionEntry().getReturnVariable().get();
       BitSet data = state.getDataCopy();
       handleAssignment((AAssignment) summaryExpr, data);
@@ -372,14 +381,15 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       }
       return LiveVariablesState.ofUnique(data, this);
 
-    // no assigned variable -> nothing to change
+      // no assigned variable -> nothing to change
     } else {
       return state;
     }
   }
 
   @Override
-  protected LiveVariablesState handleFunctionSummaryEdge(FunctionSummaryEdge cfaEdge) throws CPATransferException {
+  protected LiveVariablesState handleFunctionSummaryEdge(FunctionSummaryEdge cfaEdge)
+      throws CPATransferException {
     AFunctionCall functionCall = cfaEdge.getExpression();
     BitSet data = state.getDataCopy();
     if (functionCall instanceof AFunctionCallAssignmentStatement) {
@@ -388,8 +398,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     } else if (functionCall instanceof AFunctionCallStatement) {
       AFunctionCallStatement funcStmt = (AFunctionCallStatement) functionCall;
       getVariablesUsedAsParameters(
-          funcStmt.getFunctionCallExpression().getParameterExpressions(),
-          data);
+          funcStmt.getFunctionCallExpression().getParameterExpressions(), data);
 
     } else {
       throw new CPATransferException("Missing case for if-then-else statement.");
@@ -398,8 +407,9 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   /**
-   * Returns the liveVariables that are currently computed. Calling this method
-   * makes only sense if the analysis was completed
+   * Returns the liveVariables that are currently computed. Calling this method makes only sense if
+   * the analysis was completed
+   *
    * @return a Multimap containing the variables that are live at each location
    */
   public Multimap<CFANode, Wrapper<ASimpleDeclaration>> getLiveVariables() {
@@ -420,21 +430,20 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     return out;
   }
 
-  private void handleAssignment(AAssignment assignment,
-                                              BitSet writeInto) {
-
+  private void handleAssignment(AAssignment assignment, BitSet writeInto) {
 
     final ALeftHandSide lhs = assignment.getLeftHandSide();
 
     boolean isLhsAlwaysLive = isAlwaysLive(lhs);
-    boolean isLhsLive = isLeftHandSideLive(lhs)
-        || assignment instanceof AFunctionCallAssignmentStatement;
+    boolean isLhsLive =
+        isLeftHandSideLive(lhs) || assignment instanceof AFunctionCallAssignmentStatement;
 
-    boolean lhsIsPointerDereference = ((lhs instanceof CFieldReference
-        && (((CFieldReference)lhs).isPointerDereference()
-        || ((CFieldReference)lhs).getFieldOwner() instanceof CPointerExpression))
-        || lhs instanceof AArraySubscriptExpression
-        || lhs instanceof CPointerExpression);
+    boolean lhsIsPointerDereference =
+        ((lhs instanceof CFieldReference
+                && (((CFieldReference) lhs).isPointerDereference()
+                    || ((CFieldReference) lhs).getFieldOwner() instanceof CPointerExpression))
+            || lhs instanceof AArraySubscriptExpression
+            || lhs instanceof CPointerExpression);
 
     if (!isLhsAlwaysLive && !isLhsLive && !lhsIsPointerDereference) {
 
@@ -455,18 +464,15 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     // assigned variable gets removed.
     newLiveVars.andNot(assignedVariable);
 
-
     // check all variables of the right-hand-sides, they should be live
     // afterwards if the leftHandSide is live
     if (assignment instanceof AExpressionAssignmentStatement) {
       handleExpression((AExpression) assignment.getRightHandSide(), newLiveVars);
 
-    } else if (assignment instanceof AFunctionCallAssignmentStatement){
+    } else if (assignment instanceof AFunctionCallAssignmentStatement) {
       AFunctionCallAssignmentStatement funcStmt = (AFunctionCallAssignmentStatement) assignment;
       getVariablesUsedAsParameters(
-          funcStmt.getFunctionCallExpression().getParameterExpressions(),
-          newLiveVars
-      );
+          funcStmt.getFunctionCallExpression().getParameterExpressions(), newLiveVars);
 
     } else {
       throw new AssertionError("Unhandled assignment type.");
@@ -505,26 +511,23 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       // if the leftHandSide is not life, but there is a pointer dereference
       // we need to make the leftHandSide life. Thus afterwards everything from
       // this statement is life.
-    } else  {
+    } else {
       assert lhsIsPointerDereference;
       writeInto.or(assignedVariable);
       writeInto.or(newLiveVars);
     }
   }
 
-
   /**
-   * This method computes the variables that are used for initializing an other
-   * variable from a given initializer.
+   * This method computes the variables that are used for initializing an other variable from a
+   * given initializer.
    */
-  private void getVariablesUsedForInitialization(
-      AInitializer init, BitSet writeInto)
+  private void getVariablesUsedForInitialization(AInitializer init, BitSet writeInto)
       throws CPATransferException {
     // e.g. .x=b or .p.x.=1  as part of struct initialization
     if (init instanceof CDesignatedInitializer) {
-      getVariablesUsedForInitialization(((CDesignatedInitializer)
-          init).getRightHandSide(), writeInto);
-
+      getVariablesUsedForInitialization(
+          ((CDesignatedInitializer) init).getRightHandSide(), writeInto);
 
       // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
     } else if (init instanceof CInitializerList) {
@@ -540,8 +543,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   /**
-   * Checks if a leftHandSide variable is live at a given location:
-   * this means it either is always live, or it is live in the current state.
+   * Checks if a leftHandSide variable is live at a given location: this means it either is always
+   * live, or it is live in the current state.
    */
   private boolean isLeftHandSideLive(ALeftHandSide expression) {
     BitSet lhs = new BitSet(noVars);
@@ -549,17 +552,12 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     return isAlwaysLive(expression) || state.containsAny(lhs);
   }
 
-
-  /**
-   * Mark all declarations occurring inside the expression as live.
-   */
+  /** Mark all declarations occurring inside the expression as live. */
   private void handleExpression(AExpression expression, BitSet writeInto) {
     markDeclarationsInBitSet(CFAUtils.traverseRecursively(expression), writeInto);
   }
 
-  /**
-   * Mark all declarations occurring in {@code pLeftHandSide} as live.
-   */
+  /** Mark all declarations occurring in {@code pLeftHandSide} as live. */
   private void handleLeftHandSide(ALeftHandSide pLeftHandSide, BitSet writeInto) {
     markDeclarationsInBitSet(CFAUtils.traverseLeftHandSideRecursively(pLeftHandSide), writeInto);
   }
@@ -584,12 +582,9 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     return !lhs.isEmpty();
   }
 
-  /**
-   * Mark all declarations occurring inside the parameters as live.
-   */
+  /** Mark all declarations occurring inside the parameters as live. */
   private void getVariablesUsedAsParameters(
-      List<? extends AExpression> parameters,
-      BitSet writeInto) {
+      List<? extends AExpression> parameters, BitSet writeInto) {
     for (AExpression expression : parameters) {
       handleExpression(expression, writeInto);
     }

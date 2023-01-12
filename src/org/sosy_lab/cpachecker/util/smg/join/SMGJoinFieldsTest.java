@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
-//TODO enable this tests once the write value reinterpretation was implemented
+// TODO enable this tests once the write value reinterpretation was implemented
 public class SMGJoinFieldsTest extends SMGJoinTest0 {
 
   private SMG smg1;
@@ -114,8 +114,8 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
     checkFields(join.getSmg2(), fieldMap2, obj2);
   }
 
-  private void
-      checkFields(SMG pSmg, Map<BigInteger, Pair<SMGValue, BigInteger>> pFieldMap, SMGObject pObj) {
+  private void checkFields(
+      SMG pSmg, Map<BigInteger, Pair<SMGValue, BigInteger>> pFieldMap, SMGObject pObj) {
 
     Set<SMGHasValueEdge> edges = pSmg.getEdges(pObj);
 
@@ -140,7 +140,6 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
       assertThat(length).isEqualTo(eLength);
     }
   }
-
 
   @Test
   @Ignore
@@ -458,7 +457,6 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
     assertThrows(IllegalArgumentException.class, () -> jFields.joinFields(obj1, obj2));
   }
 
-
   @Test
   public void nonMemberObjectTest2() {
     SMG smg3 = new SMG(mockType32bSize);
@@ -471,5 +469,4 @@ public class SMGJoinFieldsTest extends SMGJoinTest0 {
     SMGJoinFields jFields = new SMGJoinFields(smg3, smg4);
     assertThrows(IllegalArgumentException.class, () -> jFields.joinFields(obj1, obj2));
   }
-
 }

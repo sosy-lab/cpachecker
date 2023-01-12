@@ -17,12 +17,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Stop operator of {@link SlicingCPA}.
- * Uses the stop operator of the CPA wrapped by the SlicingCPA,
+ * Stop operator of {@link SlicingCPA}. Uses the stop operator of the CPA wrapped by the SlicingCPA,
  * with the precision of the CPA wrapped by the SlicingCPA.
  */
-public class PrecisionDelegatingStop
-    implements StopOperator {
+public class PrecisionDelegatingStop implements StopOperator {
 
   private final StopOperator delegateStop;
 
@@ -34,8 +32,8 @@ public class PrecisionDelegatingStop
   public boolean stop(
       final AbstractState pState,
       final Collection<AbstractState> pReached,
-      final Precision pPrecision
-  ) throws CPAException, InterruptedException {
+      final Precision pPrecision)
+      throws CPAException, InterruptedException {
     checkState(
         pPrecision instanceof SlicingPrecision,
         "Precision not of type %s, but %s",

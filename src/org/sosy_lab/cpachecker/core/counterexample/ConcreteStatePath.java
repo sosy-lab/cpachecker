@@ -16,31 +16,27 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 
 /**
- * This class is used as a path of {@link CFAEdge} cfa edges
- * and {@link ConcreteState} concrete States.
+ * This class is used as a path of {@link CFAEdge} cfa edges and {@link ConcreteState} concrete
+ * States.
  *
- * It represents a concrete path to an error location in the program.
- * The cfa edges represent the series of statements that lead to the
- * error location. The concrete states hold the values of the
+ * <p>It represents a concrete path to an error location in the program. The cfa edges represent the
+ * series of statements that lead to the error location. The concrete states hold the values of the
  * variables along the path.
  *
- * An object of this class can be used to generate
- * a {@link CFAPathWithAssumptions} path with concrete assignments.
- * In those paths, the right hand side expressions of the assigments
- * are resolved where possible for each assignment along the path.
- *
+ * <p>An object of this class can be used to generate a {@link CFAPathWithAssumptions} path with
+ * concrete assignments. In those paths, the right hand side expressions of the assigments are
+ * resolved where possible for each assignment along the path.
  */
 public final class ConcreteStatePath implements Iterable<ConcreteStatePathNode> {
 
   private final List<ConcreteStatePathNode> list;
 
   /**
-   * A object of this class can be constructed, when a list
-   * of pairs of concrete states {@link ConcreteState} and
-   * cfa edges {@link CFAEdge} are given.
+   * A object of this class can be constructed, when a list of pairs of concrete states {@link
+   * ConcreteState} and cfa edges {@link CFAEdge} are given.
    *
-   * @param pList a list of pairs of concrete States {@link ConcreteState}
-   *  and cfa edges {@link CFAEdge}.
+   * @param pList a list of pairs of concrete States {@link ConcreteState} and cfa edges {@link
+   *     CFAEdge}.
    */
   public ConcreteStatePath(List<ConcreteStatePathNode> pList) {
     list = ImmutableList.copyOf(pList);
@@ -71,7 +67,7 @@ public final class ConcreteStatePath implements Iterable<ConcreteStatePathNode> 
     return "ConcreteStatePath:" + list;
   }
 
-  public static abstract class ConcreteStatePathNode {
+  public abstract static class ConcreteStatePathNode {
 
     private final CFAEdge cfaEdge;
 
@@ -104,14 +100,11 @@ public final class ConcreteStatePath implements Iterable<ConcreteStatePathNode> 
     }
   }
 
-  /**
-   * Marker class for not-finished states (exist where the ARG has holes)
-   */
+  /** Marker class for not-finished states (exist where the ARG has holes) */
   public static final class IntermediateConcreteState extends SingleConcreteState {
 
     public IntermediateConcreteState(CFAEdge pCfaEdge, ConcreteState pConcreteState) {
       super(pCfaEdge, pConcreteState);
     }
-
   }
 }

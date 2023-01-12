@@ -8,8 +8,4 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-
-
-public interface CLiteralExpression extends CExpression {
-
-}
+public interface CLiteralExpression extends CExpression {}

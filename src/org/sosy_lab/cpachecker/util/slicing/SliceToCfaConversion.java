@@ -12,21 +12,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.TreeMultimap;
 import java.util.List;
-import java.util.NavigableMap;
 import java.util.Optional;
-import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CfaMutableNetwork;
-import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
@@ -42,15 +36,23 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.TransformingCAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.FlexCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaFactory;
+import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaEdgeTransformer;
+import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaFactory;
+import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaNodeAstSubstitution;
+import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaNodeTransformer;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -91,6 +93,20 @@ final class SliceToCfaConversion {
   }
 
   /**
+   * Returns whether the specified CFA node should be removed because it doesn't serve any
+   * meaningful purpose in the specified {@link CfaNetwork}.
+   */
+  private static boolean isIrrelevantNode(
+      ImmutableSet<AFunctionDeclaration> pRelevantFunctions, CfaNetwork pGraph, CFANode pNode) {
+
+    if (pNode instanceof FunctionExitNode) {
+      return !pRelevantFunctions.contains(pNode.getFunction());
+    }
+
+    return pGraph.adjacentNodes(pNode).isEmpty();
+  }
+
+  /**
    * Returns whether the specified edge should be replaced with a no-op blank edge if the edge is
    * not part of the slice.
    */
@@ -105,35 +121,24 @@ final class SliceToCfaConversion {
   }
 
   /**
-   * Returns a substitution that maps CFA nodes and their contained AST nodes to AST nodes that only
+   * Returns a substitution that maps CFA edges and their contained AST nodes to AST nodes that only
    * contain parts relevant to the specified slice.
    */
-  private static BiFunction<CFANode, CAstNode, @Nullable CAstNode>
-      createAstNodeSubstitutionForCfaNodes(
-          Slice pSlice,
-          Function<AFunctionDeclaration, Optional<CVariableDeclaration>>
-              pFunctionToReturnVariable) {
+  private static BiFunction<CFAEdge, CAstNode, CAstNode> createAstNodeSubstitutionForCfaEdges(
+      Slice pSlice,
+      Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode) {
 
-    var transformingVisitor =
-        new RelevantFunctionDeclarationTransformingVisitor(pSlice, pFunctionToReturnVariable);
+    return (edge, astNode) -> {
 
-    return (cfaNode, astNode) -> {
-      CFunctionDeclaration functionDeclaration = (CFunctionDeclaration) cfaNode.getFunction();
-      CFunctionDeclaration relevantFunctionDeclaration =
-          (CFunctionDeclaration) functionDeclaration.accept(transformingVisitor);
+      // The transforming visitor only works for relevant edges.
+      // Irrelevant edges are going to be removed in CFA post-processing (irrelevant assume edges
+      // are kept for CFA simplification), so we just keep their original AST nodes.
+      if (pSlice.getRelevantEdges().contains(edge)) {
 
-      if (astNode instanceof AFunctionDeclaration) {
-        return relevantFunctionDeclaration;
-      }
+        var transformingVisitor =
+            new RelevantCAstNodeTransformingVisitor(pSlice, pFunctionToEntryNode, edge);
 
-      if (cfaNode instanceof CFunctionEntryNode && astNode instanceof CVariableDeclaration) {
-
-        if (relevantFunctionDeclaration.getType().getReturnType() != CVoidType.VOID) {
-          return ((CFunctionEntryNode) cfaNode).getReturnVariable().orElseThrow();
-        }
-
-        // return type of function is void, so no return variable exists
-        return null;
+        return astNode.accept(transformingVisitor);
       }
 
       return astNode;
@@ -141,75 +146,15 @@ final class SliceToCfaConversion {
   }
 
   /**
-   * Returns a substitution that maps CFA edges and their contained AST nodes to AST nodes that only
-   * contain parts relevant to the specified slice.
-   */
-  private static BiFunction<CFAEdge, CAstNode, CAstNode> createAstNodeSubstitutionForCfaEdges(
-      Slice pSlice,
-      Function<AFunctionDeclaration, Optional<CVariableDeclaration>> pFunctionToReturnVariable) {
-
-    return (edge, astNode) -> {
-      var transformingVisitor =
-          new RelevantCAstNodeTransformingVisitor(pSlice, pFunctionToReturnVariable, edge);
-
-      return astNode.accept(transformingVisitor);
-    };
-  }
-
-  /**
-   * Returns the optional return variable (void functions don't have return variables) for the
-   * specified function.
-   */
-  private static Optional<CVariableDeclaration> getReturnVariable(FunctionEntryNode pEntryNode) {
-
-    return pEntryNode
-        .getReturnVariable()
-        .map(returnVariable -> (CVariableDeclaration) returnVariable);
-  }
-
-  /**
-   * Creates a simplified CFA for the specified CFA using {@link
-   * CFASimplifier#simplifyCFA(MutableCFA)}.
-   */
-  private static CFA createSimplifiedCfa(CFA pCfa) {
-
-    NavigableMap<String, FunctionEntryNode> functionEntryNodes = new TreeMap<>();
-    TreeMultimap<String, CFANode> allNodes = TreeMultimap.create();
-
-    for (CFANode node : pCfa.getAllNodes()) {
-
-      String functionName = node.getFunction().getQualifiedName();
-      allNodes.put(functionName, node);
-
-      if (node instanceof FunctionEntryNode) {
-        functionEntryNodes.put(functionName, (FunctionEntryNode) node);
-      }
-    }
-
-    MutableCFA mutableSliceCfa =
-        new MutableCFA(
-            pCfa.getMachineModel(),
-            functionEntryNodes,
-            allNodes,
-            pCfa.getMainFunction(),
-            pCfa.getFileNames(),
-            pCfa.getLanguage());
-
-    CFASimplifier.simplifyCFA(mutableSliceCfa);
-
-    return mutableSliceCfa.makeImmutableCFA(mutableSliceCfa.getVarClassification());
-  }
-
-  /**
    * Creates a {@link CFA} that matches the specified {@link Slice} as closely as possible.
    *
-   * @param pConfig the configuration to use
    * @param pLogger the logger to use during conversion
+   * @param pShutdownNotifier the shutdown notifier to use
    * @param pSlice the slice to create a CFA for
    * @return the CFA created for the specified slice
    * @throws NullPointerException if any parameter is {@code null}
    */
-  public static CFA convert(Configuration pConfig, LogManager pLogger, Slice pSlice) {
+  public static CFA convert(LogManager pLogger, ShutdownNotifier pShutdownNotifier, Slice pSlice) {
 
     ImmutableSet<CFAEdge> relevantEdges = pSlice.getRelevantEdges();
 
@@ -218,7 +163,7 @@ final class SliceToCfaConversion {
         Collections3.transformedImmutableSetCopy(
             relevantEdges, edge -> edge.getSuccessor().getFunction());
 
-    CfaMutableNetwork graph = CfaMutableNetwork.of(pSlice.getOriginalCfa());
+    FlexCfaNetwork graph = FlexCfaNetwork.copy(pSlice.getOriginalCfa());
 
     ImmutableList<CFAEdge> irrelevantFunctionEdges =
         graph.edges().stream()
@@ -230,30 +175,85 @@ final class SliceToCfaConversion {
         graph.edges().stream()
             .filter(edge -> !relevantEdges.contains(edge) && isReplaceableEdge(edge))
             .collect(ImmutableList.toImmutableList());
-    irrelevantEdges.forEach(edge -> graph.replace(edge, createNoopBlankEdge(edge)));
+    irrelevantEdges.forEach(edge -> graph.replaceEdge(edge, createNoopBlankEdge(edge)));
 
     ImmutableList<CFANode> irrelevantNodes =
         graph.nodes().stream()
-            .filter(node -> graph.adjacentNodes(node).isEmpty())
+            .filter(node -> isIrrelevantNode(relevantFunctions, graph, node))
             .collect(ImmutableList.toImmutableList());
     irrelevantNodes.forEach(graph::removeNode);
 
-    ImmutableMap<AFunctionDeclaration, Optional<CVariableDeclaration>> functionToReturnVariableMap =
+    ImmutableMap<AFunctionDeclaration, FunctionEntryNode> functionToEntryNodeMap =
         pSlice.getOriginalCfa().getAllFunctionHeads().stream()
             .collect(
                 ImmutableMap.toImmutableMap(
-                    entryNode -> entryNode.getFunction(), SliceToCfaConversion::getReturnVariable));
+                    entryNode -> entryNode.getFunction(), entryNode -> entryNode));
+
+    // if the program slice is empty, return a CFA containing an empty main function
+    if (relevantEdges.isEmpty()) {
+
+      FunctionEntryNode mainEntryNode = pSlice.getOriginalCfa().getMainFunction();
+      graph.addNode(mainEntryNode);
+      mainEntryNode.getExitNode().ifPresent(graph::addNode);
+
+      return CCfaFactory.CLONER.createCfa(
+          graph, pSlice.getOriginalCfa().getMetadata(), pLogger, pShutdownNotifier);
+    }
+
+    CfaFactory cfaFactory =
+        CCfaFactory.toUnconnectedFunctions()
+            .transformNodes(
+                CCfaNodeTransformer.forSubstitutions(
+                    new RelevantNodeAstSubstitution(pSlice, functionToEntryNodeMap::get)))
+            .transformEdges(
+                CCfaEdgeTransformer.forSubstitutions(
+                    createAstNodeSubstitutionForCfaEdges(pSlice, functionToEntryNodeMap::get)
+                        ::apply))
+            .executePostProcessor(new CFASimplifier())
+            .toSupergraph();
 
     CFA sliceCfa =
-        CCfaTransformer.createCfa(
-            pConfig,
-            pLogger,
-            pSlice.getOriginalCfa(),
-            graph,
-            createAstNodeSubstitutionForCfaEdges(pSlice, functionToReturnVariableMap::get),
-            createAstNodeSubstitutionForCfaNodes(pSlice, functionToReturnVariableMap::get));
+        cfaFactory.createCfa(
+            graph, pSlice.getOriginalCfa().getMetadata(), pLogger, pShutdownNotifier);
 
-    return createSimplifiedCfa(sliceCfa);
+    return sliceCfa;
+  }
+
+  /**
+   * A substitution that maps CFA nodes and their contained AST nodes to AST nodes that only contain
+   * parts relevant to the specified program slice.
+   */
+  private static final class RelevantNodeAstSubstitution implements CCfaNodeAstSubstitution {
+
+    private final RelevantFunctionDeclarationTransformingVisitor functionTransformingVisitor;
+
+    private RelevantNodeAstSubstitution(
+        Slice pSlice,
+        Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode) {
+      functionTransformingVisitor =
+          new RelevantFunctionDeclarationTransformingVisitor(pSlice, pFunctionToEntryNode);
+    }
+
+    @Override
+    public CFunctionDeclaration apply(CFANode pNode, CFunctionDeclaration pFunction) {
+      return (CFunctionDeclaration) pFunction.accept(functionTransformingVisitor);
+    }
+
+    @Override
+    public Optional<CVariableDeclaration> apply(
+        CFunctionEntryNode pFunctionEntryNode, Optional<CVariableDeclaration> pReturnVariable) {
+      CFunctionDeclaration functionDeclaration =
+          (CFunctionDeclaration) pFunctionEntryNode.getFunction();
+      CFunctionDeclaration relevantFunctionDeclaration =
+          (CFunctionDeclaration) functionDeclaration.accept(functionTransformingVisitor);
+
+      if (relevantFunctionDeclaration.getType().getReturnType() != CVoidType.VOID) {
+        return pFunctionEntryNode.getReturnVariable();
+      }
+
+      // return type of function is `void`, so no return variable exists
+      return Optional.empty();
+    }
   }
 
   /**
@@ -264,19 +264,25 @@ final class SliceToCfaConversion {
       extends AbstractTransformingCAstNodeVisitor<NoException> {
 
     private final Slice slice;
-    private final Function<AFunctionDeclaration, Optional<CVariableDeclaration>>
-        functionToReturnVariable;
+    private final Function<AFunctionDeclaration, @Nullable FunctionEntryNode> functionToEntryNode;
 
     private RelevantFunctionDeclarationTransformingVisitor(
         Slice pSlice,
-        Function<AFunctionDeclaration, Optional<CVariableDeclaration>> pFunctionToReturnVariable) {
+        Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode) {
 
       slice = pSlice;
-      functionToReturnVariable = pFunctionToReturnVariable;
+      functionToEntryNode = pFunctionToEntryNode;
     }
 
     @Override
     public CAstNode visit(CFunctionDeclaration pFunctionDeclaration) {
+
+      @Nullable FunctionEntryNode entryNode = functionToEntryNode.apply(pFunctionDeclaration);
+      // If a function lacks a corresponding function entry node, the function is defined somewhere
+      // else and we cannot change the declaration.
+      if (entryNode == null) {
+        return pFunctionDeclaration;
+      }
 
       ImmutableSet<ASimpleDeclaration> relevantDeclarations = slice.getRelevantDeclarations();
       List<CParameterDeclaration> parameters = pFunctionDeclaration.getParameters();
@@ -287,10 +293,10 @@ final class SliceToCfaConversion {
               .map(parameter -> (CParameterDeclaration) parameter.accept(this))
               .collect(ImmutableList.toImmutableList());
 
-      Optional<CVariableDeclaration> returnVariable =
-          functionToReturnVariable.apply(pFunctionDeclaration);
       CType relevantReturnType =
-          returnVariable
+          entryNode
+              .getReturnVariable()
+              .map(returnVariable -> (CVariableDeclaration) returnVariable)
               .filter(relevantDeclarations::contains)
               .map(variable -> variable.getType())
               .orElse(CVoidType.VOID);
@@ -310,7 +316,8 @@ final class SliceToCfaConversion {
           relevantFunctionType,
           pFunctionDeclaration.getName(),
           pFunctionDeclaration.getOrigName(),
-          relevantParameters);
+          relevantParameters,
+          pFunctionDeclaration.getAttributes());
     }
   }
 
@@ -328,9 +335,9 @@ final class SliceToCfaConversion {
 
     private RelevantCAstNodeTransformingVisitor(
         Slice pSlice,
-        Function<AFunctionDeclaration, Optional<CVariableDeclaration>> pFunctionToReturnVariable,
+        Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode,
         CFAEdge pEdge) {
-      super(pSlice, pFunctionToReturnVariable);
+      super(pSlice, pFunctionToEntryNode);
 
       slice = pSlice;
       edge = pEdge;
@@ -420,7 +427,7 @@ final class SliceToCfaConversion {
           }
 
         } else { // parameter not relevant
-          
+
           assert !slice.isRelevantDef(edge, parameterMemLoc)
               : "Argument is relevant but corresponding parameter is not";
         }

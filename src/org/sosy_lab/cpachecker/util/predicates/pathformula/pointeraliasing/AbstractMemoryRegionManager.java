@@ -42,10 +42,10 @@ abstract class AbstractMemoryRegionManager implements MemoryRegionManager {
 
   @Override
   public void addTargetToStats(CFAEdge pEdge, String pUfName, PointerTarget pTarget) {
-    Pair<CFAEdge,String> key = Pair.of(pEdge, pUfName);
+    Pair<CFAEdge, String> key = Pair.of(pEdge, pUfName);
     Integer v = targetStats.get(key);
-    if(v!=null) {
-      targetStats.put(key, v+1);
+    if (v != null) {
+      targetStats.put(key, v + 1);
     } else {
       targetStats.put(key, 1);
     }
@@ -54,20 +54,21 @@ abstract class AbstractMemoryRegionManager implements MemoryRegionManager {
   @Override
   public void printStatistics(PrintStream out) {
     int totalTargets = 0;
-    Map<String,Integer> perUf = new HashMap<>();
-    for(Map.Entry<Pair<CFAEdge,String>, Integer> entry : targetStats.entrySet()) {
+    Map<String, Integer> perUf = new HashMap<>();
+    for (Map.Entry<Pair<CFAEdge, String>, Integer> entry : targetStats.entrySet()) {
       String key = entry.getKey().getSecond();
       Integer v = entry.getValue();
-      if(v!=null) {
-        perUf.put(key, v+1);
+      if (v != null) {
+        perUf.put(key, v + 1);
         totalTargets += v;
       } else {
         perUf.put(key, 1);
       }
     }
     out.println("Total number of created targets for pointer analysis: " + totalTargets);
-    for(Map.Entry<String, Integer> entry : perUf.entrySet()) {
-      out.println("   Number of created targets for uf: " + entry.getKey() + " is " + entry.getValue());
+    for (Map.Entry<String, Integer> entry : perUf.entrySet()) {
+      out.println(
+          "   Number of created targets for uf: " + entry.getKey() + " is " + entry.getValue());
     }
     out.println();
   }

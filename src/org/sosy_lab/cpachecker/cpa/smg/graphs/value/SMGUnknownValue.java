@@ -108,4 +108,3 @@ public final class SMGUnknownValue implements SMGExplicitValue, SMGAddressValue 
     throw new IllegalStateException("Can't get Value of an Unknown Value.");
   }
 }
-

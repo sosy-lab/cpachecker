@@ -12,8 +12,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Trivial implementation of an invariant generator
- * that does nothing and always returns the invariant true.
+ * Trivial implementation of an invariant generator that does nothing and always returns the
+ * invariant true.
  */
 public class DoNothingInvariantGenerator extends AbstractInvariantGenerator {
 
@@ -21,7 +21,7 @@ public class DoNothingInvariantGenerator extends AbstractInvariantGenerator {
   protected void startImpl(CFANode pInitialLocation) {}
 
   @Override
-  public void cancel() { }
+  public void cancel() {}
 
   @Override
   public boolean isProgramSafe() {

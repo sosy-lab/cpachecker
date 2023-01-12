@@ -8,16 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.smg.exception;
 
-
-/**
- * Exception class for inconsistent SMGs.
- */
-public class SMGInconsistencyException extends IllegalStateException{
+/** Exception class for inconsistent SMGs. */
+public class SMGInconsistencyException extends IllegalStateException {
 
   private static final long serialVersionUID = 3019969078458990250L;
 
   public SMGInconsistencyException(String msg) {
     super(msg);
   }
-
 }

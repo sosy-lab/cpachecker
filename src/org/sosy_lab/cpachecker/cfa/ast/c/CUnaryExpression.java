@@ -15,13 +15,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class CUnaryExpression extends AUnaryExpression implements CExpression {
 
-
-
   private static final long serialVersionUID = -7701970127701577207L;
 
-  public CUnaryExpression(final FileLocation pFileLocation,
-                             final CType pType, final CExpression pOperand,
-                             final UnaryOperator pOperator) {
+  public CUnaryExpression(
+      final FileLocation pFileLocation,
+      final CType pType,
+      final CExpression pOperand,
+      final UnaryOperator pOperator) {
     super(pFileLocation, pType, pOperand, pOperator);
     assert pOperator != UnaryOperator.AMPER || pType.getCanonicalType() instanceof CPointerType
         : "Expression " + this + " has unexpected non-pointer type " + pType;
@@ -67,11 +67,11 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
   }
 
   public enum UnaryOperator implements AUnaryExpression.AUnaryOperator {
-    MINUS  ("-"),
-    AMPER  ("&"),
-    TILDE  ("~"),
-    SIZEOF ("sizeof"),
-    ALIGNOF ("__alignof__"),
+    MINUS("-"),
+    AMPER("&"),
+    TILDE("~"),
+    SIZEOF("sizeof"),
+    ALIGNOF("__alignof__"),
     ;
 
     private final String mOp;
@@ -80,9 +80,7 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
       mOp = pOp;
     }
 
-    /**
-     * Returns the string representation of this operator (e.g. "*", "+").
-     */
+    /** Returns the string representation of this operator (e.g. "*", "+"). */
     @Override
     public String getOperator() {
       return mOp;

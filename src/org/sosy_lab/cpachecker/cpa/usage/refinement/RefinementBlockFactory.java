@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
-@Options(prefix="cpa.usage")
+@Options(prefix = "cpa.usage")
 public class RefinementBlockFactory {
 
   public enum RefinementBlockTypes {
@@ -60,8 +60,7 @@ public class RefinementBlockFactory {
   final ConfigurableProgramAnalysis cpa;
   Configuration config;
 
-  @Option(name = "refinementChain", description = "The order of refinement blocks",
-      secure = true)
+  @Option(name = "refinementChain", description = "The order of refinement blocks", secure = true)
   List<RefinementBlockTypes> RefinementChain;
 
   public enum PathEquation {
@@ -72,7 +71,8 @@ public class RefinementBlockFactory {
   @Option(name = "pathEquality", description = "The way how to identify two paths as equal")
   PathEquation pathEquation = PathEquation.CFANodeId;
 
-  public RefinementBlockFactory(ConfigurableProgramAnalysis pCpa, Configuration pConfig) throws InvalidConfigurationException {
+  public RefinementBlockFactory(ConfigurableProgramAnalysis pCpa, Configuration pConfig)
+      throws InvalidConfigurationException {
     cpa = pCpa;
     config = pConfig;
     pConfig.inject(this);
@@ -84,7 +84,7 @@ public class RefinementBlockFactory {
     UsageCPA usCPA = CPAs.retrieveCPA(cpa, UsageCPA.class);
     LogManager logger = usCPA.getLogger();
 
-    //Tricky way to create the chain, but it is difficult to dynamically know the parameter types
+    // Tricky way to create the chain, but it is difficult to dynamically know the parameter types
     RefinementInterface currentBlock = new RefinementPairStub();
     currentInnerBlockType currentBlockType = currentInnerBlockType.ExtendedARGPath;
 
@@ -104,13 +104,16 @@ public class RefinementBlockFactory {
             break;
 
           case PointIterator:
-            currentBlock = new PointIterator((ConfigurableRefinementBlock<Pair<UsageInfoSet, UsageInfoSet>>) currentBlock);
+            currentBlock =
+                new PointIterator(
+                    (ConfigurableRefinementBlock<Pair<UsageInfoSet, UsageInfoSet>>) currentBlock);
             currentBlockType = currentInnerBlockType.SingleIdentifier;
             break;
 
           case UsageIterator:
-            currentBlock = new UsagePairIterator((ConfigurableRefinementBlock<Pair<UsageInfo, UsageInfo>>) currentBlock,
-                logger);
+            currentBlock =
+                new UsagePairIterator(
+                    (ConfigurableRefinementBlock<Pair<UsageInfo, UsageInfo>>) currentBlock, logger);
             currentBlockType = currentInnerBlockType.UsageInfoSet;
             break;
 
@@ -125,41 +128,58 @@ public class RefinementBlockFactory {
             break;
 
           case PredicateRefiner:
-            currentBlock = new PredicateRefinerAdapter((ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                cpa, logger);
+            currentBlock =
+                new PredicateRefinerAdapter(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>)
+                        currentBlock,
+                    cpa,
+                    logger);
             break;
 
           case CallstackFilter:
-            currentBlock = new CallstackFilter((ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                config);
+            currentBlock =
+                new CallstackFilter(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>)
+                        currentBlock,
+                    config);
             break;
 
           case ProbeFilter:
-            currentBlock = new ProbeFilter((ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                config);
+            currentBlock =
+                new ProbeFilter(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>)
+                        currentBlock,
+                    config);
             break;
 
           case SharedRefiner:
-            //LocalCPA CPAForSharedRefiner = CPAs.retrieveCPA(cpa, LocalCPA.class);
-            //assert(CPAForSharedRefiner != null);
+            // LocalCPA CPAForSharedRefiner = CPAs.retrieveCPA(cpa, LocalCPA.class);
+            // assert(CPAForSharedRefiner != null);
             LocalTransferRelation RelationForSharedRefiner = new LocalTransferRelation(config);
 
-            currentBlock = new SharedRefiner((ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock, RelationForSharedRefiner);
+            currentBlock =
+                new SharedRefiner(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>)
+                        currentBlock,
+                    RelationForSharedRefiner);
 
             break;
 
           default:
-            throw new InvalidConfigurationException("The type " + RefinementChain.get(i) + " is not supported");
+            throw new InvalidConfigurationException(
+                "The type " + RefinementChain.get(i) + " is not supported");
         }
       } else {
-        throw new InvalidConfigurationException(currentType + " can not precede the " + currentBlock.getClass().getSimpleName());
+        throw new InvalidConfigurationException(
+            currentType + " can not precede the " + currentBlock.getClass().getSimpleName());
       }
     }
     if (currentBlockType == currentInnerBlockType.ReachedSet) {
       assert currentBlock instanceof Refiner;
       return (Refiner) currentBlock;
     } else {
-      throw new InvalidConfigurationException("The first block is not take a reached set as parameter");
+      throw new InvalidConfigurationException(
+          "The first block is not take a reached set as parameter");
     }
   }
 }

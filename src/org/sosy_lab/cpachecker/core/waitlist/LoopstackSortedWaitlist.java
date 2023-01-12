@@ -13,16 +13,13 @@ import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
- * Waitlist implementation that sorts the abstract states by the depth of
- * their loopstack.
- * States with a larger/smaller (depending on the used factory method)
- * loopstack are considered first.
+ * Waitlist implementation that sorts the abstract states by the depth of their loopstack. States
+ * with a larger/smaller (depending on the used factory method) loopstack are considered first.
  */
-public class LoopstackSortedWaitlist extends AbstractSortedWaitlist<Integer>{
+public class LoopstackSortedWaitlist extends AbstractSortedWaitlist<Integer> {
   private final int multiplier;
 
-  private LoopstackSortedWaitlist(WaitlistFactory pSecondaryStrategy,
-      int pMultiplier) {
+  private LoopstackSortedWaitlist(WaitlistFactory pSecondaryStrategy, int pMultiplier) {
     super(pSecondaryStrategy);
     multiplier = pMultiplier;
   }
@@ -37,8 +34,7 @@ public class LoopstackSortedWaitlist extends AbstractSortedWaitlist<Integer>{
     return () -> new LoopstackSortedWaitlist(pSecondaryStrategy, 1);
   }
 
-  public static WaitlistFactory reversedFactory(
-      final WaitlistFactory pSecondaryStrategy) {
+  public static WaitlistFactory reversedFactory(final WaitlistFactory pSecondaryStrategy) {
     return () -> new LoopstackSortedWaitlist(pSecondaryStrategy, -1);
   }
 }

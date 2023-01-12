@@ -22,7 +22,8 @@ public class SMGType {
   private final long originSize;
   private final boolean originSigned;
 
-  private SMGType(long pCastedSize, boolean pCastedSigned, long pOriginSize, boolean pOriginSigned) {
+  private SMGType(
+      long pCastedSize, boolean pCastedSigned, long pOriginSize, boolean pOriginSigned) {
     castedSize = pCastedSize;
     castedSigned = pCastedSigned;
     originSize = pOriginSize;

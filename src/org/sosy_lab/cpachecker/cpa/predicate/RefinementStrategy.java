@@ -27,26 +27,33 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * Abstract class for the refinement strategy that should be used after a spurious
- * counterexample has been found and interpolants were computed.
+ * Abstract class for the refinement strategy that should be used after a spurious counterexample
+ * has been found and interpolants were computed.
  *
- * Instances of this interface get the path, the reached set, and the interpolants,
- * and shall update the ARG/the reached set accordingly.
+ * <p>Instances of this interface get the path, the reached set, and the interpolants, and shall
+ * update the ARG/the reached set accordingly.
  *
- * This class implements the general structure of refining a path with interpolants,
- * but delegates the actual updates to states, precisions, and ARG to its subclasses.
+ * <p>This class implements the general structure of refining a path with interpolants, but
+ * delegates the actual updates to states, precisions, and ARG to its subclasses.
  */
 public abstract class RefinementStrategy {
 
-  private final StatInt differentNontrivialInterpolants = new StatInt(StatKind.SUM, "Different non-trivial interpolants along paths");
-  private final StatInt equalNontrivialInterpolants = new StatInt(StatKind.SUM, "Equal non-trivial interpolants along paths");
+  private final StatInt differentNontrivialInterpolants =
+      new StatInt(StatKind.SUM, "Different non-trivial interpolants along paths");
+  private final StatInt equalNontrivialInterpolants =
+      new StatInt(StatKind.SUM, "Equal non-trivial interpolants along paths");
 
-  private final StatInt truePathPrefixStates = new StatInt(StatKind.SUM, "Length (states) of path with itp 'true'");
-  private final StatInt nonTrivialPathStates = new StatInt(StatKind.SUM, "Length (states) of path with itp non-trivial itp");
-  private final StatInt falsePathSuffixStates = new StatInt(StatKind.SUM, "Length (states) of path with itp 'false'");
+  private final StatInt truePathPrefixStates =
+      new StatInt(StatKind.SUM, "Length (states) of path with itp 'true'");
+  private final StatInt nonTrivialPathStates =
+      new StatInt(StatKind.SUM, "Length (states) of path with itp non-trivial itp");
+  private final StatInt falsePathSuffixStates =
+      new StatInt(StatKind.SUM, "Length (states) of path with itp 'false'");
 
-  private final StatInt numberOfAffectedStates = new StatInt(StatKind.SUM, "Number of affected states");
-  private final StatInt totalPathLengthToInfeasibility = new StatInt(StatKind.AVG, "Length of refined path (in blocks)");
+  private final StatInt numberOfAffectedStates =
+      new StatInt(StatKind.SUM, "Number of affected states");
+  private final StatInt totalPathLengthToInfeasibility =
+      new StatInt(StatKind.AVG, "Length of refined path (in blocks)");
 
   protected void printStatistics(PrintStream out) {
     writingStatisticsTo(out)
@@ -82,8 +89,8 @@ public abstract class RefinementStrategy {
     startRefinementOfPath();
 
     // The last state along the path is the target (error) state
-    ARGState lastElement = abstractionStatesTrace.get(abstractionStatesTrace.size()-1);
-    //assert lastElement.isTarget();
+    ARGState lastElement = abstractionStatesTrace.get(abstractionStatesTrace.size() - 1);
+    // assert lastElement.isTarget();
 
     Pair<ARGState, List<ARGState>> rootOfInfeasibleArgAndChangedElements;
     try {
@@ -97,8 +104,12 @@ public abstract class RefinementStrategy {
     List<ARGState> changedElements = rootOfInfeasibleArgAndChangedElements.getSecond();
 
     // Hook
-    finishRefinementOfPath(infeasiblePartOfARG, changedElements,
-        pReached, abstractionStatesTrace, pRepeatedCounterexample);
+    finishRefinementOfPath(
+        infeasiblePartOfARG,
+        changedElements,
+        pReached,
+        abstractionStatesTrace,
+        pRepeatedCounterexample);
 
     // TODO find a way to uncomment this assert. In combination with
     // PredicateCPAGlobalRefiner and the PredicateAbstractionGlobalRefinementStrategy
@@ -114,11 +125,12 @@ public abstract class RefinementStrategy {
   private Pair<ARGState, List<ARGState>> evaluateInterpolantsOnPath(
       ARGState pTargetState,
       List<ARGState> abstractionStatesTrace,
-      List<BooleanFormula> pInterpolants) throws SolverException, InterruptedException {
+      List<BooleanFormula> pInterpolants)
+      throws SolverException, InterruptedException {
 
     // Skip the last element of the path, itp is always false there
-    abstractionStatesTrace = abstractionStatesTrace.subList(0, abstractionStatesTrace.size()-1);
-    assert pInterpolants.size() ==  abstractionStatesTrace.size();
+    abstractionStatesTrace = abstractionStatesTrace.subList(0, abstractionStatesTrace.size() - 1);
+    assert pInterpolants.size() == abstractionStatesTrace.size();
 
     List<ARGState> changedElements = new ArrayList<>();
     ARGState infeasiblePartOfARG = pTargetState;
@@ -135,7 +147,8 @@ public abstract class RefinementStrategy {
     BooleanFormula lastItp = null;
 
     // Traverse the path
-    for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(pInterpolants, abstractionStatesTrace)) {
+    for (Pair<BooleanFormula, ARGState> interpolationPoint :
+        Pair.zipList(pInterpolants, abstractionStatesTrace)) {
       pathLengthToInfeasibility++;
       BooleanFormula itp = interpolationPoint.getFirst();
       ARGState w = interpolationPoint.getSecond();
@@ -144,7 +157,7 @@ public abstract class RefinementStrategy {
       if (bfmgr.isTrue(itp)) {
         // do nothing
         truePrefixStates++;
-        previousItpWasTrue =  true;
+        previousItpWasTrue = true;
         continue;
       }
 
@@ -204,22 +217,26 @@ public abstract class RefinementStrategy {
   protected abstract void startRefinementOfPath();
 
   /**
-   * Perform refinement on one state given the interpolant that was determined
-   * by the solver for this state. This method is only called for states for
-   * which there is a non-trivial interpolant (i.e., neither True nor False).
+   * Perform refinement on one state given the interpolant that was determined by the solver for
+   * this state. This method is only called for states for which there is a non-trivial interpolant
+   * (i.e., neither True nor False).
+   *
    * @param interpolant The interpolant.
    * @param state The state.
-   * @return True if no refinement was necessary (this implies that refinement
-   *          on all of the state's parents is also not necessary)
+   * @return True if no refinement was necessary (this implies that refinement on all of the state's
+   *     parents is also not necessary)
    */
   @ForOverride
-  protected abstract boolean performRefinementForState(BooleanFormula interpolant, ARGState state) throws InterruptedException, SolverException;
+  protected abstract boolean performRefinementForState(BooleanFormula interpolant, ARGState state)
+      throws InterruptedException, SolverException;
 
   /**
    * Do any necessary work after one path has been refined.
    *
-   * @param unreachableState The first state in the path which is infeasible (this identifies the path).
-   * @param affectedStates The list of states that were affected by the refinement (ordered from root to target state).
+   * @param unreachableState The first state in the path which is infeasible (this identifies the
+   *     path).
+   * @param affectedStates The list of states that were affected by the refinement (ordered from
+   *     root to target state).
    * @param reached The reached set.
    * @param abstractionStatesTrace The abstraction states on the error path
    * @param repeatedCounterexample Whether the counterexample has been found before.
@@ -232,5 +249,6 @@ public abstract class RefinementStrategy {
       List<ARGState> affectedStates,
       ARGReachedSet reached,
       List<ARGState> abstractionStatesTrace,
-      boolean repeatedCounterexample) throws CPAException, InterruptedException;
+      boolean repeatedCounterexample)
+      throws CPAException, InterruptedException;
 }

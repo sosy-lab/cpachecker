@@ -19,33 +19,19 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 class MissingInformation {
 
-  /**
-   * This field stores the Expression of the Memory Location that
-   * could not be evaluated.
-   */
+  /** This field stores the Expression of the Memory Location that could not be evaluated. */
   private final CExpression missingCLeftMemoryLocation;
 
-  /**
-   *  This expression stores the Memory Location
-   *  to be assigned.
-   */
+  /** This expression stores the Memory Location to be assigned. */
   private final MemoryLocation cLeftMemoryLocation;
 
-  /**
-   * Expression could not be evaluated due to missing information. (e.g.
-   * missing pointer alias).
-   */
+  /** Expression could not be evaluated due to missing information. (e.g. missing pointer alias). */
   private final CExpression missingCExpressionInformation;
 
-  /**
-   * Expression could not be evaluated due to missing information. (e.g.
-   * missing pointer alias).
-   */
+  /** Expression could not be evaluated due to missing information. (e.g. missing pointer alias). */
   private final Value cExpressionValue;
 
-  /**
-   * The truth Assumption made in this assume edge.
-   */
+  /** The truth Assumption made in this assume edge. */
   private final Boolean truthAssumption;
 
   private CFunctionCallExpression missingFreeInvocation = null;
@@ -60,7 +46,7 @@ class MissingInformation {
     truthAssumption = null;
   }
 
-  //TODO Better checks...don't be lazy, just because class
+  // TODO Better checks...don't be lazy, just because class
   // will likely change.
 
   public boolean hasUnknownValue() {

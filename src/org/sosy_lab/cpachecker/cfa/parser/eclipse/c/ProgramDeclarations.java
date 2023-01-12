@@ -57,11 +57,10 @@ public class ProgramDeclarations {
   }
 
   /**
-   * Register a type in the program wide scope. This does not mean that
-   * every other file of the program has access to this type, but it does mean
-   * that if the same type is declared in another file these types will be
-   * identical afterwards. (This happens in conjunction to the proper handling
-   * of type declarations in the GlobalScope)
+   * Register a type in the program wide scope. This does not mean that every other file of the
+   * program has access to this type, but it does mean that if the same type is declared in another
+   * file these types will be identical afterwards. (This happens in conjunction to the proper
+   * handling of type declarations in the GlobalScope)
    */
   public void registerTypeDeclaration(CComplexTypeDeclaration declaration) {
     CComplexType type = declaration.getType();
@@ -69,7 +68,7 @@ public class ProgramDeclarations {
 
     // if there is only an elaborated type we do not want to
     // store it in the normal declarations map but separated from it
-    if (type.getCanonicalType() instanceof CElaboratedType){
+    if (type.getCanonicalType() instanceof CElaboratedType) {
       elaboratedTypes.put(qualifiedName, (CElaboratedType) type);
       origNamesToQualifiedNames.put(type.getOrigName(), type.getQualifiedName());
       return;
@@ -78,8 +77,9 @@ public class ProgramDeclarations {
     if (types.containsKey(qualifiedName)) {
       CComplexTypeDeclaration oldDecl = types.get(qualifiedName);
       if (!(oldDecl.getType().getCanonicalType() instanceof CElaboratedType
-            && areEqualTypes(oldDecl.getType().getCanonicalType(), type.getCanonicalType()))) {
-        throw new CFAGenerationRuntimeException("There is already a type registered with the qualified name: " + qualifiedName);
+          && areEqualTypes(oldDecl.getType().getCanonicalType(), type.getCanonicalType()))) {
+        throw new CFAGenerationRuntimeException(
+            "There is already a type registered with the qualified name: " + qualifiedName);
       }
     } else {
       origNamesToQualifiedNames.put(type.getOrigName(), type.getQualifiedName());
@@ -96,8 +96,8 @@ public class ProgramDeclarations {
   }
 
   /**
-   * Tries to complete all elaborated types either with the type from the parameter
-   * or if this is already renamed with the complete type that is not renamed
+   * Tries to complete all elaborated types either with the type from the parameter or if this is
+   * already renamed with the complete type that is not renamed
    */
   private void completeElaboratedTypes(CComplexType type) {
     // this is a renamed type we cannot use it as realType because
@@ -128,16 +128,21 @@ public class ProgramDeclarations {
     String name = declaration.getName();
     origNamesToQualifiedNames.put(declaration.getOrigName(), name);
     Object shouldBeNull = typedefs.put(name, declaration);
-    verify(shouldBeNull == null, "There is already a typedeftype registered with the name: %s", name);
+    verify(
+        shouldBeNull == null, "There is already a typedeftype registered with the name: %s", name);
   }
 
   public void registerFunctionDeclaration(CFunctionDeclaration declaration) {
     String name = declaration.getName();
 
     if (globalVars.containsKey(name)) {
-      throw new CFAGenerationRuntimeException("Name of global variable "
-          + name + " from " + globalVars.get(name).getFileLocation()
-          + " is reused as function declaration", declaration);
+      throw new CFAGenerationRuntimeException(
+          "Name of global variable "
+              + name
+              + " from "
+              + globalVars.get(name).getFileLocation()
+              + " is reused as function declaration",
+          declaration);
     }
 
     // TODO if there was previously a function with this name registered
@@ -148,7 +153,10 @@ public class ProgramDeclarations {
   public void registerVariableDeclaration(CVariableDeclaration declaration) {
     String name = declaration.getName();
     Object shouldBeNull = globalVars.put(name, declaration);
-    verify(shouldBeNull == null, "There is already a global variable registered with the name: %s", name);
+    verify(
+        shouldBeNull == null,
+        "There is already a global variable registered with the name: %s",
+        name);
   }
 
   public boolean variableNameInUse(String name) {
@@ -156,9 +164,9 @@ public class ProgramDeclarations {
   }
 
   /**
-   * This method looks up a type that is matching a certain typeName. If no type
-   * can be found the origName is taken into consideration and a type that is not
-   * exactly matching the typeName will be returned if found.
+   * This method looks up a type that is matching a certain typeName. If no type can be found the
+   * origName is taken into consideration and a type that is not exactly matching the typeName will
+   * be returned if found.
    *
    * @param typeName the exact typeName that should be found
    * @param origName the origName that is ok to be found if no exact match occured before
@@ -226,7 +234,8 @@ public class ProgramDeclarations {
     return getOrContainsEqualTypeDef(declaration).getSecond();
   }
 
-  private Pair<Boolean, CTypeDefDeclaration> getOrContainsEqualTypeDef(CTypeDefDeclaration declaration) {
+  private Pair<Boolean, CTypeDefDeclaration> getOrContainsEqualTypeDef(
+      CTypeDefDeclaration declaration) {
     for (String name : origNamesToQualifiedNames.get(declaration.getOrigName())) {
       if (typedefs.containsKey(name)) {
         CType oldType = typedefs.get(name).getType().getCanonicalType();
@@ -240,7 +249,8 @@ public class ProgramDeclarations {
     return Pair.of(false, null);
   }
 
-  private Pair<Boolean, CComplexTypeDeclaration> getOrContainsEqualType(CComplexTypeDeclaration declaration) {
+  private Pair<Boolean, CComplexTypeDeclaration> getOrContainsEqualType(
+      CComplexTypeDeclaration declaration) {
     CComplexType newType = (CComplexType) declaration.getType().getCanonicalType();
     for (String name : origNamesToQualifiedNames.get(newType.getOrigName())) {
 
@@ -260,9 +270,8 @@ public class ProgramDeclarations {
   }
 
   /**
-   * This methods completes all uncompleted elaborated types by setting another
-   * elaborated type as realType (we cannot chose a real realtype as we do not
-   * know which this should be)
+   * This methods completes all uncompleted elaborated types by setting another elaborated type as
+   * realType (we cannot chose a real realtype as we do not know which this should be)
    */
   public void completeUncompletedElaboratedTypes() {
     Set<String> handledTypes = new HashSet<>();
@@ -275,7 +284,14 @@ public class ProgramDeclarations {
       }
 
       handledTypes.add(origName);
-      CElaboratedType newType = new CElaboratedType(type.isConst(), type.isVolatile(), type.getKind(), type.getOrigName(), type.getOrigName(), null);
+      CElaboratedType newType =
+          new CElaboratedType(
+              type.isConst(),
+              type.isVolatile(),
+              type.getKind(),
+              type.getOrigName(),
+              type.getOrigName(),
+              null);
       for (String name : origNamesToQualifiedNames.get(origName)) {
         if (elaboratedTypes.containsKey(name)) {
           CElaboratedType elabType = elaboratedTypes.get(name);
@@ -290,15 +306,13 @@ public class ProgramDeclarations {
     }
   }
 
-  /**
-   * This method checks the equality of two types (with regards to fields inside
-   * of structs).
-   */
+  /** This method checks the equality of two types (with regards to fields inside of structs). */
   private static boolean areEqualTypes(CType type1, CType type2) {
     return areEqualTypes(type1, type2, new HashMap<>());
   }
 
-  private static boolean areEqualTypes(CType type1, CType type2, Map<Pair<CType, CType>, Boolean> foundTypes) {
+  private static boolean areEqualTypes(
+      CType type1, CType type2, Map<Pair<CType, CType>, Boolean> foundTypes) {
     assert type1.equals(type1.getCanonicalType()) && type2.equals(type2.getCanonicalType());
 
     // shortcut for object identity, we do not need to test anything else in this case
@@ -308,8 +322,8 @@ public class ProgramDeclarations {
       // if types have not the same class they cannot be equal unless there is one type that
       // is only elaborated and one that is a complete complex type (or another elaborated type)
     } else if (!(type1.getClass() == type2.getClass()
-              || (type1 instanceof CComplexType && type2 instanceof CElaboratedType)
-              || (type2 instanceof CComplexType && type1 instanceof CElaboratedType))) {
+        || (type1 instanceof CComplexType && type2 instanceof CElaboratedType)
+        || (type2 instanceof CComplexType && type1 instanceof CElaboratedType))) {
       return false;
     }
 
@@ -327,7 +341,8 @@ public class ProgramDeclarations {
       if (isOuterTypeEqual) {
         if (type1 instanceof CCompositeType) {
           if (!foundTypes.containsKey(typePair)) {
-            boolean areEqual = areEqualCompositeTypes((CCompositeType)type1, (CCompositeType)type2, foundTypes);
+            boolean areEqual =
+                areEqualCompositeTypes((CCompositeType) type1, (CCompositeType) type2, foundTypes);
             foundTypes.put(typePair, areEqual);
             return areEqual;
 
@@ -337,7 +352,7 @@ public class ProgramDeclarations {
           }
 
         } else if (type1 instanceof CEnumType) {
-          return areEqualEnumTypes((CEnumType)type1, (CEnumType)type2);
+          return areEqualEnumTypes((CEnumType) type1, (CEnumType) type2);
 
           // no more checks necessary as the outer type is equal and the elaborated
           // type does not have any inner type right now
@@ -354,7 +369,7 @@ public class ProgramDeclarations {
         // file specific version this check has to be done on the original type
         // names
       } else if (type1.getClass() != type2.getClass() || type1 instanceof CElaboratedType) {
-        return ((CComplexType)type1).getOrigName().equals(((CComplexType)type2).getOrigName());
+        return ((CComplexType) type1).getOrigName().equals(((CComplexType) type2).getOrigName());
 
         // the types are not equal
       } else {
@@ -364,25 +379,27 @@ public class ProgramDeclarations {
       // a pointer could point to a struct type which needs to be compared
       // with this equality method, thus we have this special case here
     } else if (type1 instanceof CPointerType
-               && (((CPointerType)type1).getType() instanceof CComplexType
-                   || ((CPointerType)type1).getType() instanceof CFunctionType
-                   || ((CPointerType)type1).getType() instanceof CPointerType)) {
+        && (((CPointerType) type1).getType() instanceof CComplexType
+            || ((CPointerType) type1).getType() instanceof CFunctionType
+            || ((CPointerType) type1).getType() instanceof CPointerType)) {
 
-        return areEqualTypes(((CPointerType)type1).getType(),
-                            ((CPointerType)type1).getType(),
-                            foundTypes);
+      return areEqualTypes(
+          ((CPointerType) type1).getType(), ((CPointerType) type1).getType(), foundTypes);
 
-        // handle the same issues we have with pointer types here for arrays
+      // handle the same issues we have with pointer types here for arrays
     } else if (type1 instanceof CArrayType
-        && (((CArrayType)type1).getType() instanceof CComplexType
-            || ((CArrayType)type1).getType() instanceof CFunctionType
-            || ((CArrayType)type1).getType() instanceof CPointerType)) {
+        && (((CArrayType) type1).getType() instanceof CComplexType
+            || ((CArrayType) type1).getType() instanceof CFunctionType
+            || ((CArrayType) type1).getType() instanceof CPointerType)) {
 
       // first check if the lengths are matching
       CArrayType a1 = (CArrayType) type1;
       CArrayType a2 = (CArrayType) type2;
-      if (a1.getLength() instanceof CIntegerLiteralExpression && a2.getLength() instanceof CIntegerLiteralExpression) {
-        if (!((CIntegerLiteralExpression)a1.getLength()).getValue().equals(((CIntegerLiteralExpression)a2.getLength()).getValue())) {
+      if (a1.getLength() instanceof CIntegerLiteralExpression
+          && a2.getLength() instanceof CIntegerLiteralExpression) {
+        if (!((CIntegerLiteralExpression) a1.getLength())
+            .getValue()
+            .equals(((CIntegerLiteralExpression) a2.getLength()).getValue())) {
           return false;
         }
       } else {
@@ -392,15 +409,11 @@ public class ProgramDeclarations {
       }
 
       // length is ok, so check the if the types are ok, too
-      return areEqualTypes(((CArrayType)type1).getType(),
-                          ((CArrayType)type2).getType(),
-                          foundTypes);
-
+      return areEqualTypes(
+          ((CArrayType) type1).getType(), ((CArrayType) type2).getType(), foundTypes);
 
     } else if (type1 instanceof CFunctionType) {
-      return areEqualFunctionTypes((CFunctionType)type1,
-                                   (CFunctionType)type2,
-                                   foundTypes);
+      return areEqualFunctionTypes((CFunctionType) type1, (CFunctionType) type2, foundTypes);
 
       // no struct, union or enum we can just use the usual equals method
     } else {
@@ -408,7 +421,8 @@ public class ProgramDeclarations {
     }
   }
 
-  private static boolean areEqualCompositeTypes(CCompositeType type1, CCompositeType type2, Map<Pair<CType, CType>, Boolean> foundTypes) {
+  private static boolean areEqualCompositeTypes(
+      CCompositeType type1, CCompositeType type2, Map<Pair<CType, CType>, Boolean> foundTypes) {
     List<CCompositeTypeMemberDeclaration> members1 = type1.getMembers();
     List<CCompositeTypeMemberDeclaration> members2 = type2.getMembers();
 
@@ -427,12 +441,15 @@ public class ProgramDeclarations {
 
       // if the members are anonymous we cannot rely on the name of the field
       // so we exclude it from the equality test
-      boolean isAnonymousField = member1Name.contains("_anon_type_member_") && member2Name.contains("_anon_type_member_");
+      boolean isAnonymousField =
+          member1Name.contains("_anon_type_member_") && member2Name.contains("_anon_type_member_");
       areEqual = member1Name.equals(member2Name) || isAnonymousField;
 
       // if the name is already not matching (same or anonymous) we don't need to compare
       // the types of the fields
-      areEqual = areEqual && areEqualTypes(typeM1.getCanonicalType(), typeM2.getCanonicalType(), foundTypes);
+      areEqual =
+          areEqual
+              && areEqualTypes(typeM1.getCanonicalType(), typeM2.getCanonicalType(), foundTypes);
     }
 
     return areEqual;
@@ -452,14 +469,19 @@ public class ProgramDeclarations {
       CEnumerator member1 = members1.get(i);
       CEnumerator member2 = members2.get(i);
       areEqual = member1.getName().equals(member2.getName());
-      areEqual = areEqual && ((member1.hasValue() && member2.hasValue() && member1.getValue() == member2.getValue())
-                              || (!member1.hasValue() && !member2.hasValue()));
+      areEqual =
+          areEqual
+              && ((member1.hasValue()
+                      && member2.hasValue()
+                      && member1.getValue() == member2.getValue())
+                  || (!member1.hasValue() && !member2.hasValue()));
     }
 
     return areEqual;
   }
 
-  private static boolean areEqualFunctionTypes(CFunctionType type1, CFunctionType type2, Map<Pair<CType, CType>, Boolean> foundTypes) {
+  private static boolean areEqualFunctionTypes(
+      CFunctionType type1, CFunctionType type2, Map<Pair<CType, CType>, Boolean> foundTypes) {
 
     // check the function names but only if there is one
     boolean areEqual =
@@ -470,16 +492,23 @@ public class ProgramDeclarations {
                 && type2 instanceof CFunctionTypeWithNames);
 
     // we only need to check the members if the return type is equal
-    areEqual = areEqual && areEqualTypes(type1.getReturnType().getCanonicalType(), type2.getReturnType().getCanonicalType(), foundTypes);
+    areEqual =
+        areEqual
+            && areEqualTypes(
+                type1.getReturnType().getCanonicalType(),
+                type2.getReturnType().getCanonicalType(),
+                foundTypes);
 
     List<CType> params1 = type1.getParameters();
     List<CType> params2 = type2.getParameters();
 
-      // unequal number of parameters, we can return false
+    // unequal number of parameters, we can return false
     areEqual = areEqual && params1.size() == params2.size();
 
     for (int i = 0; areEqual && i < params1.size(); i++) {
-      areEqual = areEqualTypes(params1.get(i).getCanonicalType(), params2.get(i).getCanonicalType(), foundTypes);
+      areEqual =
+          areEqualTypes(
+              params1.get(i).getCanonicalType(), params2.get(i).getCanonicalType(), foundTypes);
     }
 
     return areEqual;

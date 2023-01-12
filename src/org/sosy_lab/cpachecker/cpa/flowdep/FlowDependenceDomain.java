@@ -31,18 +31,17 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * Abstract domain of {@link FlowDependenceCPA}. Top is the set of all possible flow dependences of
  * a program, bottom is the empty set.
  *
- * The domain is based on a power-set lattice.
+ * <p>The domain is based on a power-set lattice.
  */
 class FlowDependenceDomain implements AbstractDomain {
 
   private final PointerDomain pointerDomain = PointerDomain.INSTANCE;
 
   @Override
-  public AbstractState join(
-      AbstractState pState1, AbstractState pState2) throws CPAException, InterruptedException {
+  public AbstractState join(AbstractState pState1, AbstractState pState2)
+      throws CPAException, InterruptedException {
 
-    assert pState1 instanceof FlowDependenceState
-        : "Wrong type for first state passed: " + pState1;
+    assert pState1 instanceof FlowDependenceState : "Wrong type for first state passed: " + pState1;
     assert pState2 instanceof FlowDependenceState
         : "Wrong type for second state passed: " + pState2;
 
@@ -65,10 +64,12 @@ class FlowDependenceDomain implements AbstractDomain {
 
         CFAEdge g = e.getRowKey();
         Optional<MemoryLocation> m = e.getColumnKey();
-        assert g != null : "Null value for CFA edge in flow dependences: "
-            + ((FlowDependenceState) pState2).getAll();
-        assert m != null : "Null value for memory location in flow dependences: "
-            + ((FlowDependenceState) pState2).getAll();
+        assert g != null
+            : "Null value for CFA edge in flow dependences: "
+                + ((FlowDependenceState) pState2).getAll();
+        assert m != null
+            : "Null value for memory location in flow dependences: "
+                + ((FlowDependenceState) pState2).getAll();
 
         joinedFlowDeps.addDependence(g, m, checkNotNull(e.getValue()));
       }

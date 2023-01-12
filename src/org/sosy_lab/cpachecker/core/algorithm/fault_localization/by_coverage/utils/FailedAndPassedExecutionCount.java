@@ -22,8 +22,8 @@ public class FailedAndPassedExecutionCount {
 
   public FailedAndPassedExecutionCount(int pFailedCases, int pPassedCases) {
 
-    this.failedCases = pFailedCases;
-    this.passedCases = pPassedCases;
+    failedCases = pFailedCases;
+    passedCases = pPassedCases;
   }
 
   public int getFailedCases() {

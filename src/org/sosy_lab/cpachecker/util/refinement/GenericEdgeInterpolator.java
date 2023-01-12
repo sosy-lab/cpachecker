@@ -39,50 +39,45 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends Interpolant<S, I>>
     implements EdgeInterpolator<S, I> {
 
-  @Option(secure=true, description="apply optimizations based on equality of input interpolant and candidate interpolant")
+  @Option(
+      secure = true,
+      description =
+          "apply optimizations based on equality of input interpolant and candidate interpolant")
   private boolean applyItpEqualityOptimization = true;
 
-  @Option(secure=true, description="apply optimizations based on CFA edges with only variable-renaming semantics")
+  @Option(
+      secure = true,
+      description = "apply optimizations based on CFA edges with only variable-renaming semantics")
   private boolean applyRenamingOptimization = true;
 
-  @Option(secure=true, description="apply optimizations based on infeasibility of suffix")
+  @Option(secure = true, description = "apply optimizations based on infeasibility of suffix")
   private boolean applyUnsatSuffixOptimization = true;
 
-  @Option(secure=true, description="whether or not to manage the callstack, which is needed for BAM")
+  @Option(
+      secure = true,
+      description = "whether or not to manage the callstack, which is needed for BAM")
   private boolean manageCallstack = true;
 
-  /**
-   * the shutdownNotifier in use
-   */
+  /** the shutdownNotifier in use */
   private final ShutdownNotifier shutdownNotifier;
 
-  /**
-   * the postOperator relation in use
-   */
+  /** the postOperator relation in use */
   private final StrongestPostOperator<S> postOperator;
 
   private final InterpolantManager<S, I> interpolantManager;
 
   private final S initialState;
 
-  /**
-   * the precision in use
-   */
+  /** the precision in use */
   private final VariableTrackingPrecision precision;
 
-  /**
-   * the number of interpolations
-   */
+  /** the number of interpolations */
   private int numberOfInterpolationQueries = 0;
 
-  /**
-   * the error path checker to be used for feasibility checks
-   */
+  /** the error path checker to be used for feasibility checks */
   private final FeasibilityChecker<S> checker;
 
-  /**
-   * This method acts as the constructor of the class.
-   */
+  /** This method acts as the constructor of the class. */
   public GenericEdgeInterpolator(
       final StrongestPostOperator<S> pStrongestPostOperator,
       final FeasibilityChecker<S> pFeasibilityChecker,
@@ -91,26 +86,31 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       final Class<? extends ConfigurableProgramAnalysis> pCpaToRefine,
       final Configuration pConfig,
       final ShutdownNotifier pShutdownNotifier,
-      final CFA pCfa
-  ) throws InvalidConfigurationException {
+      final CFA pCfa)
+      throws InvalidConfigurationException {
 
     pConfig.inject(this, GenericEdgeInterpolator.class);
 
     try {
-      checker            = pFeasibilityChecker;
-      postOperator       = pStrongestPostOperator;
+      checker = pFeasibilityChecker;
+      postOperator = pStrongestPostOperator;
       interpolantManager = pInterpolantManager;
-      initialState       = pInitialState;
+      initialState = pInitialState;
 
-      precision          = VariableTrackingPrecision.createStaticPrecision(
-          pConfig, pCfa.getVarClassification(), pCpaToRefine);
+      precision =
+          VariableTrackingPrecision.createStaticPrecision(
+              pConfig, pCfa.getVarClassification(), pCpaToRefine);
 
-      shutdownNotifier   = pShutdownNotifier;
+      shutdownNotifier = pShutdownNotifier;
+    } catch (InvalidConfigurationException e) {
+      throw new InvalidConfigurationException(
+          "Invalid configuration for checking path: " + e.getMessage(), e);
     }
-    catch (InvalidConfigurationException e) {
-      throw new InvalidConfigurationException("Invalid configuration for checking path: "
-          + e.getMessage(), e);
-    }
+  }
+
+  // For subclasses
+  protected FeasibilityChecker<S> getFeasibilityChecker() {
+    return checker;
   }
 
   /**
@@ -122,14 +122,15 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * @param pOffset offset of the state at where to start the current interpolation
    * @param pInputInterpolant the input interpolant
    */
+  @SuppressWarnings("unchecked")
   @Override
   public I deriveInterpolant(
       final ARGPath pErrorPath,
       final CFAEdge pCurrentEdge,
       final Deque<S> pCallstack,
       final PathPosition pOffset,
-      final I pInputInterpolant
-  ) throws CPAException, InterruptedException {
+      final I pInputInterpolant)
+      throws CPAException, InterruptedException {
 
     numberOfInterpolationQueries = 0;
 
@@ -189,7 +190,8 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       return interpolantManager.getTrueInterpolant();
     }
 
-    for (MemoryLocation currentMemoryLocation : determineMemoryLocationsToInterpolateOn(initialSuccessor)) {
+    for (MemoryLocation currentMemoryLocation :
+        determineMemoryLocationsToInterpolateOn(initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the candidate
@@ -209,20 +211,23 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * Interpolation on (long) error paths may be expensive, so it might pay off to limit the set of
    * memory locations on which to interpolate.
    *
-   * This method determines those memory locations on which to interpolate.
-   * Memory locations that are in the candidate interpolant but are not returned here will end up
-   * in the final interpolant, without any effort spent on interpolation.
-   * Memory locations that are returned here are subject for interpolation, and might be eliminated
-   * from the final interpolant (at the cost of doing one interpolation query for each of them).
+   * <p>This method determines those memory locations on which to interpolate. Memory locations that
+   * are in the candidate interpolant but are not returned here will end up in the final
+   * interpolant, without any effort spent on interpolation. Memory locations that are returned here
+   * are subject for interpolation, and might be eliminated from the final interpolant (at the cost
+   * of doing one interpolation query for each of them).
    *
-   * Basically, one could return here the intersection of those memory locations that are contained
-   * in the candidate interpolant and those that are referenced in the current edge.
-   * Hence, all memory locations that are in the candidate interpolant but are not referenced in
-   * the current edge would also end up in the final interpolant.
-   * This optimization was removed again in commit r16007 because the payoff did not justify
-   * maintaining the code, esp. as other optimizations work equally well with less code.
+   * <p>Basically, one could return here the intersection of those memory locations that are
+   * contained in the candidate interpolant and those that are referenced in the current edge.
+   * Hence, all memory locations that are in the candidate interpolant but are not referenced in the
+   * current edge would also end up in the final interpolant. This optimization was removed again in
+   * commit r16007 because the payoff did not justify maintaining the code, esp. as other
+   * optimizations work equally well with less code.
+   *
+   * <p>Protected for subclass access only!
    */
-  private Set<MemoryLocation> determineMemoryLocationsToInterpolateOn(final S candidateInterpolant) {
+  protected Set<MemoryLocation> determineMemoryLocationsToInterpolateOn(
+      final S candidateInterpolant) {
     return candidateInterpolant.getTrackedMemoryLocations();
   }
 
@@ -238,6 +243,15 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
   }
 
   /**
+   * Protected for subclass access.
+   *
+   * @return the initial state.
+   */
+  protected S getInitalState() {
+    return initialState;
+  }
+
+  /**
    * This method returns the number of performed interpolations.
    *
    * @return the number of performed interpolations
@@ -247,18 +261,35 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
     return numberOfInterpolationQueries;
   }
 
+  /** Resets numberOfInterpolationQueries to 0. Protected for subclass access only. */
+  protected void resetNumberOfInterpolationQueries() {
+    numberOfInterpolationQueries = 0;
+  }
+
+  protected ShutdownNotifier getShutdownNotifier() {
+    return shutdownNotifier;
+  }
+
   /**
-   * This method gets the initial successor, i.e. the state following the initial state.
+   * Protected for subclass access only.
+   *
+   * @return the current interpolation manager.
+   */
+  protected InterpolantManager<S, I> getInterpolationManager() {
+    return interpolantManager;
+  }
+
+  /**
+   * This method gets the initial successor, i.e. the state following the initial state. Protected
+   * for subclass access.
    *
    * @param pInitialState the initial state, i.e. the state represented by the input interpolant.
    * @param pInitialEdge the initial edge of the error path
    * @return the initial successor
    */
-  private Optional<S> getInitialSuccessor(
-      final S pInitialState,
-      final CFAEdge pInitialEdge,
-      final Deque<S> pCallstack
-  ) throws CPAException, InterruptedException {
+  protected Optional<S> getInitialSuccessor(
+      final S pInitialState, final CFAEdge pInitialEdge, final Deque<S> pCallstack)
+      throws CPAException, InterruptedException {
 
     S oldState = pInitialState;
 
@@ -268,7 +299,9 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
     }
 
     // we leave a function, so rebuild return-state before assigning the return-value.
-    if (manageCallstack && !pCallstack.isEmpty() && pInitialEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+    if (manageCallstack
+        && !pCallstack.isEmpty()
+        && pInitialEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
       oldState = postOperator.handleFunctionReturn(oldState, pInitialEdge, pCallstack);
     }
 
@@ -289,14 +322,14 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
     return checker.isFeasible(remainingErrorPath, state);
   }
 
-
   /**
-   * This method checks, if the given edge is only renaming variables.
+   * This method checks, if the given edge is only renaming variables. Protected for subclasses
+   * only.
    *
    * @param cfaEdge the CFA edge to check
    * @return true, if the given edge is only renaming variables
    */
-  private boolean isOnlyVariableRenamingEdge(CFAEdge cfaEdge) {
+  protected boolean isOnlyVariableRenamingEdge(CFAEdge cfaEdge) {
     return
     // if the edge is null this is a dynamic multi edge
     cfaEdge != null
@@ -310,8 +343,23 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
     // as they are not "cleaned up" by the transfer relation
     // so these two stay out for now
 
-    //|| cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
-    //|| cfaEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
+    // || cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
+    // || cfaEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
     ;
+  }
+
+  /** Returns option applyItpEqualityOptimization. */
+  protected boolean getApplyItpEqualityOptimization() {
+    return applyItpEqualityOptimization;
+  }
+
+  /** Returns option applyRenamingOptimization. */
+  protected boolean getApplyRenamingOptimization() {
+    return applyRenamingOptimization;
+  }
+
+  /** Returns option applyUnsatSuffixOptimization. */
+  protected boolean getApplyUnsatSuffixOptimization() {
+    return applyUnsatSuffixOptimization;
   }
 }

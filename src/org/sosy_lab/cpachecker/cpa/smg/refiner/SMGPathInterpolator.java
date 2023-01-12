@@ -32,18 +32,15 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
 public class SMGPathInterpolator {
 
-  /**
-   * the offset in the path from where to cut-off the subtree, and restart the analysis
-   */
+  /** the offset in the path from where to cut-off the subtree, and restart the analysis */
   protected int interpolationOffset = -1;
 
-  /**
-   * Generate unique id for path interpolations.
-   */
-  private final static UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+  /** Generate unique id for path interpolations. */
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
-  private final StatCounter totalInterpolations   = new StatCounter("Number of interpolations");
-  private final StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
+  private final StatCounter totalInterpolations = new StatCounter("Number of interpolations");
+  private final StatInt totalInterpolationQueries =
+      new StatInt(StatKind.SUM, "Number of interpolation queries");
 
   private final ShutdownNotifier shutdownNotifier;
   private final SMGEdgeInterpolator interpolator;
@@ -53,10 +50,14 @@ public class SMGPathInterpolator {
   private final LogManager logger;
   private final SMGPathInterpolationExporter exporter;
 
-  public SMGPathInterpolator(ShutdownNotifier pShutdownNotifier,
+  public SMGPathInterpolator(
+      ShutdownNotifier pShutdownNotifier,
       SMGInterpolantManager pInterpolantManager,
-      SMGEdgeInterpolator pInterpolator, LogManager pLogger,
-      PathTemplate pExportPath, SMGExportLevel pExportWhen, SMGFeasibilityChecker pChecker) {
+      SMGEdgeInterpolator pInterpolator,
+      LogManager pLogger,
+      PathTemplate pExportPath,
+      SMGExportLevel pExportWhen,
+      SMGFeasibilityChecker pChecker) {
     shutdownNotifier = pShutdownNotifier;
     interpolantManager = pInterpolantManager;
     interpolator = pInterpolator;
@@ -65,8 +66,9 @@ public class SMGPathInterpolator {
     exporter = new SMGPathInterpolationExporter(pLogger, pExportPath, pExportWhen);
   }
 
-  public Map<ARGState, SMGInterpolant> performInterpolation(ARGPath pErrorPath,
-      SMGInterpolant pInterpolant, ARGReachedSet pReachedSet) throws InterruptedException, CPAException {
+  public Map<ARGState, SMGInterpolant> performInterpolation(
+      ARGPath pErrorPath, SMGInterpolant pInterpolant, ARGReachedSet pReachedSet)
+      throws InterruptedException, CPAException {
     totalInterpolations.inc();
 
     int interpolationId = idGenerator.getFreshId();
@@ -82,21 +84,23 @@ public class SMGPathInterpolator {
 
     exporter.exportInterpolation(pErrorPath, interpolants, interpolationId);
 
-    logger.log(Level.ALL,
-        "Finish generating Interpolants for path with interpolation id ", interpolationId);
+    logger.log(
+        Level.ALL,
+        "Finish generating Interpolants for path with interpolation id ",
+        interpolationId);
 
     return interpolants;
   }
 
   /**
-   * This method propagates the interpolant "false" to all states that are in
-   * the original error path, but are not anymore in the (shorter) prefix.
+   * This method propagates the interpolant "false" to all states that are in the original error
+   * path, but are not anymore in the (shorter) prefix.
    *
-   * The property that every state on the path beneath the first state with an
-   * false interpolant is needed by some code in ValueAnalysisInterpolationTree
-   * a subclass of {@link InterpolationTree}, i.e., for global refinement. This
-   * property could also be enforced there, but interpolant creation should only
-   * happen during interpolation, and not in the data structure holding the interpolants.
+   * <p>The property that every state on the path beneath the first state with an false interpolant
+   * is needed by some code in ValueAnalysisInterpolationTree a subclass of {@link
+   * InterpolationTree}, i.e., for global refinement. This property could also be enforced there,
+   * but interpolant creation should only happen during interpolation, and not in the data structure
+   * holding the interpolants.
    *
    * @param errorPath the original error path
    * @param pErrorPathPrefix the possible shorter error path prefix
@@ -118,19 +122,19 @@ public class SMGPathInterpolator {
   }
 
   /**
-   * This method performs interpolation on each edge of the path, using the
-   * {@link EdgeInterpolator} given to this object at construction.
+   * This method performs interpolation on each edge of the path, using the {@link EdgeInterpolator}
+   * given to this object at construction.
    *
    * @param pErrorPath the error path prefix to interpolate
-   * @param pInterpolant an initial interpolant
-   *    (only non-trivial when interpolating error path suffixes in global refinement)
-   * @param pReachedSet used to extract the current SMGPrecision, useful for heap abstraction interpolation
+   * @param pInterpolant an initial interpolant (only non-trivial when interpolating error path
+   *     suffixes in global refinement)
+   * @param pReachedSet used to extract the current SMGPrecision, useful for heap abstraction
+   *     interpolation
    * @return the mapping of {@link ARGState}s to {@link Interpolant}
    */
   private Map<ARGState, SMGInterpolant> performEdgeBasedInterpolation(
-      ARGPath pErrorPath,
-      SMGInterpolant pInterpolant, ARGReachedSet pReachedSet
-  ) throws InterruptedException, CPAException {
+      ARGPath pErrorPath, SMGInterpolant pInterpolant, ARGReachedSet pReachedSet)
+      throws InterruptedException, CPAException {
 
     /*We may as well interpolate every possible target error if path contains more than one.*/
     boolean checkAllTargets = !checker.isFeasible(pErrorPath, true);
@@ -146,7 +150,7 @@ public class SMGPathInterpolator {
 
       List<SMGInterpolant> resultingInterpolants = new ArrayList<>();
 
-      for(SMGInterpolant interpolant : interpolants) {
+      for (SMGInterpolant interpolant : interpolants) {
         shutdownNotifier.shutdownIfNecessary();
 
         // interpolate at each edge as long as the previous interpolant is not false
@@ -154,13 +158,14 @@ public class SMGPathInterpolator {
 
           ARGState nextARGState = pathIterator.getNextAbstractState();
 
-          List<SMGInterpolant> deriveResult = interpolator.deriveInterpolant(
-              pathIterator.getOutgoingEdge(),
-              pathIterator.getPosition(),
-              interpolant,
-              checkAllTargets,
-              pReachedSet,
-              nextARGState);
+          List<SMGInterpolant> deriveResult =
+              interpolator.deriveInterpolant(
+                  pathIterator.getOutgoingEdge(),
+                  pathIterator.getPosition(),
+                  interpolant,
+                  checkAllTargets,
+                  pReachedSet,
+                  nextARGState);
           resultingInterpolants.addAll(deriveResult);
         } else {
           resultingInterpolants.add(interpolantManager.getFalseInterpolant());

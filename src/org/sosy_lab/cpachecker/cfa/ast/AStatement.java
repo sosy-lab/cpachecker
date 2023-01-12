@@ -8,9 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-
-
-
 public interface AStatement extends AAstNode {
 
   <R, X extends Exception> R accept(AStatementVisitor<R, X> v) throws X;

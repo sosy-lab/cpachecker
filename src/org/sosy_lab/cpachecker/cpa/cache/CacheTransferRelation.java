@@ -21,22 +21,23 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class CacheTransferRelation extends SingleEdgeTransferRelation {
 
   private final TransferRelation mCachedTransferRelation;
-  //private Map<CFAEdge, Map<AbstractState, Map<Precision, Collection<? extends AbstractState>>>> mSuccessorsCache;
-  private Map<Precision, Map<CFAEdge, Map<AbstractState, Collection<? extends AbstractState>>>> mSuccessorsCache;
+  // private Map<CFAEdge, Map<AbstractState, Map<Precision, Collection<? extends AbstractState>>>>
+  // mSuccessorsCache;
+  private Map<Precision, Map<CFAEdge, Map<AbstractState, Collection<? extends AbstractState>>>>
+      mSuccessorsCache;
 
-  //private int lCacheMisses = 0;
-  //private int lCacheHits = 0;
+  // private int lCacheMisses = 0;
+  // private int lCacheHits = 0;
 
-
-  //private Set<CFAEdge> mHitEdges;
-
+  // private Set<CFAEdge> mHitEdges;
 
   public CacheTransferRelation(TransferRelation pCachedTransferRelation) {
     mCachedTransferRelation = pCachedTransferRelation;
-    //mSuccessorsCache = new HashMap<CFAEdge, Map<AbstractState, Map<Precision, Collection<? extends AbstractState>>>>();
+    // mSuccessorsCache = new HashMap<CFAEdge, Map<AbstractState, Map<Precision, Collection<?
+    // extends AbstractState>>>>();
     mSuccessorsCache = new HashMap<>();
 
-    //mHitEdges = new HashSet<>();
+    // mHitEdges = new HashSet<>();
   }
 
   @Override
@@ -71,14 +72,16 @@ public class CacheTransferRelation extends SingleEdgeTransferRelation {
 
     return lSuccessors;*/
 
-    Map<CFAEdge, Map<AbstractState, Collection<? extends AbstractState>>> lLevel1Cache = mSuccessorsCache.get(pPrecision);
+    Map<CFAEdge, Map<AbstractState, Collection<? extends AbstractState>>> lLevel1Cache =
+        mSuccessorsCache.get(pPrecision);
 
     if (lLevel1Cache == null) {
       lLevel1Cache = new HashMap<>();
       mSuccessorsCache.put(pPrecision, lLevel1Cache);
     }
 
-    Map<AbstractState, Collection<? extends AbstractState>> lLevel2Cache = lLevel1Cache.get(pCfaEdge);
+    Map<AbstractState, Collection<? extends AbstractState>> lLevel2Cache =
+        lLevel1Cache.get(pCfaEdge);
 
     if (lLevel2Cache == null) {
       lLevel2Cache = new HashMap<>();
@@ -88,12 +91,13 @@ public class CacheTransferRelation extends SingleEdgeTransferRelation {
     Collection<? extends AbstractState> lSuccessors = lLevel2Cache.get(pElement);
 
     if (lSuccessors == null) {
-      lSuccessors = mCachedTransferRelation.getAbstractSuccessorsForEdge(pElement, pPrecision, pCfaEdge);
+      lSuccessors =
+          mCachedTransferRelation.getAbstractSuccessorsForEdge(pElement, pPrecision, pCfaEdge);
       lLevel2Cache.put(pElement, lSuccessors);
 
-      //lCacheMisses++;
+      // lCacheMisses++;
     } else {
-      //lCacheHits++;
+      // lCacheHits++;
     }
 
     return lSuccessors;
@@ -111,5 +115,4 @@ public class CacheTransferRelation extends SingleEdgeTransferRelation {
 
     return mCachedTransferRelation.strengthen(pElement, pOtherElements, pCfaEdge, pPrecision);
   }
-
 }

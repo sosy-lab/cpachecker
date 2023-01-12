@@ -319,7 +319,8 @@ public class AutomatonGraphmlParserState {
    * @return the call stack currently stored for the given thread and state (represented in the
    *     GraphML model).
    */
-  public Deque<String> getOrCreateStack(GraphMLTransition.GraphMLThread pThread, GraphMLState pState) {
+  public Deque<String> getOrCreateStack(
+      GraphMLTransition.GraphMLThread pThread, GraphMLState pState) {
     Objects.requireNonNull(pState);
     Map<GraphMLState, Deque<String>> threadStacks = getOrCreateThreadStacks(pThread);
     Deque<String> stack = threadStacks.get(pState);
@@ -349,8 +350,7 @@ public class AutomatonGraphmlParserState {
    *
    * @param pThread the thread identifier and name.
    */
-  public void releaseFunctions(GraphMLTransition.GraphMLThread pThread) {
-  }
+  public void releaseFunctions(GraphMLTransition.GraphMLThread pThread) {}
 
   /**
    * Gets the currently collected list of state transitions (in our automaton model) leaving the
@@ -372,8 +372,8 @@ public class AutomatonGraphmlParserState {
   /**
    * Checks if the entry state is connected to a violation state.
    *
-   * @return {@code true} if the entry state is connected to a violation state,
-   * {@code false} otherwise.
+   * @return {@code true} if the entry state is connected to a violation state, {@code false}
+   *     otherwise.
    */
   public boolean isEntryConnectedToViolation() {
     return distances.get(getEntryState()) != null;

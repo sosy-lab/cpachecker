@@ -31,20 +31,18 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * This helper class provides utility functions for algorithms that require formulas encoding the
  * transition of a complete loop-unrolling in their analysis. Such algorithms, including {@link
- * IMCAlgorithm} and {@link ISMCAlgorithm}, often assume single-loop programs as input and have to
- * be used with large-blocking encoding such that the block formulas of the abstraction states at
- * loop heads represent the transition formula of a complete loop. An ARG under this setting has a
- * sequence of abstraction states whose locations are the unique loop head.
+ * IMCAlgorithm}, often assume single-loop programs as input and have to be used with large-blocking
+ * encoding such that the block formulas of the abstraction states at loop heads represent the
+ * transition formula of a complete loop. An ARG under this setting has a sequence of abstraction
+ * states whose locations are the unique loop head.
  *
  * <p>This class implements methods to check if an ARG has the required shape and collect formulas
- * from such ARGs. It also provides a method to derive interpolants from unsatisfiable path
- * formulas, considering different derivation directions.
+ * from such ARGs.
  */
 public final class InterpolationHelper {
   /**
@@ -193,70 +191,6 @@ public final class InterpolationHelper {
   static PathFormula makeFalsePathFormula(
       PathFormulaManager pfmgr, BooleanFormulaManagerView bfmgr) {
     return pfmgr.makeEmptyPathFormula().withFormula(bfmgr.makeFalse());
-  }
-
-  /**
-   * Represent the direction to derive interpolants.
-   *
-   * <ul>
-   *   <li>{@code FORWARD}: compute interpolants from the prefix <i>itp(A, B)</i>.
-   *   <li>{@code BACKWARD}: compute interpolants from the suffix <i>!itp(B, A)</i>.
-   *   <li>{@code BIDIRECTION_CONJUNCT}: compute interpolants from both the prefix and the suffix
-   *       and conjunct the two <i>itp(A, B) &and; !itp(B, A)</i>.
-   *   <li>{@code BIDIRECTION_DISJUNCT}: compute interpolants from both the prefix and the suffix
-   *       and disjunct the two <i>itp(A, B) &or; !itp(B, A)</i>.
-   * </ul>
-   */
-  public enum ItpDeriveDirection {
-    FORWARD,
-    BACKWARD,
-    BIDIRECTION_CONJUNCT,
-    BIDIRECTION_DISJUNCT
-  }
-
-  /**
-   * A helper method to derive an interpolant according to the given derivation direction.
-   *
-   * @param bfmgr Boolean formula manager
-   * @param itpProver SMT solver stack
-   * @param itpDeriveDirection the derivation direction for interpolants
-   * @param formulaA Formula A (prefix)
-   * @param formulaB Formula B (suffix)
-   * @return A {@code BooleanFormula} interpolant
-   * @throws InterruptedException on shutdown request
-   */
-  static <T> BooleanFormula getInterpolantFrom(
-      BooleanFormulaManagerView bfmgr,
-      InterpolatingProverEnvironment<T> itpProver,
-      ItpDeriveDirection itpDeriveDirection,
-      final List<T> formulaA,
-      final List<T> formulaB)
-      throws SolverException, InterruptedException {
-    switch (itpDeriveDirection) {
-      case FORWARD:
-        {
-          return itpProver.getInterpolant(formulaA);
-        }
-      case BACKWARD:
-        {
-          return bfmgr.not(itpProver.getInterpolant(formulaB));
-        }
-      case BIDIRECTION_CONJUNCT:
-        {
-          return bfmgr.and(
-              itpProver.getInterpolant(formulaA), bfmgr.not(itpProver.getInterpolant(formulaB)));
-        }
-      case BIDIRECTION_DISJUNCT:
-        {
-          return bfmgr.or(
-              itpProver.getInterpolant(formulaA), bfmgr.not(itpProver.getInterpolant(formulaB)));
-        }
-      default:
-        {
-          throw new IllegalArgumentException(
-              "InterpolationHelper does not support ItpDeriveDirection=" + itpDeriveDirection);
-        }
-    }
   }
 
   /**

@@ -9,16 +9,14 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 import com.google.common.base.Preconditions;
-
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-
-import java.util.List;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 public abstract class AbstractCPAFactory implements CPAFactory {
 
@@ -38,6 +36,7 @@ public abstract class AbstractCPAFactory implements CPAFactory {
     throw new UnsupportedOperationException("Cannot wrap CPAs");
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CPAFactory setConfiguration(Configuration pConfiguration) {
     Preconditions.checkNotNull(pConfiguration);
@@ -47,6 +46,7 @@ public abstract class AbstractCPAFactory implements CPAFactory {
     return this;
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CPAFactory setLogger(LogManager pLogger) {
     Preconditions.checkNotNull(pLogger);
@@ -56,10 +56,12 @@ public abstract class AbstractCPAFactory implements CPAFactory {
     return this;
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CPAFactory setShutdownNotifier(ShutdownNotifier pShutdownNotifier) {
     Preconditions.checkNotNull(pShutdownNotifier);
-    Preconditions.checkState(shutdownNotifier == null, "setShutdownNotifier called twice on CPAFactory");
+    Preconditions.checkState(
+        shutdownNotifier == null, "setShutdownNotifier called twice on CPAFactory");
 
     shutdownNotifier = pShutdownNotifier;
     return this;
@@ -76,7 +78,8 @@ public abstract class AbstractCPAFactory implements CPAFactory {
   }
 
   public ShutdownNotifier getShutdownNotifier() {
-    Preconditions.checkState(shutdownNotifier != null, "ShutdownNotifier object needed to create CPA");
+    Preconditions.checkState(
+        shutdownNotifier != null, "ShutdownNotifier object needed to create CPA");
     return shutdownNotifier;
   }
 

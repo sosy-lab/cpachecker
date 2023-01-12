@@ -22,22 +22,19 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-/**
- * Finds all goals that are leafs in the CFA.
- */
+/** Finds all goals that are leafs in the CFA. */
 public class LeafGoalStrategy implements IGoalFindingStrategy {
   /**
    * Performs a breadth-first-search to get all un-/covered nodes.
    *
-   * @param pWaitlist    An initial list of ARGstates to check. Should be the exit node(s)
-   *                     of the function.
+   * @param pWaitlist An initial list of ARGstates to check. Should be the exit node(s) of the
+   *     function.
    * @param coveredGoals A list of all covered goals (or rather their corresponding labels).
    * @return A map of (un-)/covered goals.
    */
   @Override
   public Map<LeafStates, List<CFANode>> findGoals(
-      Deque<ARGState> pWaitlist,
-      final Set<String> coveredGoals) {
+      Deque<ARGState> pWaitlist, final Set<String> coveredGoals) {
     Set<ARGState> reachedNodes = new HashSet<>();
 
     Map<LeafStates, List<CFANode>> leafGoals = new HashMap<>();
@@ -50,7 +47,7 @@ public class LeafGoalStrategy implements IGoalFindingStrategy {
 
       var state = AbstractStates.extractStateByType(argState, LocationState.class);
       if (state == null) {
-        continue; //Should never happen
+        continue; // Should never happen
       }
 
       var label = state.getLocationNode();

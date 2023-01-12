@@ -25,14 +25,13 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.resources.ManagementUtils;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 
-
 class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustment {
 
   private final LogManager logger;
 
   private final GlobalConditionsThresholds thresholds;
 
-  //necessary stuff to query the OperatingSystemMBean for the process cpu time
+  // necessary stuff to query the OperatingSystemMBean for the process cpu time
   private final MBeanServer mbeanServer;
   private final ObjectName osMbean;
   private static final String MEMORY_SIZE = "CommittedVirtualMemorySize";
@@ -42,7 +41,8 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
   private boolean cpuTimeDisabled = false;
   private boolean processMemoryDisabled = false;
 
-  GlobalConditionsSimplePrecisionAdjustment(LogManager pLogger, GlobalConditionsThresholds pThresholds) {
+  GlobalConditionsSimplePrecisionAdjustment(
+      LogManager pLogger, GlobalConditionsThresholds pThresholds) {
     logger = pLogger;
     thresholds = pThresholds;
 
@@ -83,7 +83,6 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
     return Action.CONTINUE;
   }
 
-
   private boolean checkWallTime() {
     return (System.currentTimeMillis() > thresholds.getWallTimeThreshold());
   }
@@ -102,13 +101,15 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
       cputimeNanos = ProcessCpuTime.read();
     } catch (JMException e) {
       logger.logDebugException(e, "Querying cpu time failed");
-      logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, cpu time threshold disabled");
+      logger.log(
+          Level.WARNING,
+          "Your Java VM does not support measuring the cpu time, cpu time threshold disabled");
 
       cpuTimeDisabled = true;
       return false;
     }
 
-    long cputime = cputimeNanos / (1000*1000);
+    long cputime = cputimeNanos / (1000 * 1000);
 
     return cputime > threshold;
   }
@@ -119,7 +120,7 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
       return false;
     }
 
-    return ((memory.getHeapMemoryUsage().getUsed() / (1000*1000)) > threshold);
+    return ((memory.getHeapMemoryUsage().getUsed() / (1000 * 1000)) > threshold);
   }
 
   private boolean checkProcessMemory() {
@@ -138,20 +139,27 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
       throw ManagementUtils.handleRuntimeErrorException(e);
     } catch (JMException e) {
       logger.logDebugException(e, "Querying memory size failed");
-      logger.log(Level.WARNING, "Your Java VM does not support measuring the memory size, process memory threshold disabled");
+      logger.log(
+          Level.WARNING,
+          "Your Java VM does not support measuring the memory size, process memory threshold"
+              + " disabled");
 
       processMemoryDisabled = true;
       return false;
     }
 
     if (!(memUsedObject instanceof Long)) {
-      logger.log(Level.WARNING, "Invalid value received for memory size: " + memUsedObject + ", process memory threshold disabled");
+      logger.log(
+          Level.WARNING,
+          "Invalid value received for memory size: "
+              + memUsedObject
+              + ", process memory threshold disabled");
 
       processMemoryDisabled = true;
       return false;
     }
 
-    long memUsed = ((Long)memUsedObject) / (1000*1000);
+    long memUsed = ((Long) memUsedObject) / (1000 * 1000);
 
     return memUsed > threshold;
   }

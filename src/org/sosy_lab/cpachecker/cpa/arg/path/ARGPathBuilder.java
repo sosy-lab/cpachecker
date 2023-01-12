@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.arg.path;
 
 import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -37,6 +38,7 @@ public abstract class ARGPathBuilder {
   }
 
   /** Add the given state and edge to the ARGPath that should be created. */
+  @CanIgnoreReturnValue
   public ARGPathBuilder add(ARGState state, CFAEdge outgoingEdge) {
     states.add(state);
     edges.add(outgoingEdge);
@@ -44,6 +46,7 @@ public abstract class ARGPathBuilder {
   }
 
   /** Remove the state and edge that were added at last. */
+  @CanIgnoreReturnValue
   public ARGPathBuilder removeLast() {
     assert !states.isEmpty() && !edges.isEmpty();
     states.remove(states.size() - 1);

@@ -21,11 +21,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CfaMutableNetwork;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -40,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.graph.FlexCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -47,6 +47,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.LoopStructurePostProcessor;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.ReversePostorderPostProcessor;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.VariableClassificationPostProcessor;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaFactory;
+import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaEdgeTransformer;
+import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaFactory;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -64,6 +70,7 @@ final class CfaSimplifications {
    *
    * @param pConfiguration the configuration to use
    * @param pLogger the logger to use
+   * @param pShutdownNotifier the shutdown notifier to use
    * @param pCfa the CFA to simplify
    * @param pVariableGenerator the variable generator to use
    * @return the simplified CFA
@@ -71,10 +78,11 @@ final class CfaSimplifications {
   static CFA simplifyArrayAccesses(
       Configuration pConfiguration,
       LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
       VariableGenerator pVariableGenerator) {
 
-    CfaMutableNetwork graph = CfaMutableNetwork.of(pCfa);
+    FlexCfaNetwork graph = FlexCfaNetwork.copy(pCfa);
     Map<CFAEdge, Map<ArrayAccess, CAstNode>> substitution = new HashMap<>();
 
     // copy of edges to prevent concurrent modification of graph
@@ -148,7 +156,7 @@ final class CfaSimplifications {
               }
 
               graph.insertPredecessor(
-                  new CFANode(predecessor.getFunction()), predecessor, newDeclarationEdge);
+                  new CFANode(predecessor.getFunction()), newDeclarationEdge, predecessor);
 
               CIdExpression substituteExpression = new CIdExpression(fileLocation, declaration);
               substitution
@@ -208,7 +216,15 @@ final class CfaSimplifications {
           return originalAstNode.accept(new SubstitutingCAstNodeVisitor(astNodeSubstitution::get));
         };
 
-    return CCfaTransformer.createCfa(pConfiguration, pLogger, pCfa, graph, substitutionFunction);
+    CfaFactory cfaFactory =
+        CCfaFactory.toUnconnectedFunctions()
+            .transformEdges(CCfaEdgeTransformer.forSubstitutions(substitutionFunction::apply))
+            .executePostProcessor(new ReversePostorderPostProcessor())
+            .executePostProcessor(new LoopStructurePostProcessor())
+            .toSupergraph()
+            .executePostProcessor(new VariableClassificationPostProcessor(pConfiguration));
+
+    return cfaFactory.createCfa(graph, pCfa.getMetadata(), pLogger, pShutdownNotifier);
   }
 
   /**
@@ -228,12 +244,17 @@ final class CfaSimplifications {
    *
    * @param pConfiguration the configuration to use
    * @param pLogger the logger to use
+   * @param pShutdownNotifier the shutdown notifier to use
    * @param pCfa the CFA to simplify
    * @return the simplified CFA
    */
-  static CFA simplifyIncDecLoopEdges(Configuration pConfiguration, LogManager pLogger, CFA pCfa) {
+  static CFA simplifyIncDecLoopEdges(
+      Configuration pConfiguration,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa) {
 
-    CfaMutableNetwork graph = CfaMutableNetwork.of(pCfa);
+    FlexCfaNetwork graph = FlexCfaNetwork.copy(pCfa);
     Map<CFAEdge, Map<CSimpleDeclaration, CExpression>> substitution = new HashMap<>();
 
     VariableClassification variableClassification = pCfa.getVarClassification().orElseThrow();
@@ -447,14 +468,19 @@ final class CfaSimplifications {
       }
     }
 
-    return CCfaTransformer.createCfa(
-        pConfiguration,
-        pLogger,
-        pCfa,
-        graph,
+    BiFunction<CFAEdge, CAstNode, CAstNode> edgeAstSubstitution =
         (edge, originalAstNode) ->
-            IdExpressionSubstitutingCAstNodeVisitor.substitute(
-                substitution, edge, originalAstNode));
+            IdExpressionSubstitutingCAstNodeVisitor.substitute(substitution, edge, originalAstNode);
+
+    CfaFactory cfaFactory =
+        CCfaFactory.toUnconnectedFunctions()
+            .transformEdges(CCfaEdgeTransformer.forSubstitutions(edgeAstSubstitution::apply))
+            .executePostProcessor(new ReversePostorderPostProcessor())
+            .executePostProcessor(new LoopStructurePostProcessor())
+            .toSupergraph()
+            .executePostProcessor(new VariableClassificationPostProcessor(pConfiguration));
+
+    return cfaFactory.createCfa(graph, pCfa.getMetadata(), pLogger, pShutdownNotifier);
   }
 
   private static final class IdExpressionSubstitutingCAstNodeVisitor

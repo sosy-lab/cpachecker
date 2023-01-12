@@ -41,12 +41,12 @@ public class InputTransferRelation extends SingleEdgeTransferRelation {
   private final CFA cfa;
 
   public InputTransferRelation(CFA pCFA) {
-    this.cfa = Objects.requireNonNull(pCFA);
+    cfa = Objects.requireNonNull(pCFA);
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(AbstractState pState,
-      Precision pPrecision, CFAEdge pEdge) {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge pEdge) {
     return Collections.singleton(getAbstractSuccessorForEdge(pEdge));
   }
 
@@ -112,7 +112,8 @@ public class InputTransferRelation extends SingleEdgeTransferRelation {
     if (summaryEdge == null) {
       return InputState.empty();
     }
-    return handleFunctionCall(summaryEdge.getFunctionEntry().getFunctionParameters(), pEdge.getArguments());
+    return handleFunctionCall(
+        summaryEdge.getFunctionEntry().getFunctionParameters(), pEdge.getArguments());
   }
 
   private static InputState handleFunctionCall(
@@ -129,5 +130,4 @@ public class InputTransferRelation extends SingleEdgeTransferRelation {
     }
     return InputState.forInputs(inputs.build());
   }
-
 }

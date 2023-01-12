@@ -43,49 +43,36 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class SMGInterpolationTree {
 
-  /**
-   * the logger in use
-   */
+  /** the logger in use */
   private final LogManager logger;
 
-  /**
-   * the counter to count interpolation queries
-   */
+  /** the counter to count interpolation queries */
   private int interpolationCounter = 0;
 
-  /**
-   * the strategy on how to select paths for interpolation
-   */
+  /** the strategy on how to select paths for interpolation */
   private final SMGInterpolationStrategy strategy;
 
-  /**
-   * the root of the tree
-   */
+  /** the root of the tree */
   private final ARGState root;
 
   /** the predecessor relation of the states contained in this tree */
   private final Map<ARGState, ARGState> predecessorRelation = new LinkedHashMap<>();
 
-  /**
-   * the successor relation of the states contained in this tree
-   */
+  /** the successor relation of the states contained in this tree */
   private final ListMultimap<ARGState, ARGState> successorRelation = ArrayListMultimap.create();
 
-  /**
-   * the mapping from state to the identified interpolants
-   *
-   */
+  /** the mapping from state to the identified interpolants */
   private final Map<ARGState, SMGInterpolant> interpolants = new HashMap<>();
 
   private final SMGInterpolantManager interpolantManager;
 
-  /**
-   * the path denoting the empty path
-   */
+  /** the path denoting the empty path */
   public static final ARGPath EMPTY_PATH = null;
 
-  public SMGInterpolationTree(SMGInterpolantManager pInterpolantManager,
-      final LogManager pLogger, final List<ARGPath> pTargetPaths,
+  public SMGInterpolationTree(
+      SMGInterpolantManager pInterpolantManager,
+      final LogManager pLogger,
+      final List<ARGPath> pTargetPaths,
       final boolean useTopDownInterpolationStrategy) {
     logger = pLogger;
     interpolantManager = pInterpolantManager;
@@ -109,9 +96,7 @@ public class SMGInterpolationTree {
         : buildTreeFromMultiplePaths(targetPaths);
   }
 
-  /**
-   * This method builds a (linear) tree from a single path.
-   */
+  /** This method builds a (linear) tree from a single path. */
   private ARGState buildTreeFromSinglePath(final ARGPath targetPath) {
     ImmutableList<ARGState> states = targetPath.asStatesList();
 
@@ -126,9 +111,7 @@ public class SMGInterpolationTree {
     return states.get(0);
   }
 
-  /**
-   * This method builds an actual tree from multiple path.
-   */
+  /** This method builds an actual tree from multiple path. */
   private ARGState buildTreeFromMultiplePaths(final Collection<ARGPath> targetPaths) {
     ARGState itpTreeRoot = null;
     Deque<ARGState> todo = new ArrayDeque<>(extractTargets(targetPaths));
@@ -139,7 +122,7 @@ public class SMGInterpolationTree {
 
       if (currentState.getParents().iterator().hasNext()) {
 
-        if(!predecessorRelation.containsKey(currentState)) {
+        if (!predecessorRelation.containsKey(currentState)) {
           ARGState parentState = currentState.getParents().iterator().next();
 
           predecessorRelation.put(currentState, parentState);
@@ -156,9 +139,7 @@ public class SMGInterpolationTree {
     return itpTreeRoot;
   }
 
-  /**
-   * This method extracts all targets states from the target paths.
-   */
+  /** This method extracts all targets states from the target paths. */
   private Set<ARGState> extractTargets(final Collection<ARGPath> targetsPaths) {
     return transformedImmutableSetCopy(targetsPaths, ARGPath::getLastState);
   }
@@ -168,8 +149,8 @@ public class SMGInterpolationTree {
   }
 
   /**
-   * This method obtains the refinement roots, i.e., for each disjunct path from target states
-   * to the root, it collects the highest state that has a non-trivial interpolant associated.
+   * This method obtains the refinement roots, i.e., for each disjunct path from target states to
+   * the root, it collects the highest state that has a non-trivial interpolant associated.
    *
    * @return the set of refinement roots
    */
@@ -200,8 +181,7 @@ public class SMGInterpolationTree {
    * @return true, if a non-trivial interpolant is present, else false
    */
   private boolean stateHasNonTrivialInterpolant(final ARGState currentState) {
-    return interpolants.containsKey(currentState)
-        && !interpolants.get(currentState).isTrivial();
+    return interpolants.containsKey(currentState) && !interpolants.get(currentState).isTrivial();
   }
 
   /**
@@ -229,8 +209,7 @@ public class SMGInterpolationTree {
    * @return true, if a false interpolant is present, else false
    */
   private boolean stateHasFalseInterpolant(final ARGState currentState) {
-    return interpolants.containsKey(currentState)
-        && interpolants.get(currentState).isFalse();
+    return interpolants.containsKey(currentState) && interpolants.get(currentState).isFalse();
   }
 
   /**
@@ -262,8 +241,8 @@ public class SMGInterpolationTree {
   }
 
   /**
-   * This method extracts the precision increment for the given refinement root.
-   * It does so by collection all non-trivial interpolants in the subtree of the given refinement root.
+   * This method extracts the precision increment for the given refinement root. It does so by
+   * collection all non-trivial interpolants in the subtree of the given refinement root.
    *
    * @return the precision increment for the given refinement root
    */
@@ -309,9 +288,7 @@ public class SMGInterpolationTree {
 
   private class TopDownInterpolationStrategy implements SMGInterpolationStrategy {
 
-    /**
-     * the states that are the sources for obtaining (partial) error paths
-     */
+    /** the states that are the sources for obtaining (partial) error paths */
     private Deque<ARGState> sources = new ArrayDeque<>(Collections.singleton(root));
 
     @Override
@@ -321,14 +298,22 @@ public class SMGInterpolationTree {
       ARGState current = sources.pop();
 
       if (!isValidInterpolationRoot(predecessorRelation.get(current))) {
-        logger.log(Level.FINEST, "interpolant of predecessor of ", current.getStateId(), " is already false, so return empty path");
+        logger.log(
+            Level.FINEST,
+            "interpolant of predecessor of ",
+            current.getStateId(),
+            " is already false, so return empty path");
         return EMPTY_PATH;
       }
 
-      // if the current state is not the root, it is a child of a branch , however, the path should not start with the
-      // child, but with the branching node (children are stored on the stack because this needs less book-keeping)
+      // if the current state is not the root, it is a child of a branch , however, the path should
+      // not start with the
+      // child, but with the branching node (children are stored on the stack because this needs
+      // less book-keeping)
       if (!Objects.equals(current, root)) {
-        errorPathBuilder.add(predecessorRelation.get(current), predecessorRelation.get(current).getEdgeToChild(current));
+        errorPathBuilder.add(
+            predecessorRelation.get(current),
+            predecessorRelation.get(current).getEdgeToChild(current));
       }
 
       while (successorRelation.get(current).iterator().hasNext()) {
@@ -336,15 +321,21 @@ public class SMGInterpolationTree {
         ARGState child = children.next();
         errorPathBuilder.add(current, current.getEdgeToChild(child));
 
-        // push all other children of the current state, if any, onto the stack for later interpolations
+        // push all other children of the current state, if any, onto the stack for later
+        // interpolations
         int size = 1;
         while (children.hasNext()) {
           size++;
           ARGState sibling = children.next();
-          logger.log(Level.FINEST, "\tpush new root ", sibling.getStateId(), " onto stack for parent ", predecessorRelation.get(sibling).getStateId());
+          logger.log(
+              Level.FINEST,
+              "\tpush new root ",
+              sibling.getStateId(),
+              " onto stack for parent ",
+              predecessorRelation.get(sibling).getStateId());
           sources.push(sibling);
         }
-        assert(size <= 2);
+        assert (size <= 2);
 
         current = child;
       }
@@ -353,7 +344,8 @@ public class SMGInterpolationTree {
     }
 
     /**
-     * The given state is not a valid interpolation root if it is associated with a interpolant representing "false"
+     * The given state is not a valid interpolation root if it is associated with a interpolant
+     * representing "false"
      */
     private boolean isValidInterpolationRoot(ARGState pRoot) {
       return !stateHasFalseInterpolant(pRoot);
@@ -381,9 +373,7 @@ public class SMGInterpolationTree {
 
   private class BottomUpInterpolationStrategy implements SMGInterpolationStrategy {
 
-    /**
-     * the states that are the sources for obtaining error paths
-     */
+    /** the states that are the sources for obtaining error paths */
     private List<ARGState> sources;
 
     public BottomUpInterpolationStrategy(Set<ARGState> pTargets) {
@@ -398,14 +388,19 @@ public class SMGInterpolationTree {
 
       ARGPathBuilder errorPathBuilder = ARGPath.reverseBuilder();
 
-      errorPathBuilder.add(current, FluentIterable.from(AbstractStates.getOutgoingEdges(current)).first().orNull());
+      errorPathBuilder.add(
+          current, FluentIterable.from(AbstractStates.getOutgoingEdges(current)).first().orNull());
 
       while (predecessorRelation.get(current) != null) {
 
         ARGState parent = predecessorRelation.get(current);
 
-        if(stateHasFalseInterpolant(parent)) {
-          logger.log(Level.FINEST, "interpolant on path, namely for state ", parent.getStateId(), " is already false, so return empty path");
+        if (stateHasFalseInterpolant(parent)) {
+          logger.log(
+              Level.FINEST,
+              "interpolant on path, namely for state ",
+              parent.getStateId(),
+              " is already false, so return empty path");
           return EMPTY_PATH;
         }
 
@@ -440,23 +435,41 @@ public class SMGInterpolationTree {
     for (Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
       if (interpolants.containsKey(current.getKey())) {
 
-        result.append(current.getKey().getStateId()).append(" [label=\"")
-            .append(current.getKey().getStateId()).append(" / ")
-            .append(AbstractStates.extractLocation(current.getKey())).append(" has itp ")
-            .append("itp is ").append(interpolants.get(current.getKey())).append("\"]")
+        result
+            .append(current.getKey().getStateId())
+            .append(" [label=\"")
+            .append(current.getKey().getStateId())
+            .append(" / ")
+            .append(AbstractStates.extractLocation(current.getKey()))
+            .append(" has itp ")
+            .append("itp is ")
+            .append(interpolants.get(current.getKey()))
+            .append("\"]")
             .append("\n");
-        result.append(current.getKey().getStateId()).append(" -> ")
-            .append(current.getValue().getStateId()).append("\n");
+        result
+            .append(current.getKey().getStateId())
+            .append(" -> ")
+            .append(current.getValue().getStateId())
+            .append("\n");
 
       } else {
-        result.append(current.getKey().getStateId()).append(" [label=\"")
-            .append(current.getKey().getStateId()).append(" has itp NA\"]").append("\n");
-        result.append(current.getKey().getStateId()).append(" -> ")
-            .append(current.getValue().getStateId()).append("\n");
+        result
+            .append(current.getKey().getStateId())
+            .append(" [label=\"")
+            .append(current.getKey().getStateId())
+            .append(" has itp NA\"]")
+            .append("\n");
+        result
+            .append(current.getKey().getStateId())
+            .append(" -> ")
+            .append(current.getValue().getStateId())
+            .append("\n");
       }
 
       if (current.getValue().isTarget()) {
-        result.append(current.getValue().getStateId()).append(" [style=filled, fillcolor=\"red\"]")
+        result
+            .append(current.getValue().getStateId())
+            .append(" [style=filled, fillcolor=\"red\"]")
             .append("\n");
       }
 

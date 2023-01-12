@@ -66,8 +66,9 @@ public class ReferencedVariablesCollector {
   final Set<String> allVars = new HashSet<>();
   final Set<String> varsInConditions = new HashSet<>();
 
-  // needs to be a Multimap, because there could be more than one LHS for a variable, if there are several edges.
-  final Multimap<String,String> varsToRHS = HashMultimap.create();
+  // needs to be a Multimap, because there could be more than one LHS for a variable, if there are
+  // several edges.
+  final Multimap<String, String> varsToRHS = HashMultimap.create();
 
   public ReferencedVariablesCollector(Collection<CFANode> mainNodes) {
     collectVars(mainNodes);
@@ -82,7 +83,8 @@ public class ReferencedVariablesCollector {
     // collect information
     for (CFANode node : nodes) {
       for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(node)) {
-        if (nodes.contains(leavingEdge.getSuccessor()) || (leavingEdge instanceof CFunctionCallEdge)) {
+        if (nodes.contains(leavingEdge.getSuccessor())
+            || (leavingEdge instanceof CFunctionCallEdge)) {
           collectVars(leavingEdge);
         }
       }
@@ -108,53 +110,58 @@ public class ReferencedVariablesCollector {
   private void collectVars(final CFAEdge edge) {
 
     switch (edge.getEdgeType()) {
-
-      case AssumeEdge: {
-        CAssumeEdge assumeEdge = (CAssumeEdge) edge;
-        Set<String> vars = collectVars(assumeEdge.getExpression());
-        varsInConditions.addAll(vars);
-        allVars.addAll(vars);
-        break;
-      }
-      case DeclarationEdge: {
-        CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
-        String lhsVarName = declaration.getQualifiedName();
-        if (declaration instanceof CVariableDeclaration) {
-          allVars.add(lhsVarName);
-          CInitializer init = ((CVariableDeclaration) declaration).getInitializer();
-          if (init instanceof CInitializerExpression) {
-            Set<String> vars = collectVars(((CInitializerExpression) init).getExpression());
-            varsToRHS.putAll(lhsVarName, vars);
+      case AssumeEdge:
+        {
+          CAssumeEdge assumeEdge = (CAssumeEdge) edge;
+          Set<String> vars = collectVars(assumeEdge.getExpression());
+          varsInConditions.addAll(vars);
+          allVars.addAll(vars);
+          break;
+        }
+      case DeclarationEdge:
+        {
+          CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
+          String lhsVarName = declaration.getQualifiedName();
+          if (declaration instanceof CVariableDeclaration) {
+            allVars.add(lhsVarName);
+            CInitializer init = ((CVariableDeclaration) declaration).getInitializer();
+            if (init instanceof CInitializerExpression) {
+              Set<String> vars = collectVars(((CInitializerExpression) init).getExpression());
+              varsToRHS.putAll(lhsVarName, vars);
+              allVars.addAll(vars);
+            }
+          }
+          break;
+        }
+      case FunctionCallEdge:
+        {
+          CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) edge;
+          for (CExpression argument : functionCallEdge.getArguments()) {
+            Set<String> vars = collectVars(argument);
             allVars.addAll(vars);
           }
+          for (CExpression parameter :
+              functionCallEdge
+                  .getSummaryEdge()
+                  .getExpression()
+                  .getFunctionCallExpression()
+                  .getParameterExpressions()) {
+            Set<String> vars = collectVars(parameter);
+            allVars.addAll(vars);
+          }
+          break;
         }
-        break;
-      }
-      case FunctionCallEdge: {
-        CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) edge;
-        for (CExpression argument : functionCallEdge.getArguments()) {
-          Set<String> vars = collectVars(argument);
-          allVars.addAll(vars);
-        }
-        for (CExpression parameter : functionCallEdge.getSummaryEdge()
-            .getExpression()
-            .getFunctionCallExpression()
-            .getParameterExpressions()) {
-          Set<String> vars = collectVars(parameter);
-          allVars.addAll(vars);
-        }
-        break;
-      }
-      case StatementEdge: {
-        CStatement statement = ((CStatementEdge) edge).getStatement();
-        if (statement instanceof CAssignment) {
+      case StatementEdge:
+        {
+          CStatement statement = ((CStatementEdge) edge).getStatement();
+          if (statement instanceof CAssignment) {
             CAssignment assignment = (CAssignment) statement;
             handleAssignment(assignment);
-        } else {
-          // other statements are considered side-effect free, ignore variable occurrences in them
+          } else {
+            // other statements are considered side-effect free, ignore variable occurrences in them
+          }
+          break;
         }
-        break;
-      }
       case ReturnStatementEdge:
         Optional<CAssignment> returnExprAssignment = ((CReturnStatementEdge) edge).asAssignment();
         if (returnExprAssignment.isPresent()) {
@@ -202,21 +209,21 @@ public class ReferencedVariablesCollector {
     if (pNode instanceof CArraySubscriptExpression) {
       expr = ((CArraySubscriptExpression) pNode).getArrayExpression();
     } else if (pNode instanceof CPointerExpression) {
-      expr =  ((CPointerExpression) pNode).getOperand();
+      expr = ((CPointerExpression) pNode).getOperand();
     } else {
       // TODO implement retrieval of deeper nested varnames, or use visitor?
       return pNode.toASTString();
     }
 
     if (expr instanceof CLeftHandSide) {
-      return getVarname((CLeftHandSide)expr);
+      return getVarname((CLeftHandSide) expr);
     } else {
       return expr.toASTString();
     }
   }
 
   private static class CollectVariablesVisitor extends DefaultCExpressionVisitor<Void, NoException>
-                                               implements CRightHandSideVisitor<Void, NoException> {
+      implements CRightHandSideVisitor<Void, NoException> {
 
     Set<String> vars = new HashSet<>();
 

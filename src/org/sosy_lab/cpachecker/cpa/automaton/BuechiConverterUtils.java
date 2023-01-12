@@ -131,8 +131,7 @@ public class BuechiConverterUtils {
         throw new LtlParseException(
             String.format(
                 "Only 'Buchi'-acceptance is allowed, but instead the following was found: %s (%s)",
-                accName.name,
-                accName.extra.toString()));
+                accName.name, accName.extra.toString()));
       }
 
       String accCond = storedHeader.getAcceptanceCondition().toStringInfix();
@@ -170,8 +169,7 @@ public class BuechiConverterUtils {
       if (numAccSets != 1) {
         throw new LtlParseException(
             String.format(
-                "Only one acceptance set was expected, but instead %d were found",
-                numAccSets));
+                "Only one acceptance set was expected, but instead %d were found", numAccSets));
       }
 
       try {
@@ -225,8 +223,7 @@ public class BuechiConverterUtils {
 
       } catch (InvalidAutomatonException e) {
         throw new RuntimeException(
-            "The passed storedAutomaton-parameter produces an inconsistent automaton",
-            e);
+            "The passed storedAutomaton-parameter produces an inconsistent automaton", e);
       } catch (UnrecognizedCodeException e) {
         throw new LtlParseException(e.getMessage(), e);
       }
@@ -346,8 +343,7 @@ public class BuechiConverterUtils {
         sourceAST = CParserUtils.parseSingleStatement(pExpression, parser, scope);
       } catch (InvalidAutomatonException e) {
         throw new LtlParseException(
-            String.format("Error in literal of ltl-formula: %s", e.getMessage()),
-            e);
+            String.format("Error in literal of ltl-formula: %s", e.getMessage()), e);
       }
       CExpression expression = ((CExpressionStatement) sourceAST).getExpression();
       if (expression.getExpressionType() instanceof CProblemType) {
@@ -359,8 +355,8 @@ public class BuechiConverterUtils {
       return expression;
     }
 
-    private AutomatonTransition
-        createTransition(List<AExpression> pAssumptions, String pFollowStateName) {
+    private AutomatonTransition createTransition(
+        List<AExpression> pAssumptions, String pFollowStateName) {
       return new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, pFollowStateName)
           .withAssumptions(pAssumptions)
           .build();

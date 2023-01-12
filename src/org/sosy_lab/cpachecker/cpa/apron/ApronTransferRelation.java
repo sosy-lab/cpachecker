@@ -91,16 +91,17 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class ApronTransferRelation extends ForwardingTransferRelation<Collection<ApronState>, ApronState, VariableTrackingPrecision> {
+public class ApronTransferRelation
+    extends ForwardingTransferRelation<
+        Collection<ApronState>, ApronState, VariableTrackingPrecision> {
+
+  /** This is used for making smaller and greater constraint with octagons */
+  private static final Texpr0CstNode constantMin =
+      new Texpr0CstNode(new DoubleScalar(0.00000000000001));
 
   /**
-   * This is used for making smaller and greater constraint with octagons
-   */
-  private static final Texpr0CstNode constantMin = new Texpr0CstNode(new DoubleScalar(0.00000000000001));
-
-  /**
-   * set of functions that may not appear in the source code
-   * the value of the map entry is the explanation for the user
+   * set of functions that may not appear in the source code the value of the map entry is the
+   * explanation for the user
    */
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
 
@@ -116,7 +117,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     ImmutableSet.Builder<CFANode> builder = new ImmutableSet.Builder<>();
     for (Loop l : loops.getAllLoops()) {
       // function edges do not count as incoming/outgoing edges
-          builder.addAll(l.getLoopHeads());
+      builder.addAll(l.getLoopHeads());
     }
     loopHeads = builder.build();
   }
@@ -132,8 +133,12 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       ApronState st = states.next();
       if (st.isEmpty()) {
         states.remove();
-        logger.log(Level.FINER, "removing state because of unsatisfiable constraints:\n" +
-                                 st + "________________\nEdge was:\n" + edge.getDescription());
+        logger.log(
+            Level.FINER,
+            "removing state because of unsatisfiable constraints:\n"
+                + st
+                + "________________\nEdge was:\n"
+                + edge.getDescription());
       }
     }
 
@@ -155,19 +160,23 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
 
   @SuppressWarnings("deprecation")
   @Override
-  protected Set<ApronState> handleAssumption(CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
+  protected Set<ApronState> handleAssumption(
+      CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
       throws CPATransferException {
 
     if (expression instanceof CLiteralExpression) {
       if (expression instanceof CIntegerLiteralExpression) {
-        return handleLiteralBooleanExpression(((CIntegerLiteralExpression) expression).asLong(), truthAssumption, state);
+        return handleLiteralBooleanExpression(
+            ((CIntegerLiteralExpression) expression).asLong(), truthAssumption, state);
 
       } else if (expression instanceof CCharLiteralExpression) {
-        return handleLiteralBooleanExpression(((CCharLiteralExpression) expression).getCharacter(), truthAssumption, state);
+        return handleLiteralBooleanExpression(
+            ((CCharLiteralExpression) expression).getCharacter(), truthAssumption, state);
 
       } else if (expression instanceof CFloatLiteralExpression) {
-        // only when the float is exactly zero the condition is wrong, for all other float values it is true
-        int val = Math.abs(((CFloatLiteralExpression)expression).getValue().signum());
+        // only when the float is exactly zero the condition is wrong, for all other float values it
+        // is true
+        int val = Math.abs(((CFloatLiteralExpression) expression).getValue().signum());
         return handleLiteralBooleanExpression(val, truthAssumption, state);
       } else {
         return Collections.singleton(state);
@@ -187,21 +196,24 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
           possibleStates.add(state.addConstraint(new Tcons0(Tcons0.EQ, coeff)));
         } else {
           possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP, coeff)));
-          possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP, new Texpr0UnNode(Texpr0UnNode.OP_NEG, coeff))));
+          possibleStates.add(
+              state.addConstraint(
+                  new Tcons0(Tcons0.SUP, new Texpr0UnNode(Texpr0UnNode.OP_NEG, coeff))));
         }
       }
       return possibleStates;
     }
   }
 
-  private Set<ApronState> handleBinaryAssumption(CExpression expression, boolean truthAssumption, CFAEdge edge)
-      throws CPATransferException {
+  private Set<ApronState> handleBinaryAssumption(
+      CExpression expression, boolean truthAssumption, CFAEdge edge) throws CPATransferException {
     CBinaryExpression binExp = (CBinaryExpression) expression;
 
     Double leftVal = binExp.getOperand1().accept(new CLiteralExpressionVisitor());
     Double rightVal = binExp.getOperand2().accept(new CLiteralExpressionVisitor());
     if (leftVal != null && rightVal != null) {
-      return handleLiteralBinExpAssumption(leftVal, rightVal, binExp.getOperator(), truthAssumption);
+      return handleLiteralBinExpAssumption(
+          leftVal, rightVal, binExp.getOperator(), truthAssumption);
     }
     Set<Texpr0Node> leftCoeffs = binExp.getOperand1().accept(new CApronExpressionVisitor());
     Set<Texpr0Node> rightCoeffs = binExp.getOperand2().accept(new CApronExpressionVisitor());
@@ -214,228 +226,274 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     for (Texpr0Node left : leftCoeffs) {
       for (Texpr0Node right : rightCoeffs) {
         switch (binExp.getOperator()) {
-        case BINARY_AND:
-        case BINARY_OR:
-        case BINARY_XOR:
-        case SHIFT_RIGHT:
-        case SHIFT_LEFT:
-          return Collections.singleton(state);
+          case BINARY_AND:
+          case BINARY_OR:
+          case BINARY_XOR:
+          case SHIFT_RIGHT:
+          case SHIFT_LEFT:
+            return Collections.singleton(state);
 
-        case EQUALS: {
-          if (truthAssumption) {
-            possibleStates.add(state.addConstraint(new Tcons0(Tcons0.EQ,
-                                                              new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                                                                 left,
-                                                                                                 right)))));
-          } else {
-            if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)left).dim))
-                || (right instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)right).dim))) {
-              Texpr0BinNode increasedRight = new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
-              Texpr0BinNode increasedLeft = new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, constantMin);
-
-              possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
-                                                                new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                                                                   left,
-                                                                                                   increasedRight)))));
-              possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
-                                                                new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                                                                   right,
-                                                                                                   increasedLeft)))));
-            } else {
-
-              if(splitDisequalities) {
-                // use same trick as in octagon analysis since disequality does not seem to work
-                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
-                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                                                                     left,
-                                                                                                     right)))));
-                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
-                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                                                                     right,
-                                                                                                     left)))));
+          case EQUALS:
+            {
+              if (truthAssumption) {
+                possibleStates.add(
+                    state.addConstraint(
+                        new Tcons0(
+                            Tcons0.EQ,
+                            new Texpr0Intern(
+                                new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)))));
               } else {
-                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.DISEQ,
-                                                                new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                                                                   left,
-                                                                                                   right)))));
+                if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode) left).dim))
+                    || (right instanceof Texpr0DimNode
+                        && !state.isInt(((Texpr0DimNode) right).dim))) {
+                  Texpr0BinNode increasedRight =
+                      new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
+                  Texpr0BinNode increasedLeft =
+                      new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, constantMin);
+
+                  possibleStates.add(
+                      state.addConstraint(
+                          new Tcons0(
+                              Tcons0.SUP,
+                              new Texpr0Intern(
+                                  new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, increasedRight)))));
+                  possibleStates.add(
+                      state.addConstraint(
+                          new Tcons0(
+                              Tcons0.SUP,
+                              new Texpr0Intern(
+                                  new Texpr0BinNode(Texpr0BinNode.OP_SUB, right, increasedLeft)))));
+                } else {
+
+                  if (splitDisequalities) {
+                    // use same trick as in octagon analysis since disequality does not seem to work
+                    possibleStates.add(
+                        state.addConstraint(
+                            new Tcons0(
+                                Tcons0.SUP,
+                                new Texpr0Intern(
+                                    new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)))));
+                    possibleStates.add(
+                        state.addConstraint(
+                            new Tcons0(
+                                Tcons0.SUP,
+                                new Texpr0Intern(
+                                    new Texpr0BinNode(Texpr0BinNode.OP_SUB, right, left)))));
+                  } else {
+                    possibleStates.add(
+                        state.addConstraint(
+                            new Tcons0(
+                                Tcons0.DISEQ,
+                                new Texpr0Intern(
+                                    new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)))));
+                  }
+                }
               }
+              break;
             }
-          }
-          break;
-        }
-        case GREATER_EQUAL: {
-          if (truthAssumption) {
-            Tcons0 act = new Tcons0(Tcons0.SUPEQ,
-                                    new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                     left,
-                                                     right)));
-            possibleStates.add(state.addConstraint(act));
-          } else {
-            Tcons0 act = new Tcons0(Tcons0.SUP,
-                                    new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                     right,
-                                                     left)));
-            possibleStates.add(state.addConstraint(act));
-          }
-          break;
-        }
-        case GREATER_THAN: {
-          if (truthAssumption) {
-            Tcons0 act;
-            if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)left).dim))
-                || (right instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)right).dim))) {
-              Texpr0BinNode increasedRight = new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
-              act = new Tcons0(Tcons0.SUP,
-                               new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                left,
-                                                increasedRight)));
-            } else {
-              act = new Tcons0(Tcons0.SUP,
-                               new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                left,
-                                                right)));
-            }
-
-            possibleStates.add(state.addConstraint(act));
-          } else {
-            Tcons0 act = new Tcons0(Tcons0.SUPEQ,
-                                    new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                     right,
-                                                     left)));
-            possibleStates.add(state.addConstraint(act));
-          }
-          break;
-        }
-        case LESS_EQUAL: {
-          if (truthAssumption) {
-            Tcons0 act = new Tcons0(Tcons0.SUPEQ,
-                                    new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                     right,
-                                                     left)));
-            possibleStates.add(state.addConstraint(act));
-          } else {
-            Tcons0 act = new Tcons0(Tcons0.SUP,
-                                    new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                     left,
-                                                     right)));
-            possibleStates.add(state.addConstraint(act));
-          }
-          break;
-        }
-        case LESS_THAN: {
-          if (truthAssumption) {
-            Tcons0 act;
-            if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)left).dim))
-                || (right instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)right).dim))) {
-              Texpr0BinNode increasedLeft = new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, constantMin);
-              act = new Tcons0(Tcons0.SUP,
-                               new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                right,
-                                                increasedLeft)));
-            } else {
-              act = new Tcons0(Tcons0.SUP,
-                               new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                right,
-                                                left)));
-            }
-
-            possibleStates.add(state.addConstraint(act));
-          } else {
-            Tcons0 act = new Tcons0(Tcons0.SUPEQ,
-                                    new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                     left,
-                                                     right)));
-            possibleStates.add(state.addConstraint(act));
-          }
-          break;
-        }
-
-        case NOT_EQUALS:  {
-          if (truthAssumption) {
-            if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)left).dim))
-                || (right instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode)right).dim))) {
-              Texpr0BinNode increasedRight = new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
-              Texpr0BinNode increasedLeft = new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, constantMin);
-
-              possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
-                                                                new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                                                                   left,
-                                                                                                   increasedRight)))));
-              possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
-                                                                new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                                                                   right,
-                                                                                                   increasedLeft)))));
-            } else {
-              if(splitDisequalities) {
-                // use same trick as in octagon analysis since disequality does not seem to work
-                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
-                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                                                                     left,
-                                                                                                     right)))));
-                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
-                                                                  new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                                                                     right,
-                                                                                                     left)))));
+          case GREATER_EQUAL:
+            {
+              if (truthAssumption) {
+                Tcons0 act =
+                    new Tcons0(
+                        Tcons0.SUPEQ,
+                        new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)));
+                possibleStates.add(state.addConstraint(act));
               } else {
-                possibleStates.add(state.addConstraint(new Tcons0(Tcons0.DISEQ,
-                                                                new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                                                                   left,
-                                                                                                   right)))));
+                Tcons0 act =
+                    new Tcons0(
+                        Tcons0.SUP,
+                        new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, right, left)));
+                possibleStates.add(state.addConstraint(act));
               }
+              break;
             }
-          } else {
-            possibleStates.add(state.addConstraint(new Tcons0(Tcons0.EQ,
-                                                              new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                                                                 left,
-                                                                                                 right)))));
-          }
-          break;
-        }
+          case GREATER_THAN:
+            {
+              if (truthAssumption) {
+                Tcons0 act;
+                if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode) left).dim))
+                    || (right instanceof Texpr0DimNode
+                        && !state.isInt(((Texpr0DimNode) right).dim))) {
+                  Texpr0BinNode increasedRight =
+                      new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
+                  act =
+                      new Tcons0(
+                          Tcons0.SUP,
+                          new Texpr0Intern(
+                              new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, increasedRight)));
+                } else {
+                  act =
+                      new Tcons0(
+                          Tcons0.SUP,
+                          new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)));
+                }
 
-        case DIVIDE:
-        case MINUS:
-        case MODULO:
-        case MULTIPLY:
-        case PLUS:
-          Texpr0BinNode innerExp = null;
-          switch (binExp.getOperator()) {
+                possibleStates.add(state.addConstraint(act));
+              } else {
+                Tcons0 act =
+                    new Tcons0(
+                        Tcons0.SUPEQ,
+                        new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, right, left)));
+                possibleStates.add(state.addConstraint(act));
+              }
+              break;
+            }
+          case LESS_EQUAL:
+            {
+              if (truthAssumption) {
+                Tcons0 act =
+                    new Tcons0(
+                        Tcons0.SUPEQ,
+                        new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, right, left)));
+                possibleStates.add(state.addConstraint(act));
+              } else {
+                Tcons0 act =
+                    new Tcons0(
+                        Tcons0.SUP,
+                        new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)));
+                possibleStates.add(state.addConstraint(act));
+              }
+              break;
+            }
+          case LESS_THAN:
+            {
+              if (truthAssumption) {
+                Tcons0 act;
+                if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode) left).dim))
+                    || (right instanceof Texpr0DimNode
+                        && !state.isInt(((Texpr0DimNode) right).dim))) {
+                  Texpr0BinNode increasedLeft =
+                      new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, constantMin);
+                  act =
+                      new Tcons0(
+                          Tcons0.SUP,
+                          new Texpr0Intern(
+                              new Texpr0BinNode(Texpr0BinNode.OP_SUB, right, increasedLeft)));
+                } else {
+                  act =
+                      new Tcons0(
+                          Tcons0.SUP,
+                          new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, right, left)));
+                }
+
+                possibleStates.add(state.addConstraint(act));
+              } else {
+                Tcons0 act =
+                    new Tcons0(
+                        Tcons0.SUPEQ,
+                        new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)));
+                possibleStates.add(state.addConstraint(act));
+              }
+              break;
+            }
+
+          case NOT_EQUALS:
+            {
+              if (truthAssumption) {
+                if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode) left).dim))
+                    || (right instanceof Texpr0DimNode
+                        && !state.isInt(((Texpr0DimNode) right).dim))) {
+                  Texpr0BinNode increasedRight =
+                      new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
+                  Texpr0BinNode increasedLeft =
+                      new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, constantMin);
+
+                  possibleStates.add(
+                      state.addConstraint(
+                          new Tcons0(
+                              Tcons0.SUP,
+                              new Texpr0Intern(
+                                  new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, increasedRight)))));
+                  possibleStates.add(
+                      state.addConstraint(
+                          new Tcons0(
+                              Tcons0.SUP,
+                              new Texpr0Intern(
+                                  new Texpr0BinNode(Texpr0BinNode.OP_SUB, right, increasedLeft)))));
+                } else {
+                  if (splitDisequalities) {
+                    // use same trick as in octagon analysis since disequality does not seem to work
+                    possibleStates.add(
+                        state.addConstraint(
+                            new Tcons0(
+                                Tcons0.SUP,
+                                new Texpr0Intern(
+                                    new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)))));
+                    possibleStates.add(
+                        state.addConstraint(
+                            new Tcons0(
+                                Tcons0.SUP,
+                                new Texpr0Intern(
+                                    new Texpr0BinNode(Texpr0BinNode.OP_SUB, right, left)))));
+                  } else {
+                    possibleStates.add(
+                        state.addConstraint(
+                            new Tcons0(
+                                Tcons0.DISEQ,
+                                new Texpr0Intern(
+                                    new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)))));
+                  }
+                }
+              } else {
+                possibleStates.add(
+                    state.addConstraint(
+                        new Tcons0(
+                            Tcons0.EQ,
+                            new Texpr0Intern(
+                                new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)))));
+              }
+              break;
+            }
+
           case DIVIDE:
-            innerExp = new Texpr0BinNode(Texpr0BinNode.OP_DIV, left, right);
-            break;
           case MINUS:
-            innerExp = new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right);
-            break;
           case MODULO:
-            innerExp = new Texpr0BinNode(Texpr0BinNode.OP_MOD, left, right);
-            break;
           case MULTIPLY:
-            innerExp = new Texpr0BinNode(Texpr0BinNode.OP_MUL, left, right);
-            break;
           case PLUS:
-            innerExp = new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, right);
+            Texpr0BinNode innerExp = null;
+            switch (binExp.getOperator()) {
+              case DIVIDE:
+                innerExp = new Texpr0BinNode(Texpr0BinNode.OP_DIV, left, right);
+                break;
+              case MINUS:
+                innerExp = new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right);
+                break;
+              case MODULO:
+                innerExp = new Texpr0BinNode(Texpr0BinNode.OP_MOD, left, right);
+                break;
+              case MULTIPLY:
+                innerExp = new Texpr0BinNode(Texpr0BinNode.OP_MUL, left, right);
+                break;
+              case PLUS:
+                innerExp = new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, right);
+                break;
+
+                // this cannot happen, this switch clause checks the same binary operator
+                // as the outer switch clause
+              default:
+                throw new AssertionError();
+            }
+
+            if (truthAssumption) {
+              possibleStates.add(state.addConstraint(new Tcons0(Tcons0.EQ, innerExp)));
+            } else {
+              possibleStates.add(
+                  state.addConstraint(
+                      new Tcons0(
+                          Tcons0.SUP,
+                          new Texpr0Intern(
+                              new Texpr0BinNode(Texpr0BinNode.OP_SUB, innerExp, constantMin)))));
+              possibleStates.add(
+                  state.addConstraint(
+                      new Tcons0(
+                          Tcons0.SUP,
+                          new Texpr0Intern(
+                              new Texpr0BinNode(Texpr0BinNode.OP_SUB, constantMin, innerExp)))));
+            }
+
             break;
-
-            // this cannot happen, this switch clause checks the same binary operator
-            // as the outer switch clause
           default:
-            throw new AssertionError();
-          }
-
-          if (truthAssumption) {
-            possibleStates.add(state.addConstraint(new Tcons0(Tcons0.EQ, innerExp)));
-          } else {
-            possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
-                                                              new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                                                                 innerExp,
-                                                                                                 constantMin)))));
-            possibleStates.add(state.addConstraint(new Tcons0(Tcons0.SUP,
-                                                              new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                                                                 constantMin,
-                                                                                                 innerExp)))));
-          }
-
-          break;
-        default:
             throw new UnrecognizedCodeException("unknown binary operator", edge, binExp);
         }
       }
@@ -444,50 +502,51 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     return possibleStates;
   }
 
-  private Set<ApronState> handleLiteralBinExpAssumption(double pLeftVal, double pRightVal, BinaryOperator pBinaryOperator, boolean truthAssumption) {
+  private Set<ApronState> handleLiteralBinExpAssumption(
+      double pLeftVal, double pRightVal, BinaryOperator pBinaryOperator, boolean truthAssumption) {
     boolean result;
     switch (pBinaryOperator) {
-    case BINARY_AND:
-    case BINARY_OR:
-    case BINARY_XOR:
-    case SHIFT_LEFT:
-    case SHIFT_RIGHT:
-      return Collections.singleton(state);
-    case NOT_EQUALS:
-      result = pLeftVal != pRightVal;
-      break;
-    case EQUALS:
-      result = pLeftVal == pRightVal;
-      break;
-    case GREATER_EQUAL:
-      result = pLeftVal >= pRightVal;
-      break;
-    case GREATER_THAN:
-      result = pLeftVal > pRightVal;
-      break;
-    case LESS_EQUAL:
-      result = pLeftVal <= pRightVal;
-      break;
-    case LESS_THAN:
-      result = pLeftVal < pRightVal;
-      break;
-    case MINUS:
-      result = (pLeftVal - pRightVal) != 0;
-      break;
-    case MODULO:
-      result = (pLeftVal % pRightVal) != 0;
-      break;
-    case MULTIPLY:
-      result = (pLeftVal * pRightVal) != 0;
-      break;
-    case DIVIDE:
-      result = (pLeftVal / pRightVal) != 0;
-      break;
-    case PLUS:
-      result = (pLeftVal + pRightVal) != 0;
-      break;
-    default:
-      throw new AssertionError("unhandled binary operator" + pBinaryOperator);
+      case BINARY_AND:
+      case BINARY_OR:
+      case BINARY_XOR:
+      case SHIFT_LEFT:
+      case SHIFT_RIGHT:
+        return Collections.singleton(state);
+      case NOT_EQUALS:
+        result = pLeftVal != pRightVal;
+        break;
+      case EQUALS:
+        result = pLeftVal == pRightVal;
+        break;
+      case GREATER_EQUAL:
+        result = pLeftVal >= pRightVal;
+        break;
+      case GREATER_THAN:
+        result = pLeftVal > pRightVal;
+        break;
+      case LESS_EQUAL:
+        result = pLeftVal <= pRightVal;
+        break;
+      case LESS_THAN:
+        result = pLeftVal < pRightVal;
+        break;
+      case MINUS:
+        result = (pLeftVal - pRightVal) != 0;
+        break;
+      case MODULO:
+        result = (pLeftVal % pRightVal) != 0;
+        break;
+      case MULTIPLY:
+        result = (pLeftVal * pRightVal) != 0;
+        break;
+      case DIVIDE:
+        result = (pLeftVal / pRightVal) != 0;
+        break;
+      case PLUS:
+        result = (pLeftVal + pRightVal) != 0;
+        break;
+      default:
+        throw new AssertionError("unhandled binary operator" + pBinaryOperator);
     }
     if (truthAssumption == result) {
       return Collections.singleton(state);
@@ -497,9 +556,9 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
   }
 
   /**
-   * If only one literal is the complete boolean expression, we only need to check
-   * this literal if it is equal to zero, depending on the truth assumption we
-   * either return the unchanged state or null if the following branch is not reachable.
+   * If only one literal is the complete boolean expression, we only need to check this literal if
+   * it is equal to zero, depending on the truth assumption we either return the unchanged state or
+   * null if the following branch is not reachable.
    *
    * @param value The long value of the CLiteralExpression
    * @param truthAssumption indicates if we are in the then or the else branch of an assumption
@@ -516,8 +575,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
 
   private ApronState.Type getCorrespondingOctStateType(CType type) {
     if (type instanceof CSimpleType
-        && (((CSimpleType)type).getType() == CBasicType.FLOAT
-            || ((CSimpleType)type).getType() == CBasicType.DOUBLE)) {
+        && (((CSimpleType) type).getType() == CBasicType.FLOAT
+            || ((CSimpleType) type).getType() == CBasicType.DOUBLE)) {
       return Type.FLOAT;
     } else {
       return Type.INT;
@@ -529,7 +588,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
         || var instanceof CFieldReference
         || var instanceof CPointerExpression
         || (var instanceof CStringLiteralExpression)
-        || (var instanceof CFieldReference && ((CFieldReference)var).isPointerDereference())) {
+        || (var instanceof CFieldReference && ((CFieldReference) var).isPointerDereference())) {
       return false;
     }
     return isHandleAbleType(var.getExpressionType());
@@ -550,9 +609,12 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
   }
 
   @Override
-  protected Set<ApronState> handleFunctionCallEdge(CFunctionCallEdge cfaEdge,
-      List<CExpression> arguments, List<CParameterDeclaration> parameters,
-      String calledFunctionName) throws CPATransferException {
+  protected Set<ApronState> handleFunctionCallEdge(
+      CFunctionCallEdge cfaEdge,
+      List<CExpression> arguments,
+      List<CParameterDeclaration> parameters,
+      String calledFunctionName)
+      throws CPATransferException {
 
     CFunctionEntryNode functionEntryNode = cfaEdge.getSuccessor();
 
@@ -597,7 +659,9 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
 
       for (ApronState st : possibleStates) {
 
-        ApronState tmpState = st.declareVariable(formalParamName, getCorrespondingOctStateType(parameters.get(i).getType()));
+        ApronState tmpState =
+            st.declareVariable(
+                formalParamName, getCorrespondingOctStateType(parameters.get(i).getType()));
 
         if (coeffsList.isEmpty()) {
           newPossibleStates.add(tmpState);
@@ -616,8 +680,11 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
   }
 
   @Override
-  protected Set<ApronState> handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge,
-      CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName)
+  protected Set<ApronState> handleFunctionReturnEdge(
+      CFunctionReturnEdge cfaEdge,
+      CFunctionSummaryEdge fnkCall,
+      CFunctionCall summaryExpr,
+      String callerFunctionName)
       throws CPATransferException {
     CFunctionCall exprOnSummary = fnkCall.getExpression();
 
@@ -632,7 +699,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       // we do not know anything about pointers, so assignments to pointers
       // are not possible for us
       if (!isHandleableVariable(op1)
-          || !precision.isTracking(assignedVarName, op1.getExpressionType(), cfaEdge.getSuccessor())) {
+          || !precision.isTracking(
+              assignedVarName, op1.getExpressionType(), cfaEdge.getSuccessor())) {
         return Collections.singleton(state.removeLocalVars(calledFunctionName));
       }
 
@@ -664,7 +732,9 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       // TODO check other types of variables later - just handle primitive
       // types for the moment
       // don't add pointeror struct variables to the list since we don't track them
-      if (!isHandleAbleType(declaration.getType())) { return Collections.singleton(state); }
+      if (!isHandleAbleType(declaration.getType())) {
+        return Collections.singleton(state);
+      }
 
       // make the fullyqualifiedname
 
@@ -680,8 +750,11 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       // for global declarations, there may be forwards declarations, so we do
       // not need to declarate them a second time, but if there is an initializer
       // we assign it to the before declared variable
-      if (!state.existsVariable(variableName) && (init == null || init instanceof CInitializerExpression)) {
-        state = state.declareVariable(variableName, getCorrespondingOctStateType(declaration.getType()));
+      if (!state.existsVariable(variableName)
+          && (init == null || init instanceof CInitializerExpression)) {
+        state =
+            state.declareVariable(
+                variableName, getCorrespondingOctStateType(declaration.getType()));
       }
 
       Set<ApronState> possibleStates = new HashSet<>();
@@ -704,12 +777,11 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
           // if there is an initializerlist, the variable is either an array or a struct/union
           // we cannot handle them, so simply return the previous state
         } else if (init instanceof CInitializerList) {
-            return Collections.singleton(state);
+          return Collections.singleton(state);
 
         } else {
           throw new AssertionError("Unhandled Expression Type: " + init.getClass());
         }
-
 
         // global variables without initializer are set to 0 in C
       } else if (decl.isGlobal()) {
@@ -724,9 +796,12 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       return possibleStates;
 
     } else if (cfaEdge.getDeclaration() instanceof CTypeDeclaration
-        || cfaEdge.getDeclaration() instanceof CFunctionDeclaration) { return Collections.singleton(state); }
+        || cfaEdge.getDeclaration() instanceof CFunctionDeclaration) {
+      return Collections.singleton(state);
+    }
 
-    throw new AssertionError(cfaEdge.getDeclaration() + " (" + cfaEdge.getDeclaration().getClass() + ")");
+    throw new AssertionError(
+        cfaEdge.getDeclaration() + " (" + cfaEdge.getDeclaration().getClass() + ")");
   }
 
   @Override
@@ -734,9 +809,10 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       throws CPATransferException {
     // check if there are functioncalls we cannot handle
     if (statement instanceof CFunctionCall) {
-      CExpression fn = ((CFunctionCall)statement).getFunctionCallExpression().getFunctionNameExpression();
+      CExpression fn =
+          ((CFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
       if (fn instanceof CIdExpression) {
-        String func = ((CIdExpression)fn).getName();
+        String func = ((CIdExpression) fn).getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
         }
@@ -753,8 +829,10 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       // as pointers do not get declarated in the beginning we can just
       // ignore them here
       if (!isHandleableVariable(left)
-          || !precision.isTracking(variableName, left.getExpressionType(), cfaEdge.getSuccessor())) {
-        assert !state.existsVariable(variableName) : "variablename '" + variableName + "' is in map although it can not be handled";
+          || !precision.isTracking(
+              variableName, left.getExpressionType(), cfaEdge.getSuccessor())) {
+        assert !state.existsVariable(variableName)
+            : "variablename '" + variableName + "' is in map although it can not be handled";
         return Collections.singleton(state);
       } else {
         Set<Texpr0Node> coeffsList = right.accept(new CApronExpressionVisitor());
@@ -782,7 +860,6 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     } else if (statement instanceof CFunctionCallStatement
         || statement instanceof CExpressionStatement) {
       return Collections.singleton(state);
-
     }
 
     throw new UnrecognizedCodeException("unknown statement", cfaEdge, statement);
@@ -807,9 +884,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     }
   }
 
-  /**
-   * This is a return statement in a function
-   */
+  /** This is a return statement in a function */
   @Override
   protected Set<ApronState> handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
       throws CPATransferException {
@@ -840,23 +915,21 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     }
 
     for (Texpr0Node coeffs : coeffsList) {
-        possibleStates.add(state.makeAssignment(tempVarName, coeffs));
+      possibleStates.add(state.makeAssignment(tempVarName, coeffs));
     }
     return possibleStates;
   }
 
-  /**
-   * This edge is the return edge from a function to the caller
-   */
+  /** This edge is the return edge from a function to the caller */
   @Override
-  protected Set<ApronState> handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
+  protected Set<ApronState> handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge)
+      throws CPATransferException {
     return ImmutableSet.of();
   }
 
-  /**
-   * This Visitor, evaluates all coefficients for a given Expression.
-   */
-  class CApronExpressionVisitor extends DefaultCExpressionVisitor<Set<Texpr0Node>, CPATransferException>
+  /** This Visitor, evaluates all coefficients for a given Expression. */
+  class CApronExpressionVisitor
+      extends DefaultCExpressionVisitor<Set<Texpr0Node>, CPATransferException>
       implements CRightHandSideVisitor<Set<Texpr0Node>, CPATransferException> {
 
     @Override
@@ -873,135 +946,150 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       for (Texpr0Node leftCoeffs : left) {
         for (Texpr0Node rightCoeffs : right) {
           switch (e.getOperator()) {
-          case BINARY_AND:
-          case BINARY_OR:
-          case BINARY_XOR:
-          case SHIFT_LEFT:
-          case SHIFT_RIGHT:
-            return ImmutableSet.of();
-          case MODULO:
-            returnCoefficients.add(new Texpr0BinNode(Texpr0BinNode.OP_MOD, leftCoeffs, rightCoeffs));
-            break;
-          case DIVIDE:
-            returnCoefficients.add(new Texpr0BinNode(Texpr0BinNode.OP_DIV, leftCoeffs, rightCoeffs));
-            break;
-          case MULTIPLY:
-            returnCoefficients.add(new Texpr0BinNode(Texpr0BinNode.OP_MUL, leftCoeffs, rightCoeffs));
-            break;
-          case MINUS:
-            returnCoefficients.add(new Texpr0BinNode(Texpr0BinNode.OP_SUB, leftCoeffs, rightCoeffs));
-            break;
-          case PLUS:
-            returnCoefficients.add(new Texpr0BinNode(Texpr0BinNode.OP_ADD, leftCoeffs, rightCoeffs));
-            break;
-          case EQUALS: {
-            Tcons0 constraint = new Tcons0(Tcons0.EQ,
-                                           new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                                              leftCoeffs,
-                                                                              rightCoeffs)));
+            case BINARY_AND:
+            case BINARY_OR:
+            case BINARY_XOR:
+            case SHIFT_LEFT:
+            case SHIFT_RIGHT:
+              return ImmutableSet.of();
+            case MODULO:
+              returnCoefficients.add(
+                  new Texpr0BinNode(Texpr0BinNode.OP_MOD, leftCoeffs, rightCoeffs));
+              break;
+            case DIVIDE:
+              returnCoefficients.add(
+                  new Texpr0BinNode(Texpr0BinNode.OP_DIV, leftCoeffs, rightCoeffs));
+              break;
+            case MULTIPLY:
+              returnCoefficients.add(
+                  new Texpr0BinNode(Texpr0BinNode.OP_MUL, leftCoeffs, rightCoeffs));
+              break;
+            case MINUS:
+              returnCoefficients.add(
+                  new Texpr0BinNode(Texpr0BinNode.OP_SUB, leftCoeffs, rightCoeffs));
+              break;
+            case PLUS:
+              returnCoefficients.add(
+                  new Texpr0BinNode(Texpr0BinNode.OP_ADD, leftCoeffs, rightCoeffs));
+              break;
+            case EQUALS:
+              {
+                Tcons0 constraint =
+                    new Tcons0(
+                        Tcons0.EQ,
+                        new Texpr0Intern(
+                            new Texpr0BinNode(Texpr0BinNode.OP_SUB, leftCoeffs, rightCoeffs)));
 
-            if (!state.satisfies(constraint)) {
-              returnCoefficients.add(new Texpr0CstNode());
-            }
+                if (!state.satisfies(constraint)) {
+                  returnCoefficients.add(new Texpr0CstNode());
+                }
 
-            if (!state.addConstraint(constraint).isEmpty()) {
-              returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
-            }
+                if (!state.addConstraint(constraint).isEmpty()) {
+                  returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
+                }
 
-            break;
-          }
-          case GREATER_EQUAL: {
-            Tcons0 constraint = new Tcons0(Tcons0.SUPEQ,
-                new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                   leftCoeffs,
-                                                   rightCoeffs)));
+                break;
+              }
+            case GREATER_EQUAL:
+              {
+                Tcons0 constraint =
+                    new Tcons0(
+                        Tcons0.SUPEQ,
+                        new Texpr0Intern(
+                            new Texpr0BinNode(Texpr0BinNode.OP_SUB, leftCoeffs, rightCoeffs)));
 
-            if (!state.satisfies(constraint)) {
-            returnCoefficients.add(new Texpr0CstNode());
-            }
+                if (!state.satisfies(constraint)) {
+                  returnCoefficients.add(new Texpr0CstNode());
+                }
 
-            if (!state.addConstraint(constraint).isEmpty()) {
-            returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
-            }
+                if (!state.addConstraint(constraint).isEmpty()) {
+                  returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
+                }
 
-            break;
-          }
-          case GREATER_THAN: {
-            Tcons0 constraint = new Tcons0(Tcons0.SUP,
-                new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                   leftCoeffs,
-                                                   rightCoeffs)));
+                break;
+              }
+            case GREATER_THAN:
+              {
+                Tcons0 constraint =
+                    new Tcons0(
+                        Tcons0.SUP,
+                        new Texpr0Intern(
+                            new Texpr0BinNode(Texpr0BinNode.OP_SUB, leftCoeffs, rightCoeffs)));
 
-            if (!state.satisfies(constraint)) {
-            returnCoefficients.add(new Texpr0CstNode());
-            }
+                if (!state.satisfies(constraint)) {
+                  returnCoefficients.add(new Texpr0CstNode());
+                }
 
-            if (!state.addConstraint(constraint).isEmpty()) {
-            returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
-            }
+                if (!state.addConstraint(constraint).isEmpty()) {
+                  returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
+                }
 
-            break;
-          }
-          case LESS_EQUAL: {
-            Tcons0 constraint = new Tcons0(Tcons0.SUPEQ,
-                new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                   rightCoeffs,
-                                                   leftCoeffs)));
+                break;
+              }
+            case LESS_EQUAL:
+              {
+                Tcons0 constraint =
+                    new Tcons0(
+                        Tcons0.SUPEQ,
+                        new Texpr0Intern(
+                            new Texpr0BinNode(Texpr0BinNode.OP_SUB, rightCoeffs, leftCoeffs)));
 
-            if (!state.satisfies(constraint)) {
-            returnCoefficients.add(new Texpr0CstNode());
-            }
+                if (!state.satisfies(constraint)) {
+                  returnCoefficients.add(new Texpr0CstNode());
+                }
 
-            if (!state.addConstraint(constraint).isEmpty()) {
-            returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
-            }
+                if (!state.addConstraint(constraint).isEmpty()) {
+                  returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
+                }
 
-            break;
-          }
-          case LESS_THAN: {
-            Tcons0 constraint = new Tcons0(Tcons0.SUP,
-                new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                   rightCoeffs,
-                                                   leftCoeffs)));
+                break;
+              }
+            case LESS_THAN:
+              {
+                Tcons0 constraint =
+                    new Tcons0(
+                        Tcons0.SUP,
+                        new Texpr0Intern(
+                            new Texpr0BinNode(Texpr0BinNode.OP_SUB, rightCoeffs, leftCoeffs)));
 
-            if (!state.satisfies(constraint)) {
-            returnCoefficients.add(new Texpr0CstNode());
-            }
+                if (!state.satisfies(constraint)) {
+                  returnCoefficients.add(new Texpr0CstNode());
+                }
 
-            if (!state.addConstraint(constraint).isEmpty()) {
-            returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
-            }
+                if (!state.addConstraint(constraint).isEmpty()) {
+                  returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
+                }
 
-            break;
-          }
-          case NOT_EQUALS: {
-            Tcons0 constraint = new Tcons0(Tcons0.DISEQ,
-                new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB,
-                                                   leftCoeffs,
-                                                   rightCoeffs)));
+                break;
+              }
+            case NOT_EQUALS:
+              {
+                Tcons0 constraint =
+                    new Tcons0(
+                        Tcons0.DISEQ,
+                        new Texpr0Intern(
+                            new Texpr0BinNode(Texpr0BinNode.OP_SUB, leftCoeffs, rightCoeffs)));
 
-            if (!state.satisfies(constraint)) {
-            returnCoefficients.add(new Texpr0CstNode());
-            }
+                if (!state.satisfies(constraint)) {
+                  returnCoefficients.add(new Texpr0CstNode());
+                }
 
-            if (!state.addConstraint(constraint).isEmpty()) {
-            returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
-            }
+                if (!state.addConstraint(constraint).isEmpty()) {
+                  returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
+                }
 
-            break;
-          }
+                break;
+              }
 
-          default:
-            throw new AssertionError("Unhandled case statement");
+            default:
+              throw new AssertionError("Unhandled case statement");
           }
         }
       }
       return returnCoefficients;
     }
 
-    /**
-     * Only unpack the cast and continue with the casts operand
-     */
+    /** Only unpack the cast and continue with the casts operand */
     @Override
     public Set<Texpr0Node> visit(CCastExpression e) throws CPATransferException {
       return e.getOperand().accept(this);
@@ -1019,17 +1107,23 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
 
     @Override
     public Set<Texpr0Node> visit(CCharLiteralExpression e) throws CPATransferException {
-      return Collections.singleton(Texpr0Node.fromLinexpr0(new Linexpr0(new Linterm0[0], new DoubleScalar(e.getCharacter()))));
+      return Collections.singleton(
+          Texpr0Node.fromLinexpr0(
+              new Linexpr0(new Linterm0[0], new DoubleScalar(e.getCharacter()))));
     }
 
     @Override
     public Set<Texpr0Node> visit(CFloatLiteralExpression e) throws CPATransferException {
-      return Collections.singleton(Texpr0Node.fromLinexpr0(new Linexpr0(new Linterm0[0], new DoubleScalar(e.getValue().doubleValue()))));
+      return Collections.singleton(
+          Texpr0Node.fromLinexpr0(
+              new Linexpr0(new Linterm0[0], new DoubleScalar(e.getValue().doubleValue()))));
     }
 
     @Override
     public Set<Texpr0Node> visit(CIntegerLiteralExpression e) throws CPATransferException {
-      return Collections.singleton(Texpr0Node.fromLinexpr0(new Linexpr0(new Linterm0[0], new DoubleScalar(e.getValue().doubleValue()))));
+      return Collections.singleton(
+          Texpr0Node.fromLinexpr0(
+              new Linexpr0(new Linterm0[0], new DoubleScalar(e.getValue().doubleValue()))));
     }
 
     @SuppressWarnings("deprecation")
@@ -1038,20 +1132,20 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       Set<Texpr0Node> operand = e.getOperand().accept(this);
 
       switch (e.getOperator()) {
-      case AMPER:
-      case SIZEOF:
-      case TILDE:
-        return ImmutableSet.of();
+        case AMPER:
+        case SIZEOF:
+        case TILDE:
+          return ImmutableSet.of();
 
-      case MINUS:
-        Set<Texpr0Node> returnCoefficients = new HashSet<>();
-        for (Texpr0Node coeffs : operand) {
-          returnCoefficients.add(new Texpr0UnNode(Texpr0UnNode.OP_NEG, coeffs));
-        }
-        return returnCoefficients;
+        case MINUS:
+          Set<Texpr0Node> returnCoefficients = new HashSet<>();
+          for (Texpr0Node coeffs : operand) {
+            returnCoefficients.add(new Texpr0UnNode(Texpr0UnNode.OP_NEG, coeffs));
+          }
+          return returnCoefficients;
 
-      default:
-        throw new AssertionError("Unhandled case in switch clause.");
+        default:
+          throw new AssertionError("Unhandled case in switch clause.");
       }
     }
 
@@ -1061,24 +1155,24 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
         switch (((CIdExpression) e.getFunctionNameExpression()).getName()) {
           case "__VERIFIER_nondet_int":
             {
-          Scalar sup = Scalar.create();
-          sup.setInfty(1);
-          Scalar inf = Scalar.create();
-          inf.setInfty(-1);
-          Interval interval = new Interval(inf, sup);
+              Scalar sup = Scalar.create();
+              sup.setInfty(1);
+              Scalar inf = Scalar.create();
+              inf.setInfty(-1);
+              Interval interval = new Interval(inf, sup);
               return ImmutableSet.of(new Texpr0CstNode(interval));
             }
           case "__VERIFIER_nondet_uint":
             {
-          Interval interval = new Interval();
-          Scalar sup = Scalar.create();
-          sup.setInfty(1);
-          interval.setSup(sup);
+              Interval interval = new Interval();
+              Scalar sup = Scalar.create();
+              sup.setInfty(1);
+              interval.setSup(sup);
               return ImmutableSet.of(new Texpr0CstNode(interval));
             }
           case "__VERIFIER_nondet_bool":
             {
-          Interval interval = new Interval(0, 1);
+              Interval interval = new Interval(0, 1);
               return ImmutableSet.of(new Texpr0CstNode(interval));
             }
         }
@@ -1087,7 +1181,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     }
   }
 
-  static class CLiteralExpressionVisitor extends DefaultCExpressionVisitor<Double, CPATransferException> {
+  static class CLiteralExpressionVisitor
+      extends DefaultCExpressionVisitor<Double, CPATransferException> {
 
     @Override
     protected Double visitDefault(CExpression pExp) throws CPATransferException {
@@ -1117,36 +1212,36 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
         return null;
       }
       switch (e.getOperator()) {
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
-        return null;
-      case DIVIDE:
-        return left / right;
-      case EQUALS:
-        return left.equals(right) ? 1.0 : 0;
-      case GREATER_EQUAL:
-        return left >= right ? 1.0 : 0;
-      case GREATER_THAN:
-        return left > right ? 1.0 : 0;
-      case LESS_EQUAL:
-        return left <= right ? 1.0 : 0;
-      case LESS_THAN:
-        return left < right ? 1.0 : 0;
-      case NOT_EQUALS:
-        break;
-      case MINUS:
-        return left - right;
-      case MODULO:
-        return left % right;
-      case MULTIPLY:
-        return left * right;
-      case PLUS:
-        return left + right;
-      default:
-        break;
+        case BINARY_AND:
+        case BINARY_OR:
+        case BINARY_XOR:
+        case SHIFT_LEFT:
+        case SHIFT_RIGHT:
+          return null;
+        case DIVIDE:
+          return left / right;
+        case EQUALS:
+          return left.equals(right) ? 1.0 : 0;
+        case GREATER_EQUAL:
+          return left >= right ? 1.0 : 0;
+        case GREATER_THAN:
+          return left > right ? 1.0 : 0;
+        case LESS_EQUAL:
+          return left <= right ? 1.0 : 0;
+        case LESS_THAN:
+          return left < right ? 1.0 : 0;
+        case NOT_EQUALS:
+          break;
+        case MINUS:
+          return left - right;
+        case MODULO:
+          return left % right;
+        case MULTIPLY:
+          return left * right;
+        case PLUS:
+          return left + right;
+        default:
+          break;
       }
       return null;
     }
@@ -1159,15 +1254,15 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       }
 
       switch (e.getOperator()) {
-      case ALIGNOF:
-      case AMPER:
-      case TILDE:
-      case SIZEOF:
-        return null;
-      case MINUS:
-        return -op;
-      default:
-        break;
+        case ALIGNOF:
+        case AMPER:
+        case TILDE:
+        case SIZEOF:
+          return null;
+        case MINUS:
+          return -op;
+        default:
+          break;
       }
       return null;
     }
@@ -1177,8 +1272,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       Double op = e.getOperand().accept(this);
       if (op != null
           && e.getExpressionType() instanceof CSimpleType
-          && ((((CSimpleType)e.getExpressionType()).getType() == CBasicType.INT)
-              ||(((CSimpleType)e.getExpressionType()).getType() == CBasicType.CHAR))) {
+          && ((((CSimpleType) e.getExpressionType()).getType() == CBasicType.INT)
+              || (((CSimpleType) e.getExpressionType()).getType() == CBasicType.CHAR))) {
         return (double) op.intValue();
       }
       return op;

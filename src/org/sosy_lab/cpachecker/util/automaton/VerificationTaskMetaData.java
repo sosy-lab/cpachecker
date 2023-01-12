@@ -40,14 +40,12 @@ public class VerificationTaskMetaData {
   private static class HackyOptions {
 
     @Option(
-      secure = true,
-      name = "invariantGeneration.kInduction.invariantsAutomatonFile",
-      description =
-          "Provides additional candidate invariants to the k-induction invariant generator."
-    )
+        secure = true,
+        name = "invariantGeneration.kInduction.invariantsAutomatonFile",
+        description =
+            "Provides additional candidate invariants to the k-induction invariant generator.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private Path invariantsAutomatonFile = null;
-
   }
 
   private final VerificationTaskMetaData.HackyOptions hackyOptions = new HackyOptions();
@@ -90,8 +88,8 @@ public class VerificationTaskMetaData {
   }
 
   /**
-   * Returns a string that describes the program that produced an output file.
-   * This is primarily intended for use in the producer field of verification witnesses.
+   * Returns a string that describes the program that produced an output file. This is primarily
+   * intended for use in the producer field of verification witnesses.
    */
   public String getProducerString() {
     return producerString;

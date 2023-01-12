@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.pcc.util.ProofStatesInfoCollector;
 import org.sosy_lab.cpachecker.pcc.util.ValidationConfigurationBuilder;
 import org.sosy_lab.cpachecker.util.Triple;
 
-@Options(prefix="pcc")
+@Options(prefix = "pcc")
 public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvider {
 
   public static final String CONFIG_ZIPENTRY_NAME = "Config";
@@ -61,14 +61,16 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   protected final Path proofFile;
 
-  @Option(secure=true,
+  @Option(
+      secure = true,
       name = "useCores",
       description = "number of cpus/cores which should be used in parallel for proof checking")
-  @IntegerOption(min=1)
+  @IntegerOption(min = 1)
   protected int numThreads = 1;
 
-  @Option(secure=true,
-      name="storeConfig",
+  @Option(
+      secure = true,
+      name = "storeConfig",
       description = "writes the validation configuration required for checking to proof")
   boolean storeConfig = false;
 
@@ -107,8 +109,9 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
         ZipEntry ze = new ZipEntry(PROOF_ZIPENTRY_NAME);
         zos.putNextEntry(ze);
         ObjectOutputStream o = new ObjectOutputStream(zos);
-        //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
-        //write ARG
+        // TODO might also want to write used configuration to the file so that proof checker does
+        // not need to get it as an argument
+        // write ARG
         writeProofToStream(o, pReached, pCpa);
         o.flush();
         zos.closeEntry();
@@ -136,7 +139,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
             logger.logUserException(
                 Level.WARNING,
                 eIC,
-                "Construction of validation configuration failed. Validation configuration is empty.");
+                "Construction of validation configuration failed. Validation configuration is"
+                    + " empty.");
           }
 
           o.flush();
@@ -166,7 +170,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       throws IOException, InvalidConfigurationException, InterruptedException;
 
   @Override
-  public void readProof() throws IOException, ClassNotFoundException, InvalidConfigurationException {
+  public void readProof()
+      throws IOException, ClassNotFoundException, InvalidConfigurationException {
     Triple<InputStream, ZipInputStream, ObjectInputStream> proofStream = openProofStream();
     readProofFromStream(proofStream.getThird());
     proofStream.getThird().close();
@@ -186,12 +191,14 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   protected void writeConfiguration(ObjectOutputStream pO)
       throws ValidationConfigurationConstructionFailed, IOException {
-    pO.writeObject(new ValidationConfigurationBuilder(config)
-        .getValidationConfiguration().asPropertiesString());
+    pO.writeObject(
+        new ValidationConfigurationBuilder(config)
+            .getValidationConfiguration()
+            .asPropertiesString());
   }
 
-
-  protected Triple<InputStream, ZipInputStream, ObjectInputStream> openProofStream() throws IOException {
+  protected Triple<InputStream, ZipInputStream, ObjectInputStream> openProofStream()
+      throws IOException {
     InputStream fis = Files.newInputStream(proofFile);
     ZipInputStream zis = new ZipInputStream(fis);
     ZipEntry entry = zis.getNextEntry();
@@ -199,8 +206,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     return Triple.of(fis, zis, new ObjectInputStream(zis));
   }
 
-  public Triple<InputStream, ZipInputStream, ObjectInputStream> openAdditionalProofStream(final int index)
-      throws IOException {
+  public Triple<InputStream, ZipInputStream, ObjectInputStream> openAdditionalProofStream(
+      final int index) throws IOException {
     checkArgument(index >= 0, "Not a valid index. Indices must be at least zero.");
     InputStream fis = Files.newInputStream(proofFile);
     ZipInputStream zis = new ZipInputStream(fis);
@@ -213,7 +220,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     return Triple.of(fis, zis, new ObjectInputStream(zis));
   }
 
-  protected abstract void readProofFromStream(ObjectInputStream in) throws ClassNotFoundException, InvalidConfigurationException, IOException;
+  protected abstract void readProofFromStream(ObjectInputStream in)
+      throws ClassNotFoundException, InvalidConfigurationException, IOException;
 
   protected void addPCCStatistic(final Statistics pPCCStatistic) {
     pccStats.add(pPCCStatistic);
@@ -225,7 +233,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   }
 
   @Override
-  public Collection<Statistics> getAdditionalProofGenerationStatistics(){
+  public Collection<Statistics> getAdditionalProofGenerationStatistics() {
     if (proofInfo != null) {
       return Collections.singleton(proofInfo);
     }
@@ -283,20 +291,24 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       out.println("Number of proof elements:                     " + proofSize);
       out.println();
       out.println("  Time for preparing proof for checking:          " + preparationTimer);
-      out.println("  Time for abstract successor checks:     " + transferTimer + " (Calls: "
-          + transferTimer.getNumberOfIntervals() + ")");
-      out.println("  Time for covering checks:               " + stopTimer + " (Calls: "
-          + stopTimer.getNumberOfIntervals()
-          + ")");
-      out.println(" Time for checking property:          "   + propertyCheckingTimer);
-      out.println("Proof file size (bytes):                      "  + fileProofSize);
+      out.println(
+          "  Time for abstract successor checks:     "
+              + transferTimer
+              + " (Calls: "
+              + transferTimer.getNumberOfIntervals()
+              + ")");
+      out.println(
+          "  Time for covering checks:               "
+              + stopTimer
+              + " (Calls: "
+              + stopTimer.getNumberOfIntervals()
+              + ")");
+      out.println(" Time for checking property:          " + propertyCheckingTimer);
+      out.println("Proof file size (bytes):                      " + fileProofSize);
     }
 
     public void increaseProofSize(int pIncrement) {
-      proofSize+=pIncrement;
+      proofSize += pIncrement;
     }
-
   }
-
-
 }

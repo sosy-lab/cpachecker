@@ -134,9 +134,11 @@ public abstract class SMGPrecision implements Precision {
       for (Entry<CFANode, SMGPrecisionIncrement> entry : pPrecisionIncrement.entrySet()) {
         SMGPrecisionIncrement inc = entry.getValue();
         CFANode cfaNode = entry.getKey();
-        resultAbstractionBlocks = resultAbstractionBlocks.putAllAndCopy(cfaNode, inc.getAbstractionBlock());
+        resultAbstractionBlocks =
+            resultAbstractionBlocks.putAllAndCopy(cfaNode, inc.getAbstractionBlock());
         resultMemoryPaths = resultMemoryPaths.putAllAndCopy(cfaNode, inc.getPathsToTrack());
-        resultStackVariables = resultStackVariables.putAllAndCopy(cfaNode, inc.getStackVariablesToTrack());
+        resultStackVariables =
+            resultStackVariables.putAllAndCopy(cfaNode, inc.getStackVariablesToTrack());
       }
 
       return new SMGRefineablePrecision(
@@ -175,9 +177,13 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public String toString() {
-      return "SMGRefineablePrecision [trackedMemoryPaths=" + trackedMemoryPaths
-          + ", trackedStackVariables=" + trackedStackVariables + ", abstractionBlocks="
-          + abstractionBlocks + "]";
+      return "SMGRefineablePrecision [trackedMemoryPaths="
+          + trackedMemoryPaths
+          + ", trackedStackVariables="
+          + trackedStackVariables
+          + ", abstractionBlocks="
+          + abstractionBlocks
+          + "]";
     }
 
     @Override
@@ -261,8 +267,8 @@ public abstract class SMGPrecision implements Precision {
     private final boolean fieldAbstraction;
     private final boolean stackAbstraction;
 
-    public SMGPrecisionAbstractionOptions(boolean pHeapAbstraction, boolean pFieldAbstraction,
-        boolean pStackAbstraction) {
+    public SMGPrecisionAbstractionOptions(
+        boolean pHeapAbstraction, boolean pFieldAbstraction, boolean pStackAbstraction) {
       heapAbstraction = pHeapAbstraction;
       fieldAbstraction = pFieldAbstraction;
       stackAbstraction = pStackAbstraction;
@@ -287,7 +293,9 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public boolean equals(Object obj) {
-      if (!(obj instanceof SMGPrecisionAbstractionOptions)) { return false; }
+      if (!(obj instanceof SMGPrecisionAbstractionOptions)) {
+        return false;
+      }
       SMGPrecisionAbstractionOptions other = (SMGPrecisionAbstractionOptions) obj;
       return fieldAbstraction == other.fieldAbstraction
           && heapAbstraction == other.heapAbstraction
@@ -296,8 +304,13 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public String toString() {
-      return "SMGPrecisionAbstractionOptions [heapAbstraction=" + heapAbstraction
-          + ", fieldAbstraction=" + fieldAbstraction + ", stackAbstraction=" + stackAbstraction + "]";
+      return "SMGPrecisionAbstractionOptions [heapAbstraction="
+          + heapAbstraction
+          + ", fieldAbstraction="
+          + fieldAbstraction
+          + ", stackAbstraction="
+          + stackAbstraction
+          + "]";
     }
   }
 }

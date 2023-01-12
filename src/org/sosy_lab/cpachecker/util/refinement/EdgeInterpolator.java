@@ -22,8 +22,8 @@ public interface EdgeInterpolator<S extends ForgetfulState<?>, I extends Interpo
       CFAEdge currentEdge,
       Deque<S> callstack,
       PathPosition offset,
-      I inputInterpolant
-  ) throws CPAException, InterruptedException;
+      I inputInterpolant)
+      throws CPAException, InterruptedException;
 
   int getNumberOfInterpolationQueries();
 }

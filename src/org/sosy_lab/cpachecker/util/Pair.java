@@ -57,17 +57,13 @@ public class Pair<A, B> implements Serializable {
     return second;
   }
 
-  /**
-   * Get the first parameter, crash if it is null.
-   */
+  /** Get the first parameter, crash if it is null. */
   public A getFirstNotNull() {
     checkNotNull(first);
     return first;
   }
 
-  /**
-   * Get the second parameter, crash if it is null.
-   */
+  /** Get the second parameter, crash if it is null. */
   public B getSecondNotNull() {
     checkNotNull(second);
     return second;

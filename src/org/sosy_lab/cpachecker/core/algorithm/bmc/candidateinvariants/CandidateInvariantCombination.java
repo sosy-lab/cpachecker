@@ -51,9 +51,10 @@ public class CandidateInvariantCombination {
         ImmutableSet<? extends CandidateInvariant> pOperands, boolean pConjunction) {
       Preconditions.checkArgument(
           pOperands.size() > 1,
-          "It makes no sense to use a CandidateInvariantCombination unless there are at least two operands.");
+          "It makes no sense to use a CandidateInvariantCombination unless there are at least two"
+              + " operands.");
       conjunction = pConjunction;
-      this.operands = ImmutableSet.copyOf(pOperands);
+      operands = ImmutableSet.copyOf(pOperands);
     }
 
     @Override
@@ -125,8 +126,7 @@ public class CandidateInvariantCombination {
 
     @Override
     public String toString() {
-      return operands
-          .stream()
+      return operands.stream()
           .map(Object::toString)
           .collect(Collectors.joining(isConjunction() ? " and " : " or "));
     }
@@ -151,8 +151,7 @@ public class CandidateInvariantCombination {
       return FluentIterable.from(pStates)
           .filter(
               s ->
-                  operands
-                      .stream()
+                  operands.stream()
                       .anyMatch(
                           op -> !Iterables.isEmpty(op.filterApplicable(Collections.singleton(s)))));
     }
@@ -207,12 +206,11 @@ public class CandidateInvariantCombination {
     if (operands.size() == 1) {
       return operands.iterator().next();
     }
-    FluentIterable<SingleLocationFormulaInvariant> singleLocationOperands = FluentIterable.from(operands).filter(SingleLocationFormulaInvariant.class);
+    FluentIterable<SingleLocationFormulaInvariant> singleLocationOperands =
+        FluentIterable.from(operands).filter(SingleLocationFormulaInvariant.class);
     if (singleLocationOperands.size() == operands.size()) {
       Set<CFANode> locations =
-          singleLocationOperands
-              .transform(SingleLocationFormulaInvariant::getLocation)
-              .toSet();
+          singleLocationOperands.transform(SingleLocationFormulaInvariant::getLocation).toSet();
       if (locations.size() == 1) {
         // This admittedly hacky cast is safe here, because:
         // 1) We know all elements are of the desired type SingleLocationConjunction, and
@@ -232,7 +230,8 @@ public class CandidateInvariantCombination {
     return singleLocationConjunction(Arrays.asList(pOperands));
   }
 
-  public static SingleLocationFormulaInvariant singleLocationConjunction(Iterable<? extends SingleLocationFormulaInvariant> pOperands) {
+  public static SingleLocationFormulaInvariant singleLocationConjunction(
+      Iterable<? extends SingleLocationFormulaInvariant> pOperands) {
     Set<SingleLocationFormulaInvariant> operands = ImmutableSet.copyOf(pOperands);
     if (operands.size() == 1) {
       return operands.iterator().next();
@@ -303,12 +302,14 @@ public class CandidateInvariantCombination {
       CFANode location = it.next().getLocation();
       if (it.hasNext()) {
         assert Iterators.all(it, inv -> inv.getLocation().equals(location))
-            : "Expected all operands to apply to the same single location, but at least two are different: "
+            : "Expected all operands to apply to the same single location, but at least two are"
+                + " different: "
                 + pSingleLocationFormulaInvariants;
         return location;
       }
     }
     throw new IllegalArgumentException(
-        "It makes no sense to use a CandidateInvariantConjunction unless there are at least two operands.");
+        "It makes no sense to use a CandidateInvariantConjunction unless there are at least two"
+            + " operands.");
   }
 }

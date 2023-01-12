@@ -14,8 +14,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * This class tracks constraints which are created during AST traversal but
- * cannot be applied at the time of creation.
+ * This class tracks constraints which are created during AST traversal but cannot be applied at the
+ * time of creation.
  */
 public class Constraints {
 

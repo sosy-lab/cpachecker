@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.smg.graph;
 
+import com.google.common.collect.ComparisonChain;
 import java.math.BigInteger;
 
 /**
@@ -37,7 +38,7 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
     targetSpecifier = pTargetSpecifier;
   }
 
-  /** @return the SMGObject this edge points to. */
+  /** Returns the SMGObject this edge points to. */
   public SMGObject pointsTo() {
     return pointsToObject;
   }
@@ -52,20 +53,12 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
   }
 
   @Override
-  public int compareTo(SMGPointsToEdge pArg0) {
-    if (pointsToObject.compareTo(pArg0.pointsToObject) == 0) {
-      if (offset.compareTo(pArg0.offset) == 0) {
-        if (targetSpecifier == pArg0.targetSpecifier) {
-          return 0;
-        } else {
-          return 1;
-        }
-      } else {
-        return offset.compareTo(pArg0.offset);
-      }
-    } else {
-      return pointsToObject.compareTo(pArg0.pointsToObject);
-    }
+  public int compareTo(SMGPointsToEdge pOther) {
+    return ComparisonChain.start()
+        .compare(pointsToObject, pOther.pointsToObject)
+        .compare(offset, pOther.offset)
+        .compare(targetSpecifier, pOther.targetSpecifier)
+        .result();
   }
 
   @Override
@@ -84,11 +77,15 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
 
   @Override
   public int hashCode() {
-    return super.hashCode();
+    return super.hashCode() + 31 * pointsToObject.hashCode() + 41 * offset.intValue();
   }
 
   public void setTargetSpecifier(SMGTargetSpecifier pTargetSpecifier) {
     targetSpecifier = pTargetSpecifier;
   }
 
+  @Override
+  public String toString() {
+    return " -> [" + offset + "] " + pointsToObject;
+  }
 }

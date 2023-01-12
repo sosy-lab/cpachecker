@@ -21,15 +21,14 @@ public class UsageInfoSet extends TreeSet<UsageInfo> {
 
   private static final long serialVersionUID = -5057827815596702715L;
 
-  public UsageInfoSet() {
-  }
+  public UsageInfoSet() {}
 
   private UsageInfoSet(NavigableSet<UsageInfo> pSet) {
     super(pSet);
   }
 
   public boolean remove(UsageState pUstate) {
-    Iterator<UsageInfo> iterator = this.iterator();
+    Iterator<UsageInfo> iterator = iterator();
     boolean changed = false;
     while (iterator.hasNext()) {
       UsageInfo uinfo = iterator.next();
