@@ -92,17 +92,13 @@ public class CtoFormulaTypeHandler {
     }
   }
 
-  /**
-   * @see #getOffset(CCompositeType, String)
-   */
+  /** See {@link #getOffset(CCompositeType, String)}. */
   public OptionalLong getOffset(
       CCompositeType compositeType, final CCompositeTypeMemberDeclaration member) {
     return getOffset(compositeType, member.getName());
   }
 
-  /**
-   * @see #getBitOffset(CCompositeType, String)
-   */
+  /** See {@link #getBitOffset(CCompositeType, String)}. */
   public long getBitOffset(
       CCompositeType compositeType, final CCompositeTypeMemberDeclaration member) {
     return getBitOffset(compositeType, member.getName());
