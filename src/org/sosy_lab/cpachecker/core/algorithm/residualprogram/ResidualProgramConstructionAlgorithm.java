@@ -220,12 +220,9 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       statistic.collectPragmaPointsTimer.start();
       addPragma =
           switch (constructionStrategy) {
-            case COMBINATION:
-              yield getAllTargetStates(pReachedSet);
-            case SLICING:
-              yield getAllTargetStatesNotFullyExplored(pReachedSet);
-            default: // CONDITION, CONDITION_PLUS_FOLD no effect
-              yield null;
+            case COMBINATION -> getAllTargetStates(pReachedSet);
+            case SLICING -> getAllTargetStatesNotFullyExplored(pReachedSet);
+            default -> null; // CONDITION, CONDITION_PLUS_FOLD no effect
           };
     } finally {
       statistic.collectPragmaPointsTimer.stop();

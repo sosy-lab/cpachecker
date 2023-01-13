@@ -166,12 +166,9 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       statistic.collectPragmaPointsTimer.stop();
       addPragma =
           switch (getStrategy()) {
-            case COMBINATION:
-              yield getAllTargetStates(result.getSecond());
-            case SLICING:
-              yield getAllTargetStatesNotFullyExplored(pReachedSet, result.getSecond());
-            default: // CONDITION no effect
-              yield null;
+            case COMBINATION -> getAllTargetStates(result.getSecond());
+            case SLICING -> getAllTargetStatesNotFullyExplored(pReachedSet, result.getSecond());
+            default -> null; // CONDITION no effect
           };
     } finally {
       statistic.collectPragmaPointsTimer.stop();
