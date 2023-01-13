@@ -167,10 +167,8 @@ public class NumericValue implements Value, Serializable {
       return new NumericValue(Double.NaN);
     }
 
-    if (numberToNegate instanceof BigDecimal bd) {
-      if (bd.signum() == 0) {
-        return new NumericValue(-bd.doubleValue());
-      }
+    if ((numberToNegate instanceof BigDecimal bd) && (bd.signum() == 0)) {
+      return new NumericValue(-bd.doubleValue());
     }
 
     // if the stored number is a 'casual' number, just negate it

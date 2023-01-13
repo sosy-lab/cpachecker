@@ -1211,13 +1211,12 @@ public class CFABuilder {
     if (pItem.isConstantInt()) {
       BigInteger constantValue = BigInteger.valueOf(pItem.constIntGetSExtValue());
 
-      if (pExpectedType instanceof CSimpleType castType) {
-        if (castType.getType().equals(CBasicType.INT)) {
-          assert machineModel.getMinimalIntegerValue(castType).compareTo(constantValue) <= 0;
-          assert machineModel.getMaximalIntegerValue(castType).compareTo(constantValue) >= 0;
-          return new CIntegerLiteralExpression(
-              getLocation(pItem, pFileName), pExpectedType, constantValue);
-        }
+      if ((pExpectedType instanceof CSimpleType castType)
+          && castType.getType().equals(CBasicType.INT)) {
+        assert machineModel.getMinimalIntegerValue(castType).compareTo(constantValue) <= 0;
+        assert machineModel.getMaximalIntegerValue(castType).compareTo(constantValue) >= 0;
+        return new CIntegerLiteralExpression(
+            getLocation(pItem, pFileName), pExpectedType, constantValue);
       }
 
       // if the expected type is no integer type and we have to cast the literal,

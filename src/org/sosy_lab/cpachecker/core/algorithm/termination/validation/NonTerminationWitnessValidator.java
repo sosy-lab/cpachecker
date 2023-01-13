@@ -243,11 +243,10 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           ExpressionTree<AExpression> quasiInvariant = ExpressionTrees.getTrue();
 
           for (AbstractState state : AbstractStates.asIterable(stemSynState.orElseThrow())) {
-            if (state instanceof AutomatonState automatonState) {
-              if (automatonState.getOwningAutomaton() == witness) {
-                quasiInvariant = automatonState.getCandidateInvariants();
-                break;
-              }
+            if ((state instanceof AutomatonState automatonState)
+                && (automatonState.getOwningAutomaton() == witness)) {
+              quasiInvariant = automatonState.getCandidateInvariants();
+              break;
             }
           }
 

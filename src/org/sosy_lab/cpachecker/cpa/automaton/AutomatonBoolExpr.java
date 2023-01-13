@@ -910,22 +910,20 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         throws CPATransferException {
       CFAEdge edge = pArgs.getCfaEdge();
       Iterable<CFAEdge> leavingEdges = CFAUtils.leavingEdges(edge.getSuccessor());
-      if (edge instanceof FunctionCallEdge callEdge) {
-        if (callEdge.getSummaryEdge() != null) {
-          FunctionSummaryEdge summaryEdge = callEdge.getSummaryEdge();
-          AFunctionCall call = summaryEdge.getExpression();
-          if (call instanceof AFunctionCallAssignmentStatement) {
-            Iterable<? extends CFAEdge> potentialFurtherMatches =
-                CFAUtils.enteringEdges(summaryEdge.getSuccessor())
-                    .filter(
-                        e ->
-                            (e instanceof AStatementEdge
-                                    && call.equals(((AStatementEdge) e).getStatement()))
-                                || (e instanceof FunctionReturnEdge
-                                    && summaryEdge.equals(
-                                        ((FunctionReturnEdge) e).getSummaryEdge())));
-            leavingEdges = Iterables.concat(leavingEdges, potentialFurtherMatches);
-          }
+      if ((edge instanceof FunctionCallEdge callEdge) && (callEdge.getSummaryEdge() != null)) {
+        FunctionSummaryEdge summaryEdge = callEdge.getSummaryEdge();
+        AFunctionCall call = summaryEdge.getExpression();
+        if (call instanceof AFunctionCallAssignmentStatement) {
+          Iterable<? extends CFAEdge> potentialFurtherMatches =
+              CFAUtils.enteringEdges(summaryEdge.getSuccessor())
+                  .filter(
+                      e ->
+                          (e instanceof AStatementEdge
+                                  && call.equals(((AStatementEdge) e).getStatement()))
+                              || (e instanceof FunctionReturnEdge
+                                  && summaryEdge.equals(
+                                      ((FunctionReturnEdge) e).getSummaryEdge())));
+          leavingEdges = Iterables.concat(leavingEdges, potentialFurtherMatches);
         }
       }
       if (Iterables.isEmpty(leavingEdges)) {
@@ -1153,58 +1151,56 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
       LogManager logger = pArgs.getLogger();
       for (AbstractState ae : pArgs.getAbstractStates()) {
-        if (ae instanceof AbstractQueryableState aqe) {
-          if (aqe.getCPAName().equals(cpaName)) {
-            try {
-              Object result = aqe.evaluateProperty(modifiedQueryString);
-              if (result instanceof Boolean) {
-                if ((Boolean) result) {
-                  if (logger.wouldBeLogged(Level.FINER)) {
-                    String message =
-                        "CPA-Check succeeded: ModifiedCheckString: \""
-                            + modifiedQueryString
-                            + "\" CPAElement: ("
-                            + aqe.getCPAName()
-                            + ") \""
-                            + aqe
-                            + "\"";
-                    logger.log(Level.FINER, message);
-                  }
-                  return CONST_TRUE;
-                } else {
-                  if (logger.wouldBeLogged(Level.FINER)) {
-                    String message =
-                        "CPA-Check failed: ModifiedCheckString: \""
-                            + modifiedQueryString
-                            + "\" CPAElement: ("
-                            + aqe.getCPAName()
-                            + ") \""
-                            + aqe
-                            + "\"";
-                    logger.log(Level.FINER, message);
-                  }
-                  return CONST_FALSE;
+        if ((ae instanceof AbstractQueryableState aqe) && aqe.getCPAName().equals(cpaName)) {
+          try {
+            Object result = aqe.evaluateProperty(modifiedQueryString);
+            if (result instanceof Boolean) {
+              if ((Boolean) result) {
+                if (logger.wouldBeLogged(Level.FINER)) {
+                  String message =
+                      "CPA-Check succeeded: ModifiedCheckString: \""
+                          + modifiedQueryString
+                          + "\" CPAElement: ("
+                          + aqe.getCPAName()
+                          + ") \""
+                          + aqe
+                          + "\"";
+                  logger.log(Level.FINER, message);
                 }
+                return CONST_TRUE;
               } else {
-                logger.log(
-                    Level.WARNING,
-                    "Automaton got a non-Boolean value during Query of the "
-                        + cpaName
-                        + " CPA on Edge "
-                        + pArgs.getCfaEdge().getDescription()
-                        + ". Assuming FALSE.");
+                if (logger.wouldBeLogged(Level.FINER)) {
+                  String message =
+                      "CPA-Check failed: ModifiedCheckString: \""
+                          + modifiedQueryString
+                          + "\" CPAElement: ("
+                          + aqe.getCPAName()
+                          + ") \""
+                          + aqe
+                          + "\"";
+                  logger.log(Level.FINER, message);
+                }
                 return CONST_FALSE;
               }
-            } catch (InvalidQueryException e) {
-              logger.logException(
+            } else {
+              logger.log(
                   Level.WARNING,
-                  e,
-                  "Automaton encountered an Exception during Query of the "
+                  "Automaton got a non-Boolean value during Query of the "
                       + cpaName
                       + " CPA on Edge "
-                      + pArgs.getCfaEdge().getDescription());
+                      + pArgs.getCfaEdge().getDescription()
+                      + ". Assuming FALSE.");
               return CONST_FALSE;
             }
+          } catch (InvalidQueryException e) {
+            logger.logException(
+                Level.WARNING,
+                e,
+                "Automaton encountered an Exception during Query of the "
+                    + cpaName
+                    + " CPA on Edge "
+                    + pArgs.getCfaEdge().getDescription());
+            return CONST_FALSE;
           }
         }
       }

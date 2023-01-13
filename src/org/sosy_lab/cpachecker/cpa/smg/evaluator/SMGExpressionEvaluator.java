@@ -335,13 +335,12 @@ public class SMGExpressionEvaluator {
         return SMGExplicitValueAndState.of(newState, SMGZeroValue.INSTANCE);
       }
 
-      if (symbolicValue instanceof SMGAddressValue address) {
-        if (address.getObject() == SMGNullObject.INSTANCE) {
-          return SMGExplicitValueAndState.of(
-              newState,
-              SMGKnownExpValue.valueOf(
-                  address.getOffset().getAsLong() / machineModel.getSizeofCharInBits()));
-        }
+      if ((symbolicValue instanceof SMGAddressValue address)
+          && (address.getObject() == SMGNullObject.INSTANCE)) {
+        return SMGExplicitValueAndState.of(
+            newState,
+            SMGKnownExpValue.valueOf(
+                address.getOffset().getAsLong() / machineModel.getSizeofCharInBits()));
       }
     }
 

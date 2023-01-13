@@ -638,18 +638,17 @@ public class CProgramScope implements Scope {
             ImmutableSetMultimap.toImmutableSetMultimap(
                 astNode -> {
                   if (astNode instanceof CSimpleDeclaration decl) {
-                    if (decl instanceof CVariableDeclaration original) {
-                      if (original.getInitializer() != null) {
-                        return new CVariableDeclaration(
-                            original.getFileLocation(),
-                            original.isGlobal(),
-                            original.getCStorageClass(),
-                            original.getType(),
-                            original.getName(),
-                            original.getOrigName(),
-                            original.getQualifiedName(),
-                            null);
-                      }
+                    if ((decl instanceof CVariableDeclaration original)
+                        && (original.getInitializer() != null)) {
+                      return new CVariableDeclaration(
+                          original.getFileLocation(),
+                          original.isGlobal(),
+                          original.getCStorageClass(),
+                          original.getType(),
+                          original.getName(),
+                          original.getOrigName(),
+                          original.getQualifiedName(),
+                          null);
                     }
                     return decl;
                   }

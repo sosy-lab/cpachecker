@@ -487,12 +487,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     boolean equalFactorsFound = false;
-    if (pExpression instanceof CBinaryExpression binaryExpression) {
-
-      if (binaryExpression.getOperator() == BinaryOperator.MULTIPLY) {
-        equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand1(), pFactors);
-        equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand2(), pFactors);
-      }
+    if ((pExpression instanceof CBinaryExpression binaryExpression)
+        && (binaryExpression.getOperator() == BinaryOperator.MULTIPLY)) {
+      equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand1(), pFactors);
+      equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand2(), pFactors);
     }
 
     return equalFactorsFound;

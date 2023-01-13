@@ -98,11 +98,10 @@ public class FaultContribution {
 
   @Override
   public boolean equals(Object q) {
-    if (q instanceof FaultContribution casted) {
-      if (correspondingEdge.equals(casted.correspondingEdge())) {
-        if (casted.getInfos().size() == getInfos().size()) {
-          return ImmutableList.sortedCopyOf(infos).equals(ImmutableList.sortedCopyOf(casted.infos));
-        }
+    if ((q instanceof FaultContribution casted)
+        && correspondingEdge.equals(casted.correspondingEdge())) {
+      if (casted.getInfos().size() == getInfos().size()) {
+        return ImmutableList.sortedCopyOf(infos).equals(ImmutableList.sortedCopyOf(casted.infos));
       }
     }
     return false;

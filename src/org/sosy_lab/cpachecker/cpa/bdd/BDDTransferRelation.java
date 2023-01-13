@@ -685,10 +685,9 @@ public class BDDTransferRelation
     if (!(directLocation instanceof ExplicitLocationSet)) {
       LocationSet indirectLocation =
           PointerTransferRelation.asLocations(pPointer.getOperand(), pPointerInfo);
-      if (indirectLocation instanceof ExplicitLocationSet explicitSet) {
-        if (explicitSet.getSize() == 1) {
-          directLocation = pPointerInfo.getPointsToSet(Iterables.getOnlyElement(explicitSet));
-        }
+      if ((indirectLocation instanceof ExplicitLocationSet explicitSet)
+          && (explicitSet.getSize() == 1)) {
+        directLocation = pPointerInfo.getPointsToSet(Iterables.getOnlyElement(explicitSet));
       }
     }
     if (directLocation instanceof ExplicitLocationSet) {
@@ -700,14 +699,11 @@ public class BDDTransferRelation
   static @Nullable MemoryLocation getLocationForRhs(
       PointerState pPointerInfo, CPointerExpression pPointer) throws UnrecognizedCodeException {
     LocationSet fullSet = PointerTransferRelation.asLocations(pPointer.getOperand(), pPointerInfo);
-    if (fullSet instanceof ExplicitLocationSet explicitSet) {
-      if (explicitSet.getSize() == 1) {
-        LocationSet pointsToSet =
-            pPointerInfo.getPointsToSet(Iterables.getOnlyElement(explicitSet));
-        if (pointsToSet instanceof ExplicitLocationSet explicitPointsToSet) {
-          if (explicitPointsToSet.getSize() == 1) {
-            return Iterables.getOnlyElement(explicitPointsToSet);
-          }
+    if ((fullSet instanceof ExplicitLocationSet explicitSet) && (explicitSet.getSize() == 1)) {
+      LocationSet pointsToSet = pPointerInfo.getPointsToSet(Iterables.getOnlyElement(explicitSet));
+      if (pointsToSet instanceof ExplicitLocationSet explicitPointsToSet) {
+        if (explicitPointsToSet.getSize() == 1) {
+          return Iterables.getOnlyElement(explicitPointsToSet);
         }
       }
     }

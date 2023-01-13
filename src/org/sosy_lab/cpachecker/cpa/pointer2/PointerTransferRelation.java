@@ -168,12 +168,11 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   private PointerState handleAssumeEdge(PointerState pState, AssumeEdge pAssumeEdge)
       throws UnrecognizedCodeException {
     AExpression expression = pAssumeEdge.getExpression();
-    if (expression instanceof ABinaryExpression binOp) {
-      if (binOp.getOperator() == BinaryOperator.EQUALS) {
-        Optional<Boolean> areEq = areEqual(pState, binOp.getOperand1(), binOp.getOperand2());
-        if (areEq.isPresent() && areEq.orElseThrow() != pAssumeEdge.getTruthAssumption()) {
-          return null;
-        }
+    if ((expression instanceof ABinaryExpression binOp)
+        && (binOp.getOperator() == BinaryOperator.EQUALS)) {
+      Optional<Boolean> areEq = areEqual(pState, binOp.getOperand1(), binOp.getOperand2());
+      if (areEq.isPresent() && areEq.orElseThrow() != pAssumeEdge.getTruthAssumption()) {
+        return null;
       }
     }
     return pState;
@@ -188,10 +187,8 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
           if (op2.getValue().equals(BigInteger.ZERO)) {
             return negate(areEqual(pPointerState, op1.getOperand1(), op1.getOperand2()));
           }
-        } else if (pOperand2 instanceof CCharLiteralExpression op2) {
-          if (op2.getCharacter() == 0) {
-            return negate(areEqual(pPointerState, op1.getOperand1(), op1.getOperand2()));
-          }
+        } else if ((pOperand2 instanceof CCharLiteralExpression op2) && (op2.getCharacter() == 0)) {
+          return negate(areEqual(pPointerState, op1.getOperand1(), op1.getOperand2()));
         }
       }
       return Optional.empty();
@@ -199,30 +196,27 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     if (pOperand1 instanceof CExpression operand1 && pOperand2 instanceof CExpression operand2) {
       LocationSet op1LocationSet = asLocations(operand1, pPointerState);
       LocationSet op2LocationSet = asLocations(operand2, pPointerState);
-      if (op1LocationSet instanceof ExplicitLocationSet
-          && op2LocationSet instanceof ExplicitLocationSet) {
-        if (op1LocationSet.equals(op2LocationSet)) {
-          if (operand1 instanceof CIdExpression && operand2 instanceof CIdExpression) {
-            return Optional.of(true);
-          }
-          if (operand1 instanceof CFieldReference op1 && operand2 instanceof CFieldReference op2) {
-            if (op1.isPointerDereference() == op2.isPointerDereference()) {
-              return areEqual(pPointerState, op1.getFieldOwner(), op2.getFieldOwner());
-            }
+      if ((op1LocationSet instanceof ExplicitLocationSet
+              && op2LocationSet instanceof ExplicitLocationSet)
+          && op1LocationSet.equals(op2LocationSet)) {
+        if (operand1 instanceof CIdExpression && operand2 instanceof CIdExpression) {
+          return Optional.of(true);
+        }
+        if (operand1 instanceof CFieldReference op1 && operand2 instanceof CFieldReference op2) {
+          if (op1.isPointerDereference() == op2.isPointerDereference()) {
+            return areEqual(pPointerState, op1.getFieldOwner(), op2.getFieldOwner());
           }
         }
       }
-      if (operand1 instanceof CUnaryExpression op1
-          && op2LocationSet instanceof ExplicitLocationSet) {
-        if (op1.getOperator() == UnaryOperator.AMPER) {
-          return pointsTo(pPointerState, (ExplicitLocationSet) op2LocationSet, op1.getOperand());
-        }
+      if ((operand1 instanceof CUnaryExpression op1
+              && op2LocationSet instanceof ExplicitLocationSet)
+          && (op1.getOperator() == UnaryOperator.AMPER)) {
+        return pointsTo(pPointerState, (ExplicitLocationSet) op2LocationSet, op1.getOperand());
       }
-      if (operand2 instanceof CUnaryExpression op2
-          && op1LocationSet instanceof ExplicitLocationSet) {
-        if (op2.getOperator() == UnaryOperator.AMPER) {
-          return pointsTo(pPointerState, (ExplicitLocationSet) op1LocationSet, op2.getOperand());
-        }
+      if ((operand2 instanceof CUnaryExpression op2
+              && op1LocationSet instanceof ExplicitLocationSet)
+          && (op2.getOperator() == UnaryOperator.AMPER)) {
+        return pointsTo(pPointerState, (ExplicitLocationSet) op1LocationSet, op2.getOperand());
       }
     }
     return Optional.empty();

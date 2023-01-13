@@ -202,10 +202,9 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
           waitlist.addAll(((CInitializerList) next).getInitializers());
           continue;
         }
-        if (next instanceof CInitializerExpression expression) {
-          if (!(expression.getExpression() instanceof CLiteralExpression)) {
-            return false;
-          }
+        if ((next instanceof CInitializerExpression expression)
+            && !(expression.getExpression() instanceof CLiteralExpression)) {
+          return false;
         }
       }
       return true;

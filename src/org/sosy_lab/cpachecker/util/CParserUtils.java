@@ -397,12 +397,11 @@ public class CParserUtils {
       Optional<String> pResultFunction, Scope pScope, String assumeCode) {
     if (pResultFunction.isPresent()) {
       String resultFunctionName = pResultFunction.orElseThrow();
-      if (pScope instanceof CProgramScope scope) {
-        if (scope.hasFunctionReturnVariable(resultFunctionName)) {
-          CSimpleDeclaration functionReturnVariable =
-              scope.getFunctionReturnVariable(resultFunctionName);
-          return assumeCode.replace("\\result", " " + functionReturnVariable.getName());
-        }
+      if ((pScope instanceof CProgramScope scope)
+          && scope.hasFunctionReturnVariable(resultFunctionName)) {
+        CSimpleDeclaration functionReturnVariable =
+            scope.getFunctionReturnVariable(resultFunctionName);
+        return assumeCode.replace("\\result", " " + functionReturnVariable.getName());
       }
       return assumeCode.replace("\\result", String.format(" %s() ", resultFunctionName));
     }

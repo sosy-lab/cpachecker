@@ -1399,12 +1399,11 @@ class ASTConverter {
     if (a.equals(b)) {
       return true;
     }
-    if (a instanceof CArrayType arrayA && b instanceof CArrayType arrayB) {
-      if (arrayA.getType().equals(arrayB.getType())) {
-        if (arrayA.getLength() == null || arrayB.getLength() == null) {
-          // The type int[] and int[5] are compatible
-          return true;
-        }
+    if ((a instanceof CArrayType arrayA && b instanceof CArrayType arrayB)
+        && arrayA.getType().equals(arrayB.getType())) {
+      if (arrayA.getLength() == null || arrayB.getLength() == null) {
+        // The type int[] and int[5] are compatible
+        return true;
       }
     }
     return false;
@@ -2247,78 +2246,75 @@ class ASTConverter {
       // have their length calculated from the initializer.
       // Example: int a[] = { 1, 2 };
       // will be converted as int a[2] = { 1, 2 };
-      if (type instanceof CArrayType arrayType) {
-        if (arrayType.getLength() == null && initializer instanceof IASTEqualsInitializer) {
-          IASTInitializerClause initClause =
-              ((IASTEqualsInitializer) initializer).getInitializerClause();
-          if (initClause instanceof IASTInitializerList) {
-            @Nullable BigInteger length = BigInteger.ZERO;
-            BigInteger position = BigInteger.ZERO;
-            for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
-              if (length == null) {
-                break;
-              }
+      if ((type instanceof CArrayType arrayType)
+          && (arrayType.getLength() == null && initializer instanceof IASTEqualsInitializer)) {
+        IASTInitializerClause initClause =
+            ((IASTEqualsInitializer) initializer).getInitializerClause();
+        if (initClause instanceof IASTInitializerList) {
+          @Nullable BigInteger length = BigInteger.ZERO;
+          BigInteger position = BigInteger.ZERO;
+          for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
+            if (length == null) {
+              break;
+            }
 
-              if (x instanceof ICASTDesignatedInitializer) {
-                for (ICASTDesignator designator :
-                    ((ICASTDesignatedInitializer) x).getDesignators()) {
-                  if (designator instanceof CASTArrayRangeDesignator) {
-                    BigInteger c =
-                        evaluateIntegerConstantExpression(
-                            ((CASTArrayRangeDesignator) designator).getRangeCeiling());
-                    position = c.add(BigInteger.ONE);
-                    length = Comparators.max(length, position);
+            if (x instanceof ICASTDesignatedInitializer) {
+              for (ICASTDesignator designator : ((ICASTDesignatedInitializer) x).getDesignators()) {
+                if (designator instanceof CASTArrayRangeDesignator) {
+                  BigInteger c =
+                      evaluateIntegerConstantExpression(
+                          ((CASTArrayRangeDesignator) designator).getRangeCeiling());
+                  position = c.add(BigInteger.ONE);
+                  length = Comparators.max(length, position);
 
-                  } else if (designator instanceof CASTArrayDesignator) {
-                    BigInteger s =
-                        evaluateIntegerConstantExpression(
-                            ((CASTArrayDesignator) designator).getSubscriptExpression());
-                    position = s.add(BigInteger.ONE);
-                    length = Comparators.max(length, position);
+                } else if (designator instanceof CASTArrayDesignator) {
+                  BigInteger s =
+                      evaluateIntegerConstantExpression(
+                          ((CASTArrayDesignator) designator).getSubscriptExpression());
+                  position = s.add(BigInteger.ONE);
+                  length = Comparators.max(length, position);
 
-                    // we only know the length of the CASTArrayDesignator and the
-                    // CASTArrayRangeDesignator, all other designators
-                    // have to be ignore, if one occurs, we cannot calculate the length of the array
-                    // correctly
-                  } else {
-                    length = null;
-                    break;
-                  }
+                  // we only know the length of the CASTArrayDesignator and the
+                  // CASTArrayRangeDesignator, all other designators
+                  // have to be ignore, if one occurs, we cannot calculate the length of the array
+                  // correctly
+                } else {
+                  length = null;
+                  break;
                 }
-              } else {
-                position = position.add(BigInteger.ONE);
-                length = Comparators.max(position, length);
               }
+            } else {
+              position = position.add(BigInteger.ONE);
+              length = Comparators.max(position, length);
             }
+          }
 
-            // only adjust the length of the array if we definitely know it
-            if (length != null) {
-              CExpression lengthExp =
-                  new CIntegerLiteralExpression(
-                      getLocation(initializer), CNumericTypes.INT, length);
+          // only adjust the length of the array if we definitely know it
+          if (length != null) {
+            CExpression lengthExp =
+                new CIntegerLiteralExpression(getLocation(initializer), CNumericTypes.INT, length);
 
-              type =
-                  new CArrayType(
-                      arrayType.isConst(), arrayType.isVolatile(), arrayType.getType(), lengthExp);
-            }
-          } else {
-            // Arrays with unknown length but an string initializer
-            // have their length calculated from the initializer.
-            // Example: char a[] = "abc";
-            // will be converted as char a[4] = "abc";
-            if (initClause instanceof CASTLiteralExpression literalExpression
-                && (arrayType.getType().equals(CNumericTypes.CHAR)
-                    || arrayType.getType().equals(CNumericTypes.SIGNED_CHAR)
-                    || arrayType.getType().equals(CNumericTypes.UNSIGNED_CHAR))) {
-              int length = literalExpression.getLength() - 1;
-              CExpression lengthExp =
-                  new CIntegerLiteralExpression(
-                      getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
+            type =
+                new CArrayType(
+                    arrayType.isConst(), arrayType.isVolatile(), arrayType.getType(), lengthExp);
+          }
+        } else {
+          // Arrays with unknown length but an string initializer
+          // have their length calculated from the initializer.
+          // Example: char a[] = "abc";
+          // will be converted as char a[4] = "abc";
+          if (initClause instanceof CASTLiteralExpression literalExpression
+              && (arrayType.getType().equals(CNumericTypes.CHAR)
+                  || arrayType.getType().equals(CNumericTypes.SIGNED_CHAR)
+                  || arrayType.getType().equals(CNumericTypes.UNSIGNED_CHAR))) {
+            int length = literalExpression.getLength() - 1;
+            CExpression lengthExp =
+                new CIntegerLiteralExpression(
+                    getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
 
-              type =
-                  new CArrayType(
-                      arrayType.isConst(), arrayType.isVolatile(), arrayType.getType(), lengthExp);
-            }
+            type =
+                new CArrayType(
+                    arrayType.isConst(), arrayType.isVolatile(), arrayType.getType(), lengthExp);
           }
         }
       }
@@ -2474,22 +2470,20 @@ class ASTConverter {
 
     // handle return type
     returnType = typeConverter.convertPointerOperators(d.getPointerOperators(), returnType);
-    if (returnType instanceof CSimpleType t) {
-      if (t.getType() == CBasicType.UNSPECIFIED) {
-        // type of functions is implicitly int it not specified
-        returnType =
-            new CSimpleType(
-                t.isConst(),
-                t.isVolatile(),
-                CBasicType.INT,
-                t.isLong(),
-                t.isShort(),
-                t.isSigned(),
-                t.isUnsigned(),
-                t.isComplex(),
-                t.isImaginary(),
-                t.isLongLong());
-      }
+    if ((returnType instanceof CSimpleType t) && (t.getType() == CBasicType.UNSPECIFIED)) {
+      // type of functions is implicitly int it not specified
+      returnType =
+          new CSimpleType(
+              t.isConst(),
+              t.isVolatile(),
+              CBasicType.INT,
+              t.isLong(),
+              t.isShort(),
+              t.isSigned(),
+              t.isUnsigned(),
+              t.isComplex(),
+              t.isImaginary(),
+              t.isLongLong());
     }
 
     // handle parameters

@@ -196,11 +196,9 @@ public class AssignmentToPathAllocator {
     @Override
     public boolean shouldEvaluateExpressionWithThisEvaluator(AExpression pExp) {
 
-      if (pExp instanceof CExpression cExp) {
-        if (hasUninterpretedFunctionName(cExp)) {
-          String functionName = getUninterpretedFunctionName(cExp);
-          return uninterpretedFunctions.containsKey(functionName);
-        }
+      if ((pExp instanceof CExpression cExp) && hasUninterpretedFunctionName(cExp)) {
+        String functionName = getUninterpretedFunctionName(cExp);
+        return uninterpretedFunctions.containsKey(functionName);
       }
 
       return false;

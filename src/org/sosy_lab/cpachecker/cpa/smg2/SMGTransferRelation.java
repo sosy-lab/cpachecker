@@ -168,12 +168,10 @@ public class SMGTransferRelation
 
   @Override
   protected Set<SMGState> handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException {
-    if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
-      if (isEntryFunction(cfaEdge)) {
-        // Entry functions need special handling as they don't have a return edge
-        // (i.e. check for memory leaks)
-        return handleReturnEntryFunction(Collections.singleton(state));
-      }
+    if ((cfaEdge.getSuccessor() instanceof FunctionExitNode) && isEntryFunction(cfaEdge)) {
+      // Entry functions need special handling as they don't have a return edge
+      // (i.e. check for memory leaks)
+      return handleReturnEntryFunction(Collections.singleton(state));
     }
 
     return Collections.singleton(state);

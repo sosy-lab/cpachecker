@@ -89,28 +89,26 @@ interface AutomatonExpression<T> {
       }
 
       for (AbstractState ae : pArgs.getAbstractStates()) {
-        if (ae instanceof AbstractQueryableState aqe) {
-          if (aqe.getCPAName().equals(cpaName)) {
-            try {
-              Object result = aqe.evaluateProperty(modifiedQueryString);
-              return new ResultValue<>(result.toString());
-            } catch (InvalidQueryException e) {
-              pArgs
-                  .getLogger()
-                  .logException(
-                      Level.WARNING,
-                      e,
-                      "Automaton encountered an Exception during Query of the "
-                          + cpaName
-                          + " CPA on Edge "
-                          + pArgs.getCfaEdge().getDescription());
-              return new ResultValue<>(
-                  "Automaton encountered an Exception during Query of the "
-                      + cpaName
-                      + " CPA on Edge "
-                      + pArgs.getCfaEdge().getDescription(),
-                  "AutomatonExpression.CPAQuery");
-            }
+        if ((ae instanceof AbstractQueryableState aqe) && aqe.getCPAName().equals(cpaName)) {
+          try {
+            Object result = aqe.evaluateProperty(modifiedQueryString);
+            return new ResultValue<>(result.toString());
+          } catch (InvalidQueryException e) {
+            pArgs
+                .getLogger()
+                .logException(
+                    Level.WARNING,
+                    e,
+                    "Automaton encountered an Exception during Query of the "
+                        + cpaName
+                        + " CPA on Edge "
+                        + pArgs.getCfaEdge().getDescription());
+            return new ResultValue<>(
+                "Automaton encountered an Exception during Query of the "
+                    + cpaName
+                    + " CPA on Edge "
+                    + pArgs.getCfaEdge().getDescription(),
+                "AutomatonExpression.CPAQuery");
           }
         }
       }

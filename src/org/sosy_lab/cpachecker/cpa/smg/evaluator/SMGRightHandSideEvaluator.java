@@ -215,14 +215,13 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       return pState;
     }
 
-    if (pRValueType instanceof CPointerType
-        && !(pValue instanceof SMGAddressValue)
-        && pValue instanceof SMGKnownSymbolicValue knownValue) {
-      if (pState.isExplicit(knownValue)) {
-        SMGKnownExpValue explicit = Preconditions.checkNotNull(pState.getExplicit(knownValue));
-        pValue = SMGKnownAddressValue.valueOf(knownValue, SMGNullObject.INSTANCE, explicit);
-        pState.addPointsToEdge(SMGNullObject.INSTANCE, explicit.getAsLong(), pValue);
-      }
+    if ((pRValueType instanceof CPointerType
+            && !(pValue instanceof SMGAddressValue)
+            && pValue instanceof SMGKnownSymbolicValue knownValue)
+        && pState.isExplicit(knownValue)) {
+      SMGKnownExpValue explicit = Preconditions.checkNotNull(pState.getExplicit(knownValue));
+      pValue = SMGKnownAddressValue.valueOf(knownValue, SMGNullObject.INSTANCE, explicit);
+      pState.addPointsToEdge(SMGNullObject.INSTANCE, explicit.getAsLong(), pValue);
     }
     return pState
         .writeValue(

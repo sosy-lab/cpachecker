@@ -566,10 +566,9 @@ public class AutomatonGraphmlCommon {
       AStatement statement = statementEdge.getStatement();
       if (statement instanceof AExpressionStatement expressionStatement) {
         AExpression expression = expressionStatement.getExpression();
-        if (expression instanceof AIdExpression idExpression) {
-          if (idExpression.getName().toUpperCase().startsWith(CPACHECKER_TMP_PREFIX)) {
-            return true;
-          }
+        if ((expression instanceof AIdExpression idExpression)
+            && idExpression.getName().toUpperCase().startsWith(CPACHECKER_TMP_PREFIX)) {
+          return true;
         }
       } else {
         return isTmpPartOfTernaryExpressionAssignment(statementEdge);

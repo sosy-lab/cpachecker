@@ -250,10 +250,9 @@ public class HarnessExporter {
             if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
               ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
               ADeclaration declaration = declarationEdge.getDeclaration();
-              if (declaration instanceof AFunctionDeclaration functionDeclaration) {
-                if (!cfa.getAllFunctionNames().contains(functionDeclaration.getName())) {
-                  externalFunctions.add(functionDeclaration);
-                }
+              if ((declaration instanceof AFunctionDeclaration functionDeclaration)
+                  && !cfa.getAllFunctionNames().contains(functionDeclaration.getName())) {
+                externalFunctions.add(functionDeclaration);
               }
             }
             return TraversalProcess.CONTINUE;
@@ -421,36 +420,34 @@ public class HarnessExporter {
       ADeclarationEdge pDeclarationEdge,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
     ADeclaration declaration = pDeclarationEdge.getDeclaration();
-    if (declaration instanceof CVariableDeclaration variableDeclaration) {
-      if (variableDeclaration.getCStorageClass() == CStorageClass.EXTERN) {
-        final Optional<State> nextState =
-            handleVariableDeclaration(
-                pDeclarationEdge, pPrevious, pChild, variableDeclaration, pValueMap);
-        if (nextState.isPresent()) {
-          return nextState;
-        }
-        Type type = variableDeclaration.getType();
-        Type canonicalType = getCanonicalType(type);
-        if (canonicalType instanceof CPointerType) {
-          return Optional.of(
-              State.of(
-                  pChild, handlePointerDeclaration(pPrevious.testVector, variableDeclaration)));
-        }
-        if (canonicalType instanceof CCompositeType) {
-          return Optional.of(
-              State.of(
-                  pChild, handleCompositeDeclaration(pPrevious.testVector, variableDeclaration)));
-        }
-        if (canonicalType instanceof CArrayType) {
-          return Optional.of(
-              State.of(pChild, handleArrayDeclaration(pPrevious.testVector, variableDeclaration)));
-        }
+    if ((declaration instanceof CVariableDeclaration variableDeclaration)
+        && (variableDeclaration.getCStorageClass() == CStorageClass.EXTERN)) {
+      final Optional<State> nextState =
+          handleVariableDeclaration(
+              pDeclarationEdge, pPrevious, pChild, variableDeclaration, pValueMap);
+      if (nextState.isPresent()) {
+        return nextState;
+      }
+      Type type = variableDeclaration.getType();
+      Type canonicalType = getCanonicalType(type);
+      if (canonicalType instanceof CPointerType) {
+        return Optional.of(
+            State.of(pChild, handlePointerDeclaration(pPrevious.testVector, variableDeclaration)));
+      }
+      if (canonicalType instanceof CCompositeType) {
         return Optional.of(
             State.of(
-                pChild,
-                pPrevious.testVector.addInputValue(
-                    variableDeclaration, getDummyInitializer(variableDeclaration.getType()))));
+                pChild, handleCompositeDeclaration(pPrevious.testVector, variableDeclaration)));
       }
+      if (canonicalType instanceof CArrayType) {
+        return Optional.of(
+            State.of(pChild, handleArrayDeclaration(pPrevious.testVector, variableDeclaration)));
+      }
+      return Optional.of(
+          State.of(
+              pChild,
+              pPrevious.testVector.addInputValue(
+                  variableDeclaration, getDummyInitializer(variableDeclaration.getType()))));
     }
     return Optional.of(State.of(pChild, pPrevious.testVector));
   }
@@ -881,11 +878,10 @@ public class HarnessExporter {
     if (actualType.equals(pExpectedType)) {
       return true;
     }
-    if (actualType instanceof CSimpleType simpleActualType
-        && pExpectedType instanceof CSimpleType simpleExpectedType) {
-      if (simpleActualType.isUnsigned() && simpleExpectedType.isUnsigned()) {
-        return true;
-      }
+    if ((actualType instanceof CSimpleType simpleActualType
+            && pExpectedType instanceof CSimpleType simpleExpectedType)
+        && (simpleActualType.isUnsigned() && simpleExpectedType.isUnsigned())) {
+      return true;
     }
     return false;
   }

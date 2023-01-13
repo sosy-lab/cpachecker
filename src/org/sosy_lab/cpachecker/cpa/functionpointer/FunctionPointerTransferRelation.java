@@ -255,11 +255,10 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     CFunctionCallExpression funcCall = ((CFunctionCall) statement).getFunctionCallExpression();
     CExpression nameExp = funcCall.getFunctionNameExpression();
 
-    if (nameExp instanceof CIdExpression idExp) {
-      if (idExp.getExpressionType() instanceof CFunctionType) {
-        // this is a regular function
-        return null;
-      }
+    if ((nameExp instanceof CIdExpression idExp)
+        && (idExp.getExpressionType() instanceof CFunctionType)) {
+      // this is a regular function
+      return null;
     }
 
     // functions may be called either as f() or as (*f)(),

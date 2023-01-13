@@ -461,11 +461,10 @@ public class SMGCPAAbstractionManager {
       BigInteger nfo = hve.getOffset();
       SMGPointsToEdge pointsToEdge = pInputSmg.getPTEdge(value).orElseThrow();
       SMGObject reachedObject = pointsToEdge.pointsTo();
-      if (reachedObject instanceof SMGSinglyLinkedListSegment sll) {
-        if (sll.getNextOffset().compareTo(nfo) == 0) {
-          pAlreadyVisited.add(potentialRoot);
-          return Optional.of(new SMGCandidate(potentialRoot, nfo));
-        }
+      if ((reachedObject instanceof SMGSinglyLinkedListSegment sll)
+          && (sll.getNextOffset().compareTo(nfo) == 0)) {
+        pAlreadyVisited.add(potentialRoot);
+        return Optional.of(new SMGCandidate(potentialRoot, nfo));
       }
 
       // Check that reached object has a pointer at the same offset

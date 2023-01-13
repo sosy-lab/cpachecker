@@ -1523,11 +1523,10 @@ public class ValueAnalysisTransferRelation
         CExpression addressExpression = pointerExpression.getOperand();
         LocationSet indirectLocation =
             PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
-        if (indirectLocation instanceof ExplicitLocationSet explicitSet) {
-          if (explicitSet.getSize() == 1) {
-            MemoryLocation variable = explicitSet.iterator().next();
-            directLocation = pPointerInfo.getPointsToSet(variable);
-          }
+        if ((indirectLocation instanceof ExplicitLocationSet explicitSet)
+            && (explicitSet.getSize() == 1)) {
+          MemoryLocation variable = explicitSet.iterator().next();
+          directLocation = pPointerInfo.getPointsToSet(variable);
         }
       }
       if (directLocation instanceof ExplicitLocationSet explicitDirectLocation) {
@@ -1553,31 +1552,29 @@ public class ValueAnalysisTransferRelation
 
       LocationSet fullSet = PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
 
-      if (fullSet instanceof ExplicitLocationSet explicitSet) {
-        if (explicitSet.getSize() == 1) {
-          MemoryLocation variable = explicitSet.iterator().next();
-          CType variableType = rhs.getExpressionType().getCanonicalType();
-          LocationSet pointsToSet = pPointerInfo.getPointsToSet(variable);
+      if ((fullSet instanceof ExplicitLocationSet explicitSet) && (explicitSet.getSize() == 1)) {
+        MemoryLocation variable = explicitSet.iterator().next();
+        CType variableType = rhs.getExpressionType().getCanonicalType();
+        LocationSet pointsToSet = pPointerInfo.getPointsToSet(variable);
 
-          if (pointsToSet instanceof ExplicitLocationSet explicitPointsToSet) {
-            Iterator<MemoryLocation> pointsToIterator = explicitPointsToSet.iterator();
-            MemoryLocation otherVariableLocation = pointsToIterator.next();
-            if (!pointsToIterator.hasNext() && pValueState.contains(otherVariableLocation)) {
+        if (pointsToSet instanceof ExplicitLocationSet explicitPointsToSet) {
+          Iterator<MemoryLocation> pointsToIterator = explicitPointsToSet.iterator();
+          MemoryLocation otherVariableLocation = pointsToIterator.next();
+          if (!pointsToIterator.hasNext() && pValueState.contains(otherVariableLocation)) {
 
-              ValueAndType valueAndType = pValueState.getValueAndTypeFor(otherVariableLocation);
-              Type otherVariableType = valueAndType.getType();
-              if (otherVariableType != null) {
-                Value otherVariableValue = valueAndType.getValue();
-                if (otherVariableValue != null) {
-                  if (variableType.equals(otherVariableType)
-                      || (variableType.equals(CNumericTypes.FLOAT)
-                          && otherVariableType.equals(CNumericTypes.UNSIGNED_INT)
-                          && otherVariableValue.isExplicitlyKnown()
-                          && Long.valueOf(0)
-                              .equals(otherVariableValue.asLong(CNumericTypes.UNSIGNED_INT)))) {
-                    value = otherVariableValue;
-                    shouldAssign = true;
-                  }
+            ValueAndType valueAndType = pValueState.getValueAndTypeFor(otherVariableLocation);
+            Type otherVariableType = valueAndType.getType();
+            if (otherVariableType != null) {
+              Value otherVariableValue = valueAndType.getValue();
+              if (otherVariableValue != null) {
+                if (variableType.equals(otherVariableType)
+                    || (variableType.equals(CNumericTypes.FLOAT)
+                        && otherVariableType.equals(CNumericTypes.UNSIGNED_INT)
+                        && otherVariableValue.isExplicitlyKnown()
+                        && Long.valueOf(0)
+                            .equals(otherVariableValue.asLong(CNumericTypes.UNSIGNED_INT)))) {
+                  value = otherVariableValue;
+                  shouldAssign = true;
                 }
               }
             }

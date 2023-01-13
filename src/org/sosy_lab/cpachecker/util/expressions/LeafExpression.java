@@ -27,14 +27,13 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
     if (pStatement instanceof AExpressionStatement) {
       return of(((AExpressionStatement) pStatement).getExpression());
     }
-    if (pStatement instanceof CAssignment assignment) {
-      if (assignment.getRightHandSide() instanceof CExpression) {
-        CExpression expression = (CExpression) assignment.getRightHandSide();
-        CBinaryExpression assumeExp =
-            pBinaryExpressionBuilder.buildBinaryExpressionUnchecked(
-                assignment.getLeftHandSide(), expression, CBinaryExpression.BinaryOperator.EQUALS);
-        return of(assumeExp);
-      }
+    if ((pStatement instanceof CAssignment assignment)
+        && (assignment.getRightHandSide() instanceof CExpression)) {
+      CExpression expression = (CExpression) assignment.getRightHandSide();
+      CBinaryExpression assumeExp =
+          pBinaryExpressionBuilder.buildBinaryExpressionUnchecked(
+              assignment.getLeftHandSide(), expression, CBinaryExpression.BinaryOperator.EQUALS);
+      return of(assumeExp);
     }
     return ExpressionTrees.getTrue();
   }

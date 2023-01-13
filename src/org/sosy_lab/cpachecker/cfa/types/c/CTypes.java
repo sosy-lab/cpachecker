@@ -295,24 +295,23 @@ public final class CTypes {
       return pTypeA.getCanonicalType().equals(basicSignedInt.getCanonicalType());
     }
 
-    if (pTypeA instanceof CArrayType arrayA && pTypeB instanceof CArrayType arrayB) {
+    if ((pTypeA instanceof CArrayType arrayA && pTypeB instanceof CArrayType arrayB)
+        && areTypesCompatible(arrayA.getType(), arrayB.getType())) {
       // Cf. C-Standard §6.7.6.2 (6).
-      if (areTypesCompatible(arrayA.getType(), arrayB.getType())) {
-        OptionalInt lengthA = arrayA.getLengthAsInt();
-        OptionalInt lengthB = arrayB.getLengthAsInt();
+      OptionalInt lengthA = arrayA.getLengthAsInt();
+      OptionalInt lengthB = arrayB.getLengthAsInt();
 
-        if (lengthA.isPresent() && lengthB.isPresent()) {
-          if (lengthA.orElseThrow() == lengthB.orElseThrow()) {
-            return true;
-          }
-        } else {
-          // In this case we only get defined behavior,
-          // if the size specifiers of both array types
-          // evaluate to the same value.
-          // According to the standard they are compatible
-          // nonetheless.
+      if (lengthA.isPresent() && lengthB.isPresent()) {
+        if (lengthA.orElseThrow() == lengthB.orElseThrow()) {
           return true;
         }
+      } else {
+        // In this case we only get defined behavior,
+        // if the size specifiers of both array types
+        // evaluate to the same value.
+        // According to the standard they are compatible
+        // nonetheless.
+        return true;
       }
     }
 

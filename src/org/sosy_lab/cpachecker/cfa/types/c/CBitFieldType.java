@@ -57,10 +57,9 @@ public class CBitFieldType implements CType {
       }
     } else if (canonicalType instanceof CEnumType) {
       return pBitFieldType;
-    } else if (canonicalType instanceof CElaboratedType elaboratedType) {
-      if (elaboratedType.getKind() == ComplexTypeKind.ENUM) {
-        return pBitFieldType;
-      }
+    } else if ((canonicalType instanceof CElaboratedType elaboratedType)
+        && (elaboratedType.getKind() == ComplexTypeKind.ENUM)) {
+      return pBitFieldType;
     }
     throw new IllegalArgumentException("Not a valid bit-field type: " + pBitFieldType);
   }

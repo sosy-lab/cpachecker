@@ -282,39 +282,36 @@ public class TargetFunctionsProvider {
     }
 
     // Void pointer can be converted to any other pointer or integer
-    if (declaredType instanceof CPointerType declaredPointerType) {
-      if (declaredPointerType.getType() == CVoidType.VOID) {
-        if (actualType instanceof CSimpleType actualSimpleType) {
-          CBasicType actualBasicType = actualSimpleType.getType();
-          if (actualBasicType.isIntegerType()) {
-            return true;
-          }
-        } else if (actualType instanceof CPointerType) {
+    if ((declaredType instanceof CPointerType declaredPointerType)
+        && (declaredPointerType.getType() == CVoidType.VOID)) {
+      if (actualType instanceof CSimpleType actualSimpleType) {
+        CBasicType actualBasicType = actualSimpleType.getType();
+        if (actualBasicType.isIntegerType()) {
           return true;
         }
+      } else if (actualType instanceof CPointerType) {
+        return true;
       }
     }
 
     // Any pointer or integer can be converted to a void pointer
-    if (actualType instanceof CPointerType actualPointerType) {
-      if (actualPointerType.getType() == CVoidType.VOID) {
-        if (declaredType instanceof CSimpleType declaredSimpleType) {
-          CBasicType declaredBasicType = declaredSimpleType.getType();
-          if (declaredBasicType.isIntegerType()) {
-            return true;
-          }
-        } else if (declaredType instanceof CPointerType) {
+    if ((actualType instanceof CPointerType actualPointerType)
+        && (actualPointerType.getType() == CVoidType.VOID)) {
+      if (declaredType instanceof CSimpleType declaredSimpleType) {
+        CBasicType declaredBasicType = declaredSimpleType.getType();
+        if (declaredBasicType.isIntegerType()) {
           return true;
         }
+      } else if (declaredType instanceof CPointerType) {
+        return true;
       }
     }
 
     // If both types are pointers, check if the inner types are compatible
-    if (declaredType instanceof CPointerType declaredPointerType
-        && actualType instanceof CPointerType actualPointerType) {
-      if (isCompatibleType(declaredPointerType.getType(), actualPointerType.getType())) {
-        return true;
-      }
+    if ((declaredType instanceof CPointerType declaredPointerType
+            && actualType instanceof CPointerType actualPointerType)
+        && isCompatibleType(declaredPointerType.getType(), actualPointerType.getType())) {
+      return true;
     }
 
     return false;

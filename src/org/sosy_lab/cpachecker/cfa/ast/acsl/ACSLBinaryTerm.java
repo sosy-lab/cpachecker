@@ -63,13 +63,11 @@ public class ACSLBinaryTerm implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLBinaryTerm other) {
-      if (operator.equals(other.operator)) {
-        return (left.equals(other.left) && right.equals(other.right))
-            || (ACSLBinaryOperator.isCommutative(operator)
-                && left.equals(other.right)
-                && right.equals(other.left));
-      }
+    if ((o instanceof ACSLBinaryTerm other) && operator.equals(other.operator)) {
+      return (left.equals(other.left) && right.equals(other.right))
+          || (ACSLBinaryOperator.isCommutative(operator)
+              && left.equals(other.right)
+              && right.equals(other.left));
     }
     return false;
   }

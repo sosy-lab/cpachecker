@@ -549,26 +549,25 @@ class WitnessFactory implements EdgeAppender {
         assignments = getAssignments(cfaEdgeWithAssignments, null);
 
         // Export function return value for cases where it is not explicitly assigned to a variable
-        if (pEdge instanceof AStatementEdge edge) {
-          if (edge.getStatement() instanceof AFunctionCallAssignmentStatement) {
-            AFunctionCallAssignmentStatement assignment =
-                (AFunctionCallAssignmentStatement) edge.getStatement();
-            if (assignment.getLeftHandSide() instanceof AIdExpression
-                && assignment.getFunctionCallExpression().getFunctionNameExpression()
-                    instanceof AIdExpression) {
-              AIdExpression idExpression = (AIdExpression) assignment.getLeftHandSide();
-              if (isTmpVariable(idExpression)) {
-                // get only assignments without nested tmpVariables (except self)
-                assignments = getAssignments(cfaEdgeWithAssignments, idExpression);
-                resultVariable = Optional.of(idExpression);
-                AIdExpression resultFunctionName =
-                    (AIdExpression)
-                        assignment.getFunctionCallExpression().getFunctionNameExpression();
-                if (resultFunctionName.getDeclaration() != null) {
-                  resultFunction = Optional.of(resultFunctionName.getDeclaration().getOrigName());
-                } else {
-                  resultFunction = Optional.of(resultFunctionName.getName());
-                }
+        if ((pEdge instanceof AStatementEdge edge)
+            && (edge.getStatement() instanceof AFunctionCallAssignmentStatement)) {
+          AFunctionCallAssignmentStatement assignment =
+              (AFunctionCallAssignmentStatement) edge.getStatement();
+          if (assignment.getLeftHandSide() instanceof AIdExpression
+              && assignment.getFunctionCallExpression().getFunctionNameExpression()
+                  instanceof AIdExpression) {
+            AIdExpression idExpression = (AIdExpression) assignment.getLeftHandSide();
+            if (isTmpVariable(idExpression)) {
+              // get only assignments without nested tmpVariables (except self)
+              assignments = getAssignments(cfaEdgeWithAssignments, idExpression);
+              resultVariable = Optional.of(idExpression);
+              AIdExpression resultFunctionName =
+                  (AIdExpression)
+                      assignment.getFunctionCallExpression().getFunctionNameExpression();
+              if (resultFunctionName.getDeclaration() != null) {
+                resultFunction = Optional.of(resultFunctionName.getDeclaration().getOrigName());
+              } else {
+                resultFunction = Optional.of(resultFunctionName.getName());
               }
             }
           }

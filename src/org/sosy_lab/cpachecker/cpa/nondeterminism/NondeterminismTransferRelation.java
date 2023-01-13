@@ -95,11 +95,10 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
   private static NondeterminismNonAbstractionState handleDeclaration(
       NondeterminismNonAbstractionState pState, ADeclarationEdge pEdge) {
     ADeclaration declaration = pEdge.getDeclaration();
-    if (declaration instanceof AVariableDeclaration variableDeclaration) {
-      if (variableDeclaration.getInitializer() != null) {
-        AInitializer initializer = variableDeclaration.getInitializer();
-        return handleAssignment(pState, declaration.getQualifiedName(), getVariables(initializer));
-      }
+    if ((declaration instanceof AVariableDeclaration variableDeclaration)
+        && (variableDeclaration.getInitializer() != null)) {
+      AInitializer initializer = variableDeclaration.getInitializer();
+      return handleAssignment(pState, declaration.getQualifiedName(), getVariables(initializer));
     }
     return pState;
   }

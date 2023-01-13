@@ -65,10 +65,9 @@ public class InputTransferRelation extends SingleEdgeTransferRelation {
 
   private static InputState handleDeclarationEdge(ADeclarationEdge pEdge) {
     ADeclaration declaration = pEdge.getDeclaration();
-    if (declaration instanceof AVariableDeclaration variableDeclaration) {
-      if (variableDeclaration.getInitializer() == null) {
-        return InputState.forInputs(Collections.singleton(variableDeclaration.getQualifiedName()));
-      }
+    if ((declaration instanceof AVariableDeclaration variableDeclaration)
+        && (variableDeclaration.getInitializer() == null)) {
+      return InputState.forInputs(Collections.singleton(variableDeclaration.getQualifiedName()));
     }
     return InputState.empty();
   }

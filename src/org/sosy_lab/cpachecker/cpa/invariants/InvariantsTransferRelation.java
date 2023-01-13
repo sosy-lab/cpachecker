@@ -388,13 +388,12 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       if (compoundIntervalFormulaManager.containsAllPossibleValues(value)
           && rightHandSide instanceof CFunctionCallExpression cFunctionCallExpression) {
         CExpression functionNameExpression = cFunctionCallExpression.getFunctionNameExpression();
-        if (functionNameExpression instanceof CIdExpression idExpression) {
-          if (idExpression.getName().equals("__VERIFIER_nondet_uint")) {
-            TypeInfo typeInfo = BitVectorInfo.from(machineModel, leftHandSide.getExpressionType());
-            value =
-                InvariantsFormulaManager.INSTANCE.asConstant(
-                    typeInfo, getCompoundIntervalManager(typeInfo).singleton(0).extendToMaxValue());
-          }
+        if ((functionNameExpression instanceof CIdExpression idExpression)
+            && idExpression.getName().equals("__VERIFIER_nondet_uint")) {
+          TypeInfo typeInfo = BitVectorInfo.from(machineModel, leftHandSide.getExpressionType());
+          value =
+              InvariantsFormulaManager.INSTANCE.asConstant(
+                  typeInfo, getCompoundIntervalManager(typeInfo).singleton(0).extendToMaxValue());
         }
       }
       value = handlePotentialOverflow(pElement, value, leftHandSide.getExpressionType());

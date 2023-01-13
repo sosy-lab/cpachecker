@@ -848,10 +848,9 @@ public class CtoFormulaConverter {
           if (t instanceof CSimpleType) {
             return machineModel.isSigned((CSimpleType) t);
           }
-          if (t instanceof CBitFieldType bitFieldType) {
-            if (bitFieldType.getType() instanceof CSimpleType) {
-              return machineModel.isSigned(((CSimpleType) bitFieldType.getType()));
-            }
+          if ((t instanceof CBitFieldType bitFieldType)
+              && (bitFieldType.getType() instanceof CSimpleType)) {
+            return machineModel.isSigned(((CSimpleType) bitFieldType.getType()));
           }
           throw new AssertionError("Not a simple type: " + t);
         };
@@ -932,10 +931,8 @@ public class CtoFormulaConverter {
     if (pType instanceof CSimpleType) {
       return true;
     }
-    if (pType instanceof CBitFieldType type) {
-      if (type.getType() instanceof CSimpleType) {
-        return true;
-      }
+    if ((pType instanceof CBitFieldType type) && (type.getType() instanceof CSimpleType)) {
+      return true;
     }
     return false;
   }
