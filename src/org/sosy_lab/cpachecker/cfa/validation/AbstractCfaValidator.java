@@ -56,7 +56,7 @@ public abstract class AbstractCfaValidator implements CfaValidator {
    */
   protected AbstractCfaValidator(Supplier<AbstractCfaValidator> pValidatorFactory) {
     checkNotNull(pValidatorFactory);
-    validatorFactory = ((cfaNetwork, cfaMetadata) -> pValidatorFactory.get());
+    validatorFactory = (cfaNetwork, cfaMetadata) -> pValidatorFactory.get();
   }
 
   @Override
