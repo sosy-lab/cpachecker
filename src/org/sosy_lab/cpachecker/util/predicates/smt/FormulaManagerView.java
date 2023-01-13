@@ -286,31 +286,24 @@ public class FormulaManagerView {
     }
     BitvectorFormulaManager rawBvmgr;
     try {
-      switch (encodeBitvectorAs) {
-        case BITVECTOR:
-          rawBvmgr = manager.getBitvectorFormulaManager();
-          break;
-        case INTEGER:
-          rawBvmgr =
-              new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
-                  wrappingHandler,
-                  manager.getBooleanFormulaManager(),
-                  manager.getIntegerFormulaManager(),
-                  manager.getUFManager(),
-                  config);
-          break;
-        case RATIONAL:
-          rawBvmgr =
-              new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
-                  wrappingHandler,
-                  manager.getBooleanFormulaManager(),
-                  manager.getRationalFormulaManager(),
-                  manager.getUFManager(),
-                  config);
-          break;
-        default:
-          throw new AssertionError("unexpected encoding for bitvectors: " + encodeBitvectorAs);
-      }
+      rawBvmgr =
+          switch (encodeBitvectorAs) {
+            case BITVECTOR -> manager.getBitvectorFormulaManager();
+            case INTEGER -> new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+                wrappingHandler,
+                manager.getBooleanFormulaManager(),
+                manager.getIntegerFormulaManager(),
+                manager.getUFManager(),
+                config);
+            case RATIONAL -> new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+                wrappingHandler,
+                manager.getBooleanFormulaManager(),
+                manager.getRationalFormulaManager(),
+                manager.getUFManager(),
+                config);
+            default -> throw new AssertionError(
+                "unexpected encoding for bitvectors: " + encodeBitvectorAs);
+          };
     } catch (UnsupportedOperationException e) {
       throw new InvalidConfigurationException(
           "The chosen SMT solver does not support the theory of "
@@ -336,29 +329,22 @@ public class FormulaManagerView {
     }
     FloatingPointFormulaManager rawFpmgr;
     try {
-      switch (encodeFloatAs) {
-        case FLOAT:
-          rawFpmgr = manager.getFloatingPointFormulaManager();
-          break;
-        case INTEGER:
-          rawFpmgr =
-              new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-                  wrappingHandler,
-                  manager.getIntegerFormulaManager(),
-                  manager.getUFManager(),
-                  manager.getBooleanFormulaManager());
-          break;
-        case RATIONAL:
-          rawFpmgr =
-              new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-                  wrappingHandler,
-                  manager.getRationalFormulaManager(),
-                  manager.getUFManager(),
-                  manager.getBooleanFormulaManager());
-          break;
-        default:
-          throw new AssertionError("unexpected encoding for floating points: " + encodeFloatAs);
-      }
+      rawFpmgr =
+          switch (encodeFloatAs) {
+            case FLOAT -> manager.getFloatingPointFormulaManager();
+            case INTEGER -> new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
+                wrappingHandler,
+                manager.getIntegerFormulaManager(),
+                manager.getUFManager(),
+                manager.getBooleanFormulaManager());
+            case RATIONAL -> new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
+                wrappingHandler,
+                manager.getRationalFormulaManager(),
+                manager.getUFManager(),
+                manager.getBooleanFormulaManager());
+            default -> throw new AssertionError(
+                "unexpected encoding for floating points: " + encodeFloatAs);
+          };
     } catch (UnsupportedOperationException e) {
       throw new InvalidConfigurationException(
           "The chosen SMT solver does not support the theory of "
@@ -381,21 +367,17 @@ public class FormulaManagerView {
     }
     IntegerFormulaManager rawImgr;
     try {
-      switch (encodeIntegerAs) {
-        case INTEGER:
-          rawImgr = manager.getIntegerFormulaManager();
-          break;
-        case BITVECTOR:
-          rawImgr =
-              new ReplaceIntegerWithBitvectorTheory(
-                  wrappingHandler,
-                  manager.getBitvectorFormulaManager(),
-                  manager.getBooleanFormulaManager(),
-                  pIntegerOptions);
-          break;
-        default:
-          throw new AssertionError("unexpected encoding for plain integers: " + encodeIntegerAs);
-      }
+      rawImgr =
+          switch (encodeIntegerAs) {
+            case INTEGER -> manager.getIntegerFormulaManager();
+            case BITVECTOR -> new ReplaceIntegerWithBitvectorTheory(
+                wrappingHandler,
+                manager.getBitvectorFormulaManager(),
+                manager.getBooleanFormulaManager(),
+                pIntegerOptions);
+            default -> throw new AssertionError(
+                "unexpected encoding for plain integers: " + encodeIntegerAs);
+          };
     } catch (UnsupportedOperationException e) {
       throw new InvalidConfigurationException(
           "The chosen SMT solver does not support the theory of "

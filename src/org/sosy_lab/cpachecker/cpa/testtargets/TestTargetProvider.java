@@ -54,15 +54,11 @@ public class TestTargetProvider implements Statistics {
     type = pType;
     optimization = pGoalAdaption;
 
-    Predicate<CFAEdge> edgeCriterion;
-    switch (type) {
-      case FUN_CALL:
-        edgeCriterion = type.getEdgeCriterion(pTargetFun);
-        break;
-      default:
-        edgeCriterion = type.getEdgeCriterion();
-    }
-
+    Predicate<CFAEdge> edgeCriterion =
+        switch (type) {
+          case FUN_CALL -> type.getEdgeCriterion(pTargetFun);
+          default -> type.getEdgeCriterion();
+        };
     Set<CFAEdge> targets = extractEdgesByCriterion(edgeCriterion, pGoalAdaption, pCfa);
 
     if (runParallel) {

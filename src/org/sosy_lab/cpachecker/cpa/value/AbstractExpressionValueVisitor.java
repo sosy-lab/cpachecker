@@ -1930,31 +1930,16 @@ public abstract class AbstractExpressionValueVisitor
       case LESS_THAN:
       case LESS_EQUAL:
         {
-          final boolean result;
-          switch (pBinaryOperator) {
-            case EQUALS:
-              result = (lVal == rVal);
-              break;
-            case NOT_EQUALS:
-              result = (lVal != rVal);
-              break;
-            case GREATER_THAN:
-              result = (lVal > rVal);
-              break;
-            case GREATER_EQUAL:
-              result = (lVal >= rVal);
-              break;
-            case LESS_THAN:
-              result = (lVal < rVal);
-              break;
-            case LESS_EQUAL:
-              result = (lVal <= rVal);
-              break;
-
-            default:
-              throw new AssertionError("Unhandled operation " + pBinaryOperator);
-          }
-
+          final boolean result =
+              switch (pBinaryOperator) {
+                case EQUALS -> (lVal == rVal);
+                case NOT_EQUALS -> (lVal != rVal);
+                case GREATER_THAN -> (lVal > rVal);
+                case GREATER_EQUAL -> (lVal >= rVal);
+                case LESS_THAN -> (lVal < rVal);
+                case LESS_EQUAL -> (lVal <= rVal);
+                default -> throw new AssertionError("Unhandled operation " + pBinaryOperator);
+              };
           return BooleanValue.valueOf(result);
         }
       default:
@@ -2025,32 +2010,19 @@ public abstract class AbstractExpressionValueVisitor
       case LESS_THAN:
       case LESS_EQUAL:
         {
-          final boolean result;
-          switch (pBinaryOperator) {
-            case EQUALS:
-              result = (lVal == rVal);
-              break;
-            case NOT_EQUALS:
-              result = (lVal != rVal);
-              break;
-            case GREATER_THAN:
-              result = (lVal > rVal);
-              break;
-            case GREATER_EQUAL:
-              result = (lVal >= rVal);
-              break;
-            case LESS_THAN:
-              result = (lVal < rVal);
-              break;
-            case LESS_EQUAL:
-              result = (lVal <= rVal);
-              break;
-
-            default:
-              throw new AssertionError(
-                  "Unsupported binary operation " + pBinaryOperator + " on floating point values");
-          }
-
+          final boolean result =
+              switch (pBinaryOperator) {
+                case EQUALS -> (lVal == rVal);
+                case NOT_EQUALS -> (lVal != rVal);
+                case GREATER_THAN -> (lVal > rVal);
+                case GREATER_EQUAL -> (lVal >= rVal);
+                case LESS_THAN -> (lVal < rVal);
+                case LESS_EQUAL -> (lVal <= rVal);
+                default -> throw new AssertionError(
+                    "Unsupported binary operation "
+                        + pBinaryOperator
+                        + " on floating point values");
+              };
           // return 1 if expression holds, 0 otherwise
           return BooleanValue.valueOf(result);
         }

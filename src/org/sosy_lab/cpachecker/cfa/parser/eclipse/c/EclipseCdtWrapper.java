@@ -51,16 +51,12 @@ public class EclipseCdtWrapper {
     shutdownNotifier = pShutdownNotifier;
     parserLog = new ShutdownNotifierLogAdapter(shutdownNotifier);
 
-    switch (pOptions.getDialect()) {
-      case C99:
-        language = new CLanguage(new ANSICParserExtensionConfiguration());
-        break;
-      case GNUC:
-        language = GCCLanguage.getDefault();
-        break;
-      default:
-        throw new IllegalArgumentException("Unknown C dialect");
-    }
+    language =
+        switch (pOptions.getDialect()) {
+          case C99 -> new CLanguage(new ANSICParserExtensionConfiguration());
+          case GNUC -> GCCLanguage.getDefault();
+          default -> throw new IllegalArgumentException("Unknown C dialect");
+        };
   }
 
   static FileContent wrapCode(final Path pFileName, final String pCode) {

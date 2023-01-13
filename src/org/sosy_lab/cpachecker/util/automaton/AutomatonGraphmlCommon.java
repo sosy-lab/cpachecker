@@ -637,18 +637,12 @@ public class AutomatonGraphmlCommon {
   }
 
   public static String getArchitecture(MachineModel pMachineModel) {
-    final String architecture;
-    switch (pMachineModel) {
-      case LINUX32:
-        architecture = "32bit";
-        break;
-      case LINUX64:
-        architecture = "64bit";
-        break;
-      default:
-        architecture = pMachineModel.toString();
-        break;
-    }
+    final String architecture =
+        switch (pMachineModel) {
+          case LINUX32 -> "32bit";
+          case LINUX64 -> "64bit";
+          default -> pMachineModel.toString();
+        };
     return architecture;
   }
 

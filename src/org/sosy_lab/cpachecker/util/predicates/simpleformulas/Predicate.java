@@ -46,30 +46,16 @@ public final class Predicate {
   }
 
   public Predicate negate() {
-    Comparison lComparison = null;
-
-    switch (mComparison) {
-      case GREATER_OR_EQUAL:
-        lComparison = Comparison.LESS;
-        break;
-      case GREATER:
-        lComparison = Comparison.LESS_OR_EQUAL;
-        break;
-      case EQUAL:
-        lComparison = Comparison.NOT_EQUAL;
-        break;
-      case LESS_OR_EQUAL:
-        lComparison = Comparison.GREATER;
-        break;
-      case LESS:
-        lComparison = Comparison.GREATER_OR_EQUAL;
-        break;
-      case NOT_EQUAL:
-        lComparison = Comparison.EQUAL;
-        break;
-      default:
-        throw new AssertionError();
-    }
+    Comparison lComparison =
+        switch (mComparison) {
+          case GREATER_OR_EQUAL -> Comparison.LESS;
+          case GREATER -> Comparison.LESS_OR_EQUAL;
+          case EQUAL -> Comparison.NOT_EQUAL;
+          case LESS_OR_EQUAL -> Comparison.GREATER;
+          case LESS -> Comparison.GREATER_OR_EQUAL;
+          case NOT_EQUAL -> Comparison.EQUAL;
+          default -> throw new AssertionError();
+        };
 
     return new Predicate(mLeftTerm, lComparison, mRightTerm);
   }

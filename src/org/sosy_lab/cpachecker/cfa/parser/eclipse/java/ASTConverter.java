@@ -1728,38 +1728,19 @@ class ASTConverter {
 
   @VisibleForTesting
   static Class<?> getClassOfPrimitiveType(JSimpleType pJSimpleType) {
-    Class<?> cls;
-    switch (pJSimpleType.getType()) {
-      case BOOLEAN:
-        cls = boolean.class;
-        break;
-      case CHAR:
-        cls = char.class;
-        break;
-      case DOUBLE:
-        cls = double.class;
-        break;
-      case FLOAT:
-        cls = float.class;
-        break;
-      case INT:
-        cls = int.class;
-        break;
-      case VOID:
-        cls = void.class;
-        break;
-      case LONG:
-        cls = long.class;
-        break;
-      case SHORT:
-        cls = short.class;
-        break;
-      case BYTE:
-        cls = byte.class;
-        break;
-      default:
-        throw new AssertionError("Unknown primitive type " + pJSimpleType);
-    }
+    Class<?> cls =
+        switch (pJSimpleType.getType()) {
+          case BOOLEAN -> boolean.class;
+          case CHAR -> char.class;
+          case DOUBLE -> double.class;
+          case FLOAT -> float.class;
+          case INT -> int.class;
+          case VOID -> void.class;
+          case LONG -> long.class;
+          case SHORT -> short.class;
+          case BYTE -> byte.class;
+          default -> throw new AssertionError("Unknown primitive type " + pJSimpleType);
+        };
     return cls;
   }
 

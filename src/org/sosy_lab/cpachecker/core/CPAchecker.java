@@ -585,54 +585,40 @@ public class CPAchecker {
     logger.log(Level.FINE, "Creating initial reached set");
 
     for (InitialStatesFor isf : initialStatesFor) {
-      final ImmutableSet<? extends CFANode> initialLocations;
-      switch (isf) {
-        case ENTRY:
-          initialLocations = ImmutableSet.of(pAnalysisEntryFunction);
-          break;
-        case EXIT:
-          if (pAnalysisEntryFunction.getExitNode().isEmpty()) {
-            logger.logf(
-                Level.SEVERE,
-                "Cannot use exit node of '%s' because it never returns in a normal way"
-                    + " (because, e.g., it always aborts the program or always executes an obvious"
-                    + " infinite loop)",
-                pAnalysisEntryFunction.getFunction().getOrigName());
-          }
-          initialLocations = Optionals.asSet(pAnalysisEntryFunction.getExitNode());
-          break;
-        case FUNCTION_ENTRIES:
-          initialLocations = ImmutableSet.copyOf(pCfa.getAllFunctionHeads());
-          break;
-        case FUNCTION_SINKS:
-          initialLocations =
-              ImmutableSet.<CFANode>builder()
-                  .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
-                  .addAll(getAllFunctionExitNodes(pCfa))
-                  .build();
-          break;
-        case PROGRAM_SINKS:
-          initialLocations =
-              ImmutableSet.<CFANode>builder()
-                  .addAll(
-                      CFAUtils.getProgramSinks(
-                          pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
-                  .build();
-
-          break;
-        case TARGET:
-          TargetLocationProvider tlp =
-              new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa);
-          initialLocations =
-              tlp.tryGetAutomatonTargetLocations(
+      final ImmutableSet<? extends CFANode> initialLocations =
+          switch (isf) {
+            case ENTRY -> ImmutableSet.of(pAnalysisEntryFunction);
+            case EXIT -> {
+              if (pAnalysisEntryFunction.getExitNode().isEmpty()) {
+                logger.logf(
+                    Level.SEVERE,
+                    "Cannot use exit node of '%s' because it never returns in a normal way"
+                        + " (because, e.g., it always aborts the program or always executes an"
+                        + " obvious infinite loop)",
+                    pAnalysisEntryFunction.getFunction().getOrigName());
+              }
+              yield Optionals.asSet(pAnalysisEntryFunction.getExitNode());
+            }
+            case FUNCTION_ENTRIES -> ImmutableSet.copyOf(pCfa.getAllFunctionHeads());
+            case FUNCTION_SINKS -> ImmutableSet.<CFANode>builder()
+                .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
+                .addAll(getAllFunctionExitNodes(pCfa))
+                .build();
+            case PROGRAM_SINKS -> ImmutableSet.<CFANode>builder()
+                .addAll(
+                    CFAUtils.getProgramSinks(
+                        pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
+                .build();
+            case TARGET -> {
+              TargetLocationProvider tlp =
+                  new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa);
+              yield tlp.tryGetAutomatonTargetLocations(
                   pAnalysisEntryFunction,
                   Specification.fromFiles(
                       backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
-          break;
-        default:
-          throw new AssertionError("Unhandled case statement: " + initialStatesFor);
-      }
-
+            }
+            default -> throw new AssertionError("Unhandled case statement: " + initialStatesFor);
+          };
       addToInitialReachedSet(initialLocations, isf, pReached, pCpa);
     }
 

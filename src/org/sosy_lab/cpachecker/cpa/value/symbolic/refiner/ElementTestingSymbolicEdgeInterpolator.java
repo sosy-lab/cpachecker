@@ -101,22 +101,15 @@ public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInter
             pConfig, pCfa.getVarClassification(), ValueAnalysisCPA.class);
     machineModel = pCfa.getMachineModel();
 
-    switch (strategy) {
-      case ALTERNATING:
-        stateReducers = ImmutableList.of(new ConstraintsFirstReducer(), new ValuesFirstReducer());
-        break;
-      case CONSTRAINTS_FIRST:
-        stateReducers = ImmutableList.of(new ConstraintsFirstReducer());
-        break;
-      case VALUES_FIRST:
-        stateReducers = ImmutableList.of(new ValuesFirstReducer());
-        break;
-      case VALUES_ONLY:
-        stateReducers = ImmutableList.of(new ValuesOnlyReducer());
-        break;
-      default:
-        throw new AssertionError("Unhandled strategy: " + strategy);
-    }
+    stateReducers =
+        switch (strategy) {
+          case ALTERNATING -> ImmutableList.of(
+              new ConstraintsFirstReducer(), new ValuesFirstReducer());
+          case CONSTRAINTS_FIRST -> ImmutableList.of(new ConstraintsFirstReducer());
+          case VALUES_FIRST -> ImmutableList.of(new ValuesFirstReducer());
+          case VALUES_ONLY -> ImmutableList.of(new ValuesOnlyReducer());
+          default -> throw new AssertionError("Unhandled strategy: " + strategy);
+        };
     if (avoidConstraints) {
       stateReducers =
           Collections3.transformedImmutableListCopy(stateReducers, AvoidConstraintsReducer::new);

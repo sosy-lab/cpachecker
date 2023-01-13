@@ -1477,19 +1477,13 @@ public class ValueAnalysisTransferRelation
                   BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(nameOfCalledFunc);
               if (ImmutableList.of(CBasicType.FLOAT, CBasicType.DOUBLE)
                   .contains(paramType.getType())) {
-                final BigDecimal integralPartValue;
-                switch (paramType.getType()) {
-                  case FLOAT:
-                    integralPartValue =
-                        BigDecimal.valueOf((float) ((long) numericValue.floatValue()));
-                    break;
-                  case DOUBLE:
-                    integralPartValue =
-                        BigDecimal.valueOf((double) ((long) numericValue.doubleValue()));
-                    break;
-                  default:
-                    throw new AssertionError("Unsupported float type: " + paramType);
-                }
+                final BigDecimal integralPartValue =
+                    switch (paramType.getType()) {
+                      case FLOAT -> BigDecimal.valueOf((float) ((long) numericValue.floatValue()));
+                      case DOUBLE -> BigDecimal.valueOf(
+                          (double) ((long) numericValue.doubleValue()));
+                      default -> throw new AssertionError("Unsupported float type: " + paramType);
+                    };
                 CFloatLiteralExpression integralPart =
                     new CFloatLiteralExpression(
                         functionCallExpression.getFileLocation(), paramType, integralPartValue);

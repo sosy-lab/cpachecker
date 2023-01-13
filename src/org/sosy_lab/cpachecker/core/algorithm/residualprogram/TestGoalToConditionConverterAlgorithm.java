@@ -83,16 +83,12 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
 
     cfa = pCfa;
 
-    switch (strategy) {
-      case NAIVE:
-        goalFindingStrategy = new LeafGoalStrategy();
-        break;
-      case PROPAGATION:
-        goalFindingStrategy = new LeafGoalWithPropagationStrategy();
-        break;
-      default:
-        throw new InvalidConfigurationException("A strategy must be selected!");
-    }
+    goalFindingStrategy =
+        switch (strategy) {
+          case NAIVE -> new LeafGoalStrategy();
+          case PROPAGATION -> new LeafGoalWithPropagationStrategy();
+          default -> throw new InvalidConfigurationException("A strategy must be selected!");
+        };
     try {
       var backwardsCpaTriple =
           createAlgorithm(

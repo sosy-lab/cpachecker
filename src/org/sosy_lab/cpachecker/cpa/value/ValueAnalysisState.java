@@ -653,17 +653,13 @@ public final class ValueAnalysisState
             }
             result.add(bitvectorFMGR.equal(var, val));
           } else if (simpleType.getType().isFloatingPointType()) {
-            final FloatingPointType fpType;
-            switch (simpleType.getType()) {
-              case FLOAT:
-                fpType = FormulaType.getSinglePrecisionFloatingPointType();
-                break;
-              case DOUBLE:
-                fpType = FormulaType.getDoublePrecisionFloatingPointType();
-                break;
-              default:
-                throw new AssertionError("Unsupported floating point type: " + simpleType);
-            }
+            final FloatingPointType fpType =
+                switch (simpleType.getType()) {
+                  case FLOAT -> FormulaType.getSinglePrecisionFloatingPointType();
+                  case DOUBLE -> FormulaType.getDoublePrecisionFloatingPointType();
+                  default -> throw new AssertionError(
+                      "Unsupported floating point type: " + simpleType);
+                };
             FloatingPointFormula var =
                 floatFMGR.makeVariable(entry.getKey().getExtendedQualifiedName(), fpType);
             FloatingPointFormula val = floatFMGR.makeNumber(num.doubleValue(), fpType);

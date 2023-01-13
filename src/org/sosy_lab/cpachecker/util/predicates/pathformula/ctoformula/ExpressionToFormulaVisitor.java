@@ -269,30 +269,16 @@ public class ExpressionToFormulaVisitor
       case EQUALS:
       case NOT_EQUALS:
         {
-          BooleanFormula result;
-          switch (op) {
-            case GREATER_THAN:
-              result = mgr.makeGreaterThan(f1, f2, signed);
-              break;
-            case GREATER_EQUAL:
-              result = mgr.makeGreaterOrEqual(f1, f2, signed);
-              break;
-            case LESS_THAN:
-              result = mgr.makeLessThan(f1, f2, signed);
-              break;
-            case LESS_EQUAL:
-              result = mgr.makeLessOrEqual(f1, f2, signed);
-              break;
-            case EQUALS:
-              result = handleEquals(exp, f1, f2);
-              break;
-            case NOT_EQUALS:
-              result = conv.bfmgr.not(mgr.makeEqual(f1, f2));
-              break;
-            default:
-              throw new AssertionError();
-          }
-
+          BooleanFormula result =
+              switch (op) {
+                case GREATER_THAN -> mgr.makeGreaterThan(f1, f2, signed);
+                case GREATER_EQUAL -> mgr.makeGreaterOrEqual(f1, f2, signed);
+                case LESS_THAN -> mgr.makeLessThan(f1, f2, signed);
+                case LESS_EQUAL -> mgr.makeLessOrEqual(f1, f2, signed);
+                case EQUALS -> handleEquals(exp, f1, f2);
+                case NOT_EQUALS -> conv.bfmgr.not(mgr.makeEqual(f1, f2));
+                default -> throw new AssertionError();
+              };
           // Here we directly use the returnFormulaType instead of the calculcationType
           // to avoid a useless cast.
           // However, this means that we may not call makeCast() below

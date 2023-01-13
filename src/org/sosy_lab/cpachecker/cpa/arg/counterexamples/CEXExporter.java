@@ -235,18 +235,13 @@ public class CEXExporter {
       pathElements = targetPath.getStateSet();
 
       if (options.getSourceFile() != null) {
-        switch (codeStyle) {
-          case CONCRETE_EXECUTION:
-            pathProgram =
-                PathToConcreteProgramTranslator.translateSinglePath(
-                    targetPath, counterexample.getCFAPathWithAssignments());
-            break;
-          case CBMC:
-            pathProgram = PathToCTranslator.translateSinglePath(targetPath);
-            break;
-          default:
-            throw new AssertionError("Unhandled case statement: " + codeStyle);
-        }
+        pathProgram =
+            switch (codeStyle) {
+              case CONCRETE_EXECUTION -> PathToConcreteProgramTranslator.translateSinglePath(
+                  targetPath, counterexample.getCFAPathWithAssignments());
+              case CBMC -> PathToCTranslator.translateSinglePath(targetPath);
+              default -> throw new AssertionError("Unhandled case statement: " + codeStyle);
+            };
       }
 
     } else {

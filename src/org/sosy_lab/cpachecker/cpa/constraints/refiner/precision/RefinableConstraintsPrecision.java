@@ -37,16 +37,12 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
-    switch (precisionType) {
-      case CONSTRAINTS:
-        delegate = ConstraintBasedConstraintsPrecision.getEmptyPrecision();
-        break;
-      case LOCATION:
-        delegate = LocationBasedConstraintsPrecision.getEmptyPrecision();
-        break;
-      default:
-        throw new AssertionError("Unhandled precision type " + precisionType);
-    }
+    delegate =
+        switch (precisionType) {
+          case CONSTRAINTS -> ConstraintBasedConstraintsPrecision.getEmptyPrecision();
+          case LOCATION -> LocationBasedConstraintsPrecision.getEmptyPrecision();
+          default -> throw new AssertionError("Unhandled precision type " + precisionType);
+        };
   }
 
   private RefinableConstraintsPrecision(final ConstraintsPrecision pDelegate) {

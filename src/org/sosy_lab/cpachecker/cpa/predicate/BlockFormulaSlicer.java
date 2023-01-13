@@ -316,49 +316,26 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
 
   /** This function only forwards to the correct type of edge. */
   private boolean handleEdge(CFAEdge edge, Collection<String> importantVars) {
-
-    final boolean result;
     // check the type of the edge
-    switch (edge.getEdgeType()) {
-
-        // int a;
-      case DeclarationEdge:
-        result = handleDeclaration((CDeclarationEdge) edge, importantVars);
-        break;
-
-        // if (a == b) {...}
-      case AssumeEdge:
-        result = handleAssumption((CAssumeEdge) edge, importantVars);
-        break;
-
-        // a = b + c;
-      case StatementEdge:
-        result = handleStatement((CStatementEdge) edge, importantVars);
-        break;
-
-        // return (x);
-      case ReturnStatementEdge:
-        result = handleReturnStatement((CReturnStatementEdge) edge, importantVars);
-        break;
-
-        // assignment from y = f(x);
-      case FunctionReturnEdge:
-        result = handleFunctionReturn((CFunctionReturnEdge) edge, importantVars);
-        break;
-
-        // call from y = f(x);
-      case FunctionCallEdge:
-        result = handleFunctionCall((CFunctionCallEdge) edge, importantVars);
-        break;
-
-      case BlankEdge:
-        result = IS_BLANK_EDGE_IMPORTANT;
-        break;
-
-      default:
-        throw new AssertionError("unhandled edge: " + edge.getRawStatement());
-    }
-
+    final boolean result =
+        switch (edge.getEdgeType()) {
+            // int a;
+          case DeclarationEdge -> handleDeclaration((CDeclarationEdge) edge, importantVars);
+            // if (a == b) {...}
+          case AssumeEdge -> handleAssumption((CAssumeEdge) edge, importantVars);
+            // a = b + c;
+          case StatementEdge -> handleStatement((CStatementEdge) edge, importantVars);
+            // return (x);
+          case ReturnStatementEdge -> handleReturnStatement(
+              (CReturnStatementEdge) edge, importantVars);
+            // assignment from y = f(x);
+          case FunctionReturnEdge -> handleFunctionReturn(
+              (CFunctionReturnEdge) edge, importantVars);
+            // call from y = f(x);
+          case FunctionCallEdge -> handleFunctionCall((CFunctionCallEdge) edge, importantVars);
+          case BlankEdge -> IS_BLANK_EDGE_IMPORTANT;
+          default -> throw new AssertionError("unhandled edge: " + edge.getRawStatement());
+        };
     return result;
   }
 

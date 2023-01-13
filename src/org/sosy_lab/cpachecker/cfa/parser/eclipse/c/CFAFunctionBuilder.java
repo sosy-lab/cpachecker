@@ -1951,45 +1951,38 @@ class CFAFunctionBuilder extends ASTVisitor {
         buildBinaryExpression(switchExpr, caseExpr, CBinaryExpression.BinaryOperator.EQUALS);
 
     final CExpression exp = astCreator.simplifyExpressionOneStep(binExp);
-    final CFANode nextCaseStartsAtNode;
-    switch (astCreator.getConditionKind(exp)) {
-      case ALWAYS_FALSE:
-        // no edge connecting rootNode with caseNode,
-        // so the "case" branch won't be connected to the rest of the CFA.
-        // also ignore the edge from rootNode to notCaseNode, it is not needed
-        nextCaseStartsAtNode = rootNode;
-        break;
-
-      case ALWAYS_TRUE:
-        final BlankEdge trueEdge =
-            new BlankEdge(
-                "",
-                onlyFirstLine(fileLocation),
+    final CFANode nextCaseStartsAtNode =
+        switch (astCreator.getConditionKind(exp)) {
+            // no edge connecting rootNode with caseNode,
+            // so the "case" branch won't be connected to the rest of the CFA.
+            // also ignore the edge from rootNode to notCaseNode, it is not needed
+          case ALWAYS_FALSE -> rootNode;
+          case ALWAYS_TRUE -> {
+            final BlankEdge trueEdge =
+                new BlankEdge(
+                    "",
+                    onlyFirstLine(fileLocation),
+                    rootNode,
+                    caseNode,
+                    "__case__[" + binExp.toASTString() + "]");
+            addToCFA(trueEdge);
+            yield notCaseNode;
+          }
+          case NORMAL -> {
+            assert ASTOperatorConverter.isBooleanExpression(exp);
+            addConditionEdges(
+                exp.toASTString(),
+                exp,
                 rootNode,
                 caseNode,
-                "__case__[" + binExp.toASTString() + "]");
-        addToCFA(trueEdge);
-        nextCaseStartsAtNode = notCaseNode;
-        break;
-
-      case NORMAL:
-        assert ASTOperatorConverter.isBooleanExpression(exp);
-        addConditionEdges(
-            exp.toASTString(),
-            exp,
-            rootNode,
-            caseNode,
-            notCaseNode,
-            fileLocation,
-            false,
-            ImmutableSet.of());
-        nextCaseStartsAtNode = notCaseNode;
-        break;
-
-      default:
-        throw new AssertionError();
-    }
-
+                notCaseNode,
+                fileLocation,
+                false,
+                ImmutableSet.of());
+            yield notCaseNode;
+          }
+          default -> throw new AssertionError();
+        };
     return nextCaseStartsAtNode;
   }
 

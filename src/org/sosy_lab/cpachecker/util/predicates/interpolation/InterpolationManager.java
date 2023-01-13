@@ -287,28 +287,17 @@ public final class InterpolationManager {
       interpolator = null;
     }
 
-    switch (strategy) {
-      case SEQ_CPACHECKER:
-        itpStrategy = new SequentialInterpolation(pLogger, pShutdownNotifier, fmgr, config);
-        break;
-      case SEQ:
-        itpStrategy = new SequentialInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr);
-        break;
-      case TREE_WELLSCOPED:
-        itpStrategy = new WellScopedInterpolation(pLogger, pShutdownNotifier, fmgr);
-        break;
-      case TREE_NESTED:
-        itpStrategy = new NestedInterpolation(pLogger, pShutdownNotifier, fmgr);
-        break;
-      case TREE_CPACHECKER:
-        itpStrategy = new TreeInterpolation(pLogger, pShutdownNotifier, fmgr);
-        break;
-      case TREE:
-        itpStrategy = new TreeInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr);
-        break;
-      default:
-        throw new AssertionError("unknown interpolation strategy");
-    }
+    itpStrategy =
+        switch (strategy) {
+          case SEQ_CPACHECKER -> new SequentialInterpolation(
+              pLogger, pShutdownNotifier, fmgr, config);
+          case SEQ -> new SequentialInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr);
+          case TREE_WELLSCOPED -> new WellScopedInterpolation(pLogger, pShutdownNotifier, fmgr);
+          case TREE_NESTED -> new NestedInterpolation(pLogger, pShutdownNotifier, fmgr);
+          case TREE_CPACHECKER -> new TreeInterpolation(pLogger, pShutdownNotifier, fmgr);
+          case TREE -> new TreeInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr);
+          default -> throw new AssertionError("unknown interpolation strategy");
+        };
   }
 
   /**

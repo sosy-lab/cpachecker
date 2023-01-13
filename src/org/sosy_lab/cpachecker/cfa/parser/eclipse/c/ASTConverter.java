@@ -1566,16 +1566,12 @@ class ASTConverter {
         // instead of ++x, create "x = x+1"
 
         BinaryOperator preOp;
-        switch (e.getOperator()) {
-          case IASTUnaryExpression.op_prefixIncr:
-            preOp = BinaryOperator.PLUS;
-            break;
-          case IASTUnaryExpression.op_prefixDecr:
-            preOp = BinaryOperator.MINUS;
-            break;
-          default:
-            throw new AssertionError();
-        }
+        preOp =
+            switch (e.getOperator()) {
+              case IASTUnaryExpression.op_prefixIncr -> BinaryOperator.PLUS;
+              case IASTUnaryExpression.op_prefixDecr -> BinaryOperator.MINUS;
+              default -> throw new AssertionError();
+            };
 
         CBinaryExpression preExp =
             buildBinaryExpression(operand, CIntegerLiteralExpression.ONE, preOp);
@@ -1588,16 +1584,12 @@ class ASTConverter {
         // instead of x++ create "x = x + 1"
 
         BinaryOperator postOp;
-        switch (e.getOperator()) {
-          case IASTUnaryExpression.op_postFixIncr:
-            postOp = BinaryOperator.PLUS;
-            break;
-          case IASTUnaryExpression.op_postFixDecr:
-            postOp = BinaryOperator.MINUS;
-            break;
-          default:
-            throw new AssertionError();
-        }
+        postOp =
+            switch (e.getOperator()) {
+              case IASTUnaryExpression.op_postFixIncr -> BinaryOperator.PLUS;
+              case IASTUnaryExpression.op_postFixDecr -> BinaryOperator.MINUS;
+              default -> throw new AssertionError();
+            };
 
         CBinaryExpression postExp =
             buildBinaryExpression(operand, CIntegerLiteralExpression.ONE, postOp);
@@ -2582,18 +2574,13 @@ class ASTConverter {
       list.addAll(newCs);
     }
 
-    ComplexTypeKind kind;
-    switch (d.getKey()) {
-      case IASTCompositeTypeSpecifier.k_struct:
-        kind = ComplexTypeKind.STRUCT;
-        break;
-      case IASTCompositeTypeSpecifier.k_union:
-        kind = ComplexTypeKind.UNION;
-        break;
-      default:
-        throw parseContext.parseError("Unknown key " + d.getKey() + " for composite type", d);
-    }
-
+    ComplexTypeKind kind =
+        switch (d.getKey()) {
+          case IASTCompositeTypeSpecifier.k_struct -> ComplexTypeKind.STRUCT;
+          case IASTCompositeTypeSpecifier.k_union -> ComplexTypeKind.UNION;
+          default -> throw parseContext.parseError(
+              "Unknown key " + d.getKey() + " for composite type", d);
+        };
     String name = convert(d.getName());
     String origName = name;
     if (name.isEmpty()) {

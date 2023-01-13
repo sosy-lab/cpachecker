@@ -218,16 +218,15 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     Set<ARGState> addPragma;
     try {
       statistic.collectPragmaPointsTimer.start();
-      switch (constructionStrategy) {
-        case COMBINATION:
-          addPragma = getAllTargetStates(pReachedSet);
-          break;
-        case SLICING:
-          addPragma = getAllTargetStatesNotFullyExplored(pReachedSet);
-          break;
-        default: // CONDITION, CONDITION_PLUS_FOLD no effect
-          addPragma = null;
-      }
+      addPragma =
+          switch (constructionStrategy) {
+            case COMBINATION:
+              yield getAllTargetStates(pReachedSet);
+            case SLICING:
+              yield getAllTargetStatesNotFullyExplored(pReachedSet);
+            default: // CONDITION, CONDITION_PLUS_FOLD no effect
+              yield null;
+          };
     } finally {
       statistic.collectPragmaPointsTimer.stop();
     }

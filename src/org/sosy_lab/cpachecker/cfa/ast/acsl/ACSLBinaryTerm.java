@@ -94,29 +94,16 @@ public class ACSLBinaryTerm implements ACSLTerm {
 
   public ACSLBinaryTerm flipOperator() {
     assert ACSLBinaryOperator.isComparisonOperator(operator);
-    ACSLBinaryOperator op;
-    switch (operator) {
-      case EQ:
-        op = ACSLBinaryOperator.NEQ;
-        break;
-      case NEQ:
-        op = ACSLBinaryOperator.EQ;
-        break;
-      case LEQ:
-        op = ACSLBinaryOperator.GT;
-        break;
-      case GEQ:
-        op = ACSLBinaryOperator.LT;
-        break;
-      case LT:
-        op = ACSLBinaryOperator.GEQ;
-        break;
-      case GT:
-        op = ACSLBinaryOperator.LEQ;
-        break;
-      default:
-        throw new AssertionError("Unknown BinaryOperator: " + operator);
-    }
+    ACSLBinaryOperator op =
+        switch (operator) {
+          case EQ -> ACSLBinaryOperator.NEQ;
+          case NEQ -> ACSLBinaryOperator.EQ;
+          case LEQ -> ACSLBinaryOperator.GT;
+          case GEQ -> ACSLBinaryOperator.LT;
+          case LT -> ACSLBinaryOperator.GEQ;
+          case GT -> ACSLBinaryOperator.LEQ;
+          default -> throw new AssertionError("Unknown BinaryOperator: " + operator);
+        };
     return new ACSLBinaryTerm(left, right, op);
   }
 

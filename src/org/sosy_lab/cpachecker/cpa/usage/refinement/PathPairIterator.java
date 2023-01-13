@@ -67,18 +67,12 @@ public class PathPairIterator
     super(pWrapper);
     bamCpa = pBamCpa;
 
-    switch (type) {
-      case ARGStateId:
-        idExtractor = ARGState::getStateId;
-        break;
-
-      case CFANodeId:
-        idExtractor = s -> AbstractStates.extractLocation(s).getNodeNumber();
-        break;
-
-      default:
-        throw new InvalidConfigurationException("Unexpexted type " + type);
-    }
+    idExtractor =
+        switch (type) {
+          case ARGStateId -> ARGState::getStateId;
+          case CFANodeId -> s -> AbstractStates.extractLocation(s).getNodeNumber();
+          default -> throw new InvalidConfigurationException("Unexpexted type " + type);
+        };
     targetToPathIterator = new IdentityHashMap<>();
   }
 

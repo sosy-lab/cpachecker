@@ -87,23 +87,11 @@ public class JSimpleType implements JType {
   private JSimpleType(JBasicType pType) {
     type = pType;
 
-    switch (type) {
-      case BOOLEAN:
-        // $FALL-THROUGH$
-      case BYTE:
-        // $FALL-THROUGH$
-      case INT:
-        // $FALL-THROUGH$
-      case SHORT:
-        // $FALL-THROUGH$
-      case FLOAT:
-        // $FALL-THROUGH$
-      case DOUBLE:
-        isPrimitive = true;
-        break;
-      default:
-        isPrimitive = false;
-    }
+    isPrimitive =
+        switch (type) {
+          case BOOLEAN, BYTE, INT, SHORT, FLOAT, DOUBLE -> true;
+          default -> false;
+        };
   }
 
   /**

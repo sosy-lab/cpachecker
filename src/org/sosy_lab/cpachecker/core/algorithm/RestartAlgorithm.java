@@ -398,34 +398,26 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           foundConfig = true;
           Optional<String> condition = configFilesIterator.peek().annotation();
           if (condition.isPresent()) {
-            switch (condition.orElseThrow()) {
-              case "if-interrupted":
-                foundConfig = lastAnalysisInterrupted;
-                break;
-              case "if-failed":
-                foundConfig = lastAnalysisFailed;
-                break;
-              case "if-terminated":
-                foundConfig = lastAnalysisTerminated;
-                break;
-              case "if-recursive":
-                foundConfig = recursionFound;
-                break;
-              case "if-concurrent":
-                foundConfig = concurrencyFound;
-                break;
-              case "use-reached":
-                provideReachedForNextAlgorithm = true;
-                foundConfig = true;
-                break;
-              default:
-                logger.logf(
-                    Level.WARNING,
-                    "Ignoring invalid restart condition '%s' for file %s.",
-                    condition.orElseThrow(),
-                    configFilesIterator.peek().value());
-                foundConfig = true;
-            }
+            foundConfig =
+                switch (condition.orElseThrow()) {
+                  case "if-interrupted" -> lastAnalysisInterrupted;
+                  case "if-failed" -> lastAnalysisFailed;
+                  case "if-terminated" -> lastAnalysisTerminated;
+                  case "if-recursive" -> recursionFound;
+                  case "if-concurrent" -> concurrencyFound;
+                  case "use-reached" -> {
+                    provideReachedForNextAlgorithm = true;
+                    yield true;
+                  }
+                  default -> {
+                    logger.logf(
+                        Level.WARNING,
+                        "Ignoring invalid restart condition '%s' for file %s.",
+                        condition.orElseThrow(),
+                        configFilesIterator.peek().value());
+                    yield true;
+                  }
+                };
             if (!foundConfig) {
               logger.logf(
                   Level.INFO,

@@ -1043,20 +1043,14 @@ public class CFACreator {
       CFANode n = new CFANode(cur.getFunction());
       cfa.addNode(n);
 
-      final CFAEdge newEdge;
-      switch (cfa.getLanguage()) {
-        case C:
-          newEdge =
-              new CDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
-          break;
-        case JAVA:
-          newEdge =
-              new JDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (JDeclaration) d);
-          break;
-        default:
-          throw new AssertionError("unknown language");
-      }
-
+      final CFAEdge newEdge =
+          switch (cfa.getLanguage()) {
+            case C -> new CDeclarationEdge(
+                rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
+            case JAVA -> new JDeclarationEdge(
+                rawSignature, d.getFileLocation(), cur, n, (JDeclaration) d);
+            default -> throw new AssertionError("unknown language");
+          };
       CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
       cur = n;
     }
