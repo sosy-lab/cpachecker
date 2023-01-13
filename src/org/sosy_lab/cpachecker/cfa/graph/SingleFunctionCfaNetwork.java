@@ -103,4 +103,9 @@ final class SingleFunctionCfaNetwork extends AbstractCfaNetwork {
   public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
     return EndpointPair.ordered(pEdge.getPredecessor(), pEdge.getSuccessor());
   }
+
+  @Override
+  public Set<FunctionEntryNode> entryNodes() {
+    return ImmutableSet.of(functionEntryNode);
+  }
 }
