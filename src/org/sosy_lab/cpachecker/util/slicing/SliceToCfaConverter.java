@@ -77,7 +77,6 @@ final class SliceToCfaConverter implements CfaTransformer {
   }
 
   static CfaTransformer forProgramSlice(Slice pSlice) {
-
     // determine functions that are part of the specified slice
     ImmutableMap<AFunctionDeclaration, FunctionEntryNode> relevantFunctions =
         pSlice.getRelevantEdges().stream()
@@ -109,7 +108,6 @@ final class SliceToCfaConverter implements CfaTransformer {
    * not part of the slice.
    */
   private static boolean isReplaceableEdge(CFAEdge pEdge) {
-
     // Replacing function call/return edges leads to invalid CFAs.
     // Irrelevant assume edges are replaced during CFA simplification, which requires assume edges
     // instead of blank edges to work properly.
@@ -132,7 +130,6 @@ final class SliceToCfaConverter implements CfaTransformer {
    * meaningful purpose in the specified {@link CfaNetwork}.
    */
   private boolean isIrrelevantNode(CfaNetwork pGraph, CFANode pNode) {
-
     if (pNode instanceof FunctionExitNode) {
       return !relevantFunctions.containsKey(pNode.getFunction());
     }
@@ -146,7 +143,6 @@ final class SliceToCfaConverter implements CfaTransformer {
       CfaMetadata pCfaMetadata,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier) {
-
     ImmutableSet<CFAEdge> relevantEdges = slice.getRelevantEdges();
 
     FlexCfaNetwork graph = FlexCfaNetwork.copy(pCfaNetwork);
@@ -258,7 +254,6 @@ final class SliceToCfaConverter implements CfaTransformer {
 
     @Override
     public CAstNode visit(CFunctionDeclaration pFunctionDeclaration) {
-
       @Nullable FunctionEntryNode entryNode = relevantFunctions.get(pFunctionDeclaration);
       // If a function lacks a corresponding function entry node, the function is defined somewhere
       // else and we cannot change the declaration.
@@ -320,7 +315,6 @@ final class SliceToCfaConverter implements CfaTransformer {
 
     @Override
     public CAstNode visit(CVariableDeclaration pVariableDeclaration) {
-
       MemoryLocation memoryLocation = MemoryLocation.forDeclaration(pVariableDeclaration);
       CInitializer initializer = pVariableDeclaration.getInitializer();
 
@@ -345,7 +339,6 @@ final class SliceToCfaConverter implements CfaTransformer {
 
     @Override
     public CAstNode visit(CFunctionCallExpression pFunctionCallExpression) {
-
       ImmutableSet<ASimpleDeclaration> relevantDeclarations = slice.getRelevantDeclarations();
       CFunctionDeclaration functionDeclaration = pFunctionCallExpression.getDeclaration();
 
@@ -421,7 +414,6 @@ final class SliceToCfaConverter implements CfaTransformer {
 
     @Override
     public CAstNode visit(CFunctionCallAssignmentStatement pFunctionCallAssignmentStatement) {
-
       CFunctionCallExpression relevantFunctionCallExpression =
           (CFunctionCallExpression)
               pFunctionCallAssignmentStatement.getRightHandSide().accept(this);
