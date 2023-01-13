@@ -54,7 +54,7 @@ public final class DOTBuilder {
     DotGenerator dotGenerator = new DotGenerator(cfa, formatNodeLabel);
     CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), dotGenerator);
 
-    sb.append("digraph " + "CFA" + " {\n");
+    sb.append("digraph CFA {\n");
 
     JOINER_ON_NEWLINE.appendTo(sb, dotGenerator.nodes);
     sb.append('\n');

@@ -448,7 +448,7 @@ public class CtoFormulaConverter {
       } else {
         logger.logf(
             Level.FINEST,
-            "Variable %s was found with multiple types!" + " (Type1: %s, Type2: %s)",
+            "Variable %s was found with multiple types! (Type1: %s, Type2: %s)",
             name,
             t,
             type);
@@ -1500,7 +1500,7 @@ public class CtoFormulaConverter {
     if (fn.getFunctionDefinition().getType().takesVarArgs()) {
       if (formalParams.size() > actualParams.size()) {
         throw new UnrecognizedCodeException(
-            "Number of parameters on function call does " + "not match function definition", edge);
+            "Number of parameters on function call does not match function definition", edge);
       }
 
       if (!SAFE_VAR_ARG_FUNCTIONS.contains(fn.getFunctionName())) {
@@ -1514,7 +1514,7 @@ public class CtoFormulaConverter {
     } else {
       if (formalParams.size() != actualParams.size()) {
         throw new UnrecognizedCodeException(
-            "Number of parameters on function call does " + "not match function definition", edge);
+            "Number of parameters on function call does not match function definition", edge);
       }
     }
 

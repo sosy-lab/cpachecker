@@ -199,7 +199,7 @@ public final class StackFrame {
       }
     }
     if (returnValueObject.isPresent()) {
-      builder.append(" return object:" + " -> " + returnValueObject.orElseThrow() + "  ");
+      builder.append(" return object: -> " + returnValueObject.orElseThrow() + "  ");
     }
     return builder.toString();
   }

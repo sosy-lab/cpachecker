@@ -459,36 +459,36 @@ public class CustomInstruction {
     switch (ciEdge.getEdgeType()) {
       case BlankEdge:
         // no additional check needed.
-        return;
+        break;
       case AssumeEdge:
         compareAssumeEdge((CAssumeEdge) ciEdge, (CAssumeEdge) aciEdge, ciVarToAciVar);
-        return;
+        break;
       case StatementEdge:
         compareStatementEdge(
             (CStatementEdge) ciEdge, (CStatementEdge) aciEdge, ciVarToAciVar, outVariables);
-        return;
+        break;
       case DeclarationEdge:
         compareDeclarationEdge(
             (CDeclarationEdge) ciEdge, (CDeclarationEdge) aciEdge, ciVarToAciVar, outVariables);
-        return;
+        break;
       case ReturnStatementEdge:
         compareReturnStatementEdge(
             (CReturnStatementEdge) ciEdge, (CReturnStatementEdge) aciEdge, ciVarToAciVar);
-        return;
+        break;
       case FunctionCallEdge:
         compareFunctionCallEdge(
             (CFunctionCallEdge) ciEdge, (CFunctionCallEdge) aciEdge, ciVarToAciVar);
-        return;
+        break;
       case FunctionReturnEdge:
         // no additional check needed.
-        return;
+        break;
       case CallToReturnEdge:
         compareStatementsOfStatementEdge(
             ((CFunctionSummaryEdge) ciEdge).getExpression(),
             ((CFunctionSummaryEdge) aciEdge).getExpression(),
             ciVarToAciVar,
             outVariables);
-        return;
+        break;
       default:
         throw new AssertionError("Unhandeled enum value in switch: " + ciEdge.getEdgeType());
     }
