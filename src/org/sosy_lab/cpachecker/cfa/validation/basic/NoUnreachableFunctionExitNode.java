@@ -1,0 +1,47 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cfa.validation.basic;
+
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.validation.AbstractCfaValidator;
+import org.sosy_lab.cpachecker.cfa.validation.CfaValidationResult;
+import org.sosy_lab.cpachecker.cfa.validation.CfaValidator;
+
+/**
+ * This check ensures that there are no function entry nodes that have references to unreachable
+ * function exit nodes (i.e., function exit nodes that have no entering edges and aren't part of the
+ * CFA).
+ */
+public final class NoUnreachableFunctionExitNode extends AbstractCfaValidator {
+
+  public static final CfaValidator INSTANCE = new NoUnreachableFunctionExitNode();
+
+  private NoUnreachableFunctionExitNode() {
+    super(NoUnreachableFunctionExitNode::new);
+  }
+
+  @Override
+  protected CfaValidationResult checkNode(CFANode pNode) {
+    if (pNode instanceof FunctionEntryNode) {
+      Optional<FunctionExitNode> optExitNode = ((FunctionEntryNode) pNode).getExitNode();
+      if (optExitNode.isPresent()) {
+        FunctionExitNode exitNode = optExitNode.orElseThrow();
+        if (exitNode.getNumEnteringEdges() == 0) {
+          return fail(
+              "Function entry node '%s' has reference to unreachable function exit node '%s'"
+                  .formatted(pNode, exitNode));
+        }
+      }
+    }
+    return pass();
+  }
+}
