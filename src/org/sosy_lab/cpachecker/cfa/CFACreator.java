@@ -322,9 +322,11 @@ public class CFACreator {
   private final Parser parser;
   private final ShutdownNotifier shutdownNotifier;
   private static final String EXAMPLE_JAVA_METHOD_NAME =
-      "Please note that a method has to be given in the following notation:\n <ClassName>_"
-          + "<MethodName>_<ParameterTypes>.\nExample: pack1.Car_drive_int_Car\n"
-          + "for the method drive(int speed, Car car) in the class Car.";
+      """
+      Please note that a method has to be given in the following notation:
+      <ClassName>_<MethodName>_<ParameterTypes>.
+      Example: pack1.Car_drive_int_Car
+      for the method drive(int speed, Car car) in the class Car.""";
 
   private static class CFACreatorStatistics implements Statistics {
 
