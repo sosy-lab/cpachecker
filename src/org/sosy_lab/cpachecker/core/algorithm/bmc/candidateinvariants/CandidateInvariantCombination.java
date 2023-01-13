@@ -116,8 +116,7 @@ public class CandidateInvariantCombination {
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof GenericCombination) {
-        GenericCombination other = (GenericCombination) pOther;
+      if (pOther instanceof GenericCombination other) {
         return conjunction == other.conjunction
             && operands.equals(((GenericCombination) pOther).operands);
       }

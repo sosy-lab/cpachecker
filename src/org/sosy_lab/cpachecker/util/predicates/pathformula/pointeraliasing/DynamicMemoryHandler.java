@@ -413,8 +413,7 @@ class DynamicMemoryHandler {
    * @param type The type of the composite type.
    */
   private void addAllFields(final CType type) {
-    if (type instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) type;
+    if (type instanceof CCompositeType compositeType) {
       for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         if (conv.isRelevantField(compositeType, memberDeclaration)) {
           pts.addField(CompositeField.of(compositeType, memberDeclaration));

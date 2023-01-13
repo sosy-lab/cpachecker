@@ -306,8 +306,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof EpsilonMatch) {
-        EpsilonMatch other = (EpsilonMatch) o;
+      if (o instanceof EpsilonMatch other) {
         return expr.equals(other.expr)
             && forward == other.forward
             && continueAtBranching == other.continueAtBranching;
@@ -347,8 +346,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       CFAEdge edge = pArgs.getCfaEdge();
       if (edge instanceof AStatementEdge) {
         AStatement statement = ((AStatementEdge) edge).getStatement();
-        if (statement instanceof AFunctionCall) {
-          AFunctionCall functionCall = (AFunctionCall) statement;
+        if (statement instanceof AFunctionCall functionCall) {
           AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
           if (functionCallExpression.getFunctionNameExpression() instanceof AIdExpression) {
             AIdExpression idExpression =
@@ -463,8 +461,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof MatchFunctionPointerAssumeCase) {
-        MatchFunctionPointerAssumeCase other = (MatchFunctionPointerAssumeCase) pOther;
+      if (pOther instanceof MatchFunctionPointerAssumeCase other) {
         return matchAssumeCase.equals(other.matchAssumeCase)
             && matchFunctionCall.equals(other.matchFunctionCall);
       }
@@ -496,13 +493,11 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
-      if (edge instanceof FunctionReturnEdge) {
-        FunctionReturnEdge returnEdge = (FunctionReturnEdge) edge;
+      if (edge instanceof FunctionReturnEdge returnEdge) {
         if (returnEdge.getPredecessor().getFunction().getOrigName().equals(functionName)) {
           return CONST_TRUE;
         }
-      } else if (edge instanceof AReturnStatementEdge) {
-        AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) edge;
+      } else if (edge instanceof AReturnStatementEdge returnStatementEdge) {
         if (returnStatementEdge.getSuccessor().getFunction().getOrigName().equals(functionName)) {
           return CONST_TRUE;
         }
@@ -915,8 +910,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         throws CPATransferException {
       CFAEdge edge = pArgs.getCfaEdge();
       Iterable<CFAEdge> leavingEdges = CFAUtils.leavingEdges(edge.getSuccessor());
-      if (edge instanceof FunctionCallEdge) {
-        FunctionCallEdge callEdge = (FunctionCallEdge) edge;
+      if (edge instanceof FunctionCallEdge callEdge) {
         if (callEdge.getSummaryEdge() != null) {
           FunctionSummaryEdge summaryEdge = callEdge.getSummaryEdge();
           AFunctionCall call = summaryEdge.getExpression();
@@ -1050,8 +1044,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof MatchLocationDescriptor) {
-        MatchLocationDescriptor other = (MatchLocationDescriptor) pOther;
+      if (pOther instanceof MatchLocationDescriptor other) {
         return mainEntry.equals(other.mainEntry) && matchDescriptor.equals(other.matchDescriptor);
       }
       return false;
@@ -1160,8 +1153,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
       LogManager logger = pArgs.getLogger();
       for (AbstractState ae : pArgs.getAbstractStates()) {
-        if (ae instanceof AbstractQueryableState) {
-          AbstractQueryableState aqe = (AbstractQueryableState) ae;
+        if (ae instanceof AbstractQueryableState aqe) {
           if (aqe.getCPAName().equals(cpaName)) {
             try {
               Object result = aqe.evaluateProperty(modifiedQueryString);
@@ -1232,8 +1224,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object pOther) {
-      if (pOther instanceof CPAQuery) {
-        CPAQuery other = (CPAQuery) pOther;
+      if (pOther instanceof CPAQuery other) {
         return cpaName.equals(other.cpaName) && queryString.equals(other.queryString);
       }
       return false;
@@ -1343,8 +1334,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       if (this == o) {
         return true;
       }
-      if (o instanceof IntBinaryTest) {
-        IntBinaryTest other = (IntBinaryTest) o;
+      if (o instanceof IntBinaryTest other) {
         return a.equals(other.a) && b.equals(other.b) && repr.equals(other.repr);
       }
       return false;
@@ -1545,8 +1535,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       if (this == o) {
         return true;
       }
-      if (o instanceof BoolBinaryTest) {
-        BoolBinaryTest other = (BoolBinaryTest) o;
+      if (o instanceof BoolBinaryTest other) {
         return a.equals(other.a) && b.equals(other.b) && repr.equals(other.repr);
       }
       return false;

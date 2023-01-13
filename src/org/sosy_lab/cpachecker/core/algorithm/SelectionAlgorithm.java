@@ -85,8 +85,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
             if (edge.getStatement() instanceof AFunctionCall) {
               final AFunctionCall call = (AFunctionCall) edge.getStatement();
               final AExpression exp = call.getFunctionCallExpression().getFunctionNameExpression();
-              if (exp instanceof AIdExpression) {
-                final AIdExpression id = (AIdExpression) exp;
+              if (exp instanceof AIdExpression id) {
                 functionNames.add(id.getName());
               }
             }
@@ -106,21 +105,18 @@ public class SelectionAlgorithm extends NestingAlgorithm {
                 type = ((CType) type).getCanonicalType();
               }
               if (visitedTypes.add(type)) {
-                if (type instanceof CCompositeType) {
-                  CCompositeType compositeType = (CCompositeType) type;
+                if (type instanceof CCompositeType compositeType) {
                   for (CCompositeTypeMemberDeclaration member : compositeType.getMembers()) {
                     types.offer(member.getType());
                   }
                 }
                 if (type instanceof CArrayType || type instanceof JArrayType) {
                   arrayVariables.add(declaration.getQualifiedName());
-                } else if (type instanceof CSimpleType) {
-                  CSimpleType simpleType = (CSimpleType) type;
+                } else if (type instanceof CSimpleType simpleType) {
                   if (simpleType.getType().isFloatingPointType()) {
                     floatVariables.add(declaration.getQualifiedName());
                   }
-                } else if (type instanceof JSimpleType) {
-                  JSimpleType simpleType = (JSimpleType) type;
+                } else if (type instanceof JSimpleType simpleType) {
                   if (simpleType.getType().isFloatingPointType()) {
                     floatVariables.add(declaration.getQualifiedName());
                   }

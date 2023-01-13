@@ -601,8 +601,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   protected static Pair<AExpression, Boolean> simplifyAssumption(
       AExpression pExpression, boolean pAssumeTruth) {
     if (isBooleanExpression(pExpression)) {
-      if (pExpression instanceof CBinaryExpression) {
-        CBinaryExpression binExp = (CBinaryExpression) pExpression;
+      if (pExpression instanceof CBinaryExpression binExp) {
         BinaryOperator operator = binExp.getOperator();
         if (isBooleanExpression(binExp.getOperand1())
             && binExp.getOperand2().equals(CIntegerLiteralExpression.ZERO)) {

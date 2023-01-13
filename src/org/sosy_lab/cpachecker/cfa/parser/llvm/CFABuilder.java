@@ -1211,9 +1211,7 @@ public class CFABuilder {
     if (pItem.isConstantInt()) {
       BigInteger constantValue = BigInteger.valueOf(pItem.constIntGetSExtValue());
 
-      if (pExpectedType instanceof CSimpleType) {
-        CSimpleType castType = (CSimpleType) pExpectedType;
-
+      if (pExpectedType instanceof CSimpleType castType) {
         if (castType.getType().equals(CBasicType.INT)) {
           assert machineModel.getMinimalIntegerValue(castType).compareTo(constantValue) <= 0;
           assert machineModel.getMaximalIntegerValue(castType).compareTo(constantValue) >= 0;

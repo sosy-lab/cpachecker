@@ -457,9 +457,7 @@ public class ValueAnalysisTransferRelation
     }
 
     // expression is an assignment operation, e.g. a = g(b);
-    if (exprOnSummary instanceof AFunctionCallAssignmentStatement) {
-      AFunctionCallAssignmentStatement assignExp =
-          ((AFunctionCallAssignmentStatement) exprOnSummary);
+    if (exprOnSummary instanceof AFunctionCallAssignmentStatement assignExp) {
       AExpression op1 = assignExp.getLeftHandSide();
 
       // we expect left hand side of the expression to be a variable
@@ -474,9 +472,7 @@ public class ValueAnalysisTransferRelation
 
       // We have to handle Java arrays in a special way, because they are stored as ArrayValue
       // objects
-      if (op1 instanceof JArraySubscriptExpression) {
-        JArraySubscriptExpression arraySubscriptExpression = (JArraySubscriptExpression) op1;
-
+      if (op1 instanceof JArraySubscriptExpression arraySubscriptExpression) {
         ArrayValue assignedArray = getInnerMostArray(arraySubscriptExpression);
         OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
 
@@ -582,9 +578,7 @@ public class ValueAnalysisTransferRelation
     ValueAnalysisState newState = ValueAnalysisState.copyOf(state);
     AFunctionCall functionCall = cfaEdge.getExpression();
 
-    if (functionCall instanceof AFunctionCallAssignmentStatement) {
-      AFunctionCallAssignmentStatement assignment =
-          ((AFunctionCallAssignmentStatement) functionCall);
+    if (functionCall instanceof AFunctionCallAssignmentStatement assignment) {
       AExpression leftHandSide = assignment.getLeftHandSide();
 
       if (leftHandSide instanceof CLeftHandSide) {
@@ -832,8 +826,7 @@ public class ValueAnalysisTransferRelation
   protected ValueAnalysisState handleStatementEdge(AStatementEdge cfaEdge, AStatement expression)
       throws UnrecognizedCodeException {
 
-    if (expression instanceof CFunctionCall) {
-      CFunctionCall functionCall = (CFunctionCall) expression;
+    if (expression instanceof CFunctionCall functionCall) {
       CFunctionCallExpression functionCallExp = functionCall.getFunctionCallExpression();
       CExpression fn = functionCallExp.getFunctionNameExpression();
 
@@ -971,8 +964,7 @@ public class ValueAnalysisTransferRelation
         if (memLoc != null) {
           return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
         }
-      } else if (op1 instanceof JArraySubscriptExpression) {
-        JArraySubscriptExpression arrayExpression = (JArraySubscriptExpression) op1;
+      } else if (op1 instanceof JArraySubscriptExpression arrayExpression) {
         ExpressionValueVisitor evv = getVisitor();
 
         ArrayValue arrayToChange = getInnerMostArray(arrayExpression);
@@ -1230,8 +1222,7 @@ public class ValueAnalysisTransferRelation
 
     JExpression enclosingExpression = pArraySubscriptExpression.getArrayExpression();
 
-    if (enclosingExpression instanceof JIdExpression) {
-      JIdExpression idExpression = (JIdExpression) enclosingExpression;
+    if (enclosingExpression instanceof JIdExpression idExpression) {
       MemoryLocation memLoc = getMemoryLocation(idExpression);
       Value unknownValue = UnknownValue.getInstance();
 
@@ -1447,8 +1438,7 @@ public class ValueAnalysisTransferRelation
       ARightHandSide pRightHandSide, PointerState pPointerState, ValueAnalysisState pState)
       throws UnrecognizedCodeException, AssertionError {
     ValueAnalysisState newState = pState;
-    if (pRightHandSide instanceof AFunctionCallExpression) {
-      AFunctionCallExpression functionCallExpression = (AFunctionCallExpression) pRightHandSide;
+    if (pRightHandSide instanceof AFunctionCallExpression functionCallExpression) {
       AExpression nameExpressionOfCalledFunc = functionCallExpression.getFunctionNameExpression();
       if (nameExpressionOfCalledFunc instanceof AIdExpression) {
         String nameOfCalledFunc = ((AIdExpression) nameExpressionOfCalledFunc).getName();
@@ -1525,9 +1515,7 @@ public class ValueAnalysisTransferRelation
     Type type = pTargetType;
     boolean shouldAssign = false;
 
-    if (target == null && pLeftHandSide instanceof CPointerExpression) {
-      CPointerExpression pointerExpression = (CPointerExpression) pLeftHandSide;
-
+    if (target == null && pLeftHandSide instanceof CPointerExpression pointerExpression) {
       LocationSet directLocation =
           PointerTransferRelation.asLocations(pointerExpression, pPointerInfo);
 
@@ -1535,16 +1523,14 @@ public class ValueAnalysisTransferRelation
         CExpression addressExpression = pointerExpression.getOperand();
         LocationSet indirectLocation =
             PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
-        if (indirectLocation instanceof ExplicitLocationSet) {
-          ExplicitLocationSet explicitSet = (ExplicitLocationSet) indirectLocation;
+        if (indirectLocation instanceof ExplicitLocationSet explicitSet) {
           if (explicitSet.getSize() == 1) {
             MemoryLocation variable = explicitSet.iterator().next();
             directLocation = pPointerInfo.getPointsToSet(variable);
           }
         }
       }
-      if (directLocation instanceof ExplicitLocationSet) {
-        ExplicitLocationSet explicitDirectLocation = (ExplicitLocationSet) directLocation;
+      if (directLocation instanceof ExplicitLocationSet explicitDirectLocation) {
         Iterator<MemoryLocation> locationIterator = explicitDirectLocation.iterator();
         MemoryLocation otherVariable = locationIterator.next();
         if (!locationIterator.hasNext()) {
@@ -1567,15 +1553,13 @@ public class ValueAnalysisTransferRelation
 
       LocationSet fullSet = PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
 
-      if (fullSet instanceof ExplicitLocationSet) {
-        ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;
+      if (fullSet instanceof ExplicitLocationSet explicitSet) {
         if (explicitSet.getSize() == 1) {
           MemoryLocation variable = explicitSet.iterator().next();
           CType variableType = rhs.getExpressionType().getCanonicalType();
           LocationSet pointsToSet = pPointerInfo.getPointsToSet(variable);
 
-          if (pointsToSet instanceof ExplicitLocationSet) {
-            ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
+          if (pointsToSet instanceof ExplicitLocationSet explicitPointsToSet) {
             Iterator<MemoryLocation> pointsToIterator = explicitPointsToSet.iterator();
             MemoryLocation otherVariableLocation = pointsToIterator.next();
             if (!pointsToIterator.hasNext() && pValueState.contains(otherVariableLocation)) {

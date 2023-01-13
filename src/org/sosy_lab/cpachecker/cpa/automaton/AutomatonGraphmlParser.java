@@ -1757,8 +1757,7 @@ public class AutomatonGraphmlParser {
     if (pResultFunction.isPresent()) {
       return pResultFunction;
     }
-    if (pScope instanceof CProgramScope) {
-      CProgramScope functionScope = (CProgramScope) pScope;
+    if (pScope instanceof CProgramScope functionScope) {
       if (!functionScope.isGlobalScope()) {
         return Optional.of(functionScope.getCurrentFunctionName());
       }

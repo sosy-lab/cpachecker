@@ -353,8 +353,7 @@ public class CPAchecker {
       }
 
       reached = factory.createReachedSet(cpa);
-      if (algorithm instanceof ImpactAlgorithm) {
-        ImpactAlgorithm mcmillan = (ImpactAlgorithm) algorithm;
+      if (algorithm instanceof ImpactAlgorithm mcmillan) {
         reached.add(
             mcmillan.getInitialState(cfa.getMainFunction()),
             mcmillan.getInitialPrecision(cfa.getMainFunction()));

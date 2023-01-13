@@ -637,8 +637,7 @@ public final class ValueAnalysisState
       if (num != null) {
         MemoryLocation memoryLocation = entry.getKey();
         Type type = entry.getValue().getType();
-        if (!memoryLocation.isReference() && type instanceof CSimpleType) {
-          CSimpleType simpleType = (CSimpleType) type;
+        if (!memoryLocation.isReference() && type instanceof CSimpleType simpleType) {
           if (simpleType.getType().isIntegerType()) {
             int bitSize = machineModel.getSizeof(simpleType) * machineModel.getSizeofCharInBits();
             BitvectorFormula var =
@@ -808,9 +807,8 @@ public final class ValueAnalysisState
         Type type = entry.getValue().getType();
         if (!memoryLocation.isReference()
             && memoryLocation.isOnFunctionStack(pFunctionScope.getFunctionName())
-            && type instanceof CType
+            && type instanceof CType cType
             && CTypes.isArithmeticType((CType) type)) {
-          CType cType = (CType) type;
           if (cType instanceof CBitFieldType) {
             cType = ((CBitFieldType) cType).getType();
           }
@@ -852,8 +850,7 @@ public final class ValueAnalysisState
               } else {
                 throw new AssertionError("Unexpected type: " + simpleType);
               }
-            } else if (cType instanceof CEnumType) {
-              CEnumType enumType = (CEnumType) cType;
+            } else if (cType instanceof CEnumType enumType) {
               Long value = num.getNumber().longValue();
               for (CEnumerator enumerator : enumType.getEnumerators()) {
                 if (enumerator.getValue() == value) {

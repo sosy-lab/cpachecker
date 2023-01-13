@@ -45,8 +45,7 @@ public class CBitFieldType implements CType {
 
   private CType checkType(CType pBitFieldType) {
     CType canonicalType = pBitFieldType.getCanonicalType();
-    if (canonicalType instanceof CSimpleType) {
-      CSimpleType simpleType = (CSimpleType) canonicalType;
+    if (canonicalType instanceof CSimpleType simpleType) {
       CBasicType basicType = simpleType.getType();
       switch (basicType) {
         case BOOL:
@@ -58,8 +57,7 @@ public class CBitFieldType implements CType {
       }
     } else if (canonicalType instanceof CEnumType) {
       return pBitFieldType;
-    } else if (canonicalType instanceof CElaboratedType) {
-      CElaboratedType elaboratedType = (CElaboratedType) canonicalType;
+    } else if (canonicalType instanceof CElaboratedType elaboratedType) {
       if (elaboratedType.getKind() == ComplexTypeKind.ENUM) {
         return pBitFieldType;
       }
@@ -148,8 +146,7 @@ public class CBitFieldType implements CType {
     if (pObj == this) {
       return true;
     }
-    if (pObj instanceof CBitFieldType) {
-      CBitFieldType other = (CBitFieldType) pObj;
+    if (pObj instanceof CBitFieldType other) {
       return bitFieldSize == other.bitFieldSize && type.equals(other.type);
     }
     return false;

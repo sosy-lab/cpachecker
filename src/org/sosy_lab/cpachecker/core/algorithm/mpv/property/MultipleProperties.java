@@ -140,8 +140,7 @@ public final class MultipleProperties {
       for (AbstractState state : ((AbstractWrapperState) targetState).getWrappedStates()) {
         builder.addAll(determineViolatedProperties(state));
       }
-    } else if (targetState instanceof AutomatonState) {
-      AutomatonState automatonState = (AutomatonState) targetState;
+    } else if (targetState instanceof AutomatonState automatonState) {
       if (automatonState.isTarget()) {
         for (AbstractSingleProperty property : properties) {
           if (property.isTarget(automatonState)) {

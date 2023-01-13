@@ -178,8 +178,7 @@ public class StatementContract implements ACSLAnnotation {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof StatementContract) {
-      StatementContract other = (StatementContract) obj;
+    if (obj instanceof StatementContract other) {
       return requiresClause.equals(other.requiresClause)
           && ensuresClause.equals(other.ensuresClause)
           && enclosingBehaviors.equals(other.enclosingBehaviors)

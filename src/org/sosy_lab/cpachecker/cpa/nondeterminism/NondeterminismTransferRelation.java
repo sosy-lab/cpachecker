@@ -95,8 +95,7 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
   private static NondeterminismNonAbstractionState handleDeclaration(
       NondeterminismNonAbstractionState pState, ADeclarationEdge pEdge) {
     ADeclaration declaration = pEdge.getDeclaration();
-    if (declaration instanceof AVariableDeclaration) {
-      AVariableDeclaration variableDeclaration = (AVariableDeclaration) declaration;
+    if (declaration instanceof AVariableDeclaration variableDeclaration) {
       if (variableDeclaration.getInitializer() != null) {
         AInitializer initializer = variableDeclaration.getInitializer();
         return handleAssignment(pState, declaration.getQualifiedName(), getVariables(initializer));
@@ -111,25 +110,20 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
     if (statement instanceof AExpressionStatement) {
       return pState;
     }
-    if (statement instanceof AAssignment) {
-      AAssignment assignment = (AAssignment) statement;
+    if (statement instanceof AAssignment assignment) {
       ALeftHandSide lhs = assignment.getLeftHandSide();
       if (!(lhs instanceof AIdExpression)) {
         // Unhandled left-hand side
         return new NondeterminismNonAbstractionState();
       }
       String lhsVariable = ((AIdExpression) lhs).getDeclaration().getQualifiedName();
-      if (assignment instanceof AExpressionAssignmentStatement) {
-        AExpressionAssignmentStatement exprAssignment = (AExpressionAssignmentStatement) assignment;
+      if (assignment instanceof AExpressionAssignmentStatement exprAssignment) {
         return handleAssignment(pState, lhsVariable, exprAssignment.getRightHandSide());
       }
-      if (assignment instanceof AFunctionCallAssignmentStatement) {
-        AFunctionCallAssignmentStatement callAssignment =
-            (AFunctionCallAssignmentStatement) assignment;
+      if (assignment instanceof AFunctionCallAssignmentStatement callAssignment) {
         AFunctionCallExpression callExpression = callAssignment.getRightHandSide();
         AExpression functionNameExpression = callExpression.getFunctionNameExpression();
-        if (functionNameExpression instanceof AIdExpression) {
-          AIdExpression functionIdExpression = (AIdExpression) functionNameExpression;
+        if (functionNameExpression instanceof AIdExpression functionIdExpression) {
           String functionName = functionIdExpression.getName();
           FunctionEntryNode functionEntryNode = cfa.getAllFunctions().get(functionName);
           if (functionEntryNode == null) {

@@ -43,8 +43,7 @@ class CTypeUtils {
     checkIsSimplified(pType);
     if (pType instanceof CArrayType) {
       return true;
-    } else if (pType instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) pType;
+    } else if (pType instanceof CCompositeType compositeType) {
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite!";
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         if (containsArrayInComposite(memberDeclaration.getType())) {

@@ -395,8 +395,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
           }
         }
       }
-      if (precision instanceof SMGPrecision && options.abstractHeapValues) {
-        SMGPrecision smgPrecision = (SMGPrecision) precision;
+      if (precision instanceof SMGPrecision smgPrecision && options.abstractHeapValues) {
         currentState = currentState.enforceHeapValuePrecision(smgPrecision.getTrackedHeapValues());
       }
 

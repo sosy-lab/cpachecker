@@ -20,8 +20,7 @@ public class ACSLCast implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLCast) {
-      ACSLCast other = (ACSLCast) o;
+    if (o instanceof ACSLCast other) {
       return type.equals(other.type) && term.equals(other.term);
     }
     return false;

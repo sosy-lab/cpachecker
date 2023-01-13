@@ -282,11 +282,9 @@ public class TargetFunctionsProvider {
     }
 
     // Void pointer can be converted to any other pointer or integer
-    if (declaredType instanceof CPointerType) {
-      CPointerType declaredPointerType = (CPointerType) declaredType;
+    if (declaredType instanceof CPointerType declaredPointerType) {
       if (declaredPointerType.getType() == CVoidType.VOID) {
-        if (actualType instanceof CSimpleType) {
-          CSimpleType actualSimpleType = (CSimpleType) actualType;
+        if (actualType instanceof CSimpleType actualSimpleType) {
           CBasicType actualBasicType = actualSimpleType.getType();
           if (actualBasicType.isIntegerType()) {
             return true;
@@ -298,11 +296,9 @@ public class TargetFunctionsProvider {
     }
 
     // Any pointer or integer can be converted to a void pointer
-    if (actualType instanceof CPointerType) {
-      CPointerType actualPointerType = (CPointerType) actualType;
+    if (actualType instanceof CPointerType actualPointerType) {
       if (actualPointerType.getType() == CVoidType.VOID) {
-        if (declaredType instanceof CSimpleType) {
-          CSimpleType declaredSimpleType = (CSimpleType) declaredType;
+        if (declaredType instanceof CSimpleType declaredSimpleType) {
           CBasicType declaredBasicType = declaredSimpleType.getType();
           if (declaredBasicType.isIntegerType()) {
             return true;
@@ -314,9 +310,8 @@ public class TargetFunctionsProvider {
     }
 
     // If both types are pointers, check if the inner types are compatible
-    if (declaredType instanceof CPointerType && actualType instanceof CPointerType) {
-      CPointerType declaredPointerType = (CPointerType) declaredType;
-      CPointerType actualPointerType = (CPointerType) actualType;
+    if (declaredType instanceof CPointerType declaredPointerType
+        && actualType instanceof CPointerType actualPointerType) {
       if (isCompatibleType(declaredPointerType.getType(), actualPointerType.getType())) {
         return true;
       }

@@ -138,8 +138,7 @@ public class MemoryLocationExtractingVisitor
     CType type = expression.getExpressionType();
     Set<MemoryLocation> potentialLocations = new HashSet<>();
 
-    if (pExpression instanceof CIdExpression) {
-      CIdExpression var = (CIdExpression) pExpression;
+    if (pExpression instanceof CIdExpression var) {
       String varName = var.getName();
       boolean isLocal = false;
       if (var.getDeclaration() != null) {
@@ -154,8 +153,7 @@ public class MemoryLocationExtractingVisitor
       } else {
         potentialLocations.add(MemoryLocation.parseExtendedQualifiedName(varName));
       }
-    } else if (pExpression instanceof CFieldReference) {
-      CFieldReference fieldRef = (CFieldReference) pExpression;
+    } else if (pExpression instanceof CFieldReference fieldRef) {
       String varName = fieldRef.getFieldName();
       CExpression owner = fieldRef.getFieldOwner();
       if (fieldRef.isPointerDereference()) {
@@ -171,14 +169,12 @@ public class MemoryLocationExtractingVisitor
       }
     } else if (pExpression instanceof CArraySubscriptExpression) {
       return new OverapproximatingMemoryLocation(type);
-    } else if (pExpression instanceof CPointerExpression) {
-      CPointerExpression pointerExpression = (CPointerExpression) pExpression;
+    } else if (pExpression instanceof CPointerExpression pointerExpression) {
       if (pointerExpression.getOperand() instanceof CIdExpression) {
         type = ((CIdExpression) pointerExpression.getOperand()).getDeclaration().getType();
       }
       return new OverapproximatingMemoryLocation(type);
-    } else if (pExpression instanceof CCastExpression) {
-      CCastExpression cast = (CCastExpression) pExpression;
+    } else if (pExpression instanceof CCastExpression cast) {
       return getMemoryLocation(cast.getOperand());
     } else {
       potentialLocations.add(MemoryLocation.forLocalVariable(functionName, pExpression.toString()));

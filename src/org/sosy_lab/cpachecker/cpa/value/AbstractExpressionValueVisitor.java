@@ -2444,8 +2444,7 @@ public abstract class AbstractExpressionValueVisitor
 
     CType type = targetType.getCanonicalType();
     final int size;
-    if (type instanceof CSimpleType) {
-      final CSimpleType st = (CSimpleType) type;
+    if (type instanceof CSimpleType st) {
       size = machineModel.getSizeofInBits(st);
     } else if (type instanceof CBitFieldType) {
       size = ((CBitFieldType) type).getBitFieldSize();
@@ -2664,9 +2663,7 @@ public abstract class AbstractExpressionValueVisitor
 
     NumericValue numericValue = (NumericValue) value;
 
-    if (targetType instanceof JSimpleType) {
-      final JSimpleType st = (JSimpleType) targetType;
-
+    if (targetType instanceof JSimpleType st) {
       if (isIntegerType(sourceType)) {
         long longValue = numericValue.longValue();
 

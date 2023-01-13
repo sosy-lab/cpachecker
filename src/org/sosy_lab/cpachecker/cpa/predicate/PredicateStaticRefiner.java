@@ -280,8 +280,7 @@ public class PredicateStaticRefiner extends StaticRefiner
       Deque<CFAEdge> edgesToHandle = CFAUtils.leavingEdges(u).copyInto(new ArrayDeque<>());
       while (!edgesToHandle.isEmpty()) {
         CFAEdge e = edgesToHandle.pop();
-        if (e instanceof CStatementEdge) {
-          CStatementEdge stmtEdge = (CStatementEdge) e;
+        if (e instanceof CStatementEdge stmtEdge) {
           if (stmtEdge.getStatement() instanceof CAssignment) {
             CAssignment assign = (CAssignment) stmtEdge.getStatement();
 
@@ -351,8 +350,7 @@ public class PredicateStaticRefiner extends StaticRefiner
 
     for (CFANode u : cfa.getAllNodes()) {
       for (CFAEdge e : CFAUtils.leavingEdges(u)) {
-        if (e instanceof AssumeEdge) {
-          AssumeEdge assume = (AssumeEdge) e;
+        if (e instanceof AssumeEdge assume) {
           if (!isAssumeOnLoopVariable(assume)) {
             if (hasContradictingOperationInFlow(assume, directlyAffectingStatements)) {
               result.add(assume);
@@ -388,8 +386,7 @@ public class PredicateStaticRefiner extends StaticRefiner
         }
 
         if (edgeOnTrace) {
-          if (e instanceof AssumeEdge) {
-            AssumeEdge assume = (AssumeEdge) e;
+          if (e instanceof AssumeEdge assume) {
             if (!isAssumeOnLoopVariable(assume)) {
               if (hasContradictingOperationInFlow(assume, directlyAffectingStatements)) {
                 result.add(assume);

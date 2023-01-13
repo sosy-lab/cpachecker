@@ -383,9 +383,8 @@ class WitnessFactory implements EdgeAppender {
       result = result.putAndCopy(KeyDef.FUNCTIONEXIT, functionName);
     }
 
-    if (pEdge instanceof AssumeEdge
+    if (pEdge instanceof AssumeEdge assumeEdge
         && !AutomatonGraphmlCommon.isPartOfTerminatingAssumption(pEdge)) {
-      AssumeEdge assumeEdge = (AssumeEdge) pEdge;
       // Check if the assume edge is an artificial edge introduced for pointer-calls
       if (AutomatonGraphmlCommon.isPointerCallAssumption(assumeEdge)) {
         // If the assume edge is followed by a pointer call,
@@ -550,8 +549,7 @@ class WitnessFactory implements EdgeAppender {
         assignments = getAssignments(cfaEdgeWithAssignments, null);
 
         // Export function return value for cases where it is not explicitly assigned to a variable
-        if (pEdge instanceof AStatementEdge) {
-          AStatementEdge edge = (AStatementEdge) pEdge;
+        if (pEdge instanceof AStatementEdge edge) {
           if (edge.getStatement() instanceof AFunctionCallAssignmentStatement) {
             AFunctionCallAssignmentStatement assignment =
                 (AFunctionCallAssignmentStatement) edge.getStatement();
@@ -1040,8 +1038,7 @@ class WitnessFactory implements EdgeAppender {
             Multimaps.transformValues(
                 pCounterExample.orElseThrow().getExactVariableValues(),
                 WitnessAssumptionFilter::filterRelevantAssumptions);
-        if (cex instanceof FaultLocalizationInfoWithTraceFormula) {
-          FaultLocalizationInfoWithTraceFormula fInfo = (FaultLocalizationInfoWithTraceFormula) cex;
+        if (cex instanceof FaultLocalizationInfoWithTraceFormula fInfo) {
           List<Fault> faults = fInfo.getRankedList();
           if (!faults.isEmpty()) {
             Fault bestFault = faults.get(0);
@@ -1866,8 +1863,7 @@ class WitnessFactory implements EdgeAppender {
         }
         if (pNode.isLoopStart()) {
           boolean gotoLoop = false;
-          if (pNode instanceof CFALabelNode) {
-            CFALabelNode node = (CFALabelNode) pNode;
+          if (pNode instanceof CFALabelNode node) {
             for (BlankEdge e : CFAUtils.enteringEdges(pNode).filter(BlankEdge.class)) {
               if (e.getDescription().equals("Goto: " + node.getLabel())) {
                 gotoLoop = true;
@@ -1963,8 +1959,7 @@ class WitnessFactory implements EdgeAppender {
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof LoopEntryInfo) {
-        LoopEntryInfo other = (LoopEntryInfo) pOther;
+      if (pOther instanceof LoopEntryInfo other) {
         return Objects.equals(getLoopHead(), other.getLoopHead()) && gotoLoop == other.gotoLoop;
       }
       return false;

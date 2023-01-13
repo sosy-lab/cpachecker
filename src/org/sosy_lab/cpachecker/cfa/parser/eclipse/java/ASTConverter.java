@@ -923,8 +923,7 @@ class ASTConverter {
 
     JMethodDeclaration declaration = null;
 
-    if (methodName instanceof JIdExpression) {
-      JIdExpression idExpression = (JIdExpression) methodName;
+    if (methodName instanceof JIdExpression idExpression) {
       String name = idExpression.getName();
       declaration = scope.lookupMethod(name);
 
@@ -2048,9 +2047,7 @@ class ASTConverter {
         String name = NameConverter.convertName((IMethodBinding) e.resolveBinding());
         return new JIdExpression(getFileLocation(e), convert(e.resolveTypeBinding()), name, null);
 
-      } else if (binding instanceof IVariableBinding) {
-
-        IVariableBinding vb = (IVariableBinding) binding;
+      } else if (binding instanceof IVariableBinding vb) {
 
         if (vb.isEnumConstant()) {
           // TODO Prototype for enum constant expression, investigate
@@ -2219,8 +2216,7 @@ class ASTConverter {
       referencedVariableName = convertExpressionWithoutSideEffects(mi.getExpression());
     }
 
-    if (methodName instanceof JIdExpression) {
-      JIdExpression idExpression = (JIdExpression) methodName;
+    if (methodName instanceof JIdExpression idExpression) {
       String name = idExpression.getName();
       declaration = scope.lookupMethod(name);
 

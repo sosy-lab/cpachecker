@@ -94,9 +94,7 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
         }
       }
 
-      if (element instanceof AvoidanceReportingState) {
-        AvoidanceReportingState e = (AvoidanceReportingState) element;
-
+      if (element instanceof AvoidanceReportingState e) {
         if (e.mustDumpAssumptionForAvoidance()) {
           stopFormula = bfmgr.or(stopFormula, e.getReasonFormula(formulaManager));
           stop = true;

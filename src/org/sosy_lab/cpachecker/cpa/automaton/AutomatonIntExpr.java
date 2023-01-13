@@ -156,8 +156,7 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
       }
 
       for (AbstractState ae : pArgs.getAbstractStates()) {
-        if (ae instanceof AbstractQueryableState) {
-          AbstractQueryableState aqe = (AbstractQueryableState) ae;
+        if (ae instanceof AbstractQueryableState aqe) {
           if (aqe.getCPAName().equals(cpaName)) {
             try {
               Object result = aqe.evaluateProperty(modifiedQueryString);
@@ -208,8 +207,7 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof CPAQuery) {
-        CPAQuery other = (CPAQuery) o;
+      if (o instanceof CPAQuery other) {
         return cpaName.equals(other.cpaName) && queryString.equals(other.queryString);
       }
       return false;
@@ -262,8 +260,7 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
       if (this == o) {
         return true;
       }
-      if (o instanceof BinaryAutomatonIntExpr) {
-        BinaryAutomatonIntExpr other = (BinaryAutomatonIntExpr) o;
+      if (o instanceof BinaryAutomatonIntExpr other) {
         return a.equals(other.a) && b.equals(other.b) && repr.equals(other.repr);
       }
       return false;

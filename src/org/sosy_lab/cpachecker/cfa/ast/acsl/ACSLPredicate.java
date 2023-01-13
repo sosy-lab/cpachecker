@@ -46,8 +46,7 @@ public abstract class ACSLPredicate implements ACSLLogicExpression {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof ACSLPredicate) {
-      ACSLPredicate other = (ACSLPredicate) obj;
+    if (obj instanceof ACSLPredicate other) {
       return negated == other.negated;
     }
     return false;

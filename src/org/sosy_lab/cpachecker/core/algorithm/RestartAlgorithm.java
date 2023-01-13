@@ -518,8 +518,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
   private void registerReachedSetUpdateListeners() {
     Preconditions.checkState(reachedSetUpdateListenersAdded.isEmpty());
-    if (currentAlgorithm instanceof ReachedSetUpdater) {
-      ReachedSetUpdater algorithm = (ReachedSetUpdater) currentAlgorithm;
+    if (currentAlgorithm instanceof ReachedSetUpdater algorithm) {
       for (ReachedSetUpdateListener listener : reachedSetUpdateListeners) {
         algorithm.register(listener);
         reachedSetUpdateListenersAdded.add(listener);
@@ -528,8 +527,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
   }
 
   private void unregisterReachedSetUpdateListeners() {
-    if (currentAlgorithm instanceof ReachedSetUpdater) {
-      ReachedSetUpdater algorithm = (ReachedSetUpdater) currentAlgorithm;
+    if (currentAlgorithm instanceof ReachedSetUpdater algorithm) {
       for (ReachedSetUpdateListener listener : reachedSetUpdateListenersAdded) {
         algorithm.unregister(listener);
       }

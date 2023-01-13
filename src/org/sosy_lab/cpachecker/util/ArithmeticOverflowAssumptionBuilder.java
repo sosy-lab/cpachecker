@@ -294,8 +294,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
   }
 
   private boolean isBinaryExpressionThatMayOverflow(CExpression pExp) {
-    if (pExp instanceof CBinaryExpression) {
-      CBinaryExpression binexp = (CBinaryExpression) pExp;
+    if (pExp instanceof CBinaryExpression binexp) {
       CExpression op1 = binexp.getOperand1();
       CExpression op2 = binexp.getOperand2();
       if (op1.getExpressionType() instanceof CPointerType

@@ -148,9 +148,7 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
       main = id1;
     } else if (id2 instanceof SingleIdentifier && id1 instanceof ConstantIdentifier) {
       main = id2;
-    } else if (id1 instanceof SingleIdentifier && id2 instanceof SingleIdentifier) {
-      SingleIdentifier s1 = (SingleIdentifier) id1;
-      SingleIdentifier s2 = (SingleIdentifier) id2;
+    } else if (id1 instanceof SingleIdentifier s1 && id2 instanceof SingleIdentifier s2) {
       if (s1.isPointer() && !s2.isPointer()) {
         main = s1;
       } else if (s1.isPointer() && !s2.isPointer()) {

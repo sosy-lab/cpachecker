@@ -93,8 +93,7 @@ public class CProgramScope implements Scope {
                 return Collections.singleton(dcl);
               }
 
-              if (pNode instanceof FunctionEntryNode) {
-                FunctionEntryNode entryNode = (FunctionEntryNode) pNode;
+              if (pNode instanceof FunctionEntryNode entryNode) {
                 return from(entryNode.getFunctionParameters()).filter(CSimpleDeclaration.class);
               }
 
@@ -108,8 +107,7 @@ public class CProgramScope implements Scope {
     }
     if (pDeclaration.getName() == null
         && pDeclaration.getQualifiedName() == null
-        && pDeclaration instanceof CComplexTypeDeclaration) {
-      CComplexTypeDeclaration complexTypeDeclaration = (CComplexTypeDeclaration) pDeclaration;
+        && pDeclaration instanceof CComplexTypeDeclaration complexTypeDeclaration) {
       CComplexType complexType = complexTypeDeclaration.getType();
       return complexType != null
           && complexType.getName() != null
@@ -123,8 +121,7 @@ public class CProgramScope implements Scope {
     if (result != null) {
       return result;
     }
-    if (pDeclaration instanceof CComplexTypeDeclaration) {
-      CComplexTypeDeclaration complexTypeDeclaration = (CComplexTypeDeclaration) pDeclaration;
+    if (pDeclaration instanceof CComplexTypeDeclaration complexTypeDeclaration) {
       CComplexType complexType = complexTypeDeclaration.getType();
       if (complexType != null
           && complexType.getName() != null
@@ -533,8 +530,7 @@ public class CProgramScope implements Scope {
     return Multimaps.transformValues(
         qualifiedDeclarationsMultiMap,
         v -> {
-          if (v instanceof CVariableDeclaration) {
-            CVariableDeclaration original = (CVariableDeclaration) v;
+          if (v instanceof CVariableDeclaration original) {
             if (original.getInitializer() == null) {
               return v;
             }
@@ -610,8 +606,7 @@ public class CProgramScope implements Scope {
     Iterable<AAstNode> nodes =
         FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(pEdge))
             .transformAndConcat(CFAUtils::traverseRecursively);
-    if (pEdge instanceof ADeclarationEdge) {
-      ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+    if (pEdge instanceof ADeclarationEdge declarationEdge) {
       ADeclaration declaration = declarationEdge.getDeclaration();
       if (declaration instanceof AFunctionDeclaration) {
         nodes = Iterables.concat(nodes, ((AFunctionDeclaration) declaration).getParameters());
@@ -642,10 +637,8 @@ public class CProgramScope implements Scope {
         .collect(
             ImmutableSetMultimap.toImmutableSetMultimap(
                 astNode -> {
-                  if (astNode instanceof CSimpleDeclaration) {
-                    CSimpleDeclaration decl = (CSimpleDeclaration) astNode;
-                    if (decl instanceof CVariableDeclaration) {
-                      CVariableDeclaration original = (CVariableDeclaration) decl;
+                  if (astNode instanceof CSimpleDeclaration decl) {
+                    if (decl instanceof CVariableDeclaration original) {
                       if (original.getInitializer() != null) {
                         return new CVariableDeclaration(
                             original.getFileLocation(),

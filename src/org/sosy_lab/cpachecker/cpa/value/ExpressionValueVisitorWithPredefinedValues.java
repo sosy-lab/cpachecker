@@ -70,8 +70,7 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
 
   @Override
   public Value evaluate(CRightHandSide pExp, CType pTargetType) throws UnrecognizedCodeException {
-    if (lastRequestSuccessful && pExp instanceof CFunctionCallExpression) {
-      CFunctionCallExpression call = (CFunctionCallExpression) pExp;
+    if (lastRequestSuccessful && pExp instanceof CFunctionCallExpression call) {
       if (call.getFunctionNameExpression() instanceof CIdExpression
           && ((CIdExpression) call.getFunctionNameExpression())
               .getName()

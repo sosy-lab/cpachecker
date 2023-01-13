@@ -342,9 +342,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   private boolean handleDeclaration(CDeclarationEdge edge, Collection<String> importantVars) {
     final CDeclaration decl = edge.getDeclaration();
 
-    if (decl instanceof CVariableDeclaration) {
-      final CVariableDeclaration vdecl = (CVariableDeclaration) decl;
-
+    if (decl instanceof CVariableDeclaration vdecl) {
       if (importantVars.remove(vdecl.getQualifiedName())) {
         final CInitializer initializer = vdecl.getInitializer();
         if (initializer instanceof CInitializerExpression) {
@@ -447,8 +445,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     CFunctionCall call = fnkCall.getExpression();
 
     // handle assignments like "y = f(x);"
-    if (call instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) call;
+    if (call instanceof CFunctionCallAssignmentStatement cAssignment) {
       CExpression lhs = cAssignment.getLeftHandSide();
       if (lhs instanceof CIdExpression) {
         if (importantVars.remove(((CIdExpression) lhs).getDeclaration().getQualifiedName())) {

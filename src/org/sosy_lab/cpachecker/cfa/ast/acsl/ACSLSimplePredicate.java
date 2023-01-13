@@ -50,8 +50,7 @@ public class ACSLSimplePredicate extends ACSLPredicate {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLSimplePredicate) {
-      ACSLSimplePredicate other = (ACSLSimplePredicate) o;
+    if (o instanceof ACSLSimplePredicate other) {
       return super.equals(o) && term.equals(other.term);
     }
     return false;

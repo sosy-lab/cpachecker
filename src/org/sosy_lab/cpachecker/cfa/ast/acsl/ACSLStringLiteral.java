@@ -23,8 +23,7 @@ public class ACSLStringLiteral implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLStringLiteral) {
-      ACSLStringLiteral other = (ACSLStringLiteral) o;
+    if (o instanceof ACSLStringLiteral other) {
       return literal.equals(other.literal);
     }
     return false;

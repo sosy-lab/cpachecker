@@ -77,8 +77,7 @@ public class MemoryAccessExtractor {
       case DeclarationEdge:
         ADeclarationEdge declarationEdge = (ADeclarationEdge) edge;
         ADeclaration declaration = declarationEdge.getDeclaration();
-        if (declaration instanceof CVariableDeclaration) {
-          CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
+        if (declaration instanceof CVariableDeclaration variableDeclaration) {
           CInitializer initializer = variableDeclaration.getInitializer();
           CType type = variableDeclaration.getType();
           MemoryLocation location =
@@ -133,9 +132,7 @@ public class MemoryAccessExtractor {
       case StatementEdge:
         AStatementEdge statementEdge = (AStatementEdge) edge;
         AStatement statement = statementEdge.getStatement();
-        if (statement instanceof AExpressionAssignmentStatement) {
-          AExpressionAssignmentStatement expressionAssignmentStatement =
-              (AExpressionAssignmentStatement) statement;
+        if (statement instanceof AExpressionAssignmentStatement expressionAssignmentStatement) {
           writeLocationBuilder.addAll(
               getInvolvedVariableTypes(
                   expressionAssignmentStatement.getLeftHandSide(), statementEdge));
@@ -146,9 +143,8 @@ public class MemoryAccessExtractor {
           readLocationBuilder.addAll(
               getInvolvedVariableTypes(
                   ((AExpressionStatement) statement).getExpression(), statementEdge));
-        } else if (statement instanceof AFunctionCallAssignmentStatement) {
-          AFunctionCallAssignmentStatement functionCallAssignmentStatement =
-              (AFunctionCallAssignmentStatement) statement;
+        } else if (statement
+            instanceof AFunctionCallAssignmentStatement functionCallAssignmentStatement) {
           functionName = getFunctionName(functionCallAssignmentStatement);
           if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
             throw new CPATransferException("DataRaceCPA does not support function " + functionName);
@@ -161,8 +157,7 @@ public class MemoryAccessExtractor {
           for (AExpression expression : functionCallExpression.getParameterExpressions()) {
             readLocationBuilder.addAll(getInvolvedVariableTypes(expression, statementEdge));
           }
-        } else if (statement instanceof AFunctionCallStatement) {
-          AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
+        } else if (statement instanceof AFunctionCallStatement functionCallStatement) {
           functionName = getFunctionName(functionCallStatement);
           if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
             throw new CPATransferException("DataRaceCPA does not support function " + functionName);
@@ -263,13 +258,11 @@ public class MemoryAccessExtractor {
       AExpression functionNameExpression = functionCallExpression.getFunctionNameExpression();
       if (functionNameExpression instanceof AIdExpression) {
         return ((AIdExpression) functionNameExpression).getName();
-      } else if (functionNameExpression instanceof AUnaryExpression) {
-        AUnaryExpression unaryFunctionNameExpression = (AUnaryExpression) functionNameExpression;
+      } else if (functionNameExpression instanceof AUnaryExpression unaryFunctionNameExpression) {
         if (unaryFunctionNameExpression.getOperand() instanceof AIdExpression) {
           return ((AIdExpression) unaryFunctionNameExpression.getOperand()).getName();
         }
-      } else if (functionNameExpression instanceof APointerExpression) {
-        APointerExpression pointerExpression = (APointerExpression) functionNameExpression;
+      } else if (functionNameExpression instanceof APointerExpression pointerExpression) {
         if (pointerExpression.getOperand() instanceof AIdExpression) {
           return ((AIdExpression) pointerExpression.getOperand()).getName();
         }

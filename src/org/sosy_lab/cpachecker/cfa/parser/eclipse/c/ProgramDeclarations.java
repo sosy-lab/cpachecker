@@ -387,13 +387,12 @@ public class ProgramDeclarations {
           ((CPointerType) type1).getType(), ((CPointerType) type1).getType(), foundTypes);
 
       // handle the same issues we have with pointer types here for arrays
-    } else if (type1 instanceof CArrayType
+    } else if (type1 instanceof CArrayType a1
         && (((CArrayType) type1).getType() instanceof CComplexType
             || ((CArrayType) type1).getType() instanceof CFunctionType
             || ((CArrayType) type1).getType() instanceof CPointerType)) {
 
       // first check if the lengths are matching
-      CArrayType a1 = (CArrayType) type1;
       CArrayType a2 = (CArrayType) type2;
       if (a1.getLength() instanceof CIntegerLiteralExpression
           && a2.getLength() instanceof CIntegerLiteralExpression) {

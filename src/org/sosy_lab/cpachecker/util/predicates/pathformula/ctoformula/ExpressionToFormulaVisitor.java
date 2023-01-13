@@ -305,7 +305,7 @@ public class ExpressionToFormulaVisitor
     CExpression e1 = exp.getOperand1();
     CExpression e2 = exp.getOperand2();
     if (e2.equals(CIntegerLiteralExpression.ZERO)
-        && e1 instanceof CBinaryExpression
+        && e1 instanceof CBinaryExpression or
         && ((CBinaryExpression) e1).getOperator() == BinaryOperator.BINARY_OR) {
       // This is code like "(a | b) == 0".
       // According to LDV, GCC sometimes produces this during weaving,
@@ -313,7 +313,6 @@ public class ExpressionToFormulaVisitor
       // TODO Maybe refactor AutomatonASTComparator into something generic
       // and use this to match such cases.
 
-      final CBinaryExpression or = (CBinaryExpression) e1;
       final Formula zero = f2;
       final Formula a =
           processOperand(or.getOperand1(), exp.getCalculationType(), exp.getExpressionType());

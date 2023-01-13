@@ -194,8 +194,7 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
     }
 
     // arrays have to have literals only
-    if (initializer instanceof CInitializerList) {
-      CInitializerList listInitializer = (CInitializerList) initializer;
+    if (initializer instanceof CInitializerList listInitializer) {
       List<CInitializer> waitlist = new ArrayList<>(listInitializer.getInitializers());
       while (!waitlist.isEmpty()) {
         CInitializer next = waitlist.remove(0);
@@ -203,8 +202,7 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
           waitlist.addAll(((CInitializerList) next).getInitializers());
           continue;
         }
-        if (next instanceof CInitializerExpression) {
-          CInitializerExpression expression = (CInitializerExpression) next;
+        if (next instanceof CInitializerExpression expression) {
           if (!(expression.getExpression() instanceof CLiteralExpression)) {
             return false;
           }
@@ -214,8 +212,7 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
     }
 
     // must only be initialized with literals
-    if (initializer instanceof CInitializerExpression) {
-      CInitializerExpression expression = (CInitializerExpression) initializer;
+    if (initializer instanceof CInitializerExpression expression) {
       return expression.getExpression() instanceof CLiteralExpression;
     }
     return false;

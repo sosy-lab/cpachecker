@@ -25,8 +25,7 @@ public class ACSLIntegerLiteral implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLIntegerLiteral) {
-      ACSLIntegerLiteral other = (ACSLIntegerLiteral) o;
+    if (o instanceof ACSLIntegerLiteral other) {
       return literal.equals(other.literal);
     }
     return false;

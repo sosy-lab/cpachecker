@@ -676,8 +676,7 @@ public class ApronTransferRelation
     String calledFunctionName = cfaEdge.getPredecessor().getFunctionName();
 
     // expression is an assignment operation, e.g. a = g(b);
-    if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement binExp = ((CFunctionCallAssignmentStatement) exprOnSummary);
+    if (exprOnSummary instanceof CFunctionCallAssignmentStatement binExp) {
       CLeftHandSide op1 = binExp.getLeftHandSide();
       MemoryLocation assignedVarName = buildVarName(op1, callerFunctionName);
 

@@ -261,8 +261,7 @@ public final class LoopStructure implements Serializable {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof Loop) {
-        Loop other = (Loop) pObj;
+      if (pObj instanceof Loop other) {
         return loopHeads.equals(other.loopHeads) && nodes.equals(other.nodes);
       }
       return false;
@@ -379,8 +378,7 @@ public final class LoopStructure implements Serializable {
    */
   @Nullable
   private static String obtainIncDecVariable(CFAEdge e) {
-    if (e instanceof CStatementEdge) {
-      CStatementEdge stmtEdge = (CStatementEdge) e;
+    if (e instanceof CStatementEdge stmtEdge) {
       if (stmtEdge.getStatement() instanceof CAssignment) {
         CAssignment assign = (CAssignment) stmtEdge.getStatement();
 

@@ -234,9 +234,7 @@ final class TransformableArray {
       CSimpleDeclaration arrayExpressDeclaration =
           ((CIdExpression) arrayExpression).getDeclaration();
       if (arrayExpressDeclaration.equals(pArrayDeclaration)) {
-        if (subscriptExpression instanceof CIntegerLiteralExpression) {
-          CIntegerLiteralExpression integerExpression =
-              (CIntegerLiteralExpression) subscriptExpression;
+        if (subscriptExpression instanceof CIntegerLiteralExpression integerExpression) {
           // we don't consider arrays as relevant if they are only accessed at index 0
           // (these accesses could come from pointers that point to a single element)
           return !integerExpression.getValue().equals(BigInteger.ZERO);

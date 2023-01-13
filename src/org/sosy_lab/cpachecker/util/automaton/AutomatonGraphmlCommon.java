@@ -546,15 +546,13 @@ public class AutomatonGraphmlCommon {
       return isEmptyStub(((CFunctionCallEdge) edge).getSuccessor());
     } else if (edge instanceof CFunctionReturnEdge) {
       return isEmptyStub(((CFunctionReturnEdge) edge).getFunctionEntry());
-    } else if (edge instanceof CDeclarationEdge) {
-      CDeclarationEdge declEdge = (CDeclarationEdge) edge;
+    } else if (edge instanceof CDeclarationEdge declEdge) {
       CDeclaration decl = declEdge.getDeclaration();
       if (decl instanceof CFunctionDeclaration) {
         return true;
       } else if (decl instanceof CTypeDeclaration) {
         return true;
-      } else if (decl instanceof CVariableDeclaration) {
-        CVariableDeclaration varDecl = (CVariableDeclaration) decl;
+      } else if (decl instanceof CVariableDeclaration varDecl) {
         if (varDecl.getName().toUpperCase().startsWith(CPACHECKER_TMP_PREFIX)) {
           return true; // Dirty hack; would be better if these edges had no file location
         }
@@ -564,14 +562,11 @@ public class AutomatonGraphmlCommon {
       }
     } else if (edge instanceof CFunctionSummaryStatementEdge) {
       return true;
-    } else if (edge instanceof AStatementEdge) {
-      AStatementEdge statementEdge = (AStatementEdge) edge;
+    } else if (edge instanceof AStatementEdge statementEdge) {
       AStatement statement = statementEdge.getStatement();
-      if (statement instanceof AExpressionStatement) {
-        AExpressionStatement expressionStatement = (AExpressionStatement) statement;
+      if (statement instanceof AExpressionStatement expressionStatement) {
         AExpression expression = expressionStatement.getExpression();
-        if (expression instanceof AIdExpression) {
-          AIdExpression idExpression = (AIdExpression) expression;
+        if (expression instanceof AIdExpression idExpression) {
           if (idExpression.getName().toUpperCase().startsWith(CPACHECKER_TMP_PREFIX)) {
             return true;
           }
@@ -687,20 +682,17 @@ public class AutomatonGraphmlCommon {
       }
       return result;
     }
-    if (pEdge instanceof AStatementEdge) {
-      AStatementEdge statementEdge = (AStatementEdge) pEdge;
+    if (pEdge instanceof AStatementEdge statementEdge) {
       FileLocation statementLocation = statementEdge.getStatement().getFileLocation();
       if (statementLocation.isRealLocation()) {
         return Collections.singleton(statementLocation);
       }
     }
-    if (pEdge instanceof FunctionCallEdge) {
-      FunctionCallEdge functionCallEdge = (FunctionCallEdge) pEdge;
+    if (pEdge instanceof FunctionCallEdge functionCallEdge) {
       FunctionSummaryEdge summaryEdge = functionCallEdge.getSummaryEdge();
       if (summaryEdge != null && summaryEdge.getExpression() != null) {
         AFunctionCall call = summaryEdge.getExpression();
-        if (call instanceof AFunctionCallAssignmentStatement) {
-          AFunctionCallAssignmentStatement statement = (AFunctionCallAssignmentStatement) call;
+        if (call instanceof AFunctionCallAssignmentStatement statement) {
           FileLocation callLocation = statement.getRightHandSide().getFileLocation();
           if (callLocation.isRealLocation()) {
             return Collections.singleton(callLocation);
@@ -708,8 +700,7 @@ public class AutomatonGraphmlCommon {
         }
       }
     }
-    if (pEdge instanceof AssumeEdge) {
-      AssumeEdge assumeEdge = (AssumeEdge) pEdge;
+    if (pEdge instanceof AssumeEdge assumeEdge) {
       FileLocation location = assumeEdge.getFileLocation();
       if (isDefaultCase(assumeEdge)) {
         CFANode successorNode = assumeEdge.getSuccessor();
@@ -730,8 +721,7 @@ public class AutomatonGraphmlCommon {
         return Collections.singleton(location);
       }
     }
-    if (pEdge instanceof ADeclarationEdge) {
-      ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+    if (pEdge instanceof ADeclarationEdge declarationEdge) {
       ADeclaration declaration = declarationEdge.getDeclaration();
       if (declaration instanceof AVariableDeclaration) {
         return Collections.singleton(declaration.getFileLocation());
@@ -799,8 +789,7 @@ public class AutomatonGraphmlCommon {
       if (switchOperand == assumeExpression) {
         return TraversalProcess.ABORT;
       }
-      if (pEdge instanceof AssumeEdge) {
-        AssumeEdge edge = (AssumeEdge) pEdge;
+      if (pEdge instanceof AssumeEdge edge) {
         AExpression expression = edge.getExpression();
         if (!(expression instanceof ABinaryExpression)) {
           return TraversalProcess.ABORT;
@@ -811,8 +800,7 @@ public class AutomatonGraphmlCommon {
         }
         edgesBackwardToSwitchNode.add(edge);
         return TraversalProcess.CONTINUE;
-      } else if (pEdge instanceof BlankEdge) {
-        BlankEdge edge = (BlankEdge) pEdge;
+      } else if (pEdge instanceof BlankEdge edge) {
         String switchPrefix = "switch (";
         if (edge.getDescription().equals(switchPrefix + switchOperand + ")")
             && edge.getFileLocation().isRealLocation()
@@ -844,15 +832,13 @@ public class AutomatonGraphmlCommon {
    * @return {@code true} if the edge is part of a split declaration, {@code false} otherwise.
    */
   public static boolean isSplitDeclaration(CFAEdge pEdge) {
-    if (pEdge instanceof ADeclarationEdge) {
-      ADeclarationEdge declEdge = (ADeclarationEdge) pEdge;
+    if (pEdge instanceof ADeclarationEdge declEdge) {
       ADeclaration decl = declEdge.getDeclaration();
       if (decl instanceof AFunctionDeclaration) {
         return false;
       } else if (decl instanceof CTypeDeclaration) {
         return false;
-      } else if (decl instanceof AVariableDeclaration) {
-        AVariableDeclaration varDecl = (AVariableDeclaration) decl;
+      } else if (decl instanceof AVariableDeclaration varDecl) {
         CFANode successor = pEdge.getSuccessor();
         boolean intermediateDeclarationsExpected = true;
         boolean cont = true;
@@ -880,8 +866,7 @@ public class AutomatonGraphmlCommon {
 
           if (successorEdge.getFileLocation().equals(pEdge.getFileLocation())) {
             AAssignment assignment = null;
-            if (successorEdge instanceof FunctionCallEdge) {
-              FunctionCallEdge functionCallEdge = (FunctionCallEdge) successorEdge;
+            if (successorEdge instanceof FunctionCallEdge functionCallEdge) {
               FunctionSummaryEdge summaryEdge = functionCallEdge.getSummaryEdge();
               AFunctionCall functionCall = summaryEdge.getExpression();
               if (functionCall instanceof AAssignment) {
@@ -897,8 +882,7 @@ public class AutomatonGraphmlCommon {
             }
             if (assignment != null) {
               ALeftHandSide leftHandSide = assignment.getLeftHandSide();
-              if (leftHandSide instanceof AIdExpression) {
-                AIdExpression lhs = (AIdExpression) leftHandSide;
+              if (leftHandSide instanceof AIdExpression lhs) {
                 if (lhs.getDeclaration() != null && lhs.getDeclaration().equals(varDecl)) {
                   return true;
                 }
@@ -910,8 +894,8 @@ public class AutomatonGraphmlCommon {
             }
           }
 
-          if (intermediateDeclarationsExpected && successorEdge instanceof ADeclarationEdge) {
-            ADeclarationEdge otherDeclEdge = (ADeclarationEdge) successorEdge;
+          if (intermediateDeclarationsExpected
+              && successorEdge instanceof ADeclarationEdge otherDeclEdge) {
             if (otherDeclEdge.getDeclaration() instanceof AVariableDeclaration) {
               // The current edge may just be the matching declaration of a preceding
               // split declaration, e.g. in a line originally written as "int x = 0, y = 1";

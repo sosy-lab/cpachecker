@@ -91,9 +91,7 @@ public class EnumConstantValue implements Value {
 
   @Override
   public boolean equals(Object other) {
-    if (other instanceof EnumConstantValue) {
-      EnumConstantValue concreteOther = (EnumConstantValue) other;
-
+    if (other instanceof EnumConstantValue concreteOther) {
       return concreteOther.fullyQualifiedName.equals(fullyQualifiedName);
 
     } else {

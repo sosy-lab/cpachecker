@@ -90,9 +90,8 @@ final class ArrayAccess {
       return Optional.of((CArraySubscriptExpression) pExpression);
     }
 
-    if (pExpression instanceof CPointerExpression) {
+    if (pExpression instanceof CPointerExpression pointerExpression) {
 
-      CPointerExpression pointerExpression = (CPointerExpression) pExpression;
       CExpression operand = pointerExpression.getOperand();
 
       if (operand instanceof CIdExpression) {
@@ -105,9 +104,8 @@ final class ArrayAccess {
         return Optional.of(arraySubscriptExpression);
       }
 
-      if (operand instanceof CBinaryExpression) {
+      if (operand instanceof CBinaryExpression binaryExpression) {
 
-        CBinaryExpression binaryExpression = (CBinaryExpression) operand;
         CBinaryExpression.BinaryOperator operator = binaryExpression.getOperator();
         CExpression operand1 = binaryExpression.getOperand1();
         CExpression operand2 = binaryExpression.getOperand2();

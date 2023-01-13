@@ -244,8 +244,7 @@ class CodeAppender implements Appendable {
 
   private static AFunctionType enforceParameterNames(AFunctionDeclaration pInputFunction) {
     IAFunctionType functionType = pInputFunction.getType();
-    if (functionType instanceof CFunctionType) {
-      CFunctionType cFunctionType = (CFunctionType) functionType;
+    if (functionType instanceof CFunctionType cFunctionType) {
       return new CFunctionTypeWithNames(
           cFunctionType.getReturnType(),
           FluentIterable.from(enforceParameterNames(pInputFunction.getParameters()))
@@ -253,8 +252,7 @@ class CodeAppender implements Appendable {
               .toList(),
           functionType.takesVarArgs());
     }
-    if (functionType instanceof JMethodType) {
-      JMethodType methodType = (JMethodType) functionType;
+    if (functionType instanceof JMethodType methodType) {
       return new JMethodType(
           methodType.getReturnType(),
           FluentIterable.from(enforceParameterNames(pInputFunction.getParameters()))
@@ -282,8 +280,7 @@ class CodeAppender implements Appendable {
         if (declaration instanceof CParameterDeclaration) {
           declaration =
               new CParameterDeclaration(FileLocation.DUMMY, (CType) declaration.getType(), name);
-        } else if (declaration instanceof JParameterDeclaration) {
-          JParameterDeclaration jDecl = (JParameterDeclaration) declaration;
+        } else if (declaration instanceof JParameterDeclaration jDecl) {
           declaration =
               new JParameterDeclaration(
                   FileLocation.DUMMY,

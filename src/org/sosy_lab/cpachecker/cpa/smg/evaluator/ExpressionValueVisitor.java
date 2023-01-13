@@ -385,9 +385,8 @@ class ExpressionValueVisitor
               return singletonList(SMGValueAndState.of(newState, val));
 
             case MINUS:
-              if (lVal instanceof SMGKnownAddressValue && rVal instanceof SMGKnownAddressValue) {
-                SMGKnownAddressValue lValAddress = (SMGKnownAddressValue) lVal;
-                SMGKnownAddressValue rValAddress = (SMGKnownAddressValue) rVal;
+              if (lVal instanceof SMGKnownAddressValue lValAddress
+                  && rVal instanceof SMGKnownAddressValue rValAddress) {
                 if (lValAddress.getObject().equals(rValAddress.getObject())) {
                   CType lVarType = lVarInBinaryExp.getExpressionType().getCanonicalType();
                   final CType type;

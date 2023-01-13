@@ -55,8 +55,7 @@ public class CIntegerLiteralExpression extends AIntegerLiteralExpression
     String suffix = "";
 
     CType cType = getExpressionType();
-    if (cType instanceof CSimpleType) {
-      CSimpleType type = (CSimpleType) cType;
+    if (cType instanceof CSimpleType type) {
       if (type.isUnsigned()) {
         suffix += "U";
       }

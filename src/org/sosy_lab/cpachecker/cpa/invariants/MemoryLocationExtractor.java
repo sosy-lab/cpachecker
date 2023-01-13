@@ -109,9 +109,7 @@ public class MemoryLocationExtractor {
 
   public MemoryLocation getMemoryLocation(AParameterDeclaration pParameterDeclaration) {
     String varName = pParameterDeclaration.getName();
-    if (pParameterDeclaration instanceof CSimpleDeclaration) {
-      CSimpleDeclaration decl = (CSimpleDeclaration) pParameterDeclaration;
-
+    if (pParameterDeclaration instanceof CSimpleDeclaration decl) {
       if (!((decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal())
           || decl instanceof CEnumerator)) {
         return scope(varName);
@@ -123,28 +121,23 @@ public class MemoryLocationExtractor {
   public MemoryLocation getMemoryLocation(AExpression pLhs) throws UnrecognizedCodeException {
     if (pLhs instanceof AIdExpression) {
       return getMemoryLocation((AIdExpression) pLhs);
-    } else if (pLhs instanceof CFieldReference) {
-      CFieldReference fieldRef = (CFieldReference) pLhs;
+    } else if (pLhs instanceof CFieldReference fieldRef) {
       String varName = fieldRef.getFieldName();
       CExpression owner = fieldRef.getFieldOwner();
       return getFieldReferenceMemoryLocation(varName, owner, fieldRef.isPointerDereference());
-    } else if (pLhs instanceof JFieldAccess) {
-      JFieldAccess fieldRef = (JFieldAccess) pLhs;
+    } else if (pLhs instanceof JFieldAccess fieldRef) {
       String varName = fieldRef.getName();
       JIdExpression owner = fieldRef.getReferencedVariable();
       return getFieldReferenceMemoryLocation(varName, owner, false);
-    } else if (pLhs instanceof CArraySubscriptExpression) {
-      CArraySubscriptExpression arraySubscript = (CArraySubscriptExpression) pLhs;
+    } else if (pLhs instanceof CArraySubscriptExpression arraySubscript) {
       CExpression subscript = arraySubscript.getSubscriptExpression();
       CExpression owner = arraySubscript.getArrayExpression();
       return getArraySubscriptMemoryLocation(owner, subscript);
-    } else if (pLhs instanceof JArraySubscriptExpression) {
-      JArraySubscriptExpression arraySubscript = (JArraySubscriptExpression) pLhs;
+    } else if (pLhs instanceof JArraySubscriptExpression arraySubscript) {
       JExpression subscript = arraySubscript.getSubscriptExpression();
       JExpression owner = arraySubscript.getArrayExpression();
       return getArraySubscriptMemoryLocation(owner, subscript);
-    } else if (pLhs instanceof CPointerExpression) {
-      CPointerExpression pe = (CPointerExpression) pLhs;
+    } else if (pLhs instanceof CPointerExpression pe) {
       if (pe.getOperand() instanceof CLeftHandSide) {
         // TODO
         return MemoryLocation.parseExtendedQualifiedName(
@@ -152,11 +145,9 @@ public class MemoryLocationExtractor {
       }
       // TODO
       return scope(pLhs.toString());
-    } else if (pLhs instanceof CCastExpression) {
-      CCastExpression cast = (CCastExpression) pLhs;
+    } else if (pLhs instanceof CCastExpression cast) {
       return getMemoryLocation(cast.getOperand());
-    } else if (pLhs instanceof JCastExpression) {
-      JCastExpression cast = (JCastExpression) pLhs;
+    } else if (pLhs instanceof JCastExpression cast) {
       return getMemoryLocation(cast.getOperand());
     } else if (pLhs instanceof CUnaryExpression
         && ((CUnaryExpression) pLhs).getOperator() == UnaryOperator.AMPER) {
@@ -200,8 +191,7 @@ public class MemoryLocationExtractor {
 
     // TODO: calculate correct memory locations
 
-    if (pSubscript instanceof CIntegerLiteralExpression) {
-      CIntegerLiteralExpression literal = (CIntegerLiteralExpression) pSubscript;
+    if (pSubscript instanceof CIntegerLiteralExpression literal) {
       return MemoryLocation.parseExtendedQualifiedName(
           String.format("%s[%d]", getMemoryLocation(pOwner), literal.asLong()));
     }

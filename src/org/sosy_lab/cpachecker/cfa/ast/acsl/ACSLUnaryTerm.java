@@ -28,8 +28,7 @@ public class ACSLUnaryTerm implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLUnaryTerm) {
-      ACSLUnaryTerm other = (ACSLUnaryTerm) o;
+    if (o instanceof ACSLUnaryTerm other) {
       return term.equals(other.term) && operator.equals(other.operator);
     }
     return false;

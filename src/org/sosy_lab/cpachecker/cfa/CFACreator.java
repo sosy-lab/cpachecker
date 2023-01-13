@@ -663,9 +663,7 @@ public class CFACreator {
 
     final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
 
-    if (pParseResult instanceof ParseResultWithCommentLocations) {
-      ParseResultWithCommentLocations withCommentLocations =
-          ((ParseResultWithCommentLocations) pParseResult);
+    if (pParseResult instanceof ParseResultWithCommentLocations withCommentLocations) {
       commentPositions.addAll(withCommentLocations.getCommentLocations());
       blocks.addAll(withCommentLocations.getBlocks());
     }

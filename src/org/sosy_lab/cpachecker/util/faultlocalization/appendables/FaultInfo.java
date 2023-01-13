@@ -91,8 +91,7 @@ public abstract class FaultInfo implements Comparable<FaultInfo> {
 
   @Override
   public boolean equals(Object q) {
-    if (q instanceof FaultInfo) {
-      FaultInfo r = (FaultInfo) q;
+    if (q instanceof FaultInfo r) {
       if (type.equals(r.type)) {
         // prevent unequals if 5th digit after comma does not fit.
         int scoreThis = (int) (score * 10000);

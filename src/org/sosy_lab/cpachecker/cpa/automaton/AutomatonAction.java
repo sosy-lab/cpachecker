@@ -219,8 +219,7 @@ abstract class AutomatonAction {
         return false;
       }
       for (AbstractState ae : pArgs.getAbstractStates()) {
-        if (ae instanceof AbstractQueryableState) {
-          AbstractQueryableState aqe = (AbstractQueryableState) ae;
+        if (ae instanceof AbstractQueryableState aqe) {
           if (aqe.getCPAName().equals(cpaName)) {
             return true;
           }
@@ -248,8 +247,7 @@ abstract class AutomatonAction {
             "AutomatonActionExpr.CPAModification");
       }
       for (AbstractState ae : pArgs.getAbstractStates()) {
-        if (ae instanceof AbstractQueryableState) {
-          AbstractQueryableState aqe = (AbstractQueryableState) ae;
+        if (ae instanceof AbstractQueryableState aqe) {
           if (aqe.getCPAName().equals(cpaName)) {
             try {
               aqe.modifyProperty(processedModificationString);

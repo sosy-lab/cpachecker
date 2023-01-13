@@ -30,8 +30,7 @@ public class BoundIdentifier implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof BoundIdentifier) {
-      BoundIdentifier other = (BoundIdentifier) o;
+    if (o instanceof BoundIdentifier other) {
       return name.equals(other.name);
     }
     return false;

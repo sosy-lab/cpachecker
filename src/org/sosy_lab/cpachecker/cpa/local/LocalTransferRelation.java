@@ -139,9 +139,7 @@ public class LocalTransferRelation
     CFunctionCall exprOnSummary = cfaEdge.getSummaryEdge().getExpression();
     LocalState newElement = state.getClonedPreviousState();
 
-    if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement assignExp =
-          ((CFunctionCallAssignmentStatement) exprOnSummary);
+    if (exprOnSummary instanceof CFunctionCallAssignmentStatement assignExp) {
       // Need to prepare id as left id is from caller function and the right id is from called
       // function
       int dereference = findDereference(assignExp.getLeftHandSide().getExpressionType());
@@ -210,9 +208,8 @@ public class LocalTransferRelation
   @Override
   protected LocalState handleStatementEdge(CStatementEdge cfaEdge, CStatement statement) {
     LocalState newState = state.copy();
-    if (statement instanceof CAssignment) {
+    if (statement instanceof CAssignment assignment) {
       // assignment like "a = b" or "a = foo()"
-      CAssignment assignment = (CAssignment) statement;
       assign(newState, assignment.getLeftHandSide(), assignment.getRightHandSide());
     }
     return newState;
@@ -418,11 +415,9 @@ public class LocalTransferRelation
   }
 
   public static int findDereference(CType type) {
-    if (type instanceof CPointerType) {
-      CPointerType pointerType = (CPointerType) type;
+    if (type instanceof CPointerType pointerType) {
       return (findDereference(pointerType.getType()) + 1);
-    } else if (type instanceof CArrayType) {
-      CArrayType arrayType = (CArrayType) type;
+    } else if (type instanceof CArrayType arrayType) {
       return (findDereference(arrayType.getType()) + 1);
     } else if (type instanceof CTypedefType) {
       return findDereference(((CTypedefType) type).getRealType());

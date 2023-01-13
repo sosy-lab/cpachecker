@@ -155,8 +155,7 @@ public class FunctionContract implements ACSLAnnotation {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof FunctionContract) {
-      FunctionContract other = (FunctionContract) obj;
+    if (obj instanceof FunctionContract other) {
       return requiresClause.equals(other.requiresClause)
           && ensuresClause.equals(other.ensuresClause)
           && behaviors.equals(other.behaviors)

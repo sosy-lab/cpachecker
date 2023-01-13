@@ -2142,8 +2142,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           Pair<IASTExpression, CIdExpression> cond = it.next();
           IASTExpression condExp = cond.getFirst();
           CIdExpression tempVar = cond.getSecond();
-          if (sideAssignment instanceof CVariableDeclaration) {
-            CVariableDeclaration cvd = (CVariableDeclaration) sideAssignment;
+          if (sideAssignment instanceof CVariableDeclaration cvd) {
             if (cvd.getOrigName().equals(tempVar.getName())) {
               prevNode = handleConditionalExpression(prevNode, condExp, tempVar);
               it.remove();

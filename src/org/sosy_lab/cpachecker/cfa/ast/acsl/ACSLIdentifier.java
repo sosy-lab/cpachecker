@@ -25,8 +25,7 @@ public class ACSLIdentifier implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLIdentifier) {
-      ACSLIdentifier other = (ACSLIdentifier) o;
+    if (o instanceof ACSLIdentifier other) {
       return name.equals(other.name) && functionName.equals(other.functionName);
     }
     return false;

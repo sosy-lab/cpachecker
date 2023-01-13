@@ -123,8 +123,7 @@ public class SMGJoinSubSMGs extends SMGAbstractJoin {
   private int updateNestinglevelDiff(
       SMGObject pObj, SMGHasValueEdge pEdge, int pLevel, int pAccumulator) {
 
-    if (pObj instanceof SMGDoublyLinkedListSegment) {
-      SMGDoublyLinkedListSegment doublyLinkedListSegment = (SMGDoublyLinkedListSegment) pObj;
+    if (pObj instanceof SMGDoublyLinkedListSegment doublyLinkedListSegment) {
       if (matchesOffsetAndSize(doublyLinkedListSegment, pEdge)) {
         pLevel += pAccumulator;
       }

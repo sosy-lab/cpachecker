@@ -78,8 +78,7 @@ class GraphMLTransition {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof GraphMLTransition) {
-      GraphMLTransition other = (GraphMLTransition) pOther;
+    if (pOther instanceof GraphMLTransition other) {
       return getSource().equals(other.getSource())
           && getTarget().equals(other.getTarget())
           && getFunctionEntry().equals(other.getFunctionEntry())
@@ -193,8 +192,7 @@ class GraphMLTransition {
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof GraphMLThread) {
-        GraphMLThread other = (GraphMLThread) pOther;
+      if (pOther instanceof GraphMLThread other) {
         return id == other.id && name.equals(other.name);
       }
       return false;

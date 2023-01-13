@@ -69,8 +69,7 @@ public class Edge implements Comparable<Edge> {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof Edge) {
-      Edge other = (Edge) pOther;
+    if (pOther instanceof Edge other) {
       return hashCode == other.hashCode
           && source.equals(other.source)
           && target.equals(other.target)

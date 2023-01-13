@@ -127,8 +127,7 @@ public class GlobalAccessChecker {
       if (ast instanceof CExpression) {
         return ((CExpression) ast).accept(GlobalAccessVisitor.INSTANCE);
 
-      } else if (ast instanceof CFunctionCallExpression) {
-        CFunctionCallExpression func = (CFunctionCallExpression) ast;
+      } else if (ast instanceof CFunctionCallExpression func) {
         return anyHasGlobalAccess(func.getParameterExpressions());
       }
 
@@ -140,27 +139,22 @@ public class GlobalAccessChecker {
       } else if (ast instanceof CInitializerList) {
         return anyHasGlobalAccess(((CInitializerList) ast).getInitializers());
 
-      } else if (ast instanceof CDesignatedInitializer) {
-        CDesignatedInitializer di = (CDesignatedInitializer) ast;
+      } else if (ast instanceof CDesignatedInitializer di) {
         return anyHasGlobalAccess(di.getDesignators()) || hasGlobalAccess(di.getRightHandSide());
       }
 
     } else if (ast instanceof CSimpleDeclaration) {
 
-      if (ast instanceof CVariableDeclaration) {
-        CVariableDeclaration decl = (CVariableDeclaration) ast;
+      if (ast instanceof CVariableDeclaration decl) {
         return decl.isGlobal() || hasGlobalAccess(decl.getInitializer());
 
-      } else if (ast instanceof CFunctionDeclaration) {
-        CFunctionDeclaration decl = (CFunctionDeclaration) ast;
+      } else if (ast instanceof CFunctionDeclaration decl) {
         return anyHasGlobalAccess(decl.getParameters());
 
-      } else if (ast instanceof CComplexTypeDeclaration) {
-        CComplexTypeDeclaration decl = (CComplexTypeDeclaration) ast;
+      } else if (ast instanceof CComplexTypeDeclaration decl) {
         return decl.isGlobal();
 
-      } else if (ast instanceof CTypeDefDeclaration) {
-        CTypeDefDeclaration decl = (CTypeDefDeclaration) ast;
+      } else if (ast instanceof CTypeDefDeclaration decl) {
         return decl.isGlobal();
 
       } else if (ast instanceof CParameterDeclaration) {
@@ -172,12 +166,10 @@ public class GlobalAccessChecker {
 
     } else if (ast instanceof CStatement) {
 
-      if (ast instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement stat = (CFunctionCallAssignmentStatement) ast;
+      if (ast instanceof CFunctionCallAssignmentStatement stat) {
         return hasGlobalAccess(stat.getLeftHandSide()) || hasGlobalAccess(stat.getRightHandSide());
 
-      } else if (ast instanceof CExpressionAssignmentStatement) {
-        CExpressionAssignmentStatement stat = (CExpressionAssignmentStatement) ast;
+      } else if (ast instanceof CExpressionAssignmentStatement stat) {
         return hasGlobalAccess(stat.getLeftHandSide()) || hasGlobalAccess(stat.getRightHandSide());
 
       } else if (ast instanceof CFunctionCallStatement) {

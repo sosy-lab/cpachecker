@@ -276,10 +276,7 @@ public final class CTypes {
       return false;
     }
 
-    if (pTypeA instanceof CPointerType && pTypeB instanceof CPointerType) {
-      CPointerType pointerA = ((CPointerType) pTypeA);
-      CPointerType pointerB = ((CPointerType) pTypeB);
-
+    if (pTypeA instanceof CPointerType pointerA && pTypeB instanceof CPointerType pointerB) {
       // Cf. C-Standard §6.7.6.1 (2), compatible pointers shall point to compatible types.
       return areTypesCompatible(pointerA.getType(), pointerB.getType());
     }
@@ -298,10 +295,7 @@ public final class CTypes {
       return pTypeA.getCanonicalType().equals(basicSignedInt.getCanonicalType());
     }
 
-    if (pTypeA instanceof CArrayType && pTypeB instanceof CArrayType) {
-      CArrayType arrayA = (CArrayType) pTypeA;
-      CArrayType arrayB = (CArrayType) pTypeB;
-
+    if (pTypeA instanceof CArrayType arrayA && pTypeB instanceof CArrayType arrayB) {
       // Cf. C-Standard §6.7.6.2 (6).
       if (areTypesCompatible(arrayA.getType(), arrayB.getType())) {
         OptionalInt lengthA = arrayA.getLengthAsInt();
@@ -323,10 +317,7 @@ public final class CTypes {
     }
 
     // Cf. C-Standard 6.7.6.3 (15)
-    if (pTypeA instanceof CFunctionType && pTypeB instanceof CFunctionType) {
-      CFunctionType functionA = (CFunctionType) pTypeA;
-      CFunctionType functionB = (CFunctionType) pTypeB;
-
+    if (pTypeA instanceof CFunctionType functionA && pTypeB instanceof CFunctionType functionB) {
       if (!areTypesCompatible(functionA.getReturnType(), functionB.getReturnType())) {
         return false;
       }

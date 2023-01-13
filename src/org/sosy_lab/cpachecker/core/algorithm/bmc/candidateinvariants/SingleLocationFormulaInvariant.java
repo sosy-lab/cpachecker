@@ -90,8 +90,7 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
         if (this == pOther) {
           return true;
         }
-        if (pOther instanceof SingleLocationBooleanInvariant) {
-          SingleLocationBooleanInvariant other = (SingleLocationBooleanInvariant) pOther;
+        if (pOther instanceof SingleLocationBooleanInvariant other) {
           return getLocation().equals(other.getLocation()) && value == other.value;
         }
         return false;
@@ -155,9 +154,7 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
         if (this == pOther) {
           return true;
         }
-        if (pOther instanceof SpecificSMTLibLocationFormulaInvariant) {
-          SpecificSMTLibLocationFormulaInvariant other =
-              (SpecificSMTLibLocationFormulaInvariant) pOther;
+        if (pOther instanceof SpecificSMTLibLocationFormulaInvariant other) {
           return delegate.equals(other.delegate);
         }
         return false;
@@ -234,8 +231,7 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof SMTLibLocationFormulaInvariant) {
-        SMTLibLocationFormulaInvariant other = (SMTLibLocationFormulaInvariant) pOther;
+      if (pOther instanceof SMTLibLocationFormulaInvariant other) {
         return getLocation().equals(other.getLocation()) && invariant.equals(other.invariant);
       }
       return false;

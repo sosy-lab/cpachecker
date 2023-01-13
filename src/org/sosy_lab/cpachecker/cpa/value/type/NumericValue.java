@@ -74,8 +74,7 @@ public class NumericValue implements Value, Serializable {
       //
       // cf. https://docs.oracle.com/javase/8/docs/api/java/lang/Double.html#toString-double-
       return BigDecimal.valueOf(number.doubleValue());
-    } else if (number instanceof Rational) {
-      Rational rat = (Rational) number;
+    } else if (number instanceof Rational rat) {
       return new BigDecimal(rat.getNum())
           .divide(new BigDecimal(rat.getDen()), 100, RoundingMode.HALF_UP);
     } else {
@@ -168,8 +167,7 @@ public class NumericValue implements Value, Serializable {
       return new NumericValue(Double.NaN);
     }
 
-    if (numberToNegate instanceof BigDecimal) {
-      BigDecimal bd = (BigDecimal) numberToNegate;
+    if (numberToNegate instanceof BigDecimal bd) {
       if (bd.signum() == 0) {
         return new NumericValue(-bd.doubleValue());
       }

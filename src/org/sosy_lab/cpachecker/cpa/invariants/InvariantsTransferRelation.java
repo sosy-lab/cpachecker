@@ -138,17 +138,19 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     final AtomicBoolean overflowDetected = new AtomicBoolean(false);
     OverflowEventHandler overflowEventHandler = () -> overflowDetected.set(true);
 
-    if (compoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory) {
-      CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory =
-          (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
+    if (compoundIntervalManagerFactory
+        instanceof
+        CompoundBitVectorIntervalManagerFactory
+        compoundBitVectorIntervalManagerFactory) {
       compoundBitVectorIntervalManagerFactory.addOverflowEventHandler(overflowEventHandler);
     }
 
     state = getSuccessor(pEdge, precision, state);
 
-    if (compoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory) {
-      CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory =
-          (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
+    if (compoundIntervalManagerFactory
+        instanceof
+        CompoundBitVectorIntervalManagerFactory
+        compoundBitVectorIntervalManagerFactory) {
       compoundBitVectorIntervalManagerFactory.removeOverflowEventHandler(overflowEventHandler);
     }
 
@@ -384,11 +386,9 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
                   assignment.getRightHandSide(), leftHandSide.getExpressionType())
               .accept(etfv);
       if (compoundIntervalFormulaManager.containsAllPossibleValues(value)
-          && rightHandSide instanceof CFunctionCallExpression) {
-        CFunctionCallExpression cFunctionCallExpression = (CFunctionCallExpression) rightHandSide;
+          && rightHandSide instanceof CFunctionCallExpression cFunctionCallExpression) {
         CExpression functionNameExpression = cFunctionCallExpression.getFunctionNameExpression();
-        if (functionNameExpression instanceof CIdExpression) {
-          CIdExpression idExpression = (CIdExpression) functionNameExpression;
+        if (functionNameExpression instanceof CIdExpression idExpression) {
           if (idExpression.getName().equals("__VERIFIER_nondet_uint")) {
             TypeInfo typeInfo = BitVectorInfo.from(machineModel, leftHandSide.getExpressionType());
             value =
@@ -426,9 +426,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     MemoryLocationExtractor variableNameExtractor =
         new MemoryLocationExtractor(
             compoundIntervalManagerFactory, machineModel, pEdge, pElement.getEnvironment());
-    if (pLeftHandSide instanceof CArraySubscriptExpression) {
-      CArraySubscriptExpression arraySubscriptExpression =
-          (CArraySubscriptExpression) pLeftHandSide;
+    if (pLeftHandSide instanceof CArraySubscriptExpression arraySubscriptExpression) {
       MemoryLocation array =
           variableNameExtractor.getMemoryLocation(arraySubscriptExpression.getArrayExpression());
       NumeralFormula<CompoundInterval> subscript =
@@ -461,9 +459,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
           new MemoryLocationExtractor(
               compoundIntervalManagerFactory, machineModel, pEdge, pElement.getEnvironment());
       CLeftHandSide leftHandSide = cAssignment.getLeftHandSide();
-      if (leftHandSide instanceof CArraySubscriptExpression) {
-        CArraySubscriptExpression arraySubscriptExpression =
-            (CArraySubscriptExpression) leftHandSide;
+      if (leftHandSide instanceof CArraySubscriptExpression arraySubscriptExpression) {
         MemoryLocation array =
             variableNameExtractor.getMemoryLocation(arraySubscriptExpression.getArrayExpression());
         NumeralFormula<CompoundInterval> subscript =
@@ -496,9 +492,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     InvariantsState result = pElement;
 
     // expression is an assignment operation, e.g. a = g(b);
-    if (expression instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement) expression;
-
+    if (expression instanceof CFunctionCallAssignmentStatement funcExp) {
       if (var.isPresent()) {
         ExpressionToFormulaVisitor expressionToFormulaVisitor =
             getExpressionToFormulaVisitor(

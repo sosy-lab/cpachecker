@@ -368,8 +368,7 @@ class GlobalScope extends AbstractScope {
 
     String newName = getFileSpecificTypeName(oldType.getName());
 
-    if (oldType instanceof CCompositeType) {
-      CCompositeType oldCompositeType = (CCompositeType) oldType;
+    if (oldType instanceof CCompositeType oldCompositeType) {
       CCompositeType renamedCompositeType =
           new CCompositeType(
               oldType.isConst(),

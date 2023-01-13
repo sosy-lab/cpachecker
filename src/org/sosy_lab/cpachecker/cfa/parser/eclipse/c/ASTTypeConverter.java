@@ -129,9 +129,7 @@ class ASTTypeConverter {
     } else if (t instanceof ITypedef) {
       return conv((ITypedef) t);
 
-    } else if (t instanceof ICompositeType) {
-      ICompositeType ct = (ICompositeType) t;
-
+    } else if (t instanceof ICompositeType ct) {
       ComplexTypeKind kind =
           switch (ct.getKey()) {
             case ICompositeType.k_struct -> ComplexTypeKind.STRUCT;
@@ -173,9 +171,7 @@ class ASTTypeConverter {
 
       return compType;
 
-    } else if (t instanceof IFunctionType) {
-      IFunctionType ft = (IFunctionType) t;
-
+    } else if (t instanceof IFunctionType ft) {
       IType[] parameters = ft.getParameterTypes();
       List<CType> newParameters = new ArrayList<>(parameters.length);
       for (IType p : parameters) {
@@ -206,8 +202,7 @@ class ASTTypeConverter {
       // e.g. in cdaudio_safe.i.cil.c
       return new CProblemType(t + ": " + ((IProblemType) t).getMessage());
 
-    } else if (t instanceof IProblemBinding) {
-      IProblemBinding problem = (IProblemBinding) t;
+    } else if (t instanceof IProblemBinding problem) {
       if (problem.getASTNode().getRawSignature().equals("__label__")) {
         // This is a "local label" (a GNU C extension).
         // C.f. http://gcc.gnu.org/onlinedocs/gcc/Local-Labels.html#Local-Labels
@@ -235,10 +230,7 @@ class ASTTypeConverter {
       }
       return CVoidType.VOID;
 
-    } else if (t instanceof org.eclipse.cdt.core.dom.ast.c.ICBasicType) {
-      final org.eclipse.cdt.core.dom.ast.c.ICBasicType c =
-          (org.eclipse.cdt.core.dom.ast.c.ICBasicType) t;
-
+    } else if (t instanceof org.eclipse.cdt.core.dom.ast.c.ICBasicType c) {
       CBasicType type =
           switch (t.getKind()) {
             case eBoolean -> CBasicType.BOOL;
@@ -514,8 +506,7 @@ class ASTTypeConverter {
 
   /** returns a pointerType, that wraps the type. */
   CPointerType convert(final IASTPointerOperator po, final CType type) {
-    if (po instanceof IASTPointer) {
-      IASTPointer p = (IASTPointer) po;
+    if (po instanceof IASTPointer p) {
       return new CPointerType(p.isConst(), p.isVolatile(), type);
 
     } else {

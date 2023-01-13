@@ -449,9 +449,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
-    if (type instanceof CArrayType) {
-      CArrayType arrayType = (CArrayType) type;
-
+    if (type instanceof CArrayType arrayType) {
       Formula elementSize =
           getSizeExpression(
               arrayType.getType(), edge, function, ssa, pts, constraints, errorConditions);
@@ -495,8 +493,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     assert !CTypeUtils.containsArrayOutsideFunctionParameter(baseType)
         : "Array access can't be encoded as a variable";
 
-    if (baseType instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) baseType;
+    if (baseType instanceof CCompositeType compositeType) {
       assert compositeType.getKind() != ComplexTypeKind.ENUM
           : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
@@ -632,8 +629,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
 
     checkIsSimplified(type);
-    if (type instanceof CArrayType) {
-      final CArrayType arrayType = (CArrayType) type;
+    if (type instanceof CArrayType arrayType) {
       final CType elementType = checkIsSimplified(arrayType.getType());
       final OptionalInt length = arrayType.getLengthAsInt();
       if (length.isPresent()) {
@@ -649,8 +645,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           expandAssignmentList(elementType, newLhs, alreadyAssigned, defaultAssignments);
         }
       }
-    } else if (type instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) type;
+    } else if (type instanceof CCompositeType compositeType) {
       if (compositeType.getKind() == ComplexTypeKind.UNION) {
         // If it is a union, we must make sure that the first member is initialized,
         // but only if none of the members appear in alreadyAssigned.

@@ -89,8 +89,7 @@ interface AutomatonExpression<T> {
       }
 
       for (AbstractState ae : pArgs.getAbstractStates()) {
-        if (ae instanceof AbstractQueryableState) {
-          AbstractQueryableState aqe = (AbstractQueryableState) ae;
+        if (ae instanceof AbstractQueryableState aqe) {
           if (aqe.getCPAName().equals(cpaName)) {
             try {
               Object result = aqe.evaluateProperty(modifiedQueryString);
@@ -131,8 +130,7 @@ interface AutomatonExpression<T> {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof CPAQuery) {
-        CPAQuery other = (CPAQuery) o;
+      if (o instanceof CPAQuery other) {
         return cpaName.equals(other.cpaName) && queryString.equals(other.queryString);
       }
       return false;

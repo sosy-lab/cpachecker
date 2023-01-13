@@ -140,9 +140,8 @@ public final class EdgeDefUseData {
 
           AAstNode astNode = optAstNode.orElseThrow();
 
-          if (astNode instanceof CAstNode) {
+          if (astNode instanceof CAstNode cAstNode) {
 
-            CAstNode cAstNode = (CAstNode) astNode;
             Collector collector = new Collector(pConsiderPointees);
             cAstNode.accept(collector);
 

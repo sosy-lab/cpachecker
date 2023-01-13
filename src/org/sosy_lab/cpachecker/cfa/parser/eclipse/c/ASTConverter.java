@@ -577,11 +577,9 @@ class ASTConverter {
    * rest works as with the condition kind method for CExpressions
    */
   private CONDITION getConditionKind(IASTExpression exp) {
-    if (exp instanceof IASTBinaryExpression
+    if (exp instanceof IASTBinaryExpression binExp
         && (((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalAnd
             || ((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalOr)) {
-      IASTBinaryExpression binExp = (IASTBinaryExpression) exp;
-
       switch (binExp.getOperator()) {
         case IASTBinaryExpression.op_logicalAnd:
           {
@@ -742,10 +740,8 @@ class ASTConverter {
       if (e instanceof IASTConditionalExpression) {
         return typeConverter.convert(
             ((IASTConditionalExpression) e).getNegativeResultExpression().getExpressionType());
-      } else if (e instanceof IGNUASTCompoundStatementExpression) {
+      } else if (e instanceof IGNUASTCompoundStatementExpression statementExpression) {
         // manually ceck whether type of compundStatementExpression is void
-        IGNUASTCompoundStatementExpression statementExpression =
-            (IGNUASTCompoundStatementExpression) e;
         IASTStatement[] statements = statementExpression.getCompoundStatement().getStatements();
 
         if (statements.length > 0) {
@@ -1403,9 +1399,7 @@ class ASTConverter {
     if (a.equals(b)) {
       return true;
     }
-    if (a instanceof CArrayType && b instanceof CArrayType) {
-      CArrayType arrayA = (CArrayType) a;
-      CArrayType arrayB = (CArrayType) b;
+    if (a instanceof CArrayType arrayA && b instanceof CArrayType arrayB) {
       if (arrayA.getType().equals(arrayB.getType())) {
         if (arrayA.getLength() == null || arrayB.getLength() == null) {
           // The type int[] and int[5] are compatible
@@ -2067,9 +2061,8 @@ class ASTConverter {
     }
     CType type = specifier.getSecond();
 
-    if (type instanceof CCompositeType) {
+    if (type instanceof CCompositeType compositeType) {
       // Nested struct declaration
-      CCompositeType compositeType = (CCompositeType) type;
       addSideEffectDeclarationForType(compositeType, getLocation(d));
       type =
           new CElaboratedType(
@@ -2254,9 +2247,7 @@ class ASTConverter {
       // have their length calculated from the initializer.
       // Example: int a[] = { 1, 2 };
       // will be converted as int a[2] = { 1, 2 };
-      if (type instanceof CArrayType) {
-        CArrayType arrayType = (CArrayType) type;
-
+      if (type instanceof CArrayType arrayType) {
         if (arrayType.getLength() == null && initializer instanceof IASTEqualsInitializer) {
           IASTInitializerClause initClause =
               ((IASTEqualsInitializer) initializer).getInitializerClause();
@@ -2315,11 +2306,10 @@ class ASTConverter {
             // have their length calculated from the initializer.
             // Example: char a[] = "abc";
             // will be converted as char a[4] = "abc";
-            if (initClause instanceof CASTLiteralExpression
+            if (initClause instanceof CASTLiteralExpression literalExpression
                 && (arrayType.getType().equals(CNumericTypes.CHAR)
                     || arrayType.getType().equals(CNumericTypes.SIGNED_CHAR)
                     || arrayType.getType().equals(CNumericTypes.UNSIGNED_CHAR))) {
-              CASTLiteralExpression literalExpression = (CASTLiteralExpression) initClause;
               int length = literalExpression.getLength() - 1;
               CExpression lengthExp =
                   new CIntegerLiteralExpression(
@@ -2462,8 +2452,7 @@ class ASTConverter {
   }
 
   private CType convert(IASTArrayModifier am, CType type) {
-    if (am instanceof ICASTArrayModifier) {
-      ICASTArrayModifier a = (ICASTArrayModifier) am;
+    if (am instanceof ICASTArrayModifier a) {
       CExpression lengthExp = convertExpressionWithoutSideEffects(a.getConstantExpression());
       if (lengthExp != null) {
         lengthExp = simplifyExpressionRecursively(lengthExp);
@@ -2485,8 +2474,7 @@ class ASTConverter {
 
     // handle return type
     returnType = typeConverter.convertPointerOperators(d.getPointerOperators(), returnType);
-    if (returnType instanceof CSimpleType) {
-      CSimpleType t = (CSimpleType) returnType;
+    if (returnType instanceof CSimpleType t) {
       if (t.getType() == CBasicType.UNSPECIFIED) {
         // type of functions is implicitly int it not specified
         returnType =
@@ -2835,9 +2823,7 @@ class ASTConverter {
   private CInitializer convert(
       IASTEqualsInitializer i, CType type, @Nullable CVariableDeclaration declaration) {
     IASTInitializerClause ic = i.getInitializerClause();
-    if (ic instanceof IASTExpression) {
-      IASTExpression e = (IASTExpression) ic;
-
+    if (ic instanceof IASTExpression e) {
       CAstNode initializer = convertExpressionWithSideEffects(e);
       if (initializer == null) {
         return null;
@@ -2984,8 +2970,7 @@ class ASTConverter {
     }
 
     CType type = declarator.getFirst();
-    if (type instanceof CFunctionTypeWithNames) {
-      CFunctionTypeWithNames functionType = (CFunctionTypeWithNames) type;
+    if (type instanceof CFunctionTypeWithNames functionType) {
       type = new CPointerType(false, false, functionType);
     }
 
