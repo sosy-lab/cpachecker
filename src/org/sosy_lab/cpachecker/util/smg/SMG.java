@@ -271,9 +271,10 @@ public class SMG {
   }
 
   /**
+   * Returns a new SMG with the HVEdges replaced by the given.
+   *
    * @param objectToReplace the object whos edges are supposed to be changed.
    * @param newHVEdges the new HVedges.
-   * @return a new SMG with the HVEdges replaced by the given.
    */
   public SMG copyAndReplaceHVEdgesAt(
       SMGObject objectToReplace, PersistentSet<SMGHasValueEdge> newHVEdges) {

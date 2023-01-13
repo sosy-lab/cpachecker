@@ -2064,9 +2064,7 @@ public class SMGState
         new ImmutableList.Builder<SMGErrorInfo>().addAll(errorInfo).add(pErrorInfo).build());
   }
 
-  /**
-   * @return memory model, including Heap, stack and global vars.
-   */
+  /** Returns memory model, including Heap, stack and global vars. */
   public SymbolicProgramConfiguration getMemoryModel() {
     return memoryModel;
   }
@@ -3305,7 +3303,7 @@ public class SMGState
         valueRead = castValueForUnionFloatConversion(valueRead, readType);
       }
       if (memoryModel.isPointer(valueRead)) {
-        builder.append(memLoc.getKey() + ": " + " pointer: " + valueRead);
+        builder.append(memLoc.getKey() + ":  pointer: " + valueRead);
         builder.append("\n");
       } else {
         builder.append(memLoc.getKey() + ": " + valueRead);

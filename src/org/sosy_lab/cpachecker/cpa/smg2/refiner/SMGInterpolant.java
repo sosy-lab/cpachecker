@@ -378,7 +378,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       return "TRUE";
     }
 
-    return nonHeapAssignments.toString() + "\n" + "Allowed heap values: " + allowedHeapValues;
+    return nonHeapAssignments.toString() + "\nAllowed heap values: " + allowedHeapValues;
   }
 
   // TODO: currently not used. Originally used in IMPACT refinement. Would need to be edited to be

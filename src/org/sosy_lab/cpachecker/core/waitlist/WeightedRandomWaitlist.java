@@ -42,7 +42,7 @@ public class WeightedRandomWaitlist implements Waitlist {
       config.inject(this);
       if (exponent < 0) {
         throw new InvalidConfigurationException(
-            "analysis.traversal.random.exponent has to be " + "a double greater or equal to 0");
+            "analysis.traversal.random.exponent has to be a double greater or equal to 0");
       }
     }
   }

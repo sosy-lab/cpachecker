@@ -1146,9 +1146,10 @@ public class SMGCPAExpressionEvaluator {
   }
 
   /**
+   * Checks if the entered value is a {@link AddressExpression} or a {@link SymbolicIdentifier} with
+   * a {@link MemoryLocation}.
+   *
    * @param value {@link Value} to be checked.
-   * @return true if the entered value is a {@link AddressExpression} or a {@link
-   *     SymbolicIdentifier} with a {@link MemoryLocation}.
    */
   public static boolean valueIsAddressExprOrVariableOffset(@Nullable Value value) {
     if (value == null) {

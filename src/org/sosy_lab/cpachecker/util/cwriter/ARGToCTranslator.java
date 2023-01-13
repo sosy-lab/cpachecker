@@ -260,7 +260,7 @@ public class ARGToCTranslator {
             && loc.getNumLeavingEdges() == 0
             && loc.getEnteringEdge(0).getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
           currentBlock.addStatement(
-              new SimpleStatement("return " + "__return_" + currentElement.getStateId() + ";"));
+              new SimpleStatement("return __return_" + currentElement.getStateId() + ";"));
         } else {
           if (isVoidMain) {
             currentBlock.addStatement(new SimpleStatement("return;"));

@@ -348,23 +348,17 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
     ;
   }
 
-  /**
-   * @return option applyItpEqualityOptimization
-   */
+  /** Returns option applyItpEqualityOptimization. */
   protected boolean getApplyItpEqualityOptimization() {
     return applyItpEqualityOptimization;
   }
 
-  /**
-   * @return option applyRenamingOptimization
-   */
+  /** Returns option applyRenamingOptimization. */
   protected boolean getApplyRenamingOptimization() {
     return applyRenamingOptimization;
   }
 
-  /**
-   * @return option applyUnsatSuffixOptimization
-   */
+  /** Returns option applyUnsatSuffixOptimization. */
   protected boolean getApplyUnsatSuffixOptimization() {
     return applyUnsatSuffixOptimization;
   }

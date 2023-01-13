@@ -62,8 +62,7 @@ public class CExpressionInvariantExporter {
 
   @Option(
       secure = true,
-      description =
-          "Attempt to simplify the invariant before " + "exporting [may be very expensive].")
+      description = "Attempt to simplify the invariant before exporting [may be very expensive].")
   private boolean simplify = false;
 
   @Option(secure = true, description = "If enabled only export invariants for specified lines.")

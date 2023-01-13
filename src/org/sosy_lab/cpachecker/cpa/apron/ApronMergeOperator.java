@@ -34,7 +34,7 @@ public class ApronMergeOperator {
   @Option(
       secure = true,
       name = "onlyMergeAtLoopHeads",
-      description = "with this option enabled" + " the states are only merged at loop heads")
+      description = "with this option enabled the states are only merged at loop heads")
   private boolean onlyMergeAtLoopHeads = false;
 
   public static MergeOperator getInstance(ApronDomain domain, Configuration config)

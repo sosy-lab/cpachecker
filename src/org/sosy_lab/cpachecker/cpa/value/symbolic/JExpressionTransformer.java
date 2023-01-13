@@ -280,7 +280,7 @@ public class JExpressionTransformer extends ExpressionTransformer
   public SymbolicExpression visit(JRunTimeTypeEqualsType pJRunTimeTypeEqualsType)
       throws UnrecognizedCodeException {
     throw new UnsupportedOperationException(
-        "Equal checks on runtime types can't be transformed to" + "ConstraintExpressions");
+        "Equal checks on runtime types can't be transformed to ConstraintExpressions");
   }
 
   @Override
