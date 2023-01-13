@@ -284,17 +284,10 @@ class ASTLiteralConverter {
     try {
       result =
           switch (type) {
-            case BINARY -> { // remove "0b" from the string
-              s = s.substring(2);
-              yield new BigInteger(s, 2);
-            }
+            case BINARY -> new BigInteger(s.substring(2), 2); // remove "0b" from the string
             case OCTAL -> new BigInteger(s, 8);
             case DECIMAL -> new BigInteger(s, 10);
-            case HEXADECIMAL -> {
-              // this is expected to be in hex format, remove "0x" from the string
-              s = s.substring(2);
-              yield new BigInteger(s, 16);
-            }
+            case HEXADECIMAL -> new BigInteger(s.substring(2), 16); // remove "0x" from the string
             default -> throw parseContext.parseError(
                 String.format("invalid constant type: %s", type.name()), e);
           };

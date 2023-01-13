@@ -71,7 +71,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
@@ -609,14 +608,11 @@ public class CPAchecker {
                     CFAUtils.getProgramSinks(
                         pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
                 .build();
-            case TARGET -> {
-              TargetLocationProvider tlp =
-                  new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa);
-              yield tlp.tryGetAutomatonTargetLocations(
-                  pAnalysisEntryFunction,
-                  Specification.fromFiles(
-                      backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
-            }
+            case TARGET -> new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa)
+                .tryGetAutomatonTargetLocations(
+                    pAnalysisEntryFunction,
+                    Specification.fromFiles(
+                        backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
           };
       addToInitialReachedSet(initialLocations, isf, pReached, pCpa);
     }
