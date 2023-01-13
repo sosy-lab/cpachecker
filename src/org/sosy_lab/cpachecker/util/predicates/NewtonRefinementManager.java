@@ -154,8 +154,6 @@ public class NewtonRefinementManager implements StatisticsProvider {
             switch (abstractionLevel) {
               case EDGE -> createPredicatesEdgeLevel(pAllStatesTrace, pFormulas, pathLocations);
               case BLOCK -> createPredicatesBlockLevel(pAllStatesTrace, pFormulas, pathLocations);
-              default -> throw new UnsupportedOperationException(
-                  "The selected PathFormulaAbstractionLevel is not implemented.");
             };
         // Test if the predicate of the error state is unsatisfiable
         try {

@@ -108,7 +108,6 @@ public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInter
           case CONSTRAINTS_FIRST -> ImmutableList.of(new ConstraintsFirstReducer());
           case VALUES_FIRST -> ImmutableList.of(new ValuesFirstReducer());
           case VALUES_ONLY -> ImmutableList.of(new ValuesOnlyReducer());
-          default -> throw new AssertionError("Unhandled strategy: " + strategy);
         };
     if (avoidConstraints) {
       stateReducers =

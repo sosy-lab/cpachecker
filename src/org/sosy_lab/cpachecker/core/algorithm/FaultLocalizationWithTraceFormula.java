@@ -191,7 +191,6 @@ public class FaultLocalizationWithTraceFormula
           case MAXSAT -> new ModifiedMaxSatAlgorithm();
           case ERRINV -> new ErrorInvariantsAlgorithm(pShutdownNotifier, pConfig, logger);
           case UNSAT -> new SingleUnsatCoreAlgorithm();
-          default -> throw new AssertionError("The specified algorithm type does not exist");
         };
   }
 

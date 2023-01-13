@@ -45,7 +45,6 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
           switch (analysisType) {
             case Analysis -> true;
             case MetricsQuery -> false;
-            default -> throw new IllegalStateException("unknown analysisType");
           };
     }
 

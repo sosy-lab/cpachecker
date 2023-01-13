@@ -515,7 +515,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
           case SUBGRAPH -> findAllPredicatesFromSubgraph(refinementRoot, reached);
           case TARGET -> targetStatePrecision;
           case CUTPOINT -> extractPredicatePrecision(reached.getPrecision(refinementRoot));
-          default -> throw new AssertionError("unknown strategy for predicate basis.");
         };
     return basePrecision;
   }
@@ -539,7 +538,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
               mergePredicatesPerLocation(newPredicates.entries()));
           case LOCATION_INSTANCE -> basePrecision.addLocationInstancePredicates(
               newPredicates.entries());
-          default -> throw new AssertionError();
         };
     return newPrecision;
   }

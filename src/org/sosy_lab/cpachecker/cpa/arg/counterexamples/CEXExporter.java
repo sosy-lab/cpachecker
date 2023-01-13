@@ -240,7 +240,6 @@ public class CEXExporter {
               case CONCRETE_EXECUTION -> PathToConcreteProgramTranslator.translateSinglePath(
                   targetPath, counterexample.getCFAPathWithAssignments());
               case CBMC -> PathToCTranslator.translateSinglePath(targetPath);
-              default -> throw new AssertionError("Unhandled case statement: " + codeStyle);
             };
       }
 

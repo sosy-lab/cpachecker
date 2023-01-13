@@ -225,8 +225,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           case DEFAULT -> new DefaultPathFormulaBuilder.Factory();
           case SYMBOLICLOCATIONS -> new SymbolicLocationPathFormulaBuilder.Factory(
               new CBinaryExpressionBuilder(pMachineModel, pLogger));
-          default -> throw new InvalidConfigurationException(
-              "Invalid type of path formula builder specified!");
         };
 
     NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);

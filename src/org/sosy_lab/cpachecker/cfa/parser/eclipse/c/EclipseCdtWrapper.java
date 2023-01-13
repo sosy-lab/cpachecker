@@ -55,7 +55,6 @@ public class EclipseCdtWrapper {
         switch (pOptions.getDialect()) {
           case C99 -> new CLanguage(new ANSICParserExtensionConfiguration());
           case GNUC -> GCCLanguage.getDefault();
-          default -> throw new IllegalArgumentException("Unknown C dialect");
         };
   }
 

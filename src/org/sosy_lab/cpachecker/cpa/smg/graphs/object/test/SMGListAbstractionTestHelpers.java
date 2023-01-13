@@ -83,7 +83,6 @@ public final class SMGListAbstractionTestHelpers {
                 pSize, pHfo, pNfo, pMinLengths[i], pLevel);
             case DOUBLY_LINKED -> new SMGDoublyLinkedList(
                 pSize, pHfo, pNfo, pPfo, pMinLengths[i], pLevel);
-            default -> throw new IllegalArgumentException("Unsupported linkage type: " + pLinkage);
           };
       pSmg.addHeapObject(list);
       lists[i] = list;

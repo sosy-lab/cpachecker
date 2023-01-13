@@ -41,7 +41,6 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
         switch (precisionType) {
           case CONSTRAINTS -> ConstraintBasedConstraintsPrecision.getEmptyPrecision();
           case LOCATION -> LocationBasedConstraintsPrecision.getEmptyPrecision();
-          default -> throw new AssertionError("Unhandled precision type " + precisionType);
         };
   }
 

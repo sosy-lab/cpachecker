@@ -54,7 +54,6 @@ public final class Predicate {
           case LESS_OR_EQUAL -> Comparison.GREATER;
           case LESS -> Comparison.GREATER_OR_EQUAL;
           case NOT_EQUAL -> Comparison.EQUAL;
-          default -> throw new AssertionError();
         };
 
     return new Predicate(mLeftTerm, lComparison, mRightTerm);

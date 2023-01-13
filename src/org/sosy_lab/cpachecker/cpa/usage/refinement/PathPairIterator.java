@@ -18,7 +18,6 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
@@ -62,8 +61,7 @@ public class PathPairIterator
   public PathPairIterator(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
       BAMCPA pBamCpa,
-      PathEquation type)
-      throws InvalidConfigurationException {
+      PathEquation type) {
     super(pWrapper);
     bamCpa = pBamCpa;
 
@@ -71,7 +69,6 @@ public class PathPairIterator
         switch (type) {
           case ARGStateId -> ARGState::getStateId;
           case CFANodeId -> s -> AbstractStates.extractLocation(s).getNodeNumber();
-          default -> throw new InvalidConfigurationException("Unexpexted type " + type);
         };
     targetToPathIterator = new IdentityHashMap<>();
   }

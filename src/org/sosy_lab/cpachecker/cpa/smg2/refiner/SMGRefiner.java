@@ -234,7 +234,6 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
             case SUBGRAPH -> mergeValuePrecisionsForSubgraph(root, reached);
             case TARGET -> extractValuePrecision(reached.getPrecision(reached.getLastState()));
             case CUTPOINT -> extractValuePrecision(reached.getPrecision(root));
-            default -> throw new AssertionError("unknown strategy for predicate basis.");
           };
       // merge the value precisions of the subtree, and refine it
       precisions.add(

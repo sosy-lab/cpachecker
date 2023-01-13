@@ -121,8 +121,6 @@ public class SlicerFactory implements StatisticsProvider {
           case ALL -> new AllTargetsExtractor();
           case REDUCER -> new ReducerExtractor(pConfig);
           case SYNTAX -> new SyntaxExtractor(pConfig, pCfa, pLogger, pShutdownNotifier);
-          default -> throw new AssertionError(
-              "Unhandled criterion extractor type " + extractorType);
         };
 
     final SlicingType slicingType = options.getSlicingType();

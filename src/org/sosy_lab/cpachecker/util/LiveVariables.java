@@ -408,8 +408,6 @@ public class LiveVariables {
               .transform(TO_EQUIV_WRAPPER)
               .toSet();
           case GLOBAL -> ImmutableSet.of();
-          default -> throw new AssertionError(
-              "Unhandled case statement: " + config.evaluationStrategy);
         };
     final @Nullable ResourceLimitChecker limitChecker;
     final ShutdownNotifier shutdownNotifier;
@@ -483,7 +481,6 @@ public class LiveVariables {
         switch (evaluationStrategy) {
           case FUNCTION_WISE -> pCfa.getAllFunctionHeads();
           case GLOBAL -> Collections.singleton(pCfa.getMainFunction());
-          default -> throw new AssertionError("Unhandled case statement: " + evaluationStrategy);
         };
     for (FunctionEntryNode node : functionHeads) {
       Optional<FunctionExitNode> exitNode = node.getExitNode();
@@ -550,7 +547,6 @@ public class LiveVariables {
           switch (evaluationStrategy) {
             case FUNCTION_WISE -> "liveVariables-intraprocedural.properties";
             case GLOBAL -> "liveVariables-interprocedural.properties";
-            default -> throw new AssertionError("Unhandled case statement: " + evaluationStrategy);
           };
       Configuration config =
           Configuration.builder().loadFromResource(LiveVariables.class, configFile).build();

@@ -103,7 +103,6 @@ public class UsageCPAStatistics implements Statistics {
               case KLEVER_OLD -> new KleverErrorTracePrinterOld(
                   config, computer, cfa, logger, lockTransfer);
               case ETV -> new ETVErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
-              default -> throw new UnsupportedOperationException("Unknown type " + outputFileType);
             };
         errPrinter.printErrorTraces(reached);
         errPrinter.printStatistics(writer);

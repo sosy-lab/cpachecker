@@ -1981,7 +1981,6 @@ class CFAFunctionBuilder extends ASTVisitor {
                 ImmutableSet.of());
             yield notCaseNode;
           }
-          default -> throw new AssertionError();
         };
     return nextCaseStartsAtNode;
   }

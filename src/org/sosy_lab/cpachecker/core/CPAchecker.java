@@ -617,7 +617,6 @@ public class CPAchecker {
                   Specification.fromFiles(
                       backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
             }
-            default -> throw new AssertionError("Unhandled case statement: " + initialStatesFor);
           };
       addToInitialReachedSet(initialLocations, isf, pReached, pCpa);
     }

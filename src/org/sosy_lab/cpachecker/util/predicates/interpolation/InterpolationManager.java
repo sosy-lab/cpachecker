@@ -296,7 +296,6 @@ public final class InterpolationManager {
           case TREE_NESTED -> new NestedInterpolation(pLogger, pShutdownNotifier, fmgr);
           case TREE_CPACHECKER -> new TreeInterpolation(pLogger, pShutdownNotifier, fmgr);
           case TREE -> new TreeInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr);
-          default -> throw new AssertionError("unknown interpolation strategy");
         };
   }
 

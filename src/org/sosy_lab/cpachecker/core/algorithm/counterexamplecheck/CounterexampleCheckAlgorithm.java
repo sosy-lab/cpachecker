@@ -131,7 +131,6 @@ public class CounterexampleCheckAlgorithm
                         s, pCpa, assumptionToEdgeAllocator));
           }
           case CONCRETE_EXECUTION -> new ConcretePathExecutionChecker(config, logger, cfa);
-          default -> throw new AssertionError("Unhandled case statement: " + checkerType);
         };
   }
 
