@@ -103,7 +103,7 @@ public abstract class AbstractCfaValidator implements CfaValidator {
    */
   protected final CfaValidationResult fail(String pMessage) {
     return CfaValidationResult.error(
-        "[%s] %s".formatted(getClass().getSimpleName(), checkNotNull(pMessage)));
+        String.format("[%s] %s", getClass().getSimpleName(), checkNotNull(pMessage)));
   }
 
   /**
