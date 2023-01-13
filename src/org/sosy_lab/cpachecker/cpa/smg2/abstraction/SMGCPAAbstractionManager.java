@@ -783,13 +783,5 @@ public class SMGCPAAbstractionManager {
     public Set<SMGObject> getMaximalListElements() {
       return suspectedElements;
     }
-
-    /**
-     * @return size for the complete list for the candidate. It is unknown if this size represents
-     *     the complete abstractable list and should not be used for that.
-     */
-    public int getMaximalListLength() {
-      return maximalSizeOfList;
-    }
   }
 }
