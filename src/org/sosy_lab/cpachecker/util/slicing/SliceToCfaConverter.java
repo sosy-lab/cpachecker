@@ -86,7 +86,6 @@ final class SliceToCfaConverter implements CfaTransformer {
             .collect(
                 ImmutableMap.toImmutableMap(
                     entryNode -> entryNode.getFunction(), entryNode -> entryNode));
-
     return new SliceToCfaConverter(pSlice, relevantFunctions);
   }
 
@@ -133,7 +132,6 @@ final class SliceToCfaConverter implements CfaTransformer {
     if (pNode instanceof FunctionExitNode) {
       return !relevantFunctions.containsKey(pNode.getFunction());
     }
-
     return pGraph.adjacentNodes(pNode).isEmpty();
   }
 
@@ -144,7 +142,6 @@ final class SliceToCfaConverter implements CfaTransformer {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier) {
     ImmutableSet<CFAEdge> relevantEdges = slice.getRelevantEdges();
-
     FlexCfaNetwork graph = FlexCfaNetwork.copy(pCfaNetwork);
 
     ImmutableList<CFAEdge> irrelevantFunctionEdges =
@@ -167,7 +164,6 @@ final class SliceToCfaConverter implements CfaTransformer {
 
     // if the program slice is empty, return a CFA containing an empty main function
     if (relevantEdges.isEmpty()) {
-
       FunctionEntryNode mainEntryNode = pCfaMetadata.getMainFunctionEntry();
       graph.addNode(mainEntryNode);
       mainEntryNode.getExitNode().ifPresent(graph::addNode);
@@ -179,16 +175,13 @@ final class SliceToCfaConverter implements CfaTransformer {
         CCfaNodeTransformer.forSubstitutions(new RelevantNodeAstSubstitution());
     CCfaEdgeTransformer edgeTransformer =
         CCfaEdgeTransformer.forSubstitutions(new RelevantEdgeAstSubstitution());
-
     CfaFactory cfaFactory =
         CCfaFactory.toUnconnectedFunctions()
             .transformNodes(nodeTransformer)
             .transformEdges(edgeTransformer)
             .executePostProcessor(new CFASimplifier())
             .toSupergraph();
-
     CFA sliceCfa = cfaFactory.createCfa(graph, pCfaMetadata, pLogger, pShutdownNotifier);
-
     return sliceCfa;
   }
 
@@ -216,11 +209,9 @@ final class SliceToCfaConverter implements CfaTransformer {
           (CFunctionDeclaration) pFunctionEntryNode.getFunction();
       CFunctionDeclaration relevantFunctionDeclaration =
           (CFunctionDeclaration) functionDeclaration.accept(functionTransformingVisitor);
-
       if (relevantFunctionDeclaration.getType().getReturnType() != CVoidType.VOID) {
         return pFunctionEntryNode.getReturnVariable();
       }
-
       // return type of function is `void`, so no return variable exists
       return Optional.empty();
     }
@@ -240,7 +231,6 @@ final class SliceToCfaConverter implements CfaTransformer {
       if (slice.getRelevantEdges().contains(pEdge)) {
         return pAstNode.accept(new RelevantCAstNodeTransformingVisitor(pEdge));
       }
-
       return pAstNode;
     }
   }
@@ -263,7 +253,6 @@ final class SliceToCfaConverter implements CfaTransformer {
 
       ImmutableSet<ASimpleDeclaration> relevantDeclarations = slice.getRelevantDeclarations();
       List<CParameterDeclaration> parameters = pFunctionDeclaration.getParameters();
-
       ImmutableList<CParameterDeclaration> relevantParameters =
           parameters.stream()
               .filter(relevantDeclarations::contains)
@@ -279,12 +268,10 @@ final class SliceToCfaConverter implements CfaTransformer {
               .orElse(CVoidType.VOID);
 
       CFunctionType functionType = pFunctionDeclaration.getType();
-
       boolean relevantTakesVarargs =
           functionType.takesVarArgs()
               && !parameters.isEmpty()
               && relevantDeclarations.contains(Iterables.getLast(parameters));
-
       CFunctionType relevantFunctionType =
           new CFunctionTypeWithNames(relevantReturnType, relevantParameters, relevantTakesVarargs);
 
@@ -317,7 +304,6 @@ final class SliceToCfaConverter implements CfaTransformer {
     public CAstNode visit(CVariableDeclaration pVariableDeclaration) {
       MemoryLocation memoryLocation = MemoryLocation.forDeclaration(pVariableDeclaration);
       CInitializer initializer = pVariableDeclaration.getInitializer();
-
       if (initializer != null && slice.isRelevantDef(edge, memoryLocation)) {
         // The variable declaration's initializer expression must be visited during transformation.
         // Only visitors that prevent infinite recursive visit-calls due to cyclic references
@@ -347,30 +333,21 @@ final class SliceToCfaConverter implements CfaTransformer {
       ImmutableList.Builder<CExpression> relevantArgumentsBuilder = ImmutableList.builder();
 
       for (int index = 0; index < arguments.size(); index++) {
-
         CExpression argument = arguments.get(index);
-
         // varargs can lead to more arguments than parameters
         if (index >= parameters.size()
             && relevantDeclarations.contains(Iterables.getLast(parameters))) {
-
           assert functionDeclaration.getType().takesVarArgs();
-
           relevantArgumentsBuilder.add((CExpression) argument.accept(this));
           continue;
         }
 
         CParameterDeclaration parameter = parameters.get(index);
         MemoryLocation parameterMemLoc = MemoryLocation.forDeclaration(parameter);
-
         if (relevantDeclarations.contains(parameter)) {
-
           if (slice.isRelevantDef(edge, parameterMemLoc)) { // parameter and argument relevant
-
             relevantArgumentsBuilder.add((CExpression) argument.accept(this));
-
           } else { // parameter relevant and argument not relevant
-
             String irrelevantValueVariableName =
                 String.format(
                     "%s%d_%d_%d",
@@ -388,14 +365,11 @@ final class SliceToCfaConverter implements CfaTransformer {
                     irrelevantValueVariableName,
                     irrelevantValueVariableName,
                     null);
-
             var irrelevantValueExpression =
                 new CIdExpression(argument.getFileLocation(), irrelevantValueVariableDeclaration);
             relevantArgumentsBuilder.add(irrelevantValueExpression);
           }
-
         } else { // parameter not relevant
-
           assert !slice.isRelevantDef(edge, parameterMemLoc)
               : "Argument is relevant but corresponding parameter is not";
         }
