@@ -20,7 +20,7 @@ public final class MainFunctionEntryNodePartOfCfa extends AbstractCfaValidator {
 
   public static final CfaValidator INSTANCE = new MainFunctionEntryNodePartOfCfa();
 
-  protected MainFunctionEntryNodePartOfCfa() {
+  private MainFunctionEntryNodePartOfCfa() {
     super(MainFunctionEntryNodePartOfCfa::new);
   }
 
