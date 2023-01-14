@@ -96,7 +96,7 @@ public final class CfaValidationResult {
         errorStrings -> {
           String message =
               String.format(
-                  "CFA is invalid, %d error(s):\n%s",
+                  "CFA is invalid, %d error(s):%n%s",
                   errors.size(), Joiner.on('\n').join(errorStrings));
           return new AssertionError(message);
         });
