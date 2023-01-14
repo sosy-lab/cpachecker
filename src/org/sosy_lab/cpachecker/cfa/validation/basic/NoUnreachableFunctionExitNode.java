@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cfa.validation.basic;
 
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.CfaMetadata;
+import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -23,14 +25,7 @@ import org.sosy_lab.cpachecker.cfa.validation.CfaValidator;
  */
 public final class NoUnreachableFunctionExitNode extends AbstractCfaValidator {
 
-  public static final CfaValidator INSTANCE = new NoUnreachableFunctionExitNode();
-
-  private NoUnreachableFunctionExitNode() {
-    super(NoUnreachableFunctionExitNode::new);
-  }
-
-  @Override
-  protected CfaValidationResult checkNode(CFANode pNode) {
+  private CfaValidationResult checkNode(CFANode pNode) {
     if (pNode instanceof FunctionEntryNode) {
       Optional<FunctionExitNode> optExitNode = ((FunctionEntryNode) pNode).getExitNode();
       if (optExitNode.isPresent()) {
@@ -43,5 +38,10 @@ public final class NoUnreachableFunctionExitNode extends AbstractCfaValidator {
       }
     }
     return pass();
+  }
+
+  @Override
+  public CfaValidationResult check(CfaNetwork pCfaNetwork, CfaMetadata pCfaMetadata) {
+    return CfaValidator.createNodeValidator(this::checkNode).check(pCfaNetwork, pCfaMetadata);
   }
 }

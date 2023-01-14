@@ -38,16 +38,12 @@ public interface CfaValidator {
    */
   public static CfaValidator combine(CfaValidator... pValidators) {
     ImmutableList<CfaValidator> validators = ImmutableList.copyOf(pValidators);
-    return new CfaValidator() {
-
-      @Override
-      public CfaValidationResult check(CfaNetwork pCfaNetwork, CfaMetadata pCfaMetadata) {
-        CfaValidationResult validationResult = CfaValidationResult.VALID;
-        for (CfaValidator validator : validators) {
-          validationResult = validationResult.combine(validator.check(pCfaNetwork, pCfaMetadata));
-        }
-        return validationResult;
+    return (cfaNetwork, cfaMetadata) -> {
+      CfaValidationResult validationResult = CfaValidationResult.VALID;
+      for (CfaValidator validator : validators) {
+        validationResult = validationResult.combine(validator.check(cfaNetwork, cfaMetadata));
       }
+      return validationResult;
     };
   }
 
