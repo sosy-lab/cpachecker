@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.validation;
 
+import com.google.errorprone.annotations.FormatString;
+import org.checkerframework.checker.formatter.qual.FormatMethod;
+
 /**
  * A class that makes implementing {@link CfaValidator} easier by providing static factory methods
  * for {@link CfaValidationResult} creation.
@@ -35,7 +38,8 @@ public abstract class AbstractCfaValidator implements CfaValidator {
    * @return a new {@link CfaValidationResult} that indicates that the check failed
    * @throws NullPointerException if {@code pMessage == null}
    */
-  protected final CfaValidationResult fail(String pMessage, Object... pArgs) {
+  @FormatMethod
+  protected final CfaValidationResult fail(@FormatString String pMessage, Object... pArgs) {
     String message = String.format(pMessage, pArgs);
     return CfaValidationResult.error(String.format("[%s] %s", getClass().getSimpleName(), message));
   }
