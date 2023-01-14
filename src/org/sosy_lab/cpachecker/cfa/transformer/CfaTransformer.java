@@ -36,17 +36,18 @@ public interface CfaTransformer {
    * first specified transformer and the output of the combined transformer is the output of the
    * last specified transformer.
    *
-   * @param pTransformer the first CFA transformer
-   * @param pTransformers additional CFA transformers executed after the first CFA transformer
+   * @param pFst the first CFA transformer
+   * @param pSnd the second CFA transformer
+   * @param pAdditional additional CFA transformers executed after the second CFA transformer
    * @return a new CFA transformer that is the combination of the specified transformers
-   * @throws NullPointerException if any parameter is {@code null} or {@code pTransformers} has an
+   * @throws NullPointerException if any parameter is {@code null} or {@code pAdditional} has an
    *     element that is {@code null}
    */
   public static CfaTransformer combine(
-      CfaTransformer pTransformer, CfaTransformer... pTransformers) {
-    checkNotNull(pTransformer);
-
-    ImmutableList<CfaTransformer> transformers = ImmutableList.copyOf(pTransformers);
+      CfaTransformer pFst, CfaTransformer pSnd, CfaTransformer... pAdditional) {
+    checkNotNull(pFst);
+    ImmutableList<CfaTransformer> afterFirst =
+        ImmutableList.<CfaTransformer>builder().add(pSnd).add(pAdditional).build();
 
     return new CfaTransformer() {
 
@@ -56,12 +57,10 @@ public interface CfaTransformer {
           CfaMetadata pCfaMetadata,
           LogManager pLogger,
           ShutdownNotifier pShutdownNotifier) {
-        CFA transformedCfa =
-            pTransformer.transform(pCfaNetwork, pCfaMetadata, pLogger, pShutdownNotifier);
-        for (CfaTransformer transformer : transformers) {
+        CFA transformedCfa = pFst.transform(pCfaNetwork, pCfaMetadata, pLogger, pShutdownNotifier);
+        for (CfaTransformer transformer : afterFirst) {
           transformedCfa = transformer.transform(transformedCfa, pLogger, pShutdownNotifier);
         }
-
         return transformedCfa;
       }
     };
