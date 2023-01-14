@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.validation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.util.function.Function;
 
@@ -82,5 +83,22 @@ public final class CfaValidationResult {
     if (!errors.isEmpty()) {
       throw pExceptionProducer.apply(errors);
     }
+  }
+
+  /**
+   * If this {@link CfaValidationResult} contains any errors, an {@link AssertionError} containing
+   * detailed error information is thrown.
+   *
+   * @throws AssertionError if this {@link CfaValidationResult} contains any errors
+   */
+  public void passOrAssertionError() {
+    passOrThrow(
+        errorStrings -> {
+          String message =
+              String.format(
+                  "CFA is invalid, %d error(s):\n%s",
+                  errors.size(), Joiner.on('\n').join(errorStrings));
+          return new AssertionError(message);
+        });
   }
 }
