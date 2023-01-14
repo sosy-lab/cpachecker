@@ -97,13 +97,16 @@ public abstract class AbstractCfaValidator implements CfaValidator {
    * Creates a new {@link CfaValidationResult} that indicates that the check failed (i.e., the CFA
    * is not valid).
    *
-   * @param pMessage a string that describes the cause of the failure
+   * @param pMessage a string that describes the cause of the failure, can be a format string that
+   *     {@link String#format(String, Object...)} accepts
+   * @param pArgs arguments referenced by the format specifiers in {@code pMessage}, if it's a
+   *     format string
    * @return a new {@link CfaValidationResult} that indicates that the check failed
    * @throws NullPointerException if {@code pMessage == null}
    */
-  protected final CfaValidationResult fail(String pMessage) {
-    return CfaValidationResult.error(
-        String.format("[%s] %s", getClass().getSimpleName(), checkNotNull(pMessage)));
+  protected final CfaValidationResult fail(String pMessage, Object... pArgs) {
+    String message = String.format(pMessage, pArgs);
+    return CfaValidationResult.error(String.format("[%s] %s", getClass().getSimpleName(), message));
   }
 
   /**

@@ -37,9 +37,8 @@ public final class NoUnreachableFunctionExitNode extends AbstractCfaValidator {
         FunctionExitNode exitNode = optExitNode.orElseThrow();
         if (exitNode.getNumEnteringEdges() == 0) {
           return fail(
-              String.format(
-                  "Function entry node '%s' has reference to unreachable function exit node '%s'",
-                  pNode, exitNode));
+              "Function entry node '%s' has reference to unreachable function exit node '%s'",
+              pNode, exitNode);
         }
       }
     }
