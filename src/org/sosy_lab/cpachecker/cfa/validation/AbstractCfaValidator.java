@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.validation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.ImmutableList;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -78,11 +77,6 @@ public abstract class AbstractCfaValidator implements CfaValidator {
     return check(CfaNetwork.wrap(pCfa), pCfa.getMetadata());
   }
 
-  @Override
-  public final CfaValidator combine(CfaValidator pOther) {
-    return new CompositeCfaValidator(this, pOther);
-  }
-
   /**
    * Returns a {@link CfaValidationResult} that indicates that the current check passed (i.e., the
    * current check didn't fail).
@@ -144,72 +138,5 @@ public abstract class AbstractCfaValidator implements CfaValidator {
    */
   protected CfaValidationResult checkComplete(CfaNetwork pCfaNetwork, CfaMetadata pCfaMetadata) {
     return pass();
-  }
-
-  /** A {@link AbstractCfaValidator} for combining multiple validators. */
-  private static final class CompositeCfaValidator extends AbstractCfaValidator {
-
-    private final CfaValidator fst;
-    private final CfaValidator snd;
-
-    private CompositeCfaValidator(CfaValidator pFst, CfaValidator pSnd) {
-      super(createValidatorFactory(pFst, pSnd));
-      fst = pFst;
-      snd = pSnd;
-    }
-
-    private static BiFunction<CfaNetwork, CfaMetadata, AbstractCfaValidator> createValidatorFactory(
-        CfaValidator pFst, CfaValidator pSnd) {
-      return (cfaNetwork, cfaMetadata) -> {
-        CfaValidator newFst =
-            pFst instanceof AbstractCfaValidator
-                ? ((AbstractCfaValidator) pFst).validatorFactory.apply(cfaNetwork, cfaMetadata)
-                : pFst;
-        CfaValidator newSnd =
-            pSnd instanceof AbstractCfaValidator
-                ? ((AbstractCfaValidator) pSnd).validatorFactory.apply(cfaNetwork, cfaMetadata)
-                : pSnd;
-        return new CompositeCfaValidator(newFst, newSnd);
-      };
-    }
-
-    @Override
-    protected CfaValidationResult checkNode(CFANode pNode) {
-      CfaValidationResult validationResult = CfaValidationResult.VALID;
-      for (CfaValidator validator : ImmutableList.of(fst, snd)) {
-        if (validator instanceof AbstractCfaValidator) {
-          validationResult =
-              validationResult.combine(((AbstractCfaValidator) validator).checkNode(pNode));
-        }
-      }
-      return validationResult;
-    }
-
-    @Override
-    protected CfaValidationResult checkEdge(CFAEdge pEdge) {
-      CfaValidationResult validationResult = CfaValidationResult.VALID;
-      for (CfaValidator validator : ImmutableList.of(fst, snd)) {
-        if (validator instanceof AbstractCfaValidator) {
-          validationResult =
-              validationResult.combine(((AbstractCfaValidator) validator).checkEdge(pEdge));
-        }
-      }
-      return validationResult;
-    }
-
-    @Override
-    protected CfaValidationResult checkComplete(CfaNetwork pCfaNetwork, CfaMetadata pCfaMetadata) {
-      CfaValidationResult validationResult = CfaValidationResult.VALID;
-      for (CfaValidator validator : ImmutableList.of(fst, snd)) {
-        if (validator instanceof AbstractCfaValidator) {
-          validationResult =
-              validationResult.combine(
-                  ((AbstractCfaValidator) validator).checkComplete(pCfaNetwork, pCfaMetadata));
-        } else {
-          validator.check(pCfaNetwork, pCfaMetadata);
-        }
-      }
-      return validationResult;
-    }
   }
 }

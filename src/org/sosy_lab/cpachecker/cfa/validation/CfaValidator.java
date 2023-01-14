@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.validation;
 
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
@@ -15,11 +16,35 @@ import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 /**
  * A {@link CfaValidator} determines whether a given CFA is valid (i.e., whether a CFA is correct
  * with respect to certain criteria checked by the validator).
- *
- * <p>Typically, a {@link CfaValidator} implementation checks a specific aspect of a CFA. To check
- * multiple aspects, validators can be combined using {@link #combine(CfaValidator)}.
  */
+@FunctionalInterface
 public interface CfaValidator {
+
+  /**
+   * Returns a new {@link CfaValidator} that is the combination of the specified validators.
+   *
+   * <p>The returned validator only considers a given CFA valid, if all specified validators
+   * consider it valid.
+   *
+   * @param pValidators the validators to combine
+   * @return a new {@link CfaValidator} that is the combination of the specified validators
+   * @throws NullPointerException if {@code pValidators == null} or {@code pValidators} contains an
+   *     element that is {@code null}
+   */
+  public static CfaValidator combine(CfaValidator... pValidators) {
+    ImmutableList<CfaValidator> validators = ImmutableList.copyOf(pValidators);
+    return new CfaValidator() {
+
+      @Override
+      public CfaValidationResult check(CfaNetwork pCfaNetwork, CfaMetadata pCfaMetadata) {
+        CfaValidationResult validationResult = CfaValidationResult.VALID;
+        for (CfaValidator validator : validators) {
+          validationResult = validationResult.combine(validator.check(pCfaNetwork, pCfaMetadata));
+        }
+        return validationResult;
+      }
+    };
+  }
 
   /**
    * Returns a {@link CfaValidationResult} that indicates whether the specified CFA is valid.
@@ -42,17 +67,7 @@ public interface CfaValidator {
    *     represents a valid CFA
    * @throws NullPointerException if {@code pCfa == null}
    */
-  CfaValidationResult check(CFA pCfa);
-
-  /**
-   * Returns a new {@link CfaValidator} that combines this validator and {@code pOther}.
-   *
-   * <p>The returned validator only considers a given CFA valid, if both validators (this validator
-   * and {@code pOther}) consider it valid.
-   *
-   * @param pOther the validator to combine with this validator
-   * @return a new {@link CfaValidator} that combines this validator and {@code pOther}
-   * @throws NullPointerException if {@code pOther == null}
-   */
-  CfaValidator combine(CfaValidator pOther);
+  default CfaValidationResult check(CFA pCfa) {
+    return check(CfaNetwork.wrap(pCfa), pCfa.getMetadata());
+  }
 }
