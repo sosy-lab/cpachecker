@@ -48,21 +48,12 @@ public interface CfaTransformer {
     checkNotNull(pFst);
     ImmutableList<CfaTransformer> afterFirst =
         ImmutableList.<CfaTransformer>builder().add(pSnd).add(pAdditional).build();
-
-    return new CfaTransformer() {
-
-      @Override
-      public CFA transform(
-          CfaNetwork pCfaNetwork,
-          CfaMetadata pCfaMetadata,
-          LogManager pLogger,
-          ShutdownNotifier pShutdownNotifier) {
-        CFA transformedCfa = pFst.transform(pCfaNetwork, pCfaMetadata, pLogger, pShutdownNotifier);
-        for (CfaTransformer transformer : afterFirst) {
-          transformedCfa = transformer.transform(transformedCfa, pLogger, pShutdownNotifier);
-        }
-        return transformedCfa;
+    return (cfaNetwork, cfaMetadata, logger, shutdownNotifier) -> {
+      CFA transformedCfa = pFst.transform(cfaNetwork, cfaMetadata, logger, shutdownNotifier);
+      for (CfaTransformer transformer : afterFirst) {
+        transformedCfa = transformer.transform(transformedCfa, logger, shutdownNotifier);
       }
+      return transformedCfa;
     };
   }
 
