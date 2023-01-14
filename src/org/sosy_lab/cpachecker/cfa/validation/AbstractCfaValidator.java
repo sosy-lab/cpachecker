@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.validation;
 
+import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
-import org.checkerframework.checker.formatter.qual.FormatMethod;
 
 /**
  * A class that makes implementing {@link CfaValidator} easier by providing static factory methods
