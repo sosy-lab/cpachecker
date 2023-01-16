@@ -225,7 +225,7 @@ public class CongruenceManager implements ABEManager<CongruenceState, TemplatePr
               cfa,
               AnalysisDirection.FORWARD);
     } catch (InvalidConfigurationException pE) {
-      throw new UnsupportedOperationException("Could not construct path " + "formula manager", pE);
+      throw new UnsupportedOperationException("Could not construct path formula manager", pE);
     }
     return pFormulaManager.uninstantiate(
         toFormula(

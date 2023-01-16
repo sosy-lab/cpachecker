@@ -54,7 +54,7 @@ public class PolicyInterpolationRefiner implements Refiner {
 
   @Option(
       secure = true,
-      description = "Attempt to weaken interpolants in order to make them more " + "general")
+      description = "Attempt to weaken interpolants in order to make them more general")
   private boolean generalizeInterpolants = true;
 
   private final PathExtractor pathExtractor;

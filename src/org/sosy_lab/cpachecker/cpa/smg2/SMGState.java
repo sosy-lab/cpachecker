@@ -3046,7 +3046,7 @@ public class SMGState
         valueRead = castValueForUnionFloatConversion(valueRead, readType);
       }
       if (memoryModel.isPointer(valueRead)) {
-        builder.append(memLoc.getKey() + ": " + " pointer: " + valueRead);
+        builder.append(memLoc.getKey() + ":  pointer: " + valueRead);
         builder.append("\n");
       } else {
         builder.append(memLoc.getKey() + ": " + valueRead);

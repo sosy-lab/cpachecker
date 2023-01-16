@@ -220,7 +220,7 @@ public class FaultLocalizationWithTraceFormula
     }
     if (!options.getDisable().isEmpty() && algorithmType.equals(AlgorithmType.ERRINV)) {
       throw new InvalidConfigurationException(
-          "The option 'ban' is not applicable for the error invariants" + " algorithm");
+          "The option 'ban' is not applicable for the error invariants algorithm");
     }
     if (!options.getDisable().isEmpty()) {
       if (options.getDisable().stream()

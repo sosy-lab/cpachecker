@@ -68,7 +68,7 @@ class FormulaSlicingStatistics implements Statistics {
 
   private void printTimer(PrintStream out, Timer t, String name, Object cacheHits) {
     out.printf(
-        "Time spent in %s: %s (Max: %s), (Avg: %s), (#calls = %s), " + "(#cached = %s) %n",
+        "Time spent in %s: %s (Max: %s), (Avg: %s), (#calls = %s), (#cached = %s) %n",
         name,
         t.getSumTime().formatAs(TimeUnit.SECONDS),
         t.getMaxTime().formatAs(TimeUnit.SECONDS),

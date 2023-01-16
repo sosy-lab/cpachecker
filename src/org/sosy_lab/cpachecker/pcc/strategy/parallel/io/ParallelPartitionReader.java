@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.pcc.strategy.parallel.io;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -17,12 +16,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
-import java.util.zip.ZipInputStream;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistics;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
-import org.sosy_lab.cpachecker.util.Triple;
 
 public class ParallelPartitionReader implements Runnable {
 
@@ -81,12 +78,10 @@ public class ParallelPartitionReader implements Runnable {
   @Override
   @SuppressWarnings("Finally") // not really better doable without switching to Closer
   public void run() {
-    Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
     int nextId;
     while ((nextId = nextPartition.getAndIncrement()) < ioHelper.getNumPartitions()) {
-      try {
-        streams = strategy.openAdditionalProofStream(nextId);
-        ioHelper.readPartition(streams.getThird(), stats, lock);
+      try (ObjectInputStream stream = strategy.openAdditionalProofStream(nextId)) {
+        ioHelper.readPartition(stream, stats, lock);
         waitRead.release();
       } catch (IOException | ClassNotFoundException e) {
         logger.logUserException(Level.SEVERE, e, "Partition reading failed. Stop checking");
@@ -94,16 +89,6 @@ public class ParallelPartitionReader implements Runnable {
       } catch (Exception e2) {
         logger.logException(Level.SEVERE, e2, "Unexpected failure during proof reading");
         prepareAbortion();
-      } finally {
-        if (streams != null) {
-          try {
-            streams.getThird().close();
-            streams.getSecond().close();
-            streams.getFirst().close();
-          } catch (IOException e) {
-            throw new AssertionError(e);
-          }
-        }
       }
     }
   }

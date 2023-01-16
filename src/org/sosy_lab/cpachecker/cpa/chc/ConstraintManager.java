@@ -106,7 +106,7 @@ public class ConstraintManager {
 
     Query q = new Query("entails", args);
 
-    logger.log(Level.FINEST, "\n * " + cn1 + "\n * entails" + "\n * " + cn2 + ")");
+    logger.log(Level.FINEST, "\n * " + cn1 + "\n * entails\n * " + cn2 + ")");
 
     boolean res = q.hasSolution();
 
