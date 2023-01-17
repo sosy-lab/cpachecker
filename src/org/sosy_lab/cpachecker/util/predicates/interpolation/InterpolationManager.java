@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.ITPStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.NestedInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolation;
@@ -756,8 +755,7 @@ public final class InterpolationManager {
    * @return A list of (N-1) interpolants for N formulae.
    */
   private <T> List<BooleanFormula> getInterpolants(
-      Interpolator<T> pInterpolator,
-      List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+      Interpolator<T> pInterpolator, List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds)
       throws SolverException, InterruptedException {
 
     final List<BooleanFormula> interpolants;
@@ -934,7 +932,7 @@ public final class InterpolationManager {
       // for every block of the counterexample (in correct order).
       // It is initialized with {@code null} and filled while the formulas are pushed on the solver
       // stack.
-      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds =
+      final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds =
           new ArrayList<>(Collections.nCopies(formulas.getSize(), null));
 
       ImmutableIntArray formulaPermutation;
@@ -961,7 +959,7 @@ public final class InterpolationManager {
                 pAbstractionStates,
                 formulaPermutation,
                 formulasWithStatesAndGroupdIds);
-        assert Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst)
+        assert Lists.transform(formulasWithStatesAndGroupdIds, InterpolationGroup::formula)
             .equals(formulas.getFormulas());
 
       } finally {
@@ -1010,7 +1008,7 @@ public final class InterpolationManager {
                     pAbstractionStates,
                     formulaPermutation,
                     formulasWithStatesAndGroupdIds);
-            assert Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst)
+            assert Lists.transform(formulasWithStatesAndGroupdIds, InterpolationGroup::formula)
                 .equals(formulas.getFormulas());
             verify(spurious, "Counterexample formulas became satisfiable on second try");
 
@@ -1056,7 +1054,7 @@ public final class InterpolationManager {
         final List<BooleanFormula> traceFormulas,
         final List<AbstractState> traceStates,
         final ImmutableIntArray formulaPermutation,
-        final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+        final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds)
         throws InterruptedException, SolverException {
 
       // first identify which formulas are already on the solver stack,
@@ -1096,7 +1094,7 @@ public final class InterpolationManager {
         final List<BooleanFormula> traceFormulas,
         final List<AbstractState> traceStates,
         final ListIterator<Integer> todoIterator,
-        final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds) {
+        final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds) {
 
       ListIterator<Pair<BooleanFormula, T>> assertedIterator =
           currentlyAssertedFormulas.listIterator();
@@ -1115,8 +1113,8 @@ public final class InterpolationManager {
 
         if (todoFormula.equals(assertedFormula.getFirst())) {
           // formula is already in solver stack in correct location
-          final Triple<BooleanFormula, AbstractState, T> assertedFormulaWithState =
-              Triple.of(
+          final InterpolationGroup<T> assertedFormulaWithState =
+              new InterpolationGroup<>(
                   assertedFormula.getFirst(), traceStates.get(index), assertedFormula.getSecond());
           formulasWithStatesAndGroupdIds.set(index, assertedFormulaWithState);
 
@@ -1174,7 +1172,7 @@ public final class InterpolationManager {
         final List<BooleanFormula> traceFormulas,
         final List<AbstractState> traceStates,
         final ListIterator<Integer> todoIterator,
-        final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+        final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds)
         throws SolverException, InterruptedException {
       boolean isStillFeasible = true;
 
@@ -1193,7 +1191,7 @@ public final class InterpolationManager {
         assert formulasWithStatesAndGroupdIds.get(index) == null;
         logger.logf(Level.ALL, "Pushing formula for block %s:\n  %s", index, f);
         T itpGroupId = itpProver.push(f);
-        formulasWithStatesAndGroupdIds.set(index, Triple.of(f, state, itpGroupId));
+        formulasWithStatesAndGroupdIds.set(index, new InterpolationGroup<>(f, state, itpGroupId));
         currentlyAssertedFormulas.add(Pair.of(f, itpGroupId));
 
         // We need to iterate through the full loop
