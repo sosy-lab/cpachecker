@@ -12,7 +12,7 @@ import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 
 /** Instances of this class represent C bit-field types. */
-public class CBitFieldType implements CType {
+public final class CBitFieldType implements CType {
 
   private static final long serialVersionUID = 1L;
 

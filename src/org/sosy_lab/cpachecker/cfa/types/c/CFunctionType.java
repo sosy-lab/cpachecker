@@ -18,7 +18,8 @@ import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
-public class CFunctionType extends AFunctionType implements CType {
+public sealed class CFunctionType extends AFunctionType implements CType
+    permits CFunctionTypeWithNames {
 
   private static final long serialVersionUID = 4154771254170820716L;
 

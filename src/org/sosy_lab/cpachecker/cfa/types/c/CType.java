@@ -22,7 +22,17 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  * CPAchecker-specific classes.
  */
 @SuppressWarnings("serial")
-public interface CType extends Type {
+public sealed interface CType extends Type
+    permits CArrayType,
+        CBitFieldType,
+        CComplexType,
+        CFunctionType,
+        CFunctionTypeWithNames,
+        CPointerType,
+        CProblemType,
+        CSimpleType,
+        CTypedefType,
+        CVoidType {
 
   boolean isConst();
 
