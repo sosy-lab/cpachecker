@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.ConstantIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.IdentifierCreator;
@@ -161,16 +160,16 @@ public class LocalTransferRelation
         sEdge.getExpression().getFunctionCallExpression().getParameterExpressions();
     List<CParameterDeclaration> parameterTypes = entry.getFunctionDefinition().getParameters();
 
-    List<Triple<AbstractIdentifier, LocalVariableIdentifier, Integer>> toProcess =
+    List<Identifier> toProcess =
         extractIdentifiers(arguments, paramNames, parameterTypes, callerFunctionName, funcName);
 
     for (int i = 0; i < toProcess.size(); i++) {
-      Triple<AbstractIdentifier, LocalVariableIdentifier, Integer> pairId = toProcess.get(i);
+      Identifier pairId = toProcess.get(i);
       // Note, index starts from in configuration
       if (allocParameter > 0 && allocParameter == i + 1) {
-        completeSet(newElement, pairId.getFirst(), pairId.getThird(), DataType.LOCAL);
+        completeSet(newElement, pairId.outerId(), pairId.dereference(), DataType.LOCAL);
       } else {
-        completeAssign(newElement, pairId.getFirst(), pairId.getThird(), pairId.getSecond());
+        completeAssign(newElement, pairId.outerId(), pairId.dereference(), pairId.innerId());
       }
     }
     return newElement;
@@ -186,19 +185,19 @@ public class LocalTransferRelation
     CFunctionEntryNode functionEntryNode = cfaEdge.getSuccessor();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
 
-    List<Triple<AbstractIdentifier, LocalVariableIdentifier, Integer>> toProcess =
+    List<Identifier> toProcess =
         extractIdentifiers(
             arguments, paramNames, parameterTypes, getFunctionName(), calledFunctionName);
     // TODO Make it with config
     boolean isThreadCreate =
         cfaEdge.getSummaryEdge().getExpression() instanceof CThreadCreateStatement;
 
-    for (Triple<AbstractIdentifier, LocalVariableIdentifier, Integer> pairId : toProcess) {
+    for (Identifier pairId : toProcess) {
       if (isThreadCreate) {
         // Data became shared after thread creation
-        completeSet(newState, pairId.getSecond(), pairId.getThird(), DataType.GLOBAL);
+        completeSet(newState, pairId.innerId(), pairId.dereference(), DataType.GLOBAL);
       } else {
-        completeAssign(newState, pairId.getSecond(), pairId.getThird(), pairId.getFirst());
+        completeAssign(newState, pairId.innerId(), pairId.dereference(), pairId.outerId());
       }
     }
 
@@ -277,14 +276,17 @@ public class LocalTransferRelation
     return false;
   }
 
-  private List<Triple<AbstractIdentifier, LocalVariableIdentifier, Integer>> extractIdentifiers(
+  private record Identifier(
+      AbstractIdentifier outerId, LocalVariableIdentifier innerId, int dereference) {}
+
+  private List<Identifier> extractIdentifiers(
       List<CExpression> arguments,
       List<String> paramNames,
       List<CParameterDeclaration> parameterTypes,
       String callerFunction,
       String calledFunction) {
 
-    List<Triple<AbstractIdentifier, LocalVariableIdentifier, Integer>> result = new ArrayList<>();
+    List<Identifier> result = new ArrayList<>();
     CExpression currentArgument;
     int dereference;
     for (int i = 0; i < arguments.size(); i++) {
@@ -301,7 +303,7 @@ public class LocalTransferRelation
               paramNames.get(i), parameterTypes.get(i).getType(), calledFunction, 0);
       AbstractIdentifier outerId =
           createId(currentArgument, 0, new IdentifierCreator(callerFunction));
-      result.add(Triple.of(outerId, innerId, dereference));
+      result.add(new Identifier(outerId, innerId, dereference));
     }
     return result;
   }
