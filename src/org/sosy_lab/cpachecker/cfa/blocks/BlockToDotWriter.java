@@ -60,7 +60,7 @@ public class BlockToDotWriter {
     // get hierarchy, Multimap of <outer block, inner blocks>
     final Multimap<Block, Block> hierarchy = getHierarchy();
 
-    app.append("digraph " + "blocked_CFA" + " {\n");
+    app.append("digraph blocked_CFA {\n");
     final List<CFAEdge> edges = new ArrayList<>();
 
     // dump nodes of all blocks

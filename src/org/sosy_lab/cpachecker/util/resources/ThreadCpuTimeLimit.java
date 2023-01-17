@@ -47,7 +47,9 @@ public class ThreadCpuTimeLimit implements ResourceLimit {
   }
 
   private static long getCurrentThreadTime(Thread pThread) {
-    return ManagementFactory.getThreadMXBean().getThreadCpuTime(pThread.getId());
+    @SuppressWarnings("deprecation") // Replacement Thread.threadId() is only available on Java 19+
+    final long threadId = pThread.getId();
+    return ManagementFactory.getThreadMXBean().getThreadCpuTime(threadId);
   }
 
   @Override

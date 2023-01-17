@@ -86,16 +86,15 @@ public class SMGCPATransferRelationTest {
   @SuppressWarnings("unused")
   private static final CType DOUBLE_TYPE = CNumericTypes.DOUBLE;
 
-  private static final CType[] TEST_TYPES =
-      new CType[] {
-        CHAR_TYPE,
-        SHORT_TYPE,
-        UNSIGNED_SHORT_TYPE,
-        INT_TYPE,
-        UNSIGNED_INT_TYPE,
-        LONG_TYPE,
-        UNSIGNED_LONG_TYPE
-      };
+  private static final CType[] TEST_TYPES = {
+    CHAR_TYPE,
+    SHORT_TYPE,
+    UNSIGNED_SHORT_TYPE,
+    INT_TYPE,
+    UNSIGNED_INT_TYPE,
+    LONG_TYPE,
+    UNSIGNED_LONG_TYPE
+  };
 
   private static final MachineModel MACHINE_MODEL = MachineModel.LINUX64;
   // Pointer size for the machine model in bits

@@ -422,15 +422,13 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     if (functionEntryNode.getFunctionDefinition().getType().takesVarArgs()) {
       if (formalParams.size() > arguments.size()) {
         throw new UnrecognizedCodeException(
-            "Number of parameters on function call does " + "not match function definition",
-            callEdge);
+            "Number of parameters on function call does not match function definition", callEdge);
       }
 
     } else {
       if (formalParams.size() != arguments.size()) {
         throw new UnrecognizedCodeException(
-            "Number of parameters on function call does " + "not match function definition",
-            callEdge);
+            "Number of parameters on function call does not match function definition", callEdge);
       }
     }
 

@@ -295,7 +295,7 @@ public class SMGRefiner implements Refiner {
     if (errorPath == InterpolationTree.EMPTY_PATH) {
       logger.log(
           Level.FINEST,
-          "skipping interpolation," + " because false interpolant on path to target state");
+          "skipping interpolation, because false interpolant on path to target state");
       return;
     }
 
