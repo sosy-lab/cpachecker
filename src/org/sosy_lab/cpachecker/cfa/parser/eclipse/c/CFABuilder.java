@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 
 /**
  * Builder to traverse AST.
@@ -70,8 +69,10 @@ import org.sosy_lab.cpachecker.util.Triple;
 class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
-  private final List<Triple<List<IASTFunctionDefinition>, String, GlobalScope>>
-      functionDeclarations = new ArrayList<>();
+  private record FunctionsOfTranslationUnit(
+      List<IASTFunctionDefinition> getFirst, String fileName, GlobalScope scope) {}
+
+  private final List<FunctionsOfTranslationUnit> functionDeclarations = new ArrayList<>();
   private final NavigableMap<String, FunctionEntryNode> cfas = new TreeMap<>();
   private final TreeMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
   private final List<String> eliminateableDuplicates = new ArrayList<>();
@@ -157,7 +158,8 @@ class CFABuilder extends ASTVisitor {
             staticVariablePrefix,
             sideAssignmentStack);
     functionDeclarations.add(
-        Triple.of(new ArrayList<IASTFunctionDefinition>(), staticVariablePrefix, fileScope));
+        new FunctionsOfTranslationUnit(
+            new ArrayList<IASTFunctionDefinition>(), staticVariablePrefix, fileScope));
 
     ast.accept(this);
 
@@ -340,8 +342,8 @@ class CFABuilder extends ASTVisitor {
       ((CDeclaration) decl.declaration()).getType().accept(fillInAllBindingsVisitor);
     }
 
-    for (Triple<List<IASTFunctionDefinition>, String, GlobalScope> triple : functionDeclarations) {
-      GlobalScope actScope = triple.getThird();
+    for (FunctionsOfTranslationUnit functionDeclaration : functionDeclarations) {
+      GlobalScope actScope = functionDeclaration.scope();
 
       // giving these variables as parameters to the handleFunctionDefinition method
       // increases performance drastically, as there is no need to create the Immutable
@@ -350,10 +352,10 @@ class CFABuilder extends ASTVisitor {
       ImmutableMap<String, CComplexTypeDeclaration> actTypes = actScope.getTypes();
       ImmutableMap<String, CTypeDefDeclaration> actTypeDefs = actScope.getTypeDefs();
       ImmutableMap<String, CSimpleDeclaration> actVars = actScope.getGlobalVars();
-      for (IASTFunctionDefinition declaration : triple.getFirst()) {
+      for (IASTFunctionDefinition declaration : functionDeclaration.getFirst()) {
         handleFunctionDefinition(
             actScope,
-            triple.getSecond(),
+            functionDeclaration.fileName(),
             declaration,
             actFunctions,
             actTypes,
