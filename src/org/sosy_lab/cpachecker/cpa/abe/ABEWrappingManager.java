@@ -202,7 +202,7 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
     if (shouldPerformAbstraction) {
       return Optional.of(clientManager.performAbstraction(iState, pPrecision, pStates, pFullState));
     }
-    return Optional.of(PrecisionAdjustmentResult.create(iState, pPrecision, Action.CONTINUE));
+    return Optional.of(new PrecisionAdjustmentResult(iState, pPrecision, Action.CONTINUE));
   }
 
   private boolean isUnreachable(ABEIntermediateState<A> pIState, BooleanFormula pExtraInvariant)

@@ -122,7 +122,7 @@ public class CongruenceManager implements ABEManager<CongruenceState, TemplatePr
       UnmodifiableReachedSet states,
       AbstractState fullState)
       throws CPATransferException, InterruptedException {
-    return PrecisionAdjustmentResult.create(
+    return new PrecisionAdjustmentResult(
         performAbstraction(
             pIntermediateState.getNode(),
             pIntermediateState.getPathFormula(),

@@ -292,7 +292,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       }
     }
 
-    return Optional.of(PrecisionAdjustmentResult.create(resultState, pPrecision, Action.CONTINUE));
+    return Optional.of(new PrecisionAdjustmentResult(resultState, pPrecision, Action.CONTINUE));
   }
 
   private boolean isLoopHead(LocationState location) {
