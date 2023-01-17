@@ -394,7 +394,7 @@ public class CFASingleLoopTransformation {
       Map<CFANode, CFANode> pGlobalNewToOld) {
     for (FunctionCallEdge fce : findEdges(FunctionCallEdge.class, pStartNode)) {
       FunctionEntryNode entryNode = fce.getSuccessor();
-      FunctionExitNode exitNode = entryNode.getExitNode().get();
+      FunctionExitNode exitNode = entryNode.getExitNode().orElseThrow();
       FunctionSummaryEdge oldSummaryEdge = fce.getSummaryEdge();
       CFANode oldSummarySuccessor = fce.getSummaryEdge().getSuccessor();
       Integer pcValue = pNewSuccessorsToPC.inverse().get(oldSummarySuccessor);
@@ -1339,7 +1339,8 @@ public class CFASingleLoopTransformation {
       CFunctionEntryNode functionEntryNode = (CFunctionEntryNode) pNode;
       FunctionExitNode functionExitNode =
           (FunctionExitNode)
-              getOrCreateNewFromOld(functionEntryNode.getExitNode().get(), pNewToOldMapping);
+              getOrCreateNewFromOld(
+                  functionEntryNode.getExitNode().orElseThrow(), pNewToOldMapping);
       result = functionExitNode.getEntryNode();
 
     } else if (pNode instanceof JMethodEntryNode) {
@@ -1347,7 +1348,7 @@ public class CFASingleLoopTransformation {
       JMethodEntryNode methodEntryNode = (JMethodEntryNode) pNode;
       FunctionExitNode functionExitNode =
           (FunctionExitNode)
-              getOrCreateNewFromOld(methodEntryNode.getExitNode().get(), pNewToOldMapping);
+              getOrCreateNewFromOld(methodEntryNode.getExitNode().orElseThrow(), pNewToOldMapping);
       result = functionExitNode.getEntryNode();
 
     } else if (pNode instanceof FunctionExitNode) {
@@ -1357,7 +1358,7 @@ public class CFASingleLoopTransformation {
           (FunctionEntryNode) pNewToOldMapping.get(oldFunctionExitNode.getEntryNode());
 
       if (precomputedEntryNode != null) {
-        return precomputedEntryNode.getExitNode().get();
+        return precomputedEntryNode.getExitNode().orElseThrow();
       }
 
       FunctionExitNode functionExitNode = new FunctionExitNode(functionName);
