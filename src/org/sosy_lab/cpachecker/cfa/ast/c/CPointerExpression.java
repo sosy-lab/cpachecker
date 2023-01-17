@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CPointerExpression extends APointerExpression implements CLeftHandSide {
+public final class CPointerExpression extends APointerExpression implements CLeftHandSide {
 
   private static final long serialVersionUID = -3958623972429247982L;
 
