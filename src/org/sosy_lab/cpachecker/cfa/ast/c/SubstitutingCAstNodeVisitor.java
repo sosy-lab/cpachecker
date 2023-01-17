@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**

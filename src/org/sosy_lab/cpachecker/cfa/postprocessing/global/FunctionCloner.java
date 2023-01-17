@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -470,8 +471,8 @@ class FunctionCloner implements CFAVisitor {
         newDecl.setQualifiedName(changeQualifiedName(decl.getQualifiedName()));
         return newDecl;
 
-      } else if (ast instanceof CEnumType.CEnumerator decl) {
-        return new CEnumType.CEnumerator(
+      } else if (ast instanceof CEnumerator decl) {
+        return new CEnumerator(
             loc,
             decl.getName(),
             changeQualifiedName(decl.getQualifiedName()),
@@ -696,10 +697,10 @@ class FunctionCloner implements CFAVisitor {
 
     @Override
     public CType visit(CEnumType type) {
-      List<CEnumType.CEnumerator> l = new ArrayList<>(type.getEnumerators().size());
-      for (CEnumType.CEnumerator e : type.getEnumerators()) {
-        CEnumType.CEnumerator enumType =
-            new CEnumType.CEnumerator(
+      List<CEnumerator> l = new ArrayList<>(type.getEnumerators().size());
+      for (CEnumerator e : type.getEnumerators()) {
+        CEnumerator enumType =
+            new CEnumerator(
                 e.getFileLocation(),
                 e.getName(),
                 changeQualifiedName(e.getQualifiedName()),

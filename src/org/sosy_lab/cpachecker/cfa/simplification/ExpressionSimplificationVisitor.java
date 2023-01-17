@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -33,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -316,8 +316,8 @@ public class ExpressionSimplificationVisitor
     final CType type = expr.getExpressionType();
 
     // enum constant
-    if (decl instanceof CEnumType.CEnumerator && ((CEnumType.CEnumerator) decl).hasValue()) {
-      final long v = ((CEnumType.CEnumerator) decl).getValue();
+    if (decl instanceof CEnumerator && ((CEnumerator) decl).hasValue()) {
+      final long v = ((CEnumerator) decl).getValue();
       return new CIntegerLiteralExpression(expr.getFileLocation(), type, BigInteger.valueOf(v));
     }
 

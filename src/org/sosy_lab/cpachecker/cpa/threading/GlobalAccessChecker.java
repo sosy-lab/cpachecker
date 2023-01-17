@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -54,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
@@ -160,7 +160,7 @@ public class GlobalAccessChecker {
       } else if (ast instanceof CParameterDeclaration) {
         return false;
 
-      } else if (ast instanceof CEnumType.CEnumerator) {
+      } else if (ast instanceof CEnumerator) {
         return false;
       }
 

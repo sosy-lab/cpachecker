@@ -113,6 +113,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -158,7 +159,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
