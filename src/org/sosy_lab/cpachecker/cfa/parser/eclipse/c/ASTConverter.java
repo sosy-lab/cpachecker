@@ -175,7 +175,6 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 
 class ASTConverter {
 
@@ -1797,6 +1796,8 @@ class ASTConverter {
     return new CReturnStatement(loc, returnExp, returnAssignment);
   }
 
+  private record Declarator(CType type, IASTInitializer initializer, String name) {}
+
   public CFunctionDeclaration convert(final IASTFunctionDefinition f) {
     Pair<CStorageClass, ? extends CType> specifier = convert(f.getDeclSpecifier());
 
@@ -1813,26 +1814,26 @@ class ASTConverter {
       throw parseContext.parseError("Unsupported storage class for function definition", f);
     }
 
-    Triple<CType, IASTInitializer, String> declarator =
+    Declarator declarator =
         convert(f.getDeclarator(), specifier.getSecond(), cStorageClass == CStorageClass.STATIC);
 
-    if (!(declarator.getFirst() instanceof CFunctionTypeWithNames)) {
+    if (!(declarator.type() instanceof CFunctionTypeWithNames)) {
       throw parseContext.parseError("Unsupported nested declarator for function definition", f);
     }
-    if (declarator.getSecond() != null) {
+    if (declarator.initializer() != null) {
       throw parseContext.parseError("Unsupported initializer for function definition", f);
     }
-    if (declarator.getThird() == null) {
+    if (declarator.name() == null) {
       throw parseContext.parseError("Missing name for function definition", f);
     }
 
-    CFunctionTypeWithNames declSpec = (CFunctionTypeWithNames) declarator.getFirst();
+    CFunctionTypeWithNames declSpec = (CFunctionTypeWithNames) declarator.type();
 
     return new CFunctionDeclaration(
         getLocation(f),
         declSpec,
         declSpec.getName(),
-        declarator.getThird(),
+        declarator.name(),
         declSpec.getParameterDeclarations(),
         getAttributes(f.getDeclarator()));
   }
@@ -1918,13 +1919,10 @@ class ASTConverter {
     boolean isGlobal = scope.isGlobalScope();
 
     if (d != null) {
-      Triple<CType, IASTInitializer, String> declarator = convert(d, type);
-
-      type = declarator.getFirst();
-
-      IASTInitializer initializer = declarator.getSecond();
-
-      String name = declarator.getThird();
+      Declarator declarator = convert(d, type);
+      type = declarator.type();
+      IASTInitializer initializer = declarator.initializer();
+      String name = declarator.name();
 
       if (name == null) {
         throw parseContext.parseError("Declaration without name", d);
@@ -2100,14 +2098,14 @@ class ASTConverter {
     String name = null;
 
     if (d != null) {
-      Triple<CType, IASTInitializer, String> declarator = convert(d, type);
+      Declarator declarator = convert(d, type);
 
-      if (declarator.getSecond() != null) {
+      if (declarator.initializer() != null) {
         throw parseContext.parseError("Unsupported initializer inside composite type", d);
       }
 
-      type = declarator.getFirst();
-      name = declarator.getThird();
+      type = declarator.type();
+      name = declarator.name();
     }
 
     if (isNullOrEmpty(name)) {
@@ -2117,7 +2115,7 @@ class ASTConverter {
     return new CCompositeTypeMemberDeclaration(type, name);
   }
 
-  private Triple<CType, IASTInitializer, String> convert(IASTDeclarator d, CType specifier) {
+  private Declarator convert(IASTDeclarator d, CType specifier) {
     while (d != null
         && d.getClass() == CASTDeclarator.class
         && d.getPointerOperators().length == 0
@@ -2320,7 +2318,7 @@ class ASTConverter {
       if (bitFieldSize != null) {
         type = typeConverter.convertBitFieldType(bitFieldSize, type);
       }
-      return Triple.of(type, initializer, name);
+      return new Declarator(type, initializer, name);
     }
   }
 
@@ -2458,8 +2456,7 @@ class ASTConverter {
     }
   }
 
-  private Triple<CType, IASTInitializer, String> convert(
-      IASTFunctionDeclarator d, CType returnType, boolean isStaticFunction) {
+  private Declarator convert(IASTFunctionDeclarator d, CType returnType, boolean isStaticFunction) {
 
     if (!(d instanceof IASTStandardFunctionDeclarator)) {
       throw parseContext.parseError("Unknown non-standard function definition", d);
@@ -2494,14 +2491,13 @@ class ASTConverter {
     String origname;
     if (d.getNestedDeclarator() != null) {
 
-      Triple<? extends CType, IASTInitializer, String> nestedDeclarator =
-          convert(d.getNestedDeclarator(), type);
+      Declarator nestedDeclarator = convert(d.getNestedDeclarator(), type);
 
       assert d.getName().getRawSignature().isEmpty() : d;
-      assert nestedDeclarator.getSecond() == null;
+      assert nestedDeclarator.initializer() == null;
 
-      type = nestedDeclarator.getFirst();
-      origname = nestedDeclarator.getThird();
+      type = nestedDeclarator.type();
+      origname = nestedDeclarator.name();
 
     } else {
       origname = convert(d.getName());
@@ -2517,7 +2513,7 @@ class ASTConverter {
       param.setQualifiedName(FunctionScope.createQualifiedName(qualifiedName, param.getName()));
     }
 
-    return Triple.of(type, d.getInitializer(), origname);
+    return new Declarator(type, d.getInitializer(), origname);
   }
 
   private Pair<CStorageClass, ? extends CType> convert(IASTDeclSpecifier d) {
@@ -2954,19 +2950,18 @@ class ASTConverter {
       throw parseContext.parseError("Unsupported storage class for parameters", p);
     }
 
-    Triple<CType, IASTInitializer, String> declarator =
-        convert(p.getDeclarator(), specifier.getSecond());
+    Declarator declarator = convert(p.getDeclarator(), specifier.getSecond());
 
-    if (declarator.getSecond() != null) {
+    if (declarator.initializer() != null) {
       throw parseContext.parseError("Unsupported initializer for parameters", p);
     }
 
-    CType type = declarator.getFirst();
+    CType type = declarator.type();
     if (type instanceof CFunctionTypeWithNames functionType) {
       type = new CPointerType(false, false, functionType);
     }
 
-    return new CParameterDeclaration(getLocation(p), type, declarator.getThird());
+    return new CParameterDeclaration(getLocation(p), type, declarator.name());
   }
 
   /** This function returns the converted file-location of an IASTNode. */
@@ -2984,16 +2979,15 @@ class ASTConverter {
       throw parseContext.parseError("Unsupported storage class for type ids", t);
     }
 
-    Triple<CType, IASTInitializer, String> declarator =
-        convert(t.getAbstractDeclarator(), specifier.getSecond());
+    Declarator declarator = convert(t.getAbstractDeclarator(), specifier.getSecond());
 
-    if (declarator.getSecond() != null) {
+    if (declarator.initializer() != null) {
       throw parseContext.parseError("Unsupported initializer for type ids", t);
     }
-    if (declarator.getThird() != null && !declarator.getThird().trim().isEmpty()) {
+    if (declarator.name() != null && !declarator.name().trim().isEmpty()) {
       throw parseContext.parseError("Unsupported name for type ids", t);
     }
 
-    return declarator.getFirst();
+    return declarator.type();
   }
 }
