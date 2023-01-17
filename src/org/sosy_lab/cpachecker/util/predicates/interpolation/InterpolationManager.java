@@ -13,6 +13,7 @@ import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
@@ -495,6 +496,7 @@ public final class InterpolationManager {
       try {
         return solveCounterexample(f, imprecisePath);
       } catch (SolverException e) {
+        // TODO: Do we need to rebuild the interpolator here? i.e. is it ever used again?
         throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
       }
 
@@ -876,7 +878,7 @@ public final class InterpolationManager {
   public class Interpolator<T> {
 
     public InterpolatingProverEnvironment<T> itpProver;
-    private final List<Pair<BooleanFormula, T>> currentlyAssertedFormulas = new ArrayList<>();
+    private List<Pair<BooleanFormula, T>> currentlyAssertedFormulas = new ArrayList<>();
 
     Interpolator() {
       itpProver = newEnvironment();
@@ -888,6 +890,31 @@ public final class InterpolationManager {
       // only the InterpolatingProverEnvironment itself cares about it.
       return (InterpolatingProverEnvironment<T>)
           solver.newProverEnvironmentWithInterpolation(ProverOptions.GENERATE_MODELS);
+    }
+
+    /**
+     * Builds a new solver environment out of the old environment and replaces the old. Also asserts
+     * all formulas currently on the assertion stack and calls isUnsat() once on the new
+     * environment. Deletes old environment afterwards. The currentlyAssertedFormulas are updated as
+     * well. Should be used after an interpolation failed with an exception.
+     *
+     * @throws InterruptedException solver specific
+     * @throws SolverException solver specific
+     */
+    public void destroyAndRebuildSolverEnvironment() throws InterruptedException, SolverException {
+      itpProver.close();
+      itpProver = newEnvironment();
+      List<Pair<BooleanFormula, T>> newAssertedFormulas = new ArrayList<>();
+      for (Pair<BooleanFormula, T> formulaAndItpP : currentlyAssertedFormulas) {
+        newAssertedFormulas.add(
+            Pair.of(formulaAndItpP.getFirst(), itpProver.push(formulaAndItpP.getFirst())));
+      }
+      currentlyAssertedFormulas = newAssertedFormulas;
+      // One could argue that this should be done manually and not automatically.
+      // But if this is only used after a failed interpolation, an automatic isUnsat call is fine
+      // The result here should not differ from before, but it needs to be done for the internal
+      // solver state
+      Preconditions.checkArgument(itpProver.isUnsat());
     }
 
     /**
@@ -975,6 +1002,7 @@ public final class InterpolationManager {
               e,
               "Interpolation failed, trying again in reverse order and with%s incremental check.",
               incrementalCheck ? "out" : "");
+          this.destroyAndRebuildSolverEnvironment();
           Collections.fill(formulasWithStatesAndGroupdIds, null); // reset state
 
           int[] permutation = formulaPermutation.toArray();

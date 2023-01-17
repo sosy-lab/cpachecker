@@ -39,7 +39,7 @@ public class SMGOptions {
   @Option(
       secure = true,
       name = "enableMallocFail",
-      description = "If this Option is enabled, failure of malloc" + "is simulated")
+      description = "If this Option is enabled, failure of malloc is simulated")
   private boolean enableMallocFailure = true;
 
   @Option(

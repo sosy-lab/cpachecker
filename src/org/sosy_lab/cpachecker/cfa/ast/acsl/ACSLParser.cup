@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java_cup.runtime.ComplexSymbolFactory;
@@ -198,9 +199,11 @@ parser code {:
           .put(entry.getLeavingEdge(0), annotation.getCopyForPreState());
       // Add function contracts to function exits as well because some clauses have to be
       // evaluated in the post-state
-      FunctionExitNode exit = entry.getExitNode();
-      for (CFAEdge currentEdge : CFAUtils.enteringEdges(exit)) {
-        cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation.getCopyForPostState());
+      Optional<FunctionExitNode> exitNode = entry.getExitNode();
+      if (exitNode.isPresent()) {
+        for (CFAEdge currentEdge : CFAUtils.enteringEdges(exitNode.orElseThrow())) {
+          cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation.getCopyForPostState());
+        }
       }
     }
 

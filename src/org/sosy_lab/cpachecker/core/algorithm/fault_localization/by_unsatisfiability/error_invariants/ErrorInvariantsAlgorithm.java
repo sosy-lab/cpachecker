@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -312,6 +313,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
                         .getFileLocation()
                         .getStartingLineInOrigin()));
 
+    FluentIterable.from(faults)
+        .filter(Interval.class)
+        .forEach(f -> f.addInfo(FaultInfo.justify(f.toString())));
     return faults;
   }
 

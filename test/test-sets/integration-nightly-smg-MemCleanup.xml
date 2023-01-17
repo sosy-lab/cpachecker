@@ -28,7 +28,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-setprop">cpa.arg.proofWitness=witness.graphml</option>
   <option name="-setprop">termination.violation.witness=witness.graphml</option>
 
-  <tasks name="MemSafety-MemCleanup">
+  <tasks>
     <includesfile>../programs/benchmarks/MemSafety-MemCleanup.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
   </tasks>

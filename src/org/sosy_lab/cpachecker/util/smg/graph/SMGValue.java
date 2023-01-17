@@ -62,30 +62,22 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
     return nestingLevel;
   }
 
-  /**
-   * @return The static SMGValue = 0.
-   */
+  /** Returns the static SMGValue = 0. */
   public static SMGValue zeroValue() {
     return ZERO_VALUE;
   }
 
-  /**
-   * @return The static SMGValue = 0f
-   */
+  /** Returns the static SMGValue = 0f. */
   public static SMGValue zeroFloatValue() {
     return ZERO_FLOAT_VALUE;
   }
 
-  /**
-   * @return The static SMGValue = 0 as Double
-   */
+  /** Returns the static SMGValue = 0 as Double. */
   public static SMGValue zeroDoubleValue() {
     return ZERO_DOUBLE_VALUE;
   }
 
-  /**
-   * @return True if this SMGValue is equal to 0.
-   */
+  /** Returns true if this SMGValue is equal to 0. */
   public boolean isZero() {
     return equals(ZERO_VALUE) || equals(ZERO_FLOAT_VALUE) || equals(ZERO_DOUBLE_VALUE);
   }

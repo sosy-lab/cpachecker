@@ -277,7 +277,7 @@ public class UndefinedFunctionCollectorAlgorithm
       buf.append(indent + "// Composite type\n");
       prepend.append(odmFunctionDecl);
       // We can not use rt.toASTString(), as it produces full definition with all fields
-      buf.append(indent + rt + " *tmp" + " = (" + rt + "*)" + externAllocFunction + "();\n");
+      buf.append(indent + rt + " *tmp = (" + rt + "*)" + externAllocFunction + "();\n");
       prepend.append(ASSUME_FUNCTION_DECL);
       buf.append(indent + ASSUME_FUNCTION_NAME + "(tmp != 0);\n");
       buf.append(indent + "return *tmp;\n");

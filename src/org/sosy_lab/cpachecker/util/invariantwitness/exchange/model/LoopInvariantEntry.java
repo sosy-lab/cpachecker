@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InformationRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
@@ -71,25 +72,13 @@ public class LoopInvariantEntry extends AbstractEntry {
       return false;
     }
     LoopInvariantEntry other = (LoopInvariantEntry) obj;
-    if (location == null) {
-      if (other.location != null) {
-        return false;
-      }
-    } else if (!location.equals(other.location)) {
+    if (!Objects.equals(location, other.location)) {
       return false;
     }
-    if (loopInvariant == null) {
-      if (other.loopInvariant != null) {
-        return false;
-      }
-    } else if (!loopInvariant.equals(other.loopInvariant)) {
+    if (!Objects.equals(loopInvariant, other.loopInvariant)) {
       return false;
     }
-    if (metadata == null) {
-      if (other.metadata != null) {
-        return false;
-      }
-    } else if (!metadata.equals(other.metadata)) {
+    if (!Objects.equals(metadata, other.metadata)) {
       return false;
     }
     return true;

@@ -394,7 +394,7 @@ public class CFASingleLoopTransformation {
       Map<CFANode, CFANode> pGlobalNewToOld) {
     for (FunctionCallEdge fce : findEdges(FunctionCallEdge.class, pStartNode)) {
       FunctionEntryNode entryNode = fce.getSuccessor();
-      FunctionExitNode exitNode = entryNode.getExitNode();
+      FunctionExitNode exitNode = entryNode.getExitNode().get();
       FunctionSummaryEdge oldSummaryEdge = fce.getSummaryEdge();
       CFANode oldSummarySuccessor = fce.getSummaryEdge().getSuccessor();
       Integer pcValue = pNewSuccessorsToPC.inverse().get(oldSummarySuccessor);
@@ -1339,14 +1339,15 @@ public class CFASingleLoopTransformation {
       CFunctionEntryNode functionEntryNode = (CFunctionEntryNode) pNode;
       FunctionExitNode functionExitNode =
           (FunctionExitNode)
-              getOrCreateNewFromOld(functionEntryNode.getExitNode(), pNewToOldMapping);
+              getOrCreateNewFromOld(functionEntryNode.getExitNode().get(), pNewToOldMapping);
       result = functionExitNode.getEntryNode();
 
     } else if (pNode instanceof JMethodEntryNode) {
 
       JMethodEntryNode methodEntryNode = (JMethodEntryNode) pNode;
       FunctionExitNode functionExitNode =
-          (FunctionExitNode) getOrCreateNewFromOld(methodEntryNode.getExitNode(), pNewToOldMapping);
+          (FunctionExitNode)
+              getOrCreateNewFromOld(methodEntryNode.getExitNode().get(), pNewToOldMapping);
       result = functionExitNode.getEntryNode();
 
     } else if (pNode instanceof FunctionExitNode) {
@@ -1356,7 +1357,7 @@ public class CFASingleLoopTransformation {
           (FunctionEntryNode) pNewToOldMapping.get(oldFunctionExitNode.getEntryNode());
 
       if (precomputedEntryNode != null) {
-        return precomputedEntryNode.getExitNode();
+        return precomputedEntryNode.getExitNode().get();
       }
 
       FunctionExitNode functionExitNode = new FunctionExitNode(functionName);

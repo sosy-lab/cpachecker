@@ -342,7 +342,7 @@ class AssignmentHandler {
       throws UnrecognizedCodeException, InterruptedException {
 
     assert !pAssignments.isEmpty()
-        : "Cannot handle initialization assignments without an " + "assignment right hand side.";
+        : "Cannot handle initialization assignments without an assignment right hand side.";
 
     final CType lhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getLeftHandSide());
     final CType rhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getRightHandSide());

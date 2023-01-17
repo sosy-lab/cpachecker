@@ -395,13 +395,16 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   private void addForeignDefDependences() {
 
     AFunctionDeclaration function = entryNode.getFunction();
+    Optional<FunctionExitNode> exitNode = entryNode.getExitNode();
 
-    for (CFAEdge returnEdge : CFAUtils.leavingEdges(entryNode.getExitNode())) {
-      CFAEdge summaryEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
-      assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
+    if (exitNode.isPresent()) {
 
-      for (MemoryLocation defVar : foreignDefUseData.getForeignDefs(function)) {
-        dependenceConsumer.accept(returnEdge, summaryEdge, defVar, false);
+      for (CFAEdge returnEdge : CFAUtils.leavingEdges(exitNode.orElseThrow())) {
+        CFAEdge summaryEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
+        assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
+        for (MemoryLocation defVar : foreignDefUseData.getForeignDefs(function)) {
+          dependenceConsumer.accept(returnEdge, summaryEdge, defVar, false);
+        }
       }
     }
   }
@@ -413,17 +416,20 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
     if (optRetVar.isPresent()) {
 
       MemoryLocation returnVar = MemoryLocation.forDeclaration(optRetVar.get());
+      Optional<FunctionExitNode> exitNode = entryNode.getExitNode();
+      if (exitNode.isPresent()) {
 
-      for (CFAEdge defEdge : CFAUtils.allEnteringEdges(entryNode.getExitNode())) {
-        for (CFAEdge returnEdge : CFAUtils.allLeavingEdges(entryNode.getExitNode())) {
-          dependenceConsumer.accept(defEdge, returnEdge, returnVar, false);
+        for (CFAEdge defEdge : CFAUtils.allEnteringEdges(exitNode.orElseThrow())) {
+          for (CFAEdge returnEdge : CFAUtils.allLeavingEdges(exitNode.orElseThrow())) {
+            dependenceConsumer.accept(defEdge, returnEdge, returnVar, false);
+          }
         }
-      }
 
-      for (CFAEdge returnEdge : CFAUtils.allLeavingEdges(entryNode.getExitNode())) {
-        CFAEdge summaryEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
-        assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
-        dependenceConsumer.accept(returnEdge, summaryEdge, returnVar, false);
+        for (CFAEdge returnEdge : CFAUtils.allLeavingEdges(exitNode.orElseThrow())) {
+          CFAEdge summaryEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
+          assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
+          dependenceConsumer.accept(returnEdge, summaryEdge, returnVar, false);
+        }
       }
     }
   }

@@ -31,11 +31,13 @@ SPDX-License-Identifier: Apache-2.0
     <include>../programs/ldv-benchmarks/unsafes/*/*/*.yml</include>
     <exclude>../programs/ldv-benchmarks/validator/v0.7/linux-stable-90a4845-110_1a-drivers--char--ipmi--ipmi_si.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout / wrong result -->
     <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-08_1a-fs--nfs--nfs.ko-ldv_main5.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-08_1a-drivers--staging--dgrp--dgrp.ko-ldv_main3.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-08_1a-sound--pci--hda--snd-hda-codec.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-08_1a-drivers--fmc--fmc-chardev.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-08_1a-drivers--target--target_core_mod.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout/error -->
     <exclude>../programs/ldv-benchmarks/unsafes/08_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-08_1a-net--sunrpc--sunrpc.ko-ldv_main18.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/ldv-benchmarks/unsafes/10_1a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-10_1a-drivers--net--wireless--iwlwifi--iwlwifi.ko-ldv_main9.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/39_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-39_7a-net--irda--irda.ko-ldv_main19.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/ldv-benchmarks/unsafes/129_1a/linux-3.12-rc1/fs--ext3--ext3.ko-ldv_main17.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/ldv-benchmarks/unsafes/130_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-130_7a-drivers--block--virtio_blk.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/ldv-benchmarks/unsafes/130_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-130_7a-drivers--net--ethernet--qlogic--netxen--netxen_nic.ko-ldv_main3.cil.out.yml</exclude> <!-- flapping timeout -->

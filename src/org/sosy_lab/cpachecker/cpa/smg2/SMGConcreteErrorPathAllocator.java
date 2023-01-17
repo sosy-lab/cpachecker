@@ -16,7 +16,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -69,12 +68,10 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
       List<CFAEdge> edges = edgeStatePair.getSecond();
 
       if (edges.size() > 1) {
-        Iterator<CFAEdge> it = Lists.reverse(edges).iterator();
         List<SingleConcreteState> intermediateStates = new ArrayList<>();
         Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
         boolean isFirstIteration = true;
-        while (it.hasNext()) {
-          CFAEdge innerEdge = it.next();
+        for (CFAEdge innerEdge : Lists.reverse(edges)) {
           ConcreteState state =
               createConcreteStateForMultiEdge(valueState, alreadyAssigned, innerEdge);
 
@@ -181,9 +178,9 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
   private void fillAddressAndValueMaps(
       SMGState state, Map<LeftHandSide, Address> lfhsToAddressMap, Map<Address, Object> valuesMap) {
     @SuppressWarnings("unused")
-    Set<SMGObject> todo = new HashSet<SMGObject>();
+    Set<SMGObject> todo = new HashSet<>();
     @SuppressWarnings("unused")
-    Set<SMGObject> alreadyVisited = new HashSet<SMGObject>();
+    Set<SMGObject> alreadyVisited = new HashSet<>();
 
     StackFrame currentStackFrame = state.getMemoryModel().getStackFrames().peek();
     String functionName = currentStackFrame.getFunctionDefinition().getName();
