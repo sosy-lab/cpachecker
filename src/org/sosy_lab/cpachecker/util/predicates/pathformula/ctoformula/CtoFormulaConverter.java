@@ -88,7 +88,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -1715,7 +1714,7 @@ public class CtoFormulaConverter {
 
     T zero = fmgr.makeNumber(fmgr.getFormulaType(pF), 0);
 
-    Optional<Triple<BooleanFormula, T, T>> split;
+    Optional<FormulaManagerView.IfThenElseParts<T>> split;
     try {
       split = fmgr.splitIfThenElse(pF);
     } catch (UnsupportedOperationException e) {
@@ -1723,13 +1722,13 @@ public class CtoFormulaConverter {
       split = Optional.empty();
     }
     if (split.isPresent()) {
-      Triple<BooleanFormula, T, T> parts = split.orElseThrow();
+      FormulaManagerView.IfThenElseParts<T> parts = split.orElseThrow();
 
       T one = fmgr.makeNumber(fmgr.getFormulaType(pF), 1);
-      if (parts.getSecond().equals(one) && parts.getThird().equals(zero)) {
-        return parts.getFirst();
-      } else if (parts.getSecond().equals(zero) && parts.getThird().equals(one)) {
-        return bfmgr.not(parts.getFirst());
+      if (parts.thenBranch().equals(one) && parts.elseBranch().equals(zero)) {
+        return parts.condition();
+      } else if (parts.thenBranch().equals(zero) && parts.elseBranch().equals(one)) {
+        return bfmgr.not(parts.condition());
       }
     }
     return bfmgr.not(fmgr.makeEqual(pF, zero));

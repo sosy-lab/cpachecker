@@ -53,7 +53,6 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceIntegerWithBitvectorTheory.ReplaceIntegerEncodingOptions;
@@ -1801,22 +1800,24 @@ public class FormulaManagerView {
         .exists(ImmutableList.copyOf(irrelevantVariables.values()), pF);
   }
 
+  public record IfThenElseParts<T>(BooleanFormula condition, T thenBranch, T elseBranch) {}
+
   /**
    * Split boolean or non-boolean if-then-else formula into three parts: if, then, else. Return an
    * empty optional for input which does not have if-then-else as an input element.
    */
-  public <T extends Formula> Optional<Triple<BooleanFormula, T, T>> splitIfThenElse(final T pF) {
+  public <T extends Formula> Optional<IfThenElseParts<T>> splitIfThenElse(final T pF) {
     return visit(
         pF,
-        new DefaultFormulaVisitor<Optional<Triple<BooleanFormula, T, T>>>() {
+        new DefaultFormulaVisitor<Optional<IfThenElseParts<T>>>() {
 
           @Override
-          protected Optional<Triple<BooleanFormula, T, T>> visitDefault(Formula f) {
+          protected Optional<IfThenElseParts<T>> visitDefault(Formula f) {
             return Optional.empty();
           }
 
           @Override
-          public Optional<Triple<BooleanFormula, T, T>> visitFunction(
+          public Optional<IfThenElseParts<T>> visitFunction(
               Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
             if (functionDeclaration.getKind() == FunctionDeclarationKind.ITE) {
               assert args.size() == 3;
@@ -1825,7 +1826,8 @@ public class FormulaManagerView {
               Formula elseBranch = args.get(2);
               FormulaType<T> targetType = getFormulaType(pF);
               return Optional.of(
-                  Triple.of(cond, wrap(targetType, thenBranch), wrap(targetType, elseBranch)));
+                  new IfThenElseParts<>(
+                      cond, wrap(targetType, thenBranch), wrap(targetType, elseBranch)));
             }
             return Optional.empty();
           }
