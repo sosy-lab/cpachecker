@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -1823,9 +1824,8 @@ public class CtoFormulaConverter {
   }
 
   /** Creates a Formula which accesses the given bits. */
-  private BitvectorFormula accessField(
-      Triple<Integer, Integer, Boolean> msb_Lsb_signed, BitvectorFormula f) {
-    return fmgr.makeExtract(f, msb_Lsb_signed.getFirst(), msb_Lsb_signed.getSecond());
+  private BitvectorFormula accessField(Pair<Integer, Integer> msb_Lsb, BitvectorFormula f) {
+    return fmgr.makeExtract(f, msb_Lsb.getFirst(), msb_Lsb.getSecond());
   }
 
   /** Creates a Formula which accesses the given Field */
@@ -1833,8 +1833,8 @@ public class CtoFormulaConverter {
     assert options.handleFieldAccess() : "Fieldaccess if only allowed with handleFieldAccess";
     assert f instanceof BitvectorFormula : "Fields need to be represented with bitvectors";
     // Get the underlaying structure
-    Triple<Integer, Integer, Boolean> msb_Lsb_signed = getFieldOffsetMsbLsb(fExp);
-    return accessField(msb_Lsb_signed, (BitvectorFormula) f);
+    Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
+    return accessField(msb_Lsb, (BitvectorFormula) f);
   }
 
   /**
@@ -1852,7 +1852,7 @@ public class CtoFormulaConverter {
       throws UnrecognizedCodeException {
     assert options.handleFieldAccess() : "Fieldaccess if only allowed with handleFieldAccess";
 
-    Triple<Integer, Integer, Boolean> msb_Lsb = getFieldOffsetMsbLsb(fExp);
+    Pair<Integer, Integer> msb_Lsb = getFieldOffsetMsbLsb(fExp);
 
     int size = efmgr.getLength((BitvectorFormula) pLVar);
     assert size > msb_Lsb.getFirst() : "pLVar is too small";
@@ -1888,7 +1888,7 @@ public class CtoFormulaConverter {
   }
 
   /** Returns the offset of the given CFieldReference within the structure in bits. */
-  private Triple<Integer, Integer, Boolean> getFieldOffsetMsbLsb(CFieldReference fExp)
+  private Pair<Integer, Integer> getFieldOffsetMsbLsb(CFieldReference fExp)
       throws UnrecognizedCodeException {
     CExpression fieldRef = getRealFieldOwner(fExp);
     CCompositeType structType = (CCompositeType) fieldRef.getExpressionType().getCanonicalType();
@@ -1905,14 +1905,11 @@ public class CtoFormulaConverter {
       fieldSize = getBitSizeof(fieldRef.getExpressionType());
     }
 
-    // we assume that only CSimpleTypes can be unsigned
-    boolean signed = !(type instanceof CSimpleType) || machineModel.isSigned((CSimpleType) type);
-
     long lsb = offset;
     long msb = offset + fieldSize - 1;
     assert lsb >= 0;
     assert msb >= lsb;
-    return Triple.of(Ints.checkedCast(msb), Ints.checkedCast(lsb), signed);
+    return Pair.of(Ints.checkedCast(msb), Ints.checkedCast(lsb));
   }
 
   /** We call this method for unsupported Expressions and just make a new Variable. */
