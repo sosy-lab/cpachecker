@@ -394,6 +394,9 @@ public class CFASingleLoopTransformation {
       Map<CFANode, CFANode> pGlobalNewToOld) {
     for (FunctionCallEdge fce : findEdges(FunctionCallEdge.class, pStartNode)) {
       FunctionEntryNode entryNode = fce.getSuccessor();
+      if (entryNode.getExitNode().isEmpty()) {
+        continue;
+      }
       FunctionExitNode exitNode = entryNode.getExitNode().orElseThrow();
       FunctionSummaryEdge oldSummaryEdge = fce.getSummaryEdge();
       CFANode oldSummarySuccessor = fce.getSummaryEdge().getSuccessor();
@@ -1337,19 +1340,38 @@ public class CFASingleLoopTransformation {
     } else if (pNode instanceof CFunctionEntryNode) {
 
       CFunctionEntryNode functionEntryNode = (CFunctionEntryNode) pNode;
-      FunctionExitNode functionExitNode =
-          (FunctionExitNode)
-              getOrCreateNewFromOld(
-                  functionEntryNode.getExitNode().orElseThrow(), pNewToOldMapping);
-      result = functionExitNode.getEntryNode();
+      if (functionEntryNode.getExitNode().isEmpty()) {
+        result =
+            new CFunctionEntryNode(
+                functionEntryNode.getFileLocation(),
+                functionEntryNode.getFunctionDefinition(),
+                null,
+                functionEntryNode.getReturnVariable());
+      } else {
+        FunctionExitNode functionExitNode =
+            (FunctionExitNode)
+                getOrCreateNewFromOld(
+                    functionEntryNode.getExitNode().orElseThrow(), pNewToOldMapping);
+        result = functionExitNode.getEntryNode();
+      }
 
     } else if (pNode instanceof JMethodEntryNode) {
 
       JMethodEntryNode methodEntryNode = (JMethodEntryNode) pNode;
-      FunctionExitNode functionExitNode =
-          (FunctionExitNode)
-              getOrCreateNewFromOld(methodEntryNode.getExitNode().orElseThrow(), pNewToOldMapping);
-      result = functionExitNode.getEntryNode();
+      if (methodEntryNode.getExitNode().isEmpty()) {
+        result =
+            new JMethodEntryNode(
+                methodEntryNode.getFileLocation(),
+                methodEntryNode.getFunctionDefinition(),
+                null,
+                methodEntryNode.getReturnVariable());
+      } else {
+        FunctionExitNode functionExitNode =
+            (FunctionExitNode)
+                getOrCreateNewFromOld(
+                    methodEntryNode.getExitNode().orElseThrow(), pNewToOldMapping);
+        result = functionExitNode.getEntryNode();
+      }
 
     } else if (pNode instanceof FunctionExitNode) {
 
