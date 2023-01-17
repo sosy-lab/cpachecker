@@ -63,7 +63,6 @@ import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Triple;
 
 @Options(prefix = "restartAlgorithm")
 public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpdater {
@@ -262,7 +261,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
             singleConfigFileName);
 
         try {
-          Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg =
+          NestedAnalysis currentAlg =
               createNextAlgorithm(
                   singleConfigFileName,
                   initialNode,
@@ -272,9 +271,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
                   // we can only use the reached set if the last analysis terminated without
                   // exception
                   isLastReachedSetUsable ? reached.getDelegate() : null);
-          currentAlgorithm = currentAlg.getFirst();
-          currentCpa = currentAlg.getSecond();
-          currentReached = currentAlg.getThird();
+          currentAlgorithm = currentAlg.algorithm();
+          currentCpa = currentAlg.cpa();
+          currentReached = currentAlg.reached();
           provideReachedForNextAlgorithm = false; // has to be reseted
         } catch (InvalidConfigurationException e) {
           logger.logUserException(
@@ -472,7 +471,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     }
   }
 
-  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(
+  private NestedAnalysis createNextAlgorithm(
       Path singleConfigFileName,
       CFANode pInitialNode,
       CFA pCfa,

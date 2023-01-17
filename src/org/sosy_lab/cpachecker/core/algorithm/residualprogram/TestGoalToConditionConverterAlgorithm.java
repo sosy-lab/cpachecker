@@ -89,7 +89,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
           case PROPAGATION -> new LeafGoalWithPropagationStrategy();
         };
     try {
-      var backwardsCpaTriple =
+      NestedAnalysis backwardsCpaTriple =
           createAlgorithm(
               Path.of("config/components/goalConverterBackwardsSearch.properties"),
               pCfa.getMainFunction(),
@@ -109,8 +109,8 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
                   "assumptions.automatonFile"),
               new HashSet<>());
 
-      backwardsCpaAlgorithm = backwardsCpaTriple.getFirst();
-      backwardsCpa = backwardsCpaTriple.getSecond();
+      backwardsCpaAlgorithm = backwardsCpaTriple.algorithm();
+      backwardsCpa = backwardsCpaTriple.cpa();
     } catch (CPAException | IOException e) {
       throw new InvalidConfigurationException("Couldn't create backwards CPA algorithm!", e);
     }

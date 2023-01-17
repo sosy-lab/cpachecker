@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -64,7 +63,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 @Options(prefix = "heuristicSelection")
@@ -278,7 +276,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     String info = "Performing preliminary analysis algorithm ...";
     logger.log(Level.INFO, info);
 
-    Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> preAnaAlg;
+    NestedAnalysis preAnaAlg;
     final Path preAnalysisConfig = preAnalysisAlgorithmConfig;
     ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     try {
@@ -304,8 +302,8 @@ public class SelectionAlgorithm extends NestingAlgorithm {
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
     }
 
-    preAnalysisAlgorithm = preAnaAlg.getFirst();
-    preAnalysisReachedSet = preAnaAlg.getThird();
+    preAnalysisAlgorithm = preAnaAlg.algorithm();
+    preAnalysisReachedSet = preAnaAlg.reached();
 
     return preAnalysisAlgorithm.run(preAnalysisReachedSet);
   }
@@ -452,7 +450,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
   private AlgorithmStatus run0(ReachedSet pReachedSet, final Path chosenConfig)
       throws CPAException, InterruptedException {
     Algorithm chosenAlgorithm;
-    Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg;
+    NestedAnalysis currentAlg;
     ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     try {
       currentAlg = createAlgorithm(chosenConfig, cfa.getMainFunction(), cfa, shutdownManager);
@@ -477,9 +475,9 @@ public class SelectionAlgorithm extends NestingAlgorithm {
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
     }
 
-    chosenAlgorithm = currentAlg.getFirst();
-    // ConfigurableProgramAnalysis chosenCpa = currentAlg.getSecond();
-    ReachedSet reachedSetForChosenAnalysis = currentAlg.getThird();
+    chosenAlgorithm = currentAlg.algorithm();
+    // ConfigurableProgramAnalysis chosenCpa = currentAlg.cpa();
+    ReachedSet reachedSetForChosenAnalysis = currentAlg.reached();
 
     ForwardingReachedSet reached = (ForwardingReachedSet) pReachedSet;
     reached.setDelegate(reachedSetForChosenAnalysis);
@@ -487,7 +485,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     return chosenAlgorithm.run(reachedSetForChosenAnalysis);
   }
 
-  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
+  private NestedAnalysis createAlgorithm(
       Path singleConfigFileName,
       CFANode pInitialNode,
       CFA pCfa,
