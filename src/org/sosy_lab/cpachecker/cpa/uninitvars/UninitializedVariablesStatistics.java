@@ -15,9 +15,9 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.uninitvars.UninitializedVariablesState.Warning;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 
 /**
  * Statistics for UninitializedVariablesCPA. Displays warnings about all uninitialized variables
@@ -50,14 +50,14 @@ public class UninitializedVariablesStatistics implements Statistics {
       // find all UninitializedVariablesElements and get their warnings
       for (UninitializedVariablesState uninitElement : projectedReached) {
 
-        Collection<Triple<Integer, String, String>> warnings = uninitElement.getWarnings();
+        Collection<Warning> warnings = uninitElement.getWarnings();
         // warnings are identified by line number and variable name
         Pair<Integer, String> warningIndex;
-        for (Triple<Integer, String, String> warning : warnings) {
+        for (Warning warning : warnings) {
           // check if a warning has already been displayed
-          warningIndex = Pair.of(warning.getFirst(), warning.getSecond());
+          warningIndex = Pair.of(warning.line(), warning.variable());
           if (warningsDisplayed.add(warningIndex)) {
-            pOut.println(warning.getThird());
+            pOut.println(warning.message());
             noOfWarnings++;
           }
         }
