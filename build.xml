@@ -37,12 +37,14 @@ SPDX-License-Identifier: Apache-2.0
          BadImport: we often import FluentIterable.from and we have a Checkstyle check instead
          ReferenceEquality: TODO enable this and fix alarms (but there are many cases where reference equality is desired)
          UnusedMethods: Most CPAs have private constructors that are called only via reflection
+         UnusedVariable: false alarms for private records: https://github.com/google/error-prone/issues/2713
          -->
     <property name="errorprone.options" value="
         -Xep:BadImport:OFF
         -Xep:ReferenceEquality:OFF
         -Xep:BanSerializableRead:OFF
         -Xep:UnusedMethod:OFF
+        -Xep:UnusedVariable:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>
