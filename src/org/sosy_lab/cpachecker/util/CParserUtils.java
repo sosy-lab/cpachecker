@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -113,7 +112,7 @@ public class CParserUtils {
                   CBinaryExpression.BinaryOperator.EQUALS);
 
           result.add(assumeExp);
-        } else if (assignment.getRightHandSide() instanceof CFunctionCall) {
+        } else {
           // TODO FunctionCalls, ExpressionStatements etc
           throw new InvalidAutomatonException(
               "Function call '"
