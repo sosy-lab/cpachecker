@@ -518,11 +518,10 @@ public class CustomInstruction {
       final Collection<String> outVariables)
       throws AppliedCustomInstructionParsingFailedException {
 
-    if (ciEdge.getStatement() instanceof CFunctionSummaryStatementEdge
-        && aciEdge.getStatement() instanceof CFunctionSummaryStatementEdge) {
-      CFunctionSummaryStatementEdge ciStmt = (CFunctionSummaryStatementEdge) ciEdge.getStatement();
-      CFunctionSummaryStatementEdge aciStmt =
-          (CFunctionSummaryStatementEdge) aciEdge.getStatement();
+    if (ciEdge instanceof CFunctionSummaryStatementEdge
+        && aciEdge instanceof CFunctionSummaryStatementEdge) {
+      CFunctionSummaryStatementEdge ciStmt = (CFunctionSummaryStatementEdge) ciEdge;
+      CFunctionSummaryStatementEdge aciStmt = (CFunctionSummaryStatementEdge) aciEdge;
 
       if (!ciStmt.getFunctionName().equals(aciStmt.getFunctionName())) {
         throw new AppliedCustomInstructionParsingFailedException(
