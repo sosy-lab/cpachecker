@@ -42,7 +42,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -402,7 +401,7 @@ class JavaBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public Triple<Region, Region, Region> getIfThenElse(Region pF) {
+  public IfThenElseParts getIfThenElse(Region pF) {
     cleanupReferences();
 
     BDD f = unwrap(pF);
@@ -411,7 +410,7 @@ class JavaBDDRegionManager implements RegionManager {
     Region fThen = wrap(f.high());
     Region fElse = wrap(f.low());
 
-    return Triple.of(predicate, fThen, fElse);
+    return new IfThenElseParts(predicate, fThen, fElse);
   }
 
   @Override
