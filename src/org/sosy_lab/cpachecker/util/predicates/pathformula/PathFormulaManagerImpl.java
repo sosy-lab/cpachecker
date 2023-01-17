@@ -343,7 +343,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final SSAMapMerger merger =
         new SSAMapMerger(useNondetFlags, fmgr, converter, shutdownNotifier, NONDET_FORMULA_TYPE);
     final MergeResult<SSAMap> mergeSSAResult = merger.mergeSSAMaps(ssa1, pts1, ssa2, pts2);
-    final SSAMapBuilder newSSA = mergeSSAResult.getResult().builder();
+    final SSAMapBuilder newSSA = mergeSSAResult.result().builder();
 
     final MergeResult<PointerTargetSet> mergePtsResult =
         converter.mergePointerTargetSets(pts1, pts2, newSSA);
@@ -351,17 +351,15 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     // (?) Do not swap these two lines, that makes a huge difference in performance (?) !
     final BooleanFormula newFormula1 =
         bfmgr.and(
-            formula1,
-            bfmgr.and(mergeSSAResult.getLeftConjunct(), mergePtsResult.getLeftConjunct()));
+            formula1, bfmgr.and(mergeSSAResult.leftConjunct(), mergePtsResult.leftConjunct()));
     final BooleanFormula newFormula2 =
         bfmgr.and(
-            formula2,
-            bfmgr.and(mergeSSAResult.getRightConjunct(), mergePtsResult.getRightConjunct()));
+            formula2, bfmgr.and(mergeSSAResult.rightConjunct(), mergePtsResult.rightConjunct()));
     final BooleanFormula newFormula =
         bfmgr.and(
             bfmgr.or(newFormula1, newFormula2),
-            bfmgr.and(mergeSSAResult.getFinalConjunct(), mergePtsResult.getFinalConjunct()));
-    final PointerTargetSet newPTS = mergePtsResult.getResult();
+            bfmgr.and(mergeSSAResult.finalConjunct(), mergePtsResult.finalConjunct()));
+    final PointerTargetSet newPTS = mergePtsResult.result();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
     PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
@@ -375,7 +373,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   public PointerTargetSet mergePts(
       PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMapBuilder pSSA)
       throws InterruptedException {
-    return converter.mergePointerTargetSets(pPts1, pPts2, pSSA).getResult();
+    return converter.mergePointerTargetSets(pPts1, pPts2, pSSA).result();
   }
 
   @Override
