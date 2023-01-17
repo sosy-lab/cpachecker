@@ -77,8 +77,10 @@ class CFABuilder extends ASTVisitor {
   private final List<String> eliminateableDuplicates = new ArrayList<>();
 
   // Data structure for storing global declarations
-  private final List<Triple<ADeclaration, String, GlobalScope>> globalDeclarations =
-      new ArrayList<>();
+  private record GlobalDeclaration(
+      ADeclaration declaration, String rawSignature, GlobalScope scope) {}
+
+  private final List<GlobalDeclaration> globalDeclarations = new ArrayList<>();
   private final List<Pair<ADeclaration, String>> globalDecls = new ArrayList<>();
 
   // Data structure for checking amount of initializations per global variable
@@ -195,7 +197,7 @@ class CFABuilder extends ASTVisitor {
       fileScope.registerFunctionDeclaration(functionDefinition);
       if (!eliminateableDuplicates.contains(functionDefinition.toASTString())) {
         globalDeclarations.add(
-            Triple.of(
+            new GlobalDeclaration(
                 functionDefinition,
                 fd.getDeclSpecifier().getRawSignature()
                     + " "
@@ -259,7 +261,8 @@ class CFABuilder extends ASTVisitor {
     for (CAstNode astNode : sideAssignmentStack.getAndResetPreSideAssignments()) {
       if (astNode instanceof CComplexTypeDeclaration) {
         // already registered
-        globalDeclarations.add(Triple.of((ADeclaration) astNode, rawSignature, fileScope));
+        globalDeclarations.add(
+            new GlobalDeclaration((ADeclaration) astNode, rawSignature, fileScope));
         globalDecls.add(Pair.of((ADeclaration) astNode, rawSignature));
       } else if (astNode instanceof CVariableDeclaration) {
         // If the initializer of a global struct contains a type-id expression,
@@ -267,7 +270,8 @@ class CFABuilder extends ASTVisitor {
         // We detect this case if the initializer of the temp variable is an initializer list.
         CInitializer initializer = ((CVariableDeclaration) astNode).getInitializer();
         if (initializer instanceof CInitializerList) {
-          globalDeclarations.add(Triple.of((ADeclaration) astNode, rawSignature, fileScope));
+          globalDeclarations.add(
+              new GlobalDeclaration((ADeclaration) astNode, rawSignature, fileScope));
           globalDecls.add(Pair.of((ADeclaration) astNode, rawSignature));
         } else {
           throw parseContext.parseError("Initializer of global variable has side effect", sd);
@@ -304,7 +308,7 @@ class CFABuilder extends ASTVisitor {
       }
 
       if (used && !eliminateableDuplicates.contains(newD.toASTString())) {
-        globalDeclarations.add(Triple.of(newD, rawSignature, fileScope));
+        globalDeclarations.add(new GlobalDeclaration(newD, rawSignature, fileScope));
         globalDecls.add(Pair.of(newD, rawSignature));
         eliminateableDuplicates.add(newD.toASTString());
       }
@@ -330,10 +334,10 @@ class CFABuilder extends ASTVisitor {
       programDeclarations.completeUncompletedElaboratedTypes();
     }
 
-    for (Triple<ADeclaration, String, GlobalScope> decl : globalDeclarations) {
+    for (GlobalDeclaration decl : globalDeclarations) {
       FillInAllBindingsVisitor fillInAllBindingsVisitor =
-          new FillInAllBindingsVisitor(decl.getThird(), programDeclarations);
-      ((CDeclaration) decl.getFirst()).getType().accept(fillInAllBindingsVisitor);
+          new FillInAllBindingsVisitor(decl.scope(), programDeclarations);
+      ((CDeclaration) decl.declaration()).getType().accept(fillInAllBindingsVisitor);
     }
 
     for (Triple<List<IASTFunctionDefinition>, String, GlobalScope> triple : functionDeclarations) {
@@ -421,7 +425,7 @@ class CFABuilder extends ASTVisitor {
     globalDeclarations.addAll(
         Collections2.transform(
             functionBuilder.getGlobalDeclarations(),
-            pInput -> Triple.of(pInput.getFirst(), pInput.getSecond(), actScope)));
+            pInput -> new GlobalDeclaration(pInput.getFirst(), pInput.getSecond(), actScope)));
     globalDecls.addAll(functionBuilder.getGlobalDeclarations());
 
     encounteredAsm |= functionBuilder.didEncounterAsm();
