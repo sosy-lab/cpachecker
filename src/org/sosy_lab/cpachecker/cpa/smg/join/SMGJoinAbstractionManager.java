@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstractionCandidateTemplate;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 
 public class SMGJoinAbstractionManager {
 
@@ -106,10 +105,9 @@ public class SMGJoinAbstractionManager {
     SMGHasValueEdges fieldsOfObject1 = SMGUtils.getFieldsOfObject(smgObject1, inputSMG1);
     SMGHasValueEdges fieldsOfObject2 = SMGUtils.getFieldsOfObject(smgObject2, inputSMG2);
 
-    Triple<Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>>, Set<SMGEdgeHasValue>, Set<SMGEdgeHasValue>>
-        sharedPnonSharedPsharedNP =
-            assignToSharedPPointerAndNonSharedOPointerAndSharedNonPointer(
-                fieldsOfObject1, fieldsOfObject2);
+    FieldsOfObjectsComparison fieldsOfObjectsComparison =
+        assignToSharedPPointerAndNonSharedOPointerAndSharedNonPointer(
+            fieldsOfObject1, fieldsOfObject2);
 
     Set<SMGEdgePointsTo> inboundPointers1 = SMGUtils.getPointerToThisObject(smgObject1, inputSMG1);
     Set<SMGEdgePointsTo> inboundPointers2 = SMGUtils.getPointerToThisObject(smgObject2, inputSMG2);
@@ -118,10 +116,6 @@ public class SMGJoinAbstractionManager {
         sharedIPointerNonSharedIP =
             assignToSharedIPointerAndNonSharedIPointer(inboundPointers1, inboundPointers2);
 
-    Set<SMGEdgeHasValue> sharedFields = sharedPnonSharedPsharedNP.getThird();
-    Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>> sharedOPointer =
-        sharedPnonSharedPsharedNP.getFirst();
-    Set<SMGEdgeHasValue> nonSharedOPointer = sharedPnonSharedPsharedNP.getSecond();
     Set<Pair<SMGEdgePointsTo, SMGEdgePointsTo>> sharedIPointer =
         sharedIPointerNonSharedIP.getFirst();
     Set<SMGEdgePointsTo> nonSharedIPointer = sharedIPointerNonSharedIP.getSecond();
@@ -132,7 +126,12 @@ public class SMGJoinAbstractionManager {
 
     GenericAbstractionCandidateTemplate result =
         GenericAbstractionCandidateTemplate.createSimpleInductiveGenericAbstractionTemplate(
-            machineModel, sharedFields, sharedIPointer, sharedOPointer, nonSharedOPointer, root);
+            machineModel,
+            fieldsOfObjectsComparison.sharedValues(),
+            sharedIPointer,
+            fieldsOfObjectsComparison.sharedObjectPointers(),
+            fieldsOfObjectsComparison.nonSharedObjectPointers(),
+            root);
     return Optional.of(result);
   }
 
@@ -170,10 +169,13 @@ public class SMGJoinAbstractionManager {
     return Pair.of(sharedIPointer, nonSharedIPointer);
   }
 
-  private Triple<
-          Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>>, Set<SMGEdgeHasValue>, Set<SMGEdgeHasValue>>
-      assignToSharedPPointerAndNonSharedOPointerAndSharedNonPointer(
-          SMGHasValueEdges pFieldsOfObject1, SMGHasValueEdges pFieldsOfObject2) {
+  private record FieldsOfObjectsComparison(
+      Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>> sharedObjectPointers,
+      Set<SMGEdgeHasValue> nonSharedObjectPointers,
+      Set<SMGEdgeHasValue> sharedValues) {}
+
+  private FieldsOfObjectsComparison assignToSharedPPointerAndNonSharedOPointerAndSharedNonPointer(
+      SMGHasValueEdges pFieldsOfObject1, SMGHasValueEdges pFieldsOfObject2) {
 
     Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>> sharedOPointer = new HashSet<>();
     Set<SMGEdgeHasValue> nonSharedOPointer = new HashSet<>();
@@ -223,7 +225,7 @@ public class SMGJoinAbstractionManager {
       }
     }
 
-    return Triple.of(sharedOPointer, nonSharedOPointer, sharedNonPointer);
+    return new FieldsOfObjectsComparison(sharedOPointer, nonSharedOPointer, sharedNonPointer);
   }
 
   private Optional<GenericAbstractionCandidateTemplate>
