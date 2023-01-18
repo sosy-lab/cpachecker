@@ -12,8 +12,8 @@ import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 
 /**
- * A class that makes implementing {@link CfaValidator} easier by providing static factory methods
- * for {@link CfaValidationResult} creation.
+ * A class that makes implementing {@link CfaValidator} easier by providing methods for
+ * {@link CfaValidationResult} creation.
  */
 public abstract class AbstractCfaValidator implements CfaValidator {
 
