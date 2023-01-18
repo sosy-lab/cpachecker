@@ -20,9 +20,9 @@ public final class MainFunctionEntryNodePartOfCfa extends AbstractCfaValidator {
   @Override
   public CfaValidationResult check(CfaNetwork pCfaNetwork, CfaMetadata pCfaMetadata) {
     FunctionEntryNode mainFunctionEntryNode = pCfaMetadata.getMainFunctionEntry();
-    if (!pCfaNetwork.nodes().contains(mainFunctionEntryNode)) {
-      return fail("Main function entry node '%s' isn't part of the CFA", mainFunctionEntryNode);
-    }
-    return pass();
+    return check(
+        pCfaNetwork.nodes().contains(mainFunctionEntryNode),
+        "Main function entry node '%s' isn't part of the CFA",
+        mainFunctionEntryNode);
   }
 }

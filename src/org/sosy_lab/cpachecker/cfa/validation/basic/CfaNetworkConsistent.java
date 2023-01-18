@@ -28,58 +28,63 @@ public final class CfaNetworkConsistent extends AbstractCfaValidator {
   private CfaValidationResult checkNodeInEdges(CfaNetwork pCfaNetwork, CFANode pNode) {
     Set<CFAEdge> inEdges = pCfaNetwork.inEdges(pNode);
     Set<CFAEdge> enteringEdges = CFAUtils.allEnteringEdges(pNode).toSet();
-    if (!inEdges.equals(enteringEdges)) {
-      return fail(
-          "CfaNetwork inconsistent: cfaNetwork.inEdges(%s) is %s, but CFAUtils.allEnteringEdges(%s)"
-              + " is %s",
-          pNode, inEdges, pNode, enteringEdges);
-    }
-    return pass();
+    return check(
+        inEdges.equals(enteringEdges),
+        "CfaNetwork inconsistent: `cfaNetwork.inEdges(%1$s)` is %2$s"
+            + ", but `CFAUtils.allEnteringEdges(%1$s)` is %3$s",
+        pNode,
+        inEdges,
+        enteringEdges);
   }
 
   private CfaValidationResult checkNodeOutEdges(CfaNetwork pCfaNetwork, CFANode pNode) {
     Set<CFAEdge> outEdges = pCfaNetwork.outEdges(pNode);
     Set<CFAEdge> leavingEdges = CFAUtils.allLeavingEdges(pNode).toSet();
-    if (!outEdges.equals(leavingEdges)) {
-      return fail(
-          "CfaNetwork inconsistent: cfaNetwork.outEdges(%s) is %s, but CFAUtils.allLeavingEdges(%s)"
-              + " is %s",
-          pNode, outEdges, pNode, leavingEdges);
-    }
-    return pass();
+    return check(
+        outEdges.equals(leavingEdges),
+        "CfaNetwork inconsistent: `cfaNetwork.outEdges(%1$s)` is %2$s"
+            + ", but `CFAUtils.allLeavingEdges(%1$s)` is %3$s",
+        pNode,
+        outEdges,
+        leavingEdges);
+  }
+
+  private CfaValidationResult checkNode(CfaNetwork pCfaNetwork, CFANode pNode) {
+    return checkNodeInEdges(pCfaNetwork, pNode).combine(checkNodeOutEdges(pCfaNetwork, pNode));
   }
 
   private CfaValidationResult checkEdgePredecessor(CfaNetwork pCfaNetwork, CFAEdge pEdge) {
     CFANode networkPredecessor = pCfaNetwork.predecessor(pEdge);
     CFANode elementPredecessor = pEdge.getPredecessor();
-    if (!networkPredecessor.equals(elementPredecessor)) {
-      return fail(
-          "CfaNetwork inconsistent: cfaNetwork.predecessor(%s) is %s, but %s.getPredecessor() is"
-              + " %s",
-          pEdge, networkPredecessor, pEdge, elementPredecessor);
-    }
-    return pass();
+    return check(
+        networkPredecessor.equals(elementPredecessor),
+        "CfaNetwork inconsistent: `cfaNetwork.predecessor(%1$s)` is %2$s"
+            + ", but `%1$s.getPredecessor()` is %3$s",
+        pEdge,
+        networkPredecessor,
+        elementPredecessor);
   }
 
   private CfaValidationResult checkEdgeSuccessor(CfaNetwork pCfaNetwork, CFAEdge pEdge) {
     CFANode networkSuccessor = pCfaNetwork.successor(pEdge);
     CFANode elementSuccessor = pEdge.getSuccessor();
-    if (!networkSuccessor.equals(elementSuccessor)) {
-      return fail(
-          "CfaNetwork inconsistent: cfaNetwork.successor(%s) is %s, but %s.getSuccessor() is %s",
-          pEdge, networkSuccessor, pEdge, elementSuccessor);
-    }
-    return pass();
+    return check(
+        networkSuccessor.equals(elementSuccessor),
+        "CfaNetwork inconsistent: `cfaNetwork.successor(%1$s)` is %2$s"
+            + ", but `%1$s.getSuccessor()` is %3$s",
+        pEdge,
+        networkSuccessor,
+        elementSuccessor);
+  }
+
+  private CfaValidationResult checkEdge(CfaNetwork pCfaNetwork, CFAEdge pEdge) {
+    return checkEdgePredecessor(pCfaNetwork, pEdge).combine(checkEdgeSuccessor(pCfaNetwork, pEdge));
   }
 
   @Override
   public CfaValidationResult check(CfaNetwork pCfaNetwork, CfaMetadata pCfaMetadata) {
     return CfaValidator.createElementValidator(
-            node ->
-                checkNodeInEdges(pCfaNetwork, node).combine(checkNodeOutEdges(pCfaNetwork, node)),
-            edge ->
-                checkEdgePredecessor(pCfaNetwork, edge)
-                    .combine(checkEdgeSuccessor(pCfaNetwork, edge)))
+            node -> checkNode(pCfaNetwork, node), edge -> checkEdge(pCfaNetwork, edge))
         .check(pCfaNetwork, pCfaMetadata);
   }
 }
