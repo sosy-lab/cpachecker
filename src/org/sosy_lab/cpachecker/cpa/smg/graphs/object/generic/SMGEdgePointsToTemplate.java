@@ -19,6 +19,6 @@ public class SMGEdgePointsToTemplate extends SMGEdgeTemplate {
 
   @Override
   public String toString() {
-    return getAbstractValue() + "->" + " O" + getOffset() + "B " + getObjectTemplate();
+    return getAbstractValue() + "-> O" + getOffset() + "B " + getObjectTemplate();
   }
 }

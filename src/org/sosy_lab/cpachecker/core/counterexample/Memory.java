@@ -61,6 +61,6 @@ public class Memory {
 
   @Override
   public String toString() {
-    return "Memory name=" + name + " , " + " values=" + values;
+    return "Memory name=" + name + " ,  values=" + values;
   }
 }

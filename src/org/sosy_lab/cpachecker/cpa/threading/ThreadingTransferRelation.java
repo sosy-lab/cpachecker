@@ -604,7 +604,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       newThreadId = threadId + THREAD_ID_SEPARATOR + index;
       logger.logfOnce(
           Level.WARNING,
-          "multiple thread assignments to same LHS, " + "using identifier %s instead of %s",
+          "multiple thread assignments to same LHS, using identifier %s instead of %s",
           newThreadId,
           threadId);
     }

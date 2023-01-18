@@ -141,6 +141,32 @@ final class WrappingCfaNetwork extends AbstractCfaNetwork {
   // `CfaNetwork` specific
 
   @Override
+  public Set<FunctionEntryNode> entryNodes() {
+    return new UnmodifiableSetView<>() {
+
+      @Override
+      public Iterator<FunctionEntryNode> iterator() {
+        return Iterators.unmodifiableIterator(cfa.getAllFunctionHeads().iterator());
+      }
+
+      @Override
+      public int size() {
+        return cfa.getAllFunctionHeads().size();
+      }
+
+      @Override
+      public boolean contains(Object pObject) {
+        return cfa.getAllFunctionHeads().contains(pObject);
+      }
+
+      @Override
+      public boolean containsAll(Collection<?> pCollection) {
+        return cfa.getAllFunctionHeads().containsAll(pCollection);
+      }
+    };
+  }
+
+  @Override
   public CFANode predecessor(CFAEdge pEdge) {
     return pEdge.getPredecessor();
   }

@@ -54,9 +54,10 @@ public interface MutableCfaNetwork extends CfaNetwork, MutableNetwork<CFANode, C
    * and endpoints given as arguments to an {@code addEdge} method must match.
    *
    * <p>IMPORTANT: The specified CFA must not contain any parallel edges (i.e., edges that connect
-   * the same nodes in the same order) and never add them in the future. Additionally, the set
-   * returned by {@link CFA#getAllNodes()} must not contain any duplicates and never add them in the
-   * future. Be aware that these requirements are not enforced if Java assertions are disabled.
+   * the same nodes in the same order) and never add them in the future. Additionally, the
+   * collections returned by {@link CFA#getAllNodes()} and {@link CFA#getAllFunctionHeads()} must
+   * not contain any duplicates and never add them in the future. Be aware that these requirements
+   * are not enforced if Java assertions are disabled.
    *
    * @param pMutableCfa the {@link MutableCFA} to create a {@link MutableCfaNetwork} for
    * @return a new {@link MutableCfaNetwork} that represents the specified {@link MutableCFA}

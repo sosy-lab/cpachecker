@@ -110,7 +110,7 @@ public class PolicyIterationManager {
 
   @Option(
       secure = true,
-      description = "Run naive value determination first, " + "switch to namespaced if it fails.")
+      description = "Run naive value determination first, switch to namespaced if it fails.")
   private boolean runHopefulValueDetermination = true;
 
   @Option(secure = true, description = "Check target states reachability")
@@ -118,7 +118,7 @@ public class PolicyIterationManager {
 
   @Option(
       secure = true,
-      description = "Syntactically pre-compute dependencies for " + "value determination")
+      description = "Syntactically pre-compute dependencies for value determination")
   private boolean valDetSyntacticCheck = true;
 
   @Option(secure = true, description = "Check whether the policy depends on the initial value")
@@ -132,7 +132,7 @@ public class PolicyIterationManager {
 
   @Option(
       secure = true,
-      description = "Compute abstraction for larger templates " + "using decomposition")
+      description = "Compute abstraction for larger templates using decomposition")
   private boolean computeAbstractionByDecomposition = false;
 
   @Option(
@@ -144,7 +144,7 @@ public class PolicyIterationManager {
 
   @Option(
       secure = true,
-      description = "Algorithm for converting a formula to a " + "set of lemmas",
+      description = "Algorithm for converting a formula to a set of lemmas",
       toUppercase = true,
       values = {"CNF", "RCNF", "NONE"})
   private String toLemmasAlgorithm = "RCNF";
@@ -465,7 +465,7 @@ public class PolicyIterationManager {
         constraints = vdfmgr.valueDeterminationFormulaCheap(newState, merged, updated.keySet());
         element = performValueDetermination(merged, updated, constraints);
         if (!element.isPresent()) {
-          logger.log(Level.INFO, "Switching to more expensive value " + "determination strategy.");
+          logger.log(Level.INFO, "Switching to more expensive value determination strategy.");
         }
       }
 
@@ -476,7 +476,7 @@ public class PolicyIterationManager {
         element = performValueDetermination(merged, updated, constraints);
         if (!element.isPresent()) {
           throw new CPATransferException(
-              "Value determination problem is " + "unfeasible at node " + newState.getNode());
+              "Value determination problem is unfeasible at node " + newState.getNode());
         }
       }
       out = element.orElseThrow();

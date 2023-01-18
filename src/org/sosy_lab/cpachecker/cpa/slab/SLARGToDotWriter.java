@@ -183,7 +183,7 @@ public class SLARGToDotWriter {
 
   private static String addrank(ARGState state, Integer pInteger) {
     return String.format(
-        "invisiblenode_%d[style=invis label = \"\"];%n" + "{rank=same;invisiblenode_%d;%d};%n",
+        "invisiblenode_%d[style=invis label = \"\"];%n{rank=same;invisiblenode_%d;%d};%n",
         pInteger, pInteger, state.getStateId());
   }
 

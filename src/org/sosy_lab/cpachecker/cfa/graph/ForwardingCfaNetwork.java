@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.graph;
 
 import com.google.common.graph.Network;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -40,6 +41,11 @@ interface ForwardingCfaNetwork extends CfaNetwork, ForwardingNetwork<CFANode, CF
   @Override
   default Network<CFANode, CFAEdge> delegateNetwork() {
     return delegateCfaNetwork();
+  }
+
+  @Override
+  default Set<FunctionEntryNode> entryNodes() {
+    return delegateCfaNetwork().entryNodes();
   }
 
   @Override

@@ -40,7 +40,7 @@ public class AutomatonTest {
 
     Path tmpSpc = Path.of("test/config/automata/tmpSpecification.spc");
     String content =
-        "#include UninitializedVariablesTestAutomaton.txt \n" + "#include tmpSpecification.spc \n";
+        "#include UninitializedVariablesTestAutomaton.txt \n#include tmpSpecification.spc \n";
     IO.writeFile(tmpSpc, StandardCharsets.US_ASCII, content);
     TestResults results = CPATestRunner.run(prop, "test/programs/simple/UninitVarsErrors.c");
     results.assertIsSafe();

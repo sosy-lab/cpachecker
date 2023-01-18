@@ -49,6 +49,6 @@ public final class ConstraintsInformation {
 
   @Override
   public String toString() {
-    return "ConstraintsInformation[" + "constraints=" + constraints + ']';
+    return "ConstraintsInformation[constraints=" + constraints + ']';
   }
 }
