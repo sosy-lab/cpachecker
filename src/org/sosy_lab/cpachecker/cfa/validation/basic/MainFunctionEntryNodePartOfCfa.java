@@ -13,8 +13,9 @@ import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.validation.AbstractCfaValidator;
 import org.sosy_lab.cpachecker.cfa.validation.CfaValidationResult;
+import org.sosy_lab.cpachecker.cfa.validation.CfaValidator;
 
-/** This check ensures that the main function entry node is part of the CFA. */
+/** This {@link CfaValidator} ensures that the main function entry node is part of the CFA. */
 public final class MainFunctionEntryNodePartOfCfa extends AbstractCfaValidator {
 
   @Override

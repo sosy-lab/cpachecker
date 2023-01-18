@@ -22,7 +22,8 @@ import org.sosy_lab.cpachecker.cfa.validation.CfaValidationResult;
 import org.sosy_lab.cpachecker.cfa.validation.CfaValidator;
 
 /**
- * This check ensures that CFA nodes of a certain type have the right entering and leaving edges.
+ * This {@link CfaValidator} ensures that CFA nodes of a certain type have the correct entering and
+ * leaving edges.
  */
 public final class ExpectedIncidentEdges extends AbstractCfaValidator {
 

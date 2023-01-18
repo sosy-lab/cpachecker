@@ -40,6 +40,10 @@ import org.sosy_lab.cpachecker.cfa.validation.AbstractCfaValidator;
 import org.sosy_lab.cpachecker.cfa.validation.CfaValidationResult;
 import org.sosy_lab.cpachecker.cfa.validation.CfaValidator;
 
+/**
+ * This {@link CfaValidator} ensures that all literal integer expressions are in the value range
+ * permitted by the used {@link MachineModel}.
+ */
 public final class LiteralExpressionsInValueRange extends AbstractCfaValidator {
 
   private CfaValidationResult checkValueRanges(

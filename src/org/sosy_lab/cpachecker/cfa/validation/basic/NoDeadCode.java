@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.validation.AbstractCfaValidator;
 import org.sosy_lab.cpachecker.cfa.validation.CfaValidationResult;
 import org.sosy_lab.cpachecker.cfa.validation.CfaValidator;
 
-/** This check ensures that there is no obvious dead code in a CFA. */
+/** This {@link CfaValidator} ensures that there is no obvious dead code in a CFA. */
 public final class NoDeadCode extends AbstractCfaValidator {
 
   @Override

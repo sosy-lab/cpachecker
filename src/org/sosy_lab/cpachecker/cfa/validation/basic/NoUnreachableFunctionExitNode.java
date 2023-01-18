@@ -19,9 +19,9 @@ import org.sosy_lab.cpachecker.cfa.validation.CfaValidationResult;
 import org.sosy_lab.cpachecker.cfa.validation.CfaValidator;
 
 /**
- * This check ensures that there are no function entry nodes that have references to unreachable
- * function exit nodes (i.e., function exit nodes that have no entering edges and aren't part of the
- * CFA).
+ * This {@link CfaValidator} ensures that there are no function entry nodes that have references to
+ * unreachable function exit nodes (i.e., function exit nodes that have no entering edges and aren't
+ * even part of the CFA).
  */
 public final class NoUnreachableFunctionExitNode extends AbstractCfaValidator {
 

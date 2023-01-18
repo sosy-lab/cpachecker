@@ -19,9 +19,13 @@ import org.sosy_lab.cpachecker.cfa.validation.CfaValidator;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
- * Checks whether the CFA represented by a {@link CfaNetwork} is the same CFA represented by its
- * individual elements (whether, e.g., {@link CFAEdge#getSuccessor()} and {@link
- * CfaNetwork#successor(CFAEdge)} return the same value).
+ * This {@link CfaValidator} ensures that the CFA represented by a {@link CfaNetwork} is the same
+ * CFA represented by its individual elements (ensures that, e.g., {@link CFAEdge#getSuccessor()}
+ * and {@link CfaNetwork#successor(CFAEdge)} return the same value).
+ *
+ * <p>Not all {@link CfaNetwork} implementations guarantee that the CFA represented by a {@link
+ * CfaNetwork} is the same CFA represented by its individual elements, so check the documentation of
+ * the {@link CfaNetwork} implementation before using this {@link CfaValidator}.
  */
 public final class CfaNetworkConsistent extends AbstractCfaValidator {
 
