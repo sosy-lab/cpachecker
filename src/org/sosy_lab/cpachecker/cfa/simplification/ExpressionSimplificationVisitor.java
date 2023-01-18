@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -325,8 +326,8 @@ public class ExpressionSimplificationVisitor
     if (!(type instanceof CProblemType) && type.isConst() && decl instanceof CVariableDeclaration) {
 
       final CInitializer init = ((CVariableDeclaration) decl).getInitializer();
-      if (init instanceof CExpression) {
-        NumericValue v = getValue((CExpression) init);
+      if (init instanceof CInitializerExpression) {
+        NumericValue v = getValue(((CInitializerExpression) init).getExpression());
 
         if (v != null && decl.getType() instanceof CSimpleType) {
           switch (((CSimpleType) type).getType()) {
