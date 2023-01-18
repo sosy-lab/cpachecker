@@ -156,8 +156,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   @Override
   public AbstractState join(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
-    throw new UnsupportedOperationException(
-        "PolicyCPA should be used with its" + " own merge operator");
+    throw new UnsupportedOperationException("PolicyCPA should be used with its own merge operator");
   }
 
   /**

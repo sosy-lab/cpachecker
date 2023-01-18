@@ -108,13 +108,13 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       writer.append(id.getDereference() + "\n");
       writer.append(id.getType().toASTString(id.getName()) + "\n");
       // if (isTrueUnsafe) {
-      //  writer.append("Line 0:     N0 -{/*Is true unsafe:*/}-> N0" + "\n");
+      //  writer.append("Line 0:     N0 -{/*Is true unsafe:*/}-> N0\n");
       // }
       // writer.append("Line 0:     N0 -{/*Number of usage points:" +
-      // uinfo.getNumberOfTopUsagePoints() + "*/}-> N0" + "\n");
+      // uinfo.getNumberOfTopUsagePoints() + "*/}-> N0\n");
       // writer.append("Line 0:     N0 -{/*Number of usages      :" + uinfo.size() + "*/}-> N0" +
       // "\n");
-      writer.append("Line 0:     N0 -{/*Two examples:*/}-> N0" + "\n");
+      writer.append("Line 0:     N0 -{/*Two examples:*/}-> N0\n");
 
       createVisualization(id, pPair.getFirst(), writer);
       createVisualization(id, pPair.getSecond(), writer);

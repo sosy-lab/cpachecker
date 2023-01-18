@@ -423,7 +423,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
     logger.log(
         Level.FINE,
         "New internal function called. ",
-        "Add undefined position for local " + "variables and return variable, if it exists. ",
+        "Add undefined position for local variables and return variable, if it exists. ",
         "Add definition of parameters.");
     return pState.initVariables(
         localVariablesPerFunction.get(pCfaEdge.getSuccessor()),

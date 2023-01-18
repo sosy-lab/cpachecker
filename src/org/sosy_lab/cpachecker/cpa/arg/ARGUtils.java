@@ -78,7 +78,6 @@ import org.sosy_lab.cpachecker.util.GraphUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 /** Helper class with collection of ARG related utility methods. */
-/** */
 public class ARGUtils {
 
   private ARGUtils() {}

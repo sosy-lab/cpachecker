@@ -447,8 +447,6 @@ class ASTConverter {
   }
 
   private CAstNode convertExpressionWithSideEffectsNotSimplified(IASTExpression e) {
-    assert !(e instanceof CExpression);
-
     if (e == null) {
       return null;
 

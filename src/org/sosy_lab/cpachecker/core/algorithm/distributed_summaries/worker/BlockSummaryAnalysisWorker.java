@@ -161,7 +161,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
   @Override
   public String toString() {
-    return "Worker{" + "block=" + block + ", finished=" + shutdownRequested() + '}';
+    return "Worker{block=" + block + ", finished=" + shutdownRequested() + '}';
   }
 
   private Map<String, Object> getStats() {
