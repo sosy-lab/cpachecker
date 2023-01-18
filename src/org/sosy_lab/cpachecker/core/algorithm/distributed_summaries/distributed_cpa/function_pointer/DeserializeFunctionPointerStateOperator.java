@@ -57,7 +57,7 @@ public class DeserializeFunctionPointerStateOperator implements DeserializeOpera
           builder.setTarget(parts.get(1), new NamedFunctionTarget(parts.get(2)));
           break;
         default:
-          throw new AssertionError("Unknwon FunctionPointerState");
+          throw new AssertionError("Unknown FunctionPointerState");
       }
     }
     return builder.build();
