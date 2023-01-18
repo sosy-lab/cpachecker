@@ -96,7 +96,7 @@ public class DCPAAlgorithm {
     predecessors = transformedImmutableSetCopy(block.getPredecessors(), BlockNodeMetaData::getId);
   }
 
-  private Collection<BlockSummaryMessage> unreachableBlockEnd() {
+  private Collection<BlockSummaryMessage> reportUnreachableBlockEnd() {
     // if sent once, it will never change (precondition is always most general information)
     if (alreadyReportedInfeasibility) {
       return ImmutableSet.of();
@@ -123,7 +123,7 @@ public class DCPAAlgorithm {
         processIntermediateResult(
             DCPAAlgorithms.findReachableTargetStatesInBlock(algorithm, reachedSet));
     if (results.isEmpty()) {
-      return unreachableBlockEnd();
+      return reportUnreachableBlockEnd();
     }
     return results;
   }
@@ -206,7 +206,7 @@ public class DCPAAlgorithm {
       initialPrecision = reachedSet.getPrecision(reachedSet.getLastState());
     }
     if (result.isEmpty()) {
-      return unreachableBlockEnd();
+      return reportUnreachableBlockEnd();
     }
     ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
     if (!result.getBlockTargets().isEmpty()) {
@@ -224,7 +224,7 @@ public class DCPAAlgorithm {
                           ImmutableSet.of()))
               .toSet());
     } else {
-      answers.addAll(unreachableBlockEnd());
+      answers.addAll(reportUnreachableBlockEnd());
     }
     if (!result.getTargets().isEmpty() && !alreadyReportedError) {
       alreadyReportedError = true;
