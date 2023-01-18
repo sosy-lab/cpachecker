@@ -73,7 +73,7 @@ public final class ExpectedIncidentEdges extends AbstractCfaValidator {
           AssumeEdge ae1 = (AssumeEdge) edge1;
           AssumeEdge ae2 = (AssumeEdge) edge2;
           if (ae1.getTruthAssumption() == ae2.getTruthAssumption()) {
-            return fail("Inconsistent branching at node %s '%s'", pNode);
+            return fail("Inconsistent branching at node '%s'", pNode);
           }
         }
         break;
