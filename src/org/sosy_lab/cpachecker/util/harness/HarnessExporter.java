@@ -218,7 +218,7 @@ public class HarnessExporter {
         callStatement = (AFunctionCall) statement;
       }
     } else if (pEdgeToTarget instanceof FunctionCallEdge) {
-      callStatement = ((FunctionCallEdge) pEdgeToTarget).getSummaryEdge().getExpression();
+      callStatement = ((FunctionCallEdge) pEdgeToTarget).getFunctionCall();
     }
 
     if (callStatement != null) {

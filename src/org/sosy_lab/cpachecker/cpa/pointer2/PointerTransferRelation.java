@@ -772,7 +772,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
         return Optional.of((AFunctionCall) statementEdge.getStatement());
       }
     } else if (pEdge instanceof FunctionCallEdge functionCallEdge) {
-      return Optional.of(functionCallEdge.getSummaryEdge().getExpression());
+      return Optional.of(functionCallEdge.getFunctionCall());
     } else if (pEdge instanceof FunctionSummaryEdge functionSummaryEdge) {
       return Optional.of(functionSummaryEdge.getExpression());
     }

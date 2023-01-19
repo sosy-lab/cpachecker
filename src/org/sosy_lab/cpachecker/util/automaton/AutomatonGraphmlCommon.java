@@ -688,14 +688,11 @@ public class AutomatonGraphmlCommon {
       }
     }
     if (pEdge instanceof FunctionCallEdge functionCallEdge) {
-      FunctionSummaryEdge summaryEdge = functionCallEdge.getSummaryEdge();
-      if (summaryEdge != null && summaryEdge.getExpression() != null) {
-        AFunctionCall call = summaryEdge.getExpression();
-        if (call instanceof AFunctionCallAssignmentStatement statement) {
-          FileLocation callLocation = statement.getRightHandSide().getFileLocation();
-          if (callLocation.isRealLocation()) {
-            return Collections.singleton(callLocation);
-          }
+      AFunctionCall call = functionCallEdge.getFunctionCall();
+      if (call instanceof AFunctionCallAssignmentStatement statement) {
+        FileLocation callLocation = statement.getRightHandSide().getFileLocation();
+        if (callLocation.isRealLocation()) {
+          return Collections.singleton(callLocation);
         }
       }
     }
