@@ -48,12 +48,11 @@ class GlobalConditionsPrecisionAdjustment implements PrecisionAdjustment {
 
     if (checkReachedSetSize(pElements)) {
       logger.log(Level.WARNING, "Reached set size threshold reached, terminating.");
-      return Optional.of(PrecisionAdjustmentResult.create(pElement, pPrecision, Action.BREAK));
+      return Optional.of(new PrecisionAdjustmentResult(pElement, pPrecision, Action.BREAK));
     }
 
     return Optional.of(
-        PrecisionAdjustmentResult.create(
-            pElement, pPrecision, delegate.prec(pElement, pPrecision)));
+        new PrecisionAdjustmentResult(pElement, pPrecision, delegate.prec(pElement, pPrecision)));
   }
 
   private boolean checkReachedSetSize(UnmodifiableReachedSet elements) {

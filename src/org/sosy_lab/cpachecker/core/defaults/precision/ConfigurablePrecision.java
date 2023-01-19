@@ -53,7 +53,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   @Option(
       secure = true,
       description =
-          "If this option is used, variables that are only compared" + " for equality are tracked.")
+          "If this option is used, variables that are only compared for equality are tracked.")
   private boolean trackIntEqualVariables = true;
 
   @Option(
@@ -65,8 +65,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
   @Option(
       secure = true,
-      description =
-          "If this option is used, variables that have type double" + " or float are tracked.")
+      description = "If this option is used, variables that have type double or float are tracked.")
   private boolean trackFloatVariables = true;
 
   @Option(
@@ -87,7 +86,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
   @Option(
       secure = true,
-      description = "If this option is used, variables that are irrelevant" + "are also tracked.")
+      description = "If this option is used, variables that are irrelevantare also tracked.")
   private boolean trackIrrelevantVariables = true;
 
   private final Optional<VariableClassification> vc;

@@ -145,7 +145,7 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     return Optional.of(
-        PrecisionAdjustmentResult.create(result, pPrecision, precisionAdjustmentResult.action()));
+        new PrecisionAdjustmentResult(result, pPrecision, precisionAdjustmentResult.action()));
   }
 
   private boolean checkEmptyPredicatePrecision(Precision pPrecision) {

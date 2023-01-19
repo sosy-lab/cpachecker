@@ -186,6 +186,8 @@ public class SMGCPABuiltins {
   }
 
   /**
+   * Handle a function call to a builtin function like memcpy.
+   *
    * @param pCfaEdge for logging/debugging.
    * @param cFCExpression {@link CFunctionCallExpression} that leads to a non memory allocating
    *     builtin function.

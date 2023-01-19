@@ -260,7 +260,7 @@ public class ARGToCTranslator {
             && loc.getNumLeavingEdges() == 0
             && loc.getEnteringEdge(0).getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
           currentBlock.addStatement(
-              new SimpleStatement("return " + "__return_" + currentElement.getStateId() + ";"));
+              new SimpleStatement("return __return_" + currentElement.getStateId() + ";"));
         } else {
           if (isVoidMain) {
             currentBlock.addStatement(new SimpleStatement("return;"));
@@ -274,10 +274,9 @@ public class ARGToCTranslator {
       ARGState child = Iterables.getOnlyElement(childrenOfElement);
       CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
 
-      if (edgeToChild instanceof CAssumeEdge) {
+      if (edgeToChild instanceof CAssumeEdge assumeEdge) {
         // due to some reason the other edge is not considered
         // if part
-        CAssumeEdge assumeEdge = (CAssumeEdge) edgeToChild;
         // create a new block starting with this condition
         boolean truthAssumption = getRealTruthAssumption(assumeEdge);
 
@@ -424,8 +423,7 @@ public class ARGToCTranslator {
       CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
 
       Set<AExpression> conditions = new LinkedHashSet<>();
-      if (edgeToChild instanceof CAssumeEdge) {
-        CAssumeEdge assumeEdge = (CAssumeEdge) edgeToChild;
+      if (edgeToChild instanceof CAssumeEdge assumeEdge) {
         if (assumeEdge.getTruthAssumption()) {
           conditions.add(assumeEdge.getExpression());
         } else {
@@ -567,9 +565,7 @@ public class ARGToCTranslator {
     if (edge instanceof CFunctionCallEdge) {
       // if this is a function call edge we need to inline it
       currentBlock = processFunctionCall(edge, currentBlock);
-    } else if (edge instanceof CReturnStatementEdge) {
-      CReturnStatementEdge returnEdge = (CReturnStatementEdge) edge;
-
+    } else if (edge instanceof CReturnStatementEdge returnEdge) {
       if (returnEdge.getExpression() != null && returnEdge.getExpression().isPresent()) {
 
         String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
@@ -583,9 +579,8 @@ public class ARGToCTranslator {
         }
         currentBlock.addStatement(new SimpleStatement(edge, returnVar + " = " + retval + ";"));
       }
-    } else if (edge instanceof CFunctionReturnEdge) {
+    } else if (edge instanceof CFunctionReturnEdge returnEdge) {
       // assumes that ReturnStateEdge is followed by FunctionReturnEdge
-      CFunctionReturnEdge returnEdge = (CFunctionReturnEdge) edge;
       currentBlock =
           processReturnStatementCall(
               returnEdge.getSummaryEdge(), currentBlock, currentElement.getStateId());
@@ -870,9 +865,7 @@ public class ARGToCTranslator {
     if (retExp instanceof CFunctionCallStatement) {
       // end of void function, just leave block (no assignment needed)
       return getBlockAfterEndOfFunction(pCurrentBlock);
-    } else if (retExp instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement) retExp;
-
+    } else if (retExp instanceof CFunctionCallAssignmentStatement exp) {
       String returnVar = "__return_" + id;
       String leftHandSide = exp.getLeftHandSide().toQualifiedASTString();
 

@@ -2821,7 +2821,7 @@ cpa.smg.deallocationFunctions = {"free"}
 # with this option enabled, heap abstraction will be enabled.
 cpa.smg.enableHeapAbstraction = false
 
-# If this Option is enabled, failure of mallocis simulated
+# If this Option is enabled, failure of malloc is simulated
 cpa.smg.enableMallocFail = true
 
 # Filename format for SMG graph dumps
@@ -2996,7 +2996,7 @@ cpa.smg2.deallocationFunctions = {"free"}
 # with this option enabled, heap abstraction will be enabled.
 cpa.smg2.enableHeapAbstraction = false
 
-# If this Option is enabled, failure of mallocis simulated
+# If this Option is enabled, failure of malloc is simulated
 cpa.smg2.enableMallocFail = true
 
 # Filename format for SMG graph dumps

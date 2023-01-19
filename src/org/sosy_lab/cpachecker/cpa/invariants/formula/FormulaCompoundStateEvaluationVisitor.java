@@ -44,9 +44,10 @@ public class FormulaCompoundStateEvaluationVisitor
   }
 
   private CompoundIntervalManager getCompoundIntervalManager(TypeInfo pTypeInfo) {
-    if (compoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory) {
-      CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory =
-          (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
+    if (compoundIntervalManagerFactory
+        instanceof
+        CompoundBitVectorIntervalManagerFactory
+        compoundBitVectorIntervalManagerFactory) {
       return compoundBitVectorIntervalManagerFactory.createCompoundIntervalManager(
           pTypeInfo, withOverflowEventHandlers);
     }
@@ -351,8 +352,7 @@ public class FormulaCompoundStateEvaluationVisitor
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof FormulaCompoundStateEvaluationVisitor) {
-      FormulaCompoundStateEvaluationVisitor other = (FormulaCompoundStateEvaluationVisitor) pOther;
+    if (pOther instanceof FormulaCompoundStateEvaluationVisitor other) {
       return withOverflowEventHandlers == other.withOverflowEventHandlers
           && compoundIntervalManagerFactory.equals(other.compoundIntervalManagerFactory);
     }

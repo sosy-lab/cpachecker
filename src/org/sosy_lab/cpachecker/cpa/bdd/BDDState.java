@@ -72,8 +72,7 @@ public class BDDState implements AbstractQueryableState, LatticeAbstractState<BD
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof BDDState) {
-      BDDState other = (BDDState) o;
+    if (o instanceof BDDState other) {
       return currentState.equals(other.currentState);
     }
     return false;

@@ -243,12 +243,10 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           ExpressionTree<AExpression> quasiInvariant = ExpressionTrees.getTrue();
 
           for (AbstractState state : AbstractStates.asIterable(stemSynState.orElseThrow())) {
-            if (state instanceof AutomatonState) {
-              AutomatonState automatonState = (AutomatonState) state;
-              if (automatonState.getOwningAutomaton() == witness) {
-                quasiInvariant = automatonState.getCandidateInvariants();
-                break;
-              }
+            if ((state instanceof AutomatonState automatonState)
+                && (automatonState.getOwningAutomaton() == witness)) {
+              quasiInvariant = automatonState.getCandidateInvariants();
+              break;
             }
           }
 
@@ -663,9 +661,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
             }
 
             // check that when one iteration of infinite paths ends, it ends in the recurrent set
-          } else if (compState instanceof AutomatonState) {
-            AutomatonState amState = (AutomatonState) compState;
-
+          } else if (compState instanceof AutomatonState amState) {
             if (amState.getOwningAutomaton() == pAutomatonRedetectRecurrentSet) {
               if (amState.getInternalStateName().equals(SuccessorState.FINISHED.toString())) {
                 pNegInvCheck.getPredecessor().addLeavingEdge(pNegInvCheck);

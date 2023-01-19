@@ -119,9 +119,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
     String initialValue = RTTState.NULL_REFERENCE;
 
     // handle field variables
-    if (decl instanceof JFieldDeclaration) {
-
-      JFieldDeclaration fieldVariable = (JFieldDeclaration) decl;
+    if (decl instanceof JFieldDeclaration fieldVariable) {
 
       // if this is a  field, add to the list of field variables
       newState.addFieldVariable(fieldVariable);
@@ -276,9 +274,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
     // expression is an assignment operation, e.g. a = g(b);
 
-    if (summaryExpr instanceof JMethodInvocationAssignmentStatement) {
-      JMethodInvocationAssignmentStatement assignExp =
-          ((JMethodInvocationAssignmentStatement) summaryExpr);
+    if (summaryExpr instanceof JMethodInvocationAssignmentStatement assignExp) {
       JExpression op1 = assignExp.getLeftHandSide();
 
       // we expect left hand side of the expression to be a variable
@@ -378,9 +374,8 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
       // A Referenced Method Invocation, the new scope is the unique Object
       // of its reference variable
-    } else if (functionCall instanceof JReferencedMethodInvocationExpression) {
-      JReferencedMethodInvocationExpression objectMethodInvocation =
-          (JReferencedMethodInvocationExpression) functionCall;
+    } else if (functionCall
+        instanceof JReferencedMethodInvocationExpression objectMethodInvocation) {
       JSimpleDeclaration variableReference =
           objectMethodInvocation.getReferencedVariable().getDeclaration();
 
@@ -676,9 +671,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
       JSimpleDeclaration declaration = idExpression.getDeclaration();
 
-      if (idExpression instanceof JFieldAccess) {
-
-        JFieldAccess fiExpr = (JFieldAccess) idExpression;
+      if (idExpression instanceof JFieldAccess fiExpr) {
 
         JType type = fiExpr.getExpressionType();
 

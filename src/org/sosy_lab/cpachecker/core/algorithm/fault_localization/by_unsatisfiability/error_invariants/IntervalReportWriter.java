@@ -94,7 +94,7 @@ public class IntervalReportWriter extends FaultReportWriter {
           .sorted(Comparator.comparingInt(e -> e.getKey()))
           .forEach(
               e ->
-                  html.append("<li>" + "<span class=\"line-number\">")
+                  html.append("<li><span class=\"line-number\">")
                       .append(e.getKey())
                       .append("</span>")
                       .append("<span class=\"line-content\">")

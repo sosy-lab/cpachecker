@@ -13,7 +13,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 
-public class FunctionExitNode extends CFANode {
+public final class FunctionExitNode extends CFANode {
 
   private static final long serialVersionUID = -7883542777389959334L;
   private FunctionEntryNode entryNode;

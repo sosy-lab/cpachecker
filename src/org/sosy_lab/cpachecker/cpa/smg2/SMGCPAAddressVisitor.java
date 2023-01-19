@@ -162,8 +162,7 @@ public class SMGCPAAddressVisitor
   private SMGStateAndOptionalSMGObjectAndOffset handleSubscriptExpression(
       Value arrayValue, BigInteger subscriptOffset, SMGState pCurrentState) throws SMG2Exception {
 
-    if ((arrayValue instanceof AddressExpression)) {
-      AddressExpression arrayAddr = (AddressExpression) arrayValue;
+    if ((arrayValue instanceof AddressExpression arrayAddr)) {
       Value addrOffset = arrayAddr.getOffset();
       if (!addrOffset.isNumericValue()) {
         logger.log(
@@ -249,8 +248,7 @@ public class SMGCPAAddressVisitor
               SMGCPAExpressionEvaluator.getCanonicalType(ownerExpression),
               explicitReference.getFieldName());
 
-      if (structValue instanceof AddressExpression) {
-        AddressExpression structAddr = (AddressExpression) structValue;
+      if (structValue instanceof AddressExpression structAddr) {
         Value addrOffset = structAddr.getOffset();
         if (!addrOffset.isNumericValue()) {
           // Non numeric offset -> not usable

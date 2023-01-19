@@ -478,8 +478,7 @@ public final class CCfaTransformer {
           oldEdgeToNewEdge.put(pOldEdge, newEdge);
         }
 
-        if (newEdge instanceof CFunctionSummaryEdge) {
-          CFunctionSummaryEdge cfaSummaryEdge = (CFunctionSummaryEdge) newEdge;
+        if (newEdge instanceof CFunctionSummaryEdge cfaSummaryEdge) {
           newNodeU.addLeavingSummaryEdge(cfaSummaryEdge);
           newNodeV.addEnteringSummaryEdge(cfaSummaryEdge);
         } else {

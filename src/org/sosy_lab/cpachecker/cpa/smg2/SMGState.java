@@ -318,8 +318,7 @@ public class SMGState
       SMGOptions opts,
       FunctionEntryNode cfaFunEntryNode) {
     SMGState newState = of(pMachineModel, logManager, opts);
-    if (cfaFunEntryNode instanceof CFunctionEntryNode) {
-      CFunctionEntryNode functionNode = (CFunctionEntryNode) cfaFunEntryNode;
+    if (cfaFunEntryNode instanceof CFunctionEntryNode functionNode) {
       return newState.copyAndAddStackFrame(functionNode.getFunctionDefinition());
     }
     return newState;
@@ -1813,9 +1812,7 @@ public class SMGState
         new ImmutableList.Builder<SMGErrorInfo>().addAll(errorInfo).add(pErrorInfo).build());
   }
 
-  /**
-   * @return memory model, including Heap, stack and global vars.
-   */
+  /** Returns memory model, including Heap, stack and global vars. */
   public SymbolicProgramConfiguration getMemoryModel() {
     return memoryModel;
   }
@@ -1881,8 +1878,7 @@ public class SMGState
    * offset == 0. But unknown for unknown offsets.
    */
   private ValueAndSMGState searchOrCreateAddressForAddressExpr(Value pValue) {
-    if (pValue instanceof AddressExpression) {
-      AddressExpression addressExprValue = (AddressExpression) pValue;
+    if (pValue instanceof AddressExpression addressExprValue) {
       Value offsetAddr = addressExprValue.getOffset();
       if (offsetAddr.isNumericValue()) {
         BigInteger offsetAddrBI = offsetAddr.asNumericValue().bigInteger();
@@ -2157,9 +2153,8 @@ public class SMGState
     // if the entered value is a AddressExpression think of it as a internal wrapper of pointer +
     // offset. We use the value as pointer and then add the offset to the found offset! If however
     // the offset is non numeric we can't calculate if the free is valid or not.
-    if (addressToFree instanceof AddressExpression) {
+    if (addressToFree instanceof AddressExpression addressExpr) {
       // We just disassamble the AddressExpression and use it as if it were a normal pointer
-      AddressExpression addressExpr = (AddressExpression) addressToFree;
       sanitizedAddressToFree = addressExpr.getMemoryAddress();
 
       if (!addressExpr.getOffset().isNumericValue()) {
@@ -3048,7 +3043,7 @@ public class SMGState
         valueRead = castValueForUnionFloatConversion(valueRead, readType);
       }
       if (memoryModel.isPointer(valueRead)) {
-        builder.append(memLoc.getKey() + ": " + " pointer: " + valueRead);
+        builder.append(memLoc.getKey() + ":  pointer: " + valueRead);
         builder.append("\n");
       } else {
         builder.append(memLoc.getKey() + ": " + valueRead);
@@ -3091,8 +3086,7 @@ public class SMGState
       // Something went wrong
       // TODO: log and decide what to do here (can this even happen?)
       return this;
-    } else if (root instanceof SMGDoublyLinkedListSegment) {
-      SMGDoublyLinkedListSegment oldDLL = (SMGDoublyLinkedListSegment) root;
+    } else if (root instanceof SMGDoublyLinkedListSegment oldDLL) {
       int newMinLength = ((SMGDoublyLinkedListSegment) root).getMinLength();
       if (nextObj instanceof SMGSinglyLinkedListSegment) {
         newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
@@ -3209,8 +3203,7 @@ public class SMGState
       // Something went wrong
       // TODO: log and decide what to do here (can this even happen?)
       return this;
-    } else if (root instanceof SMGSinglyLinkedListSegment) {
-      SMGSinglyLinkedListSegment oldSLL = (SMGSinglyLinkedListSegment) root;
+    } else if (root instanceof SMGSinglyLinkedListSegment oldSLL) {
       int newMinLength = oldSLL.getMinLength();
       if (nextObj instanceof SMGSinglyLinkedListSegment) {
         newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();

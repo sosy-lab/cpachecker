@@ -268,10 +268,8 @@ public class SMGTransferRelation
         .getFunctionDeclaration()
         .equals(functionReturnEdge.getFunctionEntry().getFunctionDefinition());
 
-    if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
+    if (exprOnSummary instanceof CFunctionCallAssignmentStatement funcAssignment) {
       // Assign the return value to the lValue of the functionCallAssignment
-      CFunctionCallAssignmentStatement funcAssignment =
-          (CFunctionCallAssignmentStatement) exprOnSummary;
       CExpression lValue = funcAssignment.getLeftHandSide();
       CType rValueType = TypeUtils.getRealExpressionType(funcAssignment.getRightHandSide());
       SMGObject tmpMemory = newState.getHeap().getFunctionReturnObject();
@@ -372,8 +370,7 @@ public class SMGTransferRelation
         exp = ((CCastExpression) exp).getOperand();
       }
       // handle string argument
-      if (exp instanceof CStringLiteralExpression) {
-        CStringLiteralExpression strExp = (CStringLiteralExpression) exp;
+      if (exp instanceof CStringLiteralExpression strExp) {
         cParamType = strExp.transformTypeToArrayType();
 
         String name = strExp.getContentString() + " string literal";
@@ -708,15 +705,13 @@ public class SMGTransferRelation
   @Override
   protected Collection<SMGState> handleStatementEdge(CStatementEdge pCfaEdge, CStatement cStmt)
       throws CPATransferException {
-    if (cStmt instanceof CAssignment) {
-      CAssignment cAssignment = (CAssignment) cStmt;
+    if (cStmt instanceof CAssignment cAssignment) {
       CExpression lValue = cAssignment.getLeftHandSide();
       CRightHandSide rValue = cAssignment.getRightHandSide();
 
       return handleAssignment(state, pCfaEdge, lValue, rValue);
-    } else if (cStmt instanceof CFunctionCallStatement) {
+    } else if (cStmt instanceof CFunctionCallStatement cFCall) {
 
-      CFunctionCallStatement cFCall = (CFunctionCallStatement) cStmt;
       CFunctionCallExpression cFCExpression = cFCall.getFunctionCallExpression();
       CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
       String calledFunctionName = fileNameExpression.toASTString();
@@ -1053,17 +1048,14 @@ public class SMGTransferRelation
       } else {
         return assignFieldToState(pNewState, pEdge, pNewObject, pOffset, pLValueType, expression);
       }
-    } else if (pInitializer instanceof CInitializerList) {
-      CInitializerList pNewInitializer = ((CInitializerList) pInitializer);
+    } else if (pInitializer instanceof CInitializerList pNewInitializer) {
       CType realCType = pLValueType.getCanonicalType();
 
-      if (realCType instanceof CArrayType) {
-        CArrayType arrayType = (CArrayType) realCType;
+      if (realCType instanceof CArrayType arrayType) {
         return handleInitializerList(
             pNewState, pVarDecl, pEdge, pNewObject, pOffset, arrayType, pNewInitializer);
 
-      } else if (realCType instanceof CCompositeType) {
-        CCompositeType structType = (CCompositeType) realCType;
+      } else if (realCType instanceof CCompositeType structType) {
         return handleInitializerList(
             pNewState.copyOf(), pVarDecl, pEdge, pNewObject, pOffset, structType, pNewInitializer);
       }
@@ -1423,8 +1415,7 @@ public class SMGTransferRelation
     newStates = result;
 
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
-      if (initializer instanceof CDesignatedInitializer) {
-        CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) initializer;
+      if (initializer instanceof CDesignatedInitializer designatedInitializer) {
         assert designatedInitializer.getDesignators().size() == 1;
         CDesignator cDesignator = designatedInitializer.getDesignators().get(0);
         if (cDesignator instanceof CArrayDesignator) {

@@ -162,8 +162,7 @@ public class CBinaryExpressionBuilder {
   public CBinaryExpression negateExpressionAndSimplify(final CExpression expr)
       throws UnrecognizedCodeException {
 
-    if (expr instanceof CBinaryExpression) {
-      final CBinaryExpression binExpr = (CBinaryExpression) expr;
+    if (expr instanceof CBinaryExpression binExpr) {
       BinaryOperator binOp = binExpr.getOperator();
       // some binary expressions can be directly negated: "!(a==b)" --> "a!=b"
       if (binExpr.getOperator().isLogicalOperator()) {
@@ -216,8 +215,7 @@ public class CBinaryExpressionBuilder {
         || (pType instanceof CElaboratedType
             && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM)) {
       return CNumericTypes.SIGNED_INT;
-    } else if (pType instanceof CBitFieldType) {
-      CBitFieldType bitFieldType = (CBitFieldType) pType;
+    } else if (pType instanceof CBitFieldType bitFieldType) {
       CType handledInnerType = handleEnum(bitFieldType.getType());
       if (handledInnerType == bitFieldType.getType()) {
         return pType;

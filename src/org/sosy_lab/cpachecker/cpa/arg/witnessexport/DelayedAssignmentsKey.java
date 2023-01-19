@@ -36,8 +36,7 @@ class DelayedAssignmentsKey {
     if (this == pObj) {
       return true;
     }
-    if (pObj instanceof DelayedAssignmentsKey) {
-      DelayedAssignmentsKey other = (DelayedAssignmentsKey) pObj;
+    if (pObj instanceof DelayedAssignmentsKey other) {
       return Objects.equals(from, other.from)
           && Objects.equals(edge, other.edge)
           && Objects.equals(state, other.state);

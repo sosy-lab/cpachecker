@@ -934,7 +934,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                             logger.logUserException(
                                 Level.WARNING,
                                 e,
-                                "Invariant could not be" + " retrieved from InvariantGenerator");
+                                "Invariant could not be retrieved from InvariantGenerator");
                             return fmgr.getBooleanFormulaManager().makeTrue();
                           }
                         })

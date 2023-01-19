@@ -25,8 +25,7 @@ public class ACSLType {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLType) {
-      ACSLType other = (ACSLType) o;
+    if (o instanceof ACSLType other) {
       return typeName.equals(other.getTypeName());
     }
     return false;

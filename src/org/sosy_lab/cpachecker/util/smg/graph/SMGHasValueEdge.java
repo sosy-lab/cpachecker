@@ -37,9 +37,7 @@ public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
     offset = pOffset;
   }
 
-  /**
-   * @return the SMGValue this edge points to.
-   */
+  /** Returns the SMGValue this edge points to. */
   public SMGValue hasValue() {
     return value;
   }

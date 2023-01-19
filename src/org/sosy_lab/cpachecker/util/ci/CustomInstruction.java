@@ -459,36 +459,36 @@ public class CustomInstruction {
     switch (ciEdge.getEdgeType()) {
       case BlankEdge:
         // no additional check needed.
-        return;
+        break;
       case AssumeEdge:
         compareAssumeEdge((CAssumeEdge) ciEdge, (CAssumeEdge) aciEdge, ciVarToAciVar);
-        return;
+        break;
       case StatementEdge:
         compareStatementEdge(
             (CStatementEdge) ciEdge, (CStatementEdge) aciEdge, ciVarToAciVar, outVariables);
-        return;
+        break;
       case DeclarationEdge:
         compareDeclarationEdge(
             (CDeclarationEdge) ciEdge, (CDeclarationEdge) aciEdge, ciVarToAciVar, outVariables);
-        return;
+        break;
       case ReturnStatementEdge:
         compareReturnStatementEdge(
             (CReturnStatementEdge) ciEdge, (CReturnStatementEdge) aciEdge, ciVarToAciVar);
-        return;
+        break;
       case FunctionCallEdge:
         compareFunctionCallEdge(
             (CFunctionCallEdge) ciEdge, (CFunctionCallEdge) aciEdge, ciVarToAciVar);
-        return;
+        break;
       case FunctionReturnEdge:
         // no additional check needed.
-        return;
+        break;
       case CallToReturnEdge:
         compareStatementsOfStatementEdge(
             ((CFunctionSummaryEdge) ciEdge).getExpression(),
             ((CFunctionSummaryEdge) aciEdge).getExpression(),
             ciVarToAciVar,
             outVariables);
-        return;
+        break;
       default:
         throw new AssertionError("Unhandeled enum value in switch: " + ciEdge.getEdgeType());
     }
@@ -518,11 +518,10 @@ public class CustomInstruction {
       final Collection<String> outVariables)
       throws AppliedCustomInstructionParsingFailedException {
 
-    if (ciEdge.getStatement() instanceof CFunctionSummaryStatementEdge
-        && aciEdge.getStatement() instanceof CFunctionSummaryStatementEdge) {
-      CFunctionSummaryStatementEdge ciStmt = (CFunctionSummaryStatementEdge) ciEdge.getStatement();
-      CFunctionSummaryStatementEdge aciStmt =
-          (CFunctionSummaryStatementEdge) aciEdge.getStatement();
+    if (ciEdge instanceof CFunctionSummaryStatementEdge
+        && aciEdge instanceof CFunctionSummaryStatementEdge) {
+      CFunctionSummaryStatementEdge ciStmt = (CFunctionSummaryStatementEdge) ciEdge;
+      CFunctionSummaryStatementEdge aciStmt = (CFunctionSummaryStatementEdge) aciEdge;
 
       if (!ciStmt.getFunctionName().equals(aciStmt.getFunctionName())) {
         throw new AppliedCustomInstructionParsingFailedException(
@@ -547,11 +546,8 @@ public class CustomInstruction {
       final Collection<String> outVariables)
       throws AppliedCustomInstructionParsingFailedException {
 
-    if (ci instanceof CExpressionAssignmentStatement
-        && aci instanceof CExpressionAssignmentStatement) {
-      CExpressionAssignmentStatement ciStmt = (CExpressionAssignmentStatement) ci;
-      CExpressionAssignmentStatement aciStmt = (CExpressionAssignmentStatement) aci;
-
+    if (ci instanceof CExpressionAssignmentStatement ciStmt
+        && aci instanceof CExpressionAssignmentStatement aciStmt) {
       // left side => output variables
       Map<String, String> currentCiVarToAciVar = new HashMap<>();
       ciStmt
@@ -567,17 +563,13 @@ public class CustomInstruction {
           .accept(
               new StructureExtendedComparisonVisitor(
                   aciStmt.getRightHandSide(), ciVarToAciVar, currentCiVarToAciVar));
-    } else if (ci instanceof CExpressionStatement && aci instanceof CExpressionStatement) {
-      CExpressionStatement ciStmt = (CExpressionStatement) ci;
-      CExpressionStatement aciStmt = (CExpressionStatement) aci;
+    } else if (ci instanceof CExpressionStatement ciStmt
+        && aci instanceof CExpressionStatement aciStmt) {
       ciStmt
           .getExpression()
           .accept(new StructureComparisonVisitor(aciStmt.getExpression(), ciVarToAciVar));
-    } else if (ci instanceof CFunctionCallAssignmentStatement
-        && aci instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement ciStmt = (CFunctionCallAssignmentStatement) ci;
-      CFunctionCallAssignmentStatement aciStmt = (CFunctionCallAssignmentStatement) aci;
-
+    } else if (ci instanceof CFunctionCallAssignmentStatement ciStmt
+        && aci instanceof CFunctionCallAssignmentStatement aciStmt) {
       // left side => output variables
       Map<String, String> currentCiVarToAciVar = new HashMap<>();
       ciStmt
@@ -589,10 +581,8 @@ public class CustomInstruction {
 
       compareFunctionCallExpressions(
           ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar);
-    } else if (ci instanceof CFunctionCallStatement && aci instanceof CFunctionCallStatement) {
-      CFunctionCallStatement ciStmt = (CFunctionCallStatement) ci;
-      CFunctionCallStatement aciStmt = (CFunctionCallStatement) aci;
-
+    } else if (ci instanceof CFunctionCallStatement ciStmt
+        && aci instanceof CFunctionCallStatement aciStmt) {
       compareFunctionCallExpressions(
           ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar);
     } else {
@@ -633,10 +623,8 @@ public class CustomInstruction {
     CDeclaration ciDec = ciEdge.getDeclaration();
     CDeclaration aciDec = aciEdge.getDeclaration();
 
-    if (ciDec instanceof CVariableDeclaration && aciDec instanceof CVariableDeclaration) {
-      CVariableDeclaration ciVarDec = (CVariableDeclaration) ciDec;
-      CVariableDeclaration aciVarDec = (CVariableDeclaration) aciDec;
-
+    if (ciDec instanceof CVariableDeclaration ciVarDec
+        && aciDec instanceof CVariableDeclaration aciVarDec) {
       if (!ciVarDec.getCStorageClass().equals(aciVarDec.getCStorageClass())) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The CVariableDeclaration of ci "
@@ -881,8 +869,7 @@ public class CustomInstruction {
     @Override
     public Void visit(final CIdExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
-      if (aciExp instanceof CIdExpression) {
-        CIdExpression aciIdExp = (CIdExpression) aciExp;
+      if (aciExp instanceof CIdExpression aciIdExp) {
         if (!ciExp.getExpressionType().equals(aciIdExp.getExpressionType())) {
           throw new AppliedCustomInstructionParsingFailedException(
               "The expression type of the IdExpression of ci "
@@ -1081,9 +1068,7 @@ public class CustomInstruction {
     public Void visit(final CBinaryExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
 
-      if (aciExp instanceof CBinaryExpression) {
-        CBinaryExpression aciBinExp = (CBinaryExpression) aciExp;
-
+      if (aciExp instanceof CBinaryExpression aciBinExp) {
         // expression types are different
         if (!ciExp.getExpressionType().equals(aciBinExp.getExpressionType())) {
           throw new AppliedCustomInstructionParsingFailedException(
@@ -1335,9 +1320,7 @@ public class CustomInstruction {
     public Void visit(final CUnaryExpression ciExp)
         throws AppliedCustomInstructionParsingFailedException {
 
-      if (aciExp instanceof CUnaryExpression) {
-        CUnaryExpression aciUnExp = (CUnaryExpression) aciExp;
-
+      if (aciExp instanceof CUnaryExpression aciUnExp) {
         // expression types are different
         if (!ciExp.getExpressionType().equals(aciUnExp.getExpressionType())) {
           throw new AppliedCustomInstructionParsingFailedException(
