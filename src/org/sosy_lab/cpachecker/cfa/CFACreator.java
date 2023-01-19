@@ -12,6 +12,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.TreeMultimap;
 import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -27,8 +28,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
@@ -76,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResol
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.BlankEdgeInserter;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -93,6 +97,7 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -807,6 +812,16 @@ public class CFACreator {
       // add global variables at the beginning of main
       insertGlobalDeclarations(cfa, globalDeclarations);
     }
+
+    // TODO: remove this transformer (only used for temporary checks)
+    CFA transformedCfa = new BlankEdgeInserter().transform(cfa, logger, shutdownNotifier);
+    NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>(cfa.getAllFunctions());
+    TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
+    for (String function : cfa.getAllFunctionNames()) {
+      nodes.putAll(
+          function, CFATraversal.dfs().collectNodesReachableFrom(cfa.getFunctionHead(function)));
+    }
+    cfa = new MutableCFA(functions, nodes, transformedCfa.getMetadata());
 
     return cfa;
   }
