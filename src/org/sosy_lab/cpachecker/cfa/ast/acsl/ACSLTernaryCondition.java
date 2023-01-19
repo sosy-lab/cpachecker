@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class ACSLTernaryCondition extends ACSLPredicate {
+public final class ACSLTernaryCondition extends ACSLPredicate {
 
   private final ACSLPredicate condition;
   private final ACSLPredicate then;

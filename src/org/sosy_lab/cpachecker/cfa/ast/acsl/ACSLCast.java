@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class ACSLCast implements ACSLTerm {
+public final class ACSLCast implements ACSLTerm {
 
   private final ACSLType type;
   private final ACSLTerm term;

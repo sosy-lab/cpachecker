@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class ACSLStringLiteral implements ACSLTerm {
+public final class ACSLStringLiteral implements ACSLTerm {
 
   private final String literal;
 

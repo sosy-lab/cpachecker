@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class ACSLResult implements ACSLBuiltin, ACSLTerm {
+public final class ACSLResult implements ACSLBuiltin, ACSLTerm {
 
   private final String functionName;
 

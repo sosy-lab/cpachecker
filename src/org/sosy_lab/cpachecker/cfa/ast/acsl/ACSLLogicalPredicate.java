@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class ACSLLogicalPredicate extends ACSLPredicate {
+public final class ACSLLogicalPredicate extends ACSLPredicate {
 
   private final ACSLPredicate left;
   private final ACSLPredicate right;

@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class ACSLIdentifier implements ACSLTerm {
+public final class ACSLIdentifier implements ACSLTerm {
 
   private final String name;
   private final String functionName;

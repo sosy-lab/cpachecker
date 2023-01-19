@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class ACSLArrayAccess implements ACSLTerm {
+public final class ACSLArrayAccess implements ACSLTerm {
 
   private final ACSLTerm array;
   private final ACSLTerm index;

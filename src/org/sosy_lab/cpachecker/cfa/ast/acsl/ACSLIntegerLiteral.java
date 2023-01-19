@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import java.math.BigInteger;
 
-public class ACSLIntegerLiteral implements ACSLTerm {
+public final class ACSLIntegerLiteral implements ACSLTerm {
 
   private final BigInteger literal;
 

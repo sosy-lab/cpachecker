@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class PredicateAt extends ACSLPredicate implements ACSLBuiltin {
+public final class PredicateAt extends ACSLPredicate implements ACSLBuiltin {
 
   private final ACSLPredicate inner;
   private final ACSLLabel label;

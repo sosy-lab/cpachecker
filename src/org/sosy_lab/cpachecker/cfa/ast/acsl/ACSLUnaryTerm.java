@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class ACSLUnaryTerm implements ACSLTerm {
+public final class ACSLUnaryTerm implements ACSLTerm {
 
   private final ACSLTerm term;
   private final ACSLUnaryOperator operator;

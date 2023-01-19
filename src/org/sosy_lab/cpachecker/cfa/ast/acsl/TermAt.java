@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class TermAt implements ACSLBuiltin, ACSLTerm {
+public final class TermAt implements ACSLBuiltin, ACSLTerm {
 
   private final ACSLTerm inner;
   private final ACSLLabel label;

@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import com.google.common.base.Preconditions;
 
-public class ACSLSimplePredicate extends ACSLPredicate {
+public final class ACSLSimplePredicate extends ACSLPredicate {
 
   private final ACSLTerm term;
 
