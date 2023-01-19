@@ -487,11 +487,7 @@ public class InvariantsCPA
 
   @Override
   public boolean adjustPrecision() {
-    if (options.conditionAdjustmentTimeLimit.isEmpty()) {
-      return conditionAdjuster.adjustConditions();
-    } else {
-      return conditionAdjuster.adjustConditionsWithTimeLimit(options.conditionAdjustmentTimeLimit);
-    }
+    return conditionAdjuster.adjustConditionsWithTimeLimit(options.conditionAdjustmentTimeLimit);
   }
 
   @Override
@@ -641,7 +637,14 @@ public class InvariantsCPA
 
     boolean adjustConditions();
 
+    /**
+     * Perform {@link #adjustConditions} with the given time limit. This method is unsupported by
+     * default. Each subclass of this interface has to implement the intended function on its own.
+     */
     default boolean adjustConditionsWithTimeLimit(TimeSpan timeLimit) {
+      if (timeLimit.isEmpty()) {
+        return adjustConditions();
+      }
       throw new UnsupportedOperationException();
     }
 
@@ -792,7 +795,7 @@ public class InvariantsCPA
      */
     @Override
     public boolean adjustConditionsWithTimeLimit(TimeSpan timeLimit) {
-      if (timer.getSumTime().compareTo(timeLimit) > 0) {
+      if (!timeLimit.isEmpty() && timer.getSumTime().compareTo(timeLimit) > 0) {
         return false;
       }
       return adjustConditions();
