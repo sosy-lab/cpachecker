@@ -3885,6 +3885,10 @@ imc.loopBoundIncrementValueForIMC = 1
 # toggle the value to increment the loop bound by at each step for KI
 imc.loopBoundIncrementValueForKI = 1
 
+# toggle whether to refine interpolants with auxiliary invariants (if
+# present)
+imc.refineItpWithInv = true
+
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false
 

@@ -432,6 +432,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle Impact-like covering for the ISMC fixed-point check")
   private boolean impactLikeCovering = false;
 
+  @Option(
+      secure = true,
+      description = "toggle whether to refine interpolants with auxiliary invariants (if present)")
+  private boolean refineItpWithInv = true;
+
   private final ConfigurableProgramAnalysis cpa;
 
   private final Algorithm algorithm;
@@ -494,11 +499,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(
           Level.WARNING,
           "Cannot assert targets at every iteration with current strategy for computing fixed"
-              + " point.");
+              + " point");
       assertTargetsAtEveryIteration = false;
     }
     if (fixedPointComputeStrategy.isIMCEnabled()) {
       stats.numOfIMCInnerIterations = 0;
+    }
+    if (refineItpWithInv && fixedPointComputeStrategy.isISMCEnabled()) {
+      logger.log(Level.WARNING, "Interpolant refinement is not supported in ISMC");
     }
   }
 
@@ -821,9 +829,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     final boolean isLoopInvInductive = formulas.checkInductivenessOf(solver, loopInv);
     boolean isLoopInvRelInducitve = true; // Init & T ==> Inv' holds
-    logger.log(
-        Level.FINE,
-        "The auxiliary loop-head invariant is " + (isLoopInvInductive ? "" : "not ") + "inductive");
+    if (!bfmgr.isTrue(loopInv)) {
+      logger.log(
+          Level.FINE,
+          "The non-trivial auxiliary loop-head invariant is "
+              + (isLoopInvInductive ? "" : "not ")
+              + "inductive");
+    }
 
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(ImmutableList.of(currentImage, loops.get(0), suffixFormula));
@@ -846,19 +858,43 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), formulas.getPrefixSsaMap());
       logger.log(Level.ALL, "After changing SSA", interpolant);
       // Refine the interpolant when possible
-      if (isLoopInvRelInducitve) {
+      final boolean performItpRefinement = refineItpWithInv && isLoopInvRelInducitve;
+      if (performItpRefinement) {
         interpolant = bfmgr.and(interpolant, fmgr.instantiate(loopInv, formulas.getPrefixSsaMap()));
       }
+      // Step 1: regular IMC fixed point check
       if (solver.implies(interpolant, currentImage)) {
         logger.log(Level.INFO, "The current image reaches a fixed point");
         finalFixedPoint = fmgr.uninstantiate(currentImage);
         return true;
       }
+      // Step 2: IMC fixed point check strengthened by non-trivial external invariant
+      if (!performItpRefinement
+          && !bfmgr.isTrue(loopInv)
+          && solver.implies(
+              bfmgr.and(interpolant, fmgr.instantiate(loopInv, formulas.getPrefixSsaMap())),
+              currentImage)) {
+        // Step 3: check if external invariant is inductive
+        if (isLoopInvInductive) {
+          logger.log(Level.INFO, "Fixed point reached with external inductive invariants");
+          finalFixedPoint = fmgr.uninstantiate(currentImage);
+          return true;
+        }
+        // Step 4: check if image is relatively inductive to the external invariant
+        logger.log(Level.FINE, "Checking relative inductiveness of image");
+        if (formulas.checkRelativeInductivenssOf(solver, currentImage, loopInv)) {
+          logger.log(Level.INFO, "Fixed point reached with external invariants");
+          finalFixedPoint = currentImage;
+          return true;
+        }
+      }
       // Check if the loop-head invariant is relatively inductive to the current interpolant
-      isLoopInvRelInducitve =
-          isLoopInvInductive
-              || formulas.checkRelativeInductivenssOf(
-                  solver, loopInv, fmgr.uninstantiate(interpolants.orElseThrow().get(1)));
+      if (refineItpWithInv) { // update only when necessary
+        isLoopInvRelInducitve =
+            isLoopInvInductive
+                || formulas.checkRelativeInductivenssOf(
+                    solver, loopInv, fmgr.uninstantiate(interpolants.orElseThrow().get(1)));
+      }
       currentImage = bfmgr.or(currentImage, interpolant);
       interpolants = itpMgr.interpolate(ImmutableList.of(interpolant, loops.get(0), suffixFormula));
     }
