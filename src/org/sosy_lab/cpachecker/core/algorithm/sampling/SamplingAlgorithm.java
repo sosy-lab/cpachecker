@@ -63,7 +63,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
@@ -244,7 +243,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       ForwardingReachedSet pReachedSet, Path pConfigFile, CFANode pInitialNode)
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
     // Create components for building the reachedSet
-    Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> components =
+    NestedAnalysis components =
         super.createAlgorithm(
             pConfigFile,
             pInitialNode,
@@ -253,9 +252,9 @@ public class SamplingAlgorithm extends NestingAlgorithm {
             AggregatedReachedSets.empty(),
             ImmutableSet.of("analysis.useSamplingAlgorithm"),
             new CopyOnWriteArrayList<>());
-    Algorithm algorithm = components.getFirst();
-    ConfigurableProgramAnalysis cpa = components.getSecond();
-    ReachedSet reached = components.getThird();
+    Algorithm algorithm = components.algorithm();
+    ConfigurableProgramAnalysis cpa = components.cpa();
+    ReachedSet reached = components.reached();
     Solver solver =
         CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, SamplingAlgorithm.class).getSolver();
 
