@@ -100,7 +100,6 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -493,13 +492,6 @@ public class CFAUtils {
       case CallToReturnEdge:
         FunctionSummaryEdge fnSumEdge = (FunctionSummaryEdge) edge;
         return ImmutableSet.of(fnSumEdge.getExpression());
-
-      case FunctionCallEdge:
-        FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
-        return Iterables.concat(
-            Optionals.asSet(edge.getRawAST()),
-            getAstNodesFromCfaEdge(functionCallEdge.getSummaryEdge()));
-
       default:
         return Optionals.asSet(edge.getRawAST());
     }
