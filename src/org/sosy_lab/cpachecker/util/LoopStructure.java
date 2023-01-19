@@ -441,29 +441,6 @@ public final class LoopStructure implements Serializable {
   }
 
   /**
-   * Returns whether {@code pSome} is at least as good as {@code pOther}.
-   *
-   * @param pSome some collection of loops for a specific function
-   * @param pOther a different collection of loops for the same function as {@code pSome}
-   * @return If {@code pSome} is at least as good as {@code pOther}, {@code true} is returned.
-   *     Otherwise, if {@code pOther} is better than {@code pSome}, {@code false} is returned.
-   * @throws NullPointerException if any parameter is {@code null}
-   */
-  private static boolean isBetterOrEqual(Collection<Loop> pSome, Collection<Loop> pOther) {
-    ImmutableSet<CFANode> someLoopHeads =
-        pSome.stream()
-            .flatMap(loop -> loop.getLoopHeads().stream())
-            .collect(ImmutableSet.toImmutableSet());
-    ImmutableSet<CFANode> otherLoopHeads =
-        pOther.stream()
-            .flatMap(loop -> loop.getLoopHeads().stream())
-            .collect(ImmutableSet.toImmutableSet());
-    // In general, finding more loops is better, because every time we merge loops, we lose some
-    // amount of information.
-    return someLoopHeads.equals(otherLoopHeads) && pSome.size() >= pOther.size();
-  }
-
-  /**
    * Build loop-structure information for a CFA. Do not call this method outside of the frontend,
    * use {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()} instead.
    *
@@ -473,13 +450,7 @@ public final class LoopStructure implements Serializable {
     ImmutableListMultimap.Builder<String, Loop> loops = ImmutableListMultimap.builder();
     for (String functionName : cfa.getAllFunctionNames()) {
       NavigableSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
-      Collection<Loop> functionLoops = findLoops(nodes, cfa.getLanguage(), null, true);
-      // Assert that the new and more performant approach using loop-free sections is at least as
-      // good as the original approach for finding loops.
-      assert isBetterOrEqual(
-              functionLoops,
-              findLoops(nodes, cfa.getLanguage(), new SingleNodeLoopFreeSectionFinder(), false))
-          : "New loop-finding approach is worse than the original loop-finding approach!";
+      Collection<Loop> functionLoops = findLoops(nodes, cfa.getLanguage());
       loops.putAll(functionName, functionLoops);
     }
     return new LoopStructure(loops.build());
@@ -491,18 +462,9 @@ public final class LoopStructure implements Serializable {
    *
    * @param pNodes the set of nodes to look for loops in
    * @param language The source language.
-   * @param pLoopFreeSectionFinder the {@link LoopFreeSectionFinder} to use to speed up loop finding
-   *     (if {@code pLoopFreeSectionFinder == null}, a default {@link LoopFreeSectionFinder} is used
-   *     by this method)
-   * @param pDelayMerges if set to {@code true}, this method only merges loops after all inner-outer
-   *     loop relations have been discovered
    * @return A collection of found loops.
    */
-  private static Collection<Loop> findLoops(
-      NavigableSet<CFANode> pNodes,
-      Language language,
-      @Nullable LoopFreeSectionFinder pLoopFreeSectionFinder,
-      boolean pDelayMerges)
+  private static Collection<Loop> findLoops(NavigableSet<CFANode> pNodes, Language language)
       throws ParserException {
 
     // Two optimizations:
@@ -565,10 +527,7 @@ public final class LoopStructure implements Serializable {
     // For performance reasons, we use loop-free sections instead of individual nodes for loop
     // detection.
     LoopFreeSectionFinder loopFreeSectionFinder =
-        pLoopFreeSectionFinder != null
-            ? pLoopFreeSectionFinder
-            : new CachingLoopFreeSectionFinder(
-                new BranchingLoopFreeSectionFinder(nodeAfterInitialChain));
+        new CachingLoopFreeSectionFinder(new BranchingLoopFreeSectionFinder(nodeAfterInitialChain));
 
     // FIRST step: initialize arrays
     // We also summarize loop-free sections by adding an edge to `edges` between the entry and
@@ -668,124 +627,80 @@ public final class LoopStructure implements Serializable {
 
     // THIRD step: Check all loop pairs to discover inner-outer loop relations and merge loops
     // together if necessary.
-    if (pDelayMerges) {
-      @Nullable Loop loopToRemove = null;
+    @Nullable Loop loopToRemove = null;
+    do {
+      if (loopToRemove != null) {
+        loops.remove(loopToRemove);
+        loopToRemove = null;
+      }
+
+      // discover all inner-outer loop relations
       do {
-        if (loopToRemove != null) {
-          loops.remove(loopToRemove);
-          loopToRemove = null;
-        }
-
-        // discover all inner-outer loop relations
-        do {
-          changed = false;
-          // the check is symmetric, so we need to only check (i1, i2) with i1 < i2
-          for (int i1 = 0; i1 < loops.size(); i1++) {
-            Loop l1 = loops.get(i1);
-            for (int i2 = i1 + 1; i2 < loops.size(); i2++) {
-              Loop l2 = loops.get(i2);
-              if (!l1.intersectsWith(l2)) {
-                // loops have nothing in common
-                continue;
-              }
-              if (l1.getLoopNodes().containsAll(l2.getLoopNodes())
-                  || l2.getLoopNodes().containsAll(l1.getLoopNodes())) {
-                // inner-outer loop relation already known
-                continue;
-              }
-              if (l1.isOuterLoopOf(l2)) {
-                // `l2` is an inner loop of `l1`, add its nodes to `l1`
-                l1.addNodes(l2);
-                changed = true;
-              } else if (l2.isOuterLoopOf(l1)) {
-                // `l1` is an inner loop of `l2`, add its nodes to `l2`
-                l2.addNodes(l1);
-                changed = true;
-              }
-            }
-          }
-        } while (changed);
-
-        // We want to first merge strange goto-loops that have the same loop heads, as this likely
-        // merges loops together that intuitively should be merged together.
-        for (int i1 = 0; i1 < loops.size() && loopToRemove == null; i1++) {
+        changed = false;
+        // the check is symmetric, so we need to only check (i1, i2) with i1 < i2
+        for (int i1 = 0; i1 < loops.size(); i1++) {
           Loop l1 = loops.get(i1);
-          for (int i2 = i1 + 1; i2 < loops.size() && loopToRemove == null; i2++) {
+          for (int i2 = i1 + 1; i2 < loops.size(); i2++) {
             Loop l2 = loops.get(i2);
-            if (l1.getLoopHeads().equals(l2.getLoopHeads())) {
-              if (!l1.intersectsWith(l2)) {
-                // loops have nothing in common
-                continue;
-              }
-              if (!l1.isOuterLoopOf(l2) && !l2.isOuterLoopOf(l1)) {
-                // strange goto-loop, merge the two together
-                l1.mergeWith(l2);
-                loopToRemove = l2;
-              }
+            if (!l1.intersectsWith(l2)) {
+              // loops have nothing in common
+              continue;
+            }
+            if (l1.getLoopNodes().containsAll(l2.getLoopNodes())
+                || l2.getLoopNodes().containsAll(l1.getLoopNodes())) {
+              // inner-outer loop relation already known
+              continue;
+            }
+            if (l1.isOuterLoopOf(l2)) {
+              // `l2` is an inner loop of `l1`, add its nodes to `l1`
+              l1.addNodes(l2);
+              changed = true;
+            } else if (l2.isOuterLoopOf(l1)) {
+              // `l1` is an inner loop of `l2`, add its nodes to `l2`
+              l2.addNodes(l1);
+              changed = true;
             }
           }
         }
+      } while (changed);
 
-        // merge loops if necessary, including loops with different loop heads
-        for (int i1 = 0; i1 < loops.size() && loopToRemove == null; i1++) {
-          Loop l1 = loops.get(i1);
-          for (int i2 = i1 + 1; i2 < loops.size() && loopToRemove == null; i2++) {
-            Loop l2 = loops.get(i2);
+      // We want to first merge strange goto-loops that have the same loop heads, as this likely
+      // merges loops together that intuitively should be merged together.
+      for (int i1 = 0; i1 < loops.size() && loopToRemove == null; i1++) {
+        Loop l1 = loops.get(i1);
+        for (int i2 = i1 + 1; i2 < loops.size() && loopToRemove == null; i2++) {
+          Loop l2 = loops.get(i2);
+          if (l1.getLoopHeads().equals(l2.getLoopHeads())) {
             if (!l1.intersectsWith(l2)) {
               // loops have nothing in common
               continue;
             }
             if (!l1.isOuterLoopOf(l2) && !l2.isOuterLoopOf(l1)) {
-              // strange goto-loop, merge the two loops together
+              // strange goto-loop, merge the two together
               l1.mergeWith(l2);
               loopToRemove = l2;
             }
           }
         }
-      } while (loopToRemove != null);
-    } else {
-      // the original algorithm for discovering inner-outer loop relations and merging loops
-      NavigableSet<Integer> toRemove = new TreeSet<>();
-      do {
-        toRemove.clear();
-        for (int i1 = 0; i1 < loops.size(); i1++) {
-          Loop l1 = loops.get(i1);
+      }
 
-          for (int i2 = i1 + 1; i2 < loops.size(); i2++) {
-            Loop l2 = loops.get(i2);
-
-            if (!l1.intersectsWith(l2)) {
-              // loops have nothing in common
-              continue;
-            }
-
-            if (l1.isOuterLoopOf(l2)) {
-
-              // l2 is an inner loop
-              // add its nodes to l1
-              l1.addNodes(l2);
-
-            } else if (l2.isOuterLoopOf(l1)) {
-
-              // l1 is an inner loop
-              // add its nodes to l2
-              l2.addNodes(l1);
-
-            } else {
-              // strange goto loop, merge the two together
-
-              toRemove.add(i2);
-
-              l1.mergeWith(l2);
-            }
+      // merge loops if necessary, including loops with different loop heads
+      for (int i1 = 0; i1 < loops.size() && loopToRemove == null; i1++) {
+        Loop l1 = loops.get(i1);
+        for (int i2 = i1 + 1; i2 < loops.size() && loopToRemove == null; i2++) {
+          Loop l2 = loops.get(i2);
+          if (!l1.intersectsWith(l2)) {
+            // loops have nothing in common
+            continue;
+          }
+          if (!l1.isOuterLoopOf(l2) && !l2.isOuterLoopOf(l1)) {
+            // strange goto-loop, merge the two loops together
+            l1.mergeWith(l2);
+            loopToRemove = l2;
           }
         }
-
-        for (int i : toRemove.descendingSet()) { // need to iterate in reverse order!
-          loops.remove(i);
-        }
-      } while (!toRemove.isEmpty());
-    }
+      }
+    } while (loopToRemove != null);
 
     return ImmutableList.copyOf(loops);
   }
@@ -1147,24 +1062,6 @@ public final class LoopStructure implements Serializable {
      * @throws NullPointerException if {@code pNode == null}
      */
     CFANode exitNode(CFANode pNode);
-  }
-
-  /**
-   * Finds sections that contain a single node and trivially loop-free (self-loops are considered
-   * outside a loop-free section because edges from the exit node to the entry node are not inside
-   * the loop-free section).
-   */
-  private static final class SingleNodeLoopFreeSectionFinder implements LoopFreeSectionFinder {
-
-    @Override
-    public CFANode entryNode(CFANode pNode) {
-      return pNode;
-    }
-
-    @Override
-    public CFANode exitNode(CFANode pNode) {
-      return pNode;
-    }
   }
 
   private static final class CachingLoopFreeSectionFinder implements LoopFreeSectionFinder {
