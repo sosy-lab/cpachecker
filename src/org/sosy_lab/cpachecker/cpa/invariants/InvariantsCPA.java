@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -39,6 +40,7 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -151,6 +153,16 @@ public class InvariantsCPA
                 + "COMPOUND combines the other strategies (minus STATIC).")
     private ConditionAdjusterFactories conditionAdjusterFactory =
         ConditionAdjusterFactories.COMPOUND;
+
+    @Option(
+        secure = true,
+        description =
+            "time limit for condition adjustment (use milliseconds or specify a unit; 0 for infinite)")
+    @TimeSpanOption(
+        codeUnit = TimeUnit.MILLISECONDS,
+        defaultUserUnit = TimeUnit.MILLISECONDS,
+        min = 0)
+    private TimeSpan conditionAdjustmentTimeLimit = TimeSpan.ofMillis(0);
 
     @Option(
         secure = true,
@@ -474,7 +486,11 @@ public class InvariantsCPA
 
   @Override
   public boolean adjustPrecision() {
-    return conditionAdjuster.adjustConditions();
+    if (options.conditionAdjustmentTimeLimit.isEmpty()) {
+      return conditionAdjuster.adjustConditions();
+    } else {
+      return conditionAdjuster.adjustConditionsWithTimeLimit(options.conditionAdjustmentTimeLimit);
+    }
   }
 
   @Override
@@ -624,6 +640,10 @@ public class InvariantsCPA
 
     boolean adjustConditions();
 
+    default boolean adjustConditionsWithTimeLimit(TimeSpan timeLimit) {
+      throw new UnsupportedOperationException();
+    }
+
     default void adjustReachedSet(ReachedSet pReachedSet) {
       pReachedSet.clear();
     }
@@ -763,6 +783,18 @@ public class InvariantsCPA
         innerAdjusters.remove(inner);
         return adjustConditions();
       }
+    }
+
+    /**
+     * Perform {@link #adjustConditions} with the given time limit. If the accumulated time exceeds
+     * the limit, the process terminates and returns false.
+     */
+    @Override
+    public boolean adjustConditionsWithTimeLimit(TimeSpan timeLimit) {
+      if (timer.getSumTime().compareTo(timeLimit) > 0) {
+        return false;
+      }
+      return adjustConditions();
     }
 
     @Override

@@ -1786,6 +1786,10 @@ cpa.invariants.conditionAdjusterFactory = COMPOUND
   enum:     [STATIC, INTERESTING_VARIABLES, MAXIMUM_FORMULA_DEPTH,
              ABSTRACTION_STRATEGY, COMPOUND]
 
+# time limit for condition adjustment (use milliseconds or specify a unit; 0
+# for infinite)
+cpa.invariants.conditionAdjustmentTimeLimit = 0ms
+
 # include type information for variables, such as x >= MIN_INT && x <=
 # MAX_INT
 cpa.invariants.includeTypeInformation = true
