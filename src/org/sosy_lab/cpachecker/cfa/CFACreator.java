@@ -815,11 +815,13 @@ public class CFACreator {
 
     // TODO: remove this transformer (only used for temporary checks)
     CFA transformedCfa = new BlankEdgeInserter().transform(cfa, logger, shutdownNotifier);
-    NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>(cfa.getAllFunctions());
+    NavigableMap<String, FunctionEntryNode> functions =
+        new TreeMap<>(transformedCfa.getAllFunctions());
     TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
-    for (String function : cfa.getAllFunctionNames()) {
+    for (String function : transformedCfa.getAllFunctionNames()) {
       nodes.putAll(
-          function, CFATraversal.dfs().collectNodesReachableFrom(cfa.getFunctionHead(function)));
+          function,
+          CFATraversal.dfs().collectNodesReachableFrom(transformedCfa.getFunctionHead(function)));
     }
     cfa = new MutableCFA(functions, nodes, transformedCfa.getMetadata());
 
