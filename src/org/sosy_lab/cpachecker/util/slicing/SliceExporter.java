@@ -14,6 +14,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.logging.Level;
 import org.sosy_lab.common.Concurrency;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -72,23 +73,24 @@ public class SliceExporter {
   private PathTemplate exportCriteriaFile =
       PathTemplate.ofFormatString("programSlice.%d.criteria.txt");
 
-  private final Configuration config;
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
   private int exportCount = 0;
   private final CFAToCTranslator translator;
 
-  public SliceExporter(Configuration pConfig, LogManager pLogger)
+  public SliceExporter(
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
     translator = new CFAToCTranslator(pConfig);
-    config = pConfig;
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   private void exportToC(Slice pSlice, Path pPath) {
 
-    CFA sliceCfa = SliceToCfaConversion.convert(config, logger, pSlice);
+    CFA sliceCfa = SliceToCfaConversion.convert(logger, shutdownNotifier, pSlice);
 
     try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
 
@@ -103,7 +105,7 @@ public class SliceExporter {
 
   private void exportAsDotFile(Slice pSlice, Path pPath) {
 
-    CFA sliceCfa = SliceToCfaConversion.convert(config, logger, pSlice);
+    CFA sliceCfa = SliceToCfaConversion.convert(logger, shutdownNotifier, pSlice);
 
     try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
       DOTBuilder.generateDOT(writer, sliceCfa);
