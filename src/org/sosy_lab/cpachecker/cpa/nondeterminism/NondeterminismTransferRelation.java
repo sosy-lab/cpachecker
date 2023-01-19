@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -174,12 +173,8 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
 
   private static NondeterminismNonAbstractionState handleFunctionCall(
       NondeterminismNonAbstractionState pState, FunctionCallEdge pEdge) {
-    FunctionSummaryEdge summaryEdge = pEdge.getSummaryEdge();
-    if (summaryEdge == null) {
-      return pState;
-    }
     return handleFunctionCall(
-        pState, summaryEdge.getFunctionEntry().getFunctionParameters(), pEdge.getArguments());
+        pState, pEdge.getSuccessor().getFunctionParameters(), pEdge.getArguments());
   }
 
   private static NondeterminismNonAbstractionState handleFunctionCall(

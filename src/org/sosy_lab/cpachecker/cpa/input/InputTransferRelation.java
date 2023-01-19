@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -102,12 +101,7 @@ public class InputTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private static InputState handleFunctionCallEdge(FunctionCallEdge pEdge) {
-    FunctionSummaryEdge summaryEdge = pEdge.getSummaryEdge();
-    if (summaryEdge == null) {
-      return InputState.empty();
-    }
-    return handleFunctionCall(
-        summaryEdge.getFunctionEntry().getFunctionParameters(), pEdge.getArguments());
+    return handleFunctionCall(pEdge.getSuccessor().getFunctionParameters(), pEdge.getArguments());
   }
 
   private static InputState handleFunctionCall(
