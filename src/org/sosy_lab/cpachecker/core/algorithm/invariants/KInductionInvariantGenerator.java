@@ -96,6 +96,8 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateI
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.EdgeFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.sampling.InvariantValidationAlgorithm.PreconditionCounterexample;
+import org.sosy_lab.cpachecker.core.algorithm.sampling.InvariantValidationAlgorithm.StepCaseCounterexample;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -112,14 +114,12 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.SubstitutionException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /** Generate invariants using k-induction. */
@@ -198,11 +198,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
   private final boolean async;
   private final boolean collectCexs;
 
-  private final Set<Pair<CandidateInvariant, Collection<ValueAssignment>>> pre_cexs =
-      new CopyOnWriteArraySet<>();
-  private final Set<
-          Triple<CandidateInvariant, Collection<ValueAssignment>, Collection<ValueAssignment>>>
-      step_cexs = new CopyOnWriteArraySet<>();
+  private final Set<PreconditionCounterexample> pre_cexs = new CopyOnWriteArraySet<>();
+  private final Set<StepCaseCounterexample> step_cexs = new CopyOnWriteArraySet<>();
 
   // After start(), this will hold a Future for the final result of the invariant generation.
   // We use a Future instead of just the atomic reference below
@@ -469,13 +466,11 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     pStatsCollection.add(stats);
   }
 
-  public Set<Pair<CandidateInvariant, Collection<ValueAssignment>>>
-      getPreconditionCounterexamples() {
+  public Set<PreconditionCounterexample> getPreconditionCounterexamples() {
     return pre_cexs;
   }
 
-  public Set<Triple<CandidateInvariant, Collection<ValueAssignment>, Collection<ValueAssignment>>>
-      getStepCaseCounterexamples() {
+  public Set<StepCaseCounterexample> getStepCaseCounterexamples() {
     return step_cexs;
   }
 

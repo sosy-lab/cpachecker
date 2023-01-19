@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownManager;
@@ -25,13 +24,11 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.sampling.InvariantValidationAlgorithm.PreconditionCounterexample;
+import org.sosy_lab.cpachecker.core.algorithm.sampling.InvariantValidationAlgorithm.StepCaseCounterexample;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 @Options(prefix = "invariantChecker")
 public class KInductionInvariantChecker {
@@ -124,13 +121,11 @@ public class KInductionInvariantChecker {
     isComputationFinished = true;
   }
 
-  public Set<Pair<CandidateInvariant, Collection<ValueAssignment>>>
-      getPreconditionCounterexamples() {
+  public Set<PreconditionCounterexample> getPreconditionCounterexamples() {
     return invGen.getPreconditionCounterexamples();
   }
 
-  public Set<Triple<CandidateInvariant, Collection<ValueAssignment>, Collection<ValueAssignment>>>
-      getStepCaseCounterexamples() {
+  public Set<StepCaseCounterexample> getStepCaseCounterexamples() {
     return invGen.getStepCaseCounterexamples();
   }
 }

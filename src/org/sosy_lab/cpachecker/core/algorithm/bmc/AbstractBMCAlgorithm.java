@@ -76,6 +76,8 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.sampling.InvariantValidationAlgorithm.PreconditionCounterexample;
+import org.sosy_lab.cpachecker.core.algorithm.sampling.InvariantValidationAlgorithm.StepCaseCounterexample;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
@@ -104,8 +106,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TestTargetLocationProvider;
@@ -232,11 +232,8 @@ abstract class AbstractBMCAlgorithm
   /** The candidate invariants that have been proven to hold at the loop heads. */
   private final Set<CandidateInvariant> confirmedCandidates = new CopyOnWriteArraySet<>();
 
-  private final Set<Pair<CandidateInvariant, Collection<ValueAssignment>>> pre_cexs =
-      new CopyOnWriteArraySet<>();
-  private final Set<
-          Triple<CandidateInvariant, Collection<ValueAssignment>, Collection<ValueAssignment>>>
-      step_cexs = new CopyOnWriteArraySet<>();
+  private final Set<PreconditionCounterexample> pre_cexs = new CopyOnWriteArraySet<>();
+  private final Set<StepCaseCounterexample> step_cexs = new CopyOnWriteArraySet<>();
 
   private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
       new CopyOnWriteArrayList<>();
@@ -718,7 +715,7 @@ abstract class AbstractBMCAlgorithm
           if (getIteration(state) == 1) {
             // We are at the loop head, so iteration == 1 means the start of the first iteration.
             // Thus, any satisfying models are counterexamples to P => I.
-            pre_cexs.add(Pair.of(pCandidateInvariant, pProver.getModelAssignments()));
+            pre_cexs.add(new PreconditionCounterexample(pCandidateInvariant, pProver.getModelAssignments()));
           } else {
             // Get any model for the previous iteration
             FluentIterable<AbstractState> previous =
@@ -744,7 +741,7 @@ abstract class AbstractBMCAlgorithm
             Collection<ValueAssignment> valuesAfter = pProver.getModelAssignments();
 
             // The obtained models pose a counterexample to {B & I} S {I}
-            step_cexs.add(Triple.of(pCandidateInvariant, valuesBefore, valuesAfter));
+            step_cexs.add(new StepCaseCounterexample(pCandidateInvariant, valuesBefore, valuesAfter));
           }
         }
         pProver.pop();
@@ -766,12 +763,11 @@ abstract class AbstractBMCAlgorithm
     return 0;
   }
 
-  public Set<Pair<CandidateInvariant, Collection<ValueAssignment>>> getPreCounterexamples() {
+  public Set<PreconditionCounterexample> getPreCounterexamples() {
     return pre_cexs;
   }
 
-  public Set<Triple<CandidateInvariant, Collection<ValueAssignment>, Collection<ValueAssignment>>>
-      getStepCounterexamples() {
+  public Set<StepCaseCounterexample> getStepCounterexamples() {
     return step_cexs;
   }
 

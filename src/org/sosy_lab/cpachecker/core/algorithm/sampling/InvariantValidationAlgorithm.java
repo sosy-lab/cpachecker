@@ -47,8 +47,6 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
@@ -85,6 +83,14 @@ public class InvariantValidationAlgorithm implements Algorithm {
 
   private final CParser parser;
   private final ParserTools parserTools;
+
+  public record PreconditionCounterexample(
+      CandidateInvariant candidate, Collection<ValueAssignment> pre) {}
+
+  public record StepCaseCounterexample(
+      CandidateInvariant candidate,
+      Collection<ValueAssignment> loopBefore,
+      Collection<ValueAssignment> loopAfter) {}
 
   public InvariantValidationAlgorithm(
       Configuration pConfig,
@@ -160,36 +166,33 @@ public class InvariantValidationAlgorithm implements Algorithm {
       // an error location is still reachable
       // TODO next: Now get postcondition counterexamples
     } else {
-      logger.log(Level.INFO,"Invariant was not validated, collecting counterexamples...");
-      Set<Pair<CandidateInvariant, Collection<ValueAssignment>>> pre_cexs =
-          invariantChecker.getPreconditionCounterexamples();
-      Set<Triple<CandidateInvariant, Collection<ValueAssignment>, Collection<ValueAssignment>>>
-          step_cexs = invariantChecker.getStepCaseCounterexamples();
+      logger.log(Level.INFO, "Invariant was not validated, collecting counterexamples...");
+      Set<PreconditionCounterexample> pre_cexs = invariantChecker.getPreconditionCounterexamples();
+      Set<StepCaseCounterexample> step_cexs = invariantChecker.getStepCaseCounterexamples();
 
       // Counterexamples are reachable, so all are positive samples
-      for (Pair<CandidateInvariant, Collection<ValueAssignment>> pre_cex : pre_cexs) {
-        if (!pre_cex.getFirst().equals(candidate)) {
+      for (PreconditionCounterexample pre_cex : pre_cexs) {
+        if (!pre_cex.candidate().equals(candidate)) {
           continue;
         }
-        Iterable<ValueAssignment> model = pre_cex.getSecond();
+        Iterable<ValueAssignment> model = pre_cex.pre();
         model = SamplingAlgorithm.getRelevantAssignments(model, pLocation);
         pre_samples.add(
             SamplingAlgorithm.extractSampleFromModel(model, pLocation, SampleClass.POSITIVE));
       }
 
       // Counterexamples are reachable, so all are positive samples
-      for (Triple<CandidateInvariant, Collection<ValueAssignment>, Collection<ValueAssignment>>
-          step_cex : step_cexs) {
-        if (!step_cex.getFirst().equals(candidate)) {
+      for (StepCaseCounterexample step_cex : step_cexs) {
+        if (!step_cex.candidate().equals(candidate)) {
           continue;
         }
-        Iterable<ValueAssignment> modelBefore = step_cex.getSecond();
+        Iterable<ValueAssignment> modelBefore = step_cex.loopBefore();
         modelBefore = SamplingAlgorithm.getRelevantAssignments(modelBefore, pLocation);
         Sample sampleBefore =
             SamplingAlgorithm.extractSampleFromModel(modelBefore, pLocation, SampleClass.POSITIVE);
         step_samples.add(sampleBefore);
 
-        Iterable<ValueAssignment> modelAfter = step_cex.getThird();
+        Iterable<ValueAssignment> modelAfter = step_cex.loopAfter();
         modelAfter = SamplingAlgorithm.getRelevantAssignments(modelAfter, pLocation);
         Sample sampleAfter =
             SamplingAlgorithm.extractSampleFromModel(modelAfter, pLocation, SampleClass.POSITIVE)
