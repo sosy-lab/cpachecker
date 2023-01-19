@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -62,7 +63,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -234,9 +234,7 @@ final class TransformableArray {
       CSimpleDeclaration arrayExpressDeclaration =
           ((CIdExpression) arrayExpression).getDeclaration();
       if (arrayExpressDeclaration.equals(pArrayDeclaration)) {
-        if (subscriptExpression instanceof CIntegerLiteralExpression) {
-          CIntegerLiteralExpression integerExpression =
-              (CIntegerLiteralExpression) subscriptExpression;
+        if (subscriptExpression instanceof CIntegerLiteralExpression integerExpression) {
           // we don't consider arrays as relevant if they are only accessed at index 0
           // (these accesses could come from pointers that point to a single element)
           return !integerExpression.getValue().equals(BigInteger.ZERO);

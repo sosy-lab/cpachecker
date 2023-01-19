@@ -195,8 +195,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
       functionName = pFunctionName;
       usedDeclarations = ImmutableSortedMap.copyOf(pUsedDeclarations);
       for (ASimpleDeclaration decl : pUsedDeclarations.values()) {
-        if (decl instanceof AVariableDeclaration) {
-          AVariableDeclaration varDecl = (AVariableDeclaration) decl;
+        if (decl instanceof AVariableDeclaration varDecl) {
           checkArgument(
               varDecl.isGlobal() || functionName.isPresent(),
               "Cannot create a global scope with non-global variable declarations.");
@@ -226,8 +225,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof Scope) {
-        Scope other = (Scope) pOther;
+      if (pOther instanceof Scope other) {
         return functionName.equals(other.functionName)
             && usedDeclarations.equals(other.usedDeclarations);
       }
@@ -331,8 +329,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
   }
 
   private static boolean isGlobalVarDecl(@Nullable ASimpleDeclaration pDecl) {
-    if (pDecl instanceof AVariableDeclaration) {
-      AVariableDeclaration varDecl = (AVariableDeclaration) pDecl;
+    if (pDecl instanceof AVariableDeclaration varDecl) {
       return varDecl.isGlobal();
     }
     return false;

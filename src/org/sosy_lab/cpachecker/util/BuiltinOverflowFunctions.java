@@ -288,21 +288,14 @@ public class BuiltinOverflowFunctions {
 
             BigInteger resultOfComputation;
             BinaryOperator operator = getOperator(nameOfCalledFunc);
-            switch (operator) {
-              case PLUS:
-                resultOfComputation = p1.add(p2);
-                break;
-
-              case MINUS:
-                resultOfComputation = p1.subtract(p2);
-                break;
-              case MULTIPLY:
-                resultOfComputation = p1.multiply(p2);
-                break;
-              default:
-                throw new UnrecognizedCodeException(
-                    "Can not determine operator of function " + nameOfCalledFunc, null, null);
-            }
+            resultOfComputation =
+                switch (operator) {
+                  case PLUS -> p1.add(p2);
+                  case MINUS -> p1.subtract(p2);
+                  case MULTIPLY -> p1.multiply(p2);
+                  default -> throw new UnrecognizedCodeException(
+                      "Can not determine operator of function " + nameOfCalledFunc, null, null);
+                };
 
             // cast result type of third parameter
             Value resultValue = new NumericValue(resultOfComputation);

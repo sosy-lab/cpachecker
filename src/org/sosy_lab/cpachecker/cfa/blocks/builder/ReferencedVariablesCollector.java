@@ -154,8 +154,7 @@ public class ReferencedVariablesCollector {
       case StatementEdge:
         {
           CStatement statement = ((CStatementEdge) edge).getStatement();
-          if (statement instanceof CAssignment) {
-            CAssignment assignment = (CAssignment) statement;
+          if (statement instanceof CAssignment assignment) {
             handleAssignment(assignment);
           } else {
             // other statements are considered side-effect free, ignore variable occurrences in them
@@ -170,8 +169,7 @@ public class ReferencedVariablesCollector {
         break;
       case CallToReturnEdge:
         CFunctionCall funcCall = ((CFunctionSummaryEdge) edge).getExpression();
-        if (funcCall instanceof CFunctionCallAssignmentStatement) {
-          CFunctionCallAssignmentStatement assignment = (CFunctionCallAssignmentStatement) funcCall;
+        if (funcCall instanceof CFunctionCallAssignmentStatement assignment) {
           handleAssignment(assignment);
         }
         break;

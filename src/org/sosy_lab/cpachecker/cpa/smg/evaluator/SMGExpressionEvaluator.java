@@ -269,13 +269,11 @@ public class SMGExpressionEvaluator {
 
   public static boolean isStructOrUnionType(CType rValueType) {
 
-    if (rValueType instanceof CElaboratedType) {
-      CElaboratedType type = (CElaboratedType) rValueType;
+    if (rValueType instanceof CElaboratedType type) {
       return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
 
-    if (rValueType instanceof CCompositeType) {
-      CCompositeType type = (CCompositeType) rValueType;
+    if (rValueType instanceof CCompositeType type) {
       return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
 
@@ -337,15 +335,12 @@ public class SMGExpressionEvaluator {
         return SMGExplicitValueAndState.of(newState, SMGZeroValue.INSTANCE);
       }
 
-      if (symbolicValue instanceof SMGAddressValue) {
-        SMGAddressValue address = (SMGAddressValue) symbolicValue;
-
-        if (address.getObject() == SMGNullObject.INSTANCE) {
-          return SMGExplicitValueAndState.of(
-              newState,
-              SMGKnownExpValue.valueOf(
-                  address.getOffset().getAsLong() / machineModel.getSizeofCharInBits()));
-        }
+      if ((symbolicValue instanceof SMGAddressValue address)
+          && (address.getObject() == SMGNullObject.INSTANCE)) {
+        return SMGExplicitValueAndState.of(
+            newState,
+            SMGKnownExpValue.valueOf(
+                address.getOffset().getAsLong() / machineModel.getSizeofCharInBits()));
       }
     }
 
@@ -577,8 +572,7 @@ public class SMGExpressionEvaluator {
                 SMGType subscriptSMGType =
                     SMGType.constructSMGType(subscriptType, newState, cfaEdge, this);
 
-                if (subscriptExpression instanceof CCastExpression) {
-                  CCastExpression castExpression = (CCastExpression) subscriptExpression;
+                if (subscriptExpression instanceof CCastExpression castExpression) {
                   SMGType subscriptOriginSMGType =
                       SMGType.constructSMGType(
                           castExpression.getOperand().getExpressionType(), newState, cfaEdge, this);

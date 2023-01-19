@@ -160,8 +160,7 @@ public class CHCTransferRelation extends SingleEdgeTransferRelation {
     final CStatement statement = cfaEdge.getStatement();
 
     // assignment
-    if (statement instanceof CAssignment) {
-      final CAssignment ca = (CAssignment) statement;
+    if (statement instanceof CAssignment ca) {
       final CRightHandSide rhs = ca.getRightHandSide();
       // regular assignment, "a = ..."
       if (rhs instanceof CExpression) {

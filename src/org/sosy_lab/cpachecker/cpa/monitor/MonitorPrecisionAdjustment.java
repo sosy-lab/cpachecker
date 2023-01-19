@@ -54,7 +54,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
     if (element.getWrappedState() == TimeoutState.INSTANCE) {
 
       // we can't call prec() in this case because we don't have an element of the CPA
-      return Optional.of(PrecisionAdjustmentResult.create(pElement, oldPrecision, Action.CONTINUE));
+      return Optional.of(new PrecisionAdjustmentResult(pElement, oldPrecision, Action.CONTINUE));
     }
 
     UnmodifiableReachedSet elements =

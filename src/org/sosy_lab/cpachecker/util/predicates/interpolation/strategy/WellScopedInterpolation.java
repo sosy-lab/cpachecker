@@ -9,13 +9,13 @@
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.primitives.ImmutableIntArray;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationGroup;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -71,9 +71,9 @@ public class WellScopedInterpolation extends AbstractTreeInterpolation {
   @Override
   public <T> List<BooleanFormula> getInterpolants(
       final InterpolationManager.Interpolator<T> interpolator,
-      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+      final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds)
       throws InterruptedException, SolverException {
-    final Pair<List<Triple<BooleanFormula, AbstractState, T>>, ImmutableIntArray> p =
+    final Pair<List<InterpolationGroup<T>>, ImmutableIntArray> p =
         buildTreeStructure(formulasWithStatesAndGroupdIds);
     final ImmutableList.Builder<BooleanFormula> itps =
         ImmutableList.builderWithExpectedSize(p.getFirst().size());
@@ -82,7 +82,10 @@ public class WellScopedInterpolation extends AbstractTreeInterpolation {
       final int start_of_A = p.getSecond().get(end_of_A);
       itps.add(
           getInterpolantFromSublist(
-              interpolator.itpProver, projectToThird(p.getFirst()), start_of_A, end_of_A));
+              interpolator.itpProver,
+              Lists.transform(p.getFirst(), InterpolationGroup::groupId),
+              start_of_A,
+              end_of_A));
     }
     return flattenTreeItps(formulasWithStatesAndGroupdIds, itps.build());
   }

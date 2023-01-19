@@ -18,26 +18,25 @@ public final class ValueWrapper extends Equivalence<Value> {
 
   @Override
   protected boolean doEquivalent(Value pArg0, Value pArg1) {
-    if (pArg0 instanceof NumericValue && pArg1 instanceof NumericValue) {
-      if (pArg0.asNumericValue().longValue() == 0 && pArg1.asNumericValue().longValue() == 0) {
-        // 0 has to be split into 3 categories, for non-floating point types, floats and doubles
-        Number arg0Num = pArg0.asNumericValue().getNumber();
-        Number arg1Num = pArg1.asNumericValue().getNumber();
-        if (arg0Num instanceof Float && arg1Num instanceof Float) {
-          return ((Float) arg0Num).compareTo(((Float) arg1Num)) == 0;
-        } else if (arg0Num instanceof Double && arg1Num instanceof Double) {
-          return ((Double) arg0Num).compareTo(((Double) arg1Num)) == 0;
-        } else if (!(arg0Num instanceof Double)
-            && !(arg1Num instanceof Double)
-            && !(arg0Num instanceof Float)
-            && !(arg1Num instanceof Float)) {
-          try {
-            return pArg0.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0
-                && pArg1.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0;
-          } catch (NumberFormatException e) {
-            // This happens for Nan, -/+Infinity
-            // let equals handle this
-          }
+    if ((pArg0 instanceof NumericValue && pArg1 instanceof NumericValue)
+        && (pArg0.asNumericValue().longValue() == 0 && pArg1.asNumericValue().longValue() == 0)) {
+      // 0 has to be split into 3 categories, for non-floating point types, floats and doubles
+      Number arg0Num = pArg0.asNumericValue().getNumber();
+      Number arg1Num = pArg1.asNumericValue().getNumber();
+      if (arg0Num instanceof Float && arg1Num instanceof Float) {
+        return ((Float) arg0Num).compareTo(((Float) arg1Num)) == 0;
+      } else if (arg0Num instanceof Double && arg1Num instanceof Double) {
+        return ((Double) arg0Num).compareTo(((Double) arg1Num)) == 0;
+      } else if (!(arg0Num instanceof Double)
+          && !(arg1Num instanceof Double)
+          && !(arg0Num instanceof Float)
+          && !(arg1Num instanceof Float)) {
+        try {
+          return pArg0.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0
+              && pArg1.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0;
+        } catch (NumberFormatException e) {
+          // This happens for Nan, -/+Infinity
+          // let equals handle this
         }
       }
     }

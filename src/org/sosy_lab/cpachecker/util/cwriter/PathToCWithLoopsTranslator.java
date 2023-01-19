@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -750,8 +749,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
 
           // write summary edge to the caller site (with the new unique function name)
           CFunctionEntryNode entryNode =
-              ((CFunctionSummaryEdge) ((FunctionCallEdge) edge).getSummaryEdge())
-                  .getFunctionEntry();
+              (CFunctionEntryNode) ((FunctionCallEdge) edge).getSuccessor();
           String functionName = entryNode.getFunctionName();
           String functionHeader =
               entryNode.getFunctionDefinition().getType().toASTString(functionName);

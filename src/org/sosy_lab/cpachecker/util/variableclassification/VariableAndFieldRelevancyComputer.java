@@ -501,8 +501,7 @@ final class VariableAndFieldRelevancyComputer {
           // Heuristic: for external function calls
           // r = f(a); // r depends on f and a, BUT
           // f(a); // f and a are always relevant
-          if (statement instanceof CAssignment) {
-            final CAssignment assignment = (CAssignment) statement;
+          if (statement instanceof CAssignment assignment) {
             final CRightHandSide rhs = assignment.getRightHandSide();
             final Pair<VariableOrField, VarFieldDependencies> r =
                 assignment.getLeftHandSide().accept(CollectingLHSVisitor.create(pCfa));

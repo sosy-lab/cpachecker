@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -231,7 +231,7 @@ public class UndefinedFunctionCollectorAlgorithm
     }
   }
 
-  private String getSignature(String name, IAFunctionType type) {
+  private String getSignature(String name, AFunctionType type) {
     StringBuilder res = new StringBuilder().append(name).append("(");
     int i = 0;
     for (Type pt : type.getParameters()) {
@@ -261,8 +261,7 @@ public class UndefinedFunctionCollectorAlgorithm
       buf.append(indent + "// Pointer type\n");
       prepend.append(odmFunctionDecl);
       buf.append(indent + "return (" + rt.toASTString("") + ")" + externAllocFunction + "();\n");
-    } else if (rt instanceof CSimpleType) {
-      CSimpleType ct = (CSimpleType) rt;
+    } else if (rt instanceof CSimpleType ct) {
       Pair<String, String> pair = convertType(ct);
       String nondetFunc = NONDET_FUNCTION_PREFIX + pair.getSecond();
       prepend.append(pair.getFirst() + " " + nondetFunc + "(void);\n");

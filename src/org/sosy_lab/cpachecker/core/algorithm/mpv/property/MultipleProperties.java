@@ -140,16 +140,14 @@ public final class MultipleProperties {
       for (AbstractState state : ((AbstractWrapperState) targetState).getWrappedStates()) {
         builder.addAll(determineViolatedProperties(state));
       }
-    } else if (targetState instanceof AutomatonState) {
-      AutomatonState automatonState = (AutomatonState) targetState;
-      if (automatonState.isTarget()) {
-        for (AbstractSingleProperty property : properties) {
-          if (property.isTarget(automatonState)) {
-            property.updateResult(Result.FALSE);
-            property.setRelevant();
-            property.addViolatedPropertyDescription(automatonState.getTargetInformation());
-            builder.add(property);
-          }
+    } else if ((targetState instanceof AutomatonState automatonState)
+        && automatonState.isTarget()) {
+      for (AbstractSingleProperty property : properties) {
+        if (property.isTarget(automatonState)) {
+          property.updateResult(Result.FALSE);
+          property.setRelevant();
+          property.addViolatedPropertyDescription(automatonState.getTargetInformation());
+          builder.add(property);
         }
       }
     }

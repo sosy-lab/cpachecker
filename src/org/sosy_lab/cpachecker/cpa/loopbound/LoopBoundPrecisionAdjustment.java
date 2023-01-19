@@ -126,7 +126,7 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
             .enforceAbstraction(getLoopIterationsBeforeAbstraction());
 
     PrecisionAdjustmentResult result =
-        PrecisionAdjustmentResult.create(adjustedState, adjustedPrecision, Action.CONTINUE);
+        new PrecisionAdjustmentResult(adjustedState, adjustedPrecision, Action.CONTINUE);
 
     return Optional.of(result);
   }

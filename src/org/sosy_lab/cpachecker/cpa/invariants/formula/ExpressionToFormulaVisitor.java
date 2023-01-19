@@ -230,21 +230,13 @@ public class ExpressionToFormulaVisitor
     NumeralFormula<CompoundInterval> operand = operandExpression.accept(this);
     TypeInfo typeInfo = BitVectorInfo.from(machineModel, pCUnaryExpression.getExpressionType());
     operand = compoundIntervalFormulaManager.cast(typeInfo, operand);
-    final NumeralFormula<CompoundInterval> result;
-    switch (pCUnaryExpression.getOperator()) {
-      case MINUS:
-        result = compoundIntervalFormulaManager.negate(operand);
-        break;
-      case TILDE:
-        result = compoundIntervalFormulaManager.binaryNot(operand);
-        break;
-      case AMPER:
-        result = allPossibleValues(pCUnaryExpression);
-        break;
-      default:
-        result = super.visit(pCUnaryExpression);
-        break;
-    }
+    final NumeralFormula<CompoundInterval> result =
+        switch (pCUnaryExpression.getOperator()) {
+          case MINUS -> compoundIntervalFormulaManager.negate(operand);
+          case TILDE -> compoundIntervalFormulaManager.binaryNot(operand);
+          case AMPER -> allPossibleValues(pCUnaryExpression);
+          default -> super.visit(pCUnaryExpression);
+        };
     return compoundIntervalFormulaManager.cast(typeInfo, result);
   }
 
@@ -555,8 +547,7 @@ public class ExpressionToFormulaVisitor
 
   private NumeralFormula<CompoundInterval> truncateShiftOperand(
       JType pExpressionType, NumeralFormula<CompoundInterval> pOperand) {
-    if (pExpressionType instanceof JSimpleType) {
-      JSimpleType simpleType = (JSimpleType) pExpressionType;
+    if (pExpressionType instanceof JSimpleType simpleType) {
       if (simpleType.getType() == JBasicType.INT) {
         return compoundIntervalFormulaManager.binaryAnd(
             pOperand, asConstant(pExpressionType, 0x1F));
@@ -715,8 +706,8 @@ public class ExpressionToFormulaVisitor
     FormulaCompoundStateEvaluationVisitor evaluator =
         new FormulaCompoundStateEvaluationVisitor(pCompoundIntervalManagerFactory);
     CompoundInterval value = formula.accept(evaluator, pEnvironment);
-    if (value instanceof CompoundIntegralInterval && typeInfo instanceof BitVectorInfo) {
-      BitVectorInfo bitVectorInfo = (BitVectorInfo) typeInfo;
+    if (value instanceof CompoundIntegralInterval
+        && typeInfo instanceof BitVectorInfo bitVectorInfo) {
       BigInteger lowerInclusiveBound = bitVectorInfo.getMinValue();
       BigInteger upperExclusiveBound = bitVectorInfo.getMaxValue().add(BigInteger.ONE);
       CompoundIntegralInterval integralValue = (CompoundIntegralInterval) value;
@@ -736,8 +727,7 @@ public class ExpressionToFormulaVisitor
             && !((CompoundBitVectorIntervalManagerFactory) pCompoundIntervalManagerFactory)
                 .isSignedWrapAroundAllowed()) {
           CompoundInterval ci = pFormula.accept(evaluator, pEnvironment);
-          if (ci instanceof CompoundBitVectorInterval) {
-            CompoundBitVectorInterval cbvi = (CompoundBitVectorInterval) ci;
+          if (ci instanceof CompoundBitVectorInterval cbvi) {
             final AtomicBoolean overflows = new AtomicBoolean();
             OverflowEventHandler overflowEventHandler = () -> overflows.set(true);
             // cast to check for overflow, result is unused

@@ -448,8 +448,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
     for (CFANode node : nodes) {
       for (CFAEdge leavingEdge : leavingEdges(node)) {
-        if (leavingEdge instanceof AStatementEdge) {
-          AStatementEdge edge = (AStatementEdge) leavingEdge;
+        if (leavingEdge instanceof AStatementEdge edge) {
           if (!(edge.getStatement() instanceof CAssignment)) {
             continue;
           }
@@ -625,9 +624,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     if (rhs instanceof CExpression) {
       handleExpression(edge, ((CExpression) rhs), varName);
 
-    } else if (rhs instanceof CFunctionCallExpression) {
+    } else if (rhs instanceof CFunctionCallExpression func) {
       // use FUNCTION_RETURN_VARIABLE for RIGHT SIDE
-      CFunctionCallExpression func = (CFunctionCallExpression) rhs;
       String functionName = func.getFunctionNameExpression().toASTString(); // TODO correct?
 
       if (cfa.getAllFunctionNames().contains(functionName)) {
@@ -734,9 +732,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     Optional<CVariableDeclaration> returnVar = edge.getSuccessor().getReturnVariable();
     if (returnVar.isPresent()) {
       String scopedRetVal = returnVar.orElseThrow().getQualifiedName();
-      if (statement instanceof CFunctionCallAssignmentStatement) {
+      if (statement instanceof CFunctionCallAssignmentStatement call) {
         // a=f();
-        CFunctionCallAssignmentStatement call = (CFunctionCallAssignmentStatement) statement;
         CExpression lhs = call.getLeftHandSide();
         String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
         String varName = scopeVar(function, lhs.toASTString());
@@ -819,8 +816,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     if (exp instanceof CIntegerLiteralExpression) {
       return ((CIntegerLiteralExpression) exp).getValue();
 
-    } else if (exp instanceof CUnaryExpression) {
-      CUnaryExpression unExp = (CUnaryExpression) exp;
+    } else if (exp instanceof CUnaryExpression unExp) {
       BigInteger value = getNumber(unExp.getOperand());
       if (value == null) {
         return null;
