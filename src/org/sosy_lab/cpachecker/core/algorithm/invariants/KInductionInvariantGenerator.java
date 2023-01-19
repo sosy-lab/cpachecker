@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -111,12 +112,14 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.SubstitutionException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /** Generate invariants using k-induction. */
@@ -150,6 +153,11 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         secure = true,
         description = "Check candidate invariants in a separate thread asynchronously.")
     private boolean async = true;
+
+    @Option(
+        secure = true,
+        description = "Whether counterexample disproving incorrect candidates should be collected")
+    private boolean collectCexs = false;
   }
 
   private static class KInductionInvariantGeneratorStatistics extends BMCStatistics {
@@ -188,6 +196,13 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
   private final ShutdownManager shutdownManager;
 
   private final boolean async;
+  private final boolean collectCexs;
+
+  private final Set<Pair<CandidateInvariant, Collection<ValueAssignment>>> pre_cexs =
+      new CopyOnWriteArraySet<>();
+  private final Set<
+          Triple<CandidateInvariant, Collection<ValueAssignment>, Collection<ValueAssignment>>>
+      step_cexs = new CopyOnWriteArraySet<>();
 
   // After start(), this will hold a Future for the final result of the invariant generation.
   // We use a Future instead of just the atomic reference below
@@ -226,6 +241,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         specification,
         pReachedSetFactory,
         options.async,
+        options.collectCexs,
         getCandidateInvariants(
             options,
             pConfig,
@@ -245,7 +261,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       final Specification specification,
       final ReachedSetFactory pReachedSetFactory,
       CandidateGenerator candidateGenerator,
-      boolean pAsync)
+      boolean pAsync,
+      boolean pCollectCexs)
       throws InvalidConfigurationException, CPAException, InterruptedException {
 
     return new KInductionInvariantGenerator(
@@ -256,6 +273,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         specification,
         pReachedSetFactory,
         pAsync,
+        pCollectCexs,
         candidateGenerator,
         AggregatedReachedSets.empty());
   }
@@ -268,6 +286,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       final Specification specification,
       final ReachedSetFactory pReachedSetFactory,
       final boolean pAsync,
+      final boolean pCollectCexs,
       final CandidateGenerator pCandidateGenerator,
       final AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException, CPAException, InterruptedException {
@@ -276,6 +295,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
 
     reachedSetFactory = pReachedSetFactory;
     async = pAsync;
+    collectCexs = pCollectCexs;
 
     if (pCandidateGenerator instanceof StaticCandidateProvider) {
       StaticCandidateProvider staticCandidateProvider =
@@ -365,8 +385,12 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
   protected void startImpl(final CFANode initialLocation) {
     checkState(invariantGenerationFuture == null);
 
-    Callable<Pair<InvariantSupplier, ExpressionTreeSupplier>> task =
-        new InvariantGenerationTask(initialLocation);
+    Callable<Pair<InvariantSupplier, ExpressionTreeSupplier>> task;
+    if (collectCexs) {
+      task = new InvariantValidationTask(initialLocation);
+    } else {
+      task = new InvariantGenerationTask(initialLocation);
+    }
 
     if (async) {
       // start invariant generation asynchronously
@@ -447,6 +471,16 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     pStatsCollection.add(stats);
   }
 
+  public Set<Pair<CandidateInvariant, Collection<ValueAssignment>>>
+      getPreconditionCounterexamples() {
+    return pre_cexs;
+  }
+
+  public Set<Triple<CandidateInvariant, Collection<ValueAssignment>, Collection<ValueAssignment>>>
+      getStepCaseCounterexamples() {
+    return step_cexs;
+  }
+
   private class InvariantGenerationTask
       implements Callable<Pair<InvariantSupplier, ExpressionTreeSupplier>> {
 
@@ -467,6 +501,41 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
             reachedSetFactory.createAndInitialize(
                 cpa, initialLocation, StateSpacePartition.getDefaultPartition());
         algorithm.run(reachedSet);
+        return Pair.of(
+            algorithm.getCurrentInvariants(), algorithm.getCurrentInvariantsAsExpressionTree());
+
+      } catch (SolverException e) {
+        throw new CPAException("Solver Failure", e);
+      } finally {
+        stats.invariantGeneration.stop();
+        CPAs.closeCpaIfPossible(cpa, logger);
+        CPAs.closeIfPossible(algorithm, logger);
+      }
+    }
+  }
+
+  private class InvariantValidationTask
+      implements Callable<Pair<InvariantSupplier, ExpressionTreeSupplier>> {
+
+    private final CFANode initialLocation;
+
+    private InvariantValidationTask(final CFANode pInitialLocation) {
+      initialLocation = checkNotNull(pInitialLocation);
+    }
+
+    @Override
+    public Pair<InvariantSupplier, ExpressionTreeSupplier> call()
+        throws InterruptedException, CPAException {
+      stats.invariantGeneration.start();
+      shutdownManager.getNotifier().shutdownIfNecessary();
+
+      try {
+        ReachedSet reachedSet =
+            reachedSetFactory.createAndInitialize(
+                cpa, initialLocation, StateSpacePartition.getDefaultPartition());
+        algorithm.run(reachedSet);
+        pre_cexs.addAll(algorithm.getPreCounterexamples());
+        step_cexs.addAll(algorithm.getStepCounterexamples());
         return Pair.of(
             algorithm.getCurrentInvariants(), algorithm.getCurrentInvariantsAsExpressionTree());
 

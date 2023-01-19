@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramCon
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.sampling.InvariantValidationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.sampling.SamplingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
@@ -245,6 +246,9 @@ public class CoreComponentsFactory {
       secure = true,
       description = "Use sampling algorithm to generate samples for invariant generation.")
   private boolean useSamplingAlgorithm = false;
+
+  @Option(secure = true, description = "Use invariant validation algorithm to validate invariants.")
+  private boolean useInvariantValidationAlgorithm = false;
 
   @Option(
       secure = true,
@@ -549,6 +553,9 @@ public class CoreComponentsFactory {
     } else if (useSamplingAlgorithm) {
       verifyNotNull(shutdownManager);
       algorithm = new SamplingAlgorithm(config, logger, shutdownManager, cfa, specification);
+    } else if (useInvariantValidationAlgorithm) {
+      algorithm =
+          new InvariantValidationAlgorithm(config, cfa, logger, shutdownNotifier, specification);
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 

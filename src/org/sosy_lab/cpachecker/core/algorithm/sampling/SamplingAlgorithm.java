@@ -465,8 +465,8 @@ public class SamplingAlgorithm extends NestingAlgorithm {
    * Filter the given model for relevant assignments. Relevant for sampling are only the most recent
    * variable assignments to variables in the current function.
    */
-  private Iterable<ValueAssignment> getRelevantAssignments(
-      List<ValueAssignment> model, CFANode pLocation) {
+  public static Iterable<ValueAssignment> getRelevantAssignments(
+      Iterable<ValueAssignment> model, CFANode pLocation) {
     Map<String, Integer> highestIndizes = new HashMap<>();
     Map<String, ValueAssignment> latestAssignments = new HashMap<>();
     for (ValueAssignment assignment : model) {
@@ -492,7 +492,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     return latestAssignments.values();
   }
 
-  private Sample extractSampleFromModel(
+  public static Sample extractSampleFromModel(
       Iterable<ValueAssignment> assignments, CFANode location, SampleClass sampleClass) {
     Map<MemoryLocation, ValueAndType> variableValues = new HashMap<>();
     for (ValueAssignment assignment : assignments) {

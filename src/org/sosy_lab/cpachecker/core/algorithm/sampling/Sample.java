@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.sampling;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -92,6 +93,11 @@ public class Sample {
       }
     }
     return builder.buildOrThrow();
+  }
+
+  public Sample withPrevious(Sample pPrevious) {
+    Preconditions.checkArgument(pPrevious.getSampleClass().equals(sampleClass));
+    return new Sample(variableValues, location, pPrevious, sampleClass);
   }
 
   public Map<MemoryLocation, ValueAndType> getVariableValues() {

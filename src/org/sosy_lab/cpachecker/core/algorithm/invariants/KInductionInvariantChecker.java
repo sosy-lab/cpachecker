@@ -12,6 +12,8 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Set;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -23,9 +25,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 @Options(prefix = "invariantChecker")
 public class KInductionInvariantChecker {
@@ -66,7 +72,8 @@ public class KInductionInvariantChecker {
       LogManager pLogger,
       CFA pCfa,
       Specification specification,
-      CandidateGenerator pCandidateGenerator)
+      CandidateGenerator pCandidateGenerator,
+      boolean pCollectCounterexamples)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     pConfig.inject(this);
     cfa = pCfa;
@@ -94,7 +101,8 @@ public class KInductionInvariantChecker {
             specification,
             reached,
             pCandidateGenerator,
-            false);
+            false,
+            pCollectCounterexamples);
   }
 
   /** Determines if the program could be successfully proven to be safe with k-induction. */
@@ -114,5 +122,15 @@ public class KInductionInvariantChecker {
     invGen.getSupplier(); // let invariant generator do the work
 
     isComputationFinished = true;
+  }
+
+  public Set<Pair<CandidateInvariant, Collection<ValueAssignment>>>
+      getPreconditionCounterexamples() {
+    return invGen.getPreconditionCounterexamples();
+  }
+
+  public Set<Triple<CandidateInvariant, Collection<ValueAssignment>, Collection<ValueAssignment>>>
+      getStepCaseCounterexamples() {
+    return invGen.getStepCaseCounterexamples();
   }
 }

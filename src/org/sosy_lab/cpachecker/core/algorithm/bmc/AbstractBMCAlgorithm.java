@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.LoopIterationBounding;
 import org.sosy_lab.cpachecker.core.interfaces.LoopIterationReportingState;
@@ -103,6 +104,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TestTargetLocationProvider;
@@ -122,6 +125,7 @@ import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Model;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -227,6 +231,12 @@ abstract class AbstractBMCAlgorithm
 
   /** The candidate invariants that have been proven to hold at the loop heads. */
   private final Set<CandidateInvariant> confirmedCandidates = new CopyOnWriteArraySet<>();
+
+  private final Set<Pair<CandidateInvariant, Collection<ValueAssignment>>> pre_cexs =
+      new CopyOnWriteArraySet<>();
+  private final Set<
+          Triple<CandidateInvariant, Collection<ValueAssignment>, Collection<ValueAssignment>>>
+      step_cexs = new CopyOnWriteArraySet<>();
 
   private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
       new CopyOnWriteArrayList<>();
@@ -699,7 +709,72 @@ abstract class AbstractBMCAlgorithm
 
     pProver.pop();
 
+    if (!safe) {
+      Iterable<AbstractState> applicable = pCandidateInvariant.filterApplicable(pReachedSet);
+      for (AbstractState state : applicable) {
+        // assertAt returns "Program => Invariant"
+        BooleanFormula formula =
+            BMCHelper.assertAt(ImmutableSet.of(state), pCandidateInvariant, fmgr, pmgr);
+        pProver.push(bfmgr.not(formula));
+        if (!pProver.isUnsat()) {
+          if (getIteration(state) == 1) {
+            // We are at the loop head, so iteration == 1 means the start of the first iteration.
+            // Thus, any satisfying models are counterexamples to P => I.
+            pre_cexs.add(Pair.of(pCandidateInvariant, pProver.getModelAssignments()));
+          } else {
+            // Get any model for the previous iteration
+            FluentIterable<AbstractState> previous =
+                BMCHelper.filterIteration(applicable, getIteration(state) - 2, getLoopHeads());
+            assert previous.size() == 1;
+            BooleanFormula previousFormula = BMCHelper.createFormulaFor(previous, bfmgr);
+            pProver.pop();
+            pProver.push(previousFormula);
+            assert !pProver.isUnsat();
+            Collection<ValueAssignment> valuesBefore = pProver.getModelAssignments();
+
+            // Now get a model for the current iteration that is consistent with the previous model
+            pProver.pop();
+            pProver.push(bfmgr.not(formula));
+            for (ValueAssignment assignment : valuesBefore) {
+              pProver.addConstraint(assignment.getAssignmentAsFormula());
+            }
+            if (pProver.isUnsat()) {
+              // This is possible, if a counterexample was found in a previous loop iteration
+              // TODO: Then should we just return once the first cex is found?
+              continue;
+            }
+            Collection<ValueAssignment> valuesAfter = pProver.getModelAssignments();
+
+            // The obtained models pose a counterexample to {B & I} S {I}
+            step_cexs.add(Triple.of(pCandidateInvariant, valuesBefore, valuesAfter));
+          }
+        }
+        pProver.pop();
+      }
+    }
+
     return safe;
+  }
+
+  private int getIteration(AbstractState pState) {
+    AbstractStateWithLocation locationState =
+        AbstractStates.extractStateByType(pState, AbstractStateWithLocation.class);
+    LoopIterationReportingState lirs =
+        AbstractStates.extractStateByType(pState, LoopIterationReportingState.class);
+    for (Loop loop :
+        cfa.getLoopStructure().orElseThrow().getLoopsForLoopHead(locationState.getLocationNode())) {
+      return lirs.getIteration(loop);
+    }
+    return 0;
+  }
+
+  public Set<Pair<CandidateInvariant, Collection<ValueAssignment>>> getPreCounterexamples() {
+    return pre_cexs;
+  }
+
+  public Set<Triple<CandidateInvariant, Collection<ValueAssignment>, Collection<ValueAssignment>>>
+      getStepCounterexamples() {
+    return step_cexs;
   }
 
   private boolean refineCtiBlockingClauses(
