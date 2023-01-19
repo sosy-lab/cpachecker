@@ -16,11 +16,11 @@ For information on how to run CPAchecker, see [`README.md`](README.md).
 Install CPAchecker -- Binary
 ----------------------------
 
-1. Install a Java Runtime Environment which is at least Java 11 compatible.
+1. Install a Java Runtime Environment which is at least Java 17 compatible.
    One Linux we recommend to install a package from your distribution
-   (Ubuntu: `sudo apt install openjdk-11-jre`),
+   (Ubuntu: `sudo apt install openjdk-17-jre`),
    on other platforms you can for example get one from
-   [AdoptOpenJDK](https://adoptopenjdk.net/releases.html?variant=openjdk11&jvmVariant=hotspot).
+   [Adoptium](https://adoptium.net/temurin/releases/?version=17).
    If you have multiple JVMs installed, consider making this the default JVM,
    otherwise you will need to specify the JVM when running CPAchecker.
    (Ubuntu: `sudo update-alternatives --config java`)
@@ -48,16 +48,16 @@ docker run -v $(pwd):/workdir -u $UID:$GID registry.gitlab.com/sosy-lab/software
 Install CPAchecker -- Source
 ----------------------------
 
-1. Install a Java SDK which is Java 11 compatible (later versions are also fine)
-   (e.g., Oracle JDK, OpenJDK).
-   Cf. http://java.oracle.com/ or install a package from your distribution.
-   (Ubuntu: `sudo apt-get install openjdk-11-jdk`)
+1. Install a Java SDK which is Java 17 compatible (later versions are also fine).
+   Most people use OpenJDK, e.g., from their distribution
+   (Ubuntu: `sudo apt-get install openjdk-17-jdk`)
+   or from [Adoptium](https://adoptium.net/temurin/releases/?version=17).
    If you have multiple JDKs installed, make sure that the commands `java`
-   and `javac` call the respective Java 11 binaries (or a later version),
+   and `javac` call the respective Java 17 binaries (or a later version),
    so put them in your PATH or change the system-wide default JDK.
    (Ubuntu: `sudo update-alternatives --config java; sudo update-alternatives --config javac`)
 
-2. Install `ant` (version 1.9.9 or later is recommended).
+2. Install `ant` (version 1.10.x or later is recommended).
    (Ubuntu: `sudo apt-get install ant`)
 
 3. Install Subversion.
