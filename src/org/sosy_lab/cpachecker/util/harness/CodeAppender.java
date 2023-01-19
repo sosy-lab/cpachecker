@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.AbstractFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
@@ -242,8 +242,8 @@ class CodeAppender implements Appendable {
     return append(enforceParameterNames(pInputFunction).toASTString(pInputFunction.getName()));
   }
 
-  private static AFunctionType enforceParameterNames(AFunctionDeclaration pInputFunction) {
-    IAFunctionType functionType = pInputFunction.getType();
+  private static AbstractFunctionType enforceParameterNames(AFunctionDeclaration pInputFunction) {
+    AFunctionType functionType = pInputFunction.getType();
     if (functionType instanceof CFunctionType cFunctionType) {
       return new CFunctionTypeWithNames(
           cFunctionType.getReturnType(),

@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -231,7 +231,7 @@ public class UndefinedFunctionCollectorAlgorithm
     }
   }
 
-  private String getSignature(String name, IAFunctionType type) {
+  private String getSignature(String name, AFunctionType type) {
     StringBuilder res = new StringBuilder().append(name).append("(");
     int i = 0;
     for (Type pt : type.getParameters()) {
