@@ -487,7 +487,20 @@ public class InvariantsCPA
 
   @Override
   public boolean adjustPrecision() {
-    return conditionAdjuster.adjustConditionsWithTimeLimit(options.conditionAdjustmentTimeLimit);
+    if (!options.conditionAdjustmentTimeLimit.isEmpty()) {
+      if (conditionAdjuster instanceof ConditionAdjusterWithTimeLimit) {
+        return ((ConditionAdjusterWithTimeLimit) conditionAdjuster)
+            .adjustConditionsWithTimeLimit(options.conditionAdjustmentTimeLimit);
+      } else {
+        logManager.log(
+            Level.WARNING,
+            "Time limit disabled for condition adjustment because the selected strategy",
+            options.conditionAdjusterFactory,
+            "does not support it");
+        options.conditionAdjustmentTimeLimit = TimeSpan.empty();
+      }
+    }
+    return conditionAdjuster.adjustConditions();
   }
 
   @Override
@@ -637,17 +650,6 @@ public class InvariantsCPA
 
     boolean adjustConditions();
 
-    /**
-     * Perform {@link #adjustConditions} with the given time limit. This method is unsupported by
-     * default. Each subclass of this interface has to implement the intended function on its own.
-     */
-    default boolean adjustConditionsWithTimeLimit(TimeSpan timeLimit) {
-      if (timeLimit.isEmpty()) {
-        return adjustConditions();
-      }
-      throw new UnsupportedOperationException();
-    }
-
     default void adjustReachedSet(ReachedSet pReachedSet) {
       pReachedSet.clear();
     }
@@ -658,6 +660,11 @@ public class InvariantsCPA
     int getInc();
 
     void setInc(int pInc);
+  }
+
+  private interface ConditionAdjusterWithTimeLimit extends ConditionAdjuster {
+    /** Perform {@link #adjustConditions} with the given time limit. */
+    boolean adjustConditionsWithTimeLimit(TimeSpan timeLimit);
   }
 
   public interface ConditionAdjusterFactory {
@@ -718,7 +725,7 @@ public class InvariantsCPA
     }
   }
 
-  private static class CompoundConditionAdjuster implements ConditionAdjuster {
+  private static class CompoundConditionAdjuster implements ConditionAdjusterWithTimeLimit {
 
     private final InvariantsCPA cpa;
 
