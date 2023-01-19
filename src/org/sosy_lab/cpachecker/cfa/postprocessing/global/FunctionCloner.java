@@ -247,7 +247,7 @@ class FunctionCloner implements CFAVisitor {
                     cloneAst(((CReturnStatementEdge) edge).getReturnStatement()),
                     loc,
                     start,
-                    (FunctionExitNode) end);
+                    end);
           } else {
             throw new AssertionError(ONLY_C_SUPPORTED);
           }

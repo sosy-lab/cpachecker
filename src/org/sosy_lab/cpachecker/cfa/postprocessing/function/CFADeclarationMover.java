@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
@@ -161,7 +160,7 @@ public class CFADeclarationMover {
                 ((CReturnStatementEdge) edge).getReturnStatement(),
                 edge.getFileLocation(),
                 pred,
-                (FunctionExitNode) edge.getSuccessor());
+                edge.getSuccessor());
         pred.addLeavingEdge(edge);
         succ.addEnteringEdge(edge);
         return edge;
