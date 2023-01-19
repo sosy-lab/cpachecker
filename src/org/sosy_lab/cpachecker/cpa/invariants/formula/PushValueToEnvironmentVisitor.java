@@ -91,9 +91,10 @@ class PushValueToEnvironmentVisitor
 
   private CompoundIntervalManager getCompoundIntervalManager(Typed pBitVectorType) {
     TypeInfo typeInfo = pBitVectorType.getTypeInfo();
-    if (compoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory) {
-      CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory =
-          (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
+    if (compoundIntervalManagerFactory
+        instanceof
+        CompoundBitVectorIntervalManagerFactory
+        compoundBitVectorIntervalManagerFactory) {
       return compoundBitVectorIntervalManagerFactory.createCompoundIntervalManager(typeInfo, false);
     }
     return compoundIntervalManagerFactory.createCompoundIntervalManager(typeInfo);
@@ -116,8 +117,7 @@ class PushValueToEnvironmentVisitor
     final CompoundInterval pushRightValue;
 
     TypeInfo typeInfo = pAdd.getTypeInfo();
-    if (typeInfo instanceof BitVectorInfo && pAdd.getTypeInfo().isSigned()) {
-      BitVectorInfo bitVectorInfo = (BitVectorInfo) typeInfo;
+    if (typeInfo instanceof BitVectorInfo bitVectorInfo && pAdd.getTypeInfo().isSigned()) {
       BitVectorInfo extendedType = bitVectorInfo.extend(1);
 
       CompoundInterval extendedRange =
@@ -410,9 +410,8 @@ class PushValueToEnvironmentVisitor
     CompoundIntervalManager targetManager = getCompoundIntervalManager(pCast);
     TypeInfo targetInfo = pCast.getTypeInfo();
     TypeInfo sourceInfo = pCast.getCasted().getTypeInfo();
-    if (targetInfo instanceof BitVectorInfo && sourceInfo instanceof BitVectorInfo) {
-      BitVectorInfo targetBVInfo = (BitVectorInfo) targetInfo;
-      BitVectorInfo sourceBVInfo = (BitVectorInfo) sourceInfo;
+    if (targetInfo instanceof BitVectorInfo targetBVInfo
+        && sourceInfo instanceof BitVectorInfo sourceBVInfo) {
       if (targetBVInfo.getRange().contains(sourceBVInfo.getRange())) {
         if (!pCast.getCasted().accept(this, targetManager.cast(sourceInfo, pParameter))) {
           return false;

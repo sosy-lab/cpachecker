@@ -160,7 +160,7 @@ public final class TestTargetReductionUtils {
 
   public static void drawGraph(final Path pOutputfile, final CFANode pEntry) throws IOException {
     try (Writer sb = IO.openOutputFile(pOutputfile, Charset.defaultCharset())) {
-      sb.append("digraph " + "CFA" + " {\n");
+      sb.append("digraph CFA {\n");
       // define the graphic representation for all subsequent nodes
       sb.append("node [shape=\"circle\"]\n");
 
@@ -169,14 +169,14 @@ public final class TestTargetReductionUtils {
 
       visited.add(pEntry);
       waitlist.add(pEntry);
-      sb.append(pEntry.getNodeNumber() + " [shape=\"circle\"]" + "\n");
+      sb.append(pEntry.getNodeNumber() + " [shape=\"circle\"]\n");
 
       CFANode pred;
       while (!waitlist.isEmpty()) {
         pred = waitlist.poll();
         for (CFANode succ : CFAUtils.allSuccessorsOf(pred)) {
           if (visited.add(succ)) {
-            sb.append(succ.getNodeNumber() + " [shape=\"circle\"]" + "\n");
+            sb.append(succ.getNodeNumber() + " [shape=\"circle\"]\n");
             waitlist.add(succ);
           }
           sb.append(pred.getNodeNumber() + " -> " + succ.getNodeNumber() + "\n");

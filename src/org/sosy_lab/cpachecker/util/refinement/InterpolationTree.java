@@ -196,7 +196,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * @param file file the file to write to
    */
   public void exportToDot(PathTemplate file, long refinementCounter) {
-    StringBuilder result = new StringBuilder("digraph tree {" + "\n");
+    StringBuilder result = new StringBuilder("digraph tree {\n");
     for (Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
       final ARGState parent = current.getKey();
       String interpolant =
@@ -210,8 +210,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
       // + " [label=\"" + parent.getEdgeToChild(current.getValue()).getRawStatement().replace("\n",
       // "") + "\"]\n");
       if (current.getValue().isTarget()) {
-        result.append(
-            current.getValue().getStateId() + " [style=filled, fillcolor=\"red\"]" + "\n");
+        result.append(current.getValue().getStateId() + " [style=filled, fillcolor=\"red\"]\n");
       }
       assert !parent.isTarget();
     }

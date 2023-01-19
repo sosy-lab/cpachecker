@@ -277,9 +277,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     reachedSetFactory = pReachedSetFactory;
     async = pAsync;
 
-    if (pCandidateGenerator instanceof StaticCandidateProvider) {
-      StaticCandidateProvider staticCandidateProvider =
-          (StaticCandidateProvider) pCandidateGenerator;
+    if (pCandidateGenerator instanceof StaticCandidateProvider staticCandidateProvider) {
       stats.totalNumberOfCandidates =
           FluentIterable.from(staticCandidateProvider.getAllCandidates())
               .filter(Predicates.not(Predicates.instanceOf(TargetLocationCandidateInvariant.class)))
@@ -540,10 +538,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
 
             @Override
             public void remove() {
-              if (candidate instanceof ExpressionTreeLocationInvariant) {
-                ExpressionTreeLocationInvariant expressionTreeLocationInvariant =
-                    (ExpressionTreeLocationInvariant) candidate;
-
+              if (candidate
+                  instanceof ExpressionTreeLocationInvariant expressionTreeLocationInvariant) {
                 // Remove the location from the group
                 String groupId = expressionTreeLocationInvariant.getGroupId();
                 Collection<CFANode> remainingLocations = candidateGroupLocations.get(groupId);

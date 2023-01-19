@@ -17,7 +17,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  *
  * <p>struct s { int i; } typedef int my_int;
  */
-public abstract class CTypeDeclaration extends AbstractDeclaration implements CDeclaration {
+public abstract sealed class CTypeDeclaration extends AbstractDeclaration implements CDeclaration
+    permits CComplexTypeDeclaration, CTypeDefDeclaration {
 
   private static final long serialVersionUID = -607383651501118425L;
   private final String qualifiedName;

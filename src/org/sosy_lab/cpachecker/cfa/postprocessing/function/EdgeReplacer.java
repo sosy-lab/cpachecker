@@ -109,8 +109,7 @@ public abstract class EdgeReplacer {
 
   private CFunctionCall createRegularCall(
       CFunctionCall functionCall, CFunctionCallExpression newCallExpr) {
-    if (functionCall instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement asgn = (CFunctionCallAssignmentStatement) functionCall;
+    if (functionCall instanceof CFunctionCallAssignmentStatement asgn) {
       return new CFunctionCallAssignmentStatement(
           functionCall.getFileLocation(), asgn.getLeftHandSide(), newCallExpr);
     } else if (functionCall instanceof CFunctionCallStatement) {

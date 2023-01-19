@@ -41,8 +41,7 @@ class GraphMLState {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof GraphMLState) {
-      GraphMLState other = (GraphMLState) pOther;
+    if (pOther instanceof GraphMLState other) {
       return getId().equals(other.getId())
           && getInvariants().equals(other.getInvariants())
           && getExplicitInvariantScope().equals(other.getExplicitInvariantScope())

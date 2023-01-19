@@ -434,8 +434,7 @@ public class UseDefRelation {
       // all variables of the right hand side are "used" afterwards
       if (assignment instanceof AExpressionAssignmentStatement) {
         rightHandSideUses = acceptAll((AExpression) assignment.getRightHandSide());
-      } else if (assignment instanceof AFunctionCallAssignmentStatement) {
-        AFunctionCallAssignmentStatement funcStmt = (AFunctionCallAssignmentStatement) assignment;
+      } else if (assignment instanceof AFunctionCallAssignmentStatement funcStmt) {
         rightHandSideUses =
             getVariablesUsedAsParameters(
                 funcStmt.getFunctionCallExpression().getParameterExpressions());

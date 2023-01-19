@@ -65,7 +65,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   @Option(
       secure = true,
       description =
-          "which prefix of an actual counterexample trace should be used" + " for interpolation",
+          "which prefix of an actual counterexample trace should be used for interpolation",
       toUppercase = true)
   private List<PrefixPreference> prefixPreference =
       ImmutableList.of(PrefixPreference.DOMAIN_MIN, PrefixPreference.LENGTH_MIN);

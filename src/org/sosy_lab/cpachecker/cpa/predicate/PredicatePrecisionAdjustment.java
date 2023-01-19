@@ -99,7 +99,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       }
 
       return Optional.of(
-          PrecisionAdjustmentResult.create(
+          new PrecisionAdjustmentResult(
               element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
 
     } catch (SolverException e) {
@@ -216,7 +216,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
             abstractionLocations,
             element.getPreviousAbstractionState());
     return Optional.of(
-        PrecisionAdjustmentResult.create(
-            state, precision, PrecisionAdjustmentResult.Action.CONTINUE));
+        new PrecisionAdjustmentResult(state, precision, PrecisionAdjustmentResult.Action.CONTINUE));
   }
 }

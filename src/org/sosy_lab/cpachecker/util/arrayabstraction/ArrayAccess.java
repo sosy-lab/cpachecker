@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -56,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -90,9 +90,8 @@ final class ArrayAccess {
       return Optional.of((CArraySubscriptExpression) pExpression);
     }
 
-    if (pExpression instanceof CPointerExpression) {
+    if (pExpression instanceof CPointerExpression pointerExpression) {
 
-      CPointerExpression pointerExpression = (CPointerExpression) pExpression;
       CExpression operand = pointerExpression.getOperand();
 
       if (operand instanceof CIdExpression) {
@@ -105,9 +104,8 @@ final class ArrayAccess {
         return Optional.of(arraySubscriptExpression);
       }
 
-      if (operand instanceof CBinaryExpression) {
+      if (operand instanceof CBinaryExpression binaryExpression) {
 
-        CBinaryExpression binaryExpression = (CBinaryExpression) operand;
         CBinaryExpression.BinaryOperator operator = binaryExpression.getOperator();
         CExpression operand1 = binaryExpression.getOperand1();
         CExpression operand2 = binaryExpression.getOperand2();

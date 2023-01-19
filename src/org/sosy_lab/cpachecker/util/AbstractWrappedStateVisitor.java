@@ -23,8 +23,7 @@ public abstract class AbstractWrappedStateVisitor {
   public final void visit(AbstractState state) {
     process(state);
 
-    if (state instanceof AbstractWrapperState) {
-      AbstractWrapperState wrapperState = (AbstractWrapperState) state;
+    if (state instanceof AbstractWrapperState wrapperState) {
       for (AbstractState wrappedState : wrapperState.getWrappedStates()) {
         visit(wrappedState);
       }

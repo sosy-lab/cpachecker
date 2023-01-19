@@ -460,11 +460,9 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
 
           // case 7
           if (helper.useImplicationCheck()) {
-            if (pCfaEdge instanceof CAssumeEdge) {
-              CAssumeEdge assGiven = (CAssumeEdge) pCfaEdge;
+            if (pCfaEdge instanceof CAssumeEdge assGiven) {
               for (CFAEdge ce : CFAUtils.leavingEdges(nodeInOriginal)) {
-                if (ce instanceof CAssumeEdge) {
-                  final CAssumeEdge assOrig = (CAssumeEdge) ce;
+                if (ce instanceof CAssumeEdge assOrig) {
                   helper.logCase("Checking for case 7 compliance.");
                   if (helper.implies(assGiven, assOrig)) {
                     final Set<String> varsInAssGiven, varsInAssOrig;

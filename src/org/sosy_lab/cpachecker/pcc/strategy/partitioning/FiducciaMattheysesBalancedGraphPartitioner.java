@@ -47,11 +47,11 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
 
-    switch (initialPartitioningStrategy) {
-        // TODO support better strategies for initial partitioning
-      default: // RANDOM
-        partitioner = new RandomBalancedGraphPartitioner();
-    }
+    partitioner =
+        switch (initialPartitioningStrategy) {
+            // TODO support better strategies for initial partitioning
+          default -> new RandomBalancedGraphPartitioner(); // RANDOM
+        };
   }
 
   @Override

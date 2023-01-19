@@ -80,8 +80,7 @@ public class ConstraintSystem {
     if (this == pO) {
       return true;
     }
-    if (pO instanceof ConstraintSystem) {
-      ConstraintSystem other = (ConstraintSystem) pO;
+    if (pO instanceof ConstraintSystem other) {
       return baseConstraints.equals(other.baseConstraints)
           && complexConstraints.equals(other.complexConstraints)
           && simpleConstraints.equals(other.simpleConstraints);

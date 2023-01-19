@@ -430,8 +430,7 @@ public class InvariantsCPA
 
   public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption)
       throws UnrecognizedCodeException {
-    if (pAssumption instanceof CAssumeEdge) {
-      CAssumeEdge assumeEdge = (CAssumeEdge) pAssumption;
+    if (pAssumption instanceof CAssumeEdge assumeEdge) {
       MemoryLocationExtractor vne =
           new MemoryLocationExtractor(compoundIntervalManagerFactory, machineModel, pAssumption);
       ExpressionToFormulaVisitor etfv =

@@ -271,8 +271,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         Fault singleton = new Fault(prev);
         singleton.setIntendedIndex(i);
         faults.add(singleton);
-      } else if (errorInvariant instanceof Interval) {
-        Interval curr = (Interval) errorInvariant;
+      } else if (errorInvariant instanceof Interval curr) {
         // curr.invariant =
         // formulaContext.getSolver().getFormulaManager().uninstantiate(curr.invariant);
         TraceAtom next;
@@ -462,8 +461,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
 
     @Override
     public boolean equals(Object q) {
-      if (q instanceof Interval) {
-        Interval compare = (Interval) q;
+      if (q instanceof Interval compare) {
         return compare.start == start
             && compare.end == end
             && invariant.equals(compare.invariant)

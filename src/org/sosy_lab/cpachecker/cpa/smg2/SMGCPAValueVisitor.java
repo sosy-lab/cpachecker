@@ -255,8 +255,7 @@ public class SMGCPAValueVisitor
     SMGState newState = pCurrentState;
     CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(pReturnType);
     BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, returnType);
-    if (arrayValue instanceof AddressExpression) {
-      AddressExpression arrayAddr = (AddressExpression) arrayValue;
+    if (arrayValue instanceof AddressExpression arrayAddr) {
       Value addrOffsetValue = arrayAddr.getOffset();
       if (!addrOffsetValue.isNumericValue()) {
         return ImmutableList.of(ValueAndSMGState.ofUnknownValue(newState));
@@ -2046,8 +2045,8 @@ public class SMGCPAValueVisitor
       canonicalReturnType = ((CPointerType) expressionType).getType();
     }
 
-    if (leftValue instanceof AddressExpression && !(rightValue instanceof AddressExpression)) {
-      AddressExpression addressValue = (AddressExpression) leftValue;
+    if (leftValue instanceof AddressExpression addressValue
+        && !(rightValue instanceof AddressExpression)) {
       Value addressOffset = addressValue.getOffset();
       if (!rightValue.isNumericValue() || !addressOffset.isNumericValue()) {
         // TODO: symbolic values if possible
@@ -2087,8 +2086,7 @@ public class SMGCPAValueVisitor
           ValueAndSMGState.of(addressValue.copyWithNewOffset(finalOffset), currentState));
 
     } else if (!(leftValue instanceof AddressExpression)
-        && rightValue instanceof AddressExpression) {
-      AddressExpression addressValue = (AddressExpression) rightValue;
+        && rightValue instanceof AddressExpression addressValue) {
       Value addressOffset = addressValue.getOffset();
       if (!leftValue.isNumericValue()
           || !addressOffset.isNumericValue()
@@ -2718,8 +2716,7 @@ public class SMGCPAValueVisitor
 
     CType type = targetType.getCanonicalType();
     final int size;
-    if (type instanceof CSimpleType) {
-      final CSimpleType st = (CSimpleType) type;
+    if (type instanceof CSimpleType st) {
       size = machineModel.getSizeofInBits(st);
     } else if (type instanceof CBitFieldType) {
       size = ((CBitFieldType) type).getBitFieldSize();

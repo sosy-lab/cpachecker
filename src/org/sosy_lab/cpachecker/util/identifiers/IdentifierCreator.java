@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -22,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
@@ -148,9 +148,7 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
       main = id1;
     } else if (id2 instanceof SingleIdentifier && id1 instanceof ConstantIdentifier) {
       main = id2;
-    } else if (id1 instanceof SingleIdentifier && id2 instanceof SingleIdentifier) {
-      SingleIdentifier s1 = (SingleIdentifier) id1;
-      SingleIdentifier s2 = (SingleIdentifier) id2;
+    } else if (id1 instanceof SingleIdentifier s1 && id2 instanceof SingleIdentifier s2) {
       if (s1.isPointer() && !s2.isPointer()) {
         main = s1;
       } else if (s1.isPointer() && !s2.isPointer()) {

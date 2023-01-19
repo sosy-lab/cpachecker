@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -99,10 +100,8 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -493,13 +492,6 @@ public class CFAUtils {
       case CallToReturnEdge:
         FunctionSummaryEdge fnSumEdge = (FunctionSummaryEdge) edge;
         return ImmutableSet.of(fnSumEdge.getExpression());
-
-      case FunctionCallEdge:
-        FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
-        return Iterables.concat(
-            Optionals.asSet(edge.getRawAST()),
-            getAstNodesFromCfaEdge(functionCallEdge.getSummaryEdge()));
-
       default:
         return Optionals.asSet(edge.getRawAST());
     }

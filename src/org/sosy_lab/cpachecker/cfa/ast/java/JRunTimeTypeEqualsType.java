@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JReferenceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -60,7 +61,7 @@ public final class JRunTimeTypeEqualsType extends AbstractExpression implements 
     if (getTypeDef() instanceof JClassOrInterfaceType) {
       name = ((JClassOrInterfaceType) getTypeDef()).getName();
     } else {
-      name = ((JSimpleType) getTypeDef()).getType().toASTString();
+      name = ((JArrayType) getTypeDef()).getElementType().toASTString("");
     }
     StringBuilder astString = new StringBuilder("(");
     astString.append(getRunTimeTypeExpression().toASTString());

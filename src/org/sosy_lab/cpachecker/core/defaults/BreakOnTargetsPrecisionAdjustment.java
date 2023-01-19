@@ -69,18 +69,18 @@ public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     if (extraIterationsLimitReached()) {
-      return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK));
+      return Optional.of(new PrecisionAdjustmentResult(pState, pPrecision, Action.BREAK));
     }
 
     if (((Targetable) pState).isTarget()) {
       foundTargetCounter++;
 
       if (foundTargetLimitReached()) {
-        return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK));
+        return Optional.of(new PrecisionAdjustmentResult(pState, pPrecision, Action.BREAK));
       }
     }
 
-    return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
+    return Optional.of(new PrecisionAdjustmentResult(pState, pPrecision, Action.CONTINUE));
   }
 
   /**

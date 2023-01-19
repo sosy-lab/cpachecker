@@ -56,8 +56,7 @@ public class SMGCPAMaterializer {
       SMGValue valueTopointerToAbstractObject, SMGObject pAbstractObject, SMGState state)
       throws SMG2Exception {
 
-    if (pAbstractObject instanceof SMGDoublyLinkedListSegment) {
-      SMGDoublyLinkedListSegment sllListSeg = (SMGDoublyLinkedListSegment) pAbstractObject;
+    if (pAbstractObject instanceof SMGDoublyLinkedListSegment sllListSeg) {
       if (sllListSeg.getMinLength() == MINIMUM_LIST_LENGTH) {
         // handles 0+ and splits into 2 states. One with a longer list and 0+ again, one where its
         // gone
@@ -65,8 +64,7 @@ public class SMGCPAMaterializer {
       } else {
         return ImmutableList.of(materialiseDLLS(sllListSeg, valueTopointerToAbstractObject, state));
       }
-    } else if (pAbstractObject instanceof SMGSinglyLinkedListSegment) {
-      SMGSinglyLinkedListSegment dllListSeg = (SMGSinglyLinkedListSegment) pAbstractObject;
+    } else if (pAbstractObject instanceof SMGSinglyLinkedListSegment dllListSeg) {
       if (dllListSeg.getMinLength() == MINIMUM_LIST_LENGTH) {
         // handles 0+ and splits into 2 states. One with a longer list and 0+ again, one where its
         // gone

@@ -41,8 +41,7 @@ class VariableGenerator {
 
   private static String getNondetFunctionName(CType pType) {
 
-    if (pType instanceof CSimpleType) {
-      CSimpleType simpleType = (CSimpleType) pType;
+    if (pType instanceof CSimpleType simpleType) {
       CBasicType basicType = simpleType.getType();
 
       // TODO: handle all types that have corresponding `__VERIFIER_nondet_X` functions
