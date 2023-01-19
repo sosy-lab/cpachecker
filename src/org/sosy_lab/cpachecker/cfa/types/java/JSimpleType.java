@@ -21,7 +21,7 @@ import java.util.Objects;
  * null</code> either. Actually, possible concrete types are all enum constants of {@link
  * JBasicType}.
  */
-public class JSimpleType implements JType {
+public final class JSimpleType implements JType {
 
   private static final long serialVersionUID = 7153757299840260748L;
 
