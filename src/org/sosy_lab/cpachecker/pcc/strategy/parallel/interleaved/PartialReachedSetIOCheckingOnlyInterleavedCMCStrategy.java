@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.pcc.strategy.parallel.interleaved;
 
 import com.google.common.collect.Sets;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.file.Path;
@@ -19,7 +18,6 @@ import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import java.util.zip.ZipInputStream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -44,7 +42,6 @@ import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.AssumptionAutomatonGenerato
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.PartialCPABuilder;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 // FIXME unsound strategy
@@ -278,10 +275,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
     @Override
     @SuppressWarnings("Finally") // not really better doable without switching to Closer
     public void run() {
-      Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
-      try {
-        streams = openProofStream();
-        ObjectInputStream o = streams.getThird();
+      try (ObjectInputStream o = openProofStream()) {
         o.readInt();
 
         CMCPartitioningIOHelper ioHelper;
@@ -351,16 +345,6 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
       } catch (Exception e2) {
         logger.logException(Level.SEVERE, e2, "Unexpected failure during proof reading");
         abortPreparation();
-      } finally {
-        if (streams != null) {
-          try {
-            streams.getThird().close();
-            streams.getSecond().close();
-            streams.getFirst().close();
-          } catch (IOException e) {
-            throw new AssertionError(e);
-          }
-        }
       }
     }
 

@@ -76,16 +76,12 @@ public final class SMGInformation {
     return nonHeapAssignments;
   }
 
-  /**
-   * @return a map from qualified variable names to their types.
-   */
+  /** Returns a map from qualified variable names to their types. */
   public PersistentMap<String, CType> getTypeOfVariablesMap() {
     return variableToTypeMap;
   }
 
-  /**
-   * @return map from qualified variable name to their sizes in bits.
-   */
+  /** Returns a map from qualified variable name to their sizes in bits. */
   public Map<String, BigInteger> getSizeInformationForVariablesMap() {
     return variableNameAndSizeInBits;
   }

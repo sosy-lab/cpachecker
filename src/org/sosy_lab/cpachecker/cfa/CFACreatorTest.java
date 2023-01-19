@@ -134,7 +134,7 @@ public class CFACreatorTest {
         TestDataTools.configurationForTest().setOption("language", "C").build();
     final CFACreator creator = createCfaCreatorForTesting(config);
     final String programSource =
-        "extern void abort() __attribute__((__noreturn__));" + "int main() { abort(); }";
+        "extern void abort() __attribute__((__noreturn__));int main() { abort(); }";
 
     final CFA created = creator.parseSourceAndCreateCFA(programSource);
 
@@ -157,7 +157,7 @@ public class CFACreatorTest {
         TestDataTools.configurationForTest().setOption("language", "C").build();
     final CFACreator creator = createCfaCreatorForTesting(config);
     final String programSource =
-        "extern void myfunc() __attribute__((__noreturn__));" + "int main() { myfunc(); }";
+        "extern void myfunc() __attribute__((__noreturn__));int main() { myfunc(); }";
 
     final CFA created = creator.parseSourceAndCreateCFA(programSource);
 
@@ -183,7 +183,7 @@ public class CFACreatorTest {
                 "cfa.nonReturningFunctions", "[]") // do not handle 'abort' as aborting function
             .build();
     final CFACreator creator = createCfaCreatorForTesting(config);
-    final String programSource = "extern void abort();" + "int main() { abort(); }";
+    final String programSource = "extern void abort();int main() { abort(); }";
 
     final CFA created = creator.parseSourceAndCreateCFA(programSource);
 
@@ -208,7 +208,7 @@ public class CFACreatorTest {
             .setOption("cfa.nonReturningFunctions", "abort") // handle 'abort' as aborting function
             .build();
     final CFACreator creator = createCfaCreatorForTesting(config);
-    final String programSource = "extern void abort();" + "int main() { abort(); }";
+    final String programSource = "extern void abort();int main() { abort(); }";
 
     final CFA created = creator.parseSourceAndCreateCFA(programSource);
 

@@ -276,7 +276,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
 
     if (params.size() != paramsExprs.size()) {
       throw new UnrecognizedCodeException(
-          "Number of parameters on function call does " + "not match function definition", pEdge);
+          "Number of parameters on function call does not match function definition", pEdge);
     }
 
     var result = pPostcond;

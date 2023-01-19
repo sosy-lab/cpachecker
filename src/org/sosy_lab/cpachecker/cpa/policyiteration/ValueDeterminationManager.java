@@ -45,7 +45,7 @@ public class ValueDeterminationManager {
   @Option(
       secure = true,
       description =
-          "Attach extra invariant from other CPAs during the value " + "determination computation")
+          "Attach extra invariant from other CPAs during the value determination computation")
   private boolean attachExtraInvariantDuringValueDetermination = true;
 
   /** Dependencies */
