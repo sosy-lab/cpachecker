@@ -292,7 +292,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       }
     }
 
-    return Optional.of(PrecisionAdjustmentResult.create(resultState, pPrecision, Action.CONTINUE));
+    return Optional.of(new PrecisionAdjustmentResult(resultState, pPrecision, Action.CONTINUE));
   }
 
   private boolean isLoopHead(LocationState location) {
@@ -395,8 +395,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
           }
         }
       }
-      if (precision instanceof SMGPrecision && options.abstractHeapValues) {
-        SMGPrecision smgPrecision = (SMGPrecision) precision;
+      if (precision instanceof SMGPrecision smgPrecision && options.abstractHeapValues) {
         currentState = currentState.enforceHeapValuePrecision(smgPrecision.getTrackedHeapValues());
       }
 

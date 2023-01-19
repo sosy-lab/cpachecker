@@ -34,8 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 public final class CFAEdgeUtils {
 
   public static Type getLeftHandType(CFAEdge pEdge) {
-    if (pEdge instanceof ADeclarationEdge) {
-      ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+    if (pEdge instanceof ADeclarationEdge declarationEdge) {
       if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
         AVariableDeclaration variableDeclaration =
             (AVariableDeclaration) declarationEdge.getDeclaration();
@@ -51,8 +50,7 @@ public final class CFAEdgeUtils {
   }
 
   public static String getLeftHandVariable(CFAEdge pEdge) {
-    if (pEdge instanceof ADeclarationEdge) {
-      ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+    if (pEdge instanceof ADeclarationEdge declarationEdge) {
       if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
         AVariableDeclaration variableDeclaration =
             (AVariableDeclaration) declarationEdge.getDeclaration();
@@ -68,18 +66,14 @@ public final class CFAEdgeUtils {
   }
 
   public static ALeftHandSide getLeftHandSide(CFAEdge pEdge) {
-    if (pEdge instanceof AStatementEdge) {
-      AStatementEdge statementEdge = (AStatementEdge) pEdge;
+    if (pEdge instanceof AStatementEdge statementEdge) {
       if (statementEdge.getStatement() instanceof AAssignment) {
         AAssignment assignment = (AAssignment) statementEdge.getStatement();
         return assignment.getLeftHandSide();
       }
-    } else if (pEdge instanceof FunctionCallEdge) {
-      FunctionCallEdge functionCallEdge = (FunctionCallEdge) pEdge;
-      AFunctionCall functionCall = functionCallEdge.getSummaryEdge().getExpression();
-      if (functionCall instanceof AFunctionCallAssignmentStatement) {
-        AFunctionCallAssignmentStatement assignment =
-            (AFunctionCallAssignmentStatement) functionCall;
+    } else if (pEdge instanceof FunctionCallEdge functionCallEdge) {
+      AFunctionCall functionCall = functionCallEdge.getFunctionCall();
+      if (functionCall instanceof AFunctionCallAssignmentStatement assignment) {
         return assignment.getLeftHandSide();
       }
     }
@@ -87,8 +81,7 @@ public final class CFAEdgeUtils {
   }
 
   public static CRightHandSide getRightHandSide(CFAEdge pEdge) {
-    if (pEdge instanceof CDeclarationEdge) {
-      CDeclarationEdge declarationEdge = (CDeclarationEdge) pEdge;
+    if (pEdge instanceof CDeclarationEdge declarationEdge) {
       if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
         CVariableDeclaration variableDeclaration =
             (CVariableDeclaration) declarationEdge.getDeclaration();
@@ -97,18 +90,14 @@ public final class CFAEdgeUtils {
           return ((CInitializerExpression) initializer).getExpression();
         }
       }
-    } else if (pEdge instanceof CStatementEdge) {
-      CStatementEdge statementEdge = (CStatementEdge) pEdge;
+    } else if (pEdge instanceof CStatementEdge statementEdge) {
       if (statementEdge.getStatement() instanceof CAssignment) {
         CAssignment assignment = (CAssignment) statementEdge.getStatement();
         return assignment.getRightHandSide();
       }
-    } else if (pEdge instanceof CFunctionCallEdge) {
-      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pEdge;
+    } else if (pEdge instanceof CFunctionCallEdge functionCallEdge) {
       CFunctionCall functionCall = functionCallEdge.getSummaryEdge().getExpression();
-      if (functionCall instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement assignment =
-            (CFunctionCallAssignmentStatement) functionCall;
+      if (functionCall instanceof CFunctionCallAssignmentStatement assignment) {
         return assignment.getRightHandSide();
       }
     }

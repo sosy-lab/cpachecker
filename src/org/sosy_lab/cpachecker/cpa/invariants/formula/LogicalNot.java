@@ -41,16 +41,13 @@ public class LogicalNot<ConstantType> implements BooleanFormula<ConstantType> {
     if (negated instanceof LogicalNot) {
       return ((LogicalNot<?>) negated).getNegated().toString();
     }
-    if (negated instanceof Equal<?>) {
-      Equal<?> equation = (Equal<?>) negated;
+    if (negated instanceof Equal<?> equation) {
       return String.format("(%s != %s)", equation.getOperand1(), equation.getOperand2());
     }
-    if (negated instanceof LessThan<?>) {
-      LessThan<?> lessThan = (LessThan<?>) negated;
+    if (negated instanceof LessThan<?> lessThan) {
       return String.format("(%s >= %s)", lessThan.getOperand1(), lessThan.getOperand2());
     }
-    if (negated instanceof LogicalAnd<?>) {
-      LogicalAnd<?> and = (LogicalAnd<?>) negated;
+    if (negated instanceof LogicalAnd<?> and) {
       final String left;
       if (and.getOperand1() instanceof LogicalNot) {
         left = ((LogicalNot<?>) and.getOperand1()).getNegated().toString();

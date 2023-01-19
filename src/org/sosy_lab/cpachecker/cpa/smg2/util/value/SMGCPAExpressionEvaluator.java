@@ -849,13 +849,11 @@ public class SMGCPAExpressionEvaluator {
    * This should be used to not confuse enums with structs/unions.
    */
   public static boolean isStructOrUnionType(CType rValueType) {
-    if (rValueType instanceof CCompositeType) {
-      CCompositeType type = (CCompositeType) rValueType;
+    if (rValueType instanceof CCompositeType type) {
       return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
 
-    if (rValueType instanceof CElaboratedType) {
-      CElaboratedType type = (CElaboratedType) rValueType;
+    if (rValueType instanceof CElaboratedType type) {
       return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
     return false;
@@ -1284,10 +1282,9 @@ public class SMGCPAExpressionEvaluator {
     SMGObject newVariableMemory = maybeObject.orElseThrow();
     BigInteger ZeroOffsetInBits = BigInteger.ZERO;
 
-    if (valueToWrite instanceof AddressExpression) {
+    if (valueToWrite instanceof AddressExpression paramAddrExpr) {
       // This is either a pointer to be written or this points to a memory region
       // to be copied depending on the type
-      AddressExpression paramAddrExpr = (AddressExpression) valueToWrite;
       Value paramAddrOffsetValue = paramAddrExpr.getOffset();
 
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(parameterType)
@@ -1519,8 +1516,7 @@ public class SMGCPAExpressionEvaluator {
               "Could not determine correct type size for an array for initializer expression: "
                   + init);
         }
-      } else if (init instanceof CInitializerList) {
-        CInitializerList initList = ((CInitializerList) init);
+      } else if (init instanceof CInitializerList initList) {
         CType realCType = cType.getCanonicalType();
 
         CArrayType arrayType = (CArrayType) realCType;
@@ -1631,16 +1627,13 @@ public class SMGCPAExpressionEvaluator {
         return writeCExpressionToLocalOrGlobalVariable(
             pNewState, pEdge, variableName, pOffset, pLValueType, expression);
       }
-    } else if (pInitializer instanceof CInitializerList) {
-      CInitializerList pNewInitializer = ((CInitializerList) pInitializer);
+    } else if (pInitializer instanceof CInitializerList pNewInitializer) {
       CType realCType = pLValueType.getCanonicalType();
 
-      if (realCType instanceof CArrayType) {
-        CArrayType arrayType = (CArrayType) realCType;
+      if (realCType instanceof CArrayType arrayType) {
         return handleInitializerList(
             pNewState, pVarDecl, pEdge, variableName, pOffset, arrayType, pNewInitializer);
-      } else if (realCType instanceof CCompositeType) {
-        CCompositeType structType = (CCompositeType) realCType;
+      } else if (realCType instanceof CCompositeType structType) {
         return handleInitializerList(
             pNewState, pVarDecl, pEdge, variableName, pOffset, structType, pNewInitializer);
       }

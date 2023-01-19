@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -78,7 +79,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -1930,31 +1930,16 @@ public abstract class AbstractExpressionValueVisitor
       case LESS_THAN:
       case LESS_EQUAL:
         {
-          final boolean result;
-          switch (pBinaryOperator) {
-            case EQUALS:
-              result = (lVal == rVal);
-              break;
-            case NOT_EQUALS:
-              result = (lVal != rVal);
-              break;
-            case GREATER_THAN:
-              result = (lVal > rVal);
-              break;
-            case GREATER_EQUAL:
-              result = (lVal >= rVal);
-              break;
-            case LESS_THAN:
-              result = (lVal < rVal);
-              break;
-            case LESS_EQUAL:
-              result = (lVal <= rVal);
-              break;
-
-            default:
-              throw new AssertionError("Unhandled operation " + pBinaryOperator);
-          }
-
+          final boolean result =
+              switch (pBinaryOperator) {
+                case EQUALS -> (lVal == rVal);
+                case NOT_EQUALS -> (lVal != rVal);
+                case GREATER_THAN -> (lVal > rVal);
+                case GREATER_EQUAL -> (lVal >= rVal);
+                case LESS_THAN -> (lVal < rVal);
+                case LESS_EQUAL -> (lVal <= rVal);
+                default -> throw new AssertionError("Unhandled operation " + pBinaryOperator);
+              };
           return BooleanValue.valueOf(result);
         }
       default:
@@ -2025,32 +2010,19 @@ public abstract class AbstractExpressionValueVisitor
       case LESS_THAN:
       case LESS_EQUAL:
         {
-          final boolean result;
-          switch (pBinaryOperator) {
-            case EQUALS:
-              result = (lVal == rVal);
-              break;
-            case NOT_EQUALS:
-              result = (lVal != rVal);
-              break;
-            case GREATER_THAN:
-              result = (lVal > rVal);
-              break;
-            case GREATER_EQUAL:
-              result = (lVal >= rVal);
-              break;
-            case LESS_THAN:
-              result = (lVal < rVal);
-              break;
-            case LESS_EQUAL:
-              result = (lVal <= rVal);
-              break;
-
-            default:
-              throw new AssertionError(
-                  "Unsupported binary operation " + pBinaryOperator + " on floating point values");
-          }
-
+          final boolean result =
+              switch (pBinaryOperator) {
+                case EQUALS -> (lVal == rVal);
+                case NOT_EQUALS -> (lVal != rVal);
+                case GREATER_THAN -> (lVal > rVal);
+                case GREATER_EQUAL -> (lVal >= rVal);
+                case LESS_THAN -> (lVal < rVal);
+                case LESS_EQUAL -> (lVal <= rVal);
+                default -> throw new AssertionError(
+                    "Unsupported binary operation "
+                        + pBinaryOperator
+                        + " on floating point values");
+              };
           // return 1 if expression holds, 0 otherwise
           return BooleanValue.valueOf(result);
         }
@@ -2472,8 +2444,7 @@ public abstract class AbstractExpressionValueVisitor
 
     CType type = targetType.getCanonicalType();
     final int size;
-    if (type instanceof CSimpleType) {
-      final CSimpleType st = (CSimpleType) type;
+    if (type instanceof CSimpleType st) {
       size = machineModel.getSizeofInBits(st);
     } else if (type instanceof CBitFieldType) {
       size = ((CBitFieldType) type).getBitFieldSize();
@@ -2692,9 +2663,7 @@ public abstract class AbstractExpressionValueVisitor
 
     NumericValue numericValue = (NumericValue) value;
 
-    if (targetType instanceof JSimpleType) {
-      final JSimpleType st = (JSimpleType) targetType;
-
+    if (targetType instanceof JSimpleType st) {
       if (isIntegerType(sourceType)) {
         long longValue = numericValue.longValue();
 

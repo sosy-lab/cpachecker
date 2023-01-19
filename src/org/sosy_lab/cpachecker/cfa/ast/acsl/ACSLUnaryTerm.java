@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class ACSLUnaryTerm implements ACSLTerm {
+public final class ACSLUnaryTerm implements ACSLTerm {
 
   private final ACSLTerm term;
   private final ACSLUnaryOperator operator;
@@ -28,8 +28,7 @@ public class ACSLUnaryTerm implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLUnaryTerm) {
-      ACSLUnaryTerm other = (ACSLUnaryTerm) o;
+    if (o instanceof ACSLUnaryTerm other) {
       return term.equals(other.term) && operator.equals(other.operator);
     }
     return false;

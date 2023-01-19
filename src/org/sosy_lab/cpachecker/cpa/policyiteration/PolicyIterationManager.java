@@ -283,7 +283,7 @@ public class PolicyIterationManager {
       throws CPAException, InterruptedException {
     return precisionAdjustment0(inputState, inputPrecision, states, pArgState)
         .flatMap(
-            s -> Optional.of(PrecisionAdjustmentResult.create(s, inputPrecision, Action.CONTINUE)));
+            s -> Optional.of(new PrecisionAdjustmentResult(s, inputPrecision, Action.CONTINUE)));
   }
 
   /** Perform abstraction and reachability checking with precision adjustment operator. */

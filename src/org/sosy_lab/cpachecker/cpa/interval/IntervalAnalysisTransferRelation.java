@@ -104,9 +104,7 @@ public class IntervalAnalysisTransferRelation
     }
 
     // expression is an assignment operation, e.g. a = g(b);
-    if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement) summaryExpr;
-
+    if (summaryExpr instanceof CFunctionCallAssignmentStatement funcExp) {
       // left hand side of the expression has to be a variable
       if (state.contains(retVar.orElseThrow().getQualifiedName())) {
         newState =
@@ -403,8 +401,7 @@ public class IntervalAnalysisTransferRelation
       CStatementEdge cfaEdge, CStatement expression) throws UnrecognizedCodeException {
     IntervalAnalysisState successor = state;
     // expression is an assignment operation, e.g. a = b;
-    if (expression instanceof CAssignment) {
-      CAssignment assignExpression = (CAssignment) expression;
+    if (expression instanceof CAssignment assignExpression) {
       CExpression op1 = assignExpression.getLeftHandSide();
       CRightHandSide op2 = assignExpression.getRightHandSide();
 

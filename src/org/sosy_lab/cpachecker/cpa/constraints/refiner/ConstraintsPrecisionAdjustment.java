@@ -73,7 +73,7 @@ public class ConstraintsPrecisionAdjustment implements PrecisionAdjustment {
 
       result = result.equals(pStateToAdjust) ? pStateToAdjust : result;
 
-      return Optional.of(PrecisionAdjustmentResult.create(result, pPrecision, Action.CONTINUE));
+      return Optional.of(new PrecisionAdjustmentResult(result, pPrecision, Action.CONTINUE));
     } finally {
       stats.adjustmentTime.stop();
     }

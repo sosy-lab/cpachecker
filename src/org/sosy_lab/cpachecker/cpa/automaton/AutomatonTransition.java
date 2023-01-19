@@ -405,9 +405,7 @@ class AutomatonTransition {
             String functionName = CProgramScope.getFunctionNameOfArtificialReturnVar(idExpression);
             if (pEdge instanceof AStatementEdge) {
               AStatement statement = ((AStatementEdge) pEdge).getStatement();
-              if (statement instanceof AFunctionCallAssignmentStatement) {
-                AFunctionCallAssignmentStatement functionCallAssignment =
-                    (AFunctionCallAssignmentStatement) statement;
+              if (statement instanceof AFunctionCallAssignmentStatement functionCallAssignment) {
                 AExpression functionNameExpression =
                     functionCallAssignment.getFunctionCallExpression().getFunctionNameExpression();
                 if (functionNameExpression instanceof AIdExpression

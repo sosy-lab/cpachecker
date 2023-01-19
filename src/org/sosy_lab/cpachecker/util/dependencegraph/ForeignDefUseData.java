@@ -57,8 +57,7 @@ final class ForeignDefUseData {
 
     Map<AFunctionDeclaration, Set<AFunctionDeclaration>> calledFunctions = new HashMap<>();
     for (CFAEdge edge : edges) {
-      if (edge instanceof CFunctionSummaryEdge) {
-        CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) edge;
+      if (edge instanceof CFunctionSummaryEdge summaryEdge) {
         AFunctionDeclaration function = summaryEdge.getPredecessor().getFunction();
         AFunctionDeclaration calledFunction = summaryEdge.getFunctionEntry().getFunction();
         calledFunctions.computeIfAbsent(function, key -> new HashSet<>()).add(calledFunction);

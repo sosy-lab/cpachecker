@@ -78,8 +78,7 @@ public class CachingTargetLocationProvider implements TargetLocationProvider {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof CacheKey) {
-        CacheKey other = (CacheKey) pObj;
+      if (pObj instanceof CacheKey other) {
         return node.equals(other.node) && specification.equals(other.specification);
       }
       return false;

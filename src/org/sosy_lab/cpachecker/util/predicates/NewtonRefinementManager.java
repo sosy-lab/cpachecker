@@ -150,19 +150,11 @@ public class NewtonRefinementManager implements StatisticsProvider {
         return CounterexampleTraceInfo.feasibleImprecise(pFormulas.getFormulas());
       } else {
         // Create infeasible Counterexample
-        List<BooleanFormula> predicates;
-        switch (abstractionLevel) {
-          case EDGE:
-            predicates = createPredicatesEdgeLevel(pAllStatesTrace, pFormulas, pathLocations);
-            break;
-          case BLOCK:
-            predicates = createPredicatesBlockLevel(pAllStatesTrace, pFormulas, pathLocations);
-            break;
-          default:
-            throw new UnsupportedOperationException(
-                "The selected PathFormulaAbstractionLevel is not implemented.");
-        }
-
+        List<BooleanFormula> predicates =
+            switch (abstractionLevel) {
+              case EDGE -> createPredicatesEdgeLevel(pAllStatesTrace, pFormulas, pathLocations);
+              case BLOCK -> createPredicatesBlockLevel(pAllStatesTrace, pFormulas, pathLocations);
+            };
         // Test if the predicate of the error state is unsatisfiable
         try {
           if (!solver.isUnsat(predicates.get(predicates.size() - 1))) {

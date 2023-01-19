@@ -168,12 +168,10 @@ public class SMGTransferRelation
 
   @Override
   protected Set<SMGState> handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException {
-    if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
-      if (isEntryFunction(cfaEdge)) {
-        // Entry functions need special handling as they don't have a return edge
-        // (i.e. check for memory leaks)
-        return handleReturnEntryFunction(Collections.singleton(state));
-      }
+    if ((cfaEdge.getSuccessor() instanceof FunctionExitNode) && isEntryFunction(cfaEdge)) {
+      // Entry functions need special handling as they don't have a return edge
+      // (i.e. check for memory leaks)
+      return handleReturnEntryFunction(Collections.singleton(state));
     }
 
     return Collections.singleton(state);
@@ -283,9 +281,7 @@ public class SMGTransferRelation
         state.getMemoryModel().getStackFrames().peek().getFunctionDefinition()
             == summaryEdge.getFunctionEntry().getFunctionDefinition());
 
-    if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement funcCallExpr =
-          (CFunctionCallAssignmentStatement) summaryExpr;
+    if (summaryExpr instanceof CFunctionCallAssignmentStatement funcCallExpr) {
       CExpression leftValue = funcCallExpr.getLeftHandSide();
       CType rightValueType =
           SMGCPAExpressionEvaluator.getCanonicalType(funcCallExpr.getRightHandSide());
@@ -328,8 +324,7 @@ public class SMGTransferRelation
    */
   private List<SMGState> createVariableOnTheSpot(CExpression leftHandSideExpr, SMGState pState)
       throws CPATransferException {
-    if (leftHandSideExpr instanceof CIdExpression) {
-      CIdExpression leftCIdExpr = (CIdExpression) leftHandSideExpr;
+    if (leftHandSideExpr instanceof CIdExpression leftCIdExpr) {
       CSimpleDeclaration decl = leftCIdExpr.getDeclaration();
       String varName = decl.getQualifiedName();
       SMGState currentState = pState;
@@ -659,10 +654,9 @@ public class SMGTransferRelation
   protected Collection<SMGState> handleStatementEdge(CStatementEdge pCfaEdge, CStatement cStmt)
       throws CPATransferException {
     // Either assignments a = b; or function calls foo(..);
-    if (cStmt instanceof CAssignment) {
+    if (cStmt instanceof CAssignment cAssignment) {
       // Assignments, evaluate the right hand side value using the value visitor and write it into
       // the address returned by the address evaluator for the left hand side.
-      CAssignment cAssignment = (CAssignment) cStmt;
       CExpression lValue = cAssignment.getLeftHandSide();
       CRightHandSide rValue = cAssignment.getRightHandSide();
       ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
@@ -671,9 +665,8 @@ public class SMGTransferRelation
       }
       return stateBuilder.build();
 
-    } else if (cStmt instanceof CFunctionCallStatement) {
+    } else if (cStmt instanceof CFunctionCallStatement cFCall) {
       // Check the arguments for the function, then simply execute the function
-      CFunctionCallStatement cFCall = (CFunctionCallStatement) cStmt;
       CFunctionCallExpression cFCExpression = cFCall.getFunctionCallExpression();
       CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
       String calledFunctionName = fileNameExpression.toASTString();
@@ -739,8 +732,7 @@ public class SMGTransferRelation
     SMGState currentState = state;
     // CEGAR checks inside the ifs! Else we check every typedef!
 
-    if (cDecl instanceof CFunctionDeclaration) {
-      CFunctionDeclaration cFuncDecl = (CFunctionDeclaration) cDecl;
+    if (cDecl instanceof CFunctionDeclaration cFuncDecl) {
       if (cFuncDecl.getQualifiedName().equals("main")) {
         if (cFuncDecl.getParameters() != null) {
           // Init main parameters of there are any

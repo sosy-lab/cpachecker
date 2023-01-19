@@ -261,8 +261,7 @@ public final class LoopStructure implements Serializable {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof Loop) {
-        Loop other = (Loop) pObj;
+      if (pObj instanceof Loop other) {
         return loopHeads.equals(other.loopHeads) && nodes.equals(other.nodes);
       }
       return false;
@@ -379,37 +378,35 @@ public final class LoopStructure implements Serializable {
    */
   @Nullable
   private static String obtainIncDecVariable(CFAEdge e) {
-    if (e instanceof CStatementEdge) {
-      CStatementEdge stmtEdge = (CStatementEdge) e;
-      if (stmtEdge.getStatement() instanceof CAssignment) {
-        CAssignment assign = (CAssignment) stmtEdge.getStatement();
+    if ((e instanceof CStatementEdge stmtEdge)
+        && (stmtEdge.getStatement() instanceof CAssignment)) {
+      CAssignment assign = (CAssignment) stmtEdge.getStatement();
 
-        if (assign.getLeftHandSide() instanceof CIdExpression) {
-          CIdExpression assignementToId = (CIdExpression) assign.getLeftHandSide();
-          String assignToVar = assignementToId.getDeclaration().getQualifiedName();
+      if (assign.getLeftHandSide() instanceof CIdExpression) {
+        CIdExpression assignementToId = (CIdExpression) assign.getLeftHandSide();
+        String assignToVar = assignementToId.getDeclaration().getQualifiedName();
 
-          if (assign.getRightHandSide() instanceof CBinaryExpression) {
-            CBinaryExpression binExpr = (CBinaryExpression) assign.getRightHandSide();
-            BinaryOperator op = binExpr.getOperator();
+        if (assign.getRightHandSide() instanceof CBinaryExpression) {
+          CBinaryExpression binExpr = (CBinaryExpression) assign.getRightHandSide();
+          BinaryOperator op = binExpr.getOperator();
 
-            if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {
+          if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {
 
-              if (binExpr.getOperand1() instanceof CLiteralExpression
-                  || binExpr.getOperand2() instanceof CLiteralExpression) {
-                CIdExpression operandId = null;
+            if (binExpr.getOperand1() instanceof CLiteralExpression
+                || binExpr.getOperand2() instanceof CLiteralExpression) {
+              CIdExpression operandId = null;
 
-                if (binExpr.getOperand1() instanceof CIdExpression) {
-                  operandId = (CIdExpression) binExpr.getOperand1();
-                }
-                if (binExpr.getOperand2() instanceof CIdExpression) {
-                  operandId = (CIdExpression) binExpr.getOperand2();
-                }
+              if (binExpr.getOperand1() instanceof CIdExpression) {
+                operandId = (CIdExpression) binExpr.getOperand1();
+              }
+              if (binExpr.getOperand2() instanceof CIdExpression) {
+                operandId = (CIdExpression) binExpr.getOperand2();
+              }
 
-                if (operandId != null) {
-                  String operandVar = operandId.getDeclaration().getQualifiedName();
-                  if (assignToVar.equals(operandVar)) {
-                    return assignToVar;
-                  }
+              if (operandId != null) {
+                String operandVar = operandId.getDeclaration().getQualifiedName();
+                if (assignToVar.equals(operandVar)) {
+                  return assignToVar;
                 }
               }
             }

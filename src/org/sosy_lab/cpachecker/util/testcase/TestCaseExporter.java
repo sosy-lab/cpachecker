@@ -265,19 +265,15 @@ public class TestCaseExporter {
             }
           }
         } else {
-          Object content = null;
+          Object content =
+              switch (type) {
+                case HARNESS -> (Appender)
+                    appendable ->
+                        harnessExporter.writeHarness(
+                            appendable, rootState, relevantStates, relevantEdges, pCexInfo);
+                default -> throw new AssertionError("Unknown test case format.");
+              };
 
-          switch (type) {
-            case HARNESS:
-              content =
-                  (Appender)
-                      appendable ->
-                          harnessExporter.writeHarness(
-                              appendable, rootState, relevantStates, relevantEdges, pCexInfo);
-              break;
-            default:
-              throw new AssertionError("Unknown test case format.");
-          }
           IO.writeFile(pTestCaseFiles.get(0), Charset.defaultCharset(), content);
         }
       } catch (IOException e) {
@@ -351,29 +347,25 @@ public class TestCaseExporter {
         }
       } else {
         for (Path pFile : pTestCaseFiles) {
-          Object content = null;
+          Object content =
+              switch (pType) {
+                case PLAIN -> {
+                  String plainOutput =
+                      inputListToFormattedString(nextInputs, TestCaseExporter::printLineSeparated);
+                  yield (Appender) appendable -> appendable.append(plainOutput);
+                }
+                case METADATA -> (Appender)
+                    appendable ->
+                        XMLTestCaseExport.writeXMLMetadata(
+                            appendable, cfa, pSpec.orElse(null), producerString);
+                case XML -> {
+                  String xmlOutput =
+                      inputListToFormattedString(nextInputs, XMLTestCaseExport.XML_TEST_CASE);
+                  yield (Appender) appendable -> appendable.append(xmlOutput);
+                }
+                default -> throw new AssertionError("Unknown test case format.");
+              };
 
-          switch (pType) {
-            case PLAIN:
-              String plainOutput =
-                  inputListToFormattedString(nextInputs, TestCaseExporter::printLineSeparated);
-              content = (Appender) appendable -> appendable.append(plainOutput);
-              break;
-            case METADATA:
-              content =
-                  (Appender)
-                      appendable ->
-                          XMLTestCaseExport.writeXMLMetadata(
-                              appendable, cfa, pSpec.orElse(null), producerString);
-              break;
-            case XML:
-              String xmlOutput =
-                  inputListToFormattedString(nextInputs, XMLTestCaseExport.XML_TEST_CASE);
-              content = (Appender) appendable -> appendable.append(xmlOutput);
-              break;
-            default:
-              throw new AssertionError("Unknown test case format.");
-          }
           IO.writeFile(pFile, Charset.defaultCharset(), content);
           nextInputs = mutateInputValues(pOrigInputs);
         }

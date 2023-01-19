@@ -28,7 +28,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
-public class CFANode implements Comparable<CFANode>, Serializable {
+public sealed class CFANode implements Comparable<CFANode>, Serializable
+    permits CFALabelNode, CFATerminationNode, FunctionEntryNode, FunctionExitNode {
 
   private static final long serialVersionUID = 5168350921309486536L;
 

@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -38,7 +37,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstraction;
 import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstractionResult;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
@@ -150,7 +148,7 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
     ImmutableSet<String> ignoreOptions =
         ImmutableSet.of("analysis.useArrayAbstraction", "arrayAbstraction.delegateAnalysis");
 
-    Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> delegate;
+    NestedAnalysis delegate;
     try {
       delegate =
           createAlgorithm(
@@ -166,8 +164,8 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
 
-    Algorithm algorithm = delegate.getFirst();
-    ReachedSet reached = delegate.getThird();
+    Algorithm algorithm = delegate.algorithm();
+    ReachedSet reached = delegate.reached();
 
     AlgorithmStatus status = algorithm.run(reached);
 
