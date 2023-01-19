@@ -258,7 +258,7 @@ public class NullPointerChecks {
             ((CReturnStatementEdge) edge).getReturnStatement(),
             edge.getFileLocation(),
             predecessor,
-            ((CReturnStatementEdge) edge).getSuccessor());
+            ((CReturnStatementEdge) edge).functionExitNode());
       case StatementEdge:
         return new CStatementEdge(
             edge.getRawStatement(),

@@ -528,7 +528,8 @@ final class VariableAndFieldRelevancyComputer {
         {
           final CFunctionCallEdge call = (CFunctionCallEdge) edge;
           final List<CExpression> args = call.getArguments();
-          final List<CParameterDeclaration> params = call.getSuccessor().getFunctionParameters();
+          final List<CParameterDeclaration> params =
+              call.functionEntryNode().getFunctionParameters();
           for (int i = 0; i < params.size(); i++) {
             result =
                 result.withDependencies(
@@ -539,7 +540,7 @@ final class VariableAndFieldRelevancyComputer {
                                 VariableOrField.newVariable(params.get(i).getQualifiedName()))));
           }
           CFunctionCall statement = call.getSummaryEdge().getExpression();
-          Optional<CVariableDeclaration> returnVar = call.getSuccessor().getReturnVariable();
+          Optional<CVariableDeclaration> returnVar = call.functionEntryNode().getReturnVariable();
           if (returnVar.isPresent()) {
             String scopedRetVal = returnVar.orElseThrow().getQualifiedName();
             if (statement instanceof CFunctionCallAssignmentStatement) {

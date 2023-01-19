@@ -192,7 +192,7 @@ public class FunctionCallDumper {
                     .first()
                     .toJavaUtil()
                     .orElseThrow(() -> new IllegalStateException("internal function without body"))
-                    .getSuccessor()
+                    .functionEntryNode()
                     .getFunctionDefinition();
             functionCalls.put(functionName, calledFunctionDecl.getName());
             originalNames.put(calledFunctionDecl.getName(), calledFunctionDecl.getOrigName());

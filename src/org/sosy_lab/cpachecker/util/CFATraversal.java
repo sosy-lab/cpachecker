@@ -369,7 +369,7 @@ public class CFATraversal {
         handleDeclaration(decl.isGlobal() ? "" : funName, decl.getOrigName());
       } else if (pEdge instanceof FunctionCallEdge) {
         for (AParameterDeclaration paramDecl :
-            ((FunctionCallEdge) pEdge).getSuccessor().getFunctionParameters()) {
+            ((FunctionCallEdge) pEdge).functionEntryNode().getFunctionParameters()) {
           handleDeclaration(funName, paramDecl.getOrigName());
         }
       }

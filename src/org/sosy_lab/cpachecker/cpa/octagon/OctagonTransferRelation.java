@@ -817,10 +817,10 @@ public class OctagonTransferRelation
       String calledFunctionName)
       throws CPATransferException {
 
-    CFunctionEntryNode functionEntryNode = cfaEdge.getSuccessor();
+    CFunctionEntryNode functionEntryNode = cfaEdge.functionEntryNode();
 
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
-    CFunctionType functionType = cfaEdge.getSuccessor().getFunctionDefinition().getType();
+    CFunctionType functionType = cfaEdge.functionEntryNode().getFunctionDefinition().getType();
 
     if (!functionType.takesVarArgs()) {
       assert parameters.size() == arguments.size();
@@ -838,7 +838,7 @@ public class OctagonTransferRelation
                   calledFunctionName,
                   functionEntryNode.getReturnVariable().orElseThrow().getName()),
               getCorrespondingOctStateType(
-                  cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType()));
+                  cfaEdge.functionEntryNode().getFunctionDefinition().getType().getReturnType()));
     }
 
     List<Pair<MemoryLocation, CExpression>> handleAbleParams = new ArrayList<>();

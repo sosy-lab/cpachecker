@@ -150,7 +150,7 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
       return pState;
     }
     Optional<? extends AVariableDeclaration> retVar =
-        pEdge.getSuccessor().getEntryNode().getReturnVariable();
+        pEdge.functionExitNode().getEntryNode().getReturnVariable();
     if (!retVar.isPresent()) {
       return pState;
     }
@@ -174,7 +174,7 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
   private static NondeterminismNonAbstractionState handleFunctionCall(
       NondeterminismNonAbstractionState pState, FunctionCallEdge pEdge) {
     return handleFunctionCall(
-        pState, pEdge.getSuccessor().getFunctionParameters(), pEdge.getArguments());
+        pState, pEdge.functionEntryNode().getFunctionParameters(), pEdge.getArguments());
   }
 
   private static NondeterminismNonAbstractionState handleFunctionCall(

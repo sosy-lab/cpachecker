@@ -400,7 +400,7 @@ class WitnessFactory implements EdgeAppender {
           FunctionCallEdge callEdge =
               Iterables.getOnlyElement(
                   CFAUtils.leavingEdges(assumeEdge.getSuccessor()).filter(FunctionCallEdge.class));
-          FunctionEntryNode in = callEdge.getSuccessor();
+          FunctionEntryNode in = callEdge.functionEntryNode();
           result = result.putAndCopy(KeyDef.FUNCTIONENTRY, in.getFunctionName());
         }
       } else if (witnessOptions.exportAssumeCaseInfo()) {

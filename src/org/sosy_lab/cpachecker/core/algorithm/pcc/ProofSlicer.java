@@ -261,13 +261,13 @@ public class ProofSlicer {
       case ReturnStatementEdge:
         CReturnStatementEdge retStm = ((CReturnStatementEdge) edge);
         if (retStm.getExpression().isPresent()
-            && !retStm.getSuccessor().getEntryNode().getReturnVariable().isPresent()) {
+            && !retStm.functionExitNode().getEntryNode().getReturnVariable().isPresent()) {
           throw new AssertionError("Return statement but no return variable available");
         }
 
-        if (retStm.getSuccessor().getEntryNode().getReturnVariable().isPresent()) {
+        if (retStm.functionExitNode().getEntryNode().getReturnVariable().isPresent()) {
           String varName =
-              retStm.getSuccessor().getEntryNode().getReturnVariable().get().getQualifiedName();
+              retStm.functionExitNode().getEntryNode().getReturnVariable().get().getQualifiedName();
           addAllExceptVar(varName, succVars, updatedVars);
 
           if (retStm.getExpression().isPresent()) {
@@ -283,7 +283,7 @@ public class ProofSlicer {
         Collection<String> paramNames = new HashSet<>();
 
         String paramName;
-        List<CParameterDeclaration> paramDecl = funCall.getSuccessor().getFunctionParameters();
+        List<CParameterDeclaration> paramDecl = funCall.functionEntryNode().getFunctionParameters();
         List<CExpression> args = funCall.getArguments();
         assert (paramDecl.size() == args.size());
         for (int i = 0; i < paramDecl.size(); i++) {

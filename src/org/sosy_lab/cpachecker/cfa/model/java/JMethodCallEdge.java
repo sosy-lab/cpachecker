@@ -63,8 +63,7 @@ public class JMethodCallEdge extends FunctionCallEdge {
   }
 
   @Override
-  public JMethodEntryNode getSuccessor() {
-    // the constructor enforces that the successor is always a FunctionEntryNode
-    return (JMethodEntryNode) super.getSuccessor();
+  public JMethodEntryNode functionEntryNode() {
+    return (JMethodEntryNode) super.functionEntryNode();
   }
 }

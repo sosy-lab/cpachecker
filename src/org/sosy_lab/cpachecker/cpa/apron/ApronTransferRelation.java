@@ -601,11 +601,11 @@ public class ApronTransferRelation
       String calledFunctionName)
       throws CPATransferException {
 
-    CFunctionEntryNode functionEntryNode = cfaEdge.getSuccessor();
+    CFunctionEntryNode functionEntryNode = cfaEdge.functionEntryNode();
 
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
 
-    if (!cfaEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
+    if (!cfaEdge.functionEntryNode().getFunctionDefinition().getType().takesVarArgs()) {
       assert parameters.size() == arguments.size();
     } else {
       assert parameters.size() <= arguments.size();
@@ -619,7 +619,7 @@ public class ApronTransferRelation
                   calledFunctionName,
                   functionEntryNode.getReturnVariable().orElseThrow().getName()),
               getCorrespondingOctStateType(
-                  cfaEdge.getSuccessor().getFunctionDefinition().getType().getReturnType())));
+                  cfaEdge.functionEntryNode().getFunctionDefinition().getType().getReturnType())));
     } else {
       possibleStates.add(state);
     }

@@ -266,7 +266,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       return pState;
     }
     Optional<MemoryLocation> returnVariable =
-        getFunctionReturnVariable(pCfaEdge.getSuccessor().getEntryNode());
+        getFunctionReturnVariable(pCfaEdge.functionExitNode().getEntryNode());
     if (!returnVariable.isPresent()) {
       return pState;
     }
@@ -288,7 +288,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       PointerState pState, CFunctionCallEdge pCFunctionCallEdge) throws UnrecognizedCodeException {
     PointerState newState = pState;
     List<CParameterDeclaration> formalParams =
-        pCFunctionCallEdge.getSuccessor().getFunctionParameters();
+        pCFunctionCallEdge.functionEntryNode().getFunctionParameters();
     List<CExpression> actualParams = pCFunctionCallEdge.getArguments();
     int limit = Math.min(formalParams.size(), actualParams.size());
     formalParams = FluentIterable.from(formalParams).limit(limit).toList();

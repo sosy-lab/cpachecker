@@ -83,7 +83,7 @@ public class SignTransferRelation
       List<? extends AParameterDeclaration> pParameters,
       String pCalledFunctionName)
       throws CPATransferException {
-    if (!pCfaEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
+    if (!pCfaEdge.functionEntryNode().getFunctionDefinition().getType().takesVarArgs()) {
       assert (pParameters.size() == pArguments.size());
     }
     // Collect arguments

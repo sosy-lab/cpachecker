@@ -323,10 +323,10 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
     RTTState newState = RTTState.copyOf(state);
 
-    FunctionEntryNode functionEntryNode = cfaEdge.getSuccessor();
+    FunctionEntryNode functionEntryNode = cfaEdge.functionEntryNode();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
 
-    if (!cfaEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
+    if (!cfaEdge.functionEntryNode().getFunctionDefinition().getType().takesVarArgs()) {
       assert (paramNames.size() == arguments.size());
     }
 

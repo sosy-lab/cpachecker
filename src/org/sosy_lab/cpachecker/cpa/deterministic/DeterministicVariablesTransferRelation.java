@@ -159,7 +159,7 @@ public class DeterministicVariablesTransferRelation
       throws CPATransferException {
 
     assert (parameters.size() == arguments.size())
-        || cfaEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs();
+        || cfaEdge.functionEntryNode().getFunctionDefinition().getType().takesVarArgs();
 
     Set<Wrapper<ASimpleDeclaration>> deterministicParameters = new HashSet<>(arguments.size());
     for (int i = 0; i < parameters.size(); i++) {

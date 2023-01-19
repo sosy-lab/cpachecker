@@ -25,7 +25,7 @@ public class AReturnStatementEdge extends AbstractCFAEdge {
       AReturnStatement pReturnStatement,
       FileLocation pFileLocation,
       CFANode pPredecessor,
-      FunctionExitNode pSuccessor) {
+      CFANode pSuccessor) {
 
     super(pRawStatement, pFileLocation, pPredecessor, pSuccessor);
     returnStatement = pReturnStatement;
@@ -59,9 +59,18 @@ public class AReturnStatementEdge extends AbstractCFAEdge {
     return returnStatement.toASTString();
   }
 
-  @Override
-  public FunctionExitNode getSuccessor() {
-    // the constructor enforces that the successor is always a FunctionExitNode
-    return (FunctionExitNode) super.getSuccessor();
+  public FunctionExitNode functionExitNode() {
+    CFANode node = getSuccessor();
+    // skip blank edges if necessary
+    while (!(node instanceof FunctionExitNode)
+        && node.getNumLeavingEdges() == 1
+        && node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.BlankEdge) {
+      node = node.getLeavingEdge(0).getSuccessor();
+    }
+    if (node instanceof FunctionExitNode functionExitNode) {
+      return functionExitNode;
+    } else {
+      throw new IllegalStateException("Cannot determine function exit node for " + this);
+    }
   }
 }

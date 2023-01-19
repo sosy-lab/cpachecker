@@ -163,7 +163,7 @@ public class BlockPartitioningBuilder {
     ImmutableSet.Builder<FunctionEntryNode> result = ImmutableSet.builder();
     for (CFANode node : pNodes) {
       for (CFAEdge e : CFAUtils.leavingEdges(node).filter(CFunctionCallEdge.class)) {
-        result.add(((CFunctionCallEdge) e).getSuccessor());
+        result.add(((CFunctionCallEdge) e).functionEntryNode());
       }
     }
     return result.build();

@@ -345,8 +345,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
               if (edgeInOriginal instanceof CFunctionCallEdge) {
                 final CFunctionCallEdge callOr = (CFunctionCallEdge) edgeInOriginal,
                     callMo = (CFunctionCallEdge) pCfaEdge;
-                final CFunctionEntryNode entryNodeOr = callOr.getSuccessor(),
-                    entryNodeMo = callMo.getSuccessor();
+                final CFunctionEntryNode entryNodeOr = callOr.functionEntryNode(),
+                    entryNodeMo = callMo.functionEntryNode();
                 final List<String>
                     paramsOr =
                         transformedImmutableListCopy(

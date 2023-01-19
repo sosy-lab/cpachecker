@@ -137,12 +137,12 @@ public class IntervalAnalysisTransferRelation
       String calledFunctionName)
       throws UnrecognizedCodeException {
 
-    if (callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
+    if (callEdge.functionEntryNode().getFunctionDefinition().getType().takesVarArgs()) {
       assert parameters.size() <= arguments.size();
       logger.log(
           Level.WARNING,
           "Ignoring parameters passed as varargs to function",
-          callEdge.getSuccessor().getFunctionDefinition().toASTString());
+          callEdge.functionEntryNode().getFunctionDefinition().toASTString());
     } else {
       assert parameters.size() == arguments.size();
     }

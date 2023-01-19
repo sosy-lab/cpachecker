@@ -439,7 +439,8 @@ final class TransformableLoop {
           builder.add(declaration);
         }
       } else if (innerLoopEdge instanceof CFunctionCallEdge) {
-        CFunctionEntryNode functionEntryNode = ((CFunctionCallEdge) innerLoopEdge).getSuccessor();
+        CFunctionEntryNode functionEntryNode =
+            ((CFunctionCallEdge) innerLoopEdge).functionEntryNode();
         builder.addAll(functionEntryNode.getFunctionDefinition().getParameters());
       }
     }

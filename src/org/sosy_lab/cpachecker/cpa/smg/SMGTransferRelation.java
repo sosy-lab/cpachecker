@@ -326,7 +326,7 @@ public class SMGTransferRelation
       String calledFunctionName)
       throws CPATransferException {
 
-    if (!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
+    if (!callEdge.functionEntryNode().getFunctionDefinition().getType().takesVarArgs()) {
       // TODO Parameter with varArgs
       assert (paramDecl.size() == arguments.size());
     }
@@ -480,7 +480,7 @@ public class SMGTransferRelation
       SMGState newState)
       throws SMGInconsistentException, UnrecognizedCodeException {
 
-    newState.addStackFrame(callEdge.getSuccessor().getFunctionDefinition());
+    newState.addStackFrame(callEdge.functionEntryNode().getFunctionDefinition());
 
     // get value of actual parameter in caller function context
     for (int i = 0; i < paramDecl.size(); i++) {

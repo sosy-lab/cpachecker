@@ -65,9 +65,18 @@ public class FunctionCallEdge extends AbstractCFAEdge {
     return Optional.of(functionCall);
   }
 
-  @Override
-  public FunctionEntryNode getSuccessor() {
-    // the constructor enforces that the successor is always a FunctionEntryNode
-    return (FunctionEntryNode) super.getSuccessor();
+  public FunctionEntryNode functionEntryNode() {
+    CFANode node = getSuccessor();
+    // skip blank edges if necessary
+    while (!(node instanceof FunctionEntryNode)
+        && node.getNumLeavingEdges() == 1
+        && node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.BlankEdge) {
+      node = node.getLeavingEdge(0).getSuccessor();
+    }
+    if (node instanceof FunctionEntryNode functionEntryNode) {
+      return functionEntryNode;
+    } else {
+      throw new IllegalStateException("Cannot determine function entry node for " + this);
+    }
   }
 }

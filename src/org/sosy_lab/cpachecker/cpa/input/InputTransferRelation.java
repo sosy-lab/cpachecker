@@ -101,7 +101,8 @@ public class InputTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private static InputState handleFunctionCallEdge(FunctionCallEdge pEdge) {
-    return handleFunctionCall(pEdge.getSuccessor().getFunctionParameters(), pEdge.getArguments());
+    return handleFunctionCall(
+        pEdge.functionEntryNode().getFunctionParameters(), pEdge.getArguments());
   }
 
   private static InputState handleFunctionCall(

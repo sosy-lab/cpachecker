@@ -294,8 +294,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       throws UnrecognizedCodeException {
 
     InvariantsState newElement = pElement;
-    List<String> formalParams = pEdge.getSuccessor().getFunctionParameterNames();
-    List<CParameterDeclaration> declarations = pEdge.getSuccessor().getFunctionParameters();
+    List<String> formalParams = pEdge.functionEntryNode().getFunctionParameterNames();
+    List<CParameterDeclaration> declarations = pEdge.functionEntryNode().getFunctionParameters();
     List<CExpression> actualParams = pEdge.getArguments();
     int limit = Math.min(formalParams.size(), actualParams.size());
 
@@ -472,7 +472,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         pEdge.getExpression().orElseThrow().accept(etfv);
     MemoryLocation returnValueName =
         MemoryLocation.forDeclaration(
-            pEdge.getSuccessor().getEntryNode().getReturnVariable().get());
+            pEdge.functionExitNode().getEntryNode().getReturnVariable().get());
     return pElement.assign(returnValueName, returnedState);
   }
 
@@ -518,7 +518,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
               .getParameterExpressions()
               .iterator();
       for (String formalParamName :
-          pFunctionReturnEdge.getPredecessor().getEntryNode().getFunctionParameterNames()) {
+          pFunctionReturnEdge.functionExitNode().getEntryNode().getFunctionParameterNames()) {
         if (!actualParamIterator.hasNext()) {
           break;
         }

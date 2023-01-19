@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -178,18 +179,20 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
     Set<CFAEdge> nonSummaryOutEdges = withoutSummaryEdges().outEdges(predecessor);
     checkState(
         nonSummaryOutEdges.size() == 1, "Single non-summary out-edge expected: %s", predecessor);
-    CFAEdge functionCallEdge = Iterables.getOnlyElement(nonSummaryOutEdges);
-    checkState(
-        functionCallEdge instanceof FunctionCallEdge,
-        "Function call edge expected: %s",
-        functionCallEdge);
-    CFANode functionEntryNode = successor(functionCallEdge);
-    checkState(
-        functionEntryNode instanceof FunctionEntryNode,
-        "Function entry node expected: %s",
-        functionEntryNode);
-
-    return (FunctionEntryNode) functionEntryNode;
+    CFAEdge nonSummaryOutEdge = Iterables.getOnlyElement(nonSummaryOutEdges);
+    CFANode node = successor(nonSummaryOutEdge);
+    // skip blank edges if necessary
+    while (!(node instanceof FunctionEntryNode)
+        && outDegree(node) == 1
+        && Iterables.getOnlyElement(outEdges(node)).getEdgeType() == CFAEdgeType.BlankEdge) {
+      node = Iterables.getOnlyElement(successors(node));
+    }
+    if (node instanceof FunctionEntryNode functionEntryNode) {
+      return functionEntryNode;
+    } else {
+      throw new IllegalStateException(
+          "Cannot determine function entry node for " + pFunctionSummaryEdge);
+    }
   }
 
   @Override
@@ -221,29 +224,37 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
-    CFANode predecessor = predecessor(pFunctionCallEdge);
-    Set<CFAEdge> nonSuperOutEdges = withoutSuperEdges().outEdges(predecessor);
-    checkState(nonSuperOutEdges.size() == 1, "Single non-super out-edge expected: %s", predecessor);
-    CFAEdge functionSummaryEdge = Iterables.getOnlyElement(nonSuperOutEdges);
-    checkState(
-        functionSummaryEdge instanceof FunctionSummaryEdge,
-        "Function summary edge expected: %s",
-        functionSummaryEdge);
-
-    return (FunctionSummaryEdge) functionSummaryEdge;
+    CFANode node = predecessor(pFunctionCallEdge);
+    // skip blank edges if necessary
+    while (outDegree(node) == 1
+        && inDegree(node) == 1
+        && Iterables.getOnlyElement(inEdges(node)).getEdgeType() == CFAEdgeType.BlankEdge) {
+      node = Iterables.getOnlyElement(predecessors(node));
+    }
+    for (CFAEdge edge : outEdges(node)) {
+      if (edge instanceof FunctionSummaryEdge functionSummaryEdge) {
+        return functionSummaryEdge;
+      }
+    }
+    throw new IllegalStateException(
+        "Cannot determine function summary edge for " + pFunctionCallEdge);
   }
 
   @Override
   public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
-    CFANode successor = successor(pFunctionReturnEdge);
-    Set<CFAEdge> nonSuperInEdges = withoutSuperEdges().inEdges(successor);
-    checkState(nonSuperInEdges.size() == 1, "Single non-super in-edge expected: %s", successor);
-    CFAEdge functionSummaryEdge = Iterables.getOnlyElement(nonSuperInEdges);
-    checkState(
-        functionSummaryEdge instanceof FunctionSummaryEdge,
-        "Function summary edge expected: %s",
-        functionSummaryEdge);
-
-    return (FunctionSummaryEdge) functionSummaryEdge;
+    CFANode node = successor(pFunctionReturnEdge);
+    // skip blank edges if necessary
+    while (inDegree(node) == 1
+        && outDegree(node) == 1
+        && Iterables.getOnlyElement(outEdges(node)).getEdgeType() == CFAEdgeType.BlankEdge) {
+      node = Iterables.getOnlyElement(successors(node));
+    }
+    for (CFAEdge edge : inEdges(node)) {
+      if (edge instanceof FunctionSummaryEdge functionSummaryEdge) {
+        return functionSummaryEdge;
+      }
+    }
+    throw new IllegalStateException(
+        "Unable to determine function summary edge for " + pFunctionReturnEdge);
   }
 }

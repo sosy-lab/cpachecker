@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
@@ -194,7 +193,7 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
                     pCFunctionCallEdge.getRawStatement(),
                     pCFunctionCallEdge.getFileLocation(),
                     newPredecessor,
-                    (CFunctionEntryNode) newSuccessor,
+                    newSuccessor,
                     newFunctionCall,
                     newFunctionSummaryEdge);
               }
@@ -208,7 +207,7 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
 
                 return new CFunctionReturnEdge(
                     pCFunctionReturnEdge.getFileLocation(),
-                    (FunctionExitNode) newPredecessor,
+                    newPredecessor,
                     newSuccessor,
                     newFunctionSummaryEdge);
               }
@@ -246,7 +245,7 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
                     newReturnStatement,
                     pCReturnStatementEdge.getFileLocation(),
                     newPredecessor,
-                    (FunctionExitNode) newSuccessor);
+                    newSuccessor);
               }
 
               @Override

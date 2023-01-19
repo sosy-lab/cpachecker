@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 public class CReturnStatementEdge extends AReturnStatementEdge implements CCfaEdge {
 
@@ -26,7 +25,7 @@ public class CReturnStatementEdge extends AReturnStatementEdge implements CCfaEd
       CReturnStatement pReturnStatement,
       FileLocation pFileLocation,
       CFANode pPredecessor,
-      FunctionExitNode pSuccessor) {
+      CFANode pSuccessor) {
 
     super(pRawStatement, pReturnStatement, pFileLocation, pPredecessor, pSuccessor);
   }

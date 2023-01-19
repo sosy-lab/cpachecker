@@ -223,7 +223,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
   private void handleFunctionCall(UninitializedVariablesState element, CFunctionCallEdge callEdge)
       throws UnrecognizedCodeException {
     // find functions's parameters and arguments
-    CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
+    CFunctionEntryNode functionEntryNode = callEdge.functionEntryNode();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
     List<CExpression> arguments = callEdge.getArguments();
 

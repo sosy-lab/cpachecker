@@ -261,7 +261,7 @@ public class UseDefRelation {
 
       case FunctionCallEdge:
         final FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
-        final FunctionEntryNode functionEntryNode = functionCallEdge.getSuccessor();
+        final FunctionEntryNode functionEntryNode = functionCallEdge.functionEntryNode();
 
         List<ASimpleDeclaration> parameters =
             new ArrayList<>(functionEntryNode.getFunctionParameters());

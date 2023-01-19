@@ -705,7 +705,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     // overtake arguments from last functioncall into function,
     // get args from functioncall and make them equal with params from functionstart
     final List<CExpression> args = edge.getArguments();
-    final List<CParameterDeclaration> params = edge.getSuccessor().getFunctionParameters();
+    final List<CParameterDeclaration> params = edge.functionEntryNode().getFunctionParameters();
 
     // functions can have more args than params used in the call
     assert args.size() >= params.size();
@@ -729,7 +729,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     // create dependency for functionreturn
     CFunctionSummaryEdge func = edge.getSummaryEdge();
     CFunctionCall statement = func.getExpression();
-    Optional<CVariableDeclaration> returnVar = edge.getSuccessor().getReturnVariable();
+    Optional<CVariableDeclaration> returnVar = edge.functionEntryNode().getReturnVariable();
     if (returnVar.isPresent()) {
       String scopedRetVal = returnVar.orElseThrow().getQualifiedName();
       if (statement instanceof CFunctionCallAssignmentStatement call) {

@@ -299,7 +299,7 @@ public class AppliedCustomInstructionParser {
         // breadth-first-search within method
         if (leavingEdge instanceof FunctionCallEdge) {
           if (!noGlobalVariablesUsed(
-              functionsWithoutGlobalVars, ((CFunctionCallEdge) leavingEdge).getSuccessor())) {
+              functionsWithoutGlobalVars, ((CFunctionCallEdge) leavingEdge).functionEntryNode())) {
             throw new AppliedCustomInstructionParsingFailedException(
                 "Function "
                     + leavingEdge.getSuccessor().getFunctionName()

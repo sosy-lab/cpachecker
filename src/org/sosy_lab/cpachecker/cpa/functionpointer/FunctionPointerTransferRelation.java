@@ -411,7 +411,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       FunctionPointerState.Builder pNewState, CFunctionCallEdge callEdge)
       throws UnrecognizedCodeException {
 
-    CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
+    CFunctionEntryNode functionEntryNode = callEdge.functionEntryNode();
 
     List<CParameterDeclaration> formalParams = functionEntryNode.getFunctionParameters();
     List<CExpression> arguments = callEdge.getArguments();

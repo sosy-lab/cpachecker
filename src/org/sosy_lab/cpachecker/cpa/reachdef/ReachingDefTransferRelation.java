@@ -425,7 +425,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
         "Add definition of parameters.");
     return pState.initVariables(
         localVariablesPerFunction.get(pCfaEdge.getSuccessor()),
-        getParameters(pCfaEdge.getSuccessor()),
+        getParameters(pCfaEdge.functionEntryNode()),
         pCfaEdge.getPredecessor(),
         pCfaEdge.getSuccessor());
   }

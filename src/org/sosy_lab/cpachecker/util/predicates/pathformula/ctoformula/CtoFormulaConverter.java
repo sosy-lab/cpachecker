@@ -1481,7 +1481,7 @@ public class CtoFormulaConverter {
 
     List<CExpression> actualParams = edge.getArguments();
 
-    CFunctionEntryNode fn = edge.getSuccessor();
+    CFunctionEntryNode fn = edge.functionEntryNode();
     List<CParameterDeclaration> formalParams = fn.getFunctionParameters();
 
     if (fn.getFunctionDefinition().getType().takesVarArgs()) {

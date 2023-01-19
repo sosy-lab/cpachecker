@@ -184,7 +184,7 @@ public final class ErrorPathShrinker {
 
       case FunctionCallEdge:
         final FunctionCallEdge fnkCall = (FunctionCallEdge) cfaEdge;
-        final FunctionEntryNode succ = fnkCall.getSuccessor();
+        final FunctionEntryNode succ = fnkCall.functionEntryNode();
         handleFunctionCallEdge(fnkCall.getArguments(), succ.getFunctionParameters());
         break;
 

@@ -480,7 +480,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     // overtake arguments from last functioncall into function,
     // get args from functioncall and make them equal with params from functionstart
     final List<CExpression> args = edge.getArguments();
-    final List<CParameterDeclaration> params = edge.getSuccessor().getFunctionParameters();
+    final List<CParameterDeclaration> params = edge.functionEntryNode().getFunctionParameters();
 
     // var_args cannot be handled: func(int x, ...) --> we only handle the first n parameters
     assert args.size() >= params.size();

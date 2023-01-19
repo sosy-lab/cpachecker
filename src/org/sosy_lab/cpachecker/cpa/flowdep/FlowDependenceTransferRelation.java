@@ -311,13 +311,18 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
       throws CPATransferException {
 
     FlowDependenceState nextState = pNextState;
-    List<CParameterDeclaration> params = pFunctionCallEdge.getSuccessor().getFunctionParameters();
+    List<CParameterDeclaration> params =
+        pFunctionCallEdge.functionEntryNode().getFunctionParameters();
     for (int i = 0; i < pArguments.size(); i++) {
       MemoryLocation def;
       if (i < params.size()) {
         def = MemoryLocation.forDeclaration(params.get(i));
       } else {
-        assert pFunctionCallEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs();
+        assert pFunctionCallEdge
+            .functionEntryNode()
+            .getFunctionDefinition()
+            .getType()
+            .takesVarArgs();
         // TODO support var args
         break;
       }

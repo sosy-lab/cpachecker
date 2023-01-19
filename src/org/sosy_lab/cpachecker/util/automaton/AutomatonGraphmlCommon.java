@@ -543,7 +543,7 @@ public class AutomatonGraphmlCommon {
       }
       return true;
     } else if (edge instanceof CFunctionCallEdge) {
-      return isEmptyStub(((CFunctionCallEdge) edge).getSuccessor());
+      return isEmptyStub(((CFunctionCallEdge) edge).functionEntryNode());
     } else if (edge instanceof CFunctionReturnEdge) {
       return isEmptyStub(((CFunctionReturnEdge) edge).getFunctionEntry());
     } else if (edge instanceof CDeclarationEdge declEdge) {

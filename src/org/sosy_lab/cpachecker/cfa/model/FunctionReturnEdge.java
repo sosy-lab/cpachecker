@@ -17,7 +17,7 @@ public class FunctionReturnEdge extends AbstractCFAEdge {
 
   protected FunctionReturnEdge(
       FileLocation pFileLocation,
-      FunctionExitNode pPredecessor,
+      CFANode pPredecessor,
       CFANode pSuccessor,
       FunctionSummaryEdge pSummaryEdge) {
 
@@ -49,10 +49,19 @@ public class FunctionReturnEdge extends AbstractCFAEdge {
     return CFAEdgeType.FunctionReturnEdge;
   }
 
-  @Override
-  public FunctionExitNode getPredecessor() {
-    // the constructor enforces that the predecessor is always a FunctionExitNode
-    return (FunctionExitNode) super.getPredecessor();
+  public FunctionExitNode functionExitNode() {
+    CFANode node = getPredecessor();
+    // skip blank edges if necessary
+    while (!(node instanceof FunctionExitNode)
+        && node.getNumEnteringEdges() == 1
+        && node.getEnteringEdge(0).getEdgeType() == CFAEdgeType.BlankEdge) {
+      node = node.getEnteringEdge(0).getPredecessor();
+    }
+    if (node instanceof FunctionExitNode functionExitNode) {
+      return functionExitNode;
+    } else {
+      throw new IllegalStateException("Cannot determine function exit node for " + this);
+    }
   }
 
   public FunctionEntryNode getFunctionEntry() {

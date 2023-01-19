@@ -159,7 +159,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
           }
           case FunctionCallEdge -> {
             final FunctionCallEdge fnkCall = (FunctionCallEdge) cfaEdge;
-            final FunctionEntryNode succ = fnkCall.getSuccessor();
+            final FunctionEntryNode succ = fnkCall.functionEntryNode();
             final String calledFunctionName = succ.getFunctionName();
             yield handleFunctionCallEdge(
                 fnkCall, fnkCall.getArguments(), succ.getFunctionParameters(), calledFunctionName);

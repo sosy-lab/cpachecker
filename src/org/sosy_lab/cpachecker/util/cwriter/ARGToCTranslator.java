@@ -686,7 +686,7 @@ public class ARGToCTranslator {
       assert functionDefNode.getNumLeavingEdges() == 1;
       assert functionDefNode.getLeavingEdge(0) instanceof CFunctionCallEdge;
       CFunctionCallEdge callEdge = (CFunctionCallEdge) functionDefNode.getLeavingEdge(0);
-      CFunctionEntryNode fn = callEdge.getSuccessor();
+      CFunctionEntryNode fn = callEdge.functionEntryNode();
       CType retType = fn.getFunctionDefinition().getType().getReturnType();
       if (retType instanceof CArrayType) {
         returnType = ((CArrayType) retType).toQualifiedASTString(varName);
@@ -821,7 +821,7 @@ public class ARGToCTranslator {
     CFunctionCallEdge lFunctionCallEdge = (CFunctionCallEdge) pCFAEdge;
 
     List<CExpression> actualParams = lFunctionCallEdge.getArguments();
-    CFunctionEntryNode fn = lFunctionCallEdge.getSuccessor();
+    CFunctionEntryNode fn = lFunctionCallEdge.functionEntryNode();
     List<CParameterDeclaration> formalParams = fn.getFunctionParameters();
 
     List<Statement> actualParamAssignStatements = new ArrayList<>();

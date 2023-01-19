@@ -143,7 +143,7 @@ class EdgeAnalyzer {
 
           // Extract formal parameters
           for (AParameterDeclaration parameter :
-              functionCallEdge.getSuccessor().getFunctionParameters()) {
+              functionCallEdge.functionEntryNode().getFunctionParameters()) {
             result.putAll(getInvolvedVariableTypes(parameter, pCfaEdge));
           }
 
@@ -160,7 +160,7 @@ class EdgeAnalyzer {
               result.putAll(getInvolvedVariableTypes(returnAssignment.get(), pCfaEdge));
             } else {
               Optional<? extends AVariableDeclaration> retVar =
-                  returnStatementEdge.getSuccessor().getEntryNode().getReturnVariable();
+                  returnStatementEdge.functionExitNode().getEntryNode().getReturnVariable();
               if (retVar.isPresent()) {
                 CExpression idExpression =
                     new CIdExpression(

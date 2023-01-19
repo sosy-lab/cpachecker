@@ -757,7 +757,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     if (assignment.isPresent()) {
       final CVariableDeclaration returnVariableDeclaraton =
-          ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode())
+          ((CFunctionEntryNode) returnEdge.functionExitNode().getEntryNode())
               .getReturnVariable()
               .orElseThrow();
 
@@ -1108,7 +1108,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
 
-    final CFunctionEntryNode entryNode = edge.getSuccessor();
+    final CFunctionEntryNode entryNode = edge.functionEntryNode();
 
     for (CParameterDeclaration formalParameter : entryNode.getFunctionParameters()) {
       final CVariableDeclaration formalDeclaration = formalParameter.asVariableDeclaration();

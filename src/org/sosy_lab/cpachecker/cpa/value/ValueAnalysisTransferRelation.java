@@ -339,7 +339,7 @@ public class ValueAnalysisTransferRelation
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
 
     assert (parameters.size() == arguments.size())
-        || callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs();
+        || callEdge.functionEntryNode().getFunctionDefinition().getType().takesVarArgs();
 
     // visitor for getting the values of the actual parameters in caller function context
     final ExpressionValueVisitor visitor = getVisitor();
@@ -413,7 +413,7 @@ public class ValueAnalysisTransferRelation
       expression = CIntegerLiteralExpression.ZERO; // this is the default in C
     }
 
-    final FunctionEntryNode functionEntryNode = returnEdge.getSuccessor().getEntryNode();
+    final FunctionEntryNode functionEntryNode = returnEdge.functionExitNode().getEntryNode();
 
     final Optional<? extends AVariableDeclaration> optionalReturnVarDeclaration =
         functionEntryNode.getReturnVariable();
@@ -1622,7 +1622,7 @@ public class ValueAnalysisTransferRelation
     if (function == null) {
       return pState;
     }
-    final FunctionEntryNode succ = function.getSuccessor();
+    final FunctionEntryNode succ = function.functionEntryNode();
     final String calledFunctionName = succ.getFunctionName();
     return handleFunctionCallEdge(
         function, function.getArguments(), succ.getFunctionParameters(), calledFunctionName);

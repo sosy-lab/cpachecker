@@ -25,7 +25,7 @@ public class CFunctionCallEdge extends FunctionCallEdge implements CCfaEdge {
       String pRawStatement,
       FileLocation pFileLocation,
       CFANode pPredecessor,
-      CFunctionEntryNode pSuccessor,
+      CFANode pSuccessor,
       CFunctionCall pFunctionCall,
       CFunctionSummaryEdge pSummaryEdge) {
 
@@ -63,9 +63,8 @@ public class CFunctionCallEdge extends FunctionCallEdge implements CCfaEdge {
   }
 
   @Override
-  public CFunctionEntryNode getSuccessor() {
-    // the constructor enforces that the successor is always a FunctionEntryNode
-    return (CFunctionEntryNode) super.getSuccessor();
+  public CFunctionEntryNode functionEntryNode() {
+    return (CFunctionEntryNode) super.functionEntryNode();
   }
 
   @Override

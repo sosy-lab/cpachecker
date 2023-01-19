@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 public class JReturnStatementEdge extends AReturnStatementEdge {
 
@@ -26,7 +25,7 @@ public class JReturnStatementEdge extends AReturnStatementEdge {
       JReturnStatement pRawAST,
       FileLocation pFileLocation,
       CFANode pPredecessor,
-      FunctionExitNode pSuccessor) {
+      CFANode pSuccessor) {
 
     super(pRawStatement, pRawAST, pFileLocation, pPredecessor, pSuccessor);
   }

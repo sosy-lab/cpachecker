@@ -374,7 +374,7 @@ public class SMGTransferRelation
       String calledFunctionName)
       throws CPATransferException {
 
-    if (!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
+    if (!callEdge.functionEntryNode().getFunctionDefinition().getType().takesVarArgs()) {
       if (paramDecl.size() != arguments.size()) {
         throw new SMG2Exception(
             "The number of arguments expected and given do not match for function call "
@@ -454,7 +454,7 @@ public class SMGTransferRelation
     ImmutableList<Value> readValuesInOrder = readValuesInOrderBuilder.build();
     // Add the new stack frame based on the function def, but only after we read the values from the
     // old stack frame
-    CFunctionDeclaration funcDecl = callEdge.getSuccessor().getFunctionDefinition();
+    CFunctionDeclaration funcDecl = callEdge.functionEntryNode().getFunctionDefinition();
     if (funcDecl.getType().takesVarArgs()) {
       // Get the var args and save them in the stack frame
       ImmutableList.Builder<Value> varArgsBuilder = ImmutableList.builder();

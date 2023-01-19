@@ -182,7 +182,7 @@ public class CHCTransferRelation extends SingleEdgeTransferRelation {
 
   private CHCState handleFunctionCallEdge(CHCState state, FunctionCallEdge fcallEdge) {
 
-    FunctionEntryNode functionEntryNode = fcallEdge.getSuccessor();
+    FunctionEntryNode functionEntryNode = fcallEdge.functionEntryNode();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
     List<? extends AExpression> arguments = fcallEdge.getArguments();
 

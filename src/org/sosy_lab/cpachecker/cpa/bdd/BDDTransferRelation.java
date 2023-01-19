@@ -440,7 +440,7 @@ public class BDDTransferRelation
               .getQualifiedName();
       final Partition partition = varClass.getPartitionForEdge(cfaEdge);
       final CType functionReturnType =
-          ((CFunctionDeclaration) cfaEdge.getSuccessor().getEntryNode().getFunctionDefinition())
+          ((CFunctionDeclaration) cfaEdge.functionExitNode().getEntryNode().getFunctionDefinition())
               .getType()
               .getReturnType();
 

@@ -300,7 +300,7 @@ public class BlockedCFAReducer implements BlockComputer {
         if (e instanceof CFunctionCallEdge callEdge) {
           ReducedNode callReturnTarget =
               functionNodes.getWrapper(callEdge.getSummaryEdge().getSuccessor());
-          FunctionEntryNode calledFunction = callEdge.getSuccessor();
+          FunctionEntryNode calledFunction = callEdge.functionEntryNode();
 
           if (inliningStack.contains(calledFunction)) {
             // Ignoring recursion of
