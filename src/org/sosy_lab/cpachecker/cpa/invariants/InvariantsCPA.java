@@ -157,7 +157,8 @@ public class InvariantsCPA
     @Option(
         secure = true,
         description =
-            "time limit for condition adjustment (use milliseconds or specify a unit; 0 for infinite)")
+            "time limit for condition adjustment (use milliseconds or specify a unit; 0 for"
+                + " infinite)")
     @TimeSpanOption(
         codeUnit = TimeUnit.MILLISECONDS,
         defaultUserUnit = TimeUnit.MILLISECONDS,
