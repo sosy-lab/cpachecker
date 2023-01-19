@@ -25,8 +25,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
  * The List of initializerExpressions gives the expression the array cell is initialized with from
  * left to right.
  */
-public final class JArrayInitializer extends AbstractExpression
-    implements JAstNode, JInitializer, JExpression {
+public final class JArrayInitializer extends AbstractExpression implements JExpression {
 
   private static final long serialVersionUID = -9034136529891743726L;
   private final List<JExpression> initializerExpressions;

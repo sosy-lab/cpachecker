@@ -164,16 +164,12 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     Set<ARGState> addPragma;
     try {
       statistic.collectPragmaPointsTimer.stop();
-      switch (getStrategy()) {
-        case COMBINATION:
-          addPragma = getAllTargetStates(result.getSecond());
-          break;
-        case SLICING:
-          addPragma = getAllTargetStatesNotFullyExplored(pReachedSet, result.getSecond());
-          break;
-        default: // CONDITION no effect
-          addPragma = null;
-      }
+      addPragma =
+          switch (getStrategy()) {
+            case COMBINATION -> getAllTargetStates(result.getSecond());
+            case SLICING -> getAllTargetStatesNotFullyExplored(pReachedSet, result.getSecond());
+            default -> null; // CONDITION no effect
+          };
     } finally {
       statistic.collectPragmaPointsTimer.stop();
     }

@@ -159,24 +159,16 @@ public class CFloatNaN extends CFloat {
 
   @Override
   public CFloatWrapper copyWrapper() {
-    CFloatWrapper result = null;
-    switch (type) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        result =
-            new CFloatWrapper(
-                getExponentMask() ^ (negative ? getSignBitMask() : 0L),
-                (getNormalizationMask() >>> 1));
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        result =
-            new CFloatWrapper(
-                getExponentMask() ^ (negative ? getSignBitMask() : 0L),
-                getNormalizationMask() ^ (getNormalizationMask() >>> 1));
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + type);
-    }
+    CFloatWrapper result =
+        switch (type) {
+          case CFloatNativeAPI.FP_TYPE_SINGLE, CFloatNativeAPI.FP_TYPE_DOUBLE -> new CFloatWrapper(
+              getExponentMask() ^ (negative ? getSignBitMask() : 0L),
+              (getNormalizationMask() >>> 1));
+          case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE -> new CFloatWrapper(
+              getExponentMask() ^ (negative ? getSignBitMask() : 0L),
+              getNormalizationMask() ^ (getNormalizationMask() >>> 1));
+          default -> throw new RuntimeException("Unimplemented floating point type: " + type);
+        };
     return result;
   }
 

@@ -185,22 +185,13 @@ public class FaultLocalizationWithTraceFormula
             AnalysisDirection.FORWARD);
     context = new FormulaContext(solver, manager, pCfa, logger, pConfig, pShutdownNotifier);
 
-    switch (algorithmType) {
-      case MAXORG:
-        faultAlgorithm = new OriginalMaxSatAlgorithm();
-        break;
-      case MAXSAT:
-        faultAlgorithm = new ModifiedMaxSatAlgorithm();
-        break;
-      case ERRINV:
-        faultAlgorithm = new ErrorInvariantsAlgorithm(pShutdownNotifier, pConfig, logger);
-        break;
-      case UNSAT:
-        faultAlgorithm = new SingleUnsatCoreAlgorithm();
-        break;
-      default:
-        throw new AssertionError("The specified algorithm type does not exist");
-    }
+    faultAlgorithm =
+        switch (algorithmType) {
+          case MAXORG -> new OriginalMaxSatAlgorithm();
+          case MAXSAT -> new ModifiedMaxSatAlgorithm();
+          case ERRINV -> new ErrorInvariantsAlgorithm(pShutdownNotifier, pConfig, logger);
+          case UNSAT -> new SingleUnsatCoreAlgorithm();
+        };
   }
 
   public void checkOptions() throws InvalidConfigurationException {

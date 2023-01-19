@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
  *   <li>its enclosing type, if one exists
  * </ul>
  */
-public class JClassType extends JClassOrInterfaceType implements JReferenceType {
+public final class JClassType extends JClassOrInterfaceType {
 
   private static final long serialVersionUID = 2051770436134716617L;
 

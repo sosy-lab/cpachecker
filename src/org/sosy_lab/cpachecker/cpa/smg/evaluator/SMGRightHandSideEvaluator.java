@@ -215,15 +215,13 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       return pState;
     }
 
-    if (pRValueType instanceof CPointerType
-        && !(pValue instanceof SMGAddressValue)
-        && pValue instanceof SMGKnownSymbolicValue) {
-      SMGKnownSymbolicValue knownValue = (SMGKnownSymbolicValue) pValue;
-      if (pState.isExplicit(knownValue)) {
-        SMGKnownExpValue explicit = Preconditions.checkNotNull(pState.getExplicit(knownValue));
-        pValue = SMGKnownAddressValue.valueOf(knownValue, SMGNullObject.INSTANCE, explicit);
-        pState.addPointsToEdge(SMGNullObject.INSTANCE, explicit.getAsLong(), pValue);
-      }
+    if ((pRValueType instanceof CPointerType
+            && !(pValue instanceof SMGAddressValue)
+            && pValue instanceof SMGKnownSymbolicValue knownValue)
+        && pState.isExplicit(knownValue)) {
+      SMGKnownExpValue explicit = Preconditions.checkNotNull(pState.getExplicit(knownValue));
+      pValue = SMGKnownAddressValue.valueOf(knownValue, SMGNullObject.INSTANCE, explicit);
+      pState.addPointsToEdge(SMGNullObject.INSTANCE, explicit.getAsLong(), pValue);
     }
     return pState
         .writeValue(
@@ -275,9 +273,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       CFAEdge pCfaEdge)
       throws SMGInconsistentException, UnrecognizedCodeException {
 
-    if (pValue instanceof SMGKnownAddressValue) {
-      SMGKnownAddressValue structAddress = (SMGKnownAddressValue) pValue;
-
+    if (pValue instanceof SMGKnownAddressValue structAddress) {
       SMGObject source = structAddress.getObject();
       long structOffset = structAddress.getOffset().getAsLong();
 

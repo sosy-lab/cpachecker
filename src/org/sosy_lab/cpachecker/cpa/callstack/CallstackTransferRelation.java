@@ -278,7 +278,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
   protected boolean hasVoidRecursion(
       final CallstackState element, final FunctionCallEdge pCallEdge) {
-    if (pCallEdge.getSummaryEdge().getExpression() instanceof AFunctionCallStatement) {
+    if (pCallEdge.getFunctionCall() instanceof AFunctionCallStatement) {
       return true;
     }
 

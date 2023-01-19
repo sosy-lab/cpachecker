@@ -74,8 +74,7 @@ public class SplitterTransferRelation extends SingleEdgeTransferRelation {
         ImmutableList.Builder<SplitInfoState> successors =
             ImmutableList.builderWithExpectedSize(numParts);
         SplitInfoState successor;
-        if (pCfaEdge instanceof AssumeEdge) {
-          AssumeEdge assume = (AssumeEdge) pCfaEdge;
+        if (pCfaEdge instanceof AssumeEdge assume) {
           if (assume.getTruthAssumption()) {
             start = 0;
             end = numParts / 2;

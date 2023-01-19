@@ -329,16 +329,14 @@ public interface PointerTargetSetBuilder {
       if (cType instanceof CElaboratedType) {
         // unresolved struct type won't have any targets, do nothing
 
-      } else if (cType instanceof CArrayType) {
-        final CArrayType arrayType = (CArrayType) cType;
+      } else if (cType instanceof CArrayType arrayType) {
         final int length = CTypeUtils.getArrayLength(arrayType, options);
         long offset = 0;
         for (int i = 0; i < length; ++i) {
           addTargets(base, arrayType.getType(), offset, containerOffset + properOffset, field);
           offset += typeHandler.getSizeof(arrayType.getType());
         }
-      } else if (cType instanceof CCompositeType) {
-        final CCompositeType compositeType = (CCompositeType) cType;
+      } else if (cType instanceof CCompositeType compositeType) {
         assert compositeType.getKind() != ComplexTypeKind.ENUM
             : "Enums are not composite: " + compositeType;
         final boolean isTargetComposite = compositeType.equals(field.getOwnerType());

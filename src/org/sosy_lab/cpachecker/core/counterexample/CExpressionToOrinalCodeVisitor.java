@@ -186,8 +186,7 @@ public class CExpressionToOrinalCodeVisitor implements CExpressionVisitor<String
     String suffix = "";
 
     CType cType = pIntegerLiteralExpression.getExpressionType();
-    if (cType instanceof CSimpleType) {
-      CSimpleType type = (CSimpleType) cType;
+    if (cType instanceof CSimpleType type) {
       if (type.isUnsigned()) {
         suffix += "U";
       }

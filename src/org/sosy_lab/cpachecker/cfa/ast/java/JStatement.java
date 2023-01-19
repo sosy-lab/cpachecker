@@ -12,7 +12,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 
 /** Interface of classes that represent java statements. */
 @SuppressWarnings("serial") // we cannot set a UID for an interface
-public interface JStatement extends AStatement, JAstNode {
+public sealed interface JStatement extends AStatement, JAstNode
+    permits JAssignment, JExpressionStatement, JMethodOrConstructorInvocation {
 
   <R, X extends Exception> R accept(JStatementVisitor<R, X> pV) throws X;
 

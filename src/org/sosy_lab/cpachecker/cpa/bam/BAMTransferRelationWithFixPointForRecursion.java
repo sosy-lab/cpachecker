@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Triple;
 
 @Options(prefix = "cpa.bam")
 public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRelation {
@@ -97,7 +96,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
         && !pState.getParents().isEmpty() // if no parents, we have already started a new block
         && (!partitioning
                 .getBlockForCallNode(node)
-                .equals(stack.isEmpty() ? null : stack.peek().getThird())
+                .equals(stack.isEmpty() ? null : stack.peek().block())
             || isFunctionBlock(partitioning.getBlockForCallNode(node)));
   }
 
@@ -106,7 +105,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     // special case: returning from a recursive function is only allowed once per state.
     return super.exitBlockAnalysis(pState, node)
         && !data.alreadyReturnedFromSameBlock(
-            pState, stack.isEmpty() ? null : stack.peek().getThird());
+            pState, stack.isEmpty() ? null : stack.peek().block());
   }
 
   /** recursion is handled by callstack-reduction, so we do not check it here. */
@@ -207,18 +206,17 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   }
 
   /** returns a covering level or Null, if no such level is found. */
-  private Triple<AbstractState, Precision, Block> getCoveringLevel(
-      final Triple<AbstractState, Precision, Block> currentLevel)
+  private AnalysisLevel getCoveringLevel(final AnalysisLevel currentLevel)
       throws CPAException, InterruptedException {
 
     // Iterate over elements of the stack, except current level (index=0)
-    for (Triple<AbstractState, Precision, Block> level : Iterables.skip(stack, 1)) {
+    for (AnalysisLevel level : Iterables.skip(stack, 1)) {
 
-      if (level.getThird() == currentLevel.getThird()
+      if (level.block() == currentLevel.block()
           // && level.getSecond().equals(currentLevel.getSecond())
           && bamCpa
               .getWrappedCpa()
-              .isCoveredByRecursiveState(currentLevel.getFirst(), level.getFirst())) {
+              .isCoveredByRecursiveState(currentLevel.state(), level.state())) {
         // previously reached state contains 'less' information, it is a super-state of the
         // currentState.
         // From currentState we could reach the levelState again (with further unrolling).
@@ -330,7 +328,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       throws CPAException, InterruptedException {
 
     final Collection<AbstractState> expandedFunctionReturnStates;
-    final Triple<AbstractState, Precision, Block> coveringLevel = getCoveringLevel(stack.peek());
+    final AnalysisLevel coveringLevel = getCoveringLevel(stack.peek());
     if (coveringLevel != null) {
       // if level is twice in stack, we have endless recursion.
       // with current knowledge we would never abort unrolling the recursion.
@@ -387,7 +385,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       final Block innerSubtree,
       final Block pOuterSubtree,
       final AbstractState pReducedInitialState,
-      final Triple<AbstractState, Precision, Block> pCoveringLevel)
+      final AnalysisLevel pCoveringLevel)
       throws CPATransferException, InterruptedException {
 
     recursionSeen = true;
@@ -398,7 +396,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     final BAMCacheEntry entry =
         // argCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
         data.getCache()
-            .get(pCoveringLevel.getFirst(), pCoveringLevel.getSecond(), pCoveringLevel.getThird());
+            .get(pCoveringLevel.state(), pCoveringLevel.precision(), pCoveringLevel.block());
     final ReachedSet reached = entry.getReachedSet();
     final Collection<AbstractState> previousResult = entry.getExitStates();
     final Collection<AbstractState> reducedResult;

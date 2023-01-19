@@ -489,11 +489,10 @@ class CExpressionVisitorWithPointerAliasing
         final List<CompositeField> alreadyUsedFields = ImmutableList.copyOf(usedFields);
         usedFields.clear();
 
-        if (errorConditions.isEnabled() && operand instanceof CFieldReference) {
+        if (errorConditions.isEnabled() && operand instanceof CFieldReference field) {
           // for &(s->f) and &((*s).f) do special case because the pointer is
           // not actually dereferenced and thus we don't want to add error conditions
           // for invalid-deref
-          final CFieldReference field = (CFieldReference) operand;
           CExpression fieldOwner = field.getFieldOwner();
           boolean isDeref = field.isPointerDereference();
           if (!isDeref && fieldOwner instanceof CPointerExpression) {

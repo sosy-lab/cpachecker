@@ -198,8 +198,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
       builder.addDataElementChild(result, KeyDef.FUNCTIONEXIT, out.getFunctionName());
     }
 
-    if (pEdge instanceof AssumeEdge) {
-      AssumeEdge a = (AssumeEdge) pEdge;
+    if (pEdge instanceof AssumeEdge a) {
       AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
       builder.addDataElementChild(result, KeyDef.CONTROLCASE, assumeCase.toString());
     }

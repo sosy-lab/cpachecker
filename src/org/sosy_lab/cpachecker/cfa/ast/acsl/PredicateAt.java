@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class PredicateAt extends ACSLPredicate implements ACSLBuiltin {
+public final class PredicateAt extends ACSLPredicate implements ACSLBuiltin {
 
   private final ACSLPredicate inner;
   private final ACSLLabel label;
@@ -53,8 +53,7 @@ public class PredicateAt extends ACSLPredicate implements ACSLBuiltin {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof PredicateAt) {
-      PredicateAt other = (PredicateAt) obj;
+    if (obj instanceof PredicateAt other) {
       return inner.equals(other.inner) && label.equals(other.label);
     }
     return false;

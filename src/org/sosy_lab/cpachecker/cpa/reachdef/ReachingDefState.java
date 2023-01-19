@@ -152,8 +152,7 @@ public class ReachingDefState
 
   @Override
   public boolean equals(Object pO) {
-    if (pO instanceof ReachingDefState) {
-      ReachingDefState other = (ReachingDefState) pO;
+    if (pO instanceof ReachingDefState other) {
       return Objects.equals(globalReachDefs, other.globalReachDefs)
           && Objects.equals(localReachDefs, other.localReachDefs);
     } else {

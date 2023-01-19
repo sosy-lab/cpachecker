@@ -129,21 +129,14 @@ class ASTTypeConverter {
     } else if (t instanceof ITypedef) {
       return conv((ITypedef) t);
 
-    } else if (t instanceof ICompositeType) {
-      ICompositeType ct = (ICompositeType) t;
-
-      ComplexTypeKind kind;
-      switch (ct.getKey()) {
-        case ICompositeType.k_struct:
-          kind = ComplexTypeKind.STRUCT;
-          break;
-        case ICompositeType.k_union:
-          kind = ComplexTypeKind.UNION;
-          break;
-        default:
-          throw new CFAGenerationRuntimeException(
-              "Unknown key " + ct.getKey() + " for composite type " + t);
-      }
+    } else if (t instanceof ICompositeType ct) {
+      ComplexTypeKind kind =
+          switch (ct.getKey()) {
+            case ICompositeType.k_struct -> ComplexTypeKind.STRUCT;
+            case ICompositeType.k_union -> ComplexTypeKind.UNION;
+            default -> throw new CFAGenerationRuntimeException(
+                "Unknown key " + ct.getKey() + " for composite type " + t);
+          };
       String name = ct.getName();
       String qualifiedName = kind.toASTString() + " " + name;
 
@@ -178,9 +171,7 @@ class ASTTypeConverter {
 
       return compType;
 
-    } else if (t instanceof IFunctionType) {
-      IFunctionType ft = (IFunctionType) t;
-
+    } else if (t instanceof IFunctionType ft) {
       IType[] parameters = ft.getParameterTypes();
       List<CType> newParameters = new ArrayList<>(parameters.length);
       for (IType p : parameters) {
@@ -211,8 +202,7 @@ class ASTTypeConverter {
       // e.g. in cdaudio_safe.i.cil.c
       return new CProblemType(t + ": " + ((IProblemType) t).getMessage());
 
-    } else if (t instanceof IProblemBinding) {
-      IProblemBinding problem = (IProblemBinding) t;
+    } else if (t instanceof IProblemBinding problem) {
       if (problem.getASTNode().getRawSignature().equals("__label__")) {
         // This is a "local label" (a GNU C extension).
         // C.f. http://gcc.gnu.org/onlinedocs/gcc/Local-Labels.html#Local-Labels
@@ -240,42 +230,20 @@ class ASTTypeConverter {
       }
       return CVoidType.VOID;
 
-    } else if (t instanceof org.eclipse.cdt.core.dom.ast.c.ICBasicType) {
-      final org.eclipse.cdt.core.dom.ast.c.ICBasicType c =
-          (org.eclipse.cdt.core.dom.ast.c.ICBasicType) t;
-
-      CBasicType type;
-      switch (t.getKind()) {
-        case eBoolean:
-          type = CBasicType.BOOL;
-          break;
-        case eChar:
-          type = CBasicType.CHAR;
-          break;
-        case eDouble:
-          type = CBasicType.DOUBLE;
-          break;
-        case eFloat:
-          type = CBasicType.FLOAT;
-          break;
-        case eFloat128:
-          type = CBasicType.FLOAT128;
-          break;
-        case eInt:
-          type = CBasicType.INT;
-          break;
-        case eInt128:
-          type = CBasicType.INT128;
-          break;
-        case eUnspecified:
-          type = CBasicType.UNSPECIFIED;
-          break;
-        case eVoid:
-          throw new AssertionError();
-        default:
-          throw new CFAGenerationRuntimeException("Unknown basic type " + t.getKind());
-      }
-
+    } else if (t instanceof org.eclipse.cdt.core.dom.ast.c.ICBasicType c) {
+      CBasicType type =
+          switch (t.getKind()) {
+            case eBoolean -> CBasicType.BOOL;
+            case eChar -> CBasicType.CHAR;
+            case eDouble -> CBasicType.DOUBLE;
+            case eFloat -> CBasicType.FLOAT;
+            case eFloat128 -> CBasicType.FLOAT128;
+            case eInt -> CBasicType.INT;
+            case eInt128 -> CBasicType.INT128;
+            case eUnspecified -> CBasicType.UNSPECIFIED;
+            case eVoid -> throw new AssertionError();
+            default -> throw new CFAGenerationRuntimeException("Unknown basic type " + t.getKind());
+          };
       // the three values isComplex, isImaginary, isLongLong are initialized
       // with FALSE, because we do not know about them
       if ((c.isShort() && c.isLong())
@@ -516,21 +484,13 @@ class ASTTypeConverter {
   }
 
   CElaboratedType convert(final IASTElaboratedTypeSpecifier d) {
-    ComplexTypeKind type;
-    switch (d.getKind()) {
-      case IASTElaboratedTypeSpecifier.k_enum:
-        type = ComplexTypeKind.ENUM;
-        break;
-      case IASTElaboratedTypeSpecifier.k_struct:
-        type = ComplexTypeKind.STRUCT;
-        break;
-      case IASTElaboratedTypeSpecifier.k_union:
-        type = ComplexTypeKind.UNION;
-        break;
-      default:
-        throw parseContext.parseError("Unknown elaborated type", d);
-    }
-
+    ComplexTypeKind type =
+        switch (d.getKind()) {
+          case IASTElaboratedTypeSpecifier.k_enum -> ComplexTypeKind.ENUM;
+          case IASTElaboratedTypeSpecifier.k_struct -> ComplexTypeKind.STRUCT;
+          case IASTElaboratedTypeSpecifier.k_union -> ComplexTypeKind.UNION;
+          default -> throw parseContext.parseError("Unknown elaborated type", d);
+        };
     String name = ASTConverter.convert(d.getName());
     String origName = name;
     @Nullable CComplexType realType = scope.lookupType(type.toASTString() + " " + name);
@@ -546,8 +506,7 @@ class ASTTypeConverter {
 
   /** returns a pointerType, that wraps the type. */
   CPointerType convert(final IASTPointerOperator po, final CType type) {
-    if (po instanceof IASTPointer) {
-      IASTPointer p = (IASTPointer) po;
+    if (po instanceof IASTPointer p) {
       return new CPointerType(p.isConst(), p.isVolatile(), type);
 
     } else {

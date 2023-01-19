@@ -355,17 +355,16 @@ public class TemplatePrecision implements Precision {
         if (statement.contains(ASSERT_H_FUNC_NAME) && edge instanceof CStatementEdge) {
 
           for (CFAEdge enteringEdge : CFAUtils.enteringEdges(node)) {
-            if (enteringEdge instanceof CAssumeEdge) {
-              CAssumeEdge assumeEdge = (CAssumeEdge) enteringEdge;
+            if (enteringEdge instanceof CAssumeEdge assumeEdge) {
               CExpression expression = assumeEdge.getExpression();
 
               template = expressionToSingleTemplate(expression);
             }
           }
 
-        } else if (statement.contains(ASSERT_FUNC_NAME) && edge instanceof CFunctionCallEdge) {
+        } else if (statement.contains(ASSERT_FUNC_NAME)
+            && edge instanceof CFunctionCallEdge callEdge) {
 
-          CFunctionCallEdge callEdge = (CFunctionCallEdge) edge;
           if (callEdge.getArguments().isEmpty()) {
             continue;
           }
@@ -452,8 +451,7 @@ public class TemplatePrecision implements Precision {
       Set<LinearExpression<CIdExpression>> out = new HashSet<>();
       CExpressionAssignmentStatement assignment = (CExpressionAssignmentStatement) statement;
       CLeftHandSide lhs = assignment.getLeftHandSide();
-      if (lhs instanceof CIdExpression) {
-        CIdExpression id = (CIdExpression) lhs;
+      if (lhs instanceof CIdExpression id) {
         out.addAll(expressionToTemplate(assignment.getRightHandSide()));
         if (!shouldProcessVariable(id.getDeclaration())) {
           return out;
@@ -481,8 +479,7 @@ public class TemplatePrecision implements Precision {
 
   private Optional<LinearExpression<CIdExpression>> recExpressionToTemplate(
       CExpression expression) {
-    if (expression instanceof CBinaryExpression) {
-      CBinaryExpression binaryExpression = (CBinaryExpression) expression;
+    if (expression instanceof CBinaryExpression binaryExpression) {
       CExpression operand1 = binaryExpression.getOperand1();
       CExpression operand2 = binaryExpression.getOperand2();
 
@@ -528,9 +525,8 @@ public class TemplatePrecision implements Precision {
     } else if (expression instanceof CLiteralExpression
         && expression.getExpressionType() instanceof CSimpleType) {
       return Optional.of(LinearExpression.empty());
-    } else if (expression instanceof CIdExpression
+    } else if (expression instanceof CIdExpression idExpression
         && expression.getExpressionType() instanceof CSimpleType) {
-      CIdExpression idExpression = (CIdExpression) expression;
       return Optional.of(LinearExpression.ofVariable(idExpression));
     } else {
       return Optional.empty();

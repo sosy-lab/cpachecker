@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CIntegerLiteralExpression extends AIntegerLiteralExpression
+public final class CIntegerLiteralExpression extends AIntegerLiteralExpression
     implements CLiteralExpression {
 
   private static final long serialVersionUID = 7691279268370356228L;
@@ -55,8 +55,7 @@ public class CIntegerLiteralExpression extends AIntegerLiteralExpression
     String suffix = "";
 
     CType cType = getExpressionType();
-    if (cType instanceof CSimpleType) {
-      CSimpleType type = (CSimpleType) cType;
+    if (cType instanceof CSimpleType type) {
       if (type.isUnsigned()) {
         suffix += "U";
       }

@@ -88,7 +88,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -285,8 +284,7 @@ public class CtoFormulaConverter {
 
   protected final boolean isRelevantVariable(final CSimpleDeclaration var) {
     if (options.useHavocAbstraction()) {
-      if (var instanceof CVariableDeclaration) {
-        CVariableDeclaration vDecl = (CVariableDeclaration) var;
+      if (var instanceof CVariableDeclaration vDecl) {
         if (vDecl.isGlobal()) {
           return false;
         } else if (vDecl.getType() instanceof CPointerType) {
@@ -315,8 +313,7 @@ public class CtoFormulaConverter {
 
   public final FormulaType<?> getFormulaTypeFromCType(CType type) {
     type = type.getCanonicalType();
-    if (type instanceof CSimpleType) {
-      CSimpleType simpleType = (CSimpleType) type;
+    if (type instanceof CSimpleType simpleType) {
       switch (simpleType.getType()) {
         case FLOAT:
           return FormulaType.getSinglePrecisionFloatingPointType();
@@ -688,8 +685,7 @@ public class CtoFormulaConverter {
   private Formula encodeOverflowsWithUF(
       final Formula value, CType type, final Constraints constraints) {
     type = type.getCanonicalType();
-    if (type instanceof CSimpleType && ((CSimpleType) type).getType().isIntegerType()) {
-      final CSimpleType sType = (CSimpleType) type;
+    if (type instanceof CSimpleType sType && ((CSimpleType) type).getType().isIntegerType()) {
       final FormulaType<Formula> numberType = fmgr.getFormulaType(value);
       final boolean signed = machineModel.isSigned(sType);
 
@@ -738,8 +734,7 @@ public class CtoFormulaConverter {
    */
   private void addRangeConstraint(final Formula variable, CType type, Constraints constraints) {
     type = type.getCanonicalType();
-    if (type instanceof CSimpleType && ((CSimpleType) type).getType().isIntegerType()) {
-      final CSimpleType sType = (CSimpleType) type;
+    if (type instanceof CSimpleType sType && ((CSimpleType) type).getType().isIntegerType()) {
       final FormulaType<Formula> numberType = fmgr.getFormulaType(variable);
       final boolean signed = machineModel.isSigned(sType);
       final Formula lowerBound =
@@ -801,8 +796,7 @@ public class CtoFormulaConverter {
   }
 
   private CType handlePointerAndEnumAsInt(CType pType) {
-    if (pType instanceof CBitFieldType) {
-      CBitFieldType type = (CBitFieldType) pType;
+    if (pType instanceof CBitFieldType type) {
       CType innerType = type.getType();
       CType normalizedInnerType = handlePointerAndEnumAsInt(innerType);
       if (innerType == normalizedInnerType) {
@@ -854,11 +848,9 @@ public class CtoFormulaConverter {
           if (t instanceof CSimpleType) {
             return machineModel.isSigned((CSimpleType) t);
           }
-          if (t instanceof CBitFieldType) {
-            CBitFieldType bitFieldType = (CBitFieldType) t;
-            if (bitFieldType.getType() instanceof CSimpleType) {
-              return machineModel.isSigned(((CSimpleType) bitFieldType.getType()));
-            }
+          if ((t instanceof CBitFieldType bitFieldType)
+              && (bitFieldType.getType() instanceof CSimpleType)) {
+            return machineModel.isSigned(((CSimpleType) bitFieldType.getType()));
           }
           throw new AssertionError("Not a simple type: " + t);
         };
@@ -939,11 +931,8 @@ public class CtoFormulaConverter {
     if (pType instanceof CSimpleType) {
       return true;
     }
-    if (pType instanceof CBitFieldType) {
-      CBitFieldType type = (CBitFieldType) pType;
-      if (type.getType() instanceof CSimpleType) {
-        return true;
-      }
+    if ((pType instanceof CBitFieldType type) && (type.getType() instanceof CSimpleType)) {
+      return true;
     }
     return false;
   }
@@ -1254,8 +1243,7 @@ public class CtoFormulaConverter {
       throws UnrecognizedCodeException, InterruptedException {
 
     CStatement stmt = statement.getStatement();
-    if (stmt instanceof CAssignment) {
-      CAssignment assignment = (CAssignment) stmt;
+    if (stmt instanceof CAssignment assignment) {
       return makeAssignment(
           assignment.getLeftHandSide(),
           assignment.getRightHandSide(),
@@ -1416,8 +1404,7 @@ public class CtoFormulaConverter {
       // this should be a void return, just do nothing...
       return bfmgr.makeTrue();
 
-    } else if (retExp instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement) retExp;
+    } else if (retExp instanceof CFunctionCallAssignmentStatement exp) {
       CFunctionCallExpression funcCallExp = exp.getRightHandSide();
 
       String callerFunction = ce.getSuccessor().getFunctionName();
@@ -1448,8 +1435,7 @@ public class CtoFormulaConverter {
       // Check if we have a function pointer here.
       CExpression functionNameExpression = funcCallExp.getFunctionNameExpression();
       CType expressionType = functionNameExpression.getExpressionType().getCanonicalType();
-      if (expressionType instanceof CFunctionType) {
-        CFunctionType funcPtrType = (CFunctionType) expressionType;
+      if (expressionType instanceof CFunctionType funcPtrType) {
         retType = funcPtrType.getReturnType();
       } else if (CTypes.isFunctionPointer(expressionType)) {
         CFunctionType funcPtrType =
@@ -1728,7 +1714,7 @@ public class CtoFormulaConverter {
 
     T zero = fmgr.makeNumber(fmgr.getFormulaType(pF), 0);
 
-    Optional<Triple<BooleanFormula, T, T>> split;
+    Optional<FormulaManagerView.IfThenElseParts<T>> split;
     try {
       split = fmgr.splitIfThenElse(pF);
     } catch (UnsupportedOperationException e) {
@@ -1736,13 +1722,13 @@ public class CtoFormulaConverter {
       split = Optional.empty();
     }
     if (split.isPresent()) {
-      Triple<BooleanFormula, T, T> parts = split.orElseThrow();
+      FormulaManagerView.IfThenElseParts<T> parts = split.orElseThrow();
 
       T one = fmgr.makeNumber(fmgr.getFormulaType(pF), 1);
-      if (parts.getSecond().equals(one) && parts.getThird().equals(zero)) {
-        return parts.getFirst();
-      } else if (parts.getSecond().equals(zero) && parts.getThird().equals(one)) {
-        return bfmgr.not(parts.getFirst());
+      if (parts.thenBranch().equals(one) && parts.elseBranch().equals(zero)) {
+        return parts.condition();
+      } else if (parts.thenBranch().equals(zero) && parts.elseBranch().equals(one)) {
+        return bfmgr.not(parts.condition());
       }
     }
     return bfmgr.not(fmgr.makeEqual(pF, zero));
