@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class ACSLTernaryCondition extends ACSLPredicate {
+public final class ACSLTernaryCondition extends ACSLPredicate {
 
   private final ACSLPredicate condition;
   private final ACSLPredicate then;
@@ -73,8 +73,7 @@ public class ACSLTernaryCondition extends ACSLPredicate {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLTernaryCondition) {
-      ACSLTernaryCondition other = (ACSLTernaryCondition) o;
+    if (o instanceof ACSLTernaryCondition other) {
       return super.equals(o)
           && condition.equals(other.condition)
           && then.equals(other.then)

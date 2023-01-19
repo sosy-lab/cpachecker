@@ -261,8 +261,7 @@ public class UndefinedFunctionCollectorAlgorithm
       buf.append(indent + "// Pointer type\n");
       prepend.append(odmFunctionDecl);
       buf.append(indent + "return (" + rt.toASTString("") + ")" + externAllocFunction + "();\n");
-    } else if (rt instanceof CSimpleType) {
-      CSimpleType ct = (CSimpleType) rt;
+    } else if (rt instanceof CSimpleType ct) {
       Pair<String, String> pair = convertType(ct);
       String nondetFunc = NONDET_FUNCTION_PREFIX + pair.getSecond();
       prepend.append(pair.getFirst() + " " + nondetFunc + "(void);\n");

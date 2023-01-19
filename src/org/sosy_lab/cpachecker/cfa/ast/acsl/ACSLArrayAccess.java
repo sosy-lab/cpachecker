@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class ACSLArrayAccess implements ACSLTerm {
+public final class ACSLArrayAccess implements ACSLTerm {
 
   private final ACSLTerm array;
   private final ACSLTerm index;
@@ -20,8 +20,7 @@ public class ACSLArrayAccess implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLArrayAccess) {
-      ACSLArrayAccess other = (ACSLArrayAccess) o;
+    if (o instanceof ACSLArrayAccess other) {
       return array.equals(other.array) && index.equals(other.index);
     }
     return false;

@@ -377,8 +377,7 @@ public class CFunctionPointerResolver implements StatisticsProvider {
 
     @Override
     public CFATraversal.TraversalProcess visitEdge(final CFAEdge pEdge) {
-      if (pEdge instanceof CStatementEdge) {
-        final CStatementEdge edge = (CStatementEdge) pEdge;
+      if (pEdge instanceof CStatementEdge edge) {
         final AStatement stmt = edge.getStatement();
         if (checkEdge(stmt)) {
           functionPointerCalls.add(edge);

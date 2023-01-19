@@ -88,8 +88,7 @@ public class ACSLState implements AbstractStateWithAssumptions, ExpressionTreeRe
     if (this == pO) {
       return true;
     }
-    if (pO instanceof ACSLState) {
-      ACSLState that = (ACSLState) pO;
+    if (pO instanceof ACSLState that) {
       return annotations.equals(that.annotations);
     }
     return false;

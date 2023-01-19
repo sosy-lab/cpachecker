@@ -67,9 +67,10 @@ public class PushAssumptionToEnvironmentVisitor
   }
 
   private CompoundIntervalManager createCompoundIntervalManager(TypeInfo pTypeInfo) {
-    if (compoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory) {
-      CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory =
-          (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
+    if (compoundIntervalManagerFactory
+        instanceof
+        CompoundBitVectorIntervalManagerFactory
+        compoundBitVectorIntervalManagerFactory) {
       return compoundBitVectorIntervalManagerFactory.createCompoundIntervalManager(
           pTypeInfo, false);
     }

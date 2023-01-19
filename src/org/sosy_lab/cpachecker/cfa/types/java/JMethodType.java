@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 /**
  * Description of a Java method through its return type and list of (possibly variable) parameters.
  */
-public class JMethodType extends AFunctionType implements JType {
+public sealed class JMethodType extends AFunctionType implements JType permits JConstructorType {
 
   private static final long serialVersionUID = 1324108617808888102L;
 

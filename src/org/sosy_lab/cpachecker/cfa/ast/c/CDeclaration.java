@@ -15,4 +15,5 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
  * inside another type declaration). This excludes for examples function parameter declarations and
  * struct members. It includes local and global variables and types, as well as functions.
  */
-public interface CDeclaration extends CSimpleDeclaration, ADeclaration {}
+public sealed interface CDeclaration extends CSimpleDeclaration, ADeclaration
+    permits CFunctionDeclaration, CTypeDeclaration, CVariableDeclaration {}

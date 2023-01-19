@@ -40,11 +40,9 @@ public class InvariantWitnessTest {
     Queue<AbstractEntry> loadedEntries = new ArrayDeque<>();
     loadedEntries.addAll(entries);
     for (AbstractEntry e : loadedEntries) {
-      if (e instanceof LoopInvariantEntry) {
-        LoopInvariantEntry invEntry = (LoopInvariantEntry) e;
+      if (e instanceof LoopInvariantEntry invEntry) {
         assertThat(invEntry.getLocation().getFileName()).isEqualTo("multivar_1-1.c");
-      } else if (e instanceof LoopInvariantCertificateEntry) {
-        LoopInvariantCertificateEntry invCertEntry = (LoopInvariantCertificateEntry) e;
+      } else if (e instanceof LoopInvariantCertificateEntry invCertEntry) {
         assertThat(invCertEntry.getCertification().getString()).isEqualTo("confirmed");
       }
     }

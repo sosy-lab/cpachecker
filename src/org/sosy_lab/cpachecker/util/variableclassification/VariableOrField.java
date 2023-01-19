@@ -147,8 +147,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
         return 1;
       } else if (other instanceof Variable) {
         return 1;
-      } else if (other instanceof Field) {
-        final Field o = (Field) other;
+      } else if (other instanceof Field o) {
         final int result = composite.getQualifiedName().compareTo(o.composite.getQualifiedName());
         return result != 0 ? result : name.compareTo(o.name);
       } else {

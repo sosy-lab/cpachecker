@@ -259,10 +259,16 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
   private void generateInitialFalseCondition() {
     String condition =
-        "OBSERVER AUTOMATON AssumptionAutomaton\n\n"
-            + "INITIAL STATE __FALSE;\n\n"
-            + "STATE __FALSE :\n    TRUE -> GOTO __FALSE;\n\n"
-            + "END AUTOMATON\n";
+        """
+        OBSERVER AUTOMATON AssumptionAutomaton
+
+        INITIAL STATE __FALSE;
+
+        STATE __FALSE :
+            TRUE -> GOTO __FALSE;
+
+        END AUTOMATON
+        """;
 
     try (Writer w = IO.openOutputFile(initialCondition, Charset.defaultCharset())) {
       w.write(condition);

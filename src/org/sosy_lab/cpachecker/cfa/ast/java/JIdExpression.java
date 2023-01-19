@@ -19,7 +19,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  *
  * <p>If possible, it saves a reference to the declaration this name references.
  */
-public class JIdExpression extends AIdExpression implements JLeftHandSide {
+public sealed class JIdExpression extends AIdExpression implements JLeftHandSide
+    permits JFieldAccess {
 
   // TODO refactor to be either abstract or final
 

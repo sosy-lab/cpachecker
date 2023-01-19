@@ -440,18 +440,12 @@ public class CPAMain {
     for (String program : pPrograms) {
       Language language;
       String suffix = program.substring(program.lastIndexOf(".") + 1);
-      switch (suffix) {
-        case "ll":
-        case "bc":
-          language = Language.LLVM;
-          break;
-        case "c":
-        case "i":
-        case "h":
-        default:
-          language = Language.C;
-          break;
-      }
+      language =
+          switch (suffix) {
+            case "ll", "bc" -> Language.LLVM;
+            case "c", "i", "h" -> Language.C;
+            default -> Language.C;
+          };
       Preconditions.checkNotNull(language);
       if (frontendLanguage == null) { // first iteration
         frontendLanguage = language;

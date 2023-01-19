@@ -183,10 +183,7 @@ public class DeterministicVariablesTransferRelation
 
       // there are functions with returns that are called as FunctionCallStatement, i.e., without
       // assigning
-      if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
-        AFunctionCallAssignmentStatement assignExp =
-            ((AFunctionCallAssignmentStatement) summaryExpr);
-
+      if (summaryExpr instanceof AFunctionCallAssignmentStatement assignExp) {
         final Collection<Wrapper<ASimpleDeclaration>> assignedVariables =
             handleLeftHandSide(assignExp.getLeftHandSide());
 
