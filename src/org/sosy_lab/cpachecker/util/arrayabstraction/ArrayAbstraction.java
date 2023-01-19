@@ -542,7 +542,7 @@ public class ArrayAbstraction {
     ImmutableMap<CSimpleDeclaration, TransformableArray> transformableArrayMap =
         createTransformableArrayMap(TransformableArray.findTransformableArrays(pCfa));
 
-    return TransformableLoop.findTransformableLoops(pCfa, pLogger).stream()
+    return TransformableLoop.findTransformableLoops(pCfa.getMetadata(), pLogger).stream()
         .filter(loop -> !getLoopTransformableArrays(loop, transformableArrayMap).isEmpty())
         .collect(ImmutableSet.toImmutableSet());
   }
@@ -693,16 +693,13 @@ public class ArrayAbstraction {
       CFA pCfa) {
 
     CFA fstCfa =
-        CfaSimplifications.simplifyArrayAccesses(
-            pConfiguration,
-            pLogger,
-            pShutdownNotifier,
-            pCfa,
-            new VariableGenerator("__array_access_variable_"));
+        new SingleArrayOperationSimplifier(
+                pConfiguration, new VariableGenerator("__array_access_variable_"))
+            .transform(pCfa, pLogger, pShutdownNotifier);
 
     CFA sndCfa =
-        CfaSimplifications.simplifyIncDecLoopEdges(
-            pConfiguration, pLogger, pShutdownNotifier, fstCfa);
+        new LoopCarriedDependencyEliminator(pConfiguration)
+            .transform(fstCfa, pLogger, pShutdownNotifier);
 
     return sndCfa;
   }

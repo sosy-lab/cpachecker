@@ -2,265 +2,89 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.FlexCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.LoopStructurePostProcessor;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ReversePostorderPostProcessor;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.VariableClassificationPostProcessor;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaFactory;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaEdgeTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaFactory;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-final class CfaSimplifications {
+/**
+ * A {@link CfaTransformer} that creates CFAs where certain loop carried dependencies are
+ * eliminated.
+ *
+ * <p>Example elimination:
+ *
+ * <pre>
+ * {@code int j = 0; for (int i = 0; i < 100; i++) { print(j); j = j + 5; } }
+ * </pre>
+ *
+ * <p>is turned into (output is a simplified depiction)
+ *
+ * <pre>
+ * {@code int j = 0; for (int i = 0; i < 100; i++) { print(i * 5); } }
+ * </pre>
+ */
+final class LoopCarriedDependencyEliminator implements CfaTransformer {
 
-  private CfaSimplifications() {}
+  private final Configuration config;
 
-  /**
-   * Returns a simplified CFA with only a single array operation per CFA-edge.
-   *
-   * @param pConfiguration the configuration to use
-   * @param pLogger the logger to use
-   * @param pShutdownNotifier the shutdown notifier to use
-   * @param pCfa the CFA to simplify
-   * @param pVariableGenerator the variable generator to use
-   * @return the simplified CFA
-   */
-  static CFA simplifyArrayAccesses(
-      Configuration pConfiguration,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      CFA pCfa,
-      VariableGenerator pVariableGenerator) {
-
-    FlexCfaNetwork graph = FlexCfaNetwork.copy(pCfa);
-    Map<CFAEdge, Map<ArrayAccess, CAstNode>> substitution = new HashMap<>();
-
-    // copy of edges to prevent concurrent modification of graph
-    for (CFAEdge edge : ImmutableSet.copyOf(graph.edges())) {
-
-      // skip function summary edges here, modify them when the corresponding call edge is modified
-      // (to prevent doing the same modification twice)
-      if (edge instanceof FunctionSummaryEdge) {
-        continue;
-      }
-
-      Set<ArrayAccess> remainingArrayAccesses =
-          new LinkedHashSet<>(ArrayAccess.findArrayAccesses(edge));
-
-      // finished array access ---> substitute for finished array access
-      Map<ArrayAccess, CExpression> finished = new HashMap<>();
-
-      // only a single writing array access per edge is supported
-      assert remainingArrayAccesses.stream().filter(ArrayAccess::isWrite).count() <= 1;
-
-      // a single array access is allowed to remain
-      while (remainingArrayAccesses.size() > 1) {
-
-        Iterator<ArrayAccess> remainingArrayAccessesIterator = remainingArrayAccesses.iterator();
-        while (remainingArrayAccessesIterator.hasNext()) {
-
-          ArrayAccess current = remainingArrayAccessesIterator.next();
-          ImmutableSet<ArrayAccess> currentArrayAccesses =
-              ArrayAccess.findArrayAccesses(current.getExpression());
-
-          // array accesses can only be processes after all the array accesses they rely on are
-          // finished (e.g., a[b[10]] -> process b[10] -> b[10] finished -> process a[b[10]])
-          if (Sets.difference(currentArrayAccesses, finished.keySet()).size() == 1) {
-            remainingArrayAccessesIterator.remove();
-
-            if (current.isRead()) {
-
-              FileLocation fileLocation = edge.getFileLocation();
-              CFANode predecessor = graph.incidentNodes(edge).nodeU();
-
-              CInitializerExpression initializerExpression =
-                  new CInitializerExpression(fileLocation, current.getExpression());
-              String newVarName = pVariableGenerator.createNewVariableName();
-              String newVarQualifiedName =
-                  MemoryLocation.forLocalVariable(predecessor.getFunctionName(), newVarName)
-                      .getExtendedQualifiedName();
-
-              CVariableDeclaration declaration =
-                  new CVariableDeclaration(
-                      fileLocation,
-                      false,
-                      CStorageClass.AUTO,
-                      current.getExpression().getExpressionType(),
-                      newVarName,
-                      newVarName,
-                      newVarQualifiedName,
-                      initializerExpression);
-
-              CFAEdge newDeclarationEdge =
-                  new CDeclarationEdge(
-                      "",
-                      fileLocation,
-                      CFANode.newDummyCFANode(),
-                      CFANode.newDummyCFANode(),
-                      declaration);
-
-              for (Map.Entry<ArrayAccess, CExpression> finishedEntry : finished.entrySet()) {
-                substitution
-                    .computeIfAbsent(newDeclarationEdge, key -> new HashMap<>())
-                    .put(finishedEntry.getKey(), finishedEntry.getValue());
-              }
-
-              graph.insertPredecessor(
-                  new CFANode(predecessor.getFunction()), newDeclarationEdge, predecessor);
-
-              CIdExpression substituteExpression = new CIdExpression(fileLocation, declaration);
-              substitution
-                  .computeIfAbsent(edge, key -> new HashMap<>())
-                  .put(current, substituteExpression);
-              if (edge instanceof FunctionCallEdge) {
-                FunctionSummaryEdge summaryEdge = edge.getPredecessor().getLeavingSummaryEdge();
-                assert summaryEdge != null : "Missing summary edge for call edge";
-                substitution
-                    .computeIfAbsent(summaryEdge, key -> new HashMap<>())
-                    .put(current, substituteExpression);
-              }
-
-              finished.put(current, substituteExpression);
-            }
-          }
-        }
-      }
-    }
-
-    BiFunction<CFAEdge, CAstNode, CAstNode> substitutionFunction =
-        (edge, originalAstNode) -> {
-          Map<ArrayAccess, CAstNode> arrayAccessSubstitution = substitution.get(edge);
-
-          if (arrayAccessSubstitution == null) {
-            return originalAstNode;
-          }
-
-          // there should be no writing accesses, we only replace reading accesses
-          assert arrayAccessSubstitution.keySet().stream()
-              .filter(ArrayAccess::isWrite)
-              .findAny()
-              .isEmpty();
-
-          Function<Map.Entry<ArrayAccess, ?>, CAstNode> extractExpression =
-              entry -> entry.getKey().getExpression();
-          ImmutableMap<CAstNode, CAstNode> astNodeSubstitution =
-              arrayAccessSubstitution.entrySet().stream()
-                  .collect(ImmutableMap.toImmutableMap(extractExpression, Map.Entry::getValue));
-
-          // TODO: add support for more edges/statements that can contain writing array accesses
-          if (edge instanceof CStatementEdge) {
-            CStatement statement = ((CStatementEdge) edge).getStatement();
-            if (statement instanceof CExpressionAssignmentStatement assignStatement) {
-              CAstNode rhs =
-                  assignStatement
-                      .getRightHandSide()
-                      .accept(new SubstitutingCAstNodeVisitor(astNodeSubstitution::get));
-              return new CExpressionAssignmentStatement(
-                  assignStatement.getFileLocation(),
-                  assignStatement.getLeftHandSide(),
-                  (CExpression) rhs);
-            }
-          }
-
-          return originalAstNode.accept(new SubstitutingCAstNodeVisitor(astNodeSubstitution::get));
-        };
-
-    CfaFactory cfaFactory =
-        CCfaFactory.toUnconnectedFunctions()
-            .transformEdges(CCfaEdgeTransformer.forSubstitutions(substitutionFunction::apply))
-            .executePostProcessor(new ReversePostorderPostProcessor())
-            .executePostProcessor(new LoopStructurePostProcessor())
-            .toSupergraph()
-            .executePostProcessor(new VariableClassificationPostProcessor(pConfiguration));
-
-    return cfaFactory.createCfa(graph, pCfa.getMetadata(), pLogger, pShutdownNotifier);
+  LoopCarriedDependencyEliminator(Configuration pConfig) {
+    config = pConfig;
   }
 
-  /**
-   * Returns a simplified CFA where certain loop carried dependencies are eliminated.
-   *
-   * <p>Example simplification:
-   *
-   * <pre>
-   * {@code int j = 0; for (int i = 0; i < 100; i++) { print(j); j = j + 5; } }
-   * </pre>
-   *
-   * <p>is turned into (output is a simplified depiction)
-   *
-   * <pre>
-   * {@code int j = 0; for (int i = 0; i < 100; i++) { print(i * 5); } }
-   * </pre>
-   *
-   * @param pConfiguration the configuration to use
-   * @param pLogger the logger to use
-   * @param pShutdownNotifier the shutdown notifier to use
-   * @param pCfa the CFA to simplify
-   * @return the simplified CFA
-   */
-  static CFA simplifyIncDecLoopEdges(
-      Configuration pConfiguration,
+  @Override
+  public CFA transform(
+      CfaNetwork pCfaNetwork,
+      CfaMetadata pCfaMetadata,
       LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      CFA pCfa) {
-
-    FlexCfaNetwork graph = FlexCfaNetwork.copy(pCfa);
+      ShutdownNotifier pShutdownNotifier) {
+    FlexCfaNetwork graph = FlexCfaNetwork.copy(pCfaNetwork);
     Map<CFAEdge, Map<CSimpleDeclaration, CExpression>> substitution = new HashMap<>();
 
-    VariableClassification variableClassification = pCfa.getVarClassification().orElseThrow();
-    MachineModel machineModel = pCfa.getMachineModel();
+    VariableClassification variableClassification =
+        pCfaMetadata.getVariableClassification().orElseThrow();
+    MachineModel machineModel = pCfaMetadata.getMachineModel();
     ValueAnalysisState emptyValueAnalysisState = new ValueAnalysisState(machineModel);
 
-    for (TransformableLoop loop : TransformableLoop.findTransformableLoops(pCfa, pLogger)) {
+    for (TransformableLoop loop : TransformableLoop.findTransformableLoops(pCfaMetadata, pLogger)) {
 
       String functionName = loop.getLoopNode().getFunctionName();
 
@@ -477,9 +301,9 @@ final class CfaSimplifications {
             .executePostProcessor(new ReversePostorderPostProcessor())
             .executePostProcessor(new LoopStructurePostProcessor())
             .toSupergraph()
-            .executePostProcessor(new VariableClassificationPostProcessor(pConfiguration));
+            .executePostProcessor(new VariableClassificationPostProcessor(config));
 
-    return cfaFactory.createCfa(graph, pCfa.getMetadata(), pLogger, pShutdownNotifier);
+    return cfaFactory.createCfa(graph, pCfaMetadata, pLogger, pShutdownNotifier);
   }
 
   private static final class IdExpressionSubstitutingCAstNodeVisitor

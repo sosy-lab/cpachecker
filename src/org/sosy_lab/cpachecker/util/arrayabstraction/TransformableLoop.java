@@ -20,7 +20,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -231,9 +231,11 @@ final class TransformableLoop {
     return count;
   }
 
-  private static boolean isAddressed(CFA pCfa, CSimpleDeclaration pVariableDeclaration) {
+  private static boolean isAddressed(
+      CfaMetadata pCfaMetadata, CSimpleDeclaration pVariableDeclaration) {
 
-    VariableClassification variableClassification = pCfa.getVarClassification().orElseThrow();
+    VariableClassification variableClassification =
+        pCfaMetadata.getVariableClassification().orElseThrow();
 
     return variableClassification
         .getAddressedVariables()
@@ -241,7 +243,7 @@ final class TransformableLoop {
   }
 
   private static Optional<TransformableLoop> forLoop(
-      CFA pCfa, LogManager pLogger, LoopStructure.Loop pLoop) {
+      CfaMetadata pCfaMetadata, LogManager pLogger, LoopStructure.Loop pLoop) {
 
     if (pLoop.getIncomingEdges().size() != 1 || pLoop.getOutgoingEdges().size() != 1) {
       return Optional.empty();
@@ -263,7 +265,7 @@ final class TransformableLoop {
       }
     }
 
-    MachineModel machineModel = pCfa.getMachineModel();
+    MachineModel machineModel = pCfaMetadata.getMachineModel();
     ValueAnalysisState emptyValueAnalysisState = new ValueAnalysisState(machineModel);
     String functionName = loopNode.getFunctionName();
 
@@ -281,7 +283,7 @@ final class TransformableLoop {
 
     // don't allow loop indices that are addressed, so we don't miss any defs,
     // even without pointer information
-    if (isAddressed(pCfa, indexVariableDeclaration)) {
+    if (isAddressed(pCfaMetadata, indexVariableDeclaration)) {
       return Optional.empty();
     }
 
@@ -372,14 +374,14 @@ final class TransformableLoop {
 
   /** Returns all transformable loops in the specified CFA. */
   public static ImmutableSet<TransformableLoop> findTransformableLoops(
-      CFA pCfa, LogManager pLogger) {
+      CfaMetadata pCfaMetadata, LogManager pLogger) {
 
     ImmutableSet.Builder<TransformableLoop> transformableLoops = ImmutableSet.builder();
-    LoopStructure loopStructure = pCfa.getLoopStructure().orElseThrow();
+    LoopStructure loopStructure = pCfaMetadata.getLoopStructure().orElseThrow();
 
     for (LoopStructure.Loop loop : loopStructure.getAllLoops()) {
       Optional<TransformableLoop> optTransformableLoop =
-          TransformableLoop.forLoop(pCfa, pLogger, loop);
+          TransformableLoop.forLoop(pCfaMetadata, pLogger, loop);
       if (optTransformableLoop.isPresent()) {
         transformableLoops.add(optTransformableLoop.orElseThrow());
       }
