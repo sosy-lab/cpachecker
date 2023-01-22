@@ -19,13 +19,11 @@ import java.io.Writer;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -62,15 +60,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
-import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
@@ -80,6 +75,14 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "samplingAlgorithm")
 public class SamplingAlgorithm extends NestingAlgorithm {
+
+  private enum Strategy {
+    CONSTRAINED_UNIFORM,
+    SMT_RANDOM
+  }
+
+  private record NoDuplicatesConstraint(
+      Sample sample, BooleanFormula formula, FormulaManagerView fmgr) {}
 
   @Option(secure = true, description = "The number of initial samples to collect before unrolling.")
   private int numInitialSamples = 5;
@@ -102,8 +105,12 @@ public class SamplingAlgorithm extends NestingAlgorithm {
   @FileOption(Type.REQUIRED_INPUT_FILE)
   private Path initialBackwardConfig;
 
+  @Option(secure = true, description = "The strategy to use for initial sample generation.")
+  private Strategy strategy = Strategy.SMT_RANDOM;
+
   private final CFA cfa;
   private final Specification samplingSpecification;
+  private final SamplingStrategy samplingStrategy;
   private final SampleUnrollingAlgorithm forwardUnrollingAlgorithm;
   private final SampleUnrollingAlgorithm backwardUnrollingAlgorithm;
 
@@ -118,6 +125,12 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     pConfig.inject(this);
     cfa = pCfa;
     samplingSpecification = pSpecification;
+
+    samplingStrategy =
+        switch (strategy) {
+          case CONSTRAINED_UNIFORM -> new ConstrainedUniformSamplingStrategy(pConfig);
+          case SMT_RANDOM -> new SMTRandomSamplingStrategy();
+        };
 
     ConfigurationBuilder unrollingConfigBuilder =
         Configuration.builder()
@@ -211,7 +224,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
 
     // Continuously collect samples until shutdown is requested
     ImmutableSet.Builder<Sample> samples = ImmutableSet.builder();
-    Map<Sample, Pair<BooleanFormula, FormulaManagerView>> constraints = new HashMap<>();
+    Set<NoDuplicatesConstraint> constraints = new HashSet<>();
     while (!shutdownNotifier.shouldShutdown()) {
       // Collect some positive samples using predicate-based and value-based sampling
       for (Sample sample :
@@ -289,10 +302,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
    * <p>This function implements predicate-based sampling.
    */
   private Set<Sample> getInitialPositiveSamples(
-      ReachedSet reachedSet,
-      Solver solver,
-      Loop loop,
-      Map<Sample, Pair<BooleanFormula, FormulaManagerView>> constraints)
+      ReachedSet reachedSet, Solver solver, Loop loop, Set<NoDuplicatesConstraint> constraints)
       throws InterruptedException, SolverException {
     BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
 
@@ -324,10 +334,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
   }
 
   private Set<Sample> getInitialNegativeSamples(
-      ReachedSet reachedSet,
-      Solver solver,
-      Loop loop,
-      Map<Sample, Pair<BooleanFormula, FormulaManagerView>> constraints)
+      ReachedSet reachedSet, Solver solver, Loop loop, Set<NoDuplicatesConstraint> constraints)
       throws InterruptedException, SolverException {
     BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
 
@@ -362,7 +369,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       Set<BooleanFormula> pFormulas,
       Solver pSolver,
       CFANode pLocation,
-      Map<Sample, Pair<BooleanFormula, FormulaManagerView>> pConstraints,
+      Set<NoDuplicatesConstraint> pConstraints,
       SampleClass pSampleClass)
       throws InterruptedException, SolverException {
     Set<Sample> samples = new HashSet<>();
@@ -370,28 +377,25 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
     try (ProverEnvironment prover = pSolver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       for (BooleanFormula formula : pFormulas) {
-        List<List<ValueAssignment>> models = new ArrayList<>(numInitialSamples);
+        int collectedSamples = 0;
         prover.push(formula);
 
         // Add constraints to prevent previously found samples from being found again
-        for (Entry<Sample, Pair<BooleanFormula, FormulaManagerView>> entry :
-            pConstraints.entrySet()) {
-          Sample sample = entry.getKey();
-          if (sample.getSampleClass().equals(pSampleClass)
-              && sample.getLocation().equals(pLocation)) {
+        for (NoDuplicatesConstraint constraint : pConstraints) {
+          if (constraint.sample().getSampleClass().equals(pSampleClass)
+              && constraint.sample().getLocation().equals(pLocation)) {
             BooleanFormula constraintFormula =
-                pSolver
-                    .getFormulaManager()
-                    .translateFrom(entry.getValue().getFirst(), entry.getValue().getSecond());
+                fmgr.translateFrom(constraint.formula(), constraint.fmgr());
             prover.addConstraint(constraintFormula);
           }
         }
-
         if (prover.isUnsat()) {
           // Formula is UNSAT even without additional constraints, there is nothing to do
           logger.log(Level.INFO, "Encountered unsatisfiable formula, no samples exist");
+          prover.pop();
           continue;
         }
+
         // Query solver for a random model, so we get easy access to the variable representations
         // (this is a hack)
         List<ValueAssignment> assignments = prover.getModelAssignments();
@@ -399,49 +403,21 @@ public class SamplingAlgorithm extends NestingAlgorithm {
             FluentIterable.from(getRelevantAssignments(assignments, pLocation))
                 .transform(ValueAssignment::getKey);
 
-        // Add some constraints to keep the variable values small
-        BitvectorFormulaManagerView bvmgr =
-            pSolver.getFormulaManager().getBitvectorFormulaManager();
-        for (Formula variableFormula : variableFormulas) {
-          // TODO: We assume all variables are bitvectors for now
-          BitvectorFormula variable = (BitvectorFormula) variableFormula;
-          boolean unsat = true;
-          long max_value = 10;
-          // If the formula becomes unsat the constraint was too tight, so loosen it or remove
-          // completely.
-          // TODO: Could use a more sophisticated approach
-          while (unsat && max_value <= 1000) {
-            BitvectorFormula limit = bvmgr.makeBitvector(32, max_value);
-            BooleanFormula upper = bvmgr.lessOrEquals(variable, limit, true);
-            BooleanFormula lower = bvmgr.lessOrEquals(bvmgr.negate(variable), limit, true);
-            prover.push(upper);
-            prover.addConstraint(lower);
-            unsat = prover.isUnsat();
-            // Need to pop and add again as constraint if SAT, because otherwise solver stack can
-            // vary in size
-            prover.pop();
-            if (unsat) {
-              max_value *= 10;
-            } else {
-              prover.addConstraint(bfmgr.and(upper, lower));
-            }
-          }
-        }
-
         // Collect some satisfying models
-        while (models.size() < numInitialSamples) {
-          if (prover.isUnsat()) {
+        while (collectedSamples < numInitialSamples) {
+          List<ValueAssignment> model = samplingStrategy.getModel(fmgr, variableFormulas, prover);
+          if (model == null) {
             logger.logf(
                 Level.INFO,
-                "Exhausted all satisfying models, collected only %s samples",
-                models.size());
+                "Exhausted all satisfying models, collected only %s samples for formula %s",
+                collectedSamples,
+                formula);
             break;
           }
-          models.add(prover.getModelAssignments());
+          collectedSamples++;
 
           // Extract sample
-          Iterable<ValueAssignment> relevantAssignments =
-              getRelevantAssignments(prover.getModelAssignments(), pLocation);
+          Iterable<ValueAssignment> relevantAssignments = getRelevantAssignments(model, pLocation);
           Sample sample = extractSampleFromModel(relevantAssignments, pLocation, pSampleClass);
           samples.add(sample);
 
@@ -451,9 +427,10 @@ public class SamplingAlgorithm extends NestingAlgorithm {
                   .transform(ValueAssignment::getAssignmentAsFormula)
                   .toSet();
           BooleanFormula constraint = bfmgr.not(bfmgr.and(relevantFormulas));
-          pConstraints.put(sample, Pair.of(constraint, fmgr));
           prover.addConstraint(constraint);
+          pConstraints.add(new NoDuplicatesConstraint(sample, constraint, fmgr));
         }
+
         prover.pop();
       }
     }

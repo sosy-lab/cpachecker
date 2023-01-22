@@ -715,7 +715,8 @@ abstract class AbstractBMCAlgorithm
           if (getIteration(state) == 1) {
             // We are at the loop head, so iteration == 1 means the start of the first iteration.
             // Thus, any satisfying models are counterexamples to P => I.
-            pre_cexs.add(new PreconditionCounterexample(pCandidateInvariant, pProver.getModelAssignments()));
+            pre_cexs.add(
+                new PreconditionCounterexample(pCandidateInvariant, pProver.getModelAssignments()));
           } else {
             // Get any model for the previous iteration
             FluentIterable<AbstractState> previous =
@@ -741,7 +742,8 @@ abstract class AbstractBMCAlgorithm
             Collection<ValueAssignment> valuesAfter = pProver.getModelAssignments();
 
             // The obtained models pose a counterexample to {B & I} S {I}
-            step_cexs.add(new StepCaseCounterexample(pCandidateInvariant, valuesBefore, valuesAfter));
+            step_cexs.add(
+                new StepCaseCounterexample(pCandidateInvariant, valuesBefore, valuesAfter));
           }
         }
         pProver.pop();

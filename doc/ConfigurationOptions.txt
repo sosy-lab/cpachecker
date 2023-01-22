@@ -162,6 +162,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -503,6 +504,9 @@ analysis.useCompositionAnalysis = false
 
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
+
+# Use invariant validation algorithm to validate invariants.
+analysis.useInvariantValidationAlgorithm = false
 
 # add loop-structure information to CFA.
 analysis.useLoopStructure = true
@@ -3904,6 +3908,9 @@ invariantGeneration.config = no default value
 # Check candidate invariants in a separate thread asynchronously.
 invariantGeneration.kInduction.async = true
 
+# Whether counterexample disproving incorrect candidates should be collected
+invariantGeneration.kInduction.collectCexs = false
+
 # Guess some candidates for the k-induction invariant generator from the CFA.
 invariantGeneration.kInduction.guessCandidatesFromCFA = ASSUME_EDGES_PLAIN
   enum:     [NONE, ASSUME_EDGES_PLAIN, ASSUME_EDGE_TEMPLATES, LINEAR_TEMPLATES]
@@ -3926,6 +3933,21 @@ invariantStore.invariantGenerationStrategy = REACHED_SET
 
 # The witness from which invariants should be generated.
 invariantStore.witness = "invariantwitness.yaml"
+
+# The directory where the invariants are stored.
+invariantValidation.invDir = "invariants"
+
+# The invariant to be validated.
+invariantValidation.invariant = no default value
+
+# The file to which postcondition counterexamples shall be written.
+invariantValidation.postCexOutFile = "post_cex_samples.json"
+
+# The file to which precondition counterexamples shall be written.
+invariantValidation.preCexOutFile = "pre_cex_samples.json"
+
+# The file to which step case counterexamples shall be written.
+invariantValidation.stepCexOutFile = "step_cex_samples.json"
 
 # Specify the class code path to search for java class or interface
 # definitions
@@ -4507,11 +4529,27 @@ restartAlgorithm.printIntermediateStatistics = true
 # the last one that is excuted
 restartAlgorithm.writeIntermediateOutputFiles = false
 
+# The minimum value for each variable in the sample.
+sampling.strategy.constrainedUniform.lowerBound = 0
+
+# The maximum value for each variable in the sample.
+sampling.strategy.constrainedUniform.upperBound = 10
+
+# The configuration file to use for building the backward ARG.
+samplingAlgorithm.initial.backward.config = no default value
+
+# The configuration file to use for building the forward ARG.
+samplingAlgorithm.initial.forward.config = no default value
+
 # The number of initial samples to collect before unrolling.
 samplingAlgorithm.numInitialSamples = 5
 
 # The file where generated samples should be written to.
 samplingAlgorithm.outFile = "samples.json"
+
+# The strategy to use for initial sample generation.
+samplingAlgorithm.strategy = SMT_RANDOM
+  enum:     [CONSTRAINED_UNIFORM, SMT_RANDOM]
 
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"
