@@ -82,8 +82,7 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
         cutSizeAfter += pGraph.getNumEdgesBetween(v1, v2);
       }
     }
-    logger.log(
-        Level.FINE, String.format("[FM] Computed partitioning of cut size %d", cutSizeAfter));
+    logger.log(Level.FINE, "[FM] Computed partitioning of cut size", cutSizeAfter);
     return partition;
   }
 }
