@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -21,26 +20,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /** Stores a numeric value that can be tracked by the ValueAnalysisCPA. */
-public class NumericValue implements Value, Serializable {
+public record NumericValue(Number number) implements Value {
 
   private static final long serialVersionUID = -3829943575180448170L;
 
-  private Number number;
-
-  /**
-   * Creates a new <code>NumericValue</code>.
-   *
-   * @param pNumber the value of the number
-   */
-  public NumericValue(Number pNumber) {
-    number = pNumber;
-  }
-
-  /**
-   * Returns the number stored in the container.
-   *
-   * @return the number stored in the container
-   */
+  /** Returns the number stored in the container. Same as {@link #number()} for consistency. */
   public Number getNumber() {
     return number;
   }
@@ -97,27 +81,6 @@ public class NumericValue implements Value, Serializable {
       return bigDecimalValue().toBigInteger();
     } else {
       return new BigInteger(number.toString());
-    }
-  }
-
-  @Override
-  public String toString() {
-    return "NumericValue [number=" + number + "]";
-  }
-
-  /**
-   * Returns whether this object and a given object are equal. Two <code>NumericValue</code> objects
-   * are equal if and only if their stored values are equal.
-   *
-   * @param other the <code>Object</code> to compare to this object
-   * @return <code>true</code> if the given object equals this object, <code>false</code> otherwise
-   */
-  @Override
-  public boolean equals(Object other) {
-    if (other instanceof NumericValue) {
-      return getNumber().equals(((NumericValue) other).getNumber());
-    } else {
-      return false;
     }
   }
 
@@ -224,13 +187,6 @@ public class NumericValue implements Value, Serializable {
   @Override
   public boolean isExplicitlyKnown() {
     return true;
-  }
-
-  @Override
-  public int hashCode() {
-    // fulfills contract that if this.equals(other),
-    // then this.hashCode() == other.hashCode()
-    return number.hashCode();
   }
 
   public static class NegativeNaN extends Number {
