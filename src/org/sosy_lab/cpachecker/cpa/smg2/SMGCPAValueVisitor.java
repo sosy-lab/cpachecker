@@ -1095,14 +1095,7 @@ public class SMGCPAValueVisitor
             return UnknownValue.getInstance();
           }
 
-          final BigInteger valueToCastAsInt;
-          if (numericValue.getNumber() instanceof BigInteger) {
-            valueToCastAsInt = numericValue.bigIntegerValue();
-          } else if (numericValue.getNumber() instanceof BigDecimal) {
-            valueToCastAsInt = numericValue.bigDecimalValue().toBigInteger();
-          } else {
-            valueToCastAsInt = numericValue.bigIntegerValue();
-          }
+          final BigInteger valueToCastAsInt = numericValue.bigIntegerValue();
           final boolean targetIsSigned = machineModel.isSigned(st);
 
           final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
@@ -2626,14 +2619,8 @@ public class SMGCPAValueVisitor
       case INT:
         {
           // TODO: test this in particular!
-          BigInteger leftBigInt =
-              l.getNumber() instanceof BigInteger
-                  ? (BigInteger) l.getNumber()
-                  : l.bigIntegerValue();
-          BigInteger rightBigInt =
-              r.getNumber() instanceof BigInteger
-                  ? (BigInteger) r.getNumber()
-                  : r.bigIntegerValue();
+          BigInteger leftBigInt = l.bigIntegerValue();
+          BigInteger rightBigInt = r.bigIntegerValue();
           cmp = leftBigInt.compareTo(rightBigInt);
           break;
         }

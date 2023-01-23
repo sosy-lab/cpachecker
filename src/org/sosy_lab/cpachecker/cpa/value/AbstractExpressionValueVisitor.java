@@ -753,14 +753,8 @@ public abstract class AbstractExpressionValueVisitor
               machineModel.getSizeof(canonicalType) * machineModel.getSizeofCharInBits();
           if ((!machineModel.isSigned(canonicalType) && sizeInBits == SIZE_OF_JAVA_LONG)
               || sizeInBits > SIZE_OF_JAVA_LONG) {
-            BigInteger leftBigInt =
-                l.getNumber() instanceof BigInteger
-                    ? (BigInteger) l.getNumber()
-                    : l.bigIntegerValue();
-            BigInteger rightBigInt =
-                r.getNumber() instanceof BigInteger
-                    ? (BigInteger) r.getNumber()
-                    : r.bigIntegerValue();
+            BigInteger leftBigInt = l.bigIntegerValue();
+            BigInteger rightBigInt = r.bigIntegerValue();
             cmp = leftBigInt.compareTo(rightBigInt);
             break;
           }
@@ -2488,14 +2482,7 @@ public abstract class AbstractExpressionValueVisitor
             return UnknownValue.getInstance();
           }
 
-          final BigInteger valueToCastAsInt;
-          if (numericValue.getNumber() instanceof BigInteger) {
-            valueToCastAsInt = numericValue.bigIntegerValue();
-          } else if (numericValue.getNumber() instanceof BigDecimal) {
-            valueToCastAsInt = numericValue.bigDecimalValue().toBigInteger();
-          } else {
-            valueToCastAsInt = numericValue.bigIntegerValue();
-          }
+          final BigInteger valueToCastAsInt = numericValue.bigIntegerValue();
           final boolean targetIsSigned = machineModel.isSigned(st);
 
           final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
