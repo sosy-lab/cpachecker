@@ -335,11 +335,10 @@ public class ExpressionSimplificationVisitor
             case CHAR:
             case INT:
               return new CIntegerLiteralExpression(
-                  expr.getFileLocation(), type, BigInteger.valueOf(v.longValue()));
+                  expr.getFileLocation(), type, v.bigIntegerValue());
             case FLOAT:
             case DOUBLE:
-              return new CFloatLiteralExpression(
-                  expr.getFileLocation(), type, BigDecimal.valueOf(v.doubleValue()));
+              return new CFloatLiteralExpression(expr.getFileLocation(), type, v.bigDecimalValue());
             default:
               // fall-through and return the original expression
           }

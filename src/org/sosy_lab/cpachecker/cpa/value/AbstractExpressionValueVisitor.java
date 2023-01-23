@@ -756,11 +756,11 @@ public abstract class AbstractExpressionValueVisitor
             BigInteger leftBigInt =
                 l.getNumber() instanceof BigInteger
                     ? (BigInteger) l.getNumber()
-                    : BigInteger.valueOf(l.longValue());
+                    : l.bigIntegerValue();
             BigInteger rightBigInt =
                 r.getNumber() instanceof BigInteger
                     ? (BigInteger) r.getNumber()
-                    : BigInteger.valueOf(r.longValue());
+                    : r.bigIntegerValue();
             cmp = leftBigInt.compareTo(rightBigInt);
             break;
           }
@@ -2494,7 +2494,7 @@ public abstract class AbstractExpressionValueVisitor
           } else if (numericValue.getNumber() instanceof BigDecimal) {
             valueToCastAsInt = numericValue.bigDecimalValue().toBigInteger();
           } else {
-            valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
+            valueToCastAsInt = numericValue.bigIntegerValue();
           }
           final boolean targetIsSigned = machineModel.isSigned(st);
 
