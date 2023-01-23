@@ -2336,7 +2336,7 @@ public class SMGState
     return writeValue(returnObject, BigInteger.ZERO, sizeInBits, valueToWrite, returnValueType);
   }
 
-  /** Writes the value exactly to the size of the return of the current stack frame. * */
+  /** Writes the value exactly to the size of the return of the current stack frame. */
   private SMGState writeToReturn(Value valueToWrite) {
     SMGObject returnObject = memoryModel.getReturnObjectForCurrentStackFrame().orElseThrow();
     return writeValue(returnObject, BigInteger.ZERO, returnObject.getSize(), valueToWrite, null);

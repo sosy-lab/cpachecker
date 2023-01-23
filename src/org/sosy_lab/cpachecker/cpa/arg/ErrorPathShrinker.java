@@ -320,7 +320,7 @@ public final class ErrorPathShrinker {
   /** This method handles variable declarations ("int a;" or "int b=a+123;"). */
   private void handleDeclarationEdge(ADeclaration declaration) {
 
-    /* If the declared variable is important, the edge is important. */
+    // If the declared variable is important, the edge is important.
     if (declaration.getName() != null) {
       if (isImportant(declaration)) {
         addCurrentCFAEdgeToShortPath();

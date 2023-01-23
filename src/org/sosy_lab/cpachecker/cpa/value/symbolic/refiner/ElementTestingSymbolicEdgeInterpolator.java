@@ -47,9 +47,9 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInterpolator {
 
   private enum RefinementStrategy {
-    /* First try to delete as many constraints as possible, then assignments */
+    // First try to delete as many constraints as possible, then assignments
     CONSTRAINTS_FIRST,
-    /* First try to delete as many assignments as possible, then constraints */
+    // First try to delete as many assignments as possible, then constraints
     VALUES_FIRST,
     /*
     Alternate between constraints-first and values-first.
@@ -57,7 +57,7 @@ public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInter
     In second, use VALUES_FIRST. In third, use CONSTRAINTS_FIRST again, and so on.
      */
     ALTERNATING,
-    /* Always keep all constraints and only try to delete as many assignments as possible */
+    // Always keep all constraints and only try to delete as many assignments as possible
     VALUES_ONLY
   }
 

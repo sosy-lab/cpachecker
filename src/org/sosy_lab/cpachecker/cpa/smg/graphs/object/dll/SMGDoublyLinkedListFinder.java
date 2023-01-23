@@ -391,7 +391,8 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         Iterable<SMGEdgeHasValue> hves =
             pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
-        /* If we want to continue abstracting in this sequence there may be only these two edges, and the edges from the subSmg.*/
+        // If we want to continue abstracting in this sequence there may be only these two edges,
+        // and the edges from the subSmg.
         int count = 0;
         for (SMGEdgeHasValue hve : hves) {
           if (!nonSharedObject2.contains(hve.getObject())) {

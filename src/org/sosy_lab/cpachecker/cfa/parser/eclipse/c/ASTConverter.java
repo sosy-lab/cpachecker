@@ -2682,7 +2682,7 @@ class ASTConverter {
             getLocation(e),
             name,
             scope.createScopedNameOf(name),
-            /* dummy integer type, the correct one will be set directly afterwards */
+            // dummy integer type, the correct one will be set directly afterwards
             CNumericTypes.SIGNED_INT,
             value);
     scope.registerDeclaration(result);
