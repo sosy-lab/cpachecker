@@ -25,7 +25,7 @@ def get_chart_labels(benchmark_times):
 
 def select_individual_runs(benchmark_dirs):
     print("Your selected benchmark has " + str(len(benchmark_dirs)) + " runs.")
-    print("Please select the start and end index of the runs for which you want to generate a plot. (1 to " + len(benchmark_dirs) + ")")
+    print("Please select the start and end index of the runs for which you want to generate a plot. (1 to " + str(len(benchmark_dirs)) + ")")
     start_index = int(input("Start index: ")) - 1
     end_index = int(input("End index: ")) - 1
     return start_index, end_index
@@ -50,7 +50,7 @@ def generate_benchmark_runs_plots(directory):
 
     
     start_index, end_index = select_individual_runs(benchmark_dirs)
-    if start_index < 1 or end_index > len(benchmark_dirs) or start_index > end_index:
+    if start_index < 0 or end_index > len(benchmark_dirs) or start_index > end_index:
         print("User error!")
         return
 

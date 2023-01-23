@@ -2,10 +2,6 @@ package org.sosy_lab.cpachecker.core.algorithm.microbenchmarking;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -14,7 +10,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -31,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -45,30 +39,10 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 public class MicroBenchmarking implements Algorithm {
 
   private static class BenchmarkExecutionRun {
-    long startTime;
-    long endTime;
     long duration;
   }
 
-  private static class MicroBenchmarkingStatistics extends MultiStatistics {
-
-    private long benchmarkExecutionDuration;
-    private double averageBenchmarkDuration;
-
-    private double allBenchmarksDurationDelta;
-
-    protected MicroBenchmarkingStatistics(LogManager pLogger) {
-      super(pLogger);
-    }
-
-    @Override
-    public @Nullable String getName() {
-      return "Micro Benchmarking";
-    }
-  }
-
   private final Algorithm child;
-  private final MicroBenchmarkingStatistics stats;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final Specification specification;
@@ -111,7 +85,6 @@ public class MicroBenchmarking implements Algorithm {
     this.logger = pLogger;
     this.shutdownNotifier = pShutdownNotifier;
     this.specification = pSpecification;
-    stats = new MicroBenchmarkingStatistics(pLogger);
   }
 
   @Override
@@ -119,10 +92,6 @@ public class MicroBenchmarking implements Algorithm {
 
     try {
       TickerWithUnit ticker = Tickers.getCurrentThreadCputime();
-      long benchmarkStartTime = ticker.read();
-
-      double benchmarkTimeSum = 0.0;
-      double highestBenchmarkTime = 0.0;
 
       Map<String, List<Map<String, List<BenchmarkExecutionRun>>>> benchmarkTimes = new HashMap<>();
 
@@ -177,8 +146,6 @@ public class MicroBenchmarking implements Algorithm {
         benchmarkTimes.put(singleConfigFilePath.toString() + "-" + index, times);
         index++;
       }
-
-      long benchmarkEndTime = ticker.read();
 
       if (this.outputFile != null) {
         try (Writer writer = IO.openOutputFile(this.outputFile, Charset.defaultCharset())) {
@@ -236,23 +203,9 @@ public class MicroBenchmarking implements Algorithm {
 
 
       BenchmarkExecutionRun run = new BenchmarkExecutionRun();
-      run.startTime = startTime;
-      run.endTime = endTime;
       run.duration = timeDiff;
       list.add(run);
     }
     return list;
-  }
-
-  private Path getSourceFilePath(String fileName) {
-
-    //    URL url = Resources.getResource(getClass(), fileName);
-    try {
-      URL url = new URL(fileName);
-      URI uri = url.toURI();
-      return Path.of(uri);
-    } catch (URISyntaxException | MalformedURLException e) {
-      return Path.of(fileName);
-    }
   }
 }
