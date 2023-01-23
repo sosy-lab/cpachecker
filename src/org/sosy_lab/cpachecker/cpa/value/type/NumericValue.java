@@ -32,22 +32,39 @@ public record NumericValue(Number number) implements Value {
   /**
    * Returns the integer stored in the container as long. Before calling this function, it must be
    * ensured using `getType()` that this container contains an integer.
+   *
+   * <p>Warning: This silently truncates and rounds the value to fit into a long. Use {@link
+   * #bigDecimalValue() or #bigIntegerValue()} instead.
    */
   public long longValue() {
     return number.longValue();
   }
 
-  /** Returns the floating point stored in the container as float. */
+  /**
+   * Returns the floating point stored in the container as float.
+   *
+   * <p>Warning: This silently truncates and rounds the value to fit into a float. Use {@link
+   * #bigDecimalValue() or #bigIntegerValue()} instead.
+   */
   public float floatValue() {
     return number.floatValue();
   }
 
-  /** Returns the floating point stored in the container as double. */
+  /**
+   * Returns the floating point stored in the container as double. *
+   *
+   * <p>Warning: This silently truncates and rounds the value to fit into a double. Use {@link
+   * #bigDecimalValue() or #bigIntegerValue()} instead.
+   */
   public double doubleValue() {
     return number.doubleValue();
   }
 
-  /** Returns a BigDecimal value representing the stored number. */
+  /**
+   * Returns a BigDecimal value representing the stored number.
+   *
+   * <p>WARNING: This silently rounds numbers that are stored as a {@link Rational}.
+   */
   public BigDecimal bigDecimalValue() {
     if (number instanceof BigDecimal decimal) {
       return decimal;
@@ -70,7 +87,11 @@ public record NumericValue(Number number) implements Value {
     }
   }
 
-  /** Returns a {@link BigInteger} value representing the stored number. */
+  /**
+   * Returns a {@link BigInteger} value representing the stored number.
+   *
+   * <p>WARNING: This silently rounds decimal numbers.
+   */
   public BigInteger bigIntegerValue() {
     if (number instanceof BigInteger bigInt) {
       return bigInt;
@@ -101,10 +122,8 @@ public record NumericValue(Number number) implements Value {
    */
   public NumericValue negate() {
     // TODO explicitfloat: handle the remaining different implementations of Number properly
-    final Number numberToNegate = getNumber();
-
     // check if number is infinite or NaN
-    if (numberToNegate instanceof Float) {
+    if (number instanceof Float numberToNegate) {
       if (numberToNegate.equals(Float.POSITIVE_INFINITY)) {
         return new NumericValue(Float.NEGATIVE_INFINITY);
 
@@ -114,9 +133,9 @@ public record NumericValue(Number number) implements Value {
       } else if (numberToNegate.equals(Float.NaN)) {
         return new NumericValue(NegativeNaN.VALUE);
       } else {
-        return new NumericValue(-(Float) numberToNegate);
+        return new NumericValue(-numberToNegate);
       }
-    } else if (numberToNegate instanceof Double) {
+    } else if (number instanceof Double numberToNegate) {
       if (numberToNegate.equals(Double.POSITIVE_INFINITY)) {
         return new NumericValue(Double.NEGATIVE_INFINITY);
 
@@ -126,22 +145,20 @@ public record NumericValue(Number number) implements Value {
       } else if (numberToNegate.equals(Double.NaN)) {
         return new NumericValue(NegativeNaN.VALUE);
       } else {
-        return new NumericValue(-(Double) numberToNegate);
+        return new NumericValue(-numberToNegate);
       }
-    } else if (numberToNegate instanceof BigInteger bigInt) {
+    } else if (number instanceof BigInteger bigInt) {
       return new NumericValue(bigInt.negate());
-    } else if (numberToNegate instanceof Rational) {
-      return new NumericValue(((Rational) numberToNegate).negate());
-    } else if (NegativeNaN.VALUE.equals(numberToNegate)) {
+    } else if (number instanceof Rational rat) {
+      return new NumericValue(rat.negate());
+    } else if (NegativeNaN.VALUE.equals(number)) {
       return new NumericValue(Double.NaN);
-    }
-
-    if ((numberToNegate instanceof BigDecimal bd) && (bd.signum() == 0)) {
+    } else if (number instanceof BigDecimal bd && bd.signum() == 0) {
       return new NumericValue(-bd.doubleValue());
+    } else {
+      // if the stored number is a 'casual' number, just negate it
+      return new NumericValue(bigDecimalValue().negate());
     }
-
-    // if the stored number is a 'casual' number, just negate it
-    return new NumericValue(bigDecimalValue().negate());
   }
 
   @Override
