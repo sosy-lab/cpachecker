@@ -298,10 +298,8 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
             element, ((CExpressionStatement) expression).getExpression(), cfaEdge);
       }
 
-    } else if (expression instanceof CAssignment) {
+    } else if (expression instanceof CAssignment assignExpression) {
       // expression is an assignment operation, e.g. a = b or a = a+b;
-
-      CAssignment assignExpression = (CAssignment) expression;
 
       // a = b
       handleAssign(element, assignExpression, cfaEdge);
@@ -401,8 +399,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       // e.g. sizeof
       return false;
 
-    } else if (expression instanceof CFieldReference) {
-      CFieldReference e = (CFieldReference) expression;
+    } else if (expression instanceof CFieldReference e) {
       if (e.isPointerDereference()) {
         return isExpressionUninitialized(element, e.getFieldOwner(), cfaEdge);
       } else {
@@ -415,14 +412,11 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         }
       }
 
-    } else if (expression instanceof CArraySubscriptExpression) {
-      CArraySubscriptExpression arrayExpression = (CArraySubscriptExpression) expression;
+    } else if (expression instanceof CArraySubscriptExpression arrayExpression) {
       return isExpressionUninitialized(element, arrayExpression.getArrayExpression(), cfaEdge)
           | isExpressionUninitialized(element, arrayExpression.getSubscriptExpression(), cfaEdge);
 
-    } else if (expression instanceof CUnaryExpression) {
-      CUnaryExpression unaryExpression = (CUnaryExpression) expression;
-
+    } else if (expression instanceof CUnaryExpression unaryExpression) {
       UnaryOperator typeOfOperator = unaryExpression.getOperator();
       if ((typeOfOperator == UnaryOperator.AMPER) || (typeOfOperator == UnaryOperator.SIZEOF)) {
         return false;
@@ -435,8 +429,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       return isExpressionUninitialized(
           element, ((CPointerExpression) expression).getOperand(), cfaEdge);
 
-    } else if (expression instanceof CBinaryExpression) {
-      CBinaryExpression binExpression = (CBinaryExpression) expression;
+    } else if (expression instanceof CBinaryExpression binExpression) {
       return isExpressionUninitialized(element, binExpression.getOperand1(), cfaEdge)
           | isExpressionUninitialized(element, binExpression.getOperand2(), cfaEdge);
 
@@ -444,8 +437,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       return isExpressionUninitialized(
           element, ((CCastExpression) expression).getOperand(), cfaEdge);
 
-    } else if (expression instanceof CFunctionCallExpression) {
-      CFunctionCallExpression funcExpression = (CFunctionCallExpression) expression;
+    } else if (expression instanceof CFunctionCallExpression funcExpression) {
       // if the FunctionCallExpression is associated with a statement edge, then this is
       // an external function call, and call to return edges for external calls are disabled.
       // since we can not know its return value's initialization status, only check the parameters

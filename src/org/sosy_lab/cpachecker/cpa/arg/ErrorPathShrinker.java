@@ -320,7 +320,7 @@ public final class ErrorPathShrinker {
   /** This method handles variable declarations ("int a;" or "int b=a+123;"). */
   private void handleDeclarationEdge(ADeclaration declaration) {
 
-    /* If the declared variable is important, the edge is important. */
+    // If the declared variable is important, the edge is important.
     if (declaration.getName() != null) {
       if (isImportant(declaration)) {
         addCurrentCFAEdgeToShortPath();
@@ -374,8 +374,7 @@ public final class ErrorPathShrinker {
       final CFAEdge lastEdge = shortPath.getFirst().getFirst().getCFAEdge();
 
       // check, if the last edge was an assumption
-      if (assumeExp instanceof ABinaryExpression && lastEdge instanceof AssumeEdge) {
-        final AssumeEdge lastAss = (AssumeEdge) lastEdge;
+      if (assumeExp instanceof ABinaryExpression && lastEdge instanceof AssumeEdge lastAss) {
         final AExpression lastExp = lastAss.getExpression();
 
         // check, if the last edge was like "a==b"
@@ -450,8 +449,7 @@ public final class ErrorPathShrinker {
     }
 
     // b op c; --> b is operand1, c is operand2
-    else if (exp instanceof ABinaryExpression) {
-      final ABinaryExpression binExp = (ABinaryExpression) exp;
+    else if (exp instanceof ABinaryExpression binExp) {
       addAllVarsInExpToSet(binExp.getOperand1());
       addAllVarsInExpToSet(binExp.getOperand2());
     }

@@ -111,14 +111,14 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
     if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
       // nothing has changed
-      return Optional.of(PrecisionAdjustmentResult.create(element, oldPrecision, action));
+      return Optional.of(new PrecisionAdjustmentResult(element, oldPrecision, action));
     }
 
     ARGState resultElement = new ARGState(newElement, null);
 
     element.replaceInARGWith(resultElement); // this completely eliminates element
 
-    return Optional.of(PrecisionAdjustmentResult.create(resultElement, newPrecision, action));
+    return Optional.of(new PrecisionAdjustmentResult(resultElement, newPrecision, action));
   }
 
   /**

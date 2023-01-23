@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationGroup;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -46,7 +46,7 @@ public class NestedInterpolation extends AbstractTreeInterpolation {
   @Override
   public <T> List<BooleanFormula> getInterpolants(
       final InterpolationManager.Interpolator<T> interpolator,
-      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+      final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds)
       throws InterruptedException, SolverException {
     final ImmutableList.Builder<BooleanFormula> interpolants =
         ImmutableList.builderWithExpectedSize(formulasWithStatesAndGroupdIds.size() - 1);
@@ -81,7 +81,7 @@ public class NestedInterpolation extends AbstractTreeInterpolation {
    * is soo ugly! Maybe it is 'equal' with the normal tree-interpolation.
    */
   private <T> BooleanFormula getNestedInterpolant(
-      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
+      final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds,
       final ImmutableList.Builder<BooleanFormula> interpolants,
       final Deque<Pair<BooleanFormula, BooleanFormula>> callstack,
       final InterpolationManager.Interpolator<T> interpolator,
@@ -90,7 +90,7 @@ public class NestedInterpolation extends AbstractTreeInterpolation {
       throws InterruptedException, SolverException {
 
     final AbstractState abstractionState =
-        checkNotNull(formulasWithStatesAndGroupdIds.get(positionOfA).getSecond());
+        checkNotNull(formulasWithStatesAndGroupdIds.get(positionOfA).state());
     final CFANode node = AbstractStates.extractLocation(abstractionState);
 
     // If we have entered or exited a function, update the stack of entry points
@@ -98,7 +98,7 @@ public class NestedInterpolation extends AbstractTreeInterpolation {
         && callHasReturn(formulasWithStatesAndGroupdIds, positionOfA)) {
       // && (positionOfA > 0)) {
       // case 2 from paper
-      final BooleanFormula call = formulasWithStatesAndGroupdIds.get(positionOfA).getFirst();
+      final BooleanFormula call = formulasWithStatesAndGroupdIds.get(positionOfA).formula();
       callstack.addLast(Pair.of(lastItp, call));
       final BooleanFormula itpTrue = bfmgr.makeTrue();
       interpolants.add(itpTrue);
@@ -112,12 +112,12 @@ public class NestedInterpolation extends AbstractTreeInterpolation {
       final List<T> B = new ArrayList<>();
 
       A.add(itpProver.push(lastItp));
-      A.add(itpProver.push(formulasWithStatesAndGroupdIds.get(positionOfA).getFirst()));
+      A.add(itpProver.push(formulasWithStatesAndGroupdIds.get(positionOfA).formula()));
 
       // add all remaining PHI_j
-      for (Triple<BooleanFormula, AbstractState, T> t :
+      for (InterpolationGroup<T> t :
           Iterables.skip(formulasWithStatesAndGroupdIds, positionOfA + 1)) {
-        B.add(itpProver.push(t.getFirst()));
+        B.add(itpProver.push(t.formula()));
       }
 
       // add all previous function calls
@@ -152,9 +152,9 @@ public class NestedInterpolation extends AbstractTreeInterpolation {
         A2.add(itpProver2.push(scopingItp.getSecond()));
 
         // add all remaining PHI_j
-        for (Triple<BooleanFormula, AbstractState, T> t :
+        for (InterpolationGroup<T> t :
             Iterables.skip(formulasWithStatesAndGroupdIds, positionOfA + 1)) {
-          B2.add(itpProver2.push(t.getFirst()));
+          B2.add(itpProver2.push(t.formula()));
         }
 
         // add all previous function calls

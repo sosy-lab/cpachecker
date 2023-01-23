@@ -101,8 +101,7 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
     }
     outElement = outElementStrengthened.orElseThrow();
 
-    PrecisionAdjustmentResult out =
-        PrecisionAdjustmentResult.create(outElement, outPrecision, action);
+    PrecisionAdjustmentResult out = new PrecisionAdjustmentResult(outElement, outPrecision, action);
 
     return Optional.of(out);
   }

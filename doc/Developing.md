@@ -66,15 +66,28 @@ This also works with GitHub.
 Develop CPAchecker from within Eclipse
 --------------------------------------
 
-0. Install a Java 11 compatible JDK (c.f. [`../INSTALL.md`](../INSTALL.md)).
+0. Install a Java 17 compatible JDK (c.f. [`../INSTALL.md`](../INSTALL.md)).
 
-1. Install [Eclipse](http://www.eclipse.org/) with at least version 4.6, with JDT.
+1. Install [Eclipse](http://www.eclipse.org/) with at least version 4.22, with JDT.
+   If you have more than one Java version installed,
+   make sure to start Eclipse with Java 17 or newer.
 
 2. Install the Eclipse plugin for [google-java-format](https://github.com/google/google-java-format/):
    Download the `google-java-format-eclipse-plugin-*.jar`
    from the most recent [google-java-format release](https://github.com/google/google-java-format/releases)
    and put it into the `dropins` folder of your Eclipse installation
    (where you extracted the Eclipse archive, not the workspace).
+   Open the `eclipse.ini` file in your Eclipse installation and append the following lines:
+
+```
+--add-opens=java.base/java.lang=ALL-UNNAMED
+--add-opens=java.base/java.util=ALL-UNNAMED
+--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED
+--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED
+--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED
+--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED
+--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED
+```
 
 3. Install an SVN plugin for Eclipse, e.g. [SubClipse](http://subclipse.tigris.org).
    Create new project from [SVN repository](https://svn.sosy-lab.org/software/cpachecker/trunk)
@@ -84,9 +97,9 @@ Develop CPAchecker from within Eclipse
    and (if necessary) adjust the path to the CPAchecker directory within it.
 
 5. If Eclipse complains about a missing JDK
-   (`Unbound classpath container: 'JRE System Library [JavaSE-11]'`),
+   (`Unbound classpath container: 'JRE System Library [JavaSE-17]'`),
    go to Window -> Preferences -> Java -> Installed JREs,
-   click the "Search" button and select the path where your Java 11 installation
+   click the "Search" button and select the path where your Java 17 installation
    can be found (on Ubuntu `/usr/lib/jvm` will do).
 
 6. In order to run CPAchecker, use one of the supplied launch configurations

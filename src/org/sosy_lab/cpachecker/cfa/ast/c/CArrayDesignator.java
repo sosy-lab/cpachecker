@@ -12,7 +12,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public class CArrayDesignator extends CDesignator {
+public final class CArrayDesignator extends CDesignator {
 
   private static final long serialVersionUID = 6803448218616765608L;
   private final AExpression subscriptExpression;

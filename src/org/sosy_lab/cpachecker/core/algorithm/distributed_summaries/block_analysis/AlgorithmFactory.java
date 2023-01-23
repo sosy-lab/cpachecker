@@ -30,14 +30,16 @@ import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPABackward;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 /** Factory for new independent CPA algorithms. */
 public class AlgorithmFactory {
 
-  public static Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
+  record AnalysisComponents(
+      Algorithm algorithm, ConfigurableProgramAnalysis cpa, ReachedSet reached) {}
+
+  public static AnalysisComponents createAlgorithm(
       final LogManager logger,
       final Specification specification,
       final CFA cfa,
@@ -67,7 +69,7 @@ public class AlgorithmFactory {
     ReachedSet reached =
         createInitialReachedSet(cpa, node.getStartNode(), coreComponents, singleLogger);
 
-    return Triple.of(algorithm, cpa, reached);
+    return new AnalysisComponents(algorithm, cpa, reached);
   }
 
   private static ReachedSet createInitialReachedSet(

@@ -297,8 +297,7 @@ public class BlockedCFAReducer implements BlockComputer {
         }
 
         // Depending on the type of the edge...
-        if (e instanceof CFunctionCallEdge) {
-          CFunctionCallEdge callEdge = (CFunctionCallEdge) e;
+        if (e instanceof CFunctionCallEdge callEdge) {
           ReducedNode callReturnTarget =
               functionNodes.getWrapper(callEdge.getSummaryEdge().getSuccessor());
           FunctionEntryNode calledFunction = callEdge.getSuccessor();

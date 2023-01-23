@@ -291,9 +291,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
 
       if (originalEdge != null) {
         CFAEdgeType typeOfOriginalEdge = originalEdge.getEdgeType();
-        /*************************************/
-        /** assure that call stack is valid * */
-        /*************************************/
+        // assure that call stack is valid
         // when entering into a function, remember if call is relevant or not
         if (typeOfOriginalEdge == CFAEdgeType.FunctionCallEdge) {
           boolean isAbstractEdgeFunctionCall =

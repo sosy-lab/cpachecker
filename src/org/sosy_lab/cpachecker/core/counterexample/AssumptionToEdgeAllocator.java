@@ -247,7 +247,7 @@ public class AssumptionToEdgeAllocator {
 
     String functionName = edge.getPredecessor().getFunctionName();
 
-    /* function name may be null*/
+    // function name may be null
     LModelValueVisitor v = new LModelValueVisitor(functionName, pConcreteState);
     Address address = v.getAddress(dcl);
 
@@ -305,9 +305,8 @@ public class AssumptionToEdgeAllocator {
     CExpression pCExpression = pCFAEdge.getExpression();
     String functionName = pCFAEdge.getPredecessor().getFunctionName();
 
-    if (pCExpression instanceof CBinaryExpression) {
+    if (pCExpression instanceof CBinaryExpression binExp) {
 
-      CBinaryExpression binExp = ((CBinaryExpression) pCExpression);
       String result1 = handleAssumeOp(pCFAEdge, binExp.getOperand1(), functionName, pConcreteState);
       String result2 = handleAssumeOp(pCFAEdge, binExp.getOperand2(), functionName, pConcreteState);
 
@@ -505,9 +504,8 @@ public class AssumptionToEdgeAllocator {
   private List<AExpressionStatement> handleDeclaration(
       ASimpleDeclaration dcl, String pFunctionName, ConcreteState pConcreteState) {
 
-    if (dcl instanceof CSimpleDeclaration) {
+    if (dcl instanceof CSimpleDeclaration cDcl) {
 
-      CSimpleDeclaration cDcl = (CSimpleDeclaration) dcl;
       CType dclType = cDcl.getType();
       @Nullable Object value = getValueObject(cDcl, pFunctionName, pConcreteState);
 
@@ -654,13 +652,11 @@ public class AssumptionToEdgeAllocator {
 
     rValueType = rValueType.getCanonicalType();
 
-    if (rValueType instanceof CElaboratedType) {
-      CElaboratedType type = (CElaboratedType) rValueType;
+    if (rValueType instanceof CElaboratedType type) {
       return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
 
-    if (rValueType instanceof CCompositeType) {
-      CCompositeType type = (CCompositeType) rValueType;
+    if (rValueType instanceof CCompositeType type) {
       return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
 
@@ -779,7 +775,7 @@ public class AssumptionToEdgeAllocator {
 
       CType type = pIastFieldReference.getExpressionType().getCanonicalType();
 
-      /* The evaluation of an array or a struct is its address */
+      // The evaluation of an array or a struct is its address
       if (type instanceof CArrayType || isStructOrUnionType(type)) {
         if (address.isSymbolic()) {
           return null;
@@ -828,7 +824,7 @@ public class AssumptionToEdgeAllocator {
 
       CType type = pCIdExpression.getExpressionType().getCanonicalType();
 
-      /* The evaluation of an array or a struct is its address */
+      // The evaluation of an array or a struct is its address
       if (type instanceof CArrayType || isStructOrUnionType(type)) {
         if (address.isSymbolic()) {
           return lookupVariable(dcl);
@@ -908,13 +904,11 @@ public class AssumptionToEdgeAllocator {
 
       rValueType = rValueType.getCanonicalType();
 
-      if (rValueType instanceof CElaboratedType) {
-        CElaboratedType type = (CElaboratedType) rValueType;
+      if (rValueType instanceof CElaboratedType type) {
         return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
       }
 
-      if (rValueType instanceof CCompositeType) {
-        CCompositeType type = (CCompositeType) rValueType;
+      if (rValueType instanceof CCompositeType type) {
         return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
       }
 
@@ -957,8 +951,7 @@ public class AssumptionToEdgeAllocator {
         }
 
         final BigDecimal subscriptValue;
-        if (subscriptValueNumber instanceof Rational) {
-          Rational rational = (Rational) subscriptValueNumber;
+        if (subscriptValueNumber instanceof Rational rational) {
           subscriptValue =
               new BigDecimal(rational.getNum()).divide(new BigDecimal(rational.getDen()));
         } else {

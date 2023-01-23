@@ -26,7 +26,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -135,11 +134,12 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     return value;
   }
 
-  private final Map<Triple<String, Boolean, Integer>, FunctionDeclaration<T>> UFDeclarations =
-      new HashMap<>();
+  private record UFDeclaration(String name, boolean signed, int id) {}
+
+  private final Map<UFDeclaration, FunctionDeclaration<T>> UFDeclarations = new HashMap<>();
 
   private FunctionDeclaration<T> getUFDecl(String name, int id, boolean signed) {
-    Triple<String, Boolean, Integer> key = Triple.of(name, signed, id);
+    UFDeclaration key = new UFDeclaration(name, signed, id);
     FunctionDeclaration<T> value = UFDeclarations.get(key);
     if (value == null) {
       String UFname = String.format("_%s%s(%d)_", name, (signed ? "Signed" : "Unsigned"), id);

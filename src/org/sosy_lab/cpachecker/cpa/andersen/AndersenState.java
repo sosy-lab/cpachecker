@@ -74,8 +74,7 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
     if (this == pO) {
       return true;
     }
-    if (pO instanceof AndersenState) {
-      AndersenState other = (AndersenState) pO;
+    if (pO instanceof AndersenState other) {
       return localConstraintSystem.equals(other.localConstraintSystem);
     }
     return false;

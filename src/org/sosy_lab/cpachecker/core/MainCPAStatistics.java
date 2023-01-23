@@ -437,8 +437,7 @@ class MainCPAStatistics implements Statistics {
     CFANode mostFrequentLocation = null;
     int mostFrequentLocationCount = 0;
 
-    if (reached instanceof LocationMappedReachedSet) {
-      LocationMappedReachedSet l = (LocationMappedReachedSet) reached;
+    if (reached instanceof LocationMappedReachedSet l) {
       locations = l.getLocations();
 
       Map.Entry<Object, Collection<AbstractState>> maxPartition = l.getMaxPartition();
@@ -489,8 +488,7 @@ class MainCPAStatistics implements Statistics {
               + ")");
     }
 
-    if (reached instanceof PartitionedReachedSet) {
-      PartitionedReachedSet p = (PartitionedReachedSet) reached;
+    if (reached instanceof PartitionedReachedSet p) {
       int partitions = p.getNumberOfPartitions();
       out.println("  Number of partitions:          " + partitions);
       out.println("    Avg size of partitions:      " + reachedSize / partitions);

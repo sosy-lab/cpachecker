@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Description of a constructor method of a Java class. */
-public class JConstructorType extends JMethodType implements JType {
+public final class JConstructorType extends JMethodType {
 
   private static final long serialVersionUID = -6996173000501454098L;
 

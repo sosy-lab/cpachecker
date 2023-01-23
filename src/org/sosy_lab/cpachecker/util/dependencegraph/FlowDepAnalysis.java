@@ -365,8 +365,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
         type = ((CPointerType) type).getType();
       }
 
-      if (!declaration.isGlobal() && type instanceof CComplexType) {
-        CComplexType complexType = (CComplexType) type;
+      if (!declaration.isGlobal() && type instanceof CComplexType complexType) {
         for (CFAEdge typeDeclarationEdge :
             complexTypeDeclarationEdges.get(complexType.getQualifiedName())) {
           dependenceConsumer.accept(

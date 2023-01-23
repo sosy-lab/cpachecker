@@ -13,7 +13,6 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -123,7 +122,7 @@ public class SynchronizedRegionManager implements RegionManager {
   }
 
   @Override
-  public Triple<Region, Region, Region> getIfThenElse(Region pF) {
+  public IfThenElseParts getIfThenElse(Region pF) {
     synchronized (delegate) {
       return delegate.getIfThenElse(pF);
     }

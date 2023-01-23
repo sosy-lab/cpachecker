@@ -131,8 +131,7 @@ public class FormulaSlicingManager implements StatisticsProvider {
 
       // We do not use the other invariant => do not repeat the computation.
       return Optional.of(
-          PrecisionAdjustmentResult.create(
-              pState, SingletonPrecision.getInstance(), Action.CONTINUE));
+          new PrecisionAdjustmentResult(pState, SingletonPrecision.getInstance(), Action.CONTINUE));
     } else {
       iState = pState.asIntermediate();
     }
@@ -178,11 +177,10 @@ public class FormulaSlicingManager implements StatisticsProvider {
       }
 
       return Optional.of(
-          PrecisionAdjustmentResult.create(out, SingletonPrecision.getInstance(), Action.CONTINUE));
+          new PrecisionAdjustmentResult(out, SingletonPrecision.getInstance(), Action.CONTINUE));
     } else {
       return Optional.of(
-          PrecisionAdjustmentResult.create(
-              pState, SingletonPrecision.getInstance(), Action.CONTINUE));
+          new PrecisionAdjustmentResult(pState, SingletonPrecision.getInstance(), Action.CONTINUE));
     }
   }
 

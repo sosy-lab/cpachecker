@@ -90,9 +90,7 @@ public class ClassVariables {
 
       if (pEdge instanceof CDeclarationEdge) {
         CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
-        if (declaration instanceof CVariableDeclaration) {
-          CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
-
+        if (declaration instanceof CVariableDeclaration variableDeclaration) {
           if (variableDeclaration.isGlobal()) {
             globalDeclarations.add(variableDeclaration);
 

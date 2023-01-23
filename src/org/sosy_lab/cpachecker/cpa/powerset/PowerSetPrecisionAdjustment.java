@@ -76,6 +76,6 @@ public class PowerSetPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     PowerSetState newState = changed ? new PowerSetState(newStates) : states;
-    return Optional.of(PrecisionAdjustmentResult.create(newState, pPrecision, action));
+    return Optional.of(new PrecisionAdjustmentResult(newState, pPrecision, action));
   }
 }

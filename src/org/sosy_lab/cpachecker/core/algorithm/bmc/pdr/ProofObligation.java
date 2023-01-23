@@ -264,8 +264,7 @@ abstract class ProofObligation implements Iterable<ProofObligation>, Comparable<
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof ProofObligation) {
-      ProofObligation other = (ProofObligation) pOther;
+    if (pOther instanceof ProofObligation other) {
       return frameIndex == other.frameIndex
           && nSpuriousTransitions == other.nSpuriousTransitions
           && blockedConcreteCti.equals(other.blockedConcreteCti)

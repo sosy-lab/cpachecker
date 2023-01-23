@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 /** AST node for the expression "a = b". */
-public class CExpressionAssignmentStatement extends AExpressionAssignmentStatement
+public final class CExpressionAssignmentStatement extends AExpressionAssignmentStatement
     implements CAssignment, CStatement {
 
   private static final long serialVersionUID = -5024636179305930137L;

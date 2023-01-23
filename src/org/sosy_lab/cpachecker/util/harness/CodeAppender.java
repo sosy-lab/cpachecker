@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.AbstractFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
@@ -242,10 +242,9 @@ class CodeAppender implements Appendable {
     return append(enforceParameterNames(pInputFunction).toASTString(pInputFunction.getName()));
   }
 
-  private static AFunctionType enforceParameterNames(AFunctionDeclaration pInputFunction) {
-    IAFunctionType functionType = pInputFunction.getType();
-    if (functionType instanceof CFunctionType) {
-      CFunctionType cFunctionType = (CFunctionType) functionType;
+  private static AbstractFunctionType enforceParameterNames(AFunctionDeclaration pInputFunction) {
+    AFunctionType functionType = pInputFunction.getType();
+    if (functionType instanceof CFunctionType cFunctionType) {
       return new CFunctionTypeWithNames(
           cFunctionType.getReturnType(),
           FluentIterable.from(enforceParameterNames(pInputFunction.getParameters()))
@@ -253,8 +252,7 @@ class CodeAppender implements Appendable {
               .toList(),
           functionType.takesVarArgs());
     }
-    if (functionType instanceof JMethodType) {
-      JMethodType methodType = (JMethodType) functionType;
+    if (functionType instanceof JMethodType methodType) {
       return new JMethodType(
           methodType.getReturnType(),
           FluentIterable.from(enforceParameterNames(pInputFunction.getParameters()))
@@ -282,8 +280,7 @@ class CodeAppender implements Appendable {
         if (declaration instanceof CParameterDeclaration) {
           declaration =
               new CParameterDeclaration(FileLocation.DUMMY, (CType) declaration.getType(), name);
-        } else if (declaration instanceof JParameterDeclaration) {
-          JParameterDeclaration jDecl = (JParameterDeclaration) declaration;
+        } else if (declaration instanceof JParameterDeclaration jDecl) {
           declaration =
               new JParameterDeclaration(
                   FileLocation.DUMMY,
