@@ -150,6 +150,8 @@ public class NumericValue implements Value, Serializable {
 
       } else if (numberToNegate.equals(Float.NaN)) {
         return new NumericValue(NegativeNaN.VALUE);
+      } else {
+        return new NumericValue(-(Float) numberToNegate);
       }
     } else if (numberToNegate instanceof Double) {
       if (numberToNegate.equals(Double.POSITIVE_INFINITY)) {
@@ -160,7 +162,11 @@ public class NumericValue implements Value, Serializable {
 
       } else if (numberToNegate.equals(Double.NaN)) {
         return new NumericValue(NegativeNaN.VALUE);
+      } else {
+        return new NumericValue(-(Double) numberToNegate);
       }
+    } else if (numberToNegate instanceof BigInteger bigInt) {
+      return new NumericValue(bigInt.negate());
     } else if (numberToNegate instanceof Rational) {
       return new NumericValue(((Rational) numberToNegate).negate());
     } else if (NegativeNaN.VALUE.equals(numberToNegate)) {
