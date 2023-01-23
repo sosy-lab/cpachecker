@@ -88,20 +88,16 @@ public class NumericValue implements Value, Serializable {
 
   /** Returns a {@link BigInteger} value representing the stored number. */
   public BigInteger bigIntegerValue() {
-    if (number instanceof BigInteger) {
-      return (BigInteger) number;
+    if (number instanceof BigInteger bigInt) {
+      return bigInt;
+    } else if (number instanceof Double
+        || number instanceof Float
+        || number instanceof BigDecimal
+        || number instanceof Rational) {
+      return bigDecimalValue().toBigInteger();
+    } else {
+      return new BigInteger(number.toString());
     }
-    if (number instanceof Double || number instanceof Float) {
-      long x = (long) number.doubleValue();
-      return BigInteger.valueOf(x);
-    }
-    if (number instanceof BigDecimal) {
-      return ((BigDecimal) number).toBigInteger();
-    }
-    if (number instanceof Rational) {
-      return new NumericValue(number).bigDecimalValue().toBigInteger();
-    }
-    return new BigInteger(number.toString());
   }
 
   @Override
