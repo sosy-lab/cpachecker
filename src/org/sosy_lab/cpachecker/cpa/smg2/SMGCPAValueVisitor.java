@@ -219,7 +219,7 @@ public class SMGCPAValueVisitor
         // Calculate the offset out of the subscript value and the type
         BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, returnType);
         BigInteger subscriptOffset =
-            typeSizeInBits.multiply(subscriptValue.asNumericValue().bigInteger());
+            typeSizeInBits.multiply(subscriptValue.asNumericValue().bigIntegerValue());
 
         if (arrayExpr.getExpressionType() instanceof CPointerType) {
           Preconditions.checkArgument(arrayValue instanceof AddressExpression);
@@ -260,7 +260,8 @@ public class SMGCPAValueVisitor
       if (!addrOffsetValue.isNumericValue()) {
         return ImmutableList.of(ValueAndSMGState.ofUnknownValue(newState));
       }
-      BigInteger finalOffset = addrOffsetValue.asNumericValue().bigInteger().add(additionalOffset);
+      BigInteger finalOffset =
+          addrOffsetValue.asNumericValue().bigIntegerValue().add(additionalOffset);
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)
           || returnType instanceof CArrayType
           || returnType instanceof CFunctionType) {
@@ -931,7 +932,7 @@ public class SMGCPAValueVisitor
         // The only valid pointer is numeric 0
         Preconditions.checkArgument(
             (value.isNumericValue()
-                    && value.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0)
+                    && value.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0)
                 || !evaluator.isPointerValue(value, currentState));
         builder.add(ValueAndSMGState.ofUnknownValue(currentState));
         continue;
@@ -948,7 +949,7 @@ public class SMGCPAValueVisitor
       }
 
       BigInteger sizeInBits = evaluator.getBitSizeof(currentState, returnType);
-      BigInteger offsetInBits = offset.asNumericValue().bigInteger();
+      BigInteger offsetInBits = offset.asNumericValue().bigIntegerValue();
 
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)) {
         // We don't want to read struct/union! In those cases we return the AddressExpression
@@ -1096,7 +1097,7 @@ public class SMGCPAValueVisitor
 
           final BigInteger valueToCastAsInt;
           if (numericValue.getNumber() instanceof BigInteger) {
-            valueToCastAsInt = numericValue.bigInteger();
+            valueToCastAsInt = numericValue.bigIntegerValue();
           } else if (numericValue.getNumber() instanceof BigDecimal) {
             valueToCastAsInt = numericValue.bigDecimalValue().toBigInteger();
           } else {
@@ -2345,8 +2346,8 @@ public class SMGCPAValueVisitor
           }
         case INT128:
           {
-            BigInteger lVal = lNum.bigInteger();
-            BigInteger rVal = rNum.bigInteger();
+            BigInteger lVal = lNum.bigIntegerValue();
+            BigInteger rVal = rNum.bigIntegerValue();
             BigInteger result = arithmeticOperation(lVal, rVal, op);
             return new NumericValue(result);
           }

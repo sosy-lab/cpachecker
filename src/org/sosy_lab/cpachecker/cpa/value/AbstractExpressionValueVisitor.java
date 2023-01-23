@@ -671,8 +671,8 @@ public abstract class AbstractExpressionValueVisitor
           }
         case INT128:
           {
-            BigInteger lVal = lNum.bigInteger();
-            BigInteger rVal = rNum.bigInteger();
+            BigInteger lVal = lNum.bigIntegerValue();
+            BigInteger rVal = rNum.bigIntegerValue();
             BigInteger result = arithmeticOperation(lVal, rVal, op, logger);
             return new NumericValue(result);
           }
@@ -2490,7 +2490,7 @@ public abstract class AbstractExpressionValueVisitor
 
           final BigInteger valueToCastAsInt;
           if (numericValue.getNumber() instanceof BigInteger) {
-            valueToCastAsInt = numericValue.bigInteger();
+            valueToCastAsInt = numericValue.bigIntegerValue();
           } else if (numericValue.getNumber() instanceof BigDecimal) {
             valueToCastAsInt = numericValue.bigDecimalValue().toBigInteger();
           } else {

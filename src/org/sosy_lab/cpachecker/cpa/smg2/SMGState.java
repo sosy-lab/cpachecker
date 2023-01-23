@@ -1881,7 +1881,7 @@ public class SMGState
     if (pValue instanceof AddressExpression addressExprValue) {
       Value offsetAddr = addressExprValue.getOffset();
       if (offsetAddr.isNumericValue()) {
-        BigInteger offsetAddrBI = offsetAddr.asNumericValue().bigInteger();
+        BigInteger offsetAddrBI = offsetAddr.asNumericValue().bigIntegerValue();
         if (offsetAddrBI.compareTo(BigInteger.ZERO) != 0) {
           Optional<SMGObjectAndOffset> maybeTargetAndOffset =
               getPointsToTarget(addressExprValue.getMemoryAddress());
@@ -2116,12 +2116,12 @@ public class SMGState
       NumericValue numericValue = readValue.asNumericValue();
 
       if (basicReadType.equals(CBasicType.FLOAT)) {
-        int bits = numericValue.bigInteger().intValue();
+        int bits = numericValue.bigIntegerValue().intValue();
         float floatValue = Float.intBitsToFloat(bits);
 
         return new NumericValue(floatValue);
       } else if (basicReadType.equals(CBasicType.DOUBLE)) {
-        long bits = numericValue.bigInteger().longValue();
+        long bits = numericValue.bigIntegerValue().longValue();
         double doubleValue = Double.longBitsToDouble(bits);
 
         return new NumericValue(doubleValue);
@@ -2161,12 +2161,13 @@ public class SMGState
         // TODO: return a freed and a unfreed state?
         return ImmutableList.of(this);
       }
-      baseOffset = addressExpr.getOffset().asNumericValue().bigInteger();
+      baseOffset = addressExpr.getOffset().asNumericValue().bigIntegerValue();
     }
 
     // Value == 0 can happen by user input and is valid!
     if (sanitizedAddressToFree.isNumericValue()
-        && sanitizedAddressToFree.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
+        && sanitizedAddressToFree.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO)
+            == 0) {
       logger.log(
           Level.FINE,
           pFunctionCall.getFileLocation(),
@@ -2598,7 +2599,7 @@ public class SMGState
             ((AddressExpression) valueToWrite)
                     .getOffset()
                     .asNumericValue()
-                    .bigInteger()
+                    .bigIntegerValue()
                     .compareTo(BigInteger.ZERO)
                 == 0);
         valueToWrite = ((AddressExpression) valueToWrite).getMemoryAddress();

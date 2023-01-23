@@ -953,7 +953,7 @@ public class SMGTransferRelation
               UnknownValue.getInstance(),
               leftHandSideType);
         }
-        BigInteger baseOffsetFromPointer = pointerOffset.asNumericValue().bigInteger();
+        BigInteger baseOffsetFromPointer = pointerOffset.asNumericValue().bigIntegerValue();
 
         Value properPointer;
         // We need a true pointer without AddressExpr
@@ -965,7 +965,7 @@ public class SMGTransferRelation
           List<ValueAndSMGState> newAddressesAndStates =
               evaluator.findOrcreateNewPointer(
                   addressInValue.getMemoryAddress(),
-                  addressInValue.getOffset().asNumericValue().bigInteger(),
+                  addressInValue.getOffset().asNumericValue().bigIntegerValue(),
                   currentState);
 
           // Very unlikely that a 0+ list abstraction gets materialized here
@@ -1004,7 +1004,7 @@ public class SMGTransferRelation
           List<ValueAndSMGState> newAddressesAndStates =
               evaluator.findOrcreateNewPointer(
                   addressInValue.getMemoryAddress(),
-                  addressInValue.getOffset().asNumericValue().bigInteger(),
+                  addressInValue.getOffset().asNumericValue().bigIntegerValue(),
                   currentState);
 
           // Very unlikely that a 0+ list abstraction gets materialized here

@@ -87,7 +87,7 @@ public class ExpressionSimplificationVisitor
       CBasicType basicType = ((CSimpleType) type).getType();
       if (basicType.isIntegerType()) {
         return new CIntegerLiteralExpression(
-            expr.getFileLocation(), type, numericResult.bigInteger());
+            expr.getFileLocation(), type, numericResult.bigIntegerValue());
       } else if (basicType.isFloatingPointType()) {
         try {
           return new CFloatLiteralExpression(
@@ -160,18 +160,18 @@ public class ExpressionSimplificationVisitor
             new CBinaryExpressionBuilder(machineModel, logger);
         switch (binaryOperator) {
           case BINARY_AND:
-            if (value1 != null && value1.bigInteger().equals(BigInteger.ZERO)) {
+            if (value1 != null && value1.bigIntegerValue().equals(BigInteger.ZERO)) {
               return op1;
             }
-            if (value2 != null && value2.bigInteger().equals(BigInteger.ZERO)) {
+            if (value2 != null && value2.bigIntegerValue().equals(BigInteger.ZERO)) {
               return op2;
             }
             break;
           case BINARY_OR:
-            if (value1 != null && value1.bigInteger().equals(BigInteger.ZERO)) {
+            if (value1 != null && value1.bigIntegerValue().equals(BigInteger.ZERO)) {
               return op2;
             }
-            if (value2 != null && value2.bigInteger().equals(BigInteger.ZERO)) {
+            if (value2 != null && value2.bigIntegerValue().equals(BigInteger.ZERO)) {
               return op1;
             }
             break;
@@ -275,7 +275,7 @@ public class ExpressionSimplificationVisitor
             // better do not convert to long, but directly use the computed value,
             // i.e. "-1ULL" would be converted to long -1, which is valid,
             // but does not match its CType bounds.
-            return new CIntegerLiteralExpression(loc, exprType, negatedValue.bigInteger());
+            return new CIntegerLiteralExpression(loc, exprType, negatedValue.bigIntegerValue());
           case FLOAT:
           case DOUBLE:
             double v = negatedValue.doubleValue();
@@ -297,7 +297,7 @@ public class ExpressionSimplificationVisitor
             (NumericValue)
                 AbstractExpressionValueVisitor.castCValue(
                     new NumericValue(~value.longValue()), exprType, machineModel, logger, loc);
-        return new CIntegerLiteralExpression(loc, exprType, complementValue.bigInteger());
+        return new CIntegerLiteralExpression(loc, exprType, complementValue.bigIntegerValue());
       }
     }
 
