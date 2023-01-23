@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.microbenchmarking;
 
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -103,15 +104,15 @@ public class MicroBenchmarking implements Algorithm {
         Path singleConfigFilePath = propertyFilesIterator.next();
         List<Map<String, List<BenchmarkExecutionRun>>> times = new ArrayList<>();
         Iterator<Path> programFilesIterator = programFiles.iterator();
-        while (programFilesIterator.hasNext()) {
-          Path singleProgramFilePath = programFilesIterator.next();
+        for (Path singleProgramFilePath : programFiles) {
 
           ConfigurationBuilder configurationBuilder = Configuration.builder();
           configurationBuilder.loadFromFile(singleConfigFilePath);
           Configuration configuration = configurationBuilder.build();
           CFACreator cfaCreator = new CFACreator(configuration, logger, shutdownNotifier);
 
-          CFA cfa = cfaCreator.parseFileAndCreateCFA(List.of(singleProgramFilePath.toString()));
+          CFA cfa =
+              cfaCreator.parseFileAndCreateCFA(ImmutableList.of(singleProgramFilePath.toString()));
 
           ReachedSetFactory reachedSetFactory = new ReachedSetFactory(configuration, logger);
           CPABuilder cpaBuilder =

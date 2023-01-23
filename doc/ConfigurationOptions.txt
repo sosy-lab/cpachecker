@@ -5,7 +5,7 @@
 # a tool for configurable software verification:
 # https://cpachecker.sosy-lab.org
 #
-# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org> 
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -60,7 +60,7 @@ rootDirectory = "."
 # SPDX-License-Identifier: Apache-2.0
 
 # Further options for Boolector in addition to the default options. Format: 
-# "Optionname=value" with ’,’ to seperate options. Optionname and value can
+# "Optionname=value" with �,� to seperate options. Optionname and value can
 # be found in BtorOption or Boolector C Api.Example:
 # "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
 solver.boolector.furtherOptions = ""
@@ -158,7 +158,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+# SPDX-FileCopyrightText: 2014-2017 Universit� Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
@@ -507,6 +507,10 @@ analysis.useGlobalVars = true
 
 # add loop-structure information to CFA.
 analysis.useLoopStructure = true
+
+# Indicate whether a micro benchmark should be executed before running the
+# analysis.
+analysis.useMicroBenchmark = false
 
 # Use analyses parallely. The resulting reachedset is the one of the first
 # analysis finishing in time. All other analyses are terminated.
@@ -3828,6 +3832,19 @@ memorysafety.config = no default value
 # which merge operator to use for LiveVariablesCPA
 merge = "JOIN"
   allowed values: [SEP, JOIN]
+
+# Number of iterations for each algorithm/program combination. Defaults to
+# 10.
+microBenchmark.numExecutions = 20
+
+# Defines the file where the results of the micro benchmark are stored.
+microBenchmark.outputFile = no default value
+
+# List of programs to run each benchmarking algorithm on.
+microBenchmark.programFiles = no default value
+
+# List of algorithm config files to use for the benchmarking process.
+microBenchmark.propertyFiles = no default value
 
 # List of property-files to be run by the subprocesses.
 mpiAlgorithm.configFiles = no default value
