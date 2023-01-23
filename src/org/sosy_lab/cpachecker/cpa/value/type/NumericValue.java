@@ -65,7 +65,9 @@ public class NumericValue implements Value, Serializable {
 
   /** Returns a BigDecimal value representing the stored number. */
   public BigDecimal bigDecimalValue() {
-    if (number instanceof Double || number instanceof Float) {
+    if (number instanceof BigDecimal decimal) {
+      return decimal;
+    } else if (number instanceof Double || number instanceof Float) {
       // if we use number.toString() for float values, the toString() method
       // will not print the full double but only the number of digits
       // necessary to distinguish it from the surrounding double-values.
@@ -74,6 +76,8 @@ public class NumericValue implements Value, Serializable {
       //
       // cf. https://docs.oracle.com/javase/8/docs/api/java/lang/Double.html#toString-double-
       return BigDecimal.valueOf(number.doubleValue());
+    } else if (number instanceof BigInteger bigInt) {
+      return new BigDecimal(bigInt);
     } else if (number instanceof Rational rat) {
       return new BigDecimal(rat.getNum())
           .divide(new BigDecimal(rat.getDen()), 100, RoundingMode.HALF_UP);
