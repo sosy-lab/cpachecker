@@ -40,16 +40,30 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantChecker;
 import org.sosy_lab.cpachecker.core.algorithm.sampling.Sample.SampleClass;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "invariantValidation")
 public class InvariantValidationAlgorithm implements Algorithm {
@@ -76,6 +90,8 @@ public class InvariantValidationAlgorithm implements Algorithm {
   private String invariant;
 
   private final Configuration config;
+  private final Algorithm algorithm;
+  private final ConfigurableProgramAnalysis cpa;
   private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -94,6 +110,8 @@ public class InvariantValidationAlgorithm implements Algorithm {
 
   public InvariantValidationAlgorithm(
       Configuration pConfig,
+      Algorithm pAlgorithm,
+      ConfigurableProgramAnalysis pCpa,
       CFA pCFA,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
@@ -102,6 +120,8 @@ public class InvariantValidationAlgorithm implements Algorithm {
     pConfig.inject(this);
 
     config = pConfig;
+    algorithm = pAlgorithm;
+    cpa = pCpa;
     cfa = pCFA;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -127,7 +147,9 @@ public class InvariantValidationAlgorithm implements Algorithm {
       try {
         validateAt(loopHead);
       } catch (InvalidConfigurationException pE) {
-        logger.log(Level.INFO, "Invariant validation failed due to invalid configuration.");
+        logger.log(Level.WARNING, "Invariant validation failed due to invalid configuration.");
+      } catch (SolverException pE) {
+        logger.log(Level.WARNING, "Invariant validation failed due to solver failure.");
       }
     }
     // TODO: Add statistics
@@ -135,7 +157,7 @@ public class InvariantValidationAlgorithm implements Algorithm {
   }
 
   private void validateAt(CFANode pLocation)
-      throws CPAException, InterruptedException, InvalidConfigurationException {
+      throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
     // TODO: Might need to further adjust scope according to pLocation
     CProgramScope scope =
         new CProgramScope(cfa, logger).withFunctionScope(pLocation.getFunctionName());
@@ -164,7 +186,7 @@ public class InvariantValidationAlgorithm implements Algorithm {
     if (validated) {
       // Just because the invariant was validated does not mean it is also useful, so check whether
       // an error location is still reachable
-      // TODO next: Now get postcondition counterexamples
+      post_samples = checkPostcondition(candidate, pLocation);
     } else {
       logger.log(Level.INFO, "Invariant was not validated, collecting counterexamples...");
       Set<PreconditionCounterexample> pre_cexs = invariantChecker.getPreconditionCounterexamples();
@@ -204,6 +226,47 @@ public class InvariantValidationAlgorithm implements Algorithm {
     writeSamplesToFile(pre_samples, preCexOutFile);
     writeSamplesToFile(step_samples, stepCexOutFile);
     writeSamplesToFile(post_samples, postCexOutFile);
+  }
+
+  private Set<Sample> checkPostcondition(CandidateInvariant pCandidate, CFANode pLocation)
+      throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
+    Set<Sample> post_samples = new HashSet<>();
+
+    // Retrieve formula managers
+    PredicateCPA predicateCPA =
+        CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, InvariantValidationAlgorithm.class);
+    Solver solver = predicateCPA.getSolver();
+    FormulaManagerView fmgr = solver.getFormulaManager();
+    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+    PathFormulaManager pmgr = predicateCPA.getPathFormulaManager();
+
+    // Run algorithm to determine reachable states
+    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
+    ReachedSet reached =
+        reachedSetFactory.createAndInitialize(
+            cpa, cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+    algorithm.run(reached);
+
+    // Assert that target location is reachable
+    CandidateInvariant targetReachable = TargetLocationCandidateInvariant.INSTANCE;
+    BooleanFormula program = bfmgr.not(targetReachable.getAssertion(reached, fmgr, pmgr));
+
+    // Assert that invariant holds
+    BooleanFormula invariantHolds = pCandidate.getAssertion(reached, fmgr, pmgr);
+
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      // Check whether the invariant is strong enough to prove the postcondition, otherwise generate
+      // counterexamples.
+      prover.push(bfmgr.and(program, invariantHolds));
+      if (!prover.isUnsat()) {
+        Iterable<ValueAssignment> model = prover.getModelAssignments();
+        model = SamplingAlgorithm.getRelevantAssignments(model, pLocation);
+        post_samples.add(
+            SamplingAlgorithm.extractSampleFromModel(model, pLocation, SampleClass.POSITIVE));
+      }
+    }
+
+    return post_samples;
   }
 
   private void writeSamplesToFile(Set<Sample> samples, Path outFile) {

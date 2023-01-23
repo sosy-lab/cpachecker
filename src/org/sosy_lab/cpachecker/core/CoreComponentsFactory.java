@@ -553,9 +553,6 @@ public class CoreComponentsFactory {
     } else if (useSamplingAlgorithm) {
       verifyNotNull(shutdownManager);
       algorithm = new SamplingAlgorithm(config, logger, shutdownManager, cfa, specification);
-    } else if (useInvariantValidationAlgorithm) {
-      algorithm =
-          new InvariantValidationAlgorithm(config, cfa, logger, shutdownNotifier, specification);
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
@@ -662,6 +659,12 @@ public class CoreComponentsFactory {
               new CounterexampleCheckAlgorithm(
                   algorithm, cpa, config, specification, logger, shutdownNotifier, cfa);
         }
+      }
+
+      if (useInvariantValidationAlgorithm) {
+        algorithm =
+            new InvariantValidationAlgorithm(
+                config, algorithm, cpa, cfa, logger, shutdownNotifier, specification);
       }
 
       algorithm =
