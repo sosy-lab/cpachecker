@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 /** Factory for new independent CPA algorithms. */
 public class AlgorithmFactory {
 
-  record AnalysisComponents(
+  public record AnalysisComponents(
       Algorithm algorithm, ConfigurableProgramAnalysis cpa, ReachedSet reached) {}
 
   public static AnalysisComponents createAlgorithm(

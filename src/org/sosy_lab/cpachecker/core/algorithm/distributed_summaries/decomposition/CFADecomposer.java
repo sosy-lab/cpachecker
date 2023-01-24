@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /** Decomposes the CFA in coherent blocks */
 public interface CFADecomposer {
@@ -19,5 +21,6 @@ public interface CFADecomposer {
    * @param cfa this CFA will be decomposed into a block graph
    * @return a block graph that represents the CFA.
    */
-  BlockGraph decompose(CFA cfa) throws InterruptedException;
+  BlockGraph decompose(CFA cfa)
+      throws InterruptedException, ParserException, InvalidConfigurationException;
 }

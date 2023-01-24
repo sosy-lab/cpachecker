@@ -95,13 +95,12 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
     dcpaAlgorithm =
         new DCPAAlgorithm(
-            getLogger(), pBlock, pCFA, pSpecification, forwardConfiguration, pShutdownManager);
+            getLogger(), pBlock, pSpecification, forwardConfiguration, pShutdownManager);
 
     dcpaBackwardAlgorithm =
         new DCPABackwardAlgorithm(
             getLogger(),
             pBlock,
-            pCFA,
             backwardSpecification,
             backwardConfiguration,
             dcpaAlgorithm,

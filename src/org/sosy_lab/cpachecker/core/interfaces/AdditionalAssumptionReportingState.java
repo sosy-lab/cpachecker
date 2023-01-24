@@ -11,8 +11,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public interface AdditionalAssumptionReportingState extends AbstractState{
+public interface AdditionalAssumptionReportingState extends AbstractState {
 
   BooleanFormula getAdditionalAssumption(FormulaManagerView manager);
-
 }

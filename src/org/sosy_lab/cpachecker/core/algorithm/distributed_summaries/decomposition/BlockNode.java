@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -36,6 +37,8 @@ public class BlockNode {
 
   private final String code;
 
+  private final CFA cfa;
+
   /**
    * Represents a coherent subgraph of the CFA with exactly one entry and one exit node, described
    * by its metadata.
@@ -46,6 +49,7 @@ public class BlockNode {
    */
   public BlockNode(
       @NonNull BlockNodeMetaData pMetaData,
+      @NonNull CFA pCfa,
       @NonNull Set<BlockNodeMetaData> pPredecessors,
       @NonNull Set<BlockNodeMetaData> pSuccessors,
       @NonNull ShutdownNotifier pShutdownNotifier,
@@ -63,6 +67,15 @@ public class BlockNode {
         pMetaData.getNodesInBlock(),
         pMetaData.getStartNode(),
         pMetaData.getLastNode());
+    // + 1 = Final blank edge node
+    checkArgument(
+        pCfa.getAllNodes().size() <= pMetaData.getNodesInBlock().size() + 2,
+        "Mismatch in number of nodes of CFA %s and number of nodes in block %s with %s nodes. The"
+            + " start node has type %s.",
+        pCfa.getAllNodes().size(),
+        pMetaData.getId(),
+        pMetaData.getNodesInBlock().size(),
+        pMetaData.getStartNode().getClass().getSimpleName());
     Preconditions.checkArgument(
         isBlockNodeValid(pMetaData.getStartNode(), pMetaData.getEdgesInBlock()),
         "BlockNodes require to have exactly one exit node.");
@@ -71,6 +84,7 @@ public class BlockNode {
     predecessors = pPredecessors;
     successors = pSuccessors;
     idToNodeMap = pIdToNodeMap;
+    cfa = pCfa;
 
     code = metaData.getCode();
   }
@@ -148,6 +162,10 @@ public class BlockNode {
 
   public Set<CFAEdge> getEdgesInBlock() {
     return ImmutableSet.copyOf(metaData.getEdgesInBlock());
+  }
+
+  public CFA getCfa() {
+    return cfa;
   }
 
   @Override

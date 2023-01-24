@@ -14,23 +14,33 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** Decompose a CFA into a single block containing the complete CFA */
 public class SingleBlockDecomposition implements CFADecomposer {
 
   private final ShutdownNotifier shutdownNotifier;
+  private final LogManager logger;
+  private final Configuration configuration;
 
-  public SingleBlockDecomposition(ShutdownNotifier pShutdownNotifier) {
+  public SingleBlockDecomposition(
+      Configuration pConfiguration, ShutdownNotifier pShutdownNotifier, LogManager pLogger) {
     shutdownNotifier = pShutdownNotifier;
+    configuration = pConfiguration;
+    logger = pLogger;
   }
 
   @Override
-  public BlockGraph decompose(CFA cfa) throws InterruptedException {
+  public BlockGraph decompose(CFA cfa)
+      throws InterruptedException, ParserException, InvalidConfigurationException {
     CFANode startNode = cfa.getMainFunction();
     // we do not get error conditions
     CFANode lastNode = CFANode.newDummyCFANode();
@@ -44,6 +54,7 @@ public class SingleBlockDecomposition implements CFADecomposer {
     nodes.add(lastNode);
     BlockNodeMetaData metaData =
         new BlockNodeMetaData("SB1", startNode, lastNode, nodes, edges, idToNode);
-    return BlockGraph.fromMetaData(ImmutableSet.of(metaData), cfa, shutdownNotifier);
+    return BlockGraph.fromMetaData(
+        ImmutableSet.of(metaData), cfa, configuration, shutdownNotifier, logger);
   }
 }

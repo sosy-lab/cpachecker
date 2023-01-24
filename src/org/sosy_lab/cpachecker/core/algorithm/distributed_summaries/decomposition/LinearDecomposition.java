@@ -18,27 +18,35 @@ import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
 public class LinearDecomposition implements CFADecomposer {
 
   private final BlockOperator blockOperator;
+  private final Configuration configuration;
+  private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
-  public LinearDecomposition(Configuration pConfiguration, ShutdownNotifier pShutdownNotifier)
+  public LinearDecomposition(
+      Configuration pConfiguration, ShutdownNotifier pShutdownNotifier, LogManager pLogger)
       throws InvalidConfigurationException {
     blockOperator = new BlockOperator();
+    configuration = pConfiguration;
+    logger = pLogger;
     pConfiguration.inject(blockOperator);
     shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
-  public BlockGraph decompose(CFA cfa) throws InterruptedException {
+  public BlockGraph decompose(CFA cfa)
+      throws InterruptedException, ParserException, InvalidConfigurationException {
     blockOperator.setCFA(cfa);
     Set<CFANode> meetNodes = new LinkedHashSet<>();
     int idCounter = 0;
@@ -66,7 +74,7 @@ public class LinearDecomposition implements CFADecomposer {
       }
       meetNodes.addAll(toAdd);
     }
-    return BlockGraph.fromMetaData(blockNodes, cfa, shutdownNotifier);
+    return BlockGraph.fromMetaData(blockNodes, cfa, configuration, shutdownNotifier, logger);
   }
 
   private List<ImmutableList<CFANode>> findPathsToNextMergeNode(CFANode pNode) {

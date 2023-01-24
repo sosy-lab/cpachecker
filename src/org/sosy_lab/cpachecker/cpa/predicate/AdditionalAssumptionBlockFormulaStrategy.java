@@ -33,19 +33,22 @@ public class AdditionalAssumptionBlockFormulaStrategy extends BlockFormulaStrate
     SSAMap latestSSAMap = SSAMap.emptySSAMap();
     List<BooleanFormula> result = new ArrayList<>(abstractionStates.size() + 1);
     for (ARGState abstractionState : abstractionStates) {
-      PredicateAbstractState predicateAbstractState = toState(PredicateAbstractState.class).apply(abstractionState);
+      PredicateAbstractState predicateAbstractState =
+          toState(PredicateAbstractState.class).apply(abstractionState);
       PathFormula pathFormula = predicateAbstractState.getAbstractionFormula().getBlockFormula();
       latestSSAMap = pathFormula.getSsa();
       result.add(pathFormula.getFormula());
     }
     if (!abstractionStates.isEmpty()) {
       AbstractState last = abstractionStates.get(abstractionStates.size() - 1);
-      AdditionalAssumptionReportingState additional = toState(AdditionalAssumptionReportingState.class).apply(last);
+      AdditionalAssumptionReportingState additional =
+          toState(AdditionalAssumptionReportingState.class).apply(last);
       if (additional != null) {
-        result.add(formulaManagerView.instantiate(additional.getAdditionalAssumption(formulaManagerView), latestSSAMap));
+        result.add(
+            formulaManagerView.instantiate(
+                additional.getAdditionalAssumption(formulaManagerView), latestSSAMap));
       }
     }
     return new BlockFormulas(result);
   }
-
 }

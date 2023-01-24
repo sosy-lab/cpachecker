@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -85,9 +86,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               + " distributedSummaries.desiredNumberOfBlocks blocks are present. SINGLE_BLOCK"
               + " creates one block around the complete CFA.")
   private DecompositionType decompositionType = DecompositionType.BLOCK_OPERATOR;
-
-  @Option(description = "desired number of BlockNodes")
-  private int desiredNumberOfBlocks = 0;
 
   @Option(
       description =
@@ -122,14 +120,15 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   private CFADecomposer getDecomposer() throws InvalidConfigurationException {
     switch (decompositionType) {
       case BLOCK_OPERATOR:
-        return new LinearDecomposition(configuration, shutdownManager.getNotifier());
+        return new LinearDecomposition(configuration, shutdownManager.getNotifier(), logger);
       case GIVEN_SIZE:
         return new MergeDecomposition(
-            new LinearDecomposition(configuration, shutdownManager.getNotifier()),
-            desiredNumberOfBlocks,
-            shutdownManager.getNotifier());
+            new LinearDecomposition(configuration, shutdownManager.getNotifier(), logger),
+            configuration,
+            shutdownManager.getNotifier(),
+            logger);
       case SINGLE_BLOCK:
-        return new SingleBlockDecomposition(shutdownManager.getNotifier());
+        return new SingleBlockDecomposition(configuration, shutdownManager.getNotifier(), logger);
       default:
         throw new AssertionError("Unknown DecompositionType: " + decompositionType);
     }
@@ -142,7 +141,8 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       // create blockGraph and reduce to relevant parts
       CFADecomposer decomposer = getDecomposer();
       BlockGraph blockGraph = decomposer.decompose(cfa);
-      blockGraph = blockGraph.prependDummyRoot(cfa, shutdownManager.getNotifier());
+      blockGraph =
+          blockGraph.prependDummyRoot(cfa, configuration, shutdownManager.getNotifier(), logger);
       logger.logf(
           Level.INFO,
           "Decomposed CFA in %d blocks using the %s.",
@@ -208,6 +208,8 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     } catch (InvalidConfigurationException | IOException pE) {
       logger.logException(Level.SEVERE, pE, "Block analysis stopped unexpectedly.");
       throw new CPAException("Component Analysis run into an error.", pE);
+    } catch (ParserException pE) {
+      throw new CPAException("Creating empty CFA failed", pE);
     } finally {
       logger.log(Level.INFO, "Block analysis finished.");
     }

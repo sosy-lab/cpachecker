@@ -22,30 +22,50 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.Pair;
 
+@Options
 public class MergeDecomposition implements CFADecomposer {
 
-  private final int numberOfBlocks;
+  @Option(
+      name = "distributedSummaries.desiredNumberOfBlocks",
+      description = "desired number of BlockNodes")
+  private int desiredNumberOfBlocks = 0;
+
   private final CFADecomposer decomposer;
   private final ShutdownNotifier notifier;
+  private final Configuration configuration;
+  private final LogManager logger;
 
   public MergeDecomposition(
-      CFADecomposer pDecomposer, int pDesiredNumberOfBlocks, ShutdownNotifier pShutdownNotifier) {
+      CFADecomposer pDecomposer,
+      Configuration pConfiguration,
+      ShutdownNotifier pShutdownNotifier,
+      LogManager pLogger)
+      throws InvalidConfigurationException {
+    pConfiguration.inject(this);
+    configuration = pConfiguration;
+    logger = pLogger;
     decomposer = pDecomposer;
-    numberOfBlocks = pDesiredNumberOfBlocks;
     notifier = pShutdownNotifier;
   }
 
   @Override
-  public BlockGraph decompose(CFA cfa) throws InterruptedException {
+  public BlockGraph decompose(CFA cfa)
+      throws InterruptedException, ParserException, InvalidConfigurationException {
     Map<Integer, CFANode> idToNode = Maps.uniqueIndex(cfa.getAllNodes(), CFANode::getNodeNumber);
     BlockGraph merged = decomposer.decompose(cfa);
-    while (merged.getDistinctNodes().size() > numberOfBlocks) {
+    while (merged.getDistinctNodes().size() > desiredNumberOfBlocks) {
       int sizeBefore = merged.getDistinctNodes().size();
       merged = mergeHorizontally(merged, cfa, idToNode);
       merged = mergeVertically(merged, cfa, idToNode);
@@ -58,8 +78,8 @@ public class MergeDecomposition implements CFADecomposer {
 
   private BlockGraph mergeVertically(
       BlockGraph pGraph, CFA pCFA, Map<Integer, CFANode> pIntegerCFANodeMap)
-      throws InterruptedException {
-    if (pGraph.getDistinctNodes().size() <= numberOfBlocks) {
+      throws InterruptedException, ParserException, InvalidConfigurationException {
+    if (pGraph.getDistinctNodes().size() <= desiredNumberOfBlocks) {
       return pGraph;
     }
 
@@ -99,7 +119,9 @@ public class MergeDecomposition implements CFADecomposer {
                   pIntegerCFANodeMap);
           nodesMetaData.add(mergedMetaData);
           return mergeVertically(
-              BlockGraph.fromMetaData(nodesMetaData, pCFA, notifier), pCFA, pIntegerCFANodeMap);
+              BlockGraph.fromMetaData(nodesMetaData, pCFA, configuration, notifier, logger),
+              pCFA,
+              pIntegerCFANodeMap);
         }
       }
     }
@@ -108,7 +130,7 @@ public class MergeDecomposition implements CFADecomposer {
 
   private BlockGraph mergeHorizontally(
       BlockGraph pGraph, CFA pCFA, Map<Integer, CFANode> pIntegerCFANodeMap)
-      throws InterruptedException {
+      throws InterruptedException, ParserException, InvalidConfigurationException {
     Set<BlockNodeMetaData> nodesMetaData =
         pGraph.getDistinctNodes().stream()
             .map(BlockNode::getMetaData)
@@ -120,7 +142,7 @@ public class MergeDecomposition implements CFADecomposer {
     }
     ImmutableMultimap<Pair<CFANode, CFANode>, BlockNodeMetaData> entries = entriesBuilder.build();
     for (Pair<CFANode, CFANode> key : entries.keys()) {
-      if (nodesMetaData.size() <= numberOfBlocks) {
+      if (nodesMetaData.size() <= desiredNumberOfBlocks) {
         break;
       }
       ImmutableCollection<BlockNodeMetaData> blocks = entries.get(key);
@@ -139,6 +161,6 @@ public class MergeDecomposition implements CFADecomposer {
               id, startNode, lastNode, nodesInBlock, edgesInBlock, pIntegerCFANodeMap));
       nodesMetaData.removeAll(blocks);
     }
-    return BlockGraph.fromMetaData(nodesMetaData, pCFA, notifier);
+    return BlockGraph.fromMetaData(nodesMetaData, pCFA, configuration, notifier, logger);
   }
 }

@@ -22,8 +22,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.AlgorithmFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.AlgorithmFactory.AnalysisComponents;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
@@ -31,12 +31,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class BlockSummaryRootWorker extends BlockSummaryWorker {
@@ -75,7 +72,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
     connection = pConnection;
     shutdown = false;
     root = pNode;
-    Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
+    AnalysisComponents parts =
         AlgorithmFactory.createAlgorithm(
             getLogger(),
             backwardSpecification,
@@ -85,9 +82,9 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
             pNode);
     dcpa =
         DistributedConfigurableProgramAnalysis.distribute(
-            parts.getSecond(), pNode, AnalysisDirection.FORWARD);
+            parts.cpa(), pNode, AnalysisDirection.FORWARD);
     topState =
-        Objects.requireNonNull(parts.getSecond())
+        Objects.requireNonNull(parts.cpa())
             .getInitialState(root.getLastNode(), StateSpacePartition.getDefaultPartition());
   }
 

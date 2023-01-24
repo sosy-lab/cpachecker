@@ -20,9 +20,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
  * Represents a partitioning of a CFA. The blocks contain coherent subgraphs of a CFA. The
@@ -63,17 +67,27 @@ public class BlockGraph {
   }
 
   public static BlockGraph fromMetaData(
-      Set<BlockNodeMetaData> pMetaDataSet, CFA pCFA, ShutdownNotifier pNotifier)
-      throws InterruptedException {
-    return fromMetaData(pMetaDataSet, pCFA, pNotifier, false);
+      Set<BlockNodeMetaData> pMetaDataSet,
+      CFA pCFA,
+      Configuration pConfiguration,
+      ShutdownNotifier pNotifier,
+      LogManager pLogger)
+      throws InterruptedException, ParserException, InvalidConfigurationException {
+    return fromMetaData(pMetaDataSet, pCFA, pConfiguration, pNotifier, pLogger, false);
   }
 
   private static BlockGraph fromMetaData(
       Set<BlockNodeMetaData> pMetaDataSet,
       CFA pCFA,
+      Configuration pConfiguration,
       ShutdownNotifier pNotifier,
+      LogManager pLogger,
       boolean pPrependRoot)
-      throws InterruptedException {
+      throws InterruptedException, InvalidConfigurationException, ParserException {
+
+    BlockNodeToCFAConverter converter =
+        new BlockNodeToCFAConverter(pConfiguration, pLogger, pNotifier);
+
     Preconditions.checkArgument(
         pMetaDataSet.stream().map(m -> m.getId()).distinct().count() == pMetaDataSet.size());
     Multimap<CFANode, BlockNodeMetaData> startingPoints = ArrayListMultimap.create();
@@ -95,6 +109,7 @@ public class BlockGraph {
       root =
           new BlockNode(
               rootMetaData,
+              converter.createEmptyCFA(pCFA),
               ImmutableSet.of(),
               ImmutableSet.copyOf(startingPoints.get(pCFA.getMainFunction())),
               pNotifier,
@@ -112,6 +127,7 @@ public class BlockGraph {
       BlockNode curr =
           new BlockNode(
               blockNode,
+              converter.convert(blockNode, pCFA),
               predecessors.build(),
               ImmutableSet.copyOf(startingPoints.get(blockNode.getLastNode())),
               pNotifier,
@@ -124,9 +140,15 @@ public class BlockGraph {
     return new BlockGraph(root, nodes.build());
   }
 
-  public BlockGraph prependDummyRoot(CFA pCFA, ShutdownNotifier pShutdownNotifier)
-      throws InterruptedException {
+  public BlockGraph prependDummyRoot(
+      CFA pCFA, Configuration pConfiguration, ShutdownNotifier pNotifier, LogManager pLogger)
+      throws InterruptedException, ParserException, InvalidConfigurationException {
     return fromMetaData(
-        transformedImmutableSetCopy(allNodes, n -> n.getMetaData()), pCFA, pShutdownNotifier, true);
+        transformedImmutableSetCopy(allNodes, n -> n.getMetaData()),
+        pCFA,
+        pConfiguration,
+        pNotifier,
+        pLogger,
+        true);
   }
 }

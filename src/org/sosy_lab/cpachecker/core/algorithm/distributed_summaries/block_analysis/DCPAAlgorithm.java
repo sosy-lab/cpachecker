@@ -23,11 +23,11 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.AlgorithmFactory.AnalysisComponents;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithms.BlockAnalysisIntermediateResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class DCPAAlgorithm {
@@ -68,19 +67,18 @@ public class DCPAAlgorithm {
   public DCPAAlgorithm(
       LogManager pLogger,
       BlockNode pBlock,
-      CFA pCFA,
       Specification pSpecification,
       Configuration pConfiguration,
       ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     alreadyReportedError = false;
     alreadyReportedInfeasibility = false;
-    Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
+    AnalysisComponents parts =
         AlgorithmFactory.createAlgorithm(
-            pLogger, pSpecification, pCFA, pConfiguration, pShutdownManager, pBlock);
-    algorithm = parts.getFirst();
-    cpa = Objects.requireNonNull(parts.getSecond());
-    reachedSet = parts.getThird();
+            pLogger, pSpecification, pBlock.getCfa(), pConfiguration, pShutdownManager, pBlock);
+    algorithm = parts.algorithm();
+    cpa = parts.cpa();
+    reachedSet = parts.reached();
 
     status = AlgorithmStatus.SOUND_AND_PRECISE;
 
