@@ -182,7 +182,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     abstract int adjustLoopBoundIncrementValue(int loopBoundIncrementValue, int imcInnerLoopIter);
   }
 
-  @Options(prefix = "imc")
+  @Options(prefix = "imc.loopBound")
   private class LoopBoundManager {
     private class IndividualCheckInfoWrapper {
       private final String name;
@@ -209,8 +209,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                 + "to execute BMC phase of IMC or ISMC\n"
                 + "CONST: increased by one (to guarantee a shortest counterexample)\n"
                 + "EAGER: skip all iterations where a bug cannot be found")
-    private LoopBoundIncrementStrategy loopBoundIncrementStrategyForBMC =
-        LoopBoundIncrementStrategy.CONST;
+    private LoopBoundIncrementStrategy incrementStrategyForBMC = LoopBoundIncrementStrategy.CONST;
 
     @Option(
         secure = true,
@@ -219,8 +218,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                 + "to execute k-inductive check if \"checkPropertyInductiveness\" is enabled\n"
                 + "CONST: increased by by a constant (specified via loopBoundIncrementValueForKI)\n"
                 + "EAGER: skip all iterations where a bug cannot be found")
-    private LoopBoundIncrementStrategy loopBoundIncrementStrategyForKI =
-        LoopBoundIncrementStrategy.CONST;
+    private LoopBoundIncrementStrategy incrementStrategyForKI = LoopBoundIncrementStrategy.CONST;
 
     @Option(
         secure = true,
@@ -229,30 +227,29 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                 + "to execute interpolation phase of IMC\n"
                 + "CONST: increased by a constant (specified via loopBoundIncrementValueForIMC)\n"
                 + "EAGER: skip all iterations where a bug cannot be found")
-    private LoopBoundIncrementStrategy loopBoundIncrementStrategyForIMC =
-        LoopBoundIncrementStrategy.CONST;
+    private LoopBoundIncrementStrategy incrementStrategyForIMC = LoopBoundIncrementStrategy.CONST;
 
     /** Not configurable by the user to ensure soundness of ISMC */
-    private final LoopBoundIncrementStrategy loopBoundIncrementStrategyForISMC =
+    private final LoopBoundIncrementStrategy incrementStrategyForISMC =
         LoopBoundIncrementStrategy.CONST;
 
     /** Not configurable by user to ensure that the shortest counterexample can be found */
-    private static final int loopBoundIncrementValueForBMC = 1;
+    private static final int incrementValueForBMC = 1;
 
     @Option(
         secure = true,
         description = "toggle the value to increment the loop bound by at each step for KI")
     @IntegerOption(min = 1)
-    private int loopBoundIncrementValueForKI = 1;
+    private int incrementValueForKI = 1;
 
     @Option(
         secure = true,
         description = "toggle the value to increment the loop bound by at each step for IMC")
     @IntegerOption(min = 1)
-    private int loopBoundIncrementValueForIMC = 1;
+    private int incrementValueForIMC = 1;
 
     /** Not configurable by the user to guarantee soundness of ISMC */
-    private static final int loopBoundIncrementValueForISMC = 1;
+    private static final int incrementValueForISMC = 1;
 
     private int nextLoopBoundForBMC = 1;
     private int nextLoopBoundForKI = 2;
@@ -269,58 +266,46 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
       // configuration checks
       if (!fixedPointComputeStrategy.isIMCEnabled()) {
-        if (loopBoundIncrementStrategyForBMC == LoopBoundIncrementStrategy.EAGER) {
+        if (incrementStrategyForBMC == LoopBoundIncrementStrategy.EAGER) {
           logger.log(
               Level.WARNING,
               "IMC is disabled, the loop bound is incremented by",
-              loopBoundIncrementValueForBMC,
+              incrementValueForBMC,
               "each time for BMC.");
-          loopBoundIncrementStrategyForBMC = LoopBoundIncrementStrategy.CONST;
+          incrementStrategyForBMC = LoopBoundIncrementStrategy.CONST;
         }
-        if (loopBoundIncrementStrategyForKI == LoopBoundIncrementStrategy.EAGER) {
+        if (incrementStrategyForKI == LoopBoundIncrementStrategy.EAGER) {
           logger.log(
               Level.WARNING,
               "IMC is disabled, the loop bound is incremented by",
-              loopBoundIncrementValueForKI,
+              incrementValueForKI,
               "each time for KI.");
-          loopBoundIncrementStrategyForKI = LoopBoundIncrementStrategy.CONST;
+          incrementStrategyForKI = LoopBoundIncrementStrategy.CONST;
         }
       }
       if (fixedPointComputeStrategy.isIMCEnabled()
-          && loopBoundIncrementStrategyForIMC == LoopBoundIncrementStrategy.EAGER
-          && loopBoundIncrementValueForIMC != 1) {
+          && incrementStrategyForIMC == LoopBoundIncrementStrategy.EAGER
+          && incrementValueForIMC != 1) {
         logger.log(
             Level.WARNING,
             "The specified [ loopBoundIncrementValueOfIMC =",
-            loopBoundIncrementValueForIMC,
+            incrementValueForIMC,
             "] will be overwritten by the configuration [ loopBoundIncrementStrategyForIMC ="
                 + " EAGER]");
       }
 
       bmcInfo =
           new IndividualCheckInfoWrapper(
-              "BMC",
-              loopBoundIncrementStrategyForBMC,
-              loopBoundIncrementValueForBMC,
-              nextLoopBoundForBMC);
+              "BMC", incrementStrategyForBMC, incrementValueForBMC, nextLoopBoundForBMC);
       kiInfo =
           new IndividualCheckInfoWrapper(
-              "KI",
-              loopBoundIncrementStrategyForKI,
-              loopBoundIncrementValueForKI,
-              nextLoopBoundForKI);
+              "KI", incrementStrategyForKI, incrementValueForKI, nextLoopBoundForKI);
       imcInfo =
           new IndividualCheckInfoWrapper(
-              "IMC",
-              loopBoundIncrementStrategyForIMC,
-              loopBoundIncrementValueForIMC,
-              nextLoopBoundForIMC);
+              "IMC", incrementStrategyForIMC, incrementValueForIMC, nextLoopBoundForIMC);
       ismcInfo =
           new IndividualCheckInfoWrapper(
-              "ISMC",
-              loopBoundIncrementStrategyForISMC,
-              loopBoundIncrementValueForISMC,
-              nextLoopBoundForISMC);
+              "ISMC", incrementStrategyForISMC, incrementValueForISMC, nextLoopBoundForISMC);
       resetLoopBoundIncrementValues();
     }
 

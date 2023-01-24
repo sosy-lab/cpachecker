@@ -3864,7 +3864,7 @@ imc.impactLikeCovering = false
 # to execute BMC phase of IMC or ISMC
 # CONST: increased by one (to guarantee a shortest counterexample)
 # EAGER: skip all iterations where a bug cannot be found
-imc.loopBoundIncrementStrategyForBMC = CONST
+imc.loopBound.incrementStrategyForBMC = CONST
   enum:     [CONST, EAGER]
 
 # toggle the strategy to determine the next loop iteration
@@ -3872,7 +3872,7 @@ imc.loopBoundIncrementStrategyForBMC = CONST
 # CONST: increased by a constant (specified via
 # loopBoundIncrementValueForIMC)
 # EAGER: skip all iterations where a bug cannot be found
-imc.loopBoundIncrementStrategyForIMC = CONST
+imc.loopBound.incrementStrategyForIMC = CONST
   enum:     [CONST, EAGER]
 
 # toggle the strategy to determine the next loop iteration
@@ -3880,14 +3880,14 @@ imc.loopBoundIncrementStrategyForIMC = CONST
 # CONST: increased by by a constant (specified via
 # loopBoundIncrementValueForKI)
 # EAGER: skip all iterations where a bug cannot be found
-imc.loopBoundIncrementStrategyForKI = CONST
+imc.loopBound.incrementStrategyForKI = CONST
   enum:     [CONST, EAGER]
 
 # toggle the value to increment the loop bound by at each step for IMC
-imc.loopBoundIncrementValueForIMC = 1
+imc.loopBound.incrementValueForIMC = 1
 
 # toggle the value to increment the loop bound by at each step for KI
-imc.loopBoundIncrementValueForKI = 1
+imc.loopBound.incrementValueForKI = 1
 
 # toggle whether to refine interpolants with auxiliary invariants (if
 # present)
