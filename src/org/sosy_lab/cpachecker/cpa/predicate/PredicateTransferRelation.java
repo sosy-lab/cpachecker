@@ -357,7 +357,8 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       if (formulaManager.unsat(dummy, f)) {
         // The automaton has a conflict with the edge. The formula-manager has just proven that the
         // abstraction formula at this point represents false.
-        return PredicateAbstractState.mkAbstractionState(f, dummy, pElement.getAbstractionLocationsOnPath());
+        return PredicateAbstractState.mkAbstractionState(
+            f, dummy, pElement.getAbstractionLocationsOnPath());
       }
     }
 
