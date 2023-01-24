@@ -400,6 +400,11 @@ public class InvariantGeneratorForBMC implements StatisticsProvider {
     invariantGeneratorHeadStart = invariantGeneratorHeadStartStrategy.createFor(this);
   }
 
+  boolean isRunning() {
+    return invariantGenerationRunning
+        && invariantGenerationStrategy != InvariantGeneratorFactory.DO_NOTHING;
+  }
+
   void start(CFANode initLocation) {
     invariantGenerator.start(initLocation);
   }
