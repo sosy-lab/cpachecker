@@ -69,6 +69,7 @@ def generate_benchmark_runs_plots(directory):
         plt.xlabel("# Benchmark Run")
         plt.ylabel("Run time in milliseconds")
         plt.savefig(output_file_graph)
+        plt.clf()
 
 
 def get_label_for_benchmark_run(directory):

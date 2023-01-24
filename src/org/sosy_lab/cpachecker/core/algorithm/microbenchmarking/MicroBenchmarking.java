@@ -103,7 +103,6 @@ public class MicroBenchmarking implements Algorithm {
       while (propertyFilesIterator.hasNext()) {
         Path singleConfigFilePath = propertyFilesIterator.next();
         List<Map<String, List<BenchmarkExecutionRun>>> times = new ArrayList<>();
-        Iterator<Path> programFilesIterator = programFiles.iterator();
         for (Path singleProgramFilePath : programFiles) {
 
           ConfigurationBuilder configurationBuilder = Configuration.builder();
