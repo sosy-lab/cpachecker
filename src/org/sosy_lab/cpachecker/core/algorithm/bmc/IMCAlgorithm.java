@@ -828,6 +828,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             bfmgr.and(loops.subList(1, formulas.getNumLoops())), formulas.getAssertionFormula());
 
     final boolean isLoopInvInductive = formulas.checkInductivenessOf(solver, loopInv);
+    logger.log(Level.ALL, "The auxiliary loop-head invariant is: ", loopInv);
     boolean isLoopInvRelInducitve = true; // Init & T ==> Inv' holds
     if (!bfmgr.isTrue(loopInv)) {
       logger.log(
