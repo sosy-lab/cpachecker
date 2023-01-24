@@ -1,0 +1,21 @@
+# Contains tasks for which loop analysis is necessary.
+../programs/benchmarks/loops/array-1.yml
+../programs/benchmarks/loops/array-2.yml
+../programs/benchmarks/loops/bubble_sort-1.yml
+../programs/benchmarks/loops/bubble_sort-2.yml
+../programs/benchmarks/loops/compact.yml
+../programs/benchmarks/loops/count_up_down-1.yml
+../programs/benchmarks/loops/count_up_down-2.yml
+../programs/benchmarks/loops/eureka_01-1.yml
+../programs/benchmarks/loops/eureka_01-2.yml
+../programs/benchmarks/loops/eureka_05.yml
+../programs/benchmarks/loops/for_bounded_loop1.yml
+../programs/benchmarks/loops/for_infinite_loop_2.yml
+../programs/benchmarks/loops/heavy-1.yml
+../programs/benchmarks/loops/heavy-2.yml
+../programs/benchmarks/loops/insertion_sort-1.yml
+../programs/benchmarks/loops/insertion_sort-1-2.yml
+../programs/benchmarks/loops/insertion_sort-2.yml
+../programs/benchmarks/loops/insertion_sort-2-2.yml
+../programs/benchmarks/loops/invert_string-1.yml
+../programs/benchmarks/loops/invert_string-2.yml

@@ -6,7 +6,7 @@
   
   <tasks name="ReachSafety-Loops">
   	<requiredfiles>../programs/benchmarks/openssl/s3_srvr.blast.03.i.cil.c</requiredfiles>
-    <includesfile>../programs/benchmarks/ReachSafety-Loops-reduced.set</includesfile>
+    <includesfile>microbenchmarking.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   
