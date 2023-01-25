@@ -30,7 +30,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -99,17 +98,27 @@ public class SamplingAlgorithm extends NestingAlgorithm {
 
   @Option(
       secure = true,
-      name = "initial.forward.config",
       description = "The configuration file to use for building the forward ARG.")
   @FileOption(Type.REQUIRED_INPUT_FILE)
   private Path initialForwardConfig;
 
   @Option(
       secure = true,
-      name = "initial.backward.config",
+      description = "The configuration file to use for unrolling positive samples.")
+  @FileOption(Type.REQUIRED_INPUT_FILE)
+  private Path forwardUnrollingConfig;
+
+  @Option(
+      secure = true,
       description = "The configuration file to use for building the backward ARG.")
   @FileOption(Type.REQUIRED_INPUT_FILE)
   private Path initialBackwardConfig;
+
+  @Option(
+      secure = true,
+      description = "The configuration file to use for unrolling negative samples.")
+  @FileOption(Type.REQUIRED_INPUT_FILE)
+  private Path backwardUnrollingConfig;
 
   @Option(secure = true, description = "The strategy to use for initial sample generation.")
   private Strategy strategy = Strategy.SMT_RANDOM;
@@ -144,25 +153,21 @@ public class SamplingAlgorithm extends NestingAlgorithm {
           case SMT_RANDOM -> new SMTRandomSamplingStrategy();
         };
 
-    ConfigurationBuilder unrollingConfigBuilder =
-        Configuration.builder()
-            .copyFrom(pConfig)
-            .setOption("cpa.predicate.direction", "FORWARD")
-            .setOption("analysis.initialStatesFor", "ENTRY")
-            .setOption("cpa.callstack.traverseBackwards", "false");
-    forwardUnrollingAlgorithm =
-        new SampleUnrollingAlgorithm(
-            unrollingConfigBuilder.build(), pLogger, pShutdownManager, pCfa, pSpecification);
+    try {
+      Configuration forwardConfig =
+          Configuration.builder().loadFromFile(forwardUnrollingConfig).build();
+      forwardUnrollingAlgorithm =
+          new SampleUnrollingAlgorithm(
+              forwardConfig, pLogger, pShutdownManager, pCfa, pSpecification);
 
-    unrollingConfigBuilder =
-        Configuration.builder()
-            .copyFrom(pConfig)
-            .setOption("cpa.predicate.direction", "BACKWARD")
-            .setOption("analysis.initialStatesFor", "TARGET")
-            .setOption("cpa.callstack.traverseBackwards", "true");
-    backwardUnrollingAlgorithm =
-        new SampleUnrollingAlgorithm(
-            unrollingConfigBuilder.build(), pLogger, pShutdownManager, pCfa, pSpecification);
+      Configuration backwardConfig =
+          Configuration.builder().loadFromFile(backwardUnrollingConfig).build();
+      backwardUnrollingAlgorithm =
+          new SampleUnrollingAlgorithm(
+              backwardConfig, pLogger, pShutdownManager, pCfa, pSpecification);
+    } catch (IOException pE) {
+      throw new InvalidConfigurationException("Could not load unrolling config", pE);
+    }
   }
 
   @Override
