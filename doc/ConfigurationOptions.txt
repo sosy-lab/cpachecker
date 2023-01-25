@@ -1777,6 +1777,16 @@ cpa.invariants.analyzeRelevantVariablesOnly = true
 # locations only.
 cpa.invariants.analyzeTargetPathsOnly = true
 
+# the maximum factor the run-time can increase between each condition
+# adjustment, stops if the time spent on the previous iteration exceeds the
+# time spent on the penultimate by the specified factor (values <= 0 disable
+# the limit)
+cpa.invariants.conditionAdjuster.maxTimeSpanIncreaseFactor = 0.0
+
+# static time limit for data-flow analysis with condition adjustment (use
+# milliseconds or specify a unit; 0 for infinite)
+cpa.invariants.conditionAdjuster.timeLimit = 0ms
+
 # controls the condition adjustment logic: STATIC means that condition
 # adjustment is a no-op, INTERESTING_VARIABLES increases the interesting
 # variable limit, MAXIMUM_FORMULA_DEPTH increases the maximum formula depth,
@@ -1785,10 +1795,6 @@ cpa.invariants.analyzeTargetPathsOnly = true
 cpa.invariants.conditionAdjusterFactory = COMPOUND
   enum:     [STATIC, INTERESTING_VARIABLES, MAXIMUM_FORMULA_DEPTH,
              ABSTRACTION_STRATEGY, COMPOUND]
-
-# time limit for condition adjustment (use milliseconds or specify a unit; 0
-# for infinite)
-cpa.invariants.conditionAdjustmentTimeLimit = 0ms
 
 # include type information for variables, such as x >= MIN_INT && x <=
 # MAX_INT
