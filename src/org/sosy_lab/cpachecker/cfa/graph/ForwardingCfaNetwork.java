@@ -29,52 +29,53 @@ import org.sosy_lab.cpachecker.util.graph.ForwardingNetwork;
  * are forwarded to the delegate specified using {@link ForwardingCfaNetwork#delegateNetwork()}.
  * These delegates can be the same {@link CfaNetwork} instance (default implementation).
  */
-interface ForwardingCfaNetwork extends CfaNetwork, ForwardingNetwork<CFANode, CFAEdge> {
+abstract class ForwardingCfaNetwork extends ForwardingNetwork<CFANode, CFAEdge>
+    implements CfaNetwork {
 
   /**
    * Returns the delegate {@link CfaNetwork} to forward {@link CfaNetwork} specific calls to.
    *
    * @return the delegate {@link CfaNetwork} to forward {@link CfaNetwork} specific calls to
    */
-  CfaNetwork delegateCfaNetwork();
+  protected abstract CfaNetwork delegateCfaNetwork();
 
   @Override
-  default Network<CFANode, CFAEdge> delegateNetwork() {
+  protected Network<CFANode, CFAEdge> delegateNetwork() {
     return delegateCfaNetwork();
   }
 
   @Override
-  default Set<FunctionEntryNode> entryNodes() {
+  public Set<FunctionEntryNode> entryNodes() {
     return delegateCfaNetwork().entryNodes();
   }
 
   @Override
-  default CFANode predecessor(CFAEdge pEdge) {
+  public CFANode predecessor(CFAEdge pEdge) {
     return delegateCfaNetwork().predecessor(pEdge);
   }
 
   @Override
-  default CFANode successor(CFAEdge pEdge) {
+  public CFANode successor(CFAEdge pEdge) {
     return delegateCfaNetwork().successor(pEdge);
   }
 
   @Override
-  default FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
+  public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
     return delegateCfaNetwork().functionEntryNode(pFunctionSummaryEdge);
   }
 
   @Override
-  default Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
+  public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
     return delegateCfaNetwork().functionExitNode(pFunctionEntryNode);
   }
 
   @Override
-  default FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
+  public FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
     return delegateCfaNetwork().functionSummaryEdge(pFunctionCallEdge);
   }
 
   @Override
-  default FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
+  public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
     return delegateCfaNetwork().functionSummaryEdge(pFunctionReturnEdge);
   }
 }

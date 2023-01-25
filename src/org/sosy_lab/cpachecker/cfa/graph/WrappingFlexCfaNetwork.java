@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
 
 /**
  * A {@link FlexCfaNetwork} that uses its wrapped {@link MutableNetwork} as underlying data
@@ -28,8 +27,7 @@ import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
  * <p>The wrapped {@link MutableNetwork} must be a copy of a CFA. All modifying calls only change
  * the wrapped {@link MutableNetwork}.
  */
-final class WrappingFlexCfaNetwork
-    implements FlexCfaNetwork, ForwardingCfaNetwork, ForwardingMutableNetwork<CFANode, CFAEdge> {
+final class WrappingFlexCfaNetwork extends ForwardingCfaNetwork implements FlexCfaNetwork {
 
   private final MutableNetwork<CFANode, CFAEdge> mutableNetwork;
 
@@ -43,13 +41,6 @@ final class WrappingFlexCfaNetwork
 
   @Override
   public Network<CFANode, CFAEdge> delegateNetwork() {
-    // We can delegate all calls directly to the wrapped `MutableNetwork`. No need to use the less
-    // efficient implementations of an `AbstractCfaNetwork`.
-    return mutableNetwork;
-  }
-
-  @Override
-  public MutableNetwork<CFANode, CFAEdge> delegateMutableNetwork() {
     // We can delegate all calls directly to the wrapped `MutableNetwork`. No need to use the less
     // efficient implementations of an `AbstractCfaNetwork`.
     return mutableNetwork;
@@ -83,14 +74,29 @@ final class WrappingFlexCfaNetwork
     };
   }
 
-  @Override // we need to override this method to prevent ambiguity
-  public boolean addEdge(CFANode pPredecessor, CFANode pSuccessor, CFAEdge pNewEdge) {
-    return ForwardingMutableNetwork.super.addEdge(pPredecessor, pSuccessor, pNewEdge);
+  @Override
+  public boolean addNode(CFANode pNode) {
+    return mutableNetwork.addNode(pNode);
   }
 
-  @Override // we need to override this method to prevent ambiguity
+  @Override
+  public boolean addEdge(CFANode pPredecessor, CFANode pSuccessor, CFAEdge pNewEdge) {
+    return mutableNetwork.addEdge(pPredecessor, pSuccessor, pNewEdge);
+  }
+
+  @Override
   public boolean addEdge(EndpointPair<CFANode> pEndpoints, CFAEdge pNewEdge) {
-    return ForwardingMutableNetwork.super.addEdge(pEndpoints, pNewEdge);
+    return mutableNetwork.addEdge(pEndpoints, pNewEdge);
+  }
+
+  @Override
+  public boolean removeNode(CFANode pNode) {
+    return mutableNetwork.removeNode(pNode);
+  }
+
+  @Override
+  public boolean removeEdge(CFAEdge pEdge) {
+    return mutableNetwork.removeEdge(pEdge);
   }
 
   // `FlexCfaNetwork` operations

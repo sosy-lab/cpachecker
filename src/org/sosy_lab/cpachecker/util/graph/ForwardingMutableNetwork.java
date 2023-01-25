@@ -22,8 +22,8 @@ import com.google.common.graph.Network;
  * ForwardingMutableNetwork#delegateNetwork()}. These delegates can be the same {@link
  * MutableNetwork} instance (default implementation).
  */
-public interface ForwardingMutableNetwork<N, E>
-    extends MutableNetwork<N, E>, ForwardingNetwork<N, E> {
+public abstract class ForwardingMutableNetwork<N, E> extends ForwardingNetwork<N, E>
+    implements MutableNetwork<N, E> {
 
   /**
    * Returns the delegate {@link MutableNetwork} to forward {@link MutableNetwork} specific calls
@@ -31,35 +31,35 @@ public interface ForwardingMutableNetwork<N, E>
    *
    * @return the delegate {@link MutableNetwork} to forward {@link MutableNetwork} specific calls to
    */
-  MutableNetwork<N, E> delegateMutableNetwork();
+  protected abstract MutableNetwork<N, E> delegateMutableNetwork();
 
   @Override
-  default Network<N, E> delegateNetwork() {
+  protected Network<N, E> delegateNetwork() {
     return delegateMutableNetwork();
   }
 
   @Override
-  default boolean addNode(N pNode) {
+  public boolean addNode(N pNode) {
     return delegateMutableNetwork().addNode(pNode);
   }
 
   @Override
-  default boolean addEdge(N pNodeU, N pNodeV, E pEdge) {
+  public boolean addEdge(N pNodeU, N pNodeV, E pEdge) {
     return delegateMutableNetwork().addEdge(pNodeU, pNodeV, pEdge);
   }
 
   @Override
-  default boolean addEdge(EndpointPair<N> pEndpoints, E pEdge) {
+  public boolean addEdge(EndpointPair<N> pEndpoints, E pEdge) {
     return delegateMutableNetwork().addEdge(pEndpoints, pEdge);
   }
 
   @Override
-  default boolean removeNode(N pNode) {
+  public boolean removeNode(N pNode) {
     return delegateMutableNetwork().removeNode(pNode);
   }
 
   @Override
-  default boolean removeEdge(E pEdge) {
+  public boolean removeEdge(E pEdge) {
     return delegateMutableNetwork().removeEdge(pEdge);
   }
 }
