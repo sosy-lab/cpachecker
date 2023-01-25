@@ -47,7 +47,7 @@ def _create_argument_parser():
         add_help=False,  # conflicts with -heap
     )
 
-    parser.add_argument("--help", action="help", help="Prints this help.")
+    parser.add_argument("-h", "--help", action="help", help="Prints this help.")
 
     parser.add_argument(
         "--cloudMaster",
