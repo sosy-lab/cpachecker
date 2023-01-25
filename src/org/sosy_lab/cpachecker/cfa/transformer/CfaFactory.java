@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
  * CfaEdgeTransformer edge transformers} and execute {@link CfaPostProcessor CFA post-processors}
  * during CFA construction.
  */
+@FunctionalInterface
 public interface CfaFactory {
 
   /**
