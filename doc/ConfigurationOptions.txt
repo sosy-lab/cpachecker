@@ -3867,7 +3867,7 @@ imc.fixedPointComputeStrategy = ITP
 imc.impactLikeCovering = false
 
 # toggle which strategy is used for injecting auxiliary invariants
-imc.invariants.injectionStrategy = ITP_REFINEMENT
+imc.invariants.injectionStrategy = ITP_REFINEMENT_WITH_FALLBACK
   enum:     [AT_FIXED_POINT_CHECK, ITP_REFINEMENT, ITP_REFINEMENT_WITH_FALLBACK]
 
 # toggle whether to utilize non-inductive invariants
