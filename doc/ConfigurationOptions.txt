@@ -517,8 +517,9 @@ analysis.useRandomTestCaseGeneratorAlgorithm = false
 # generate test cases for covered test targets
 analysis.useTestCaseGeneratorAlgorithm = false
 
-# converts a witness to an ACSL annotated program
-analysis.useWitnessToACSLAlgorithm = false
+# Converts the invariants in a witness into annotations for the corresponding
+# program
+analysis.useWitnessToAnnotationAlgorithm = false
 
 # converts a graphml witness to invariant witness
 analysis.witnessToInvariant = false
@@ -4832,18 +4833,18 @@ undefinedFunctionsCollector.stubsFile = "stubs.c"
 # select an analysis from a set of analyses after unknown result
 useCompositionAnalysis = false
 
-# Instead of comments, output the assertions into the original program as
-# violations to unreach_call.prp
-wacsl.makeDirectAssertions = false
+# The format in which annotations shall be exported.
+wacsl.lang = ACSL
+  enum:     [ACSL, DIRECT_ASSERTIONS, VERCORS]
 
-# The directory where generated, ACSL annotated programs are stored.
+# The directory where generated annotated programs should be stored.
 wacsl.outDir = "annotated"
 
 # Makes the annotated file's name identical to the original source file's
 # name.
 wacsl.useSameFileName = false
 
-# The witness from which ACSL annotations should be generated.
+# The witness from which annotations should be generated.
 wacsl.witness = no default value
 
 # File for exporting the witness automaton in DOT format.

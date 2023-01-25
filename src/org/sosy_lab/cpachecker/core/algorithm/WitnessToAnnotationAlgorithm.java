@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -54,27 +53,31 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 @Options(prefix = "wacsl")
-public class WitnessToACSLAlgorithm implements Algorithm {
+public class WitnessToAnnotationAlgorithm implements Algorithm {
+
+  private enum AnnotationLanguage {
+    ACSL,
+    DIRECT_ASSERTIONS,
+    VERCORS
+  }
 
   @Option(
       secure = true,
       required = true,
-      description = "The witness from which ACSL annotations should be generated.")
+      description = "The witness from which annotations should be generated.")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path witness;
 
   @Option(
       secure = true,
-      description = "The directory where generated, ACSL annotated programs are stored.")
+      description = "The directory where generated annotated programs should be stored.")
   @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
   private Path outDir = Path.of("annotated");
 
   @Option(
       secure = true,
-      description =
-          "Instead of comments, output the assertions into the original program as violations to"
-              + " unreach_call.prp")
-  private boolean makeDirectAssertions = false;
+      description = "The format in which annotations shall be exported.")
+  private AnnotationLanguage lang = AnnotationLanguage.ACSL;
 
   @Option(
       secure = true,
@@ -86,7 +89,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
   private final CFA cfa;
   private final ShutdownNotifier shutdownNotifier;
 
-  public WitnessToACSLAlgorithm(
+  public WitnessToAnnotationAlgorithm(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException {
     config = pConfig;
@@ -97,8 +100,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
     Set<Path> files = new HashSet<>();
     Set<ExpressionTreeLocationInvariant> invariants;
@@ -175,7 +177,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
                 collectedLoopInvariants.add(inv.asExpressionTree());
                 continue;
               }
-              String annotation = makeACSLAnnotation(inv.asExpressionTree(), isAtLoopStart(inv));
+              String annotation = makeAnnotation(inv.asExpressionTree(), isAtLoopStart(inv));
               String indentation = i > 0 ? getIndentation(splitContent.get(i - 1)) : "";
               output.add(indentation + annotation);
             }
@@ -184,7 +186,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         }
         if (!collectedLoopInvariants.isEmpty() && !splitContent.get(i).isBlank()) {
           ExpressionTree<Object> conjunctedInvariants = And.of(collectedLoopInvariants);
-          String annotation = makeACSLAnnotation(conjunctedInvariants, true);
+          String annotation = makeAnnotation(conjunctedInvariants, true);
           String indentation = i > 0 ? getIndentation(splitContent.get(i - 1)) : "";
           output.add(indentation + annotation);
           collectedLoopInvariants.clear();
@@ -265,15 +267,26 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     return indentation == null ? correctlyIndented : indentation;
   }
 
-  private String makeACSLAnnotation(ExpressionTree<Object> inv, boolean asLoopInvariant) {
-    if (!makeDirectAssertions) {
-      if (asLoopInvariant) {
-        return "/*@ loop invariant " + inv + "; */";
-      } else {
-        return "/*@ assert " + inv + "; */";
+  private String makeAnnotation(ExpressionTree<Object> inv, boolean asLoopInvariant) {
+    switch (lang) {
+      case ACSL -> {
+        if (asLoopInvariant) {
+          return "/*@ loop invariant " + inv + "; */";
+        } else {
+          return "/*@ assert " + inv + "; */";
+        }
       }
-    } else {
-      return "if (!(" + inv + ")) reach_error();";
+      case DIRECT_ASSERTIONS -> {
+        return "if (!(" + inv + ")) reach_error();";
+      }
+      case VERCORS -> {
+        if (asLoopInvariant) {
+          return "/*@ loop_invariant " + inv + "; @*/";
+        } else {
+          return "/*@ assert " + inv + "; @*/";
+        }
+      }
+      default -> throw new AssertionError("Unhandled assertion language: " + lang);
     }
   }
 

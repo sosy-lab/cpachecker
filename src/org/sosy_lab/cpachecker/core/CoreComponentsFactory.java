@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.WitnessToACSLAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.WitnessToAnnotationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.WitnessToInvariantWitnessAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
@@ -208,8 +208,11 @@ public class CoreComponentsFactory {
               + " analysis finishing in time. All other analyses are terminated.")
   private boolean useParallelAlgorithm = false;
 
-  @Option(secure = true, description = "converts a witness to an ACSL annotated program")
-  private boolean useWitnessToACSLAlgorithm = false;
+  @Option(
+      secure = true,
+      description =
+          "Converts the invariants in a witness into annotations for the corresponding program")
+  private boolean useWitnessToAnnotationAlgorithm = false;
 
   @Option(
       secure = true,
@@ -507,9 +510,8 @@ public class CoreComponentsFactory {
           new ParallelAlgorithm(
               config, logger, shutdownNotifier, specification, cfa, aggregatedReachedSets);
 
-    } else if (useWitnessToACSLAlgorithm) {
-      algorithm = new WitnessToACSLAlgorithm(config, logger, shutdownNotifier, cfa);
-
+    } else if (useWitnessToAnnotationAlgorithm) {
+      algorithm = new WitnessToAnnotationAlgorithm(config, logger, shutdownNotifier, cfa);
     } else if (useMPIProcessAlgorithm) {
       algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
 
