@@ -155,13 +155,21 @@ public class SamplingAlgorithm extends NestingAlgorithm {
 
     try {
       Configuration forwardConfig =
-          Configuration.builder().loadFromFile(forwardUnrollingConfig).build();
+          Configuration.builder()
+              .copyFrom(pConfig)
+              .clearOption("analysis.useSamplingAlgorithm")
+              .loadFromFile(forwardUnrollingConfig)
+              .build();
       forwardUnrollingAlgorithm =
           new SampleUnrollingAlgorithm(
               forwardConfig, pLogger, pShutdownManager, pCfa, pSpecification);
 
       Configuration backwardConfig =
-          Configuration.builder().loadFromFile(backwardUnrollingConfig).build();
+          Configuration.builder()
+              .copyFrom(pConfig)
+              .clearOption("analysis.useSamplingAlgorithm")
+              .loadFromFile(backwardUnrollingConfig)
+              .build();
       backwardUnrollingAlgorithm =
           new SampleUnrollingAlgorithm(
               backwardConfig, pLogger, pShutdownManager, pCfa, pSpecification);
