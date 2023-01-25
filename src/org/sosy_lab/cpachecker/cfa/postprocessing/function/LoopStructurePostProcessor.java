@@ -22,13 +22,16 @@ public final class LoopStructurePostProcessor implements CfaPostProcessor {
   @Override
   public MutableCFA execute(
       MutableCFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-
     try {
       pCfa.setLoopStructure(LoopStructure.getLoopStructure(pCfa));
-    } catch (ParserException ex) {
-      pLogger.log(Level.WARNING, ex);
+    } catch (ParserException e) {
+      // don't abort here, because if the analysis doesn't need the loop information, we can
+      // continue
+      pLogger.logUserException(Level.WARNING, e, "Could not analyze loop structure of program.");
+    } catch (OutOfMemoryError e) {
+      pLogger.logUserException(
+          Level.WARNING, e, "Could not analyze loop structure of program due to memory problems");
     }
-
     return pCfa;
   }
 }
