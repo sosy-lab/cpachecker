@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 public final class DOTBuilder {
 
   private DOTBuilder() {
-    /* utility class */
+    // utility class
   }
 
   private static final String MAIN_GRAPH = "____Main____Diagram__";

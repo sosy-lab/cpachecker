@@ -147,7 +147,7 @@ public class SlicingRefiner implements Refiner {
      * Restart at the pivot element, i.e., the first abstract state for which the precision changes.
      */
     PIVOT,
-    /** Restart at the root, i.e., the initial abstract state. * */
+    /** Restart at the root, i.e., the initial abstract state. */
     ROOT
   }
 

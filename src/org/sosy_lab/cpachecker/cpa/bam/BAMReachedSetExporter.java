@@ -142,8 +142,7 @@ class BAMReachedSetExporter implements Statistics {
           Predicates.alwaysTrue(),
           BAMReachedSetExporter::highlightSummaryEdge);
     } catch (IOException e) {
-      logger.logUserException(
-          Level.WARNING, e, String.format("Could not write ARG to file: %s", file));
+      logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
     }
   }
 

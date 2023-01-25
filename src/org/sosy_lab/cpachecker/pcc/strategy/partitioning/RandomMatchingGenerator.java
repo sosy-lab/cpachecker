@@ -57,21 +57,21 @@ public class RandomMatchingGenerator implements MatchingGenerator {
             alreadyMatched.set(nodeNum);
             alreadyMatched.set(succNum);
             nodeMatched = true;
-            logger.log(
+            logger.logf(
                 Level.FINEST,
-                String.format(
-                    "[Multilevel] Node %d and %d matched to supernode %d- matched weight %d",
-                    nodeNum, succNum, currentSuperNode, succEdge.getWeight()));
+                "[Multilevel] Node %d and %d matched to supernode %d- matched weight %d",
+                nodeNum,
+                succNum,
+                currentSuperNode,
+                succEdge.getWeight());
             break;
           }
         }
         if (!nodeMatched) {
           matching.put(nodeNum, currentSuperNode);
           alreadyMatched.set(nodeNum);
-          logger.log(
-              Level.FINEST,
-              String.format(
-                  "[Multilevel] Node %d lonely: Supernode %d", nodeNum, currentSuperNode));
+          logger.logf(
+              Level.FINEST, "[Multilevel] Node %d lonely: Supernode %d", nodeNum, currentSuperNode);
         }
         currentSuperNode++;
       }

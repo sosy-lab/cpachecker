@@ -26,7 +26,7 @@ public class StatementWriter implements StatementVisitor<IOException>, Closeable
   private final Appendable sb;
   private int currentIndent = 0;
 
-  /** Whether this writer has been closed. * */
+  /** Whether this writer has been closed. */
   private boolean closed = false;
 
   protected StatementWriter(final Appendable pDestination, final TranslatorConfig pConfig)

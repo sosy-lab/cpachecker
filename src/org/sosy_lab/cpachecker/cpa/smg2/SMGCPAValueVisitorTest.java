@@ -197,7 +197,7 @@ public class SMGCPAValueVisitorTest {
       // The returned Value should be the value we entered into the field,
       // which is a NumericValue = testNumericValue
       assertThat(resultValue).isInstanceOf(NumericValue.class);
-      assertThat(resultValue.asNumericValue().bigInteger()).isEqualTo(BigInteger.valueOf(i));
+      assertThat(resultValue.asNumericValue().bigIntegerValue()).isEqualTo(BigInteger.valueOf(i));
 
       resetSMGStateAndVisitor();
     }
@@ -254,7 +254,7 @@ public class SMGCPAValueVisitorTest {
             .isEqualTo(addresses.get(i));
         // Offset is always 0 as there is no binary expr around them
         assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
-        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigInteger())
+        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
       }
     }
@@ -314,7 +314,7 @@ public class SMGCPAValueVisitorTest {
             .isEqualTo(addresses.get(i));
         // Offset is always 0 as there is no binary expr around them
         assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
-        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigInteger())
+        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
       }
     }
@@ -368,7 +368,7 @@ public class SMGCPAValueVisitorTest {
             .isEqualTo(addresses.get(i));
         // Offset is always 0 as there is no binary expr around them
         assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
-        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigInteger())
+        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigIntegerValue())
             .isEqualTo(BigInteger.ZERO);
       }
     }
@@ -443,7 +443,7 @@ public class SMGCPAValueVisitorTest {
       // The returned Value should be the value we entered into the field,
       // which is a NumericValue = testNumericValue
       assertThat(resultValue).isInstanceOf(NumericValue.class);
-      assertThat(resultValue.asNumericValue().bigInteger()).isEqualTo(BigInteger.valueOf(i));
+      assertThat(resultValue.asNumericValue().bigIntegerValue()).isEqualTo(BigInteger.valueOf(i));
 
       resetSMGStateAndVisitor();
     }
@@ -489,7 +489,7 @@ public class SMGCPAValueVisitorTest {
         // The returned Value should be the value we entered into the field,
         // which is a NumericValue = testNumericValue
         assertThat(resultValue).isInstanceOf(NumericValue.class);
-        assertThat(resultValue.asNumericValue().bigInteger()).isEqualTo(BigInteger.valueOf(i));
+        assertThat(resultValue.asNumericValue().bigIntegerValue()).isEqualTo(BigInteger.valueOf(i));
       }
     }
   }
@@ -533,7 +533,7 @@ public class SMGCPAValueVisitorTest {
       // The returned Value should be the value we entered into the field,
       // which is a NumericValue = testNumericValue
       assertThat(resultValue).isInstanceOf(NumericValue.class);
-      assertThat(resultValue.asNumericValue().bigInteger()).isEqualTo(BigInteger.valueOf(i));
+      assertThat(resultValue.asNumericValue().bigIntegerValue()).isEqualTo(BigInteger.valueOf(i));
 
       resetSMGStateAndVisitor();
     }
@@ -568,7 +568,7 @@ public class SMGCPAValueVisitorTest {
         // The returned Value should be the value we entered into the field,
         // which is a NumericValue = testNumericValue
         assertThat(resultValue).isInstanceOf(NumericValue.class);
-        assertThat(resultValue.asNumericValue().bigInteger()).isEqualTo(BigInteger.valueOf(i));
+        assertThat(resultValue.asNumericValue().bigIntegerValue()).isEqualTo(BigInteger.valueOf(i));
       }
     }
   }
@@ -621,7 +621,7 @@ public class SMGCPAValueVisitorTest {
         Value resultValue = resultList.get(0).getValue();
         // Check that 0 always holds
         assertThat(resultValue).isInstanceOf(NumericValue.class);
-        assertThat(resultValue.asNumericValue().bigInteger()).isEqualTo(BigInteger.ZERO);
+        assertThat(resultValue.asNumericValue().bigIntegerValue()).isEqualTo(BigInteger.ZERO);
       }
     }
   }
@@ -673,7 +673,7 @@ public class SMGCPAValueVisitorTest {
                   .compareTo(MACHINE_MODEL.getSizeof(STRUCT_UNION_TEST_TYPES.get(i)))
               == 0) {
             assertThat(resultValue).isInstanceOf(NumericValue.class);
-            assertThat(resultValue.asNumericValue().bigInteger())
+            assertThat(resultValue.asNumericValue().bigIntegerValue())
                 .isEqualTo(BigInteger.valueOf(k + 1));
           } else {
             // Unknowns are tranlated into ConstantSymbolicExpression
@@ -1628,7 +1628,7 @@ public class SMGCPAValueVisitorTest {
         Value value = result.get(0).getValue();
 
         assertThat(value).isInstanceOf(NumericValue.class);
-        assertThat(value.asNumericValue().bigInteger())
+        assertThat(value.asNumericValue().bigIntegerValue())
             .isEqualTo(convertToType(BigInteger.valueOf(testChar), typeToTest));
       }
     }
@@ -1669,7 +1669,7 @@ public class SMGCPAValueVisitorTest {
 
         assertThat(value).isInstanceOf(NumericValue.class);
         // Check the returned value. It should be == for all except char
-        assertThat(value.asNumericValue().bigInteger())
+        assertThat(value.asNumericValue().bigIntegerValue())
             .isEqualTo(convertToType(BigInteger.valueOf(testValue), typeToTest));
       }
     }
@@ -1710,7 +1710,7 @@ public class SMGCPAValueVisitorTest {
 
         assertThat(value).isInstanceOf(NumericValue.class);
         // Check the returned value. It should be == for all except char
-        assertThat(value.asNumericValue().bigInteger())
+        assertThat(value.asNumericValue().bigIntegerValue())
             .isEqualTo(convertToType(BigInteger.valueOf(testValue), typeToTest));
       }
     }
@@ -1751,7 +1751,7 @@ public class SMGCPAValueVisitorTest {
 
         assertThat(value).isInstanceOf(NumericValue.class);
         // Check the returned value. It should be == for all except char
-        assertThat(value.asNumericValue().bigInteger())
+        assertThat(value.asNumericValue().bigIntegerValue())
             .isEqualTo(convertToType(BigInteger.valueOf(testValue), typeToTest));
       }
     }
@@ -1797,7 +1797,7 @@ public class SMGCPAValueVisitorTest {
 
         assertThat(value).isInstanceOf(NumericValue.class);
         // Check the returned value. It should be == for all except char
-        assertThat(value.asNumericValue().bigInteger())
+        assertThat(value.asNumericValue().bigIntegerValue())
             .isEqualTo(convertToType(testValue, typeToTest));
       }
     }
@@ -1838,7 +1838,7 @@ public class SMGCPAValueVisitorTest {
 
         assertThat(value).isInstanceOf(NumericValue.class);
         // Check the returned value. It should be == for all except char
-        assertThat(value.asNumericValue().bigInteger())
+        assertThat(value.asNumericValue().bigIntegerValue())
             .isEqualTo(convertToType(BigInteger.valueOf(testValue), typeToTest));
       }
     }
@@ -1884,7 +1884,7 @@ public class SMGCPAValueVisitorTest {
 
         assertThat(value).isInstanceOf(NumericValue.class);
         // Check the returned value. It should be == for all except char
-        assertThat(value.asNumericValue().bigInteger())
+        assertThat(value.asNumericValue().bigIntegerValue())
             .isEqualTo(convertToType(testValue, typeToTest));
       }
     }
@@ -2544,7 +2544,7 @@ public class SMGCPAValueVisitorTest {
       // The returned Value should == size if the current type by index (in bytes)
       assertThat(resultValue).isInstanceOf(NumericValue.class);
       // Both as bytes
-      assertThat(resultValue.asNumericValue().bigInteger())
+      assertThat(resultValue.asNumericValue().bigIntegerValue())
           .isEqualTo(MACHINE_MODEL.getSizeof(typeToTest));
       resetSMGStateAndVisitor();
     }
@@ -2581,7 +2581,7 @@ public class SMGCPAValueVisitorTest {
         // The returned Value should == size if the current type by index (in bytes)
         assertThat(resultValue).isInstanceOf(NumericValue.class);
         // Both as bytes
-        assertThat(resultValue.asNumericValue().bigInteger())
+        assertThat(resultValue.asNumericValue().bigIntegerValue())
             .isEqualTo(MACHINE_MODEL.getSizeof(listOfTypes.get(i)));
       }
       // Test sizeof the entire struct
@@ -2602,7 +2602,7 @@ public class SMGCPAValueVisitorTest {
       // The returned Value should == size of the entire struct but with padding
       assertThat(resultValue).isInstanceOf(NumericValue.class);
       // Transform the result in bits
-      assertThat(resultValue.asNumericValue().bigInteger().multiply(BigInteger.valueOf(8)))
+      assertThat(resultValue.asNumericValue().bigIntegerValue().multiply(BigInteger.valueOf(8)))
           .isEqualTo(BigInteger.valueOf(getSizeInBitsForListOfCTypeWithPadding(listOfTypes)));
       resetSMGStateAndVisitor();
     }
@@ -2652,7 +2652,7 @@ public class SMGCPAValueVisitorTest {
           // The returned Value should == size of the current type (at index i)
           assertThat(resultValue).isInstanceOf(NumericValue.class);
           // Transform the result in bits
-          assertThat(resultValue.asNumericValue().bigInteger())
+          assertThat(resultValue.asNumericValue().bigIntegerValue())
               .isEqualTo(MACHINE_MODEL.getSizeof(listOfTypes.get(k)));
         }
 
@@ -2674,7 +2674,7 @@ public class SMGCPAValueVisitorTest {
         // The returned Value should == size of the entire struct but with padding
         assertThat(resultValue).isInstanceOf(NumericValue.class);
         // Transform the result in bits
-        assertThat(resultValue.asNumericValue().bigInteger().multiply(BigInteger.valueOf(8)))
+        assertThat(resultValue.asNumericValue().bigIntegerValue().multiply(BigInteger.valueOf(8)))
             .isEqualTo(BigInteger.valueOf(getLargestSizeInBitsForListOfCType(listOfTypes)));
       }
       resetSMGStateAndVisitor();
@@ -2706,7 +2706,7 @@ public class SMGCPAValueVisitorTest {
         // The returned Value should == size of the current type (at index i)
         assertThat(resultValue).isInstanceOf(NumericValue.class);
         // Transform the result in bits
-        assertThat(resultValue.asNumericValue().bigInteger())
+        assertThat(resultValue.asNumericValue().bigIntegerValue())
             .isEqualTo(MACHINE_MODEL.getSizeof(currentTestType));
       }
 
@@ -2722,7 +2722,7 @@ public class SMGCPAValueVisitorTest {
       // The returned Value should == size of the current type (at index i)
       assertThat(resultValue).isInstanceOf(NumericValue.class);
       // Transform the result in bits
-      assertThat(resultValue.asNumericValue().bigInteger().intValue())
+      assertThat(resultValue.asNumericValue().bigIntegerValue().intValue())
           .isEqualTo(POINTER_SIZE_IN_BITS / 8);
 
       resetSMGStateAndVisitor();
@@ -2756,7 +2756,7 @@ public class SMGCPAValueVisitorTest {
         // The returned Value should == size of the current type (at index i)
         assertThat(resultValue).isInstanceOf(NumericValue.class);
         // Transform the result in bits
-        assertThat(resultValue.asNumericValue().bigInteger())
+        assertThat(resultValue.asNumericValue().bigIntegerValue())
             .isEqualTo(MACHINE_MODEL.getSizeof(currentTestType));
       }
 
@@ -2775,7 +2775,7 @@ public class SMGCPAValueVisitorTest {
       // The returned Value should == size of the current type (at index i)
       assertThat(resultValue).isInstanceOf(NumericValue.class);
       // Transform the result in bits
-      assertThat(resultValue.asNumericValue().bigInteger().intValue())
+      assertThat(resultValue.asNumericValue().bigIntegerValue().intValue())
           .isEqualTo(POINTER_SIZE_IN_BITS / 8);
 
       resetSMGStateAndVisitor();
@@ -2810,7 +2810,7 @@ public class SMGCPAValueVisitorTest {
         // The returned Value should == size of the current type (at index i)
         assertThat(resultValue).isInstanceOf(NumericValue.class);
         // Transform the result in bits
-        assertThat(resultValue.asNumericValue().bigInteger())
+        assertThat(resultValue.asNumericValue().bigIntegerValue())
             .isEqualTo(MACHINE_MODEL.getSizeof(currentTestType));
       }
 
@@ -3885,8 +3885,8 @@ public class SMGCPAValueVisitorTest {
     assertThat(valueToCheck).isInstanceOf(expected.getClass());
     if (valueType instanceof CSimpleType) {
       assertThat(valueToCheck).isInstanceOf(NumericValue.class);
-      assertThat(valueToCheck.asNumericValue().bigInteger())
-          .isEqualTo(expected.asNumericValue().bigInteger());
+      assertThat(valueToCheck.asNumericValue().bigIntegerValue())
+          .isEqualTo(expected.asNumericValue().bigIntegerValue());
     } else {
       // may be some other type, arrays, structs etc.
       // TODO:

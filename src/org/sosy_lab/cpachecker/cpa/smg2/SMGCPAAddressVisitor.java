@@ -143,7 +143,7 @@ public class SMGCPAAddressVisitor
         // Calculate the offset out of the subscript value and the type
         BigInteger typeSizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
         BigInteger subscriptOffset =
-            typeSizeInBits.multiply(subscriptValue.asNumericValue().bigInteger());
+            typeSizeInBits.multiply(subscriptValue.asNumericValue().bigIntegerValue());
 
         // Get the value from the array and return the value + state
         // (the is pointer check is needed because of nested subscript; i.e. array[1][1]; as if we
@@ -172,7 +172,7 @@ public class SMGCPAAddressVisitor
         return SMGStateAndOptionalSMGObjectAndOffset.of(
             pCurrentState.withUnknownOffsetMemoryAccess());
       }
-      BigInteger baseOffset = addrOffset.asNumericValue().bigInteger();
+      BigInteger baseOffset = addrOffset.asNumericValue().bigIntegerValue();
       BigInteger finalOffset = baseOffset.add(subscriptOffset);
 
       List<SMGStateAndOptionalSMGObjectAndOffset> targets =
@@ -201,7 +201,7 @@ public class SMGCPAAddressVisitor
     } else {
       // Might be numeric 0 (0 object). All else cases are basically invalid requests.
       if (arrayValue.isNumericValue()
-          && arrayValue.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
+          && arrayValue.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
         return SMGStateAndOptionalSMGObjectAndOffset.of(
             SMGObject.nullInstance(), subscriptOffset, pCurrentState);
       } else {
@@ -254,7 +254,7 @@ public class SMGCPAAddressVisitor
           // Non numeric offset -> not usable
           resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
         }
-        BigInteger baseOffset = addrOffset.asNumericValue().bigInteger();
+        BigInteger baseOffset = addrOffset.asNumericValue().bigIntegerValue();
         BigInteger finalFieldOffset = baseOffset.add(fieldOffset);
 
         resultBuilder.addAll(
@@ -281,7 +281,7 @@ public class SMGCPAAddressVisitor
       } else {
         // Might be numeric 0 (0 object). All else cases are basically invalid requests.
         if (structValue.isNumericValue()
-            && structValue.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
+            && structValue.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
           resultBuilder.add(
               SMGStateAndOptionalSMGObjectAndOffset.of(
                   SMGObject.nullInstance(), fieldOffset, currentState));
@@ -358,7 +358,7 @@ public class SMGCPAAddressVisitor
                 + " returned.");
         resultBuilder.addAll(visitDefault(e));
       } else {
-        BigInteger offsetInBits = offset.asNumericValue().bigInteger();
+        BigInteger offsetInBits = offset.asNumericValue().bigIntegerValue();
         resultBuilder.addAll(
             evaluator.getTargetObjectAndOffset(
                 currentState, pointerValue.getMemoryAddress(), offsetInBits));

@@ -82,7 +82,7 @@ public class ConstraintsSolver {
   private CtoFormulaConverter converter;
   private SymbolicIdentifierLocator locator;
 
-  /** Table of id constraints set, id identifier assignment, formula * */
+  /** Table of id constraints set, id identifier assignment, formula */
   private Map<Constraint, BooleanFormula> constraintFormulas = new HashMap<>();
 
   private BooleanFormula literalForSingleAssignment;

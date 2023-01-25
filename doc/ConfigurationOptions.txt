@@ -1717,9 +1717,6 @@ cpa.dca.refiner.dotExport = false
 # replaced by the automaton name.
 cpa.dca.refiner.dotExportFile = "%s.dot"
 
-# If set to true, all infeasible dummy states will be kept in the ARG.
-cpa.dca.refiner.keepInfeasibleStates = false
-
 # The max amount of refinements for the trace abstraction algorithm. Setting
 # it to 0 leads to an analysis of the ARG without executing any refinements.
 # This is used for debugging purposes.

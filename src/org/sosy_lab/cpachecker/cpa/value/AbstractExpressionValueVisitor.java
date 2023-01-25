@@ -671,8 +671,8 @@ public abstract class AbstractExpressionValueVisitor
           }
         case INT128:
           {
-            BigInteger lVal = lNum.bigInteger();
-            BigInteger rVal = rNum.bigInteger();
+            BigInteger lVal = lNum.bigIntegerValue();
+            BigInteger rVal = rNum.bigIntegerValue();
             BigInteger result = arithmeticOperation(lVal, rVal, op, logger);
             return new NumericValue(result);
           }
@@ -753,14 +753,8 @@ public abstract class AbstractExpressionValueVisitor
               machineModel.getSizeof(canonicalType) * machineModel.getSizeofCharInBits();
           if ((!machineModel.isSigned(canonicalType) && sizeInBits == SIZE_OF_JAVA_LONG)
               || sizeInBits > SIZE_OF_JAVA_LONG) {
-            BigInteger leftBigInt =
-                l.getNumber() instanceof BigInteger
-                    ? (BigInteger) l.getNumber()
-                    : BigInteger.valueOf(l.longValue());
-            BigInteger rightBigInt =
-                r.getNumber() instanceof BigInteger
-                    ? (BigInteger) r.getNumber()
-                    : BigInteger.valueOf(r.longValue());
+            BigInteger leftBigInt = l.bigIntegerValue();
+            BigInteger rightBigInt = r.bigIntegerValue();
             cmp = leftBigInt.compareTo(rightBigInt);
             break;
           }
@@ -2488,14 +2482,7 @@ public abstract class AbstractExpressionValueVisitor
             return UnknownValue.getInstance();
           }
 
-          final BigInteger valueToCastAsInt;
-          if (numericValue.getNumber() instanceof BigInteger) {
-            valueToCastAsInt = numericValue.bigInteger();
-          } else if (numericValue.getNumber() instanceof BigDecimal) {
-            valueToCastAsInt = numericValue.bigDecimalValue().toBigInteger();
-          } else {
-            valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
-          }
+          final BigInteger valueToCastAsInt = numericValue.bigIntegerValue();
           final boolean targetIsSigned = machineModel.isSigned(st);
 
           final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size

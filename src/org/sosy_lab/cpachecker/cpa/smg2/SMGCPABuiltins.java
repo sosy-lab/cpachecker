@@ -553,7 +553,10 @@ public class SMGCPABuiltins {
             continue;
           } else {
             BigInteger size =
-                value1.asNumericValue().bigInteger().multiply(value2.asNumericValue().bigInteger());
+                value1
+                    .asNumericValue()
+                    .bigIntegerValue()
+                    .multiply(value2.asNumericValue().bigIntegerValue());
             resultBuilder.add(ValueAndSMGState.of(new NumericValue(size), state2));
           }
         }
@@ -682,7 +685,7 @@ public class SMGCPABuiltins {
       }
       // The size is always given in bytes
       BigInteger sizeInBits =
-          sizeValue.asNumericValue().bigInteger().multiply(BigInteger.valueOf(8));
+          sizeValue.asNumericValue().bigIntegerValue().multiply(BigInteger.valueOf(8));
       SMGState currentState = sizeAndState.getState();
 
       if (sizeInBits.compareTo(BigInteger.ZERO) == 0) {
@@ -870,7 +873,7 @@ public class SMGCPABuiltins {
     // If the char value is unknown, we use a new symbolic value!
     Value bufferMemoryAddress = bufferAddressAndOffset.getMemoryAddress();
     BigInteger bufferOffsetInBits =
-        bufferAddressAndOffset.getOffset().asNumericValue().bigInteger();
+        bufferAddressAndOffset.getOffset().asNumericValue().bigIntegerValue();
 
     BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
 
@@ -878,7 +881,7 @@ public class SMGCPABuiltins {
     Preconditions.checkArgument(
         !currentState.getMemoryModel().pointsToZeroPlus(bufferMemoryAddress));
     if (charValue.isNumericValue()
-        && charValue.asNumericValue().bigInteger().equals(BigInteger.ZERO)) {
+        && charValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
       // Create one large edge for 0 (the SMG cuts 0 edges on its own)
       currentState =
           currentState
@@ -1011,7 +1014,7 @@ public class SMGCPABuiltins {
       String allocationLabel = "_ALLOCA_ID_" + U_ID_GENERATOR.getFreshId();
       ValueAndSMGState addressValueAndState =
           evaluator.createStackAllocation(
-              allocationLabel, pSizeValue.asNumericValue().bigInteger(), type, pState);
+              allocationLabel, pSizeValue.asNumericValue().bigIntegerValue(), type, pState);
 
       currentState = addressValueAndState.getState();
 
@@ -1175,19 +1178,20 @@ public class SMGCPABuiltins {
       throws SMG2Exception {
 
     Preconditions.checkArgument(numOfBytesValue instanceof NumericValue);
-    long numOfBytes = numOfBytesValue.asNumericValue().bigInteger().longValue();
+    long numOfBytes = numOfBytesValue.asNumericValue().bigIntegerValue().longValue();
     if (numOfBytes < 0) {
       // the argument is unsigned, so we have to transform it into a postive. On most 64bit systems
       // it's an unsigned long (C99 standard)
       numOfBytes =
-          Integer.toUnsignedLong(numOfBytesValue.asNumericValue().bigInteger().intValueExact());
+          Integer.toUnsignedLong(
+              numOfBytesValue.asNumericValue().bigIntegerValue().intValueExact());
     }
 
     BigInteger sizeToCopyInBits =
         BigInteger.valueOf(numOfBytes)
             .multiply(BigInteger.valueOf(machineModel.getSizeofCharInBits()));
-    BigInteger targetOffset = targetAddress.getOffset().asNumericValue().bigInteger();
-    BigInteger sourceOffset = sourceAddress.getOffset().asNumericValue().bigInteger();
+    BigInteger targetOffset = targetAddress.getOffset().asNumericValue().bigIntegerValue();
+    BigInteger sourceOffset = sourceAddress.getOffset().asNumericValue().bigIntegerValue();
     Value targetMemoryAddress = targetAddress.getMemoryAddress();
 
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
@@ -1296,9 +1300,9 @@ public class SMGCPABuiltins {
         resultBuilder.add(
             evaluator.stringCompare(
                 firstAddressExpr.getMemoryAddress(),
-                firstAddressExpr.getOffset().asNumericValue().bigInteger(),
+                firstAddressExpr.getOffset().asNumericValue().bigIntegerValue(),
                 secondAddressExpr.getMemoryAddress(),
-                secondAddressExpr.getOffset().asNumericValue().bigInteger(),
+                secondAddressExpr.getOffset().asNumericValue().bigIntegerValue(),
                 secondValueAndSMGState.getState()));
       }
     }

@@ -247,7 +247,7 @@ public class AssumptionToEdgeAllocator {
 
     String functionName = edge.getPredecessor().getFunctionName();
 
-    /* function name may be null*/
+    // function name may be null
     LModelValueVisitor v = new LModelValueVisitor(functionName, pConcreteState);
     Address address = v.getAddress(dcl);
 
@@ -775,7 +775,7 @@ public class AssumptionToEdgeAllocator {
 
       CType type = pIastFieldReference.getExpressionType().getCanonicalType();
 
-      /* The evaluation of an array or a struct is its address */
+      // The evaluation of an array or a struct is its address
       if (type instanceof CArrayType || isStructOrUnionType(type)) {
         if (address.isSymbolic()) {
           return null;
@@ -824,7 +824,7 @@ public class AssumptionToEdgeAllocator {
 
       CType type = pCIdExpression.getExpressionType().getCanonicalType();
 
-      /* The evaluation of an array or a struct is its address */
+      // The evaluation of an array or a struct is its address
       if (type instanceof CArrayType || isStructOrUnionType(type)) {
         if (address.isSymbolic()) {
           return lookupVariable(dcl);

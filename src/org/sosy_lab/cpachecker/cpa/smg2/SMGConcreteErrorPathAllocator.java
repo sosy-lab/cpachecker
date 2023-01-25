@@ -279,7 +279,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
         continue;
       }
       valuesMap.put(
-          baseAddress.addOffset(offset), value.orElseThrow().asNumericValue().bigInteger());
+          baseAddress.addOffset(offset), value.orElseThrow().asNumericValue().bigIntegerValue());
     }
     return biggestOffset;
   }

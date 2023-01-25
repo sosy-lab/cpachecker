@@ -527,7 +527,7 @@ public class CBinaryExpressionBuilder {
       return t2;
     }
 
-    /* Otherwise, the integer promotions are performed on both operands. */
+    // Otherwise, the integer promotions are performed on both operands.
 
     return getLongestIntegerPromotion(t1, t2);
   }
@@ -562,7 +562,7 @@ public class CBinaryExpressionBuilder {
     final int rank1 = getConversionRank(t1);
     final int rank2 = getConversionRank(t2);
 
-    /* If both operands have the same type, then no further conversion is needed. */
+    // If both operands have the same type, then no further conversion is needed.
     //      --> this is implicitly handled with next case
 
     /* Otherwise, if both operands have signed integer types or both have

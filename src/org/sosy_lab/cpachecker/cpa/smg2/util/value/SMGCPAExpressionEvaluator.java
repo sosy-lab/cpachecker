@@ -122,7 +122,7 @@ public class SMGCPAExpressionEvaluator {
       return ValueAndSMGState.ofUnknownValue(currentState);
     }
 
-    if (offset.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
+    if (offset.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
       // offset == 0 -> known pointer
       return ValueAndSMGState.of(addressExpression.getMemoryAddress(), currentState);
     } else {
@@ -130,7 +130,7 @@ public class SMGCPAExpressionEvaluator {
       List<ValueAndSMGState> pointers =
           findOrcreateNewPointer(
               addressExpression.getMemoryAddress(),
-              offset.asNumericValue().bigInteger(),
+              offset.asNumericValue().bigIntegerValue(),
               currentState);
       Preconditions.checkArgument(pointers.size() == 1);
       // It is impossible for 0+ list abstractions to happen in this context -> only 1 return value
@@ -155,7 +155,7 @@ public class SMGCPAExpressionEvaluator {
     if (isNotEqual.isUnknown()) {
       return isNotEqual;
     }
-    return isNotEqual.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0
+    return isNotEqual.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0
         ? new NumericValue(1)
         : new NumericValue(0);
   }
@@ -209,7 +209,7 @@ public class SMGCPAExpressionEvaluator {
     AddressExpression address1 = (AddressExpression) value;
     Value offsetValue = address1.getOffset();
     if (offsetValue.isNumericValue()
-        && offsetValue.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
+        && offsetValue.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
       return ValueAndSMGState.of(address1.getMemoryAddress(), state);
     } else {
       // Get the correct address with its offset in the SMGPointsToEdge
@@ -225,7 +225,7 @@ public class SMGCPAExpressionEvaluator {
             "Comparison of non numeric offset values not possible when comparing addresses.");
       }
       BigInteger offset =
-          offsetValue.asNumericValue().bigInteger().add(targetAndOffset.getOffsetForObject());
+          offsetValue.asNumericValue().bigIntegerValue().add(targetAndOffset.getOffsetForObject());
 
       return searchOrCreatePointer(target, offset, state);
     }
@@ -1121,7 +1121,10 @@ public class SMGCPAExpressionEvaluator {
       // method because of abstraction.
       // easy, just compare the numeric value and return if != 0
       int compare =
-          value1.asNumericValue().bigInteger().compareTo(value2.asNumericValue().bigInteger());
+          value1
+              .asNumericValue()
+              .bigIntegerValue()
+              .compareTo(value2.asNumericValue().bigIntegerValue());
       if (compare != 0) {
         return ValueAndSMGState.of(new NumericValue(compare), pState);
       }
@@ -1220,7 +1223,7 @@ public class SMGCPAExpressionEvaluator {
           Value lengthValue = lengthValueAndState.getValue();
           // We simply ignore the State for this as if it's not numeric it does not matter
           if (lengthValue.isNumericValue()) {
-            return lengthValue.asNumericValue().bigInteger().multiply(sizeOfType);
+            return lengthValue.asNumericValue().bigIntegerValue().multiply(sizeOfType);
           } else if (options.isGuessSizeOfUnknownMemorySize()) {
             return options.getGuessSize().multiply(sizeOfType);
           }

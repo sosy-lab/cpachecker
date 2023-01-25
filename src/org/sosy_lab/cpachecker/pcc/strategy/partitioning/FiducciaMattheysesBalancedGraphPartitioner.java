@@ -60,10 +60,10 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
 
     // TODO insert assertions
 
-    /* Create initial partition which is going to be optimized later on */
+    // Create initial partition which is going to be optimized later on
     List<Set<Integer>> partition = partitioner.computePartitioning(pNumPartitions, pGraph);
 
-    /* Optimize partitions pairwisely with FM algorithm */
+    // Optimize partitions pairwisely with FM algorithm
     // TODO find better strategy or/and make this parallel
     long cutSizeAfter = 0;
     for (Set<Integer> v1 : partition) {
@@ -82,8 +82,7 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
         cutSizeAfter += pGraph.getNumEdgesBetween(v1, v2);
       }
     }
-    logger.log(
-        Level.FINE, String.format("[FM] Computed partitioning of cut size %d", cutSizeAfter));
+    logger.log(Level.FINE, "[FM] Computed partitioning of cut size", cutSizeAfter);
     return partition;
   }
 }
