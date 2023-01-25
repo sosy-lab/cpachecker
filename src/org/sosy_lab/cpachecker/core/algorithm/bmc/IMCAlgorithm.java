@@ -401,7 +401,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         secure = true,
         description = "toggle which strategy is used for injecting auxiliary invariants")
     private InvariantsInjectionStrategy injectionStrategy =
-        InvariantsInjectionStrategy.ITP_REFINEMENT;
+        InvariantsInjectionStrategy.ITP_REFINEMENT_WITH_FALLBACK;
 
     @Option(secure = true, description = "toggle whether to utilize non-inductive invariants")
     private boolean onlyInjectIfInductive = false;
