@@ -171,6 +171,10 @@ def _init(config):
 
     if not config.cloud_master:
         sys.exit("No URL of a VerifierCloud instance is given.")
+    
+    if not config.cloud_user:
+        logging.error("No user information for the VerifierCloud is provided. Please specify using --cloudUser.")
+        sys.exit()
 
     revision = ":".join(_get_revision(config))
 
