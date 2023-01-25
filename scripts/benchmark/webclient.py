@@ -617,6 +617,8 @@ class WebInterface:
                     "at the same time."
                 )
             result_files_patterns = [result_files_pattern]
+        if not run.sourcefiles:
+          raise ValueError("No source files are provided.")
 
         return self._submit(
             run,

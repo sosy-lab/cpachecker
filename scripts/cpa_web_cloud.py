@@ -291,6 +291,8 @@ def _execute():
         logging.warning(e.reason)
     except WebClientError as e:
         logging.warning(str(e))
+    except ValueError as e:
+        logging.error(e)
 
     finally:
         webclient.shutdown()
