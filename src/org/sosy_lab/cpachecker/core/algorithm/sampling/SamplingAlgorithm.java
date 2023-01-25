@@ -87,6 +87,12 @@ public class SamplingAlgorithm extends NestingAlgorithm {
   @Option(secure = true, description = "The number of initial samples to collect before unrolling.")
   private int numInitialSamples = 5;
 
+  @Option(secure = true, description = "Whether positive samples should be collected.")
+  private boolean collectPositiveSamples = true;
+
+  @Option(secure = true, description = "Whether negative samples should be collected.")
+  private boolean collectNegativeSamples = true;
+
   @Option(secure = true, description = "The file where generated samples should be written to.")
   @FileOption(Type.OUTPUT_FILE)
   private Path outFile = Path.of("samples.json");
@@ -123,6 +129,12 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       throws CPAException, InterruptedException, InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownManager.getNotifier(), Specification.alwaysSatisfied());
     pConfig.inject(this);
+    if (!collectPositiveSamples && !collectNegativeSamples) {
+      throw new InvalidConfigurationException(
+          "At least one of samplingAlgorithm.collectPositiveSamples"
+              + " and samplingAlgorithm.collectNegativeSamples must be true.");
+    }
+
     cfa = pCfa;
     samplingSpecification = pSpecification;
 
@@ -226,15 +238,33 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     ImmutableSet.Builder<Sample> samples = ImmutableSet.builder();
     Set<NoDuplicatesConstraint> constraints = new HashSet<>();
     while (!shutdownNotifier.shouldShutdown()) {
-      // Collect some positive samples using predicate-based and value-based sampling
-      for (Sample sample :
-          getInitialPositiveSamples(forwardReachedSet, forwardSolver, loop, constraints)) {
+      // Collect positive samples using predicate-based sampling
+      Set<Sample> positiveSamples = new HashSet<>();
+      if (collectPositiveSamples) {
+        positiveSamples =
+            getInitialPositiveSamples(forwardReachedSet, forwardSolver, loop, constraints);
+      }
+
+      // Collect negative sampling using predicate-based sampling
+      Set<Sample> negativeSamples = new HashSet<>();
+      if (collectNegativeSamples) {
+        negativeSamples =
+            getInitialNegativeSamples(backwardReachedSet, backwardsSolver, loop, constraints);
+      }
+
+      // Shutdown if requested or neither positive nor negative samples can be found anymore
+      if (shutdownNotifier.shouldShutdown()
+          || (positiveSamples.isEmpty() && negativeSamples.isEmpty())) {
+        break;
+      }
+
+      // Unroll positive samples using value-based sampling
+      for (Sample sample : positiveSamples) {
         samples.addAll(forwardUnrollingAlgorithm.unrollSample(sample, loop));
       }
 
-      // Collect some negative samples using predicate-based and backward sampling
-      for (Sample sample :
-          getInitialNegativeSamples(backwardReachedSet, backwardsSolver, loop, constraints)) {
+      // Unroll negative samples using backward sampling
+      for (Sample sample : negativeSamples) {
         samples.addAll(backwardUnrollingAlgorithm.unrollSample(sample, loop));
       }
 
