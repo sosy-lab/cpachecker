@@ -106,6 +106,12 @@ class UserAbortError(Exception):
     def _str_(self):
         return repr(self.value)
 
+class CommandLineArgumentError(Exception):
+    def _init_(self, value):
+        self.value = value
+
+    def _str_(self):
+        return repr(self.value)
 
 class PollingResultDownloader:
     def __init__(self, web_interface, result_poll_interval, unfinished_runs=None):
@@ -606,6 +612,7 @@ class WebInterface:
         @param required_files: list of additional file required to execute the run (optional)
         @raise WebClientError: if the HTTP request could not be created
         @raise UserAbortError: if the user already requested shutdown on this instance
+        @raise CommandLineArgumentError: if no source files are provided by the user
         @raise HTTPError: if the HTTP request was not successful
         """
         if not self.active:
@@ -618,7 +625,7 @@ class WebInterface:
                 )
             result_files_patterns = [result_files_pattern]
         if not run.sourcefiles:
-            raise ValueError("No source files are provided.")
+            raise CommandLineArgumentError("No source files are provided.")
 
         return self._submit(
             run,
