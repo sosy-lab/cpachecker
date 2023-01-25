@@ -17,7 +17,6 @@ import glob
 import logging
 import os
 import requests
-import urllib.request as request
 
 for egg in glob.glob(
     os.path.join(
@@ -288,8 +287,6 @@ def _execute():
         run_result = _submit_run(webclient, config, cpachecker_args)
         return handle_result(run_result, config.output_path, cpachecker_args)
 
-    except request.HTTPError as e:
-        logging.warning(e.reason)
     except requests.HTTPError as e:
         logging.error(e)
     except WebClientError as e:
