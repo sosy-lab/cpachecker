@@ -49,9 +49,12 @@ public class ConstrainedUniformSamplingStrategy implements SamplingStrategy {
     return random.nextLong(upperBound - lowerBound + 1) + lowerBound;
   }
 
-  public Set<BooleanFormula> addVariableConstraints(
-      FormulaManagerView fmgr, Iterable<Formula> variableFormulas, BasicProverEnvironment<?> prover)
-      throws InterruptedException, SolverException {
+  /**
+   * Return a formula expressing that all the given variables are in the interval from which this
+   * strategy draws samples.
+   */
+  private BooleanFormula makeIntervalConstraint(
+      FormulaManagerView fmgr, Iterable<Formula> variableFormulas) {
     BitvectorFormulaManagerView bvmgr = fmgr.getBitvectorFormulaManager();
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
 
@@ -59,10 +62,44 @@ public class ConstrainedUniformSamplingStrategy implements SamplingStrategy {
     for (Formula variableFormula : variableFormulas) {
       // TODO: We assume all variables are bitvectors for now
       BitvectorFormula variable = (BitvectorFormula) variableFormula;
+
+      BitvectorFormula lower = bvmgr.makeBitvector(32, lowerBound);
+      BooleanFormula lowerConstraint = bvmgr.lessOrEquals(lower, variable, true);
+      BitvectorFormula upper = bvmgr.makeBitvector(32, upperBound);
+      BooleanFormula upperConstraint = bvmgr.lessOrEquals(variable, upper, true);
+
+      constraints.add(bfmgr.and(lowerConstraint, upperConstraint));
+    }
+    return bfmgr.and(constraints);
+  }
+
+  @Override
+  public List<ValueAssignment> getModel(
+      FormulaManagerView fmgr, Iterable<Formula> variableFormulas, BasicProverEnvironment<?> prover)
+      throws InterruptedException, SolverException {
+    BitvectorFormulaManagerView bvmgr = fmgr.getBitvectorFormulaManager();
+    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+
+    prover.push(makeIntervalConstraint(fmgr, variableFormulas));
+
+    Set<BooleanFormula> constraints = new HashSet<>();
+    for (Formula variableFormula : variableFormulas) {
+      // Check if a satisfying assignment even exists
+      prover.push(bfmgr.and(constraints));
+      if (prover.isUnsat()) {
+        // Pop variable constraints added just now
+        prover.pop();
+        // Pop interval constraint
+        prover.pop();
+        return null;
+      }
+
+      // Try random values until we find an assignment that is consistent with other formulas on the
+      // stack
+      // TODO: We assume all variables are bitvectors for now
+      BitvectorFormula variable = (BitvectorFormula) variableFormula;
       BooleanFormula constraint = bfmgr.makeTrue();
       boolean unsat = true;
-
-      // TODO: Should break if no value is found so that formula stays SAT
       while (unsat) {
         // Create random variable assignment
         long lVal = sampleUniform();
@@ -73,28 +110,22 @@ public class ConstrainedUniformSamplingStrategy implements SamplingStrategy {
 
         // Check if assignment is consistent with other formulas
         prover.push(constraint);
-        prover.addConstraint(bfmgr.and(constraints));
         unsat = prover.isUnsat();
         prover.pop();
       }
       constraints.add(constraint);
-    }
-    return constraints;
-  }
 
-  @Override
-  public List<ValueAssignment> getModel(
-      FormulaManagerView fmgr, Iterable<Formula> variableFormulas, BasicProverEnvironment<?> prover)
-      throws InterruptedException, SolverException {
-    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
-    List<ValueAssignment> model = null;
-
-    Set<BooleanFormula> variableConstraints =
-        addVariableConstraints(fmgr, variableFormulas, prover);
-    prover.push(bfmgr.and(variableConstraints));
-    if (!prover.isUnsat()) {
-      model = prover.getModelAssignments();
+      // Pop previously found constraints
+      prover.pop();
     }
+
+    // Pop interval constraint - not needed for final SAT check as all variables are already
+    // assigned a value from the interval
+    prover.pop();
+
+    prover.push(bfmgr.and(constraints));
+    assert !prover.isUnsat();
+    List<ValueAssignment> model = prover.getModelAssignments();
     prover.pop();
     return model;
   }
