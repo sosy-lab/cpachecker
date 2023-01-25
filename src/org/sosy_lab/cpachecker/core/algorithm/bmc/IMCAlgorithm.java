@@ -847,10 +847,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             bfmgr.and(loops.subList(1, formulas.getNumLoops())), formulas.getAssertionFormula());
 
     final boolean isLoopInvInductive = formulas.checkInductivenessOf(solver, loopInv);
-    final boolean doInvInjection = !invariantsOptions.onlyInjectIfInductive || isLoopInvInductive;
+    final boolean isLoopInvTrivial = bfmgr.isTrue(loopInv);
+    final boolean doInvInjection =
+        (!invariantsOptions.onlyInjectIfInductive || isLoopInvInductive) && !isLoopInvTrivial;
     boolean isLoopInvRelInducitve = true; // Init & T ==> Inv' holds
     logger.log(Level.ALL, "The auxiliary loop-head invariant is: ", loopInv);
-    if (!bfmgr.isTrue(loopInv)) {
+    if (!isLoopInvTrivial) {
       logger.log(
           Level.FINE,
           "The non-trivial auxiliary loop-head invariant is "
@@ -881,6 +883,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.ALL, "The interpolant is", interpolant);
       interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), formulas.getPrefixSsaMap());
       logger.log(Level.ALL, "After changing SSA", interpolant);
+      BooleanFormula interpolantCopy = interpolant;
       // Refine the interpolant when possible
       final boolean performItpRefinement =
           invariantsOptions.asInterpolantRefiner() && isLoopInvRelInducitve;
@@ -896,7 +899,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       // Step 2: IMC fixed point check strengthened by non-trivial external invariant
       if (!performItpRefinement
           && doInvInjection
-          && !bfmgr.isTrue(loopInv)
           && solver.implies(
               bfmgr.and(interpolant, fmgr.instantiate(loopInv, formulas.getPrefixSsaMap())),
               currentImage)) {
@@ -920,10 +922,26 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         isLoopInvRelInducitve =
             isLoopInvInductive
                 || formulas.checkRelativeInductivenssOf(
-                    solver, loopInv, fmgr.uninstantiate(interpolants.orElseThrow().get(1)));
+                    solver, loopInv, fmgr.uninstantiate(interpolantCopy));
       }
       currentImage = bfmgr.or(currentImage, interpolant);
-      interpolants = itpMgr.interpolate(ImmutableList.of(interpolant, loops.get(0), suffixFormula));
+      try {
+        interpolants =
+            itpMgr.interpolate(ImmutableList.of(interpolant, loops.get(0), suffixFormula));
+      } catch (RefinementFailedException e) {
+        if (invariantsOptions.injectionStrategy
+                == InvariantsInjectionStrategy.ITP_REFINEMENT_WITH_FALLBACK
+            && performItpRefinement
+            && doInvInjection) {
+          logger.logDebugException(e);
+          logger.log(Level.INFO, "Falling back to interpolation without auxiliary invariants");
+          invariantsOptions.injectionStrategy = InvariantsInjectionStrategy.AT_FIXED_POINT_CHECK;
+          interpolants =
+              itpMgr.interpolate(ImmutableList.of(interpolantCopy, loops.get(0), suffixFormula));
+        } else {
+          throw e;
+        }
+      }
     }
     logger.log(
         Level.FINE,
