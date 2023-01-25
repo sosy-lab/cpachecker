@@ -106,12 +106,14 @@ class UserAbortError(Exception):
     def _str_(self):
         return repr(self.value)
 
+
 class CommandLineArgumentError(Exception):
     def _init_(self, value):
         self.value = value
 
     def _str_(self):
         return repr(self.value)
+
 
 class PollingResultDownloader:
     def __init__(self, web_interface, result_poll_interval, unfinished_runs=None):
