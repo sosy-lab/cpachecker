@@ -16,6 +16,7 @@ import argparse
 import glob
 import logging
 import os
+import requests
 import urllib.request as request
 
 for egg in glob.glob(
@@ -172,10 +173,6 @@ def _init(config):
     if not config.cloud_master:
         sys.exit("No URL of a VerifierCloud instance is given.")
 
-    if not config.cloud_user:
-        logging.error("No user information for the VerifierCloud is provided. Please specify using --cloudUser.")
-        sys.exit()
-
     revision = ":".join(_get_revision(config))
 
     webclient = WebInterface(
@@ -293,6 +290,8 @@ def _execute():
 
     except request.HTTPError as e:
         logging.warning(e.reason)
+    except requests.HTTPError as e:
+        logging.error(e)
     except WebClientError as e:
         logging.warning(str(e))
 

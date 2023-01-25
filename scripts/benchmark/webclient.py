@@ -1141,7 +1141,11 @@ class WebInterface:
 
             else:
                 if response.status_code == 401:
-                    message = "Permission denied. Please check the URL given to --cloudMaster and specify credentials if necessary."
+                    message = "Permission denied. "
+                    if not self._connection.auth and not user_pwd:
+                        message += "Please specify the user information using --cloudUser."
+                    else:
+                        message += "Please check the given username and password."
 
                 elif response.status_code == 404:
                     message = "Not found. Please check the URL given to --cloudMaster."
@@ -1158,7 +1162,7 @@ class WebInterface:
                 # HTTPError.request is automatically filled with response.request so no need to pass it.
                 # Also HTTPError extends IOError, so there is a constructor IOError(errno, strerror, filename)
                 raise requests.HTTPError(
-                    response.status_code, message, path, response=response
+                    response.status_code, message, response=response
                 )
 
 
