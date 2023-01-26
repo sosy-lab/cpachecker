@@ -25,6 +25,8 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -51,7 +53,15 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+@Options(prefix = "sampling.unrolling")
 public class SampleUnrollingAlgorithm {
+
+  @Option(
+      secure = true,
+      description =
+          "Whether intermediate samples (at locations different from the given initial sample)"
+              + " should be collected")
+  private boolean collectIntermediateSamples = true;
 
   private final LogManager logger;
   private final ReachedSetFactory reachedSetFactory;
@@ -64,6 +74,7 @@ public class SampleUnrollingAlgorithm {
       CFA pCfa,
       Specification pSpecification)
       throws CPAException, InterruptedException, InvalidConfigurationException {
+    pConfig.inject(this);
     logger = pLogger.withComponentName("SampleUnrollingAlgorithm");
     reachedSetFactory = new ReachedSetFactory(pConfig, logger);
 
@@ -159,16 +170,20 @@ public class SampleUnrollingAlgorithm {
         Precision successorPrecision = precAdjustmentResult.precision();
 
         // Build sample for successor state
-        Sample successorSample =
-            new Sample(
-                Sample.getValuesAndTypesFromAbstractState(successor, relevantVariables),
-                getLocationForState(successor),
-                sample,
-                sampleClass);
+        Sample successorSample = null;
+        boolean sampleChanged = false;
+        CFANode successorLocation = getLocationForState(successor);
+        if (collectIntermediateSamples || successorLocation.equals(initialSample.getLocation())) {
+          Map<MemoryLocation, ValueAndType> successorValues =
+              Sample.getValuesAndTypesFromAbstractState(successor, relevantVariables);
+          successorSample = new Sample(successorValues, successorLocation, sample, sampleClass);
+          sampleChanged =
+              !successorValues.equals(sample.getVariableValues())
+                  || !successorLocation.equals(sample.getLocation());
+        }
 
         // Handle successor
-        if (!successorSample.getVariableValues().equals(sample.getVariableValues())
-            || !successorSample.getLocation().equals(sample.getLocation())) {
+        if (sampleChanged) {
           SampleTreeNode nextNode = new SampleTreeNode(successorSample);
           boolean isRepeated = root.contains(nextNode);
           node.addChild(nextNode);
