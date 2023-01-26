@@ -103,8 +103,6 @@ public class ConstrainedUniformSamplingStrategy implements SamplingStrategy {
       while (unsat) {
         // Create random variable assignment
         long lVal = sampleUniform();
-        // TODO: How to create signed bitvector? Currently negative numbers are treated as
-        //       unsigned, thus leading to bad samples
         BitvectorFormula value = bvmgr.makeBitvector(32, lVal);
         constraint = bvmgr.equal(variable, value);
 

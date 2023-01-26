@@ -521,8 +521,9 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       Object value = assignment.getValue();
       ValueAndType valueAndType;
       if (value instanceof BigInteger) {
-        valueAndType =
-            new ValueAndType(new NumericValue((BigInteger) value), CNumericTypes.LONG_LONG_INT);
+        // TODO: Derive type from variable (for now we assume int)
+        Number number = ((BigInteger) value).intValue();
+        valueAndType = new ValueAndType(new NumericValue(number), CNumericTypes.INT);
       } else {
         throw new AssertionError(
             "Unhandled type for value assignment: " + assignment.getValue().getClass());
