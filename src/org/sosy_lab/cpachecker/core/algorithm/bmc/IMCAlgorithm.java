@@ -854,7 +854,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.ALL, "The auxiliary loop-head invariant is: ", loopInv);
     if (!isLoopInvTrivial) {
       logger.log(
-          Level.FINE,
+          Level.INFO,
           "The non-trivial auxiliary loop-head invariant is "
               + (isLoopInvInductive ? "" : "not ")
               + "inductive");
@@ -889,6 +889,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           invariantsOptions.asInterpolantRefiner() && isLoopInvRelInducitve;
       if (performItpRefinement && doInvInjection) {
         interpolant = bfmgr.and(interpolant, fmgr.instantiate(loopInv, formulas.getPrefixSsaMap()));
+        logger.log(Level.ALL, "The refined interpolant is", interpolant);
       }
       // Step 1: regular IMC fixed point check
       if (solver.implies(interpolant, currentImage)) {
