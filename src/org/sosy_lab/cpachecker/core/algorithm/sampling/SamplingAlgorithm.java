@@ -13,6 +13,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.Writer;
@@ -24,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -215,37 +217,66 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     }
     CFANode target = targets.iterator().next();
 
-    // Build the reachedSet for the forward ARG
-    Solver forwardSolver;
-    try {
-      forwardSolver =
-          buildReachedSet(
-              reachedSet, initialForwardConfig, extractLocation(pReachedSet.getFirstState()));
-    } catch (InvalidConfigurationException e) {
-      logger.log(
-          Level.WARNING,
-          "Could not create algorithm for building ARG due to invalid configuration");
-      return AlgorithmStatus.NO_PROPERTY_CHECKED;
-    } catch (IOException e) {
-      logger.log(Level.WARNING, "Could not load configuration for building ARG");
-      return AlgorithmStatus.NO_PROPERTY_CHECKED;
-    }
-    ReachedSet forwardReachedSet = reachedSet.getDelegate();
+    // Prepare generation of initial positive samples using predicate-based sampling
+    Solver forwardSolver = null;
+    Map<CFANode, ImmutableSet<BooleanFormula>> formulasForPositiveSamples = ImmutableMap.of();
+    if (collectPositiveSamples) {
+      // Build the reachedSet for the forward ARG
+      try {
+        forwardSolver =
+            buildReachedSet(
+                reachedSet, initialForwardConfig, extractLocation(pReachedSet.getFirstState()));
+      } catch (InvalidConfigurationException e) {
+        logger.log(
+            Level.WARNING,
+            "Could not create algorithm for building ARG due to invalid configuration");
+        return AlgorithmStatus.NO_PROPERTY_CHECKED;
+      } catch (IOException e) {
+        logger.log(Level.WARNING, "Could not load configuration for building ARG");
+        return AlgorithmStatus.NO_PROPERTY_CHECKED;
+      }
+      ReachedSet forwardReachedSet = reachedSet.getDelegate();
 
-    // Build the reachedSet for the backward ARG
-    Solver backwardsSolver;
-    try {
-      backwardsSolver = buildReachedSet(reachedSet, initialBackwardConfig, target);
-    } catch (InvalidConfigurationException e) {
-      logger.log(
-          Level.WARNING,
-          "Could not create algorithm for building backward ARG due to invalid configuration");
-      return AlgorithmStatus.NO_PROPERTY_CHECKED;
-    } catch (IOException e) {
-      logger.log(Level.WARNING, "Could not load configuration for building backward ARG");
-      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+      ImmutableMap.Builder<CFANode, ImmutableSet<BooleanFormula>> builder = ImmutableMap.builder();
+      for (CFANode loopHead : loop.getLoopHeads()) {
+        BooleanFormulaManagerView bfmgr =
+            forwardSolver.getFormulaManager().getBooleanFormulaManager();
+        ImmutableSet<BooleanFormula> formulas =
+            collectFormulasFromReachedSet(forwardReachedSet, loopHead, bfmgr);
+        builder.put(loopHead, formulas);
+      }
+      formulasForPositiveSamples = builder.build();
     }
-    ReachedSet backwardReachedSet = reachedSet.getDelegate();
+
+    // Prepare generation of initial negative samples using predicate-based sampling
+    Solver backwardsSolver = null;
+    Map<CFANode, ImmutableSet<BooleanFormula>> formulasForNegativeSamples = ImmutableMap.of();
+    if (collectNegativeSamples) {
+      // Build the reachedSet for the backward ARG
+      try {
+        backwardsSolver = buildReachedSet(reachedSet, initialBackwardConfig, target);
+      } catch (InvalidConfigurationException e) {
+        logger.log(
+            Level.WARNING,
+            "Could not create algorithm for building backward ARG due to invalid configuration");
+        return AlgorithmStatus.NO_PROPERTY_CHECKED;
+      } catch (IOException e) {
+        logger.log(Level.WARNING, "Could not load configuration for building backward ARG");
+        return AlgorithmStatus.NO_PROPERTY_CHECKED;
+      }
+      ReachedSet backwardReachedSet = reachedSet.getDelegate();
+
+      ImmutableMap.Builder<CFANode, ImmutableSet<BooleanFormula>> builder = ImmutableMap.builder();
+      for (CFAEdge outgoing : loop.getOutgoingEdges()) {
+        CFANode lastNode = outgoing.getPredecessor();
+        BooleanFormulaManagerView bfmgr =
+            backwardsSolver.getFormulaManager().getBooleanFormulaManager();
+        ImmutableSet<BooleanFormula> formulas =
+            collectFormulasFromReachedSet(backwardReachedSet, lastNode, bfmgr);
+        builder.put(lastNode, formulas);
+      }
+      formulasForNegativeSamples = builder.build();
+    }
 
     // Continuously collect samples until shutdown is requested
     ImmutableSet.Builder<Sample> samples = ImmutableSet.builder();
@@ -254,15 +285,31 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       // Collect positive samples using predicate-based sampling
       Set<Sample> positiveSamples = new HashSet<>();
       if (collectPositiveSamples) {
-        positiveSamples =
-            getInitialPositiveSamples(forwardReachedSet, forwardSolver, loop, constraints);
+        for (Entry<CFANode, ImmutableSet<BooleanFormula>> entry :
+            formulasForPositiveSamples.entrySet()) {
+          positiveSamples.addAll(
+              getSamplesForFormulas(
+                  entry.getValue(),
+                  forwardSolver,
+                  entry.getKey(),
+                  constraints,
+                  SampleClass.POSITIVE));
+        }
       }
 
       // Collect negative sampling using predicate-based sampling
       Set<Sample> negativeSamples = new HashSet<>();
       if (collectNegativeSamples) {
-        negativeSamples =
-            getInitialNegativeSamples(backwardReachedSet, backwardsSolver, loop, constraints);
+        for (Entry<CFANode, ImmutableSet<BooleanFormula>> entry :
+            formulasForNegativeSamples.entrySet()) {
+          negativeSamples.addAll(
+              getSamplesForFormulas(
+                  entry.getValue(),
+                  backwardsSolver,
+                  entry.getKey(),
+                  constraints,
+                  SampleClass.NEGATIVE));
+        }
       }
 
       // Shutdown if requested or neither positive nor negative samples can be found anymore
@@ -339,73 +386,24 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     return tlp.tryGetAutomatonTargetLocations(cfa.getMainFunction(), samplingSpecification);
   }
 
-  /**
-   * Collect some initial positive samples, i.e. samples that may occur when entering the loop.
-   *
-   * <p>This function implements predicate-based sampling.
-   */
-  private Set<Sample> getInitialPositiveSamples(
-      ReachedSet reachedSet, Solver solver, Loop loop, Set<NoDuplicatesConstraint> constraints)
-      throws InterruptedException, SolverException {
-    BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
-
-    // Collect some positive samples for each loop head.
-    // Different loop heads potentially correspond to different paths to enter the loop and even if
-    // some are redundant we collect at most numSamples * (numLoopHeads - 1) redundant samples which
-    // should be small.
-    Set<Sample> samples = new HashSet<>();
-    for (CFANode loopHead : loop.getLoopHeads()) {
-      ImmutableSet.Builder<BooleanFormula> formulaBuilder = ImmutableSet.builder();
-      // TODO: We want a LocationMappedReachedSet inside the ForwardingReachedSet for maximum
-      //  efficiency
-      for (AbstractState state : reachedSet.getReached(loopHead)) {
-        if (loopHead.equals(AbstractStates.extractLocation(state))) {
-          PredicateAbstractState predicateState =
-              AbstractStates.extractStateByType(state, PredicateAbstractState.class);
-          BooleanFormula formula =
-              bfmgr.and(
-                  predicateState.getAbstractionFormula().getBlockFormula().getFormula(),
-                  predicateState.getPathFormula().getFormula());
-          formulaBuilder.add(formula);
-        }
+  /** Extract the formulas that may hold at the given location from the reached set. */
+  private ImmutableSet<BooleanFormula> collectFormulasFromReachedSet(
+      ReachedSet reachedSet, CFANode location, BooleanFormulaManagerView bfmgr) {
+    ImmutableSet.Builder<BooleanFormula> formulaBuilder = ImmutableSet.builder();
+    // TODO: We want a LocationMappedReachedSet inside the ForwardingReachedSet for maximum
+    //  efficiency
+    for (AbstractState state : reachedSet.getReached(location)) {
+      if (location.equals(AbstractStates.extractLocation(state))) {
+        PredicateAbstractState predicateState =
+            AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+        BooleanFormula formula =
+            bfmgr.and(
+                predicateState.getAbstractionFormula().getBlockFormula().getFormula(),
+                predicateState.getPathFormula().getFormula());
+        formulaBuilder.add(formula);
       }
-      samples.addAll(
-          getSamplesForFormulas(
-              formulaBuilder.build(), solver, loopHead, constraints, SampleClass.POSITIVE));
     }
-    return samples;
-  }
-
-  private Set<Sample> getInitialNegativeSamples(
-      ReachedSet reachedSet, Solver solver, Loop loop, Set<NoDuplicatesConstraint> constraints)
-      throws InterruptedException, SolverException {
-    BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
-
-    // Collect some negative samples for each potential loop exit.
-    Set<Sample> samples = new HashSet<>();
-    for (CFAEdge outgoing : loop.getOutgoingEdges()) {
-      CFANode lastNode = outgoing.getPredecessor();
-
-      // Extract path formulas at the considered node
-      ImmutableSet.Builder<BooleanFormula> formulaBuilder = ImmutableSet.builder();
-      // TODO: We want a LocationMappedReachedSet inside the ForwardingReachedSet for maximum
-      //  efficiency
-      for (AbstractState state : reachedSet.getReached(lastNode)) {
-        if (lastNode.equals(AbstractStates.extractLocation(state))) {
-          PredicateAbstractState predicateState =
-              AbstractStates.extractStateByType(state, PredicateAbstractState.class);
-          BooleanFormula formula =
-              bfmgr.and(
-                  predicateState.getAbstractionFormula().getBlockFormula().getFormula(),
-                  predicateState.getPathFormula().getFormula());
-          formulaBuilder.add(formula);
-        }
-      }
-      samples.addAll(
-          getSamplesForFormulas(
-              formulaBuilder.build(), solver, lastNode, constraints, SampleClass.NEGATIVE));
-    }
-    return samples;
+    return formulaBuilder.build();
   }
 
   private Set<Sample> getSamplesForFormulas(
