@@ -13,7 +13,7 @@ import json
 import sys
 import webbrowser
 from pathlib import Path
-from datetime import datetime
+from dateutil.parser import parse
 
 from typing import Dict
 
@@ -203,7 +203,7 @@ def export_messages_table(
     for message in all_messages:
         # 2022-03-10T14:44:07.0318755Z
         message["timestamp"] = int(
-            datetime.strptime(message["timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ").timestamp()
+            parse(message["timestamp"]).timestamp()
         )
     all_messages = sorted(
         all_messages, key=lambda entry: (entry["timestamp"], entry["from"][1::])

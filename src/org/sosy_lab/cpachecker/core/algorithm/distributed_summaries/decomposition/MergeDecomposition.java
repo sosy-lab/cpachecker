@@ -26,12 +26,10 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.Pair;
 
 @Options
@@ -44,31 +42,22 @@ public class MergeDecomposition implements CFADecomposer {
 
   private final CFADecomposer decomposer;
   private final ShutdownNotifier notifier;
-  private final Configuration configuration;
-  private final LogManager logger;
 
   public MergeDecomposition(
-      CFADecomposer pDecomposer,
-      Configuration pConfiguration,
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger)
+      CFADecomposer pDecomposer, Configuration pConfiguration, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
-    configuration = pConfiguration;
-    logger = pLogger;
     decomposer = pDecomposer;
     notifier = pShutdownNotifier;
   }
 
   @Override
-  public BlockGraph decompose(CFA cfa)
-      throws InterruptedException, ParserException, InvalidConfigurationException {
-    Map<Integer, CFANode> idToNode = Maps.uniqueIndex(cfa.getAllNodes(), CFANode::getNodeNumber);
+  public BlockGraph decompose(CFA cfa) throws InterruptedException {
     BlockGraph merged = decomposer.decompose(cfa);
     while (merged.getDistinctNodes().size() > desiredNumberOfBlocks) {
       int sizeBefore = merged.getDistinctNodes().size();
-      merged = mergeHorizontally(merged, cfa, idToNode);
-      merged = mergeVertically(merged, cfa, idToNode);
+      merged = mergeHorizontally(merged, cfa);
+      merged = mergeVertically(merged, cfa);
       if (sizeBefore == merged.getDistinctNodes().size()) {
         break;
       }
@@ -76,9 +65,7 @@ public class MergeDecomposition implements CFADecomposer {
     return merged;
   }
 
-  private BlockGraph mergeVertically(
-      BlockGraph pGraph, CFA pCFA, Map<Integer, CFANode> pIntegerCFANodeMap)
-      throws InterruptedException, ParserException, InvalidConfigurationException {
+  private BlockGraph mergeVertically(BlockGraph pGraph, CFA pCFA) throws InterruptedException {
     if (pGraph.getDistinctNodes().size() <= desiredNumberOfBlocks) {
       return pGraph;
     }
@@ -114,23 +101,18 @@ public class MergeDecomposition implements CFADecomposer {
                   "M" + distinctNode.getId() + successor.getId(),
                   distinctNode.getStartNode(),
                   successor.getLastNode(),
+                  successor.getAbstractionEnd(),
                   allNodes,
-                  allEdges,
-                  pIntegerCFANodeMap);
+                  allEdges);
           nodesMetaData.add(mergedMetaData);
-          return mergeVertically(
-              BlockGraph.fromMetaData(nodesMetaData, pCFA, configuration, notifier, logger),
-              pCFA,
-              pIntegerCFANodeMap);
+          return mergeVertically(BlockGraph.fromMetaData(nodesMetaData, pCFA, notifier), pCFA);
         }
       }
     }
     return pGraph;
   }
 
-  private BlockGraph mergeHorizontally(
-      BlockGraph pGraph, CFA pCFA, Map<Integer, CFANode> pIntegerCFANodeMap)
-      throws InterruptedException, ParserException, InvalidConfigurationException {
+  private BlockGraph mergeHorizontally(BlockGraph pGraph, CFA pCFA) throws InterruptedException {
     Set<BlockNodeMetaData> nodesMetaData =
         pGraph.getDistinctNodes().stream()
             .map(BlockNode::getMetaData)
@@ -151,16 +133,30 @@ public class MergeDecomposition implements CFADecomposer {
       }
       CFANode startNode = key.getFirstNotNull();
       CFANode lastNode = key.getSecondNotNull();
-      ImmutableSet<CFANode> nodesInBlock =
-          FluentIterable.from(blocks).transformAndConcat(b -> b.getNodesInBlock()).toSet();
-      ImmutableSet<CFAEdge> edgesInBlock =
-          FluentIterable.from(blocks).transformAndConcat(b -> b.getEdgesInBlock()).toSet();
+      Set<CFANode> nodesInBlock =
+          FluentIterable.from(blocks)
+              .transformAndConcat(b -> b.getNodesInBlock())
+              .copyInto(new LinkedHashSet<>());
+      Set<CFAEdge> edgesInBlock =
+          FluentIterable.from(blocks)
+              .transformAndConcat(b -> b.getEdgesInBlock())
+              .copyInto(new LinkedHashSet<>());
+      for (CFAEdge blockEndBlankEdge :
+          FluentIterable.from(edgesInBlock)
+              .filter(e -> e.getDescription().equals(BlockEndUtil.UNIQUE_DESCRIPTION))
+              .filter(e -> !e.getPredecessor().equals(lastNode))) {
+        nodesInBlock.remove(blockEndBlankEdge.getSuccessor());
+        edgesInBlock.remove(blockEndBlankEdge);
+      }
       String id = "M" + Joiner.on("").join(FluentIterable.from(blocks).transform(b -> b.getId()));
+      CFANode abstraction = Iterables.getFirst(blocks, null).getAbstractionEnd();
+      if (abstraction == null) {
+        throw new AssertionError("Abstraction location cannot be null");
+      }
       nodesMetaData.add(
-          new BlockNodeMetaData(
-              id, startNode, lastNode, nodesInBlock, edgesInBlock, pIntegerCFANodeMap));
-      nodesMetaData.removeAll(blocks);
+          new BlockNodeMetaData(id, startNode, lastNode, abstraction, nodesInBlock, edgesInBlock));
+      blocks.forEach(nodesMetaData::remove);
     }
-    return BlockGraph.fromMetaData(nodesMetaData, pCFA, configuration, notifier, logger);
+    return BlockGraph.fromMetaData(nodesMetaData, pCFA, notifier);
   }
 }

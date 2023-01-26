@@ -120,6 +120,11 @@ public final class LoopStructure implements Serializable {
       nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).add(loopHead).build();
     }
 
+    public Loop(Set<CFANode> pLoopHeads, Set<CFANode> pNodes) {
+      loopHeads = ImmutableSet.copyOf(pLoopHeads);
+      nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).build();
+    }
+
     private void computeSets() {
       if (innerLoopEdges != null) {
         assert incomingEdges != null;
@@ -451,6 +456,10 @@ public final class LoopStructure implements Serializable {
       loops.putAll(functionName, functionLoops);
     }
     return new LoopStructure(loops.build());
+  }
+
+  public static LoopStructure of(ImmutableListMultimap<String, Loop> pLoops) {
+    return new LoopStructure(pLoops);
   }
 
   /**

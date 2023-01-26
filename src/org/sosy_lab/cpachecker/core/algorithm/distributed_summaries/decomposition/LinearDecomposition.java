@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -18,35 +18,27 @@ import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
 public class LinearDecomposition implements CFADecomposer {
 
   private final BlockOperator blockOperator;
-  private final Configuration configuration;
-  private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
-  public LinearDecomposition(
-      Configuration pConfiguration, ShutdownNotifier pShutdownNotifier, LogManager pLogger)
+  public LinearDecomposition(Configuration pConfiguration, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     blockOperator = new BlockOperator();
-    configuration = pConfiguration;
-    logger = pLogger;
     pConfiguration.inject(blockOperator);
     shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
-  public BlockGraph decompose(CFA cfa)
-      throws InterruptedException, ParserException, InvalidConfigurationException {
+  public BlockGraph decompose(CFA cfa) throws InterruptedException {
     blockOperator.setCFA(cfa);
     Set<CFANode> meetNodes = new LinkedHashSet<>();
     int idCounter = 0;
@@ -59,14 +51,30 @@ public class LinearDecomposition implements CFADecomposer {
       Set<CFANode> toAdd = new LinkedHashSet<>();
       for (CFANode meetNode : meetNodes) {
         for (ImmutableList<CFANode> cfaNodes : findPathsToNextMergeNode(meetNode)) {
+          CFANode lastNode = getLastNodeFromPath(cfaNodes);
+          ImmutableSet.Builder<CFANode> nodeBuilder =
+              ImmutableSet.<CFANode>builder().addAll(cfaNodes);
+          ImmutableSet.Builder<CFAEdge> edgeBuilder =
+              ImmutableSet.<CFAEdge>builder().addAll(findEdgesOnPath(cfaNodes));
+          Set<CFAEdge> blockEnds =
+              CFAUtils.leavingEdges(lastNode)
+                  .filter(edge -> edge.getDescription().equals(BlockEndUtil.UNIQUE_DESCRIPTION))
+                  .toSet();
+          CFANode abstractionNode = lastNode;
+          if (blockEnds.size() == 1) {
+            CFAEdge end = Iterables.getOnlyElement(blockEnds);
+            edgeBuilder.add(end);
+            nodeBuilder.add(end.getSuccessor());
+            abstractionNode = end.getSuccessor();
+          }
           BlockNodeMetaData currentNode =
               new BlockNodeMetaData(
                   "LB" + idCounter,
                   meetNode,
-                  getLastNodeFromPath(cfaNodes),
-                  ImmutableSet.copyOf(cfaNodes),
-                  findEdgesOnPath(cfaNodes),
-                  ImmutableMap.of());
+                  lastNode,
+                  abstractionNode,
+                  nodeBuilder.build(),
+                  edgeBuilder.build());
           blockNodes.add(currentNode);
           toAdd.add(getLastNodeFromPath(cfaNodes));
           idCounter++;
@@ -74,7 +82,7 @@ public class LinearDecomposition implements CFADecomposer {
       }
       meetNodes.addAll(toAdd);
     }
-    return BlockGraph.fromMetaData(blockNodes, cfa, configuration, shutdownNotifier, logger);
+    return BlockGraph.fromMetaData(blockNodes, cfa, shutdownNotifier);
   }
 
   private List<ImmutableList<CFANode>> findPathsToNextMergeNode(CFANode pNode) {
@@ -85,6 +93,9 @@ public class LinearDecomposition implements CFADecomposer {
       List<CFANode> currentPath = nodes.remove(0);
       CFANode last = getLastNodeFromPath(currentPath);
       for (CFANode cfaNode : CFAUtils.allSuccessorsOf(last)) {
+        if (findEdge(last, cfaNode).getDescription().equals(BlockEndUtil.UNIQUE_DESCRIPTION)) {
+          continue;
+        }
         ImmutableList<CFANode> extendedPath =
             ImmutableList.<CFANode>builder().addAll(currentPath).add(cfaNode).build();
         if (blockOperator.isBlockEnd(cfaNode, currentPath.size() - 1)) {

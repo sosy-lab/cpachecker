@@ -54,18 +54,22 @@ public class DeserializePredicateStateOperator
         PredicateOperatorUtil.extractFormulaString(
             pMessage, predicateCPA.getClass(), formulaManagerView);
     SSAMap map = SSAMap.emptySSAMap();
-    PointerTargetSet pts = PointerTargetSet.emptyPointerTargetSet();
+    // PointerTargetSet pts = PointerTargetSet.emptyPointerTargetSet();
     if (pMessage instanceof BlockSummaryPostConditionMessage) {
       map = ((BlockSummaryPostConditionMessage) pMessage).getSSAMap();
-      pts = ((BlockSummaryPostConditionMessage) pMessage).getPointerTargetSet();
+      // pts = ((BlockSummaryPostConditionMessage) pMessage).getPointerTargetSet();
     } else if (pMessage instanceof BlockSummaryErrorConditionMessage) {
       map = ((BlockSummaryErrorConditionMessage) pMessage).getSSAMap();
-      pts = ((BlockSummaryErrorConditionMessage) pMessage).getPointerTargetSet();
+      // pts = ((BlockSummaryErrorConditionMessage) pMessage).getPointerTargetSet();
     }
 
     PathFormula abstraction =
         PredicateOperatorUtil.getPathFormula(
-            formula, pathFormulaManager, formulaManagerView, pts, map);
+            formula,
+            pathFormulaManager,
+            formulaManagerView,
+            PointerTargetSet.emptyPointerTargetSet(),
+            map);
 
     PredicateAbstractState previousState =
         (PredicateAbstractState)
@@ -84,7 +88,8 @@ public class DeserializePredicateStateOperator
               abstraction,
               predicateCPA
                   .getPredicateManager()
-                  .asAbstraction(abstraction.getFormula(), abstraction),
+                  .asAbstraction(
+                      formulaManagerView.getBooleanFormulaManager().makeTrue(), abstraction),
               PathCopyingPersistentTreeMap.of(),
               previousState);
     }

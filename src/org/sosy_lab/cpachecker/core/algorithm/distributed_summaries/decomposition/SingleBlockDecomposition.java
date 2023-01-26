@@ -9,43 +9,30 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** Decompose a CFA into a single block containing the complete CFA */
 public class SingleBlockDecomposition implements CFADecomposer {
 
   private final ShutdownNotifier shutdownNotifier;
-  private final LogManager logger;
-  private final Configuration configuration;
 
-  public SingleBlockDecomposition(
-      Configuration pConfiguration, ShutdownNotifier pShutdownNotifier, LogManager pLogger) {
+  public SingleBlockDecomposition(ShutdownNotifier pShutdownNotifier) {
     shutdownNotifier = pShutdownNotifier;
-    configuration = pConfiguration;
-    logger = pLogger;
   }
 
   @Override
-  public BlockGraph decompose(CFA cfa)
-      throws InterruptedException, ParserException, InvalidConfigurationException {
+  public BlockGraph decompose(CFA cfa) throws InterruptedException {
     CFANode startNode = cfa.getMainFunction();
     // we do not get error conditions
     CFANode lastNode = CFANode.newDummyCFANode();
     Set<CFAEdge> edges = new LinkedHashSet<>();
-    Map<Integer, CFANode> idToNode = Maps.uniqueIndex(cfa.getAllNodes(), CFANode::getNodeNumber);
     for (CFANode allNode : cfa.getAllNodes()) {
       CFAUtils.leavingEdges(allNode).copyInto(edges);
       CFAUtils.enteringEdges(allNode).copyInto(edges);
@@ -53,8 +40,7 @@ public class SingleBlockDecomposition implements CFADecomposer {
     Set<CFANode> nodes = new LinkedHashSet<>(cfa.getAllNodes());
     nodes.add(lastNode);
     BlockNodeMetaData metaData =
-        new BlockNodeMetaData("SB1", startNode, lastNode, nodes, edges, idToNode);
-    return BlockGraph.fromMetaData(
-        ImmutableSet.of(metaData), cfa, configuration, shutdownNotifier, logger);
+        new BlockNodeMetaData("SB1", startNode, lastNode, lastNode, nodes, edges);
+    return BlockGraph.fromMetaData(ImmutableSet.of(metaData), cfa, shutdownNotifier);
   }
 }

@@ -17,9 +17,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateOperatorUtil;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AdditionalAssumptionReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -29,10 +30,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 // cannot be an AbstractStateWithLocation as initialization corrupts analysis
 public class BlockState
-    implements AbstractQueryableState,
-        Partitionable,
-        Targetable,
-        AdditionalAssumptionReportingState {
+    implements AbstractQueryableState, Partitionable, Targetable, FormulaReportingState {
 
   public enum BlockStateType {
     INITIAL,
@@ -63,7 +61,7 @@ public class BlockState
     } else {
       targetCFANode =
           direction == AnalysisDirection.FORWARD
-              ? pTargetNode.getLastNode()
+              ? pTargetNode.getAbstractionNode()
               : pTargetNode.getStartNode();
     }
     wasLoopHeadEncountered = pWasLoopHeadEncountered;
@@ -122,15 +120,18 @@ public class BlockState
   }
 
   @Override
-  public BooleanFormula getAdditionalAssumption(FormulaManagerView manager) {
+  public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
     return isTarget() && direction == AnalysisDirection.FORWARD
         ? errorCondition
             .map(
                 state ->
-                    Objects.requireNonNull(
-                            AbstractStates.extractStateByType(state, PredicateAbstractState.class))
-                        .getPathFormula()
-                        .getFormula())
+                    PredicateOperatorUtil.uninstantiate(
+                            Objects.requireNonNull(
+                                    AbstractStates.extractStateByType(
+                                        state, PredicateAbstractState.class))
+                                .getPathFormula(),
+                            manager)
+                        .booleanFormula())
             .orElse(manager.getBooleanFormulaManager().makeTrue())
         : manager.getBooleanFormulaManager().makeTrue();
   }

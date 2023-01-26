@@ -55,9 +55,6 @@ public class PredicateCPARefinerFactory {
           "use heuristic to extract predicates from the CFA statically on first refinement")
   private boolean performInitialStaticRefinement = false;
 
-  @Option(secure = true, description = "add conditions to block formulas")
-  private boolean acceptAdditionalErrorCondition = false;
-
   private final PredicateCPA predicateCpa;
 
   private @Nullable BlockFormulaStrategy blockFormulaStrategy = null;
@@ -159,8 +156,6 @@ public class PredicateCPARefinerFactory {
         bfs = new BlockFormulaSlicer(pfmgr);
       } else if (graphBlockFormulaStrategy) {
         bfs = new SlicingAbstractionsBlockFormulaStrategy(solver, config, pfmgr);
-      } else if (acceptAdditionalErrorCondition) {
-        bfs = new AdditionalAssumptionBlockFormulaStrategy(solver.getFormulaManager());
       } else {
         bfs = new BlockFormulaStrategy();
       }

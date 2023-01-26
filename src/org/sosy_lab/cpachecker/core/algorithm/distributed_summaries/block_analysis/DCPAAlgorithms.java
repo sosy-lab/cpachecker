@@ -46,7 +46,7 @@ public class DCPAAlgorithms {
   }
 
   /**
-   * Find all error locations in a set of target states
+   * Find all block ends
    *
    * @param targetStates abstract states with target information
    * @return subset of targetStates where the target information equals {@link
@@ -112,7 +112,8 @@ public class DCPAAlgorithms {
    * @throws InterruptedException thread interrupted
    */
   static BlockAnalysisIntermediateResult findReachableTargetStatesInBlock(
-      Algorithm pAlgorithm, ReachedSet pReachedSet) throws CPAException, InterruptedException {
+      Algorithm pAlgorithm, ReachedSet pReachedSet, CFANode pRealBlockEnd)
+      throws CPAException, InterruptedException {
 
     AbstractState startState = pReachedSet.getFirstState();
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
@@ -123,39 +124,59 @@ public class DCPAAlgorithms {
       AbstractStates.getTargetStates(pReachedSet).forEach(pReachedSet::removeOnlyFromWaitlist);
     }
 
-    return BlockAnalysisIntermediateResult.of(
-        from(pReachedSet)
-            .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
-            .filter(AbstractStates::isTargetState)
-            .filter(s -> !Objects.equals(startState, s))
-            .toSet(),
-        status);
+    return BlockAnalysisIntermediateResult.of(pReachedSet, startState, pRealBlockEnd, status);
   }
 
   public static class BlockAnalysisIntermediateResult {
 
-    private final ImmutableSet<ARGState> targets;
+    private final ImmutableSet<ARGState> violations;
     private final ImmutableSet<ARGState> blockTargets;
+    private final ImmutableSet<ARGState> blockEnds;
     private final AlgorithmStatus status;
 
     private BlockAnalysisIntermediateResult(
-        ImmutableSet<ARGState> pTargets, AlgorithmStatus pStatus) {
-      blockTargets = extractBlockTargetStates(pTargets);
-      targets = extractViolations(pTargets);
+        ReachedSet pReachedSet,
+        AbstractState pStartState,
+        CFANode pLastNode,
+        AlgorithmStatus pStatus) {
+      ImmutableSet<ARGState> allTargetStates =
+          from(pReachedSet)
+              .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
+              .filter(AbstractStates::isTargetState)
+              .filter(s -> !Objects.equals(pStartState, s))
+              .toSet();
+      blockEnds =
+          from(pReachedSet)
+              .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
+              .filter(
+                  s ->
+                      abstractStateToLocation(s)
+                          .flatMap(node -> Optional.of(pLastNode.equals(node)))
+                          .orElse(false))
+              .toSet();
+      blockTargets = extractBlockTargetStates(allTargetStates);
+      violations = extractViolations(allTargetStates);
       status = pStatus;
     }
 
     private static BlockAnalysisIntermediateResult of(
-        ImmutableSet<ARGState> pTargets, AlgorithmStatus pStatus) {
-      return new BlockAnalysisIntermediateResult(pTargets, pStatus);
+        ReachedSet pReachedSet,
+        AbstractState pStartState,
+        CFANode pLastNode,
+        AlgorithmStatus pStatus) {
+      return new BlockAnalysisIntermediateResult(pReachedSet, pStartState, pLastNode, pStatus);
     }
 
     public AlgorithmStatus getStatus() {
       return status;
     }
 
-    public ImmutableSet<ARGState> getTargets() {
-      return targets;
+    public ImmutableSet<ARGState> getViolations() {
+      return violations;
+    }
+
+    public ImmutableSet<ARGState> getBlockEnds() {
+      return blockEnds;
     }
 
     public ImmutableSet<ARGState> getBlockTargets() {
@@ -163,7 +184,21 @@ public class DCPAAlgorithms {
     }
 
     public boolean isEmpty() {
-      return targets.isEmpty() && blockTargets.isEmpty();
+      return violations.isEmpty() && blockTargets.isEmpty();
+    }
+
+    @Override
+    public String toString() {
+      return "BlockAnalysisIntermediateResult{"
+          + "violations="
+          + violations
+          + ", blockTargets="
+          + blockTargets
+          + ", blockEnds="
+          + blockEnds
+          + ", status="
+          + status
+          + '}';
     }
   }
 }

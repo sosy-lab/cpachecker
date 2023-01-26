@@ -67,6 +67,11 @@ public class BlockSummaryMessageProcessing extends ForwardingCollection<BlockSum
     return end;
   }
 
+  @Override
+  public String toString() {
+    return (end ? "End with " : "Start with ") + delegate().toString();
+  }
+
   public BlockSummaryMessageProcessing merge(
       BlockSummaryMessageProcessing pProcessing, boolean removeDuplicates) {
     Collection<BlockSummaryMessage> copy =

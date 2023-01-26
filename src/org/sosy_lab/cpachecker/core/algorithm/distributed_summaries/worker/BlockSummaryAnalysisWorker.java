@@ -95,12 +95,13 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
     dcpaAlgorithm =
         new DCPAAlgorithm(
-            getLogger(), pBlock, pSpecification, forwardConfiguration, pShutdownManager);
+            getLogger(), pBlock, pCFA, pSpecification, forwardConfiguration, pShutdownManager);
 
     dcpaBackwardAlgorithm =
         new DCPABackwardAlgorithm(
             getLogger(),
             pBlock,
+            pCFA,
             backwardSpecification,
             backwardConfiguration,
             dcpaAlgorithm,
@@ -109,7 +110,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
   @Override
   public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage message)
-      throws InterruptedException, CPAException, IOException, SolverException {
+      throws InterruptedException, CPAException, SolverException {
     switch (message.getType()) {
       case ERROR_CONDITION:
         return dcpaBackwardAlgorithm.runAnalysisForMessage(

@@ -19,7 +19,6 @@ import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -37,8 +36,6 @@ public class BlockNode {
 
   private final String code;
 
-  private final CFA cfa;
-
   /**
    * Represents a coherent subgraph of the CFA with exactly one entry and one exit node, described
    * by its metadata.
@@ -49,7 +46,6 @@ public class BlockNode {
    */
   public BlockNode(
       @NonNull BlockNodeMetaData pMetaData,
-      @NonNull CFA pCfa,
       @NonNull Set<BlockNodeMetaData> pPredecessors,
       @NonNull Set<BlockNodeMetaData> pSuccessors,
       @NonNull ShutdownNotifier pShutdownNotifier,
@@ -67,7 +63,7 @@ public class BlockNode {
         pMetaData.getNodesInBlock(),
         pMetaData.getStartNode(),
         pMetaData.getLastNode());
-    // + 1 = Final blank edge node
+    /* + 1 = Final blank edge node
     checkArgument(
         pCfa.getAllNodes().size() <= pMetaData.getNodesInBlock().size() + 2,
         "Mismatch in number of nodes of CFA %s and number of nodes in block %s with %s nodes. The"
@@ -75,7 +71,7 @@ public class BlockNode {
         pCfa.getAllNodes().size(),
         pMetaData.getId(),
         pMetaData.getNodesInBlock().size(),
-        pMetaData.getStartNode().getClass().getSimpleName());
+        pMetaData.getStartNode().getClass().getSimpleName()); */
     Preconditions.checkArgument(
         isBlockNodeValid(pMetaData.getStartNode(), pMetaData.getEdgesInBlock()),
         "BlockNodes require to have exactly one exit node.");
@@ -84,8 +80,6 @@ public class BlockNode {
     predecessors = pPredecessors;
     successors = pSuccessors;
     idToNodeMap = pIdToNodeMap;
-    cfa = pCfa;
-
     code = metaData.getCode();
   }
 
@@ -123,7 +117,7 @@ public class BlockNode {
     return idToNodeMap.get(number);
   }
 
-  BlockNodeMetaData getMetaData() {
+  public BlockNodeMetaData getMetaData() {
     return metaData;
   }
 
@@ -156,16 +150,16 @@ public class BlockNode {
     return metaData.getLastNode();
   }
 
+  public CFANode getAbstractionNode() {
+    return metaData.getAbstractionEnd();
+  }
+
   public Set<CFANode> getNodesInBlock() {
     return ImmutableSet.copyOf(metaData.getNodesInBlock());
   }
 
   public Set<CFAEdge> getEdgesInBlock() {
     return ImmutableSet.copyOf(metaData.getEdgesInBlock());
-  }
-
-  public CFA getCfa() {
-    return cfa;
   }
 
   @Override
@@ -217,24 +211,25 @@ public class BlockNode {
     private final String id;
     private final CFANode startNode;
     private final CFANode lastNode;
+
+    private final CFANode abstractionEnd;
     private final Set<CFANode> nodesInBlock;
     private final Set<CFAEdge> edgesInBlock;
-    private final Map<Integer, CFANode> idToNodeMap;
     private final String code;
 
     public BlockNodeMetaData(
         String pId,
         CFANode pStartNode,
         CFANode pLastNode,
+        CFANode pAbstractionEnd,
         Set<CFANode> pNodesInBlock,
-        Set<CFAEdge> pEdgesInBlock,
-        Map<Integer, CFANode> pIdToNodeMap) {
+        Set<CFAEdge> pEdgesInBlock) {
       id = pId;
       startNode = pStartNode;
       lastNode = pLastNode;
+      abstractionEnd = pAbstractionEnd;
       nodesInBlock = pNodesInBlock;
       edgesInBlock = pEdgesInBlock;
-      idToNodeMap = pIdToNodeMap;
       code = getCodeRepresentation();
     }
 
@@ -270,16 +265,16 @@ public class BlockNode {
       return startNode;
     }
 
-    public Map<Integer, CFANode> getIdToNodeMap() {
-      return idToNodeMap;
-    }
-
     public Set<CFAEdge> getEdgesInBlock() {
       return edgesInBlock;
     }
 
     public Set<CFANode> getNodesInBlock() {
       return nodesInBlock;
+    }
+
+    public CFANode getAbstractionEnd() {
+      return abstractionEnd;
     }
 
     public String getId() {
@@ -311,13 +306,12 @@ public class BlockNode {
           && Objects.equals(startNode, that.startNode)
           && Objects.equals(lastNode, that.lastNode)
           && Objects.equals(nodesInBlock, that.nodesInBlock)
-          && Objects.equals(edgesInBlock, that.edgesInBlock)
-          && Objects.equals(idToNodeMap, that.idToNodeMap);
+          && Objects.equals(edgesInBlock, that.edgesInBlock);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(id, startNode, lastNode, nodesInBlock, edgesInBlock, idToNodeMap);
+      return Objects.hash(id, startNode, lastNode, nodesInBlock, edgesInBlock);
     }
   }
 }

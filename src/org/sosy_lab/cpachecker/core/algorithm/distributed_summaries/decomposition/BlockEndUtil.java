@@ -12,14 +12,16 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class BlockEndBlankEdge extends BlankEdge {
+public class BlockEndUtil {
 
-  public BlockEndBlankEdge(FileLocation pFileLocation, CFANode pPredecessor) {
-    super(
+  public static final String UNIQUE_DESCRIPTION = "<<distributed-block-summary-block-end>>";
+
+  public static BlankEdge getBlockEndBlankEdge(FileLocation pFileLocation, CFANode pPredecessor) {
+    return new BlankEdge(
         "",
         pFileLocation,
         pPredecessor,
         new CFANode(pPredecessor.getFunction()),
-        "marks block end");
+        UNIQUE_DESCRIPTION);
   }
 }

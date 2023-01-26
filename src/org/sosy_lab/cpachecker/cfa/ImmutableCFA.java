@@ -19,6 +19,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -28,7 +29,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  * This class represents a CFA after it has been fully created (parsing, linking of functions,
  * etc.).
  */
-class ImmutableCFA implements CFA, Serializable {
+public class ImmutableCFA implements CFA, Serializable {
 
   private static final long serialVersionUID = 5399965350156780812L;
 
@@ -37,13 +38,25 @@ class ImmutableCFA implements CFA, Serializable {
 
   private final CfaMetadata metadata;
 
-  ImmutableCFA(
+  public ImmutableCFA(
       Map<String, FunctionEntryNode> pFunctions,
       SetMultimap<String, CFANode> pAllNodes,
       CfaMetadata pCfaMetadata) {
 
     functions = ImmutableSortedMap.copyOf(pFunctions);
     allNodes = ImmutableSortedSet.copyOf(pAllNodes.values());
+
+    metadata = pCfaMetadata;
+
+    FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
+    checkArgument(mainFunctionEntry.equals(functions.get(mainFunctionEntry.getFunctionName())));
+  }
+
+  public ImmutableCFA(
+      Map<String, FunctionEntryNode> pFunctions, Set<CFANode> pAllNodes, CfaMetadata pCfaMetadata) {
+
+    functions = ImmutableSortedMap.copyOf(pFunctions);
+    allNodes = ImmutableSortedSet.copyOf(pAllNodes);
 
     metadata = pCfaMetadata;
 

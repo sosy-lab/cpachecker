@@ -54,17 +54,17 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     }
     String formula = formulaManagerView.dumpFormula(pathFormula.getFormula()).toString();
     String ssa;
-    String pts;
+    // String pts;
     try {
       ssa = SerializeUtil.serialize(state.getPathFormula().getSsa());
-      pts = SerializeUtil.serialize(state.getPathFormula().getPointerTargetSet());
+      // pts = SerializeUtil.serialize(state.getPathFormula().getPointerTargetSet());
     } catch (IOException pE) {
       throw new AssertionError("Unable to serialize SSAMap " + state.getPathFormula().getSsa());
     }
     return BlockSummaryMessagePayload.builder()
         .addEntry(PredicateCPA.class.getName(), formula)
         .addEntry(BlockSummaryMessagePayload.SSA, ssa)
-        .addEntry(BlockSummaryMessagePayload.PTS, pts)
+        // .addEntry(BlockSummaryMessagePayload.PTS, pts)
         .buildPayload();
   }
 }

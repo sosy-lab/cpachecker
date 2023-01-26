@@ -23,6 +23,7 @@ import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -59,6 +60,7 @@ public class DCPABackwardAlgorithm {
   public DCPABackwardAlgorithm(
       LogManager pLogger,
       BlockNode pBlock,
+      CFA pCFA,
       Specification pSpecification,
       Configuration pConfiguration,
       DCPAAlgorithm pForwardAnalysis,
@@ -66,7 +68,7 @@ public class DCPABackwardAlgorithm {
       throws CPAException, InterruptedException, InvalidConfigurationException {
     AnalysisComponents parts =
         AlgorithmFactory.createAlgorithm(
-            pLogger, pSpecification, pBlock.getCfa(), pConfiguration, pShutdownManager, pBlock);
+            pLogger, pSpecification, pCFA, pConfiguration, pShutdownManager, pBlock);
     algorithm = parts.algorithm();
     ConfigurableProgramAnalysis cpa = parts.cpa();
     reachedSet = parts.reached();
@@ -97,7 +99,8 @@ public class DCPABackwardAlgorithm {
 
     Collection<BlockSummaryMessage> messages = ImmutableSet.of();
     if (!pReceived.isFirst()) {
-      messages = forwardAnalysis.runAnalysisUnderCondition(Optional.of(deserialized));
+      messages =
+          forwardAnalysis.runAnalysisUnderCondition(Optional.of(translateToForward(deserialized)));
 
       if (FluentIterable.from(messages)
           .filter(BlockSummaryPostConditionMessage.class)
@@ -114,7 +117,8 @@ public class DCPABackwardAlgorithm {
     reachedSet.clear();
     reachedSet.add(deserialized, initialPrecision);
     BlockAnalysisIntermediateResult result =
-        DCPAAlgorithms.findReachableTargetStatesInBlock(algorithm, reachedSet);
+        DCPAAlgorithms.findReachableTargetStatesInBlock(
+            algorithm, reachedSet, block.getStartNode());
     Set<ARGState> targetStates = result.getBlockTargets();
     status = status.update(result.getStatus());
     List<AbstractState> states =
@@ -138,6 +142,19 @@ public class DCPABackwardAlgorithm {
               block.getId(), block.getStartNode().getNodeNumber(), payload, false, visited));
     }
     return responses.addAll(messages).build();
+  }
+
+  private AbstractState translateToForward(AbstractState pBackwardAnalysis)
+      throws InterruptedException {
+    BlockSummaryMessage forwardMessage =
+        BlockSummaryMessage.newBlockPostCondition(
+            block.getId(),
+            block.getAbstractionNode().getNodeNumber(),
+            getDCPA().getSerializeOperator().serialize(pBackwardAnalysis),
+            false,
+            true,
+            ImmutableSet.of());
+    return forwardAnalysis.getDCPA().getDeserializeOperator().deserialize(forwardMessage);
   }
 
   public DistributedConfigurableProgramAnalysis getDCPA() {

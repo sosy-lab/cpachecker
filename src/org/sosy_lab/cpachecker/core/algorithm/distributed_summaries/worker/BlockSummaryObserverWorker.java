@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,7 +22,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class BlockSummaryObserverWorker extends BlockSummaryWorker {
 
@@ -52,8 +50,7 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
   }
 
   @Override
-  public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage)
-      throws InterruptedException, IOException, SolverException, CPAException {
+  public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage) {
     switch (pMessage.getType()) {
       case FOUND_RESULT:
         result = Optional.of(((BlockSummaryResultMessage) pMessage).getResult());
