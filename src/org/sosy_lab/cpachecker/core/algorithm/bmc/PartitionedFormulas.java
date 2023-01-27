@@ -20,19 +20,23 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * This class provides a formula representation for {@link IMCAlgorithm}. It stores the following
  * formulas.
  *
  * <ul>
- *   <li>{@link PartitionedFormulas#prefixFormula} (*I): the block formula from root to the first
- *       loop head along with its SSA indices {@link PartitionedFormulas#prefixSsaMap}.
+ *   <li>{@link PartitionedFormulas#prefixFormula} (I): the block formula from root to the first
+ *       loop head.
  *   <li>{@link PartitionedFormulas#loopFormulas} (T1, T2, ..., Tn): the block formulas between each
- *       pair of loop heads.
+ *       consecutive pair of loop heads.
  *   <li>{@link PartitionedFormulas#targetAssertion} (&not;P): the block formula from the last to
  *       head to the target state. If {@link PartitionedFormulas#assertAllTargets} is set to true,
  *       the assertion formulas at every loop iterations are recorded and their disjunction is used;
@@ -44,25 +48,28 @@ class PartitionedFormulas {
       "The partitioned formulas have not been initialized yet, #collectFormulasFromARG must be"
           + " called beforehand.";
 
+  private final PathFormulaManager pfmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final LogManager logger;
   private final boolean assertAllTargets;
 
   private boolean isInitialized;
-  private BooleanFormula prefixFormula;
-  private SSAMap prefixSsaMap;
-  private ImmutableList<BooleanFormula> loopFormulas;
+  private PathFormula prefixFormula;
+  private ImmutableList<PathFormula> loopFormulas;
   private BooleanFormula targetAssertion;
 
   PartitionedFormulas(
-      BooleanFormulaManagerView bfmgr, LogManager logger, boolean assertAllTargets) {
+      PathFormulaManager pfmgr,
+      BooleanFormulaManagerView bfmgr,
+      LogManager logger,
+      boolean assertAllTargets) {
+    this.pfmgr = pfmgr;
     this.bfmgr = bfmgr;
     this.logger = logger;
     this.assertAllTargets = assertAllTargets;
 
     isInitialized = false;
-    prefixFormula = bfmgr.makeFalse();
-    prefixSsaMap = SSAMap.emptySSAMap();
+    prefixFormula = InterpolationHelper.makeFalsePathFormula(pfmgr, bfmgr);
     loopFormulas = ImmutableList.of();
     targetAssertion = bfmgr.makeFalse();
   }
@@ -76,19 +83,31 @@ class PartitionedFormulas {
   /** Return the SSA map of the prefix path formula. */
   SSAMap getPrefixSsaMap() {
     checkState(isInitialized, UNINITIALIZED_MSG);
-    return prefixSsaMap;
+    return prefixFormula.getSsa();
   }
 
   /** Return the prefix formula (I) that describes the initial state set. */
   BooleanFormula getPrefixFormula() {
     checkState(isInitialized, UNINITIALIZED_MSG);
-    return prefixFormula;
+    return prefixFormula.getFormula();
+  }
+
+  /** Return the SSA map of the specified loop. */
+  SSAMap getSsaMapOfLoop(int loopIdx) {
+    checkState(isInitialized, UNINITIALIZED_MSG);
+    return loopFormulas.get(loopIdx).getSsa();
   }
 
   /** Return the collected loop formulas (T1, T2, ..., Tn). */
-  List<BooleanFormula> getLoopFormulas() {
+  ImmutableList<BooleanFormula> getLoopFormulas() {
     checkState(isInitialized, UNINITIALIZED_MSG);
-    return loopFormulas;
+    return transformedImmutableListCopy(loopFormulas, PathFormula::getFormula);
+  }
+
+  /** Return the collected loop formulas (T1, T2, ..., Tn). */
+  BooleanFormula getLoopFormula(int loopIndex) {
+    checkState(isInitialized, UNINITIALIZED_MSG);
+    return loopFormulas.get(loopIndex).getFormula();
   }
 
   /** Return the target assertion formula (&not;P). */
@@ -114,8 +133,7 @@ class PartitionedFormulas {
         InterpolationHelper.getTargetStatesAfterLoop(reachedSet);
     if (targetStatesAfterLoop.isEmpty()) {
       // no target is reachable, which means the program is safe
-      prefixFormula = bfmgr.makeFalse();
-      prefixSsaMap = SSAMap.emptySSAMap();
+      prefixFormula = InterpolationHelper.makeFalsePathFormula(pfmgr, bfmgr);
       loopFormulas = ImmutableList.of();
       targetAssertion = bfmgr.makeFalse();
       return;
@@ -128,17 +146,14 @@ class PartitionedFormulas {
     assert abstractionStates.size() > 3;
 
     // collect prefix formula
-    PathFormula prefixPathFormula =
+    prefixFormula =
         InterpolationHelper.getPredicateAbstractionBlockFormula(abstractionStates.get(1));
-    prefixFormula = prefixPathFormula.getFormula();
-    prefixSsaMap = prefixPathFormula.getSsa();
 
     // collect loop formulas: TR(V_k, V_k+1)
     loopFormulas =
         transformedImmutableListCopy(
             abstractionStates.subList(2, abstractionStates.size() - 1),
-            absState ->
-                InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getFormula());
+            absState -> InterpolationHelper.getPredicateAbstractionBlockFormula(absState));
 
     // collect target assertion formula
     BooleanFormula currentAssertion =
@@ -164,5 +179,33 @@ class PartitionedFormulas {
       logger.log(Level.ALL, "Loop ", i, ": ", loopFormulas.get(i));
     }
     logger.log(Level.ALL, "Target:", targetAssertion);
+  }
+
+  /**
+   * Check whether the given formula <i>f</i> is inductive w.r.t the transition relation <i>T</i>,
+   * i.e. whether <i>f &and; T &rArr; f'</i>.
+   *
+   * @param f an uninstantiated formula
+   */
+  boolean checkInductivenessOf(Solver solver, BooleanFormula f)
+      throws SolverException, InterruptedException {
+    return checkRelativeInductivenssOf(solver, f, bfmgr.makeTrue());
+  }
+
+  /**
+   * Check whether the given formula <i>f</i> is inductive relative to formula <i>g</i> w.r.t the
+   * transition relation <i>T</i>, i.e. whether <i>f &and; g &and; T &rArr; f'</i>.
+   *
+   * @param f an uninstantiated formula
+   * @param g an uninstantiated formula
+   */
+  boolean checkRelativeInductivenssOf(Solver solver, BooleanFormula f, BooleanFormula g)
+      throws SolverException, InterruptedException {
+    checkState(isInitialized, UNINITIALIZED_MSG);
+    FormulaManagerView fmgr = solver.getFormulaManager();
+    BooleanFormula currentImage =
+        bfmgr.and(fmgr.instantiate(f, getPrefixSsaMap()), fmgr.instantiate(g, getPrefixSsaMap()));
+    BooleanFormula nextImage = fmgr.instantiate(f, getSsaMapOfLoop(0));
+    return solver.implies(bfmgr.and(currentImage, getLoopFormula(0)), nextImage);
   }
 }

@@ -85,7 +85,7 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
   }
 
   public boolean isProgramSafe() {
-    return invariantGenerator.isProgramSafe();
+    return invariantGeneratorForBMC.isProgramSafe();
   }
 
   @Override
@@ -119,7 +119,8 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
                 }
                 return booleanFormulaManager.and(
                     invariant,
-                    prover.getCurrentLocationInvariants(pLocation, pFMGR, pPFMGR, pContext));
+                    invariantGeneratorForBMC.getLocationInvariants(
+                        pLocation, pFMGR, pPFMGR, pContext));
               } catch (InterruptedException | CPAException e) {
                 return pFMGR.getBooleanFormulaManager().makeTrue();
               }

@@ -191,10 +191,6 @@ analysis.algorithm.CEGAR = false
 # with PredicateCPA and large-block encoding
 analysis.algorithm.IMC = false
 
-# use McMillan's interpolation-based model checking algorithm by encoding a
-# CFA as a transition relation with a symbolic program counter
-analysis.algorithm.IMCTR = false
-
 # Use MPI for running analyses in new subprocesses. The resulting reachedset
 # is the one of the first analysis returning in time. All other mpi-processes
 # will get aborted.
@@ -714,7 +710,7 @@ bmc.checkTargetStates = true
 bmc.induction = false
 
 # Strategy for generating auxiliary invariants
-bmc.invariantGenerationStrategy = REACHED_SET
+bmc.invariantGenerationStrategy = DO_NOTHING
   enum:     [INDUCTION, REACHED_SET, DO_NOTHING, INVARIANT_STORE]
 
 # k-induction configuration to be used as an invariant generator for
@@ -871,28 +867,6 @@ cfa.threads.threadSelfCreate = "pthread_create_N"
 
 # A name of thread_join_N function
 cfa.threads.threadSelfJoin = "pthread_join_N"
-
-# This option causes the control flow automaton to be transformed into the
-# automaton of an equivalent program with one single loop and an artificial
-# program counter.
-cfa.transformIntoSingleLoop = false
-
-# Single loop transformation builds a decision tree based on the program
-# counter values. This option causes the last program counter value not to be
-# explicitly assumed in the decision tree, so that it is only indirectly
-# represented by the assumption of falsehood for all other assumptions in the
-# decision tree.
-cfa.transformIntoSingleLoop.omitExplicitLastProgramCounterAssumption = false
-
-# This option controls the size of the subgraphs referred to by program
-# counter values. The larger the subgraphs, the fewer program counter values
-# are required. Possible values are  MULTIPLE_PATHS, SINGLE_PATH and
-# SINGLE_EDGE, where MULTIPLE_PATHS has the largest subgraphs (and fewest
-# program counter values) and SINGLE_EDGE has the smallest subgraphs (and
-# most program counter values). The larger the subgraphs, the closer the
-# resulting graph will look like the original CFA.
-cfa.transformIntoSingleLoop.subgraphGrowthStrategy = MULTIPLE_PATHS
-  enum:     [MULTIPLE_PATHS, SINGLE_PATH, SINGLE_EDGE]
 
 # clone functions of the CFA, such that there are several identical CFAs for
 # each function, only with different names.
@@ -1802,6 +1776,16 @@ cpa.invariants.analyzeRelevantVariablesOnly = true
 # determine target locations in advance and analyse paths to the target
 # locations only.
 cpa.invariants.analyzeTargetPathsOnly = true
+
+# the maximum factor the run-time can increase between each condition
+# adjustment, stops if the time spent on the previous iteration exceeds the
+# time spent on the penultimate by the specified factor (values <= 0 disable
+# the limit)
+cpa.invariants.conditionAdjuster.maxTimeSpanIncreaseFactor = 0.0
+
+# static time limit for data-flow analysis with condition adjustment (use
+# milliseconds or specify a unit; 0 for infinite)
+cpa.invariants.conditionAdjuster.timeLimit = 0ms
 
 # controls the condition adjustment logic: STATIC means that condition
 # adjustment is a no-op, INTERESTING_VARIABLES increases the interesting
@@ -3882,11 +3866,18 @@ imc.fixedPointComputeStrategy = ITP
 # toggle Impact-like covering for the ISMC fixed-point check
 imc.impactLikeCovering = false
 
+# toggle which strategy is used for injecting auxiliary invariants
+imc.invariants.injectionStrategy = ITP_REFINEMENT_WITH_FALLBACK
+  enum:     [AT_FIXED_POINT_CHECK, ITP_REFINEMENT, ITP_REFINEMENT_WITH_FALLBACK]
+
+# toggle whether to utilize non-inductive invariants
+imc.invariants.onlyInjectIfInductive = false
+
 # toggle the strategy to determine the next loop iteration
 # to execute BMC phase of IMC or ISMC
 # CONST: increased by one (to guarantee a shortest counterexample)
 # EAGER: skip all iterations where a bug cannot be found
-imc.loopBoundIncrementStrategyForBMC = CONST
+imc.loopBound.incrementStrategyForBMC = CONST
   enum:     [CONST, EAGER]
 
 # toggle the strategy to determine the next loop iteration
@@ -3894,7 +3885,7 @@ imc.loopBoundIncrementStrategyForBMC = CONST
 # CONST: increased by a constant (specified via
 # loopBoundIncrementValueForIMC)
 # EAGER: skip all iterations where a bug cannot be found
-imc.loopBoundIncrementStrategyForIMC = CONST
+imc.loopBound.incrementStrategyForIMC = CONST
   enum:     [CONST, EAGER]
 
 # toggle the strategy to determine the next loop iteration
@@ -3902,30 +3893,17 @@ imc.loopBoundIncrementStrategyForIMC = CONST
 # CONST: increased by by a constant (specified via
 # loopBoundIncrementValueForKI)
 # EAGER: skip all iterations where a bug cannot be found
-imc.loopBoundIncrementStrategyForKI = CONST
+imc.loopBound.incrementStrategyForKI = CONST
   enum:     [CONST, EAGER]
 
 # toggle the value to increment the loop bound by at each step for IMC
-imc.loopBoundIncrementValueForIMC = 1
+imc.loopBound.incrementValueForIMC = 1
 
 # toggle the value to increment the loop bound by at each step for KI
-imc.loopBoundIncrementValueForKI = 1
+imc.loopBound.incrementValueForKI = 1
 
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false
-
-# analyze the derived interpolants
-imctr.analyzeInterpolant = false
-
-# derive interpolants backward
-imctr.backwardInterpolation = true
-
-# check the union of safety properties after each transition (the original
-# encoding in McMillan's CAV 2003 paper)
-imctr.checkUnionProperty = false
-
-# enable interpolation-based model checking
-imctr.interpolation = true
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
@@ -4138,12 +4116,19 @@ overflow.trackPointers = false
 overflow.useLiveness = true
 
 # List of files with configurations to use. Files can be suffixed with
-# ::supply-reached this signalizes that the (finished) reached set of an
-# analysis can be used in other analyses (e.g. for invariants computation).
-# If you use the suffix ::supply-reached-refinable instead this means that
-# the reached set supplier is additionally continously refined (so one of the
-# analysis has to be instanceof ReachedSetAdjustingCPA) to make this work
-# properly.
+# '::<ANNOTATION>:<ANNOTATION>:...' (2 colons '::' before the first
+# annotation and 1 colon ':' separating each). An annotation can be either of
+# 'supply-reached', 'supply-reached-refinable', or 'ignore-result'.
+# Annotations are processed with the specified order, meaning that the latter
+# one might overwrite the settings of the former ones. 'supply-reached'
+# signalizes that the (finished) reached set of an analysis can be used in
+# other analyses (e.g. for invariants computation). If you use the suffix
+# 'supply-reached-refinable' instead this means that the reached set supplier
+# is additionally continously refined (so one of the analysis has to be
+# instanceof `ReachedSetAdjustingCPA`) to make this work properly. (Note that
+# 'supply-reached' and 'supply-reached-refinable' are mutually exclusive.) If
+# 'ignore-result' is specified, the returned result of the corresponding
+# configuration is ignored.
 parallelAlgorithm.configFiles = no default value
 
 # The command line for calling the clang preprocessor. May contain binary

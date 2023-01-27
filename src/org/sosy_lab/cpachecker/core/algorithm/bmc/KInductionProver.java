@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.assertAt;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.createFormulaFor;
+import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterFirstIteration;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIteration;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIterationsUpTo;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.unroll;
@@ -50,16 +51,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.FormulaInContext;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.InvariantStrengthening.NextCti;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariantCombination;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCandiateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -78,7 +75,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -122,13 +118,9 @@ class KInductionProver implements AutoCloseable {
 
   private final ReachedSetFactory reachedSetFactory;
 
-  private final InvariantGenerator invariantGenerator;
+  private final InvariantGeneratorForBMC invariantGeneratorForBMC;
 
   private final ProverEnvironmentWithFallback prover;
-
-  private ExpressionTreeSupplier expressionTreeSupplier;
-
-  private BooleanFormula loopHeadInvariants;
 
   private final Map<CandidateInvariant, BooleanFormula> violationFormulas = new HashMap<>();
 
@@ -136,15 +128,13 @@ class KInductionProver implements AutoCloseable {
 
   private final ImmutableSet<CFANode> loopHeads;
 
-  private boolean invariantGenerationRunning = true;
-
   /** Creates an instance of the KInductionProver. */
   public KInductionProver(
       CFA pCFA,
       LogManager pLogger,
       Algorithm pAlgorithm,
       ConfigurableProgramAnalysis pCPA,
-      InvariantGenerator pInvariantGenerator,
+      InvariantGeneratorForBMC pInvariantGeneratorForBMC,
       BMCStatistics pStats,
       ReachedSetFactory pReachedSetFactory,
       ShutdownNotifier pShutdownNotifier,
@@ -154,7 +144,7 @@ class KInductionProver implements AutoCloseable {
     logger = checkNotNull(pLogger);
     algorithm = checkNotNull(pAlgorithm);
     cpa = checkNotNull(pCPA);
-    invariantGenerator = checkNotNull(pInvariantGenerator);
+    invariantGeneratorForBMC = checkNotNull(pInvariantGeneratorForBMC);
     stats = checkNotNull(pStats);
     reachedSetFactory = checkNotNull(pReachedSetFactory);
     shutdownNotifier = checkNotNull(pShutdownNotifier);
@@ -179,91 +169,13 @@ class KInductionProver implements AutoCloseable {
     bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = stepCasePredicateCPA.getPathFormulaManager();
     pam = stepCasePredicateCPA.getPredicateManager();
-    loopHeadInvariants = bfmgr.makeTrue();
-
-    expressionTreeSupplier = ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
 
     loopHeads = ImmutableSet.copyOf(pLoopHeads);
   }
 
-  private InvariantSupplier getCurrentInvariantSupplier() throws InterruptedException {
-    if (invariantGenerationRunning) {
-      try {
-        return invariantGenerator.getSupplier();
-      } catch (CPAException e) {
-        logger.logUserException(Level.FINE, e, "Invariant generation failed.");
-        invariantGenerationRunning = false;
-      } catch (InterruptedException e) {
-        shutdownNotifier.shutdownIfNecessary();
-        logger.log(Level.FINE, "Invariant generation was cancelled.");
-        logger.logDebugException(e);
-        invariantGenerationRunning = false;
-      }
-    }
-    return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
-  }
-
-  private ExpressionTreeSupplier getCurrentExpressionTreeInvariantSupplier()
-      throws InterruptedException {
-    if (!invariantGenerationRunning) {
-      return expressionTreeSupplier;
-    }
-    try {
-      return invariantGenerator.getExpressionTreeSupplier();
-    } catch (CPAException e) {
-      logger.logUserException(Level.FINE, e, "Invariant generation failed.");
-      invariantGenerationRunning = false;
-      return expressionTreeSupplier;
-    } catch (InterruptedException e) {
-      shutdownNotifier.shutdownIfNecessary();
-      logger.log(Level.FINE, "Invariant generation was cancelled.");
-      logger.logDebugException(e);
-      invariantGenerationRunning = false;
-      return expressionTreeSupplier;
-    }
-  }
-
-  /**
-   * Gets the most current invariants generated by the invariant generator.
-   *
-   * @return the most current invariants generated by the invariant generator.
-   */
-  private FormulaInContext getCurrentLoopHeadInvariants(Iterable<AbstractState> pAssertionStates) {
-    Set<CFANode> stopLoopHeads =
-        AbstractStates.extractLocations(AbstractStates.filterLocations(pAssertionStates, loopHeads))
-            .toSet();
-    return pContext -> {
-      shutdownNotifier.shutdownIfNecessary();
-      if (!bfmgr.isFalse(loopHeadInvariants) && invariantGenerationRunning) {
-        BooleanFormula lhi = bfmgr.makeFalse();
-        for (CFANode loopHead : stopLoopHeads) {
-          lhi = bfmgr.or(lhi, getCurrentLocationInvariants(loopHead, fmgr, pfmgr, pContext));
-          shutdownNotifier.shutdownIfNecessary();
-        }
-        loopHeadInvariants = lhi;
-      }
-      return loopHeadInvariants;
-    };
-  }
-
-  public BooleanFormula getCurrentLocationInvariants(
-      CFANode pLocation,
-      FormulaManagerView pFormulaManager,
-      PathFormulaManager pPathFormulaManager,
-      PathFormula pContext)
-      throws InterruptedException {
-    shutdownNotifier.shutdownIfNecessary();
-    InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
-
-    return currentInvariantsSupplier.getInvariantFor(
-        pLocation, Optional.empty(), pFormulaManager, pPathFormulaManager, pContext);
-  }
-
   public ExpressionTree<Object> getCurrentLocationInvariants(CFANode pLocation)
       throws InterruptedException {
-    ExpressionTreeSupplier currentInvariantsSupplier = getCurrentExpressionTreeInvariantSupplier();
-
-    return currentInvariantsSupplier.getInvariantFor(pLocation);
+    return invariantGeneratorForBMC.getLocationInvariants(pLocation);
   }
 
   @Override
@@ -421,7 +333,8 @@ class KInductionProver implements AutoCloseable {
     FluentIterable<AbstractState> loopHeadStates =
         AbstractStates.filterLocations(reached, loopHeads);
 
-    BooleanFormula loopHeadInv = inductiveLoopHeadInvariantAssertion(loopHeadStates);
+    BooleanFormula loopHeadInv =
+        invariantGeneratorForBMC.getInvariantsAssertion(reached, loopHeads, fmgr, pfmgr);
     previousK = pK + 1;
     stats.inductionPreparation.stop();
 
@@ -464,7 +377,7 @@ class KInductionProver implements AutoCloseable {
 
     InductionResult<T> result = null;
     AssertCandidate assertPredecessor =
-        p -> assertAt(filterInductiveAssertionIteration(loopHeadStates), p, fmgr, pfmgr, true);
+        p -> assertAt(filterFirstIteration(loopHeadStates, loopHeads), p, fmgr, pfmgr, true);
     while (result == null) {
       shutdownNotifier.shutdownIfNecessary();
 
@@ -478,7 +391,8 @@ class KInductionProver implements AutoCloseable {
         // Re-attempt the proof immediately before returning to the caller
         // if new invariants are available
         BooleanFormula oldLoopHeadInv = loopHeadInv;
-        loopHeadInv = inductiveLoopHeadInvariantAssertion(loopHeadStates);
+        loopHeadInv =
+            invariantGeneratorForBMC.getInvariantsAssertion(reached, loopHeads, fmgr, pfmgr);
         boolean loopHeadInvChanged = !loopHeadInv.equals(oldLoopHeadInv);
 
         // We need to produce the model if we are in the last iteration
@@ -635,17 +549,6 @@ class KInductionProver implements AutoCloseable {
       }
     }
     return bfmgr.and(assertions);
-  }
-
-  private BooleanFormula inductiveLoopHeadInvariantAssertion(
-      Iterable<AbstractState> pLoopHeadStates) throws CPATransferException, InterruptedException {
-    Iterable<AbstractState> loopHeadStates = filterInductiveAssertionIteration(pLoopHeadStates);
-    return assertAt(loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr);
-  }
-
-  private FluentIterable<AbstractState> filterInductiveAssertionIteration(
-      Iterable<AbstractState> pStates) {
-    return filterIteration(pStates, 1, loopHeads);
   }
 
   private AlgorithmStatus ensureK(

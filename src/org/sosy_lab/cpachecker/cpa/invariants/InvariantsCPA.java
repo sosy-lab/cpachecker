@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -39,6 +40,7 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -252,7 +254,7 @@ public class InvariantsCPA
     specification = checkNotNull(pSpecification);
     targetLocationProvider = new CachingTargetLocationProvider(shutdownNotifier, logManager, cfa);
     options = pOptions;
-    conditionAdjuster = pOptions.conditionAdjusterFactory.createConditionAdjuster(this);
+    conditionAdjuster = pOptions.conditionAdjusterFactory.createConditionAdjuster(this, config);
     machineModel = pCfa.getMachineModel();
     abstractDomain = DelegateAbstractDomain.<InvariantsState>getInstance();
     if (pOptions.merge.equalsIgnoreCase("precisiondependent")) {
@@ -636,16 +638,70 @@ public class InvariantsCPA
     void setInc(int pInc);
   }
 
+  @Options(prefix = "cpa.invariants.conditionAdjuster")
+  private abstract static class ConditionAdjusterWithTimeLimit implements ConditionAdjuster {
+
+    @Option(
+        secure = true,
+        description =
+            "static time limit for data-flow analysis with condition adjustment (use milliseconds"
+                + " or specify a unit; 0 for infinite)")
+    @TimeSpanOption(
+        codeUnit = TimeUnit.MILLISECONDS,
+        defaultUserUnit = TimeUnit.MILLISECONDS,
+        min = 0)
+    private TimeSpan timeLimit = TimeSpan.ofMillis(0);
+
+    @Option(
+        secure = true,
+        description =
+            "the maximum factor the run-time can increase between each condition adjustment, stops"
+                + " if the time spent on the previous iteration exceeds the time spent on the"
+                + " penultimate by the specified factor (values <= 0 disable the limit)")
+    private double maxTimeSpanIncreaseFactor = 0.0;
+
+    private Timer timer = new Timer();
+
+    protected TimeSpan lastTimeSpan = null;
+    protected TimeSpan lastLastTimeSpan = null;
+
+    protected ConditionAdjusterWithTimeLimit(Configuration pConfig)
+        throws InvalidConfigurationException {
+      pConfig.inject(this, ConditionAdjusterWithTimeLimit.class);
+    }
+
+    private void updateLastTimeSpan() {
+      lastLastTimeSpan = lastTimeSpan;
+      if (timer.isRunning()) {
+        timer.stop();
+        lastTimeSpan = timer.getLengthOfLastInterval();
+      }
+      timer.start();
+    }
+
+    boolean exceedTimeLimit() {
+      updateLastTimeSpan();
+      if (lastLastTimeSpan == null) {
+        return false;
+      }
+      return (!timeLimit.isEmpty() && timer.getSumTime().compareTo(timeLimit) > 0)
+          || (maxTimeSpanIncreaseFactor > 0.0
+              && lastTimeSpan.asMillis() > lastLastTimeSpan.asMillis() * maxTimeSpanIncreaseFactor);
+    }
+  }
+
   public interface ConditionAdjusterFactory {
 
-    ConditionAdjuster createConditionAdjuster(InvariantsCPA pCPA);
+    ConditionAdjuster createConditionAdjuster(InvariantsCPA pCPA, Configuration pConfig)
+        throws InvalidConfigurationException;
   }
 
   public enum ConditionAdjusterFactories implements ConditionAdjusterFactory {
     STATIC {
 
       @Override
-      public ConditionAdjuster createConditionAdjuster(final InvariantsCPA pCPA) {
+      public ConditionAdjuster createConditionAdjuster(
+          final InvariantsCPA pCPA, Configuration pConfig) {
         return new ConditionAdjuster() {
 
           @Override
@@ -664,7 +720,8 @@ public class InvariantsCPA
     INTERESTING_VARIABLES {
 
       @Override
-      public ConditionAdjuster createConditionAdjuster(final InvariantsCPA pCPA) {
+      public ConditionAdjuster createConditionAdjuster(
+          final InvariantsCPA pCPA, Configuration pConfig) {
         return new InterestingVariableLimitAdjuster(pCPA);
       }
     },
@@ -672,7 +729,8 @@ public class InvariantsCPA
     MAXIMUM_FORMULA_DEPTH {
 
       @Override
-      public ConditionAdjuster createConditionAdjuster(final InvariantsCPA pCPA) {
+      public ConditionAdjuster createConditionAdjuster(
+          final InvariantsCPA pCPA, Configuration pConfig) {
         return new FormulaDepthAdjuster(pCPA);
       }
     },
@@ -680,7 +738,8 @@ public class InvariantsCPA
     ABSTRACTION_STRATEGY {
 
       @Override
-      public ConditionAdjuster createConditionAdjuster(final InvariantsCPA pCPA) {
+      public ConditionAdjuster createConditionAdjuster(
+          final InvariantsCPA pCPA, Configuration pConfig) {
         return new AbstractionStrategyAdjuster(pCPA);
       }
     },
@@ -688,25 +747,24 @@ public class InvariantsCPA
     COMPOUND {
 
       @Override
-      public ConditionAdjuster createConditionAdjuster(final InvariantsCPA pCPA) {
-        return new CompoundConditionAdjuster(pCPA);
+      public ConditionAdjuster createConditionAdjuster(
+          final InvariantsCPA pCPA, Configuration pConfig) throws InvalidConfigurationException {
+        return new CompoundConditionAdjuster(pCPA, pConfig);
       }
     }
   }
 
-  private static class CompoundConditionAdjuster implements ConditionAdjuster {
+  private static class CompoundConditionAdjuster extends ConditionAdjusterWithTimeLimit {
 
     private final InvariantsCPA cpa;
-
-    private Timer timer = new Timer();
-
-    private TimeSpan previousTimeSpan = null;
 
     private Deque<ValueIncreasingAdjuster> innerAdjusters = new ArrayDeque<>();
 
     private ConditionAdjuster defaultInner;
 
-    public CompoundConditionAdjuster(InvariantsCPA pCPA) {
+    public CompoundConditionAdjuster(InvariantsCPA pCPA, Configuration pConfig)
+        throws InvalidConfigurationException {
+      super(pConfig);
       cpa = Objects.requireNonNull(pCPA);
       innerAdjusters.add(new InterestingVariableLimitAdjuster(pCPA));
       innerAdjusters.add(new FormulaDepthAdjuster(pCPA));
@@ -715,6 +773,9 @@ public class InvariantsCPA
 
     @Override
     public boolean adjustConditions() {
+      if (exceedTimeLimit()) {
+        return false;
+      }
       if (!hasInner()) {
         return defaultInner.adjustConditions();
       }
@@ -733,16 +794,10 @@ public class InvariantsCPA
         intVars = Sets.union(intVars, classification.getIntEqualVars());
         onlyIntVars = intVars.containsAll(classification.getRelevantVariables());
       }
-      if (previousTimeSpan == null && !pointersRelevant && onlyIntVars) {
-        if (timer.isRunning()) {
-          timer.stop();
-          previousTimeSpan = timer.getLengthOfLastInterval();
-        }
+      if (!pointersRelevant && onlyIntVars) {
         inner.setInc(6);
-      } else if (previousTimeSpan != null) {
-        timer.stop();
-        TimeSpan sinceLastAdjustment = timer.getLengthOfLastInterval();
-        int comp = sinceLastAdjustment.compareTo(previousTimeSpan);
+      } else if (lastLastTimeSpan != null) {
+        int comp = lastTimeSpan.compareTo(lastLastTimeSpan);
         int inc = inner.getInc();
         if (comp < 0) {
           inc *= 2;
@@ -751,12 +806,7 @@ public class InvariantsCPA
           swapInner();
         }
         inner.setInc(inc);
-        previousTimeSpan = sinceLastAdjustment;
-      } else if (timer.isRunning()) {
-        timer.stop();
-        previousTimeSpan = timer.getLengthOfLastInterval();
       }
-      timer.start();
       if (inner.adjustConditions()) {
         return true;
       } else {

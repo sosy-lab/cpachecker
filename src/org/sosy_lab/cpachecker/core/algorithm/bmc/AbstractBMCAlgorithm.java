@@ -23,9 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -41,18 +39,13 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.CountDownLatch;
 import java.util.function.ToIntFunction;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -70,12 +63,6 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateI
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCandiateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.AbstractInvariantGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -92,7 +79,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
-import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.targetreachability.ReachabilityState;
@@ -106,12 +92,9 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TestTargetLocationProvider;
-import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessGenerator;
 import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
-import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
-import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -160,29 +143,6 @@ abstract class AbstractBMCAlgorithm
   @Option(secure = true, description = "try using induction to verify programs with loops")
   private boolean induction = false;
 
-  @Option(secure = true, description = "Strategy for generating auxiliary invariants")
-  private InvariantGeneratorFactory invariantGenerationStrategy =
-      InvariantGeneratorFactory.REACHED_SET;
-
-  @Option(
-      secure = true,
-      description =
-          "Controls how long the invariant generator is allowed to run before the k-induction"
-              + " procedure starts.")
-  private InvariantGeneratorHeadStartFactories invariantGeneratorHeadStartStrategy =
-      InvariantGeneratorHeadStartFactories.NONE;
-
-  @Option(
-      secure = true,
-      description =
-          "k-induction configuration to be used as an invariant generator for k-induction"
-              + " (ki-ki(-ai)).")
-  @FileOption(value = Type.OPTIONAL_INPUT_FILE)
-  private @Nullable Path invariantGeneratorConfig = null;
-
-  @Option(secure = true, description = "Propagates the interrupts of the invariant generator.")
-  private boolean propagateInvGenInterrupts = false;
-
   @Option(
       secure = true,
       description = "Use generalized counterexamples to induction as candidate invariants.")
@@ -202,9 +162,6 @@ abstract class AbstractBMCAlgorithm
   private final @Nullable ConfigurableProgramAnalysis stepCaseCPA;
   private final @Nullable Algorithm stepCaseAlgorithm;
 
-  protected final InvariantGenerator invariantGenerator;
-  private final InvariantGeneratorHeadStart invariantGeneratorHeadStart;
-
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -221,15 +178,12 @@ abstract class AbstractBMCAlgorithm
 
   private final TargetLocationProvider targetLocationProvider;
 
-  private final @Nullable ShutdownRequestListener propagateSafetyInterrupt;
-
   private final AbstractionStrategy abstractionStrategy;
 
   /** The candidate invariants that have been proven to hold at the loop heads. */
   private final Set<CandidateInvariant> confirmedCandidates = new CopyOnWriteArraySet<>();
 
-  private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
-      new CopyOnWriteArrayList<>();
+  protected final InvariantGeneratorForBMC invariantGeneratorForBMC;
 
   protected AbstractBMCAlgorithm(
       Algorithm pAlgorithm,
@@ -286,66 +240,7 @@ abstract class AbstractBMCAlgorithm
     } else {
       stepCaseCPA = null;
       stepCaseAlgorithm = null;
-      invariantGenerationStrategy = InvariantGeneratorFactory.DO_NOTHING;
-      invariantGeneratorHeadStartStrategy = InvariantGeneratorHeadStartFactories.NONE;
     }
-
-    ShutdownManager invariantGeneratorShutdownManager = pShutdownManager;
-    boolean addInvariantsByInduction =
-        invariantGenerationStrategy == InvariantGeneratorFactory.INDUCTION;
-    if (addInvariantsByInduction) {
-      if (propagateInvGenInterrupts) {
-        invariantGeneratorShutdownManager = pShutdownManager;
-      } else {
-        invariantGeneratorShutdownManager =
-            ShutdownManager.createWithParent(pShutdownManager.getNotifier());
-      }
-      propagateSafetyInterrupt =
-          new ShutdownRequestListener() {
-
-            @Override
-            public void shutdownRequested(String pReason) {
-              if (invariantGenerator != null && invariantGenerator.isProgramSafe()) {
-                pShutdownManager.requestShutdown(pReason);
-              }
-            }
-          };
-      invariantGeneratorShutdownManager.getNotifier().register(propagateSafetyInterrupt);
-    } else {
-      propagateSafetyInterrupt = null;
-    }
-
-    if (pIsInvariantGenerator && addInvariantsByInduction) {
-      invariantGenerationStrategy = InvariantGeneratorFactory.REACHED_SET;
-    }
-    Configuration invGenConfig = pConfig;
-    if (invariantGeneratorConfig != null) {
-      try {
-        invGenConfig =
-            Configuration.builder()
-                .copyFrom(invGenConfig)
-                .loadFromFile(invariantGeneratorConfig)
-                .build();
-      } catch (IOException e) {
-        throw new InvalidConfigurationException(
-            String.format("Cannot load configuration from file %s", invariantGeneratorConfig), e);
-      }
-    }
-    invariantGenerator =
-        invariantGenerationStrategy.createInvariantGenerator(
-            invGenConfig,
-            pLogger,
-            pReachedSetFactory,
-            invariantGeneratorShutdownManager,
-            pCFA,
-            pSpecification,
-            pAggregatedReachedSets,
-            targetLocationProvider);
-    if (invariantGenerator instanceof ConditionAdjustmentEventSubscriber) {
-      conditionAdjustmentEventSubscribers.add(
-          (ConditionAdjustmentEventSubscriber) invariantGenerator);
-    }
-    invariantGeneratorHeadStart = invariantGeneratorHeadStartStrategy.createFor(this);
 
     @SuppressWarnings("resource")
     PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, BMCAlgorithm.class);
@@ -356,6 +251,19 @@ abstract class AbstractBMCAlgorithm
     abstractionStrategy = new PredicateAbstractionStrategy(cfa.getVarClassification());
     assignmentToPathAllocator =
         new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, pCFA.getMachineModel());
+
+    invariantGeneratorForBMC =
+        new InvariantGeneratorForBMC(
+            pShutdownManager,
+            pIsInvariantGenerator,
+            pConfig,
+            pLogger,
+            pReachedSetFactory,
+            pCFA,
+            pSpecification,
+            pAggregatedReachedSets,
+            targetLocationProvider,
+            bfmgr.makeTrue());
   }
 
   static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
@@ -373,7 +281,7 @@ abstract class AbstractBMCAlgorithm
   public AlgorithmStatus run(final ReachedSet reachedSet)
       throws CPAException, SolverException, InterruptedException {
     CFANode initialLocation = extractLocation(reachedSet.getFirstState());
-    invariantGenerator.start(initialLocation);
+    invariantGeneratorForBMC.start(initialLocation);
 
     // The set of candidate invariants that still need to be checked.
     // Successfully proven invariants are removed from the set.
@@ -389,7 +297,7 @@ abstract class AbstractBMCAlgorithm
     AlgorithmStatus status;
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      invariantGeneratorHeadStart.waitForInvariantGenerator();
+      invariantGeneratorForBMC.waitForHeadStart();
 
       do {
         shutdownNotifier.shutdownIfNecessary();
@@ -413,7 +321,7 @@ abstract class AbstractBMCAlgorithm
         }
         shutdownNotifier.shutdownIfNecessary();
 
-        if (invariantGenerator.isProgramSafe()) {
+        if (invariantGeneratorForBMC.isProgramSafe()) {
           TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
@@ -433,7 +341,7 @@ abstract class AbstractBMCAlgorithm
             candidateInvariantIterator.remove();
           }
 
-          if (invariantGenerator.isProgramSafe()) {
+          if (invariantGeneratorForBMC.isProgramSafe()) {
             TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
@@ -451,7 +359,7 @@ abstract class AbstractBMCAlgorithm
                   ? checkBoundingAssertions(reachedSet, prover)
                   : true;
 
-          if (invariantGenerator.isProgramSafe()) {
+          if (invariantGeneratorForBMC.isProgramSafe()) {
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
 
@@ -471,7 +379,7 @@ abstract class AbstractBMCAlgorithm
                       reachedSet, candidateGenerator, kInductionProver, ctiBlockingClauses);
             }
           }
-          if (invariantGenerator.isProgramSafe()
+          if (invariantGeneratorForBMC.isProgramSafe()
               || (sound && !candidateGenerator.produceMoreCandidates())) {
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
@@ -996,9 +904,7 @@ abstract class AbstractBMCAlgorithm
       ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
-    if (invariantGenerator instanceof StatisticsProvider) {
-      ((StatisticsProvider) invariantGenerator).collectStatistics(pStatsCollection);
-    }
+    invariantGeneratorForBMC.collectStatistics(pStatsCollection);
   }
 
   protected KInductionProver createInductionProver() {
@@ -1008,7 +914,7 @@ abstract class AbstractBMCAlgorithm
         logger,
         stepCaseAlgorithm,
         stepCaseCPA,
-        invariantGenerator,
+        invariantGeneratorForBMC,
         stats,
         reachedSetFactory,
         shutdownNotifier,
@@ -1033,125 +939,6 @@ abstract class AbstractBMCAlgorithm
    */
   protected Set<CFANode> getLoopHeads() {
     return BMCHelper.getLoopHeads(cfa, targetLocationProvider);
-  }
-
-  public enum InvariantGeneratorFactory {
-    INDUCTION {
-
-      @Override
-      InvariantGenerator createInvariantGenerator(
-          Configuration pConfig,
-          LogManager pLogger,
-          ReachedSetFactory pReachedSetFactory,
-          ShutdownManager pShutdownManager,
-          CFA pCFA,
-          Specification pSpecification,
-          AggregatedReachedSets pAggregatedReachedSets,
-          TargetLocationProvider pTargetLocationProvider)
-          throws InvalidConfigurationException, CPAException, InterruptedException {
-        return KInductionInvariantGenerator.create(
-            pConfig,
-            pLogger,
-            pShutdownManager,
-            pCFA,
-            pSpecification,
-            pReachedSetFactory,
-            pTargetLocationProvider,
-            pAggregatedReachedSets);
-      }
-    },
-
-    REACHED_SET {
-      @Override
-      InvariantGenerator createInvariantGenerator(
-          Configuration pConfig,
-          LogManager pLogger,
-          ReachedSetFactory pReachedSetFactory,
-          ShutdownManager pShutdownManager,
-          CFA pCFA,
-          Specification pSpecification,
-          AggregatedReachedSets pAggregatedReachedSets,
-          TargetLocationProvider pTargetLocationProvider) {
-        return new AbstractInvariantGenerator() {
-
-          @Override
-          protected void startImpl(CFANode pInitialLocation) {
-            // do nothing
-          }
-
-          @Override
-          public boolean isProgramSafe() {
-            // just return false, program will be ended by parallel algorithm if the invariant
-            // generator can prove safety before the current analysis
-            return false;
-          }
-
-          @Override
-          public void cancel() {
-            // do nothing
-          }
-
-          @Override
-          public InvariantSupplier getSupplier() throws CPAException, InterruptedException {
-            return new FormulaInvariantsSupplier(pAggregatedReachedSets);
-          }
-
-          @Override
-          public ExpressionTreeSupplier getExpressionTreeSupplier()
-              throws CPAException, InterruptedException {
-            return new ExpressionTreeInvariantSupplier(pAggregatedReachedSets, pCFA);
-          }
-        };
-      }
-    },
-
-    DO_NOTHING {
-
-      @Override
-      InvariantGenerator createInvariantGenerator(
-          Configuration pConfig,
-          LogManager pLogger,
-          ReachedSetFactory pReachedSetFactory,
-          ShutdownManager pShutdownManager,
-          CFA pCFA,
-          Specification pSpecification,
-          AggregatedReachedSets pAggregatedReachedSets,
-          TargetLocationProvider pTargetLocationProvider) {
-        return new DoNothingInvariantGenerator();
-      }
-    },
-
-    INVARIANT_STORE {
-      @Override
-      InvariantGenerator createInvariantGenerator(
-          Configuration pConfig,
-          LogManager pLogger,
-          ReachedSetFactory pReachedSetFactory,
-          ShutdownManager pShutdownManager,
-          CFA pCFA,
-          Specification pSpecification,
-          AggregatedReachedSets pAggregatedReachedSets,
-          TargetLocationProvider pTargetLocationProvider)
-          throws InvalidConfigurationException, CPAException, InterruptedException {
-        try {
-          return InvariantWitnessGenerator.getNewFromDiskInvariantGenerator(
-              pConfig, pCFA, pLogger, pShutdownManager.getNotifier());
-        } catch (IOException e) {
-          throw new CPAException("Could not create from disk generator", e);
-        }
-      }
-    };
-
-    abstract InvariantGenerator createInvariantGenerator(
-        Configuration pConfig,
-        LogManager pLogger,
-        ReachedSetFactory pReachedSetFactory,
-        ShutdownManager pShutdownManager,
-        CFA pCFA,
-        Specification pSpecification,
-        AggregatedReachedSets pAggregatedReachedSets,
-        TargetLocationProvider pTargetLocationProvider)
-        throws InvalidConfigurationException, CPAException, InterruptedException;
   }
 
   protected FluentIterable<CandidateInvariant> getConfirmedCandidates(final CFANode pLocation) {
@@ -1212,16 +999,12 @@ abstract class AbstractBMCAlgorithm
 
   @Override
   public void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa) {
-    for (ConditionAdjustmentEventSubscriber caes : conditionAdjustmentEventSubscribers) {
-      caes.adjustmentSuccessful(pCpa);
-    }
+    invariantGeneratorForBMC.adjustmentSuccessful(pCpa);
   }
 
   @Override
   public void adjustmentRefused(ConfigurableProgramAnalysis pCpa) {
-    for (ConditionAdjustmentEventSubscriber caes : conditionAdjustmentEventSubscribers) {
-      caes.adjustmentRefused(pCpa);
-    }
+    invariantGeneratorForBMC.adjustmentRefused(pCpa);
   }
 
   private static class Obligation implements CandidateInvariant, Comparable<Obligation> {
@@ -1407,108 +1190,5 @@ abstract class AbstractBMCAlgorithm
       checkState(isSafe(), "A counterexample was found already.");
       return Iterables.filter(pStates, Predicates.not(Predicates.in(checkedStates)));
     }
-  }
-
-  private interface InvariantGeneratorHeadStart {
-
-    void waitForInvariantGenerator() throws InterruptedException;
-  }
-
-  private enum InvariantGeneratorHeadStartFactories {
-    NONE {
-
-      @Override
-      public InvariantGeneratorHeadStart createFor(AbstractBMCAlgorithm pBmcAlgorithm) {
-        return new InvariantGeneratorHeadStart() {
-
-          @Override
-          public void waitForInvariantGenerator() throws InterruptedException {
-            // Return immediately
-          }
-        };
-      }
-    },
-
-    AWAIT_TERMINATION {
-
-      @Override
-      public InvariantGeneratorHeadStart createFor(AbstractBMCAlgorithm pBmcAlgorithm) {
-        CountDownLatch latch = new CountDownLatch(1);
-        pBmcAlgorithm.conditionAdjustmentEventSubscribers.add(
-            new ConditionAdjustmentEventSubscriber() {
-
-              @Override
-              public void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa) {
-                // Ignore
-              }
-
-              @Override
-              public void adjustmentRefused(ConfigurableProgramAnalysis pCpa) {
-                latch.countDown();
-              }
-            });
-        return new HeadStartWithLatch(pBmcAlgorithm, latch);
-      }
-    },
-
-    WAIT_UNTIL_EXPENSIVE_ADJUSTMENT {
-
-      @Override
-      InvariantGeneratorHeadStart createFor(AbstractBMCAlgorithm pBmcAlgorithm) {
-        CountDownLatch latch = new CountDownLatch(1);
-        pBmcAlgorithm.conditionAdjustmentEventSubscribers.add(
-            new ConditionAdjustmentEventSubscriber() {
-
-              @Override
-              public void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa) {
-                FluentIterable<InvariantsCPA> cpas =
-                    CPAs.asIterable(pCpa).filter(InvariantsCPA.class);
-                if (cpas.isEmpty()) {
-                  latch.countDown();
-                } else {
-                  for (InvariantsCPA invariantCpa : cpas) {
-                    if (invariantCpa.isLikelyLongRunning()) {
-                      latch.countDown();
-                      break;
-                    }
-                  }
-                }
-              }
-
-              @Override
-              public void adjustmentRefused(ConfigurableProgramAnalysis pCpa) {
-                latch.countDown();
-              }
-            });
-        return new HeadStartWithLatch(pBmcAlgorithm, latch);
-      }
-    };
-
-    private static final class HeadStartWithLatch implements InvariantGeneratorHeadStart {
-
-      private final CountDownLatch latch;
-
-      @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
-      private final ShutdownRequestListener shutdownListener =
-          new ShutdownRequestListener() {
-
-            @Override
-            public void shutdownRequested(String pReason) {
-              latch.countDown();
-            }
-          };
-
-      public HeadStartWithLatch(AbstractBMCAlgorithm pBmcAlgorithm, CountDownLatch pLatch) {
-        latch = Objects.requireNonNull(pLatch);
-        pBmcAlgorithm.shutdownNotifier.registerAndCheckImmediately(shutdownListener);
-      }
-
-      @Override
-      public void waitForInvariantGenerator() throws InterruptedException {
-        latch.await();
-      }
-    }
-
-    abstract InvariantGeneratorHeadStart createFor(AbstractBMCAlgorithm pBmcAlgorithm);
   }
 }

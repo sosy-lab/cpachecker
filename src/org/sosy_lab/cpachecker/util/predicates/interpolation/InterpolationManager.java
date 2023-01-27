@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
@@ -140,7 +139,11 @@ public final class InterpolationManager {
   private final PathFormulaManager pmgr;
   private final Solver solver;
 
-  private final Interpolator<?> interpolator;
+  // lazy instantiation of interpolator
+  // this could somehow avoid StackOverFlowError when using InterpolationManger in parallel analyses
+  // with reuseInterpolationEnvironment=true
+  // TODO: investigate the cause of the StackOverFlowError
+  private Interpolator<?> interpolator;
 
   @Option(
       secure = true,
@@ -281,11 +284,7 @@ public final class InterpolationManager {
           Executors.newSingleThreadExecutor(new ThreadFactoryBuilder().setDaemon(true).build());
     }
 
-    if (reuseInterpolationEnvironment) {
-      interpolator = new Interpolator<>();
-    } else {
-      interpolator = null;
-    }
+    interpolator = null;
 
     switch (strategy) {
       case SEQ_CPACHECKER:
@@ -429,19 +428,17 @@ public final class InterpolationManager {
     try {
       final BlockFormulas f = prepareCounterexampleFormulas(pFormulas);
 
-      final Interpolator<?> currentInterpolator;
-      if (reuseInterpolationEnvironment) {
-        currentInterpolator = checkNotNull(interpolator);
-      } else {
-        currentInterpolator = new Interpolator<>();
+      if (interpolator == null) {
+        interpolator = new Interpolator<>();
       }
 
       try {
         try {
-          return currentInterpolator.buildCounterexampleTrace(f, pAbstractionStates, imprecisePath);
+          return interpolator.buildCounterexampleTrace(f, pAbstractionStates, imprecisePath);
         } finally {
           if (!reuseInterpolationEnvironment) {
-            currentInterpolator.close();
+            interpolator.close();
+            interpolator = null;
           }
         }
       } catch (SolverException itpException) {
