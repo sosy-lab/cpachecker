@@ -13,7 +13,6 @@ import json
 import sys
 import webbrowser
 from pathlib import Path
-from dateutil.parser import parse
 
 from typing import Dict
 
@@ -107,11 +106,10 @@ def html_for_message(message, block_log: Dict[str, str]):
             with div.span():
                 div(arrow)
             with div.span():
-                sender = "self"
                 if senders:
                     sender = ", ".join(senders)
                 else:
-                    sender = "None"
+                    sender = "Self"
                 div(f"React to message from <strong>{sender}</strong>:")
         with div.p():
             if receivers:
@@ -201,10 +199,8 @@ def export_messages_table(
         message_table_css_file = Path(__file__).parent / "table.css"
 
     for message in all_messages:
-        # 2022-03-10T14:44:07.0318755Z
-        message["timestamp"] = int(
-            parse(message["timestamp"]).timestamp()
-        )
+        message["timestamp"] = int(message["timestamp"])
+
     all_messages = sorted(
         all_messages, key=lambda entry: (entry["timestamp"], entry["from"][1::])
     )

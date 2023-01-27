@@ -308,6 +308,8 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
             cfaNetwork, pCFA.getMetadata(), logger, shutdownManager.getNotifier());
     Map<CFANode, CFANode> originalInstrumentedMapping =
         createMappingBetweenOriginalAndInstrumentedCFA(pCFA, instrumented);
+    originalInstrumentedMapping.forEach(
+        (n1, n2) -> n2.setReversePostorderId(n1.getReversePostorderId()));
     Optional<LoopStructure> loopStructure;
     if (pCFA.getMetadata().getLoopStructure().isPresent()) {
       LoopStructure extracted = pCFA.getMetadata().getLoopStructure().orElseThrow();

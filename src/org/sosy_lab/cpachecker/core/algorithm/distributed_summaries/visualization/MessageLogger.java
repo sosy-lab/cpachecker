@@ -15,6 +15,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
@@ -87,7 +88,11 @@ public class MessageLogger {
     }
     Map<String, Object> messageToJSON = new HashMap<>();
     messageToJSON.put("type", pMessage.getType().name());
-    messageToJSON.put("timestamp", pMessage.getTimestamp().toString());
+    BigInteger secondsToNano =
+        BigInteger.valueOf(pMessage.getTimestamp().getEpochSecond())
+            .multiply(BigInteger.valueOf(1000000000));
+    secondsToNano = secondsToNano.add(BigInteger.valueOf(pMessage.getTimestamp().getNano()));
+    messageToJSON.put("timestamp", secondsToNano.toString());
     messageToJSON.put("from", pMessage.getUniqueBlockId());
     if (pMessage.getAbstractState(PredicateCPA.class).isEmpty()) {
       pMessage = BlockSummaryMessage.addEntry(pMessage, PredicateCPA.class.getName(), "true");

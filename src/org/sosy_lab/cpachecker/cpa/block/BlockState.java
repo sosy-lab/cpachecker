@@ -121,7 +121,9 @@ public class BlockState
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
-    return isTarget() && direction == AnalysisDirection.FORWARD
+    return isTarget()
+            && direction == AnalysisDirection.FORWARD
+            && !blockNode.getLastNode().equals(blockNode.getAbstractionNode())
         ? errorCondition
             .map(
                 state ->

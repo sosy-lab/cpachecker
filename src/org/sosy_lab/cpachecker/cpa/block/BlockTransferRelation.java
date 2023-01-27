@@ -13,8 +13,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -68,10 +70,10 @@ public abstract class BlockTransferRelation implements TransferRelation {
       BlockState blockState = (BlockState) element;
 
       CFANode node = blockState.getLocationNode();
-      if (Sets.intersection(
-              ImmutableSet.copyOf(CFAUtils.allLeavingEdges(node)),
-              blockState.getBlockNode().getEdgesInBlock())
-          .contains(cfaEdge)) {
+      Set<CFAEdge> intersection = Sets.intersection(
+          ImmutableSet.copyOf(CFAUtils.allLeavingEdges(node)),
+          blockState.getBlockNode().getEdgesInBlock());
+      if (intersection.contains(cfaEdge) || (cfaEdge instanceof CFunctionCallEdge callEdge && intersection.contains(callEdge.getSummaryEdge()))) {
         if (!shouldComputeSuccessor(blockState)) {
           return ImmutableSet.of();
         }
@@ -99,7 +101,8 @@ public abstract class BlockTransferRelation implements TransferRelation {
       }
 
       CFANode node = blockState.getLocationNode();
-      return CFAUtils.successorsOf(node)
+      // may not work with function calls if a block solely consists of a summary edge
+      return CFAUtils.allSuccessorsOf(node)
           .filter(n -> blockState.getBlockNode().getNodesInBlock().contains(n))
           .transform(
               n ->
