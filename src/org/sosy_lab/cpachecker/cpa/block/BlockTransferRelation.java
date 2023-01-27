@@ -132,10 +132,13 @@ public abstract class BlockTransferRelation implements TransferRelation {
       BlockState blockState = (BlockState) element;
 
       CFANode node = blockState.getLocationNode();
-      Set<CFAEdge> entering = Sets.intersection(
+      Set<CFAEdge> entering =
+          Sets.intersection(
               ImmutableSet.copyOf(CFAUtils.allEnteringEdges(node)),
               blockState.getBlockNode().getEdgesInBlock());
-      if (entering.contains(node) || (cfaEdge instanceof CFunctionCallEdge callEdge && entering.contains(callEdge.getSummaryEdge()))) {
+      if (entering.contains(node)
+          || (cfaEdge instanceof CFunctionCallEdge callEdge
+              && entering.contains(callEdge.getSummaryEdge()))) {
         if (!shouldComputeSuccessor(blockState)) {
           return ImmutableSet.of();
         }

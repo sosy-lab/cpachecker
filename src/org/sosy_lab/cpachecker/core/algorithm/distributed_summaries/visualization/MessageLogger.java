@@ -90,8 +90,8 @@ public class MessageLogger {
     messageToJSON.put("type", pMessage.getType().name());
     BigInteger secondsToNano =
         BigInteger.valueOf(pMessage.getTimestamp().getEpochSecond())
-            .multiply(BigInteger.valueOf(1000000000));
-    secondsToNano = secondsToNano.add(BigInteger.valueOf(pMessage.getTimestamp().getNano()));
+            .multiply(BigInteger.valueOf(1000000000))
+            .add(BigInteger.valueOf(pMessage.getTimestamp().getNano()));
     messageToJSON.put("timestamp", secondsToNano.toString());
     messageToJSON.put("from", pMessage.getUniqueBlockId());
     if (pMessage.getAbstractState(PredicateCPA.class).isEmpty()) {
