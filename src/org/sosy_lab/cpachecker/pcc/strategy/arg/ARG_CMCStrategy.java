@@ -12,7 +12,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.file.Path;
@@ -22,7 +21,6 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import java.util.zip.ZipInputStream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -44,7 +42,6 @@ import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.AssumptionAutomatonGenerator;
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.PartialCPABuilder;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 public class ARG_CMCStrategy extends AbstractStrategy {
@@ -157,10 +154,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       List<ARGState> incompleteStates = new ArrayList<>();
       ConfigurableProgramAnalysis cpa;
 
-      Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
-      try {
-        streams = openProofStream();
-        ObjectInputStream o = streams.getThird();
+      try (ObjectInputStream o = openProofStream()) {
         o.readInt();
 
         Object readARG;
@@ -209,15 +203,6 @@ public class ARG_CMCStrategy extends AbstractStrategy {
         return false;
       } finally {
         logger.log(Level.INFO, "Stop checking partial ARGs");
-        if (streams != null) {
-          try {
-            streams.getThird().close();
-            streams.getSecond().close();
-            streams.getFirst().close();
-          } catch (IOException e) {
-            throw new AssertionError(e);
-          }
-        }
       }
 
       return incompleteStates.isEmpty() && roots.length > 0;
@@ -242,10 +227,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
                 @Override
                 public void run() {
-                  Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
-                  try {
-                    streams = openProofStream();
-                    ObjectInputStream o = streams.getThird();
+                  try (ObjectInputStream o = openProofStream()) {
                     o.readInt();
 
                     Object readARG;
@@ -274,16 +256,6 @@ public class ARG_CMCStrategy extends AbstractStrategy {
                     logger.logException(
                         Level.SEVERE, e2, "Unexpected failure during proof reading");
                     abortPreparation();
-                  } finally {
-                    if (streams != null) {
-                      try {
-                        streams.getThird().close();
-                        streams.getSecond().close();
-                        streams.getFirst().close();
-                      } catch (IOException e) {
-                        throw new AssertionError(e);
-                      }
-                    }
                   }
                 }
 

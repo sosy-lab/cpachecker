@@ -85,9 +85,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     }
   }
 
-  @Option(
-      secure = true,
-      description = "Apply AND- LBE transformation to loop " + "transition relation.")
+  @Option(secure = true, description = "Apply AND- LBE transformation to loop transition relation.")
   private boolean applyLBETransformation = true;
 
   @Option(

@@ -106,6 +106,10 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox-ReachSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
+  <tasks name="SoftwareSystems-coreutils-ReachSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-coreutils-ReachSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
   <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
     <excludesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64Large-ReachSafety.set</excludesfile>
@@ -161,6 +165,10 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox-MemSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
+  <tasks name="SoftwareSystems-coreutils-MemSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-coreutils-MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
   <tasks name="SoftwareSystems-DeviceDriversLinux64-MemSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-MemSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -173,6 +181,11 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/SoftwareSystems-uthash-MemSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
+
+  <tasks name="ConcurrencySafety-MemSafety">
+    <includesfile>../programs/benchmarks/ConcurrencySafety-MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
 </rundefinition>
 
 <rundefinition name="SV-COMP23_no-overflow">
@@ -180,9 +193,17 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/NoOverflows-Main.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
+  <tasks name="NoOverflows-Juliet">
+    <includesfile>../programs/benchmarks/NoOverflows-Juliet.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+  </tasks>
 
   <tasks name="SoftwareSystems-BusyBox-NoOverflows">
     <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox-NoOverflows.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-coreutils-NoOverflows">
+    <includesfile>../programs/benchmarks/SoftwareSystems-coreutils-NoOverflows.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
   <tasks name="SoftwareSystems-uthash-NoOverflows">

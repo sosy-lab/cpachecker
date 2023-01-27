@@ -45,8 +45,7 @@ import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 public class TargetReachabilityCPA extends AbstractCPA implements StatisticsProvider, Statistics {
   @Option(
       secure = true,
-      description =
-          "Do not follow states which can not " + "syntactically lead to a target location")
+      description = "Do not follow states which can not syntactically lead to a target location")
   private boolean noFollowBackwardsUnreachable = true;
 
   private final Timer backwardsReachability = new Timer();

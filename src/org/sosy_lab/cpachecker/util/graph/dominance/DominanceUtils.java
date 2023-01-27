@@ -64,12 +64,12 @@ public final class DominanceUtils {
         pEntryNode);
   }
 
-  public static DomTree<CFANode> createFunctionPostDomTree(FunctionEntryNode pEntryNode) {
+  public static DomTree<CFANode> createFunctionPostDomTree(FunctionExitNode pExitNode) {
 
     return DomTree.forGraph(
         node -> createSuccessorIterable(node, ImmutableSet.of()),
         node -> createPredecessorIterable(node, ImmutableSet.of()),
-        pEntryNode.getExitNode());
+        pExitNode);
   }
 
   public static DomTree<CFANode> createFunctionDomTree(

@@ -258,6 +258,12 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
     }
 
+    // if the function exit node doesn't have entering edges, it's unreachable and we remove it
+    Optional<FunctionExitNode> exitNode = cfa.getExitNode();
+    if (exitNode.isPresent() && exitNode.orElseThrow().getNumEnteringEdges() == 0) {
+      cfa.removeExitNode();
+    }
+
     assert !sideAssignmentStack.hasPreSideAssignments();
     assert !sideAssignmentStack.hasPostSideAssignments();
     assert locStack.isEmpty();
@@ -526,12 +532,15 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       CFANode lastNode = locStack.pop();
 
+      // During function CFA construction, every function entry node must have a function exit node
+      // (unreachable function exit nodes have not been removed yet).
+      FunctionExitNode functionExitNode = cfa.getExitNode().orElseThrow();
       if (isReachableNode(lastNode)) {
         BlankEdge blankEdge =
-            new BlankEdge("", FileLocation.DUMMY, lastNode, cfa.getExitNode(), "default return");
+            new BlankEdge("", FileLocation.DUMMY, lastNode, functionExitNode, "default return");
         addToCFA(blankEdge);
       } else {
-        cfa.getExitNode().addOutOfScopeVariables(lastNode.getOutOfScopeVariables());
+        functionExitNode.addOutOfScopeVariables(lastNode.getOutOfScopeVariables());
       }
 
       if (!gotoLabelNeeded.isEmpty()) {
@@ -876,7 +885,10 @@ class CFAFunctionBuilder extends ASTVisitor {
   private void handleReturnStatement(IASTReturnStatement returnStatement, FileLocation fileloc) {
 
     CFANode prevNode = locStack.pop();
-    FunctionExitNode functionExitNode = cfa.getExitNode();
+
+    // During function CFA construction, every function entry node must have a function exit node
+    // (unreachable function exit nodes have not been removed yet).
+    FunctionExitNode functionExitNode = cfa.getExitNode().orElseThrow();
 
     // a return statement leaves all available scopes at once.
     for (Collection<CSimpleDeclaration> vars : scope.getVariablesOfMostLocalScopes()) {

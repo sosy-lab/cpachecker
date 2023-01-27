@@ -145,7 +145,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   @Option(
       secure = true,
       name = "refinement.useBddInterpolantSimplification",
-      description = "Use BDDs to simplify interpolants " + "(removing irrelevant predicates)")
+      description = "Use BDDs to simplify interpolants (removing irrelevant predicates)")
   private boolean useBddInterpolantSimplification = false;
 
   @Option(

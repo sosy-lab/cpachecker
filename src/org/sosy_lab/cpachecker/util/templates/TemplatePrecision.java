@@ -82,7 +82,7 @@ public class TemplatePrecision implements Precision {
   @Option(secure = true, description = "Generate templates from assert statements")
   private boolean generateFromAsserts = true;
 
-  @Option(secure = true, description = "Generate templates from all program " + "statements")
+  @Option(secure = true, description = "Generate templates from all program statements")
   private boolean generateFromStatements = false;
 
   @Option(secure = true, description = "Maximum size for the generated template")
@@ -104,7 +104,7 @@ public class TemplatePrecision implements Precision {
 
   @Option(
       secure = true,
-      description = "Strategy for filtering variables out of templates using " + "liveness")
+      description = "Strategy for filtering variables out of templates using liveness")
   private VarFilteringStrategy varFiltering = VarFilteringStrategy.ALL_LIVE;
 
   @Option(
@@ -592,8 +592,7 @@ public class TemplatePrecision implements Precision {
 
       if (!generateFromStatements) {
         logger.log(
-            Level.INFO,
-            "Template Refinement: Generating templates from all program " + "statements.");
+            Level.INFO, "Template Refinement: Generating templates from all program statements.");
         generateFromStatements = true;
         extractedTemplates = extractTemplates();
         return true;
@@ -609,13 +608,13 @@ public class TemplatePrecision implements Precision {
         return true;
       }
       if (maxExpressionSize == 2 && !allowedCoefficients.contains(Rational.ofLong(2))) {
-        logger.log(Level.INFO, "Template Refinement: increasing the " + "coefficient size to 2");
+        logger.log(Level.INFO, "Template Refinement: increasing the coefficient size to 2");
         allowedCoefficients =
             from(allowedCoefficients).append(Rational.ofLong(2), Rational.ofLong(-2)).toSet();
         return true;
       }
       if (maxExpressionSize == 2 && allowedCoefficients.contains(Rational.ofLong(2))) {
-        logger.log(Level.INFO, "Template Refinement: increasing the " + "expression size to 3");
+        logger.log(Level.INFO, "Template Refinement: increasing the expression size to 3");
         maxExpressionSize = 3;
         return true;
       }

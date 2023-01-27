@@ -35,7 +35,7 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
   @Override
   public CExpression visit(EnumConstantValue pValue) {
     throw new UnsupportedOperationException(
-        EnumConstantValue.class.getSimpleName() + " is a Java" + " value");
+        EnumConstantValue.class.getSimpleName() + " is a Java value");
   }
 
   @Override
@@ -50,8 +50,7 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
 
   @Override
   public CExpression visit(ArrayValue pValue) {
-    throw new UnsupportedOperationException(
-        ArrayValue.class.getSimpleName() + " is a Java" + " value");
+    throw new UnsupportedOperationException(ArrayValue.class.getSimpleName() + " is a Java value");
   }
 
   @Override
@@ -68,7 +67,7 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
   @Override
   public CExpression visit(FunctionValue pValue) {
     throw new UnsupportedOperationException(
-        "Function values can't be transformed back " + "to CExpressions correctly, at the moment");
+        "Function values can't be transformed back to CExpressions correctly, at the moment");
   }
 
   @Override

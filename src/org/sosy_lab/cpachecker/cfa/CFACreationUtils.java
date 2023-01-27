@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 /**
  * Helper class that contains some complex operations that may be useful during the creation of a
@@ -108,6 +109,11 @@ public class CFACreationUtils {
   public static void removeChainOfNodesFromCFA(CFANode n) {
     if (n.getNumEnteringEdges() > 0) {
       return;
+    }
+
+    if (n instanceof FunctionExitNode) {
+      // the function exit node is unreachable, so the entry node shouldn't have a reference to it
+      ((FunctionExitNode) n).getEntryNode().removeExitNode();
     }
 
     for (int i = n.getNumLeavingEdges() - 1; i >= 0; i--) {
