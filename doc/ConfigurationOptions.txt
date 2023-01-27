@@ -191,6 +191,10 @@ analysis.algorithm.CEGAR = false
 # with PredicateCPA and large-block encoding
 analysis.algorithm.IMC = false
 
+# use McMillan's interpolation-based model checking algorithm by encoding a
+# CFA as a transition relation with a symbolic program counter
+analysis.algorithm.IMCTR = false
+
 # Use MPI for running analyses in new subprocesses. The resulting reachedset
 # is the one of the first analysis returning in time. All other mpi-processes
 # will get aborted.
@@ -867,6 +871,28 @@ cfa.threads.threadSelfCreate = "pthread_create_N"
 
 # A name of thread_join_N function
 cfa.threads.threadSelfJoin = "pthread_join_N"
+
+# This option causes the control flow automaton to be transformed into the
+# automaton of an equivalent program with one single loop and an artificial
+# program counter.
+cfa.transformIntoSingleLoop = false
+
+# Single loop transformation builds a decision tree based on the program
+# counter values. This option causes the last program counter value not to be
+# explicitly assumed in the decision tree, so that it is only indirectly
+# represented by the assumption of falsehood for all other assumptions in the
+# decision tree.
+cfa.transformIntoSingleLoop.omitExplicitLastProgramCounterAssumption = false
+
+# This option controls the size of the subgraphs referred to by program
+# counter values. The larger the subgraphs, the fewer program counter values
+# are required. Possible values are  MULTIPLE_PATHS, SINGLE_PATH and
+# SINGLE_EDGE, where MULTIPLE_PATHS has the largest subgraphs (and fewest
+# program counter values) and SINGLE_EDGE has the smallest subgraphs (and
+# most program counter values). The larger the subgraphs, the closer the
+# resulting graph will look like the original CFA.
+cfa.transformIntoSingleLoop.subgraphGrowthStrategy = MULTIPLE_PATHS
+  enum:     [MULTIPLE_PATHS, SINGLE_PATH, SINGLE_EDGE]
 
 # clone functions of the CFA, such that there are several identical CFAs for
 # each function, only with different names.
@@ -3904,6 +3930,19 @@ imc.loopBound.incrementValueForKI = 1
 
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false
+
+# analyze the derived interpolants
+imctr.analyzeInterpolant = false
+
+# derive interpolants backward
+imctr.backwardInterpolation = true
+
+# check the union of safety properties after each transition (the original
+# encoding in McMillan's CAV 2003 paper)
+imctr.checkUnionProperty = false
+
+# enable interpolation-based model checking
+imctr.interpolation = true
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
