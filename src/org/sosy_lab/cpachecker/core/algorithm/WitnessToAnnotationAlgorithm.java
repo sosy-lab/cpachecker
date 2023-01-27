@@ -21,8 +21,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Set;
@@ -74,9 +75,7 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
   @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
   private Path outDir = Path.of("annotated");
 
-  @Option(
-      secure = true,
-      description = "The format in which annotations shall be exported.")
+  @Option(secure = true, description = "The format in which annotations shall be exported.")
   private AnnotationLanguage lang = AnnotationLanguage.ACSL;
 
   @Option(
@@ -92,8 +91,8 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
   public WitnessToAnnotationAlgorithm(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException {
+    pConfig.inject(this);
     config = pConfig;
-    config.inject(this);
     logger = pLogger;
     cfa = pCfa;
     shutdownNotifier = pShutdownNotifier;
@@ -101,119 +100,125 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-
-    Set<Path> files = new HashSet<>();
+    // Collect invariants from the witness
     Set<ExpressionTreeLocationInvariant> invariants;
     try {
       WitnessInvariantsExtractor invariantsExtractor =
           new WitnessInvariantsExtractor(config, logger, cfa, shutdownNotifier, witness);
       invariants = invariantsExtractor.extractInvariantsFromReachedSet();
     } catch (InvalidConfigurationException pE) {
-      throw new CPAException(
-          "Invalid Configuration while analyzing witness:\n" + pE.getMessage(), pE);
+      throw new CPAException("Invalid configuration while analyzing witness", pE);
     }
 
-    for (ExpressionTreeLocationInvariant c : invariants) {
-      Path file = c.getLocation().getFunction().getFileLocation().getFileName();
+    // Determine referenced program files
+    Multimap<Path, ExpressionTreeLocationInvariant> programsToInvariants =
+        LinkedHashMultimap.create();
+    for (ExpressionTreeLocationInvariant invariant : invariants) {
+      Path file = invariant.getLocation().getFunction().getFileLocation().getFileName();
       if (Files.isRegularFile(file)) {
-        files.add(file);
+        programsToInvariants.put(file, invariant);
       }
     }
 
-    for (Path file : files) {
-      // Sort invariants by location
-      Multimap<Integer, ExpressionTreeLocationInvariant> locationsToInvariants =
-          LinkedHashMultimap.create();
-      for (ExpressionTreeLocationInvariant inv : invariants) {
-        CFANode node = inv.getLocation();
-        if (!node.getFunction().getFileLocation().getFileName().equals(file)) {
-          // Current invariant belongs to another program
-          continue;
-        }
-        Set<Integer> effectiveLocations = getEffectiveLocations(inv);
-        if (!effectiveLocations.isEmpty()) {
-          for (Integer location : effectiveLocations) {
-            locationsToInvariants.put(location, inv);
-          }
-        } else {
-          logger.logf(
-              Level.INFO,
-              "Could not determine a location for invariant %s, skipping.",
-              inv.asExpressionTree());
-        }
-      }
-
-      String fileContent;
-      try {
-        fileContent = Files.readString(file);
-      } catch (IOException pE) {
-        logger.logfUserException(Level.WARNING, pE, "Could not read file %s", file);
-        continue;
-      }
-
-      PriorityQueue<Integer> sortedLocations = new PriorityQueue<>(locationsToInvariants.keySet());
-      Integer currentLocation = sortedLocations.poll();
-
-      List<String> output = new ArrayList<>();
-
-      List<String> splitContent = Splitter.onPattern("\\r?\\n").splitToList(fileContent);
-      for (int i = 0; i < splitContent.size(); i++) {
-        assert currentLocation == null || currentLocation >= i;
-        List<ExpressionTree<Object>> collectedLoopInvariants = new ArrayList<>();
-        while (currentLocation != null && currentLocation == i) {
-          String lineBefore = splitContent.get(i - 1).strip();
-          String lineAfter = splitContent.get(i).strip();
-          if ((lineBefore.endsWith(")") || lineBefore.endsWith("else"))
-              && lineAfter.startsWith("{")) {
-            // Add annotation inside the following block, not between braces
-            sortedLocations.offer(currentLocation + 1);
-            for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
-              locationsToInvariants.put(currentLocation + 1, inv);
-            }
-            locationsToInvariants.removeAll(currentLocation);
-          } else {
-            for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
-              if (isAtLoopStart(inv)) {
-                collectedLoopInvariants.add(inv.asExpressionTree());
-                continue;
-              }
-              String annotation = makeAnnotation(inv.asExpressionTree(), isAtLoopStart(inv));
-              String indentation = i > 0 ? getIndentation(splitContent.get(i - 1)) : "";
-              output.add(indentation + annotation);
-            }
-          }
-          currentLocation = sortedLocations.poll();
-        }
-        if (!collectedLoopInvariants.isEmpty() && !splitContent.get(i).isBlank()) {
-          ExpressionTree<Object> conjunctedInvariants = And.of(collectedLoopInvariants);
-          String annotation = makeAnnotation(conjunctedInvariants, true);
-          String indentation = i > 0 ? getIndentation(splitContent.get(i - 1)) : "";
-          output.add(indentation + annotation);
-          collectedLoopInvariants.clear();
-        }
-        output.add(splitContent.get(i));
-      }
-
-      long count = 0;
-      while (!sortedLocations.isEmpty()) {
-        currentLocation = sortedLocations.poll();
-        count++;
-      }
-      if (count != 0) {
-        logger.logf(
-            Level.WARNING,
-            "Not all invariants where used for annotations, we still have %d invariants left!",
-            count);
-      }
-      try {
-        writeToFile(file, output);
-      } catch (IOException pE) {
-        logger.logfUserException(
-            Level.WARNING, pE, "Could not write annotations for file %s", file);
-        continue;
-      }
+    // Annotate programs
+    for (Entry<Path, Collection<ExpressionTreeLocationInvariant>> entry :
+        programsToInvariants.asMap().entrySet()) {
+      annotateProgram(entry.getKey(), entry.getValue());
     }
+
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
+  }
+
+  /**
+   * Converts the given invariants into annotations and inserts them at fitting locations in the
+   * program.
+   *
+   * @param file The program file.
+   * @param invariants A set of invariants for the program.
+   */
+  private void annotateProgram(Path file, Collection<ExpressionTreeLocationInvariant> invariants) {
+    // Read in program
+    String fileContent;
+    try {
+      fileContent = Files.readString(file);
+    } catch (IOException pE) {
+      logger.logfUserException(Level.WARNING, pE, "Could not read file %s", file);
+      return;
+    }
+
+    // Sort invariants by location
+    Multimap<Integer, ExpressionTreeLocationInvariant> locationsToInvariants =
+        LinkedHashMultimap.create();
+    for (ExpressionTreeLocationInvariant inv : invariants) {
+      assert inv.getLocation().getFunction().getFileLocation().getFileName().equals(file)
+          : "Invariant belongs to another program";
+      Set<Integer> effectiveLocations = getEffectiveLocations(inv);
+      if (effectiveLocations.isEmpty()) {
+        logger.logf(
+            Level.INFO,
+            "Could not determine a location for invariant %s, skipping.",
+            inv.asExpressionTree());
+      }
+      for (Integer location : effectiveLocations) {
+        locationsToInvariants.put(location, inv);
+      }
+    }
+
+    // Create and insert annotations at correct locations in the program
+    List<String> output = new ArrayList<>();
+    PriorityQueue<Integer> sortedLocations = new PriorityQueue<>(locationsToInvariants.keySet());
+    Integer currentLocation = sortedLocations.poll();
+    List<String> splitContent = Splitter.onPattern("\\r?\\n").splitToList(fileContent);
+    for (int i = 0; i < splitContent.size(); i++) {
+      assert currentLocation == null || currentLocation >= i;
+      List<ExpressionTree<Object>> collectedLoopInvariants = new ArrayList<>();
+      while (currentLocation != null && currentLocation == i) {
+        String lineBefore = splitContent.get(i - 1).strip();
+        String lineAfter = splitContent.get(i).strip();
+        if ((lineBefore.endsWith(")") || lineBefore.endsWith("else"))
+            && lineAfter.startsWith("{")) {
+          // Add annotation inside the following block, not between braces
+          sortedLocations.offer(currentLocation + 1);
+          for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
+            locationsToInvariants.put(currentLocation + 1, inv);
+          }
+          locationsToInvariants.removeAll(currentLocation);
+        } else {
+          for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
+            if (isAtLoopStart(inv)) {
+              collectedLoopInvariants.add(inv.asExpressionTree());
+              continue;
+            }
+            String annotation = makeAnnotation(inv.asExpressionTree(), isAtLoopStart(inv));
+            String indentation = i > 0 ? getIndentation(splitContent.get(i - 1)) : "";
+            output.add(indentation + annotation);
+          }
+        }
+        currentLocation = sortedLocations.poll();
+      }
+      if (!collectedLoopInvariants.isEmpty() && !splitContent.get(i).isBlank()) {
+        ExpressionTree<Object> conjunctedInvariants = And.of(collectedLoopInvariants);
+        String annotation = makeAnnotation(conjunctedInvariants, true);
+        String indentation = i > 0 ? getIndentation(splitContent.get(i - 1)) : "";
+        output.add(indentation + annotation);
+      }
+      output.add(splitContent.get(i));
+    }
+
+    // Check if any invariants were skipped
+    if (!sortedLocations.isEmpty()) {
+      logger.logf(
+          Level.WARNING,
+          "Not all invariants where used for annotations, we still have %d invariants left!",
+          sortedLocations.size());
+    }
+
+    // Write out annotated program
+    try {
+      writeToFile(file, output);
+    } catch (IOException pE) {
+      logger.logfUserException(Level.WARNING, pE, "Could not write annotations for file %s", file);
+    }
   }
 
   private void writeToFile(Path pathToOriginalFile, List<String> newContent) throws IOException {
@@ -313,6 +318,14 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
   }
 
   private Set<Integer> getEffectiveLocations(ExpressionTreeLocationInvariant inv) {
+    return switch (lang) {
+      case ACSL -> getEffectiveLocationsForACSL(inv);
+      case DIRECT_ASSERTIONS -> getEffectiveLocationsForDirectAssertions(inv);
+      case VERCORS -> getEffectiveLocationsForVerCors(inv);
+    };
+  }
+
+  private Set<Integer> getEffectiveLocationsForACSL(ExpressionTreeLocationInvariant inv) {
     CFANode node = inv.getLocation();
     ImmutableSet.Builder<Integer> locations = ImmutableSet.builder();
 
@@ -338,5 +351,16 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
     }
 
     return locations.build();
+  }
+
+  private Set<Integer> getEffectiveLocationsForDirectAssertions(
+      ExpressionTreeLocationInvariant inv) {
+    // TODO
+    return getEffectiveLocationsForACSL(inv);
+  }
+
+  private Set<Integer> getEffectiveLocationsForVerCors(ExpressionTreeLocationInvariant inv) {
+    // TODO
+    return getEffectiveLocationsForACSL(inv);
   }
 }
