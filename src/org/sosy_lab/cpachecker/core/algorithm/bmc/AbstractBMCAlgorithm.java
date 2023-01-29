@@ -232,8 +232,9 @@ abstract class AbstractBMCAlgorithm
   /** The candidate invariants that have been proven to hold at the loop heads. */
   private final Set<CandidateInvariant> confirmedCandidates = new CopyOnWriteArraySet<>();
 
-  private final Set<PreconditionCounterexample> pre_cexs = new CopyOnWriteArraySet<>();
-  private final Set<StepCaseCounterexample> step_cexs = new CopyOnWriteArraySet<>();
+  private final Set<PreconditionCounterexample> preconditionCounterexamples =
+      new CopyOnWriteArraySet<>();
+  private final Set<StepCaseCounterexample> stepCaseCounterexamples = new CopyOnWriteArraySet<>();
 
   private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
       new CopyOnWriteArrayList<>();
@@ -548,6 +549,10 @@ abstract class AbstractBMCAlgorithm
               checkedKeys,
               InvariantStrengthenings.noStrengthening(),
               lifting);
+      StepCaseCounterexample stepCex = kInductionProver.getStepCaseCounterexample();
+      if (stepCex != null) {
+        stepCaseCounterexamples.add(stepCex);
+      }
       if (inductionResult.isSuccessful()) {
         Iterables.addAll(
             confirmedCandidates, CandidateInvariantCombination.getConjunctiveParts(candidate));
@@ -715,7 +720,7 @@ abstract class AbstractBMCAlgorithm
           if (getIteration(state) == 1) {
             // We are at the loop head, so iteration == 1 means the start of the first iteration.
             // Thus, any satisfying models are counterexamples to P => I.
-            pre_cexs.add(
+            preconditionCounterexamples.add(
                 new PreconditionCounterexample(pCandidateInvariant, pProver.getModelAssignments()));
           } else {
             // Get any model for the previous iteration
@@ -742,7 +747,7 @@ abstract class AbstractBMCAlgorithm
             Collection<ValueAssignment> valuesAfter = pProver.getModelAssignments();
 
             // The obtained models pose a counterexample to {B & I} S {I}
-            step_cexs.add(
+            stepCaseCounterexamples.add(
                 new StepCaseCounterexample(pCandidateInvariant, valuesBefore, valuesAfter));
           }
         }
@@ -766,11 +771,11 @@ abstract class AbstractBMCAlgorithm
   }
 
   public Set<PreconditionCounterexample> getPreCounterexamples() {
-    return pre_cexs;
+    return preconditionCounterexamples;
   }
 
   public Set<StepCaseCounterexample> getStepCounterexamples() {
-    return step_cexs;
+    return stepCaseCounterexamples;
   }
 
   private boolean refineCtiBlockingClauses(
