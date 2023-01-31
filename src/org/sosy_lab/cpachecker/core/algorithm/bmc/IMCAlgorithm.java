@@ -454,7 +454,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
   private final PredicateAbstractionManager predAbsMgr;
-  private final InterpolationManager itpMgr;
+  private InterpolationManager itpMgr;
+  private final Configuration config;
   private final CFA cfa;
   private BooleanFormula finalFixedPoint;
   private LoopBoundManager loopBoundMgr;
@@ -485,6 +486,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         pAggregatedReachedSets);
     pConfig.inject(this);
 
+    config = pConfig;
     cpa = pCPA;
     cfa = pCFA;
     algorithm = pAlgorithm;
@@ -937,8 +939,22 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           logger.logDebugException(e);
           logger.log(Level.INFO, "Falling back to interpolation without auxiliary invariants");
           invariantsOptions.injectionStrategy = InvariantsInjectionStrategy.AT_FIXED_POINT_CHECK;
-          interpolants =
-              itpMgr.interpolate(ImmutableList.of(interpolantCopy, loops.get(0), suffixFormula));
+          // create a new itpMgr because the old one is not usable after timeout
+          try {
+            itpMgr =
+                new InterpolationManager(
+                    pfmgr,
+                    solver,
+                    Optional.empty(),
+                    Optional.empty(),
+                    config,
+                    shutdownNotifier,
+                    logger);
+          } catch (InvalidConfigurationException e2) {
+            throw new CPAException("Cannot renew InterpolationManager because of " + e2);
+          }
+          // abort current IMC-inner procedure
+          interpolants = Optional.empty();
         } else {
           throw e;
         }
