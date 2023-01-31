@@ -198,9 +198,9 @@ public class InvariantValidationAlgorithm implements Algorithm {
           continue;
         }
         Iterable<ValueAssignment> model = pre_cex.pre();
-        model = SamplingAlgorithm.getRelevantAssignments(model, pLocation);
         pre_samples.add(
-            SamplingAlgorithm.extractSampleFromModel(model, pLocation, SampleClass.POSITIVE));
+            SampleUtils.extractSampleFromRelevantAssignments(
+                model, pLocation, SampleClass.POSITIVE));
       }
 
       // Counterexamples are reachable, so all are positive samples
@@ -208,16 +208,14 @@ public class InvariantValidationAlgorithm implements Algorithm {
         if (!step_cex.candidate().equals(candidate)) {
           continue;
         }
-        Iterable<ValueAssignment> modelBefore = step_cex.loopBefore();
-        modelBefore = SamplingAlgorithm.getRelevantAssignments(modelBefore, pLocation);
         Sample sampleBefore =
-            SamplingAlgorithm.extractSampleFromModel(modelBefore, pLocation, SampleClass.POSITIVE);
+            SampleUtils.extractSampleFromRelevantAssignments(
+                step_cex.loopBefore(), pLocation, SampleClass.POSITIVE);
         step_samples.add(sampleBefore);
 
-        Iterable<ValueAssignment> modelAfter = step_cex.loopAfter();
-        modelAfter = SamplingAlgorithm.getRelevantAssignments(modelAfter, pLocation);
         Sample sampleAfter =
-            SamplingAlgorithm.extractSampleFromModel(modelAfter, pLocation, SampleClass.POSITIVE)
+            SampleUtils.extractSampleFromRelevantAssignments(
+                    step_cex.loopAfter(), pLocation, SampleClass.POSITIVE)
                 .withPrevious(sampleBefore);
         step_samples.add(sampleAfter);
       }
@@ -260,9 +258,9 @@ public class InvariantValidationAlgorithm implements Algorithm {
       prover.push(bfmgr.and(program, invariantHolds));
       if (!prover.isUnsat()) {
         Iterable<ValueAssignment> model = prover.getModelAssignments();
-        model = SamplingAlgorithm.getRelevantAssignments(model, pLocation);
         post_samples.add(
-            SamplingAlgorithm.extractSampleFromModel(model, pLocation, SampleClass.POSITIVE));
+            SampleUtils.extractSampleFromRelevantAssignments(
+                model, pLocation, SampleClass.POSITIVE));
       }
     }
 

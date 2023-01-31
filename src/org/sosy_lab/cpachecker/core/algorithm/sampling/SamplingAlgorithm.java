@@ -11,17 +11,14 @@ package org.sosy_lab.cpachecker.core.algorithm.sampling;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.Writer;
-import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -441,7 +438,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
         // (this is a hack)
         List<ValueAssignment> assignments = prover.getModelAssignments();
         Iterable<Formula> variableFormulas =
-            FluentIterable.from(getRelevantAssignments(assignments, pLocation))
+            FluentIterable.from(SampleUtils.getRelevantAssignments(assignments, pLocation))
                 .transform(ValueAssignment::getKey);
 
         // Collect some satisfying models
@@ -458,8 +455,10 @@ public class SamplingAlgorithm extends NestingAlgorithm {
           collectedSamples++;
 
           // Extract sample
-          Iterable<ValueAssignment> relevantAssignments = getRelevantAssignments(model, pLocation);
-          Sample sample = extractSampleFromModel(relevantAssignments, pLocation, pSampleClass);
+          Iterable<ValueAssignment> relevantAssignments =
+              SampleUtils.getRelevantAssignments(model, pLocation);
+          Sample sample =
+              SampleUtils.extractSampleFromModel(relevantAssignments, pLocation, pSampleClass);
           samples.add(sample);
 
           // Add constraint to avoid getting the same model again
@@ -476,59 +475,6 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       }
     }
     return samples;
-  }
-
-  /**
-   * Filter the given model for relevant assignments. Relevant for sampling are only the most recent
-   * variable assignments to variables in the current function.
-   */
-  public static Iterable<ValueAssignment> getRelevantAssignments(
-      Iterable<ValueAssignment> model, CFANode pLocation) {
-    Map<String, Integer> highestIndizes = new HashMap<>();
-    Map<String, ValueAssignment> latestAssignments = new HashMap<>();
-    for (ValueAssignment assignment : model) {
-      List<String> parts = Splitter.on("@").splitToList(assignment.getName());
-      String qualifiedVar = parts.get(0);
-      if (!qualifiedVar.contains("::")) {
-        // Current assignment is a function result
-        // TODO: Can this really not be an unqualified variable?
-        continue;
-      }
-      String function = Splitter.on("::").splitToList(qualifiedVar).get(0);
-      if (!function.equals(pLocation.getFunctionName())) {
-        continue;
-      }
-      Integer index = Integer.valueOf(parts.get(1));
-      if (index < highestIndizes.getOrDefault(qualifiedVar, 0)) {
-        // We are interested in the most recent values of each variable
-        continue;
-      }
-      highestIndizes.put(qualifiedVar, index);
-      latestAssignments.put(qualifiedVar, assignment);
-    }
-    return latestAssignments.values();
-  }
-
-  public static Sample extractSampleFromModel(
-      Iterable<ValueAssignment> assignments, CFANode location, SampleClass sampleClass) {
-    Map<MemoryLocation, ValueAndType> variableValues = new HashMap<>();
-    for (ValueAssignment assignment : assignments) {
-      List<String> parts = Splitter.on("@").splitToList(assignment.getName());
-      MemoryLocation var = MemoryLocation.fromQualifiedName(parts.get(0));
-
-      Object value = assignment.getValue();
-      ValueAndType valueAndType;
-      if (value instanceof BigInteger) {
-        // TODO: Derive type from variable (for now we assume int)
-        Number number = ((BigInteger) value).intValue();
-        valueAndType = new ValueAndType(new NumericValue(number), CNumericTypes.INT);
-      } else {
-        throw new AssertionError(
-            "Unhandled type for value assignment: " + assignment.getValue().getClass());
-      }
-      variableValues.put(var, valueAndType);
-    }
-    return new Sample(variableValues, location, null, sampleClass);
   }
 
   @Override

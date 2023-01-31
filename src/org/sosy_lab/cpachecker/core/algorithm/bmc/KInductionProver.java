@@ -62,7 +62,7 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.sampling.InvariantValidationAlgorithm.StepCaseCounterexample;
-import org.sosy_lab.cpachecker.core.algorithm.sampling.SamplingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.sampling.SampleUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -509,7 +509,7 @@ class KInductionProver implements AutoCloseable {
             assert !prover.isUnsat();
             Collection<ValueAssignment> valuesBefore = new ArrayList<>();
             for (ValueAssignment assignment :
-                SamplingAlgorithm.getRelevantAssignments(
+                SampleUtils.getRelevantAssignments(
                     prover.getModelAssignments(),
                     ((ExpressionTreeLocationInvariant) pCandidateInvariant).getLocation())) {
               valuesBefore.add(assignment);

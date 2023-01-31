@@ -80,7 +80,7 @@ public class SampleClassificationAlgorithm {
       if (sample.getLocation().equals(AbstractStates.extractLocation(state))
           && sample
               .getVariableValues()
-              .equals(Sample.getValuesAndTypesFromAbstractState(state, relevantVariables))) {
+              .equals(SampleUtils.getValuesAndTypesFromAbstractState(state, relevantVariables))) {
         // Sample is reachable from the initial state
         if (status.isSound()) {
           return SampleClass.POSITIVE;

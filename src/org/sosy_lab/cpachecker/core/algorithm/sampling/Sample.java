@@ -24,11 +24,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -75,24 +72,6 @@ public class Sample {
     location = pLocation;
     previous = pPrevious;
     sampleClass = pSampleClass;
-  }
-
-  public static Map<MemoryLocation, ValueAndType> getValuesAndTypesFromAbstractState(
-      AbstractState pState, Set<MemoryLocation> relevantVariables) {
-    ValueAnalysisState valueState =
-        AbstractStates.extractStateByType(pState, ValueAnalysisState.class);
-    if (valueState == null) {
-      return ImmutableSortedMap.of();
-    }
-
-    ImmutableSortedMap.Builder<MemoryLocation, ValueAndType> builder =
-        ImmutableSortedMap.naturalOrder();
-    for (MemoryLocation memoryLocation : valueState.createInterpolant().getMemoryLocations()) {
-      if (relevantVariables.contains(memoryLocation)) {
-        builder.put(memoryLocation, valueState.getValueAndTypeFor(memoryLocation));
-      }
-    }
-    return builder.buildOrThrow();
   }
 
   public Sample withPrevious(Sample pPrevious) {

@@ -9,14 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.sampling;
 
 import com.google.common.base.Functions;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
@@ -37,18 +34,14 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -90,8 +83,8 @@ public class SampleUnrollingAlgorithm {
 
   public Set<Sample> unrollSample(Sample initialSample, Loop loop)
       throws CPAException, InterruptedException {
-    AbstractState initialState = makeInitialState(initialSample);
-    Precision initialPrecision = makeInitialPrecision(initialSample);
+    AbstractState initialState = SampleUtils.makeInitialStateFromSample(cpa, initialSample);
+    Precision initialPrecision = SampleUtils.makeInitialPrecisionFromSample(cpa, initialSample);
     ReachedSet reachedSet = reachedSetFactory.create(cpa);
     reachedSet.add(initialState, initialPrecision);
     logger.log(Level.FINER, "Unrolling sample...");
@@ -107,34 +100,6 @@ public class SampleUnrollingAlgorithm {
       waitlist.addAll(node.getChildren());
     }
     return builder.build();
-  }
-
-  private AbstractState makeInitialState(Sample sample) throws InterruptedException {
-    AbstractState initialState =
-        cpa.getInitialState(sample.getLocation(), StateSpacePartition.getDefaultPartition());
-
-    // Initialize value analysis with values from sample
-    ValueAnalysisState valueState =
-        AbstractStates.extractStateByType(initialState, ValueAnalysisState.class);
-    for (Entry<MemoryLocation, ValueAndType> assignment : sample.getVariableValues().entrySet()) {
-      MemoryLocation variable = assignment.getKey();
-      ValueAndType valueAndType = assignment.getValue();
-      valueState.assignConstant(variable, valueAndType.getValue(), valueAndType.getType());
-    }
-
-    return initialState;
-  }
-
-  private Precision makeInitialPrecision(Sample sample) throws InterruptedException {
-    // Initialize precision of value analysis
-    Multimap<CFANode, MemoryLocation> valuePrecisionIncrement = HashMultimap.create();
-    for (MemoryLocation variable : sample.getVariableValues().keySet()) {
-      valuePrecisionIncrement.put(sample.getLocation(), variable);
-    }
-    ValueAnalysisCPA valueCPA = CPAs.retrieveCPA(cpa, ValueAnalysisCPA.class);
-    valueCPA.incrementPrecision(valuePrecisionIncrement);
-
-    return cpa.getInitialPrecision(sample.getLocation(), StateSpacePartition.getDefaultPartition());
   }
 
   private SampleTreeNode run(ReachedSet reachedSet, Sample initialSample, Loop loop)
@@ -175,7 +140,7 @@ public class SampleUnrollingAlgorithm {
         CFANode successorLocation = getLocationForState(successor);
         if (collectIntermediateSamples || successorLocation.equals(initialSample.getLocation())) {
           Map<MemoryLocation, ValueAndType> successorValues =
-              Sample.getValuesAndTypesFromAbstractState(successor, relevantVariables);
+              SampleUtils.getValuesAndTypesFromAbstractState(successor, relevantVariables);
           successorSample = new Sample(successorValues, successorLocation, sample, sampleClass);
           sampleChanged =
               !successorValues.equals(sample.getVariableValues())
