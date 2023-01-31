@@ -4837,6 +4837,10 @@ useCompositionAnalysis = false
 wacsl.lang = ACSL
   enum:     [ACSL, DIRECT_ASSERTIONS, VERCORS]
 
+# How invariants shall be matched to locations.
+wacsl.locationMatching = LINES
+  enum:     [LINES, OFFSET]
+
 # The directory where generated annotated programs should be stored.
 wacsl.outDir = "annotated"
 

@@ -80,7 +80,7 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
   @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
   private Path outDir = Path.of("annotated");
 
-  @Option(secure = true, description="How invariants shall be matched to locations.")
+  @Option(secure = true, description = "How invariants shall be matched to locations.")
   private LocationMatching locationMatching = LocationMatching.LINES;
 
   @Option(secure = true, description = "The format in which annotations shall be exported.")
@@ -173,10 +173,11 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
     }
 
     // Create and insert annotations at correct locations in the program
-    String output = switch (locationMatching) {
-      case LINES -> createAndInsertAnnotationsAtLines(fileContent, locationsToInvariants);
-      case OFFSET -> createAndInsertAnnotationsAtOffsets(fileContent, locationsToInvariants);
-    };
+    String output =
+        switch (locationMatching) {
+          case LINES -> createAndInsertAnnotationsAtLines(fileContent, locationsToInvariants);
+          case OFFSET -> createAndInsertAnnotationsAtOffsets(fileContent, locationsToInvariants);
+        };
 
     // Write out annotated program
     try {
@@ -186,7 +187,9 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
     }
   }
 
-  private String createAndInsertAnnotationsAtLines(String fileContent, Multimap<Integer, ExpressionTreeLocationInvariant> locationsToInvariants) {
+  private String createAndInsertAnnotationsAtLines(
+      String fileContent,
+      Multimap<Integer, ExpressionTreeLocationInvariant> locationsToInvariants) {
     List<String> output = new ArrayList<>();
     PriorityQueue<Integer> sortedLocations = new PriorityQueue<>(locationsToInvariants.keySet());
     Integer currentLocation = sortedLocations.poll();
@@ -238,14 +241,18 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
     return String.join("\n", output) + "\n";
   }
 
-  private String createAndInsertAnnotationsAtOffsets(String fileContent, Multimap<Integer, ExpressionTreeLocationInvariant> locationsToInvariants) {
+  private String createAndInsertAnnotationsAtOffsets(
+      String fileContent,
+      Multimap<Integer, ExpressionTreeLocationInvariant> locationsToInvariants) {
     String output = fileContent;
-    PriorityQueue<Integer> sortedLocations = new PriorityQueue<>(locationsToInvariants.keySet().stream().map(x -> -x).toList());
+    PriorityQueue<Integer> sortedLocations =
+        new PriorityQueue<>(locationsToInvariants.keySet().stream().map(x -> -x).toList());
     while (!sortedLocations.isEmpty()) {
       int currentLocation = -sortedLocations.poll();
       for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
         String annotation = makeAnnotation(inv.asExpressionTree(), isAtLoopStart(inv));
-        output = output.substring(0, currentLocation) + annotation + output.substring(currentLocation);
+        output =
+            output.substring(0, currentLocation) + annotation + output.substring(currentLocation);
       }
     }
     return output;
@@ -370,8 +377,9 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
           && !(edge instanceof AssumeEdge)) {
         switch (locationMatching) {
           case LINES -> locations.add(edge.getFileLocation().getStartingLineNumber() - 1);
-          case OFFSET ->         locations.add(edge.getFileLocation().getNodeOffset());
-          default -> throw new AssertionError("Unhandled method for location matching: " + locationMatching);
+          case OFFSET -> locations.add(edge.getFileLocation().getNodeOffset());
+          default -> throw new AssertionError(
+              "Unhandled method for location matching: " + locationMatching);
         }
       }
     }
@@ -382,8 +390,10 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
           && !(edge instanceof AssumeEdge)) {
         switch (locationMatching) {
           case LINES -> locations.add(edge.getFileLocation().getEndingLineNumber());
-          case OFFSET ->         locations.add(edge.getFileLocation().getNodeOffset() + edge.getFileLocation().getNodeLength());
-          default -> throw new AssertionError("Unhandled method for location matching: " + locationMatching);
+          case OFFSET -> locations.add(
+              edge.getFileLocation().getNodeOffset() + edge.getFileLocation().getNodeLength());
+          default -> throw new AssertionError(
+              "Unhandled method for location matching: " + locationMatching);
         }
       }
     }
