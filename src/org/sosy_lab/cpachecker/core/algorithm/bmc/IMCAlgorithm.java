@@ -1009,7 +1009,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Checking fixed point of the reachability vector");
 
     final boolean isLoopInvInductive = formulas.checkInductivenessOf(solver, loopInv);
-    final boolean doInvInjection = isLoopInvInductive;
     logger.log(Level.ALL, "The auxiliary loop-head invariant is: ", loopInv);
     if (!bfmgr.isTrue(loopInv)) {
       logger.log(
@@ -1017,7 +1016,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           "The non-trivial auxiliary loop-head invariant is "
               + (isLoopInvInductive ? "" : "not ")
               + "inductive");
-      if (!doInvInjection) {
+      if (!isLoopInvInductive) {
         logger.log(Level.FINE, "Invariant is not injected because it is not inductive");
       }
     }
@@ -1044,22 +1043,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         }
         // Step 2: ISMC check strengthened by external invariant
         if (!bfmgr.isTrue(loopInv)
-            && doInvInjection
+            && isLoopInvInductive
             && solver.implies(bfmgr.and(imageAtI, loopInv), currentImage)) {
-          // Step 3: check if external invariant is inductive
-          logger.log(Level.FINE, "Checking inductiveness of invariant ");
-          if (isLoopInvInductive) {
-            logger.log(Level.INFO, "Fixed point reached with external inductive invariants");
-            finalFixedPoint = currentImage;
-            return true;
-          }
-          // Step 4: check if image is relatively inductive to the external invariant
-          logger.log(Level.FINE, "Checking relative inductiveness of image");
-          if (formulas.checkRelativeInductivenssOf(solver, currentImage, loopInv)) {
-            logger.log(Level.INFO, "Fixed point reached with external invariants");
-            finalFixedPoint = currentImage;
-            return true;
-          }
+          logger.log(Level.INFO, "Fixed point reached with external inductive invariants");
+          finalFixedPoint = currentImage;
+          return true;
         }
         currentImage = bfmgr.or(currentImage, imageAtI);
       }
