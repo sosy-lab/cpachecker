@@ -403,9 +403,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     private InvariantsInjectionStrategy injectionStrategy =
         InvariantsInjectionStrategy.ITP_REFINEMENT_WITH_FALLBACK;
 
-    @Option(secure = true, description = "toggle whether to utilize non-inductive invariants")
-    private boolean onlyInjectIfInductive = false;
-
     private InvariantsOptions(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
     }
@@ -458,6 +455,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final Configuration config;
   private final CFA cfa;
   private BooleanFormula finalFixedPoint;
+  private BooleanFormula lastInductiveAuxInv;
   private LoopBoundManager loopBoundMgr;
   private InvariantsOptions invariantsOptions;
 
@@ -503,6 +501,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             pfmgr, solver, Optional.empty(), Optional.empty(), pConfig, shutdownNotifier, logger);
 
     finalFixedPoint = bfmgr.makeFalse();
+    lastInductiveAuxInv = bfmgr.makeTrue();
     loopBoundMgr = new LoopBoundManager(pConfig);
     invariantsOptions = new InvariantsOptions(pConfig);
 
@@ -848,23 +847,23 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         bfmgr.and(
             bfmgr.and(loops.subList(1, formulas.getNumLoops())), formulas.getAssertionFormula());
 
-    final boolean isLoopInvInductive = formulas.checkInductivenessOf(solver, loopInv);
-    final boolean isLoopInvTrivial = bfmgr.isTrue(loopInv);
-    final boolean doInvInjection =
-        (!invariantsOptions.onlyInjectIfInductive || isLoopInvInductive) && !isLoopInvTrivial;
-    boolean isLoopInvRelInducitve = true; // Init & T ==> Inv' holds
-    logger.log(Level.ALL, "The auxiliary loop-head invariant is: ", loopInv);
-    if (!isLoopInvTrivial) {
-      logger.log(
-          Level.INFO,
-          "The non-trivial auxiliary loop-head invariant is "
-              + (isLoopInvInductive ? "" : "not ")
-              + "inductive");
-      if (!doInvInjection) {
-        logger.log(Level.FINE, "Invariant is not injected because it is not inductive");
+    if (!bfmgr.isTrue(loopInv) && !lastInductiveAuxInv.equals(loopInv)) {
+      logger.log(Level.ALL, "The new auxiliary loop-head invariant is", loopInv);
+      if (formulas.checkInductivenessOf(solver, loopInv)) {
+        logger.log(Level.FINE, "The new auxiliary loop-head invariant is inductive");
+        if (!bfmgr.isTrue(lastInductiveAuxInv)) {
+          // print only once
+          logger.log(
+              Level.INFO,
+              "The injected auxiliary loop-head invariant is non-trivial and inductive");
+        }
+        lastInductiveAuxInv = loopInv;
+      } else {
+        logger.log(Level.FINE, "The new auxiliary loop-head invariant is not inductive");
       }
     }
 
+    final boolean isLoopInvTrivial = bfmgr.isTrue(lastInductiveAuxInv);
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(ImmutableList.of(currentImage, loops.get(0), suffixFormula));
     assert interpolants.isPresent();
@@ -885,12 +884,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.ALL, "The interpolant is", interpolant);
       interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), formulas.getPrefixSsaMap());
       logger.log(Level.ALL, "After changing SSA", interpolant);
-      BooleanFormula interpolantCopy = interpolant;
       // Refine the interpolant when possible
-      final boolean performItpRefinement =
-          invariantsOptions.asInterpolantRefiner() && isLoopInvRelInducitve;
-      if (performItpRefinement && doInvInjection) {
-        interpolant = bfmgr.and(interpolant, fmgr.instantiate(loopInv, formulas.getPrefixSsaMap()));
+      if (!isLoopInvTrivial && invariantsOptions.asInterpolantRefiner()) {
+        interpolant =
+            bfmgr.and(
+                interpolant, fmgr.instantiate(lastInductiveAuxInv, formulas.getPrefixSsaMap()));
         logger.log(Level.ALL, "The refined interpolant is", interpolant);
       }
       // Step 1: regular IMC fixed point check
@@ -900,32 +898,15 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         return true;
       }
       // Step 2: IMC fixed point check strengthened by non-trivial external invariant
-      if (!performItpRefinement
-          && doInvInjection
+      if (!isLoopInvTrivial
+          && !invariantsOptions.asInterpolantRefiner()
           && solver.implies(
-              bfmgr.and(interpolant, fmgr.instantiate(loopInv, formulas.getPrefixSsaMap())),
+              bfmgr.and(
+                  interpolant, fmgr.instantiate(lastInductiveAuxInv, formulas.getPrefixSsaMap())),
               currentImage)) {
-        // Step 3: check if external invariant is inductive
-        if (isLoopInvInductive) {
-          logger.log(Level.INFO, "Fixed point reached with external inductive invariants");
-          finalFixedPoint = fmgr.uninstantiate(currentImage);
-          return true;
-        }
-        // Step 4: check if image is relatively inductive to the external invariant
-        logger.log(Level.FINE, "Checking relative inductiveness of image");
-        if (formulas.checkRelativeInductivenssOf(solver, currentImage, loopInv)) {
-          logger.log(Level.INFO, "Fixed point reached with external invariants");
-          finalFixedPoint = currentImage;
-          return true;
-        }
-      }
-      // Check if the loop-head invariant is relatively inductive to the current interpolant
-      if (invariantsOptions.asInterpolantRefiner()
-          && doInvInjection) { // update only when necessary
-        isLoopInvRelInducitve =
-            isLoopInvInductive
-                || formulas.checkRelativeInductivenssOf(
-                    solver, loopInv, fmgr.uninstantiate(interpolantCopy));
+        logger.log(Level.INFO, "Fixed point reached with external inductive invariants");
+        finalFixedPoint = fmgr.uninstantiate(currentImage);
+        return true;
       }
       currentImage = bfmgr.or(currentImage, interpolant);
       try {
@@ -934,8 +915,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       } catch (RefinementFailedException e) {
         if (invariantsOptions.injectionStrategy
                 == InvariantsInjectionStrategy.ITP_REFINEMENT_WITH_FALLBACK
-            && performItpRefinement
-            && doInvInjection) {
+            && !isLoopInvTrivial) {
           logger.logDebugException(e);
           logger.log(Level.INFO, "Falling back to interpolation without auxiliary invariants");
           invariantsOptions.injectionStrategy = InvariantsInjectionStrategy.AT_FIXED_POINT_CHECK;
@@ -954,7 +934,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             throw new CPAException("Cannot renew InterpolationManager because of " + e2);
           }
           // retry from scratch
-          return reachFixedPointByInterpolation(formulas, loopInv);
+          return reachFixedPointByInterpolation(formulas, lastInductiveAuxInv);
         } else {
           throw e;
         }
@@ -1044,7 +1024,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Checking fixed point of the reachability vector");
 
     final boolean isLoopInvInductive = formulas.checkInductivenessOf(solver, loopInv);
-    final boolean doInvInjection = !invariantsOptions.onlyInjectIfInductive || isLoopInvInductive;
+    final boolean doInvInjection = isLoopInvInductive;
     logger.log(Level.ALL, "The auxiliary loop-head invariant is: ", loopInv);
     if (!bfmgr.isTrue(loopInv)) {
       logger.log(

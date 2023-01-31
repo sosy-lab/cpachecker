@@ -3870,9 +3870,6 @@ imc.impactLikeCovering = false
 imc.invariants.injectionStrategy = ITP_REFINEMENT_WITH_FALLBACK
   enum:     [AT_FIXED_POINT_CHECK, ITP_REFINEMENT, ITP_REFINEMENT_WITH_FALLBACK]
 
-# toggle whether to utilize non-inductive invariants
-imc.invariants.onlyInjectIfInductive = false
-
 # toggle the strategy to determine the next loop iteration
 # to execute BMC phase of IMC or ISMC
 # CONST: increased by one (to guarantee a shortest counterexample)
