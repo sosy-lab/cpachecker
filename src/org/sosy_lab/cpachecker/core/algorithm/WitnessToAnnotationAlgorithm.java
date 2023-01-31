@@ -62,6 +62,11 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
     VERCORS
   }
 
+  private enum LocationMatching {
+    LINES,
+    OFFSET
+  }
+
   @Option(
       secure = true,
       required = true,
@@ -74,6 +79,9 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
       description = "The directory where generated annotated programs should be stored.")
   @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
   private Path outDir = Path.of("annotated");
+
+  @Option(secure = true, description="How invariants shall be matched to locations.")
+  private LocationMatching locationMatching = LocationMatching.LINES;
 
   @Option(secure = true, description = "The format in which annotations shall be exported.")
   private AnnotationLanguage lang = AnnotationLanguage.ACSL;
@@ -165,6 +173,20 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
     }
 
     // Create and insert annotations at correct locations in the program
+    String output = switch (locationMatching) {
+      case LINES -> createAndInsertAnnotationsAtLines(fileContent, locationsToInvariants);
+      case OFFSET -> createAndInsertAnnotationsAtOffsets(fileContent, locationsToInvariants);
+    };
+
+    // Write out annotated program
+    try {
+      writeToFile(file, output);
+    } catch (IOException pE) {
+      logger.logfUserException(Level.WARNING, pE, "Could not write annotations for file %s", file);
+    }
+  }
+
+  private String createAndInsertAnnotationsAtLines(String fileContent, Multimap<Integer, ExpressionTreeLocationInvariant> locationsToInvariants) {
     List<String> output = new ArrayList<>();
     PriorityQueue<Integer> sortedLocations = new PriorityQueue<>(locationsToInvariants.keySet());
     Integer currentLocation = sortedLocations.poll();
@@ -213,19 +235,27 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
           sortedLocations.size());
     }
 
-    // Write out annotated program
-    try {
-      writeToFile(file, output);
-    } catch (IOException pE) {
-      logger.logfUserException(Level.WARNING, pE, "Could not write annotations for file %s", file);
-    }
+    return String.join("\n", output) + "\n";
   }
 
-  private void writeToFile(Path pathToOriginalFile, List<String> newContent) throws IOException {
+  private String createAndInsertAnnotationsAtOffsets(String fileContent, Multimap<Integer, ExpressionTreeLocationInvariant> locationsToInvariants) {
+    String output = fileContent;
+    PriorityQueue<Integer> sortedLocations = new PriorityQueue<>(locationsToInvariants.keySet().stream().map(x -> -x).toList());
+    while (!sortedLocations.isEmpty()) {
+      int currentLocation = -sortedLocations.poll();
+      for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
+        String annotation = makeAnnotation(inv.asExpressionTree(), isAtLoopStart(inv));
+        output = output.substring(0, currentLocation) + annotation + output.substring(currentLocation);
+      }
+    }
+    return output;
+  }
+
+  private void writeToFile(Path pathToOriginalFile, String newContent) throws IOException {
     String newFileName = makeNameForAnnotatedFile(pathToOriginalFile.getFileName().toString());
     Path outFile = outDir.resolve(newFileName);
     try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
-      writer.write(String.join("\n", newContent) + "\n");
+      writer.write(newContent);
     }
   }
 
@@ -338,7 +368,11 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
       if (!edge.getFileLocation().equals(FileLocation.DUMMY)
           && !edge.getDescription().contains("CPAchecker_TMP")
           && !(edge instanceof AssumeEdge)) {
-        locations.add(edge.getFileLocation().getStartingLineNumber() - 1);
+        switch (locationMatching) {
+          case LINES -> locations.add(edge.getFileLocation().getStartingLineNumber() - 1);
+          case OFFSET ->         locations.add(edge.getFileLocation().getNodeOffset());
+          default -> throw new AssertionError("Unhandled method for location matching: " + locationMatching);
+        }
       }
     }
 
@@ -346,7 +380,11 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
       if (!edge.getFileLocation().equals(FileLocation.DUMMY)
           && !edge.getDescription().contains("CPAchecker_TMP")
           && !(edge instanceof AssumeEdge)) {
-        locations.add(edge.getFileLocation().getEndingLineNumber());
+        switch (locationMatching) {
+          case LINES -> locations.add(edge.getFileLocation().getEndingLineNumber());
+          case OFFSET ->         locations.add(edge.getFileLocation().getNodeOffset() + edge.getFileLocation().getNodeLength());
+          default -> throw new AssertionError("Unhandled method for location matching: " + locationMatching);
+        }
       }
     }
 
