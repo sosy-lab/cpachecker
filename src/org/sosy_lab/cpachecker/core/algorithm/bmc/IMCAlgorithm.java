@@ -452,7 +452,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final Solver solver;
   private final PredicateAbstractionManager predAbsMgr;
   private InterpolationManager itpMgr;
-  private final Configuration config;
   private final CFA cfa;
   private BooleanFormula finalFixedPoint;
   private BooleanFormula lastInductiveAuxInv;
@@ -484,7 +483,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         pAggregatedReachedSets);
     pConfig.inject(this);
 
-    config = pConfig;
     cpa = pCPA;
     cfa = pCFA;
     algorithm = pAlgorithm;
@@ -883,6 +881,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       BooleanFormula interpolant = interpolants.orElseThrow().get(1);
       logger.log(Level.ALL, "The interpolant is", interpolant);
       interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), formulas.getPrefixSsaMap());
+      BooleanFormula interpolantCopy = interpolant;
       logger.log(Level.ALL, "After changing SSA", interpolant);
       // Refine the interpolant when possible
       if (!isLoopInvTrivial && invariantsOptions.asInterpolantRefiner()) {
@@ -919,22 +918,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           logger.logDebugException(e);
           logger.log(Level.INFO, "Falling back to interpolation without auxiliary invariants");
           invariantsOptions.injectionStrategy = InvariantsInjectionStrategy.AT_FIXED_POINT_CHECK;
-          // create a new itpMgr because the old one is not usable after timeout
-          try {
-            itpMgr =
-                new InterpolationManager(
-                    pfmgr,
-                    solver,
-                    Optional.empty(),
-                    Optional.empty(),
-                    config,
-                    shutdownNotifier,
-                    logger);
-          } catch (InvalidConfigurationException e2) {
-            throw new CPAException("Cannot renew InterpolationManager because of " + e2);
-          }
-          // retry from scratch
-          return reachFixedPointByInterpolation(formulas, lastInductiveAuxInv);
+          interpolants =
+              itpMgr.interpolate(ImmutableList.of(interpolantCopy, loops.get(0), suffixFormula));
         } else {
           throw e;
         }
