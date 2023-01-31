@@ -849,7 +849,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.ALL, "The new auxiliary loop-head invariant is", loopInv);
       if (formulas.checkInductivenessOf(solver, loopInv)) {
         logger.log(Level.FINE, "The new auxiliary loop-head invariant is inductive");
-        if (!bfmgr.isTrue(lastInductiveAuxInv)) {
+        if (bfmgr.isTrue(lastInductiveAuxInv)) {
           // print only once
           logger.log(
               Level.INFO,
