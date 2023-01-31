@@ -953,8 +953,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           } catch (InvalidConfigurationException e2) {
             throw new CPAException("Cannot renew InterpolationManager because of " + e2);
           }
-          // abort current IMC-inner procedure
-          interpolants = Optional.empty();
+          // retry from scratch
+          return reachFixedPointByInterpolation(formulas, loopInv);
         } else {
           throw e;
         }
