@@ -60,6 +60,8 @@ public class SampleUnrollingAlgorithm {
   private final ReachedSetFactory reachedSetFactory;
   private final ConfigurableProgramAnalysis cpa;
 
+  private record NodeUpdate(SampleTreeNode node, Sample previous) {}
+
   public SampleUnrollingAlgorithm(
       Configuration pConfig,
       LogManager pLogger,
@@ -91,13 +93,30 @@ public class SampleUnrollingAlgorithm {
 
     SampleTreeNode sampleTreeRoot = run(reachedSet, initialSample, loop);
 
+    // If target is reachable from initial sample, then all samples are negative
+    boolean classifySamples =
+        initialSample.getSampleClass() == SampleClass.UNKNOWN && reachedSet.wasTargetReached();
+
     ImmutableSet.Builder<Sample> builder = ImmutableSet.builder();
-    Queue<SampleTreeNode> waitlist = new ArrayDeque<>();
-    waitlist.add(sampleTreeRoot);
+    Queue<NodeUpdate> waitlist = new ArrayDeque<>();
+    waitlist.add(new NodeUpdate(sampleTreeRoot, null));
     while (!waitlist.isEmpty()) {
-      SampleTreeNode node = waitlist.poll();
-      builder.add(node.getSample());
-      waitlist.addAll(node.getChildren());
+      NodeUpdate nodeUpdate = waitlist.poll();
+      SampleTreeNode node = nodeUpdate.node();
+      Sample previous = nodeUpdate.previous();
+      if (node == SampleTreeNode.DUMMY) {
+        continue;
+      }
+      Sample sample = node.getSample();
+      if (classifySamples) {
+        sample =
+            new Sample(
+                sample.getVariableValues(), sample.getLocation(), previous, SampleClass.NEGATIVE);
+      }
+      builder.add(sample);
+      for (SampleTreeNode child : node.getChildren()) {
+        waitlist.add(new NodeUpdate(child, sample));
+      }
     }
     return builder.build();
   }
@@ -134,6 +153,12 @@ public class SampleUnrollingAlgorithm {
         successor = precAdjustmentResult.abstractState();
         Precision successorPrecision = precAdjustmentResult.precision();
 
+        if (sample == null && sampleClass == SampleClass.UNKNOWN) {
+          nodes.put(successor, SampleTreeNode.DUMMY);
+          reachedSet.add(successor, successorPrecision);
+          continue;
+        }
+
         // Build sample for successor state
         Sample successorSample = null;
         boolean sampleChanged = false;
@@ -159,6 +184,9 @@ public class SampleUnrollingAlgorithm {
         } else if (isStateInLoop(successor, loop)) {
           nodes.put(successor, node);
           reachedSet.add(successor, successorPrecision);
+        } else if (sampleClass == SampleClass.UNKNOWN) {
+          nodes.put(successor, SampleTreeNode.DUMMY);
+          reachedSet.add(successor, successorPrecision);
         }
       }
     }
@@ -176,6 +204,8 @@ public class SampleUnrollingAlgorithm {
   }
 
   private static class SampleTreeNode {
+
+    private static final SampleTreeNode DUMMY = new SampleTreeNode(null);
 
     private final Sample sample;
     private final Set<SampleTreeNode> children;
