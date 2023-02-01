@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.TreeMultimap;
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.NavigableMap;
@@ -49,7 +48,7 @@ public class MutableCFA implements CFA {
   public void addNode(CFANode pNode) {
     assert functions.containsKey(pNode.getFunctionName());
     allNodes.put(pNode.getFunctionName(), pNode);
-
+  }
 
   public void clear() {
     functions.clear();
@@ -64,7 +63,7 @@ public class MutableCFA implements CFA {
     if (functionNodes.isEmpty()) {
       functions.remove(pNode.getFunctionName());
     }
-
+  }
 
   @Override
   public boolean isEmpty() {
