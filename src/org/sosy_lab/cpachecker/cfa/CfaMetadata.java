@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Path;
@@ -291,7 +291,7 @@ public final class CfaMetadata implements Serializable {
     pObjectOutputStream.defaultWriteObject();
 
     // some `Path` implementations are not serializable, so we serialize paths as list of strings
-    List<String> stringFileNames = ImmutableList.copyOf(Lists.transform(fileNames, Path::toString));
+    List<String> stringFileNames = transformedImmutableListCopy(fileNames, Path::toString);
     pObjectOutputStream.writeObject(stringFileNames);
   }
 
@@ -302,7 +302,7 @@ public final class CfaMetadata implements Serializable {
 
     @SuppressWarnings("unchecked") // paths are always serialized as a list of strings
     List<String> stringFileNames = (List<String>) pObjectInputStream.readObject();
-    fileNames = ImmutableList.copyOf(Lists.transform(stringFileNames, Path::of));
+    fileNames = transformedImmutableListCopy(stringFileNames, Path::of);
   }
 
   @Override
