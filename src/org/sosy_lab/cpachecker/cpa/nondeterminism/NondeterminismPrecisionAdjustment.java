@@ -36,7 +36,7 @@ public enum NondeterminismPrecisionAdjustment implements PrecisionAdjustment {
       AbstractState pFullState)
       throws CPAException, InterruptedException {
     AbstractState state = prec(pState, AbstractStates.asIterable(pFullState));
-    return Optional.of(PrecisionAdjustmentResult.create(state, pPrecision, Action.CONTINUE));
+    return Optional.of(new PrecisionAdjustmentResult(state, pPrecision, Action.CONTINUE));
   }
 
   @Override

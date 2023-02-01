@@ -115,8 +115,7 @@ public class SignTransferRelation
       throws CPATransferException {
 
     // x = fun();
-    if (pSummaryExpr instanceof AFunctionCallAssignmentStatement) {
-      AFunctionCallAssignmentStatement assignStmt = (AFunctionCallAssignmentStatement) pSummaryExpr;
+    if (pSummaryExpr instanceof AFunctionCallAssignmentStatement assignStmt) {
       AExpression leftSide = assignStmt.getLeftHandSide();
       if (!(leftSide instanceof AIdExpression)) {
         throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
@@ -403,8 +402,7 @@ public class SignTransferRelation
   private SignState handleAssignmentToVariable(
       SignState pState, String pVarIdent, ARightHandSide pRightExpr, CFAEdge edge)
       throws CPATransferException {
-    if (pRightExpr instanceof CRightHandSide) {
-      CRightHandSide right = (CRightHandSide) pRightExpr;
+    if (pRightExpr instanceof CRightHandSide right) {
       SIGN result = right.accept(new SignCExpressionVisitor(edge, pState, this));
       logger.log(Level.FINE, "Assignment: " + pVarIdent + " = " + result);
       return pState.assignSignToVariable(pVarIdent, result);

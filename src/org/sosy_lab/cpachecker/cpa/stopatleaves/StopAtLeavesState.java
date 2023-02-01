@@ -11,9 +11,7 @@ package org.sosy_lab.cpachecker.cpa.stopatleaves;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-/**
- * @see org.sosy_lab.cpachecker.cpa.targetreachability.ReachabilityState
- */
+/** See {@link org.sosy_lab.cpachecker.cpa.targetreachability.ReachabilityState}. */
 public enum StopAtLeavesState implements AbstractQueryableState {
   CONTINUE(false),
   STOP(true);

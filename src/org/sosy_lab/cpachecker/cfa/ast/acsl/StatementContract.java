@@ -13,7 +13,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 
-public class StatementContract implements ACSLAnnotation {
+public final class StatementContract implements ACSLAnnotation {
 
   private final RequiresClause requiresClause;
   private final EnsuresClause ensuresClause;
@@ -178,8 +178,7 @@ public class StatementContract implements ACSLAnnotation {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof StatementContract) {
-      StatementContract other = (StatementContract) obj;
+    if (obj instanceof StatementContract other) {
       return requiresClause.equals(other.requiresClause)
           && ensuresClause.equals(other.ensuresClause)
           && enclosingBehaviors.equals(other.enclosingBehaviors)

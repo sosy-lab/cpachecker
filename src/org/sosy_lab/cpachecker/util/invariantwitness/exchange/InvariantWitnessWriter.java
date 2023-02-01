@@ -138,18 +138,12 @@ public final class InvariantWitnessWriter {
   }
 
   private static String getArchitecture(MachineModel pMachineModel) {
-    final String architecture;
-    switch (pMachineModel) {
-      case LINUX32:
-        architecture = "ILP32";
-        break;
-      case LINUX64:
-        architecture = "LP64";
-        break;
-      default:
-        architecture = pMachineModel.toString();
-        break;
-    }
+    final String architecture =
+        switch (pMachineModel) {
+          case LINUX32 -> "ILP32";
+          case LINUX64 -> "LP64";
+          default -> pMachineModel.toString();
+        };
     return architecture;
   }
 

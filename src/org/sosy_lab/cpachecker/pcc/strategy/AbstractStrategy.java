@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.pcc.strategy;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.MustBeClosed;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,7 +45,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.ValidationConfigurationConstructionFailed;
 import org.sosy_lab.cpachecker.pcc.util.ProofStatesInfoCollector;
 import org.sosy_lab.cpachecker.pcc.util.ValidationConfigurationBuilder;
-import org.sosy_lab.cpachecker.util.Triple;
 
 @Options(prefix = "pcc")
 public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvider {
@@ -172,11 +172,9 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   @Override
   public void readProof()
       throws IOException, ClassNotFoundException, InvalidConfigurationException {
-    Triple<InputStream, ZipInputStream, ObjectInputStream> proofStream = openProofStream();
-    readProofFromStream(proofStream.getThird());
-    proofStream.getThird().close();
-    proofStream.getSecond().close();
-    proofStream.getFirst().close();
+    try (ObjectInputStream proofStream = openProofStream()) {
+      readProofFromStream(proofStream);
+    }
   }
 
   /**
@@ -197,17 +195,17 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
             .asPropertiesString());
   }
 
-  protected Triple<InputStream, ZipInputStream, ObjectInputStream> openProofStream()
-      throws IOException {
+  @MustBeClosed
+  protected final ObjectInputStream openProofStream() throws IOException {
     InputStream fis = Files.newInputStream(proofFile);
     ZipInputStream zis = new ZipInputStream(fis);
     ZipEntry entry = zis.getNextEntry();
     assert entry.getName().equals(PROOF_ZIPENTRY_NAME);
-    return Triple.of(fis, zis, new ObjectInputStream(zis));
+    return new ObjectInputStream(zis);
   }
 
-  public Triple<InputStream, ZipInputStream, ObjectInputStream> openAdditionalProofStream(
-      final int index) throws IOException {
+  @MustBeClosed
+  public final ObjectInputStream openAdditionalProofStream(final int index) throws IOException {
     checkArgument(index >= 0, "Not a valid index. Indices must be at least zero.");
     InputStream fis = Files.newInputStream(proofFile);
     ZipInputStream zis = new ZipInputStream(fis);
@@ -217,7 +215,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     ZipEntry entry = zis.getNextEntry();
 
     assert entry.getName().equals("ADDITIONAL_PROOFINFO_ZIPENTRY_NAME " + index);
-    return Triple.of(fis, zis, new ObjectInputStream(zis));
+    return new ObjectInputStream(zis);
   }
 
   protected abstract void readProofFromStream(ObjectInputStream in)

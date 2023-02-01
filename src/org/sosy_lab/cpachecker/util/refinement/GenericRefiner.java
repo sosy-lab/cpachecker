@@ -239,7 +239,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     if (errorPath == InterpolationTree.EMPTY_PATH) {
       logger.log(
           Level.FINEST,
-          "skipping interpolation," + " because false interpolant on path to target state");
+          "skipping interpolation, because false interpolant on path to target state");
       return;
     }
 

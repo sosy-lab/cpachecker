@@ -276,7 +276,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
 
     if (params.size() != paramsExprs.size()) {
       throw new UnrecognizedCodeException(
-          "Number of parameters on function call does " + "not match function definition", pEdge);
+          "Number of parameters on function call does not match function definition", pEdge);
     }
 
     var result = pPostcond;
@@ -309,9 +309,8 @@ public class CtoWpConverter extends CtoFormulaConverter {
     if (retExp instanceof CFunctionCallStatement) {
       // void return, i.e. no substitution needed
       return pPostcond;
-    } else if (retExp instanceof CFunctionCallAssignmentStatement) {
+    } else if (retExp instanceof CFunctionCallAssignmentStatement callStmt) {
       // substitute lhs in the post-condition by the func's return variable
-      final var callStmt = (CFunctionCallAssignmentStatement) retExp;
       final var callExpr = callStmt.getRightHandSide();
 
       final var callerFunction = pEdge.getSuccessor().getFunctionName();
@@ -337,8 +336,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
 
     if (pStmt instanceof CFunctionCallStatement) {
       return pPostcond;
-    } else if (pStmt instanceof CFunctionCallAssignmentStatement) {
-      final var callStmt = (CFunctionCallAssignmentStatement) pStmt;
+    } else if (pStmt instanceof CFunctionCallAssignmentStatement callStmt) {
       return makePreconditionForAssignement(
           callStmt.getLeftHandSide(), callStmt.getRightHandSide(), pEdge, pPostcond, pFunction);
     } else {

@@ -183,9 +183,7 @@ public class OctagonTransferRelation
       return handleBinaryBooleanExpression((CBinaryExpression) expression, truthAssumption, state);
 
       // Unary operation
-    } else if (expression instanceof CUnaryExpression) {
-      CUnaryExpression unaryExp = ((CUnaryExpression) expression);
-
+    } else if (expression instanceof CUnaryExpression unaryExp) {
       switch (unaryExp.getOperator()) {
           // do not change anything besides the expression, minus has no effect
           // on the == 0 equality check
@@ -900,8 +898,7 @@ public class OctagonTransferRelation
     String calledFunctionName = cfaEdge.getPredecessor().getFunctionName();
 
     // expression is an assignment operation, e.g. a = g(b);
-    if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement binExp = ((CFunctionCallAssignmentStatement) exprOnSummary);
+    if (exprOnSummary instanceof CFunctionCallAssignmentStatement binExp) {
       CLeftHandSide op1 = binExp.getLeftHandSide();
       MemoryLocation assignedVarName = buildVarName(op1, callerFunctionName);
 

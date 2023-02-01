@@ -183,8 +183,8 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * @return The global variable mapping in a {@link PersistentMap} from String to the {@link
-   *     SMGObject}.
+   * Returns the global variable mapping in a {@link PersistentMap} from String to the {@link
+   * SMGObject}.
    */
   public PersistentMap<String, SMGObject> getGlobalVariableToSmgObjectMap() {
     return globalVariableMapping;
@@ -214,9 +214,9 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * @return number of global and local variables on all stack frames. Note: this might be
-   *     surprisingly large and should only be used as comparison not face value. We use encoded
-   *     variables for Strings/functions etc.
+   * Returns number of global and local variables on all stack frames. Note: this might be
+   * surprisingly large and should only be used as comparison not face value. We use encoded
+   * variables for Strings/functions etc.
    */
   int getNumberOfVariables() {
     int size = globalVariableMapping.size();
@@ -264,8 +264,8 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * @return The stack of {@link StackFrame}s modeling the function stacks of this {@link
-   *     SymbolicProgramConfiguration}.
+   * Returns the stack of {@link StackFrame}s modeling the function stacks of this {@link
+   * SymbolicProgramConfiguration}.
    */
   public PersistentStack<StackFrame> getStackFrames() {
     return stackVariableMapping;
@@ -619,16 +619,12 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap);
   }
 
-  /**
-   * @return {@link SMGObject} reserved for the return value of the current StackFrame.
-   */
+  /** Returns {@link SMGObject} reserved for the return value of the current StackFrame. */
   public Optional<SMGObject> getReturnObjectForCurrentStackFrame() {
     return stackVariableMapping.peek().getReturnObject();
   }
 
-  /**
-   * @return true if there is a return object for the current stack frame.
-   */
+  /** Returns true if there is a return object for the current stack frame. */
   public boolean hasReturnObjectForCurrentStackFrame() {
     return stackVariableMapping.peek().getReturnObject().isPresent();
   }

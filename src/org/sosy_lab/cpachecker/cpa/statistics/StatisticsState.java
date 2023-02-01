@@ -41,16 +41,11 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
     }
 
     public void setAnalysisType(FactoryAnalysisType analysisType) {
-      switch (analysisType) {
-        case Analysis:
-          isAnalysis = true;
-          break;
-        case MetricsQuery:
-          isAnalysis = false;
-          break;
-        default:
-          throw new IllegalStateException("unknown analysisType");
-      }
+      isAnalysis =
+          switch (analysisType) {
+            case Analysis -> true;
+            case MetricsQuery -> false;
+          };
     }
 
     public void addProvider(StatisticsProvider provider) {

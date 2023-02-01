@@ -332,9 +332,8 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
 
   private void handleStatement(final CStatement pStatement) throws HandleCodeException {
 
-    if (pStatement instanceof CAssignment) {
+    if (pStatement instanceof CAssignment assignment) {
       // assignment like "a = b" or "a = foo()"
-      CAssignment assignment = (CAssignment) pStatement;
       CExpression left = assignment.getLeftHandSide();
       CRightHandSide right = assignment.getRightHandSide();
 

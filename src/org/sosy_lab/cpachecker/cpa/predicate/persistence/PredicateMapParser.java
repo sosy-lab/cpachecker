@@ -112,8 +112,8 @@ public class PredicateMapParser {
   }
 
   /**
-   * @see #parsePredicates(Path) Instead of reading from a file, this method reads from a
-   *     BufferedReader (available primarily for testing).
+   * See {@link #parsePredicates(Path)}. Instead of reading from a file, this method reads from a
+   * BufferedReader (available primarily for testing).
    */
   PredicatePrecision parsePredicates(BufferedReader reader, String source)
       throws IOException, PredicateParsingFailedException {

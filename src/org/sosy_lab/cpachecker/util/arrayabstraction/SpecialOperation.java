@@ -122,9 +122,8 @@ abstract class SpecialOperation {
     /** Tries to extract an assign operation from the specified CFA edge. */
     private static Optional<ExpressionAssign> forEdge(CFAEdge pEdge) {
 
-      if (pEdge instanceof CDeclarationEdge) {
+      if (pEdge instanceof CDeclarationEdge declarationEdge) {
 
-        CDeclarationEdge declarationEdge = (CDeclarationEdge) pEdge;
         CDeclaration declaration = declarationEdge.getDeclaration();
 
         if (declaration instanceof CVariableDeclaration) {
@@ -136,21 +135,16 @@ abstract class SpecialOperation {
         }
       }
 
-      if (pEdge instanceof CStatementEdge) {
+      if (pEdge instanceof CStatementEdge statementEdge) {
 
-        CStatementEdge statementEdge = (CStatementEdge) pEdge;
         CStatement statement = statementEdge.getStatement();
 
-        if (statement instanceof CExpressionAssignmentStatement) {
-
-          CExpressionAssignmentStatement assignmentStatement =
-              (CExpressionAssignmentStatement) statement;
+        if (statement instanceof CExpressionAssignmentStatement assignmentStatement) {
 
           CLeftHandSide lhs = assignmentStatement.getLeftHandSide();
 
-          if (lhs instanceof CIdExpression) {
+          if (lhs instanceof CIdExpression lhsIdExpression) {
 
-            CIdExpression lhsIdExpression = (CIdExpression) lhs;
             CSimpleDeclaration variableDeclaration = lhsIdExpression.getDeclaration();
             CExpression rhs = assignmentStatement.getRightHandSide();
 
@@ -327,9 +321,8 @@ abstract class SpecialOperation {
         ExpressionAssign expressionAssign = optExpressionAssign.orElseThrow();
         CExpression expression = expressionAssign.getExpression();
 
-        if (expression instanceof CBinaryExpression) {
+        if (expression instanceof CBinaryExpression binaryExpression) {
 
-          CBinaryExpression binaryExpression = (CBinaryExpression) expression;
           CExpression operand1 = binaryExpression.getOperand1();
           CBinaryExpression.BinaryOperator operator = binaryExpression.getOperator();
 
@@ -445,14 +438,12 @@ abstract class SpecialOperation {
         LogManager pLogger,
         ValueAnalysisState pValueAnalysisState) {
 
-      if (pEdge instanceof CAssumeEdge) {
+      if (pEdge instanceof CAssumeEdge assumeEdge) {
 
-        CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
         CExpression expression = assumeEdge.getExpression();
 
-        if (expression instanceof CBinaryExpression) {
+        if (expression instanceof CBinaryExpression binaryExpression) {
 
-          CBinaryExpression binaryExpression = (CBinaryExpression) expression;
           CExpression operand1 = binaryExpression.getOperand1();
           CBinaryExpression.BinaryOperator operator = binaryExpression.getOperator();
 

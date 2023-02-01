@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -25,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -355,8 +352,6 @@ public class CLangSMGTest {
     CLangSMG smg = getNewCLangSMG64();
     SMGObject null_object = smg.getHeapObjects().iterator().next();
     SMGValue some_value = SMGKnownExpValue.valueOf(5);
-    CType type = mock(CType.class);
-    when(type.getCanonicalType()).thenReturn(type);
     SMGEdgeHasValue edge = new SMGEdgeHasValue(32, 0, null_object, some_value);
     smg.addValue(some_value);
     smg.addHasValueEdge(edge);

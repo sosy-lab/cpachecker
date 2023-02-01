@@ -56,8 +56,7 @@ public class BDDManagerFactory {
 
   @Option(
       secure = true,
-      description =
-          "Count accesses for the BDD library. " + "Counting works for concurrent accesses.")
+      description = "Count accesses for the BDD library. Counting works for concurrent accesses.")
   private boolean countLibraryAccess = false;
 
   private final Configuration config;

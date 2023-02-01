@@ -219,7 +219,7 @@ public class SMGCPAValueVisitor
         // Calculate the offset out of the subscript value and the type
         BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, returnType);
         BigInteger subscriptOffset =
-            typeSizeInBits.multiply(subscriptValue.asNumericValue().bigInteger());
+            typeSizeInBits.multiply(subscriptValue.asNumericValue().bigIntegerValue());
 
         if (arrayExpr.getExpressionType() instanceof CPointerType) {
           Preconditions.checkArgument(arrayValue instanceof AddressExpression);
@@ -255,13 +255,13 @@ public class SMGCPAValueVisitor
     SMGState newState = pCurrentState;
     CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(pReturnType);
     BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, returnType);
-    if (arrayValue instanceof AddressExpression) {
-      AddressExpression arrayAddr = (AddressExpression) arrayValue;
+    if (arrayValue instanceof AddressExpression arrayAddr) {
       Value addrOffsetValue = arrayAddr.getOffset();
       if (!addrOffsetValue.isNumericValue()) {
         return ImmutableList.of(ValueAndSMGState.ofUnknownValue(newState));
       }
-      BigInteger finalOffset = addrOffsetValue.asNumericValue().bigInteger().add(additionalOffset);
+      BigInteger finalOffset =
+          addrOffsetValue.asNumericValue().bigIntegerValue().add(additionalOffset);
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)
           || returnType instanceof CArrayType
           || returnType instanceof CFunctionType) {
@@ -932,7 +932,7 @@ public class SMGCPAValueVisitor
         // The only valid pointer is numeric 0
         Preconditions.checkArgument(
             (value.isNumericValue()
-                    && value.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0)
+                    && value.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0)
                 || !evaluator.isPointerValue(value, currentState));
         builder.add(ValueAndSMGState.ofUnknownValue(currentState));
         continue;
@@ -949,7 +949,7 @@ public class SMGCPAValueVisitor
       }
 
       BigInteger sizeInBits = evaluator.getBitSizeof(currentState, returnType);
-      BigInteger offsetInBits = offset.asNumericValue().bigInteger();
+      BigInteger offsetInBits = offset.asNumericValue().bigIntegerValue();
 
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)) {
         // We don't want to read struct/union! In those cases we return the AddressExpression
@@ -1095,14 +1095,7 @@ public class SMGCPAValueVisitor
             return UnknownValue.getInstance();
           }
 
-          final BigInteger valueToCastAsInt;
-          if (numericValue.getNumber() instanceof BigInteger) {
-            valueToCastAsInt = numericValue.bigInteger();
-          } else if (numericValue.getNumber() instanceof BigDecimal) {
-            valueToCastAsInt = numericValue.bigDecimalValue().toBigInteger();
-          } else {
-            valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
-          }
+          final BigInteger valueToCastAsInt = numericValue.bigIntegerValue();
           final boolean targetIsSigned = machineModel.isSigned(st);
 
           final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
@@ -2046,8 +2039,8 @@ public class SMGCPAValueVisitor
       canonicalReturnType = ((CPointerType) expressionType).getType();
     }
 
-    if (leftValue instanceof AddressExpression && !(rightValue instanceof AddressExpression)) {
-      AddressExpression addressValue = (AddressExpression) leftValue;
+    if (leftValue instanceof AddressExpression addressValue
+        && !(rightValue instanceof AddressExpression)) {
       Value addressOffset = addressValue.getOffset();
       if (!rightValue.isNumericValue() || !addressOffset.isNumericValue()) {
         // TODO: symbolic values if possible
@@ -2087,8 +2080,7 @@ public class SMGCPAValueVisitor
           ValueAndSMGState.of(addressValue.copyWithNewOffset(finalOffset), currentState));
 
     } else if (!(leftValue instanceof AddressExpression)
-        && rightValue instanceof AddressExpression) {
-      AddressExpression addressValue = (AddressExpression) rightValue;
+        && rightValue instanceof AddressExpression addressValue) {
       Value addressOffset = addressValue.getOffset();
       if (!leftValue.isNumericValue()
           || !addressOffset.isNumericValue()
@@ -2347,8 +2339,8 @@ public class SMGCPAValueVisitor
           }
         case INT128:
           {
-            BigInteger lVal = lNum.bigInteger();
-            BigInteger rVal = rNum.bigInteger();
+            BigInteger lVal = lNum.bigIntegerValue();
+            BigInteger rVal = rNum.bigIntegerValue();
             BigInteger result = arithmeticOperation(lVal, rVal, op);
             return new NumericValue(result);
           }
@@ -2627,14 +2619,8 @@ public class SMGCPAValueVisitor
       case INT:
         {
           // TODO: test this in particular!
-          BigInteger leftBigInt =
-              l.getNumber() instanceof BigInteger
-                  ? (BigInteger) l.getNumber()
-                  : BigInteger.valueOf(l.longValue());
-          BigInteger rightBigInt =
-              r.getNumber() instanceof BigInteger
-                  ? (BigInteger) r.getNumber()
-                  : BigInteger.valueOf(r.longValue());
+          BigInteger leftBigInt = l.bigIntegerValue();
+          BigInteger rightBigInt = r.bigIntegerValue();
           cmp = leftBigInt.compareTo(rightBigInt);
           break;
         }
@@ -2718,8 +2704,7 @@ public class SMGCPAValueVisitor
 
     CType type = targetType.getCanonicalType();
     final int size;
-    if (type instanceof CSimpleType) {
-      final CSimpleType st = (CSimpleType) type;
+    if (type instanceof CSimpleType st) {
       size = machineModel.getSizeofInBits(st);
     } else if (type instanceof CBitFieldType) {
       size = ((CBitFieldType) type).getBitFieldSize();

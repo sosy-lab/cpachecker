@@ -12,7 +12,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 
-public class ACSLAssertion implements ACSLAnnotation {
+public final class ACSLAssertion implements ACSLAnnotation {
 
   private final AssertionKind kind;
   private final ImmutableList<Behavior> enclosingBehaviors;

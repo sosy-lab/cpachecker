@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -31,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -387,13 +387,12 @@ public class ProgramDeclarations {
           ((CPointerType) type1).getType(), ((CPointerType) type1).getType(), foundTypes);
 
       // handle the same issues we have with pointer types here for arrays
-    } else if (type1 instanceof CArrayType
+    } else if (type1 instanceof CArrayType a1
         && (((CArrayType) type1).getType() instanceof CComplexType
             || ((CArrayType) type1).getType() instanceof CFunctionType
             || ((CArrayType) type1).getType() instanceof CPointerType)) {
 
       // first check if the lengths are matching
-      CArrayType a1 = (CArrayType) type1;
       CArrayType a2 = (CArrayType) type2;
       if (a1.getLength() instanceof CIntegerLiteralExpression
           && a2.getLength() instanceof CIntegerLiteralExpression) {

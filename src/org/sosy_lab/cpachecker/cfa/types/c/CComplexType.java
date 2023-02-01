@@ -9,7 +9,8 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 /** Interface for types representing enums, structs, and unions. */
-public interface CComplexType extends CType {
+public sealed interface CComplexType extends CType
+    permits CCompositeType, CElaboratedType, CEnumType {
 
   ComplexTypeKind getKind();
 

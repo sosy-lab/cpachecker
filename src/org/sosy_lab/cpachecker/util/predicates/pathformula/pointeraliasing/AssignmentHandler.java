@@ -199,8 +199,7 @@ class AssignmentHandler {
         makeDestructiveAssignment(
             lhsType, rhsType, lhsLocation, rhsExpression, useOldSSAIndices, updatedRegions);
 
-    if (lhsLocation.isUnaliasedLocation() && lhs instanceof CFieldReference) {
-      CFieldReference fieldReference = (CFieldReference) lhs;
+    if (lhsLocation.isUnaliasedLocation() && lhs instanceof CFieldReference fieldReference) {
       CExpression fieldOwner = fieldReference.getFieldOwner();
       CType ownerType = typeHandler.getSimplifiedType(fieldOwner);
       if (!fieldReference.isPointerDereference() && ownerType instanceof CCompositeType) {
@@ -214,8 +213,7 @@ class AssignmentHandler {
               updatedRegions,
               fieldReference);
         }
-        if (fieldOwner instanceof CFieldReference) {
-          CFieldReference owner = (CFieldReference) fieldOwner;
+        if (fieldOwner instanceof CFieldReference owner) {
           CType ownersOwnerType = typeHandler.getSimplifiedType(owner.getFieldOwner());
           if (ownersOwnerType instanceof CCompositeType
               && ((CCompositeType) ownersOwnerType).getKind() == ComplexTypeKind.UNION) {
@@ -342,7 +340,7 @@ class AssignmentHandler {
       throws UnrecognizedCodeException, InterruptedException {
 
     assert !pAssignments.isEmpty()
-        : "Cannot handle initialization assignments without an " + "assignment right hand side.";
+        : "Cannot handle initialization assignments without an assignment right hand side.";
 
     final CType lhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getLeftHandSide());
     final CType rhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getRightHandSide());
@@ -488,8 +486,7 @@ class AssignmentHandler {
       return makeDestructiveArrayAssignment(
           (CArrayType) lvalueType, rvalueType, lvalue, rvalue, useOldSSAIndices, updatedRegions);
 
-    } else if (lvalueType instanceof CCompositeType) {
-      final CCompositeType lvalueCompositeType = (CCompositeType) lvalueType;
+    } else if (lvalueType instanceof CCompositeType lvalueCompositeType) {
       return makeDestructiveCompositeAssignment(
           lvalueCompositeType, rvalueType, lvalue, rvalue, useOldSSAIndices, updatedRegions);
 

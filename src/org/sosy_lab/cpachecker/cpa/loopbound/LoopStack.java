@@ -84,8 +84,7 @@ final class LoopStack implements Iterable<LoopIterationState> {
     if (this == pObj) {
       return true;
     }
-    if (pObj instanceof LoopStack) {
-      LoopStack other = (LoopStack) pObj;
+    if (pObj instanceof LoopStack other) {
       // Hash code is cached, so this is also quick
       if (hashCode() != other.hashCode()) {
         return false;

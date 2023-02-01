@@ -192,8 +192,7 @@ final class CfaSimplifications {
           // TODO: add support for more edges/statements that can contain writing array accesses
           if (edge instanceof CStatementEdge) {
             CStatement statement = ((CStatementEdge) edge).getStatement();
-            if (statement instanceof CExpressionAssignmentStatement) {
-              var assignStatement = (CExpressionAssignmentStatement) statement;
+            if (statement instanceof CExpressionAssignmentStatement assignStatement) {
               CAstNode rhs =
                   assignStatement
                       .getRightHandSide()

@@ -11,15 +11,8 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /** Singleton class for the special value <code>null</code>. */
-public class NullValue implements Value {
-
-  private static final long serialVersionUID = 49593725475613735L;
-
-  private static final NullValue SINGLETON = new NullValue();
-
-  private NullValue() {
-    // private constructor for singleton pattern
-  }
+public enum NullValue implements Value {
+  INSTANCE;
 
   /**
    * Returns an instance of a <code>NullValue</code> object.
@@ -27,7 +20,7 @@ public class NullValue implements Value {
    * @return an instance of this object
    */
   public static Value getInstance() {
-    return SINGLETON;
+    return INSTANCE;
   }
 
   /**
@@ -79,18 +72,6 @@ public class NullValue implements Value {
   @Override
   public <T> T accept(ValueVisitor<T> pVisitor) {
     return pVisitor.visit(this);
-  }
-
-  @Override
-  public boolean equals(Object other) {
-
-    // all NullValue objects are equal
-    return other instanceof NullValue;
-  }
-
-  @Override
-  public int hashCode() {
-    return 1; // singleton without any values
   }
 
   @Override

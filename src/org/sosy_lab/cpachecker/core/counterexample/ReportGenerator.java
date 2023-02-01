@@ -355,8 +355,7 @@ public class ReportGenerator {
     dotBuilder.writeMergedNodesList(writer);
 
     if (counterExample != null) {
-      if (counterExample instanceof FaultLocalizationInfo) {
-        FaultLocalizationInfo flInfo = (FaultLocalizationInfo) counterExample;
+      if (counterExample instanceof FaultLocalizationInfo flInfo) {
         flInfo.prepare();
         writer.write(",\n\"errorPath\":");
         counterExample.toJSON(writer);
