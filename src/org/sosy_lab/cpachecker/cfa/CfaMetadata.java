@@ -54,7 +54,6 @@ public final class CfaMetadata implements Serializable {
       @Nullable LoopStructure pLoopStructure,
       @Nullable VariableClassification pVariableClassification,
       @Nullable LiveVariables pLiveVariables) {
-
     machineModel = pMachineModel;
     language = pLanguage;
     fileNames = pFileNames;
@@ -85,7 +84,6 @@ public final class CfaMetadata implements Serializable {
       List<Path> pFileNames,
       FunctionEntryNode pMainFunctionEntry,
       CfaConnectedness pConnectedness) {
-
     return new CfaMetadata(
         checkNotNull(pMachineModel),
         checkNotNull(pLanguage),
@@ -295,7 +293,6 @@ public final class CfaMetadata implements Serializable {
 
   /** Serializes CFA metadata. */
   private void writeObject(java.io.ObjectOutputStream pObjectOutputStream) throws IOException {
-
     pObjectOutputStream.defaultWriteObject();
 
     // some `Path` implementations are not serializable, so we serialize paths as list of strings
@@ -306,7 +303,6 @@ public final class CfaMetadata implements Serializable {
   /** Deserializes CFA metadata. */
   private void readObject(java.io.ObjectInputStream pObjectInputStream)
       throws IOException, ClassNotFoundException {
-
     pObjectInputStream.defaultReadObject();
 
     @SuppressWarnings("unchecked") // paths are always serialized as a list of strings
@@ -329,15 +325,12 @@ public final class CfaMetadata implements Serializable {
 
   @Override
   public boolean equals(Object pObject) {
-
     if (this == pObject) {
       return true;
     }
-
     if (!(pObject instanceof CfaMetadata)) {
       return false;
     }
-
     CfaMetadata other = (CfaMetadata) pObject;
     return machineModel == other.machineModel
         && language == other.language

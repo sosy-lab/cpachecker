@@ -48,10 +48,8 @@ public class MutableCFA implements CFA {
 
   @CanIgnoreReturnValue
   public boolean addNode(CFANode pNode) {
-
     assert functions.containsKey(pNode.getFunctionName());
     boolean nodeAdded = allNodes.put(pNode.getFunctionName(), pNode);
-
     return nodeAdded;
   }
 
@@ -66,11 +64,9 @@ public class MutableCFA implements CFA {
     assert functionNodes.contains(pNode);
     boolean nodeRemoved = functionNodes.remove(pNode);
     assert nodeRemoved;
-
     if (functionNodes.isEmpty()) {
       functions.remove(pNode.getFunctionName());
     }
-
     return nodeRemoved;
   }
 
