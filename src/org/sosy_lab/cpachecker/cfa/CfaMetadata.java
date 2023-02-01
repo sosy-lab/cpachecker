@@ -323,11 +323,8 @@ public final class CfaMetadata implements Serializable {
     if (this == pObject) {
       return true;
     }
-    if (!(pObject instanceof CfaMetadata)) {
-      return false;
-    }
-    CfaMetadata other = (CfaMetadata) pObject;
-    return machineModel == other.machineModel
+    return pObject instanceof CfaMetadata other
+        && machineModel == other.machineModel
         && language == other.language
         && Objects.equals(fileNames, other.fileNames)
         && Objects.equals(mainFunctionEntry, other.mainFunctionEntry)
