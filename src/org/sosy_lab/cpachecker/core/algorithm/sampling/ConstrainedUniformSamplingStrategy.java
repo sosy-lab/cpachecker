@@ -63,9 +63,9 @@ public class ConstrainedUniformSamplingStrategy implements SamplingStrategy {
       // TODO: We assume all variables are bitvectors for now
       BitvectorFormula variable = (BitvectorFormula) variableFormula;
 
-      BitvectorFormula lower = bvmgr.makeBitvector(32, lowerBound);
+      BitvectorFormula lower = bvmgr.makeBitvector(bvmgr.getLength(variable), lowerBound);
       BooleanFormula lowerConstraint = bvmgr.lessOrEquals(lower, variable, true);
-      BitvectorFormula upper = bvmgr.makeBitvector(32, upperBound);
+      BitvectorFormula upper = bvmgr.makeBitvector(bvmgr.getLength(variable), upperBound);
       BooleanFormula upperConstraint = bvmgr.lessOrEquals(variable, upper, true);
 
       constraints.add(bfmgr.and(lowerConstraint, upperConstraint));
@@ -103,7 +103,7 @@ public class ConstrainedUniformSamplingStrategy implements SamplingStrategy {
       while (unsat) {
         // Create random variable assignment
         long lVal = sampleUniform();
-        BitvectorFormula value = bvmgr.makeBitvector(32, lVal);
+        BitvectorFormula value = bvmgr.makeBitvector(bvmgr.getLength(variable), lVal);
         constraint = bvmgr.equal(variable, value);
 
         // Check if assignment is consistent with other formulas

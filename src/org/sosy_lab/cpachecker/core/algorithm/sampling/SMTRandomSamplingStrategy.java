@@ -42,7 +42,7 @@ public class SMTRandomSamplingStrategy implements SamplingStrategy {
       // completely.
       // TODO: Could use a more sophisticated approach
       while (unsat && max_value <= 1000) {
-        BitvectorFormula limit = bvmgr.makeBitvector(32, max_value);
+        BitvectorFormula limit = bvmgr.makeBitvector(bvmgr.getLength(variable), max_value);
         BooleanFormula upper = bvmgr.lessOrEquals(variable, limit, true);
         BooleanFormula lower = bvmgr.lessOrEquals(bvmgr.negate(variable), limit, true);
 
