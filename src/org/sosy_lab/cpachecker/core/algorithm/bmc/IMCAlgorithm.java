@@ -451,7 +451,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
   private final PredicateAbstractionManager predAbsMgr;
-  private InterpolationManager itpMgr;
+  private final InterpolationManager itpMgr;
   private final CFA cfa;
   private BooleanFormula finalFixedPoint;
   private BooleanFormula lastInductiveAuxInv;
