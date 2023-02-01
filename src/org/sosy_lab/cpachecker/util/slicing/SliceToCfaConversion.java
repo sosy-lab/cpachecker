@@ -199,14 +199,7 @@ final class SliceToCfaConversion {
       }
     }
 
-    MutableCFA mutableSliceCfa =
-        new MutableCFA(
-            pCfa.getMachineModel(),
-            functionEntryNodes,
-            allNodes,
-            pCfa.getMainFunction(),
-            pCfa.getFileNames(),
-            pCfa.getLanguage());
+    MutableCFA mutableSliceCfa = new MutableCFA(functionEntryNodes, allNodes, pCfa.getMetadata());
 
     CFASimplifier.simplifyCFA(mutableSliceCfa);
 

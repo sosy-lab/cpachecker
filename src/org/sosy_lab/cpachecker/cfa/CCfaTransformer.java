@@ -587,13 +587,11 @@ public final class CCfaTransformer {
         }
       }
 
-      return new MutableCFA(
-          pOriginalCfa.getMachineModel(),
-          newFunctions,
-          newNodes,
-          (FunctionEntryNode) oldNodeToNewNode.get(oldMainEntryNode),
-          pOriginalCfa.getFileNames(),
-          pOriginalCfa.getLanguage());
+      CfaMetadata newCfaMetadata =
+          pOriginalCfa
+              .getMetadata()
+              .withMainFunctionEntry((FunctionEntryNode) oldNodeToNewNode.get(oldMainEntryNode));
+      return new MutableCFA(newFunctions, newNodes, newCfaMetadata);
     }
 
     private CFA createCfa(Configuration pConfiguration, LogManager pLogger, CFA pOriginalCfa) {
