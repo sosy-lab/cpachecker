@@ -48,17 +48,17 @@ public final class CfaMetadata implements Serializable {
   private CfaMetadata(
       MachineModel pMachineModel,
       Language pLanguage,
-      ImmutableList<Path> pFileNames,
+      List<Path> pFileNames,
       FunctionEntryNode pMainFunctionEntry,
       CfaConnectedness pConnectedness,
       @Nullable LoopStructure pLoopStructure,
       @Nullable VariableClassification pVariableClassification,
       @Nullable LiveVariables pLiveVariables) {
-    machineModel = pMachineModel;
-    language = pLanguage;
-    fileNames = pFileNames;
-    mainFunctionEntry = pMainFunctionEntry;
-    connectedness = pConnectedness;
+    machineModel = checkNotNull(pMachineModel);
+    language = checkNotNull(pLanguage);
+    fileNames = ImmutableList.copyOf(pFileNames);
+    mainFunctionEntry = checkNotNull(pMainFunctionEntry);
+    connectedness = checkNotNull(pConnectedness);
 
     loopStructure = pLoopStructure;
     variableClassification = pVariableClassification;
@@ -87,14 +87,7 @@ public final class CfaMetadata implements Serializable {
       FunctionEntryNode pMainFunctionEntry,
       CfaConnectedness pConnectedness) {
     return new CfaMetadata(
-        checkNotNull(pMachineModel),
-        checkNotNull(pLanguage),
-        ImmutableList.copyOf(pFileNames),
-        checkNotNull(pMainFunctionEntry),
-        checkNotNull(pConnectedness),
-        null,
-        null,
-        null);
+        pMachineModel, pLanguage, pFileNames, pMainFunctionEntry, pConnectedness, null, null, null);
   }
 
   /**
