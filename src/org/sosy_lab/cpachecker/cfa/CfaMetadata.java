@@ -66,7 +66,9 @@ public final class CfaMetadata implements Serializable {
   }
 
   /**
-   * Returns a new CFA metadata instance for the specified parameters.
+   * Returns a new CFA metadata instance for the specified parameters (only mandatory attributes).
+   *
+   * <p>The returned CFA metadata instance doesn't contain any optional attributes.
    *
    * @param pMachineModel the machine model to use for CFA analysis (defines sizes for all basic
    *     types)
@@ -78,7 +80,7 @@ public final class CfaMetadata implements Serializable {
    * @throws NullPointerException if any parameter is {@code null} or if {@code pFileNames} contains
    *     {@code null}
    */
-  public static CfaMetadata of(
+  public static CfaMetadata forMandatoryAttributes(
       MachineModel pMachineModel,
       Language pLanguage,
       List<Path> pFileNames,
