@@ -39,7 +39,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NestingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.sampling.Sample.SampleClass;
@@ -52,8 +51,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -66,6 +63,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
@@ -90,6 +88,9 @@ public class SamplingAlgorithm extends NestingAlgorithm {
 
   @Option(secure = true, description = "Whether negative samples should be collected.")
   private boolean collectNegativeSamples = true;
+
+  @Option(secure = true, description = "Whether test-based sampling should be used")
+  private boolean useTestBasedSampling = false;
 
   @Option(secure = true, description = "The file where generated samples should be written to.")
   @FileOption(Type.OUTPUT_FILE)
@@ -318,6 +319,40 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       // Unroll positive samples using value-based sampling
       for (Sample sample : positiveSamples) {
         samples.addAll(forwardUnrollingAlgorithm.unrollSample(sample, loop));
+
+        // Use test-based sampling to potentially find negative samples
+        if (useTestBasedSampling) {
+          // Create variable formulas
+          Set<Formula> variableFormulas = new HashSet<>();
+          FormulaManagerView fmgr = forwardSolver.getFormulaManager();
+          for (MemoryLocation variable : sample.getVariableValues().keySet()) {
+            variableFormulas.add(
+                fmgr.makeVariable(
+                    FormulaType.getBitvectorTypeWithSize(32), variable.getQualifiedName(), 2));
+          }
+
+          // Create an unknown sample
+          List<ValueAssignment> model;
+          try (ProverEnvironment prover =
+              forwardSolver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+            model =
+                samplingStrategy.getModel(
+                    forwardSolver.getFormulaManager(), variableFormulas, prover);
+          }
+          CFANode location = sample.getLocation();
+          Iterable<ValueAssignment> relevantAssignments =
+              SampleUtils.getRelevantAssignments(model, location);
+          Sample unknownSample =
+              SampleUtils.extractSampleFromModel(
+                  relevantAssignments, location, SampleClass.UNKNOWN);
+
+          // Unroll unknown sample, add to known samples if they can be classified
+          Set<Sample> unrolledSamples = forwardUnrollingAlgorithm.unrollSample(unknownSample, loop);
+          samples.addAll(
+              unrolledSamples.stream()
+                  .filter(s -> s.getSampleClass() != SampleClass.UNKNOWN)
+                  .toList());
+        }
       }
 
       // Unroll negative samples using backward sampling
