@@ -50,7 +50,7 @@ public final class CCfaFactoryTest {
         new CFunctionEntryNode(
             FileLocation.DUMMY, CFunctionDeclaration.DUMMY, mainFunctionExitNode, Optional.empty());
     CfaMetadata cfaMetadata =
-        CfaMetadata.of(
+        CfaMetadata.forMandatoryAttributes(
             MachineModel.ARM,
             Language.C,
             ImmutableList.of(),

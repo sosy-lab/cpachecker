@@ -41,7 +41,6 @@ class ImmutableCFA implements CFA, Serializable {
       Map<String, FunctionEntryNode> pFunctions,
       SetMultimap<String, CFANode> pAllNodes,
       CfaMetadata pCfaMetadata) {
-
     functions = ImmutableSortedMap.copyOf(pFunctions);
     allNodes = ImmutableSortedSet.copyOf(pAllNodes.values());
 

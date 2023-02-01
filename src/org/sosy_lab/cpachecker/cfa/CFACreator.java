@@ -576,7 +576,7 @@ public class CFACreator {
     assert mainFunction != null;
 
     CfaMetadata cfaMetadata =
-        CfaMetadata.of(
+        CfaMetadata.forMandatoryAttributes(
             machineModel,
             language,
             pParseResult.getFileNames(),

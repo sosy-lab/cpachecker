@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Path;
@@ -48,18 +48,17 @@ public final class CfaMetadata implements Serializable {
   private CfaMetadata(
       MachineModel pMachineModel,
       Language pLanguage,
-      ImmutableList<Path> pFileNames,
+      List<Path> pFileNames,
       FunctionEntryNode pMainFunctionEntry,
       CfaConnectedness pConnectedness,
       @Nullable LoopStructure pLoopStructure,
       @Nullable VariableClassification pVariableClassification,
       @Nullable LiveVariables pLiveVariables) {
-
-    machineModel = pMachineModel;
-    language = pLanguage;
-    fileNames = pFileNames;
-    mainFunctionEntry = pMainFunctionEntry;
-    connectedness = pConnectedness;
+    machineModel = checkNotNull(pMachineModel);
+    language = checkNotNull(pLanguage);
+    fileNames = ImmutableList.copyOf(pFileNames);
+    mainFunctionEntry = checkNotNull(pMainFunctionEntry);
+    connectedness = checkNotNull(pConnectedness);
 
     loopStructure = pLoopStructure;
     variableClassification = pVariableClassification;
@@ -67,7 +66,9 @@ public final class CfaMetadata implements Serializable {
   }
 
   /**
-   * Returns a new CFA metadata instance for the specified parameters.
+   * Returns a new CFA metadata instance for the specified parameters (only mandatory attributes).
+   *
+   * <p>The returned CFA metadata instance doesn't contain any optional attributes.
    *
    * @param pMachineModel the machine model to use for CFA analysis (defines sizes for all basic
    *     types)
@@ -79,22 +80,14 @@ public final class CfaMetadata implements Serializable {
    * @throws NullPointerException if any parameter is {@code null} or if {@code pFileNames} contains
    *     {@code null}
    */
-  public static CfaMetadata of(
+  public static CfaMetadata forMandatoryAttributes(
       MachineModel pMachineModel,
       Language pLanguage,
       List<Path> pFileNames,
       FunctionEntryNode pMainFunctionEntry,
       CfaConnectedness pConnectedness) {
-
     return new CfaMetadata(
-        checkNotNull(pMachineModel),
-        checkNotNull(pLanguage),
-        ImmutableList.copyOf(pFileNames),
-        checkNotNull(pMainFunctionEntry),
-        checkNotNull(pConnectedness),
-        null,
-        null,
-        null);
+        pMachineModel, pLanguage, pFileNames, pMainFunctionEntry, pConnectedness, null, null, null);
   }
 
   /**
@@ -295,23 +288,21 @@ public final class CfaMetadata implements Serializable {
 
   /** Serializes CFA metadata. */
   private void writeObject(java.io.ObjectOutputStream pObjectOutputStream) throws IOException {
-
     pObjectOutputStream.defaultWriteObject();
 
     // some `Path` implementations are not serializable, so we serialize paths as list of strings
-    List<String> stringFileNames = ImmutableList.copyOf(Lists.transform(fileNames, Path::toString));
+    List<String> stringFileNames = transformedImmutableListCopy(fileNames, Path::toString);
     pObjectOutputStream.writeObject(stringFileNames);
   }
 
   /** Deserializes CFA metadata. */
   private void readObject(java.io.ObjectInputStream pObjectInputStream)
       throws IOException, ClassNotFoundException {
-
     pObjectInputStream.defaultReadObject();
 
     @SuppressWarnings("unchecked") // paths are always serialized as a list of strings
     List<String> stringFileNames = (List<String>) pObjectInputStream.readObject();
-    fileNames = ImmutableList.copyOf(Lists.transform(stringFileNames, Path::of));
+    fileNames = transformedImmutableListCopy(stringFileNames, Path::of);
   }
 
   @Override
@@ -329,17 +320,11 @@ public final class CfaMetadata implements Serializable {
 
   @Override
   public boolean equals(Object pObject) {
-
     if (this == pObject) {
       return true;
     }
-
-    if (!(pObject instanceof CfaMetadata)) {
-      return false;
-    }
-
-    CfaMetadata other = (CfaMetadata) pObject;
-    return machineModel == other.machineModel
+    return pObject instanceof CfaMetadata other
+        && machineModel == other.machineModel
         && language == other.language
         && Objects.equals(fileNames, other.fileNames)
         && Objects.equals(mainFunctionEntry, other.mainFunctionEntry)

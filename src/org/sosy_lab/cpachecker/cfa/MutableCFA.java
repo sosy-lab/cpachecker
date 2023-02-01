@@ -65,8 +65,8 @@ public class MutableCFA implements CFA {
     NavigableSet<CFANode> functionNodes = allNodes.get(pNode.getFunctionName());
     assert functionNodes.contains(pNode);
     boolean nodeRemoved = functionNodes.remove(pNode);
-    assert nodeRemoved;
 
+    assert nodeRemoved;
     if (functionNodes.isEmpty()) {
       functions.remove(pNode.getFunctionName());
     }
