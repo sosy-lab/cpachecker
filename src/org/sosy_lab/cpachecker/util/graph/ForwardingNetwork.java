@@ -2,11 +2,13 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
 package org.sosy_lab.cpachecker.util.graph;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.graph.ElementOrder;
 import com.google.common.graph.EndpointPair;
@@ -14,159 +16,148 @@ import com.google.common.graph.Graph;
 import com.google.common.graph.Network;
 import java.util.Optional;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
-/**
- * A {@link Network} that forwards all calls to a delegate {@link Network}.
- *
- * <p>The delegate {@link Network} is specified using {@link ForwardingNetwork#delegateNetwork()}.
- */
-public abstract class ForwardingNetwork<N, E> implements Network<N, E> {
+public class ForwardingNetwork<N, E> implements Network<N, E> {
 
-  /**
-   * Returns the delegate {@link Network} to forward all {@link Network} calls to.
-   *
-   * @return the delegate {@link Network} to forward all {@link Network} calls to
-   */
-  protected abstract Network<N, E> delegateNetwork();
+  private final Network<N, E> delegate;
 
-  // network-level accessors
-
-  @Override
-  public Set<N> nodes() {
-    return delegateNetwork().nodes();
+  public ForwardingNetwork(Network<N, E> pDelegate) {
+    delegate = checkNotNull(pDelegate);
   }
 
   @Override
-  public Set<E> edges() {
-    return delegateNetwork().edges();
+  public final Set<E> adjacentEdges(E pEdge) {
+    return delegate.adjacentEdges(pEdge);
   }
 
   @Override
-  public Graph<N> asGraph() {
-    return delegateNetwork().asGraph();
-  }
-
-  // network properties
-
-  @Override
-  public boolean isDirected() {
-    return delegateNetwork().isDirected();
+  public final Set<N> adjacentNodes(N pNode) {
+    return delegate.adjacentNodes(pNode);
   }
 
   @Override
-  public boolean allowsParallelEdges() {
-    return delegateNetwork().allowsParallelEdges();
+  public final boolean allowsParallelEdges() {
+    return delegate.allowsParallelEdges();
   }
 
   @Override
-  public boolean allowsSelfLoops() {
-    return delegateNetwork().allowsSelfLoops();
+  public final boolean allowsSelfLoops() {
+    return delegate.allowsSelfLoops();
   }
 
   @Override
-  public ElementOrder<N> nodeOrder() {
-    return delegateNetwork().nodeOrder();
+  public final Graph<N> asGraph() {
+    return delegate.asGraph();
   }
 
   @Override
-  public ElementOrder<E> edgeOrder() {
-    return delegateNetwork().edgeOrder();
-  }
-
-  // element-level accessors
-
-  @Override
-  public Set<N> adjacentNodes(N pNode) {
-    return delegateNetwork().adjacentNodes(pNode);
+  public final int degree(N pNode) {
+    return delegate.degree(pNode);
   }
 
   @Override
-  public Set<N> predecessors(N pNode) {
-    return delegateNetwork().predecessors(pNode);
+  public final Optional<E> edgeConnecting(EndpointPair<N> pEndpoints) {
+    return delegate.edgeConnecting(pEndpoints);
   }
 
   @Override
-  public Set<N> successors(N pNode) {
-    return delegateNetwork().successors(pNode);
+  public final Optional<E> edgeConnecting(N pNodeU, N pNodeV) {
+    return delegate.edgeConnecting(pNodeU, pNodeV);
   }
 
   @Override
-  public Set<E> incidentEdges(N pNode) {
-    return delegateNetwork().incidentEdges(pNode);
+  public final @Nullable E edgeConnectingOrNull(EndpointPair<N> pEndpoints) {
+    return delegate.edgeConnectingOrNull(pEndpoints);
   }
 
   @Override
-  public Set<E> inEdges(N pNode) {
-    return delegateNetwork().inEdges(pNode);
+  public final @Nullable E edgeConnectingOrNull(N pNodeU, N pNodeV) {
+    return delegate.edgeConnectingOrNull(pNodeU, pNodeV);
   }
 
   @Override
-  public Set<E> outEdges(N pNode) {
-    return delegateNetwork().outEdges(pNode);
+  public final ElementOrder<E> edgeOrder() {
+    return delegate.edgeOrder();
   }
 
   @Override
-  public int degree(N pNode) {
-    return delegateNetwork().degree(pNode);
+  public final Set<E> edges() {
+    return delegate.edges();
   }
 
   @Override
-  public int inDegree(N pNode) {
-    return delegateNetwork().inDegree(pNode);
+  public final Set<E> edgesConnecting(EndpointPair<N> pEndpoints) {
+    return delegate.edgesConnecting(pEndpoints);
   }
 
   @Override
-  public int outDegree(N pNode) {
-    return delegateNetwork().outDegree(pNode);
+  public final Set<E> edgesConnecting(N pNodeU, N pNodeV) {
+    return delegate.edgesConnecting(pNodeU, pNodeV);
   }
 
   @Override
-  public EndpointPair<N> incidentNodes(E pEdge) {
-    return delegateNetwork().incidentNodes(pEdge);
+  public final boolean hasEdgeConnecting(EndpointPair<N> pEndpoints) {
+    return delegate.hasEdgeConnecting(pEndpoints);
   }
 
   @Override
-  public Set<E> adjacentEdges(E pEdge) {
-    return delegateNetwork().adjacentEdges(pEdge);
+  public final boolean hasEdgeConnecting(N pNodeU, N pNodeV) {
+    return delegate.hasEdgeConnecting(pNodeU, pNodeV);
   }
 
   @Override
-  public Set<E> edgesConnecting(N pNodeU, N pNodeV) {
-    return delegateNetwork().edgesConnecting(pNodeU, pNodeV);
+  public final int inDegree(N pNode) {
+    return delegate.inDegree(pNode);
   }
 
   @Override
-  public Set<E> edgesConnecting(EndpointPair<N> pEndpoints) {
-    return delegateNetwork().edgesConnecting(pEndpoints);
+  public final Set<E> inEdges(N pNode) {
+    return delegate.inEdges(pNode);
   }
 
   @Override
-  public Optional<E> edgeConnecting(N pNodeU, N pNodeV) {
-    return delegateNetwork().edgeConnecting(pNodeU, pNodeV);
+  public final Set<E> incidentEdges(N pNode) {
+    return delegate.incidentEdges(pNode);
   }
 
   @Override
-  public Optional<E> edgeConnecting(EndpointPair<N> pEndpoints) {
-    return delegateNetwork().edgeConnecting(pEndpoints);
+  public final EndpointPair<N> incidentNodes(E pEdge) {
+    return delegate.incidentNodes(pEdge);
   }
 
   @Override
-  public E edgeConnectingOrNull(N pNodeU, N pNodeV) {
-    return delegateNetwork().edgeConnectingOrNull(pNodeU, pNodeV);
+  public final boolean isDirected() {
+    return delegate.isDirected();
   }
 
   @Override
-  public E edgeConnectingOrNull(EndpointPair<N> pEndpoints) {
-    return delegateNetwork().edgeConnectingOrNull(pEndpoints);
+  public final ElementOrder<N> nodeOrder() {
+    return delegate.nodeOrder();
   }
 
   @Override
-  public boolean hasEdgeConnecting(N pNodeU, N pNodeV) {
-    return delegateNetwork().hasEdgeConnecting(pNodeU, pNodeV);
+  public final Set<N> nodes() {
+    return delegate.nodes();
   }
 
   @Override
-  public boolean hasEdgeConnecting(EndpointPair<N> pEndpoints) {
-    return delegateNetwork().hasEdgeConnecting(pEndpoints);
+  public final int outDegree(N pNode) {
+    return delegate.outDegree(pNode);
+  }
+
+  @Override
+  public final Set<E> outEdges(N pNode) {
+    return delegate.outEdges(pNode);
+  }
+
+  @Override
+  public final Set<N> predecessors(N pNode) {
+    return delegate.predecessors(pNode);
+  }
+
+  @Override
+  public final Set<N> successors(N pNode) {
+    return delegate.successors(pNode);
   }
 }
