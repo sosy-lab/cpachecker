@@ -509,11 +509,19 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy
       addLine.accept(assignmentExpressionExtrapolation.toASTString());
     }
 
-    // Unroll the loop once for safety's sake
-    try {
-      executeLoopBodyAsCode(loop, builder);
-    } catch (IOException e) {
-      return Optional.empty();
+    // Unroll the loop once for safety's sake if the update per iteration is not one
+    // this is to not have problems occur when the division on the extrapolation
+    // is not exact and has a rest
+    Optional<Integer> loopBoundAbsoluteChange =
+        loopBoundDeltaAbsoluteValue(loopBoundExpression, loop);
+    if (loopBoundAbsoluteChange.isPresent()) {
+      if (loopBoundAbsoluteChange.orElseThrow() != 1) {
+        try {
+          executeLoopBodyAsCode(loop, builder);
+        } catch (IOException e) {
+          return Optional.empty();
+        }
+      }
     }
 
     builder.append("}\n");

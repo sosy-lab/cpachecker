@@ -77,6 +77,26 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pStrategyEnum, pCFA);
   }
 
+  public Optional<Integer> loopBoundDeltaAbsoluteValue(
+      AExpression loopBoundExpression, Loop loopStructure) {
+    LoopVariableDeltaVisitor variableVisitor = new LoopVariableDeltaVisitor(loopStructure, true);
+
+    CExpression operand1 = ((CBinaryExpression) loopBoundExpression).getOperand1();
+    CExpression operand2 = ((CBinaryExpression) loopBoundExpression).getOperand2();
+
+    Optional<Integer> operand1variableDelta;
+    Optional<Integer> operand2variableDelta;
+    operand1variableDelta = operand1.accept(variableVisitor);
+    operand2variableDelta = operand2.accept(variableVisitor);
+
+    if (operand1variableDelta.isPresent() && operand2variableDelta.isPresent()) {
+      return Optional.of(
+          Math.abs(operand1variableDelta.orElseThrow() - operand2variableDelta.orElseThrow()));
+    }
+
+    return Optional.empty();
+  }
+
   /**
    * This method returns the Amount of iterations the loop will go through, if it is possible to
    * calculate this
