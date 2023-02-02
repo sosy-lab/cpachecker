@@ -1,0 +1,62 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: loop_invariant
+  metadata:
+    format_version: 0.2
+    uuid: c84201e9-5f60-4ec9-849a-39bb3ab3e656
+    creation_time: 2023-01-31T13:45:55.208956Z
+    producer:
+      name: A2Y
+      version: 1.0
+    task:
+      input_files:
+        - c/loops/sum03-2.i
+      input_file_hashes:
+        c/loops/sum03-2.i: f3ea688a1545b3bafe54147de3e42aca9be90a0cf7137921828beab11eeeb69a
+      specification: CHECK( init(main()), LTL(G ! call(reach_error())) )
+      data_model: ILP32
+      language: C
+  location:
+    file_name: c/loops/sum03-2.i
+    file_hash: f3ea688a1545b3bafe54147de3e42aca9be90a0cf7137921828beab11eeeb69a
+    line: 24
+    column: 0
+    function: main
+  loop_invariant:
+    string: sn == x * 2
+    type: assertion
+    format: C
+
+- entry_type: location_invariant
+  metadata:
+    format_version: 0.2
+    uuid: 5efef274-180a-4988-9352-748c497c2557
+    creation_time: 2023-01-31T13:45:55.209251Z
+    producer:
+      name: A2Y
+      version: 1.0
+    task:
+      input_files:
+        - c/loops/sum03-2.i
+      input_file_hashes:
+        c/loops/sum03-2.i: f3ea688a1545b3bafe54147de3e42aca9be90a0cf7137921828beab11eeeb69a
+      specification: CHECK( init(main()), LTL(G ! call(reach_error())) )
+      data_model: ILP32
+      language: C
+  location:
+    file_name: c/loops/sum03-2.i
+    file_hash: f3ea688a1545b3bafe54147de3e42aca9be90a0cf7137921828beab11eeeb69a
+    line: 27
+    column: 0
+    function: main
+  location_invariant:
+    string: sn == x * 2 || sn == 0
+    type: assertion
+    format: C
+
