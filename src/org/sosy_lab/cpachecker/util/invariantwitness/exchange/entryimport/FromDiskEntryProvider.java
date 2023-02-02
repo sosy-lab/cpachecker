@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LocationInvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
 
 /**
@@ -52,7 +53,7 @@ class FromDiskEntryProvider implements AutoCloseable {
   @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
   private Path storeDirectory = Path.of("invariantWitnesses");
 
-  private final Queue<LoopInvariantEntry> loadedEntries;
+  private final Queue<AbstractEntry> loadedEntries;
   private final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
   private final JavaType entryType;
 
@@ -77,7 +78,7 @@ class FromDiskEntryProvider implements AutoCloseable {
    * @return optional invariant
    * @throws IOException if accessing the invariant files fails
    */
-  Optional<LoopInvariantEntry> getNext() throws IOException {
+  Optional<AbstractEntry> getNext() throws IOException {
     synchronized (this) {
       if (!loadedEntries.isEmpty()) {
         return Optional.of(loadedEntries.remove());
@@ -97,7 +98,7 @@ class FromDiskEntryProvider implements AutoCloseable {
    * @return next available invariant.
    * @throws IOException if accessing the invariant files fails
    */
-  LoopInvariantEntry awaitNext() throws InterruptedException, IOException {
+  AbstractEntry awaitNext() throws InterruptedException, IOException {
     synchronized (this) {
       if (!loadedEntries.isEmpty()) {
         return loadedEntries.remove();
@@ -149,7 +150,9 @@ class FromDiskEntryProvider implements AutoCloseable {
 
   private synchronized void loadEntries(File entriesFile) throws IOException {
     List<AbstractEntry> entries = mapper.readValue(entriesFile, entryType);
-    FluentIterable.from(entries).filter(LoopInvariantEntry.class).copyInto(loadedEntries);
+    FluentIterable.from(entries)
+        .filter(e -> e instanceof LoopInvariantEntry || e instanceof LocationInvariantEntry)
+        .copyInto(loadedEntries);
   }
 
   @Override

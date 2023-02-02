@@ -20,7 +20,8 @@ import java.util.Objects;
   @JsonSubTypes.Type(value = LoopInvariantEntry.class, name = "loop_invariant"),
   @JsonSubTypes.Type(
       value = LoopInvariantCertificateEntry.class,
-      name = "loop_invariant_certificate")
+      name = "loop_invariant_certificate"),
+  @JsonSubTypes.Type(value = LocationInvariantEntry.class, name = "location_invariant")
 })
 public abstract class AbstractEntry {
 
