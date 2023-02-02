@@ -131,6 +131,10 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
                                       - operand1variableDelta.orElseThrow()),
                               LoopStrategy.SIGNED_LONG_INT,
                               CBinaryExpression.BinaryOperator.DIVIDE)
+                          .binaryOperation(
+                              Integer.valueOf(1),
+                              LoopStrategy.SIGNED_LONG_INT,
+                              CBinaryExpression.BinaryOperator.PLUS)
                           .build());
             }
             break;
@@ -146,10 +150,6 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
                                       - operand1variableDelta.orElseThrow()),
                               LoopStrategy.SIGNED_LONG_INT,
                               CBinaryExpression.BinaryOperator.DIVIDE)
-                          .binaryOperation(
-                              Integer.valueOf(1),
-                              LoopStrategy.SIGNED_LONG_INT,
-                              CBinaryExpression.BinaryOperator.PLUS)
                           .build());
             }
             break;

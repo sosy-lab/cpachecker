@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
 import com.google.common.collect.FluentIterable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -508,7 +509,15 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy
       addLine.accept(assignmentExpressionExtrapolation.toASTString());
     }
 
+    // Unroll the loop once for safety's sake
+    try {
+      executeLoopBodyAsCode(loop, builder);
+    } catch (IOException e) {
+      return Optional.empty();
+    }
+
     builder.append("}\n");
+
     this.nameCounter += 1;
 
     return Optional.of(builder.toString());
