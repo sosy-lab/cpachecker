@@ -375,8 +375,21 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy
     if (iterationsMaybe.isEmpty()) {
       return Optional.empty();
     }
-    AExpression iterations = iterationsMaybe.orElseThrow();
+    AExpression iterations =
+        new AExpressionFactory()
+            .from(iterationsMaybe.orElseThrow())
+            .binaryOperation(1, SIGNED_LONG_INT, CBinaryExpression.BinaryOperator.MINUS)
+            .build();
     VariableCollectorVisitor variableCollectorVisitor = new VariableCollectorVisitor();
+
+    // Start by unrolling the loop once, since sometimes
+    // there are just plain assigments in the loop
+    // for example x = 0
+    try {
+      executeLoopBodyAsCode(loop, builder);
+    } catch (IOException e) {
+      return Optional.empty();
+    }
 
     Set<AVariableDeclaration> modifiedVariablesLocal = new HashSet<>();
 
