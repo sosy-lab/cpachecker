@@ -34,12 +34,12 @@ final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
 
   private EdgeTransformingCfaNetwork(
       CfaNetwork pDelegate, Function<CFAEdge, CFAEdge> pEdgeTransformer) {
-    delegate = pDelegate;
-    edgeTransformer = pEdgeTransformer;
+    delegate = checkNotNull(pDelegate);
+    edgeTransformer = checkNotNull(pEdgeTransformer);
   }
 
   static CfaNetwork of(CfaNetwork pDelegate, Function<CFAEdge, CFAEdge> pEdgeTransformer) {
-    return new EdgeTransformingCfaNetwork(checkNotNull(pDelegate), checkNotNull(pEdgeTransformer));
+    return new EdgeTransformingCfaNetwork(pDelegate, pEdgeTransformer);
   }
 
   private static boolean haveSameEndpoints(CFAEdge pSomeEdge, CFAEdge pOtherEdge) {

@@ -38,11 +38,11 @@ final class WrappingCfaNetwork extends AbstractCfaNetwork {
   private final CFA cfa;
 
   private WrappingCfaNetwork(CFA pCfa) {
-    cfa = pCfa;
+    cfa = checkNotNull(pCfa);
   }
 
   static CfaNetwork wrap(CFA pCfa) {
-    return new WrappingCfaNetwork(checkNotNull(pCfa));
+    return new WrappingCfaNetwork(pCfa);
   }
 
   // network-level accessors

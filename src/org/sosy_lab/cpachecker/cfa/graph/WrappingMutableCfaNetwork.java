@@ -36,12 +36,12 @@ final class WrappingMutableCfaNetwork extends ForwardingCfaNetwork implements Mu
   private final CfaNetwork wrappedMutableCfa;
 
   private WrappingMutableCfaNetwork(MutableCFA pMutableCfa) {
-    mutableCfa = pMutableCfa;
+    mutableCfa = checkNotNull(pMutableCfa);
     wrappedMutableCfa = CfaNetwork.wrap(pMutableCfa);
   }
 
   static MutableCfaNetwork wrap(MutableCFA pMutableCfa) {
-    return new WrappingMutableCfaNetwork(checkNotNull(pMutableCfa));
+    return new WrappingMutableCfaNetwork(pMutableCfa);
   }
 
   @Override
