@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.TreeMultimap;
 import java.util.List;
 import java.util.NavigableMap;
@@ -245,10 +246,8 @@ final class SliceToCfaConversion {
     irrelevantNodes.forEach(graph::removeNode);
 
     ImmutableMap<AFunctionDeclaration, FunctionEntryNode> functionToEntryNodeMap =
-        pSlice.getOriginalCfa().getAllFunctionHeads().stream()
-            .collect(
-                ImmutableMap.toImmutableMap(
-                    entryNode -> entryNode.getFunction(), entryNode -> entryNode));
+        Maps.uniqueIndex(
+            pSlice.getOriginalCfa().getAllFunctionHeads(), FunctionEntryNode::getFunction);
 
     // if the program slice is empty, return a CFA containing an empty main function
     if (relevantEdges.isEmpty()) {
