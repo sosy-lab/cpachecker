@@ -120,7 +120,7 @@ public class CFunctionFactory {
     } else if (nonDetFunctionWithType.equals(pFunctionCall.getDeclaration().getOrigName())) {
       return false;
     } else {
-      return false;
+      return true;
     }
   }
 }

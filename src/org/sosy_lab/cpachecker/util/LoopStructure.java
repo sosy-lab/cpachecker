@@ -66,9 +66,12 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryUtils;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariableDependency;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariableDependencyGraph;
@@ -156,7 +159,18 @@ public final class LoopStructure implements Serializable {
         CFAUtils.leavingEdges(n).copyInto(newOutgoingEdges);
       }
 
-      innerLoopEdges = Sets.intersection(newIncomingEdges, newOutgoingEdges).immutableCopy();
+      Set<CFAEdge> innerLoopEdgesProcessing = new HashSet<>();
+      Sets.intersection(newIncomingEdges, newOutgoingEdges).copyInto(innerLoopEdgesProcessing);
+      for (CFAEdge e : Sets.union(newIncomingEdges, newOutgoingEdges)) {
+        // Edges which call functions or return from functions are still edges inside the loop
+        // TODO: Are the edges inside the function also inside the loop?
+        if (e instanceof CFunctionCallEdge || e instanceof CFunctionReturnEdge) {
+          innerLoopEdgesProcessing.add(e);
+        }
+      }
+
+      innerLoopEdges = ImmutableSet.copyOf(innerLoopEdgesProcessing);
+
       newIncomingEdges.removeAll(innerLoopEdges);
       newIncomingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge));
       newOutgoingEdges.removeAll(innerLoopEdges);
@@ -642,6 +656,11 @@ public final class LoopStructure implements Serializable {
             if (new AFunctionFactory().isUserDefined(functionCall)) {
               return true;
             }
+          }
+        } else if (e instanceof FunctionCallEdge) {
+          AFunctionCallExpression functionCall = ((FunctionCallEdge) e).getFunctionCallExpression();
+          if (new AFunctionFactory().isUserDefined(functionCall)) {
+            return true;
           }
         }
       }
