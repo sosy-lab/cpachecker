@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.TreeMultimap;
@@ -35,24 +36,39 @@ public class MutableCFA implements CFA {
       NavigableMap<String, FunctionEntryNode> pFunctions,
       TreeMultimap<String, CFANode> pAllNodes,
       CfaMetadata pCfaMetadata) {
+    checkArgument(pFunctions.keySet().equals(pAllNodes.keySet()));
+    FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
+    checkArgument(mainFunctionEntry.equals(pFunctions.get(mainFunctionEntry.getFunctionName())));
 
     functions = pFunctions;
     allNodes = pAllNodes;
 
     metadata = pCfaMetadata;
-
-    assert functions.keySet().equals(allNodes.keySet());
-    FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
-    assert mainFunctionEntry.equals(functions.get(mainFunctionEntry.getFunctionName()));
   }
 
+  /**
+   * Adds the specified node to this CFA, if it is not already present.
+   *
+   * @param pNode the node to add to this CFA
+   * @return {@code true} if this CFA was modified as a result of the call
+   * @throws NullPointerException if {@code pNode == null}
+   * @throws IllegalArgumentException if adding the new node would lead to multiple function entry
+   *     nodes for the same function
+   */
   @CanIgnoreReturnValue
   public boolean addNode(CFANode pNode) {
-
-    assert functions.containsKey(pNode.getFunctionName());
-    boolean nodeAdded = allNodes.put(pNode.getFunctionName(), pNode);
-
-    return nodeAdded;
+    String functionName = pNode.getFunctionName();
+    boolean allNodesModified = allNodes.put(functionName, pNode);
+    boolean functionsModified = false;
+    if (pNode instanceof FunctionEntryNode entryNode) {
+      @Nullable FunctionEntryNode oldEntryNode = functions.put(functionName, entryNode);
+      functionsModified = !entryNode.equals(oldEntryNode);
+      checkArgument(
+          !functionsModified || oldEntryNode == null,
+          "Cannot add multiple function entry nodes for function '%s'",
+          functionName);
+    }
+    return allNodesModified || functionsModified;
   }
 
   public void clear() {
@@ -60,18 +76,22 @@ public class MutableCFA implements CFA {
     allNodes.clear();
   }
 
+  /**
+   * Remove the specified node from this CFA, if it is present.
+   *
+   * @param pNode the node to remove from this CFA
+   * @return {@code true} if this CFA was modified as a result of the call
+   * @throws NullPointerException if {@code pNode == null}
+   */
   @CanIgnoreReturnValue
   public boolean removeNode(CFANode pNode) {
-    NavigableSet<CFANode> functionNodes = allNodes.get(pNode.getFunctionName());
-    assert functionNodes.contains(pNode);
-    boolean nodeRemoved = functionNodes.remove(pNode);
-
-    assert nodeRemoved;
-    if (functionNodes.isEmpty()) {
-      functions.remove(pNode.getFunctionName());
+    String functionName = pNode.getFunctionName();
+    boolean allNodesModified = allNodes.remove(functionName, pNode);
+    if (pNode instanceof FunctionEntryNode && pNode.equals(functions.get(functionName))) {
+      functions.remove(functionName);
+      return true;
     }
-
-    return nodeRemoved;
+    return allNodesModified;
   }
 
   @Override
