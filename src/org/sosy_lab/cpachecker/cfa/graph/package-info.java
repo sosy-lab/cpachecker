@@ -14,12 +14,9 @@
  * org.sosy_lab.cpachecker.cfa.graph.CfaNetwork CfaNetwork} instead of its individual elements
  * (i.e., its nodes and edges). This offers a great amount of flexibility as different views of a
  * CFA can be created without actually changing the CFA (e.g., by applying simple on-the-fly filters
- * or transformations). Additionally, this makes modifying CFAs easier, because it isn't always
- * necessary to keep individual elements of a CFA in sync (e.g., depending on the implementation, we
- * don't have to create a CFA edge with specific endpoints and also add the edge to those
- * endpoints).
+ * or transformations).
  *
- * <p>There are three main interfaces:
+ * <p>There are two main interfaces:
  *
  * <ul>
  *   <li>{@link org.sosy_lab.cpachecker.cfa.graph.CfaNetwork CfaNetwork} extends {@link
@@ -38,13 +35,6 @@
  *       wrapped} to create a {@link org.sosy_lab.cpachecker.cfa.graph.MutableCfaNetwork
  *       MutableCfaNetwork} that modifies the underlying {@link
  *       org.sosy_lab.cpachecker.cfa.MutableCFA MutableCFA}.
- *   <li>{@link org.sosy_lab.cpachecker.cfa.graph.FlexCfaNetwork FlexCfaNetwork} extends {@link
- *       org.sosy_lab.cpachecker.cfa.graph.MutableCfaNetwork MutableCfaNetwork}: A flexible {@link
- *       org.sosy_lab.cpachecker.cfa.graph.MutableCfaNetwork MutableCfaNetwork} that allows for more
- *       advanced operations that wouldn't be possible for all {@link
- *       org.sosy_lab.cpachecker.cfa.graph.MutableCfaNetwork MutableCfaNetwork} implementations. A
- *       {@link org.sosy_lab.cpachecker.cfa.graph.FlexCfaNetwork FlexCfaNetwork} always changes its
- *       own internal copy of a CFA.
  * </ul>
  */
 package org.sosy_lab.cpachecker.cfa.graph;
