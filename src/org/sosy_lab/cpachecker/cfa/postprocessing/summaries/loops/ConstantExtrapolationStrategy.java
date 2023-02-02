@@ -375,12 +375,16 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy
     if (iterationsMaybe.isEmpty()) {
       return Optional.empty();
     }
-    AExpression iterations = iterationsMaybe.orElseThrow();
+    AExpression iterations =
+        new AExpressionFactory()
+            .from(iterationsMaybe.orElseThrow())
+            .binaryOperation(1, SIGNED_LONG_INT, CBinaryExpression.BinaryOperator.MINUS)
+            .build();
     VariableCollectorVisitor variableCollectorVisitor = new VariableCollectorVisitor();
 
     // Start by unrolling the loop once, since sometimes
     // there are just plain assigments in the loop
-    // for example x = 0
+    // for example x
     try {
       executeLoopBodyAsCode(loop, builder);
     } catch (IOException e) {
@@ -519,18 +523,10 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy
     }
 
     // Unroll the loop once for safety's sake if the update per iteration is not one
-    // this is to not have problems occur when the division on the extrapolation
-    // is not exact and has a rest
-    Optional<Integer> loopBoundAbsoluteChange =
-        loopBoundDeltaAbsoluteValue(loopBoundExpression, loop);
-    if (loopBoundAbsoluteChange.isPresent()) {
-      if (loopBoundAbsoluteChange.orElseThrow() != 1) {
-        try {
-          executeLoopBodyAsCode(loop, builder);
-        } catch (IOException e) {
-          return Optional.empty();
-        }
-      }
+    try {
+      executeLoopBodyAsCode(loop, builder);
+    } catch (IOException e) {
+      return Optional.empty();
     }
 
     builder.append("}\n");
