@@ -77,7 +77,7 @@ public class MutableCFA implements CFA {
   }
 
   /**
-   * Remove the specified node from this CFA, if it is present.
+   * Removes the specified node from this CFA, if it is present.
    *
    * @param pNode the node to remove from this CFA
    * @return {@code true} if this CFA was modified as a result of the call
