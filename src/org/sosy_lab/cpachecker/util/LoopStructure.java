@@ -557,7 +557,7 @@ public final class LoopStructure implements Serializable {
               Sets.intersection(leavingEdges, this.getInnerLoopEdges()).iterator();
           if (innerEdges.hasNext()) {
             boundEdge = innerEdges.next();
-            if (iter.hasNext() && boundEdge instanceof AssumeEdge) {
+            if (innerEdges.hasNext() && boundEdge instanceof AssumeEdge) {
               return Optional.empty();
             } else {
               if (!(boundEdge instanceof AssumeEdge) || innerEdges.hasNext()) {
