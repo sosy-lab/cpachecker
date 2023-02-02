@@ -15,6 +15,8 @@
 
     <rundefinition name="cpachecker-loopsummary-predicate">
         <option name="-config">config/loopsummary/predicateAnalysis-loopsummary.properties</option>
+        <option name="-setprop">cfa.summaries.strategies=OUTPUTLOOPACCELERATION, LOOPCONSTANTEXTRAPOLATION, NAIVELOOPACCELERATION, HAVOCSTRATEGY</>
+
         <option name="-benchmark"/>
     </rundefinition>
 
