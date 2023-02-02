@@ -186,10 +186,7 @@ final class CfaSimplifications {
           }
 
           // there should be no writing accesses, we only replace reading accesses
-          assert arrayAccessSubstitution.keySet().stream()
-              .filter(ArrayAccess::isWrite)
-              .findAny()
-              .isEmpty();
+          assert arrayAccessSubstitution.keySet().stream().noneMatch(ArrayAccess::isWrite);
 
           Function<Map.Entry<ArrayAccess, ?>, CAstNode> extractExpression =
               entry -> entry.getKey().getExpression();
