@@ -112,16 +112,12 @@ final class WrappingMutableCfaNetwork extends ForwardingCfaNetwork implements Mu
   @Override
   public boolean removeNode(CFANode pNode) {
     checkNotNull(pNode);
-
-    if (mutableCfa.getAllNodes().contains(pNode)) {
-      return mutableCfa.removeNode(pNode);
-    }
-
-    if (pNode instanceof FunctionExitNode) {
+    boolean nodeRemoved = mutableCfa.removeNode(pNode);
+    if (nodeRemoved && pNode instanceof FunctionExitNode) {
       ((FunctionExitNode) pNode).getEntryNode().removeExitNode();
     }
 
-    return false;
+    return nodeRemoved;
   }
 
   @Override
