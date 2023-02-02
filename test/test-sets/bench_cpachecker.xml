@@ -2,7 +2,7 @@
         "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="2">
     <resultfiles>output/**.*</resultfiles>
-
+    <!--
     <rundefinition name="cpachecker-predicate">
         <option name="-config">config/predicateAnalysis.properties</option>
         <option name="-benchmark"/>
@@ -12,7 +12,7 @@
 		<option name="-config">config/svcomp22.properties</option>
         <option name="-benchmark"/>
     </rundefinition>
-
+-->
     <rundefinition name="cpachecker-loopsummary-predicate">
         <option name="-config">config/loopsummary/predicateAnalysis-loopsummary.properties</option>
         <option name="-setprop">cfa.summaries.strategies=OUTPUTLOOPACCELERATION, LOOPCONSTANTEXTRAPOLATION, NAIVELOOPACCELERATION, HAVOCSTRATEGY</>
