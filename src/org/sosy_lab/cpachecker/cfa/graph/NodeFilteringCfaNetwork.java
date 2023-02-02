@@ -30,13 +30,9 @@ final class NodeFilteringCfaNetwork extends AbstractCfaNetwork {
   private final CfaNetwork delegate;
   private final Predicate<CFANode> keepNodePredicate;
 
-  private NodeFilteringCfaNetwork(CfaNetwork pDelegate, Predicate<CFANode> pKeepNodePredicate) {
+  NodeFilteringCfaNetwork(CfaNetwork pDelegate, Predicate<CFANode> pKeepNodePredicate) {
     delegate = checkNotNull(pDelegate);
     keepNodePredicate = checkNotNull(pKeepNodePredicate);
-  }
-
-  static CfaNetwork of(CfaNetwork pDelegate, Predicate<CFANode> pKeepNodePredicate) {
-    return new NodeFilteringCfaNetwork(pDelegate, pKeepNodePredicate);
   }
 
   @Override
