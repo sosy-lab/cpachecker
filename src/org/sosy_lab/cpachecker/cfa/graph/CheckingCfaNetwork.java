@@ -46,7 +46,7 @@ final class CheckingCfaNetwork implements CfaNetwork {
   private final CfaNetwork delegate;
 
   private CheckingCfaNetwork(CfaNetwork pDelegate) {
-    delegate = pDelegate;
+    delegate = checkNotNull(pDelegate);
   }
 
   /**
