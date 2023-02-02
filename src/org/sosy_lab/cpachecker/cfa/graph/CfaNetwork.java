@@ -197,15 +197,15 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    *
    * <p>Modifications of this {@link CfaNetwork} are reflected in the view.
    *
-   * @param pKeepNodePredicate predicate that specifies the nodes that should be part of the
-   *     returned {@link CfaNetwork}
-   * @throws NullPointerException if {@code pKeepNodePredicate == null}
+   * @param pRetainPredicate predicate that specifies the nodes that should be part of the returned
+   *     {@link CfaNetwork}
+   * @throws NullPointerException if {@code pRetainPredicate == null}
    * @return a view of this {@link CfaNetwork} that only contains nodes for which the specified
    *     predicate evaluates to {@code true}
    */
-  default CfaNetwork filterNodes(Predicate<CFANode> pKeepNodePredicate) {
+  default CfaNetwork filterNodes(Predicate<CFANode> pRetainPredicate) {
     return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        new NodeFilteringCfaNetwork(this, pKeepNodePredicate));
+        new NodeFilteringCfaNetwork(this, pRetainPredicate));
   }
 
   /**
@@ -214,15 +214,15 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    *
    * <p>Modifications of this {@link CfaNetwork} are reflected in the view.
    *
-   * @param pKeepEdgePredicate predicate that specifies the edges that should be part of the
-   *     returned {@link CfaNetwork}
-   * @throws NullPointerException if {@code pKeepEdgePredicate == null}
+   * @param pRetainPredicate predicate that specifies the edges that should be part of the returned
+   *     {@link CfaNetwork}
+   * @throws NullPointerException if {@code pRetainPredicate == null}
    * @return a view of this {@link CfaNetwork} that only contains edges for which the specified
    *     predicate evaluates to {@code true}
    */
-  default CfaNetwork filterEdges(Predicate<CFAEdge> pKeepEdgePredicate) {
+  default CfaNetwork filterEdges(Predicate<CFAEdge> pRetainPredicate) {
     return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        new EdgeFilteringCfaNetwork(this, pKeepEdgePredicate));
+        new EdgeFilteringCfaNetwork(this, pRetainPredicate));
   }
 
   /**
