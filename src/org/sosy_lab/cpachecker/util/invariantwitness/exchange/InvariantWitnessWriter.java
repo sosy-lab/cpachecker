@@ -56,7 +56,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
  */
 @Options(prefix = "invariantStore.export")
 public final class InvariantWitnessWriter {
-  private final ListMultimap<String, Integer> lineOffsetsByFile;
+  private final ListMultimap<String, Integer> lineOffsetsByFileHash;
   private final LogManager logger;
   private final ObjectMapper mapper;
 
@@ -70,14 +70,14 @@ public final class InvariantWitnessWriter {
   private InvariantWitnessWriter(
       Configuration pConfig,
       LogManager pLogger,
-      ListMultimap<String, Integer> pLineOffsetsByFile,
+      ListMultimap<String, Integer> pLineOffsetsByFileHash,
       ProducerRecord pProducerDescription,
       TaskRecord pTaskDescription)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
     logger = Objects.requireNonNull(pLogger);
-    lineOffsetsByFile = ArrayListMultimap.create(pLineOffsetsByFile);
+    lineOffsetsByFileHash = ArrayListMultimap.create(pLineOffsetsByFileHash);
     mapper =
         new ObjectMapper(
             YAMLFactory.builder()
@@ -110,7 +110,7 @@ public final class InvariantWitnessWriter {
     return new InvariantWitnessWriter(
         pConfig,
         pLogger,
-        InvariantStoreUtil.getLineOffsetsByFile(pCFA.getFileNames()),
+        InvariantStoreUtil.getLineOffsetsByFileHash(pCFA.getFileNames()),
         new ProducerRecord(
             "CPAchecker",
             CPAchecker.getPlainVersion(),
@@ -168,7 +168,8 @@ public final class InvariantWitnessWriter {
     }
   }
 
-  private LoopInvariantEntry invariantWitnessToStoreEnty(InvariantWitness invariantWitness) {
+  private LoopInvariantEntry invariantWitnessToStoreEnty(InvariantWitness invariantWitness)
+      throws IOException {
     ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
     String creationTime = now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 
@@ -180,15 +181,16 @@ public final class InvariantWitnessWriter {
             producerDescription,
             taskDescription);
 
-    final String fileName = invariantWitness.getLocation().getFileName().toString();
+    final Path fileName = invariantWitness.getLocation().getFileName();
+    final String fileHash = AutomatonGraphmlCommon.computeHash(fileName);
     final int lineNumber = invariantWitness.getLocation().getStartingLineInOrigin();
-    final int lineOffset = lineOffsetsByFile.get(fileName).get(lineNumber - 1);
+    final int lineOffset = lineOffsetsByFileHash.get(fileHash).get(lineNumber - 1);
     final int offsetInLine = invariantWitness.getLocation().getNodeOffset() - lineOffset;
 
     LocationRecord location =
         new LocationRecord(
-            fileName,
-            "file_hash",
+            fileName.toString(),
+            fileHash,
             lineNumber,
             offsetInLine,
             invariantWitness.getNode().getFunctionName());

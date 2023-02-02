@@ -58,8 +58,8 @@ public final class InvariantWitnessProvider implements AutoCloseable {
       Configuration pConfig, CFA pCFA, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, IOException {
 
-    ListMultimap<String, Integer> lineOffsetsByFile =
-        InvariantStoreUtil.getLineOffsetsByFile(pCFA.getFileNames());
+    ListMultimap<String, Integer> lineOffsetsByFileHash =
+        InvariantStoreUtil.getLineOffsetsByFileHash(pCFA.getFileNames());
     FromDiskEntryProvider entryProvider =
         FromDiskEntryProvider.getNewFromDiskEntryProvider(pConfig);
     entryProvider.start();
@@ -70,7 +70,7 @@ public final class InvariantWitnessProvider implements AutoCloseable {
     // argument to other static methods).
     return new InvariantWitnessProvider(
         InvariantStoreEntryParser.getNewInvariantStoreEntryParser(
-            pConfig, pLogger, pShutdownNotifier, pCFA, lineOffsetsByFile),
+            pConfig, pLogger, pShutdownNotifier, pCFA, lineOffsetsByFileHash),
         entryProvider);
   }
 

@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvarian
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
 
 class InvariantStoreEntryParser {
-  private final ListMultimap<String, Integer> lineOffsetsByFile;
+  private final ListMultimap<String, Integer> lineOffsetsByFileHash;
   private final LogManager logger;
   private final InvariantWitnessFactory invariantWitnessFactory;
   private final CParser parser;
@@ -54,14 +54,14 @@ class InvariantStoreEntryParser {
   private final CFA cfa;
 
   private InvariantStoreEntryParser(
-      ListMultimap<String, Integer> pLineOffsetsByFile,
+      ListMultimap<String, Integer> pLineOffsetsByFileHash,
       LogManager pLogger,
       InvariantWitnessFactory pInvariantWitnessFactory,
       CParser pParser,
       CProgramScope pScope,
       ParserTools pParserTools,
       CFA pCfa) {
-    lineOffsetsByFile = ArrayListMultimap.create(pLineOffsetsByFile);
+    lineOffsetsByFileHash = ArrayListMultimap.create(pLineOffsetsByFileHash);
     logger = Objects.requireNonNull(pLogger);
     invariantWitnessFactory = Objects.requireNonNull(pInvariantWitnessFactory);
     parser = Objects.requireNonNull(pParser);
@@ -75,7 +75,7 @@ class InvariantStoreEntryParser {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCFA,
-      ListMultimap<String, Integer> pLineOffsetsByFile)
+      ListMultimap<String, Integer> pLineOffsetsByFileHash)
       throws InvalidConfigurationException {
 
     InvariantWitnessFactory invariantWitnessFactory =
@@ -93,7 +93,7 @@ class InvariantStoreEntryParser {
             pShutdownNotifier);
 
     return new InvariantStoreEntryParser(
-        pLineOffsetsByFile, pLogger, invariantWitnessFactory, parser, scope, parserTools, pCFA);
+        pLineOffsetsByFileHash, pLogger, invariantWitnessFactory, parser, scope, parserTools, pCFA);
   }
 
   /**
@@ -116,7 +116,7 @@ class InvariantStoreEntryParser {
 
     // Currently we only do very minimal validation of the witnesses we read.
     // If the witness was produced for another file we can just ignore it.
-    if (!lineOffsetsByFile.containsKey(location.getFileName())) {
+    if (!lineOffsetsByFileHash.containsKey(location.getFileHash())) {
       logger.log(
           Level.INFO, "Invariant", entry.getLoopInvariant(), "does not apply to any input file");
       return ImmutableSet.of();
@@ -223,7 +223,7 @@ class InvariantStoreEntryParser {
 
   private FileLocation parseFileLocation(LocationRecord entryLocation) {
     int offetInFile =
-        lineOffsetsByFile.get(entryLocation.getFileName()).get(entryLocation.getLine() - 1);
+        lineOffsetsByFileHash.get(entryLocation.getFileHash()).get(entryLocation.getLine() - 1);
 
     return new FileLocation(
         Path.of(entryLocation.getFileName()),

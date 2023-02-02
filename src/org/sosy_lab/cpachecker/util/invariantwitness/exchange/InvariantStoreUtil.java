@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
 /**
  * Collection of utility methods for dealing with importing/exporting from/to the invariant store.
@@ -41,18 +42,19 @@ public class InvariantStoreUtil {
    * @return Immutable map
    * @throws IOException if the files can not be accessed.
    */
-  public static ListMultimap<String, Integer> getLineOffsetsByFile(Collection<Path> filePaths)
+  public static ListMultimap<String, Integer> getLineOffsetsByFileHash(Collection<Path> filePaths)
       throws IOException {
     ImmutableListMultimap.Builder<String, Integer> result = ImmutableListMultimap.builder();
 
     for (Path filePath : filePaths) {
       if (Files.isRegularFile(filePath)) {
+        String fileHash = AutomatonGraphmlCommon.computeHash(filePath);
         String fileContent = Files.readString(filePath);
 
         int currentOffset = 0;
         List<String> sourceLines = Splitter.onPattern("\\n").splitToList(fileContent);
         for (String sourceLine : sourceLines) {
-          result.put(filePath.toString(), currentOffset);
+          result.put(fileHash, currentOffset);
           currentOffset += sourceLine.length() + 1;
         }
       }
