@@ -1554,6 +1554,9 @@ public abstract class AbstractExpressionValueVisitor
         BigInteger size = machineModel.getSizeof(innerType);
         return new NumericValue(size);
 
+      case ALIGNOF:
+        return new NumericValue(machineModel.getAlignof(innerType));
+
       default: // TODO support more operators
         return Value.UnknownValue.getInstance();
     }
