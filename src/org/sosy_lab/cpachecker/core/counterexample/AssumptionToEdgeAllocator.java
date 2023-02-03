@@ -1702,6 +1702,16 @@ public class AssumptionToEdgeAllocator {
 
       @Override
       public @Nullable Void visit(CArrayType arrayType) {
+        if (!address.isConcrete()) {
+          return null;
+        }
+        // For the bound check in handleArraySubscript() we need a statically known size,
+        // otherwise we would loop infinitely.
+        // TODO in principle we could extract the runtime size from the state?
+        if (!arrayType.hasKnownConstantSize()) {
+          return null;
+        }
+
         CType expectedType = arrayType.getType().getCanonicalType();
         int subscript = 0;
         boolean memoryHasValue = true;
@@ -1714,19 +1724,8 @@ public class AssumptionToEdgeAllocator {
 
       private boolean handleArraySubscript(
           Address pArrayAddress, int pSubscript, CType pExpectedType, CArrayType pArrayType) {
-        if (!pArrayAddress.isConcrete()) {
-          return false;
-        }
-
         BigInteger typeSize = machineModel.getSizeof(pExpectedType);
         BigInteger subscriptOffset = BigInteger.valueOf(pSubscript).multiply(typeSize);
-
-        // For the following bound check we need a statically known size,
-        // otherwise we would loop infinitely.
-        // TODO in principle we could extract the runtime size from the state?
-        if (!pArrayType.hasKnownConstantSize()) {
-          return false;
-        }
 
         // Check if we are already out of array bound
         if (machineModel.getSizeof(pArrayType).compareTo(subscriptOffset) <= 0) {
