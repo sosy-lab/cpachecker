@@ -1722,8 +1722,7 @@ public class AssumptionToEdgeAllocator {
         BigInteger subscriptOffset = BigInteger.valueOf(pSubscript).multiply(typeSize);
 
         // Check if we are already out of array bound, if we have an array length.
-        // FIXME Imprecise due to imprecise getSizeOf method
-        if (!pArrayType.isIncomplete()
+        if (pArrayType.hasKnownConstantSize()
             && machineModel.getSizeof(pArrayType).compareTo(subscriptOffset) <= 0) {
           return false;
         }
