@@ -2238,87 +2238,89 @@ class ASTConverter {
         type = convert(tmpArrMod.get(i), type);
       }
 
-      // Arrays with unknown length but an initializer
-      // have their length calculated from the initializer.
-      // Example: int a[] = { 1, 2 };
-      // will be converted as int a[2] = { 1, 2 };
-      if ((type instanceof CArrayType arrayType)
-          && (arrayType.getLength() == null && initializer instanceof IASTEqualsInitializer)) {
-        IASTInitializerClause initClause =
-            ((IASTEqualsInitializer) initializer).getInitializerClause();
-        if (initClause instanceof IASTInitializerList) {
-          @Nullable BigInteger length = BigInteger.ZERO;
-          BigInteger position = BigInteger.ZERO;
-          for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
-            if (length == null) {
-              break;
-            }
-
-            if (x instanceof ICASTDesignatedInitializer) {
-              for (ICASTDesignator designator : ((ICASTDesignatedInitializer) x).getDesignators()) {
-                if (designator instanceof CASTArrayRangeDesignator) {
-                  BigInteger c =
-                      evaluateIntegerConstantExpression(
-                          ((CASTArrayRangeDesignator) designator).getRangeCeiling());
-                  position = c.add(BigInteger.ONE);
-                  length = Comparators.max(length, position);
-
-                } else if (designator instanceof CASTArrayDesignator) {
-                  BigInteger s =
-                      evaluateIntegerConstantExpression(
-                          ((CASTArrayDesignator) designator).getSubscriptExpression());
-                  position = s.add(BigInteger.ONE);
-                  length = Comparators.max(length, position);
-
-                  // we only know the length of the CASTArrayDesignator and the
-                  // CASTArrayRangeDesignator, all other designators
-                  // have to be ignore, if one occurs, we cannot calculate the length of the array
-                  // correctly
-                } else {
-                  length = null;
-                  break;
-                }
-              }
-            } else {
-              position = position.add(BigInteger.ONE);
-              length = Comparators.max(position, length);
-            }
-          }
-
-          // only adjust the length of the array if we definitely know it
-          if (length != null) {
-            CExpression lengthExp =
-                new CIntegerLiteralExpression(getLocation(initializer), CNumericTypes.INT, length);
-
-            type =
-                new CArrayType(
-                    arrayType.isConst(), arrayType.isVolatile(), arrayType.getType(), lengthExp);
-          }
-        } else {
-          // Arrays with unknown length but an string initializer
-          // have their length calculated from the initializer.
-          // Example: char a[] = "abc";
-          // will be converted as char a[4] = "abc";
-          if (initClause instanceof CASTLiteralExpression literalExpression
-              && (arrayType.getType().equals(CNumericTypes.CHAR)
-                  || arrayType.getType().equals(CNumericTypes.SIGNED_CHAR)
-                  || arrayType.getType().equals(CNumericTypes.UNSIGNED_CHAR))) {
-            int length = literalExpression.getLength() - 1;
-            CExpression lengthExp =
-                new CIntegerLiteralExpression(
-                    getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
-
-            type =
-                new CArrayType(
-                    arrayType.isConst(), arrayType.isVolatile(), arrayType.getType(), lengthExp);
-          }
-        }
+      // Compute length if necessary and possible
+      if (type instanceof CArrayType arrayType
+          && initializer instanceof IASTEqualsInitializer init) {
+        type = addArrayLengthFromInitializer(arrayType, init.getInitializerClause());
       }
 
       if (bitFieldSize != null) {
         type = typeConverter.convertBitFieldType(bitFieldSize, type);
       }
       return new Declarator(type, initializer, name);
+    }
+  }
+
+  /**
+   * Compute array length from initializer if necessary.
+   *
+   * <p>Example: {@code int a[] = { 1, 2 };} will be converted to {@code int a[2] = { 1, 2 };}
+   */
+  private CType addArrayLengthFromInitializer(
+      final CArrayType arrayType, final IASTInitializerClause initializer) {
+    if (arrayType.getLength() != null) {
+      return arrayType;
+
+    } else if (initializer instanceof IASTInitializerList initList) {
+      BigInteger length = BigInteger.ZERO;
+      BigInteger position = BigInteger.ZERO;
+      for (IASTInitializerClause initClause : initList.getClauses()) {
+        if (length == null) {
+          break;
+        }
+
+        if (initClause instanceof ICASTDesignatedInitializer designatedInitializer) {
+          for (ICASTDesignator designator : designatedInitializer.getDesignators()) {
+            if (designator instanceof CASTArrayRangeDesignator rangeDesignator) {
+              BigInteger c = evaluateIntegerConstantExpression(rangeDesignator.getRangeCeiling());
+              position = c.add(BigInteger.ONE);
+              length = Comparators.max(length, position);
+
+            } else if (designator instanceof CASTArrayDesignator arrayDesignator) {
+              BigInteger s =
+                  evaluateIntegerConstantExpression(arrayDesignator.getSubscriptExpression());
+              position = s.add(BigInteger.ONE);
+              length = Comparators.max(length, position);
+
+            } else {
+              // we only know the length of the CASTArrayDesignator and the
+              // CASTArrayRangeDesignator, all other designators
+              // have to be ignore, if one occurs, we cannot calculate the length of the array
+              // correctly
+              return arrayType;
+            }
+          }
+        } else {
+          position = position.add(BigInteger.ONE);
+          length = Comparators.max(position, length);
+        }
+      }
+
+      CExpression lengthExp =
+          new CIntegerLiteralExpression(getLocation(initializer), CNumericTypes.INT, length);
+
+      return new CArrayType(
+          arrayType.isConst(), arrayType.isVolatile(), arrayType.getType(), lengthExp);
+
+    } else if (initializer instanceof CASTLiteralExpression literalExpression
+        && (arrayType.getType().equals(CNumericTypes.CHAR)
+            || arrayType.getType().equals(CNumericTypes.SIGNED_CHAR)
+            || arrayType.getType().equals(CNumericTypes.UNSIGNED_CHAR))) {
+      // Arrays with unknown length but an string initializer
+      // have their length calculated from the initializer.
+      // Example: char a[] = "abc";
+      // will be converted as char a[4] = "abc";
+
+      int length = literalExpression.getLength() - 1;
+      CExpression lengthExp =
+          new CIntegerLiteralExpression(
+              getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
+
+      return new CArrayType(
+          arrayType.isConst(), arrayType.isVolatile(), arrayType.getType(), lengthExp);
+
+    } else {
+      return arrayType;
     }
   }
 
