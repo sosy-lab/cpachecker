@@ -227,11 +227,17 @@ public class SampleUnrollingAlgorithm {
       children.add(child);
     }
 
-    private boolean contains(SampleTreeNode node) {
-      if (equals(node)) {
-        return true;
+    private boolean contains(SampleTreeNode pNode) {
+      Queue<SampleTreeNode> waitlist = new ArrayDeque<>();
+      waitlist.add(this);
+      while (!waitlist.isEmpty()) {
+        SampleTreeNode node = waitlist.poll();
+        if (node.equals(pNode)) {
+          return true;
+        }
+        waitlist.addAll(node.getChildren());
       }
-      return children.stream().anyMatch(child -> child.contains(node));
+      return false;
     }
 
     @Override
