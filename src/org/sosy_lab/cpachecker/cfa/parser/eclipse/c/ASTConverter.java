@@ -2584,7 +2584,7 @@ class ASTConverter {
                   + " has incomplete type",
               d);
         }
-        if (!(member.getType().getCanonicalType() instanceof CArrayType)) {
+        if (!member.isFlexibleArrayMember()) {
           parseContext.parseError(
               "Member " + member + " of struct " + name + " has incomplete non-array type", d);
         }
