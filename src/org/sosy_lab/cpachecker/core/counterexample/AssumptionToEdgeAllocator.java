@@ -1721,12 +1721,15 @@ public class AssumptionToEdgeAllocator {
         BigInteger typeSize = machineModel.getSizeof(pExpectedType);
         BigInteger subscriptOffset = BigInteger.valueOf(pSubscript).multiply(typeSize);
 
-        // Check if we are already out of array bound, if we have an array length.
-        if (pArrayType.hasKnownConstantSize()
-            && machineModel.getSizeof(pArrayType).compareTo(subscriptOffset) <= 0) {
+        // For the following bound check we need a statically known size,
+        // otherwise we would loop infinitely.
+        // TODO in principle we could extract the runtime size from the state?
+        if (!pArrayType.hasKnownConstantSize()) {
           return false;
         }
-        if (pArrayType.getLength() == null) {
+
+        // Check if we are already out of array bound
+        if (machineModel.getSizeof(pArrayType).compareTo(subscriptOffset) <= 0) {
           return false;
         }
 
