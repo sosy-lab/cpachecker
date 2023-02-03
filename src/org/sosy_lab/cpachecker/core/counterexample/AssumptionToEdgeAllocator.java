@@ -938,7 +938,9 @@ public class AssumptionToEdgeAllocator {
         // This works because arrays and structs evaluate to their addresses
         Address address = evaluateNumericalValueAsAddress(arrayExpression);
 
-        if (address.isUnknown() || address.isSymbolic()) {
+        if (address.isUnknown()
+            || address.isSymbolic()
+            || !pIastArraySubscriptExpression.getExpressionType().hasKnownConstantSize()) {
           return Address.getUnknownAddress();
         }
 
