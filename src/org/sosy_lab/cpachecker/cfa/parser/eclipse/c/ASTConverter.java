@@ -1706,6 +1706,11 @@ class ASTConverter {
     FileLocation fileLoc = getLocation(e);
     CType type = convert(e.getTypeId());
     CInitializer initializer = convert(e.getInitializer(), type, null);
+    if (type instanceof CArrayType arrayType
+        && e.getInitializer() instanceof IASTInitializerClause initClause) {
+      // We want to compute the array length.
+      type = addArrayLengthFromInitializer(arrayType, initClause);
+    }
 
     return createInitializedTemporaryVariable(fileLoc, type, initializer);
   }
