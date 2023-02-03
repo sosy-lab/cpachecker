@@ -88,11 +88,7 @@ import org.eclipse.cdt.core.dom.ast.c.ICASTDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTFieldDesignator;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
 import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
-import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayDesignator;
-import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayRangeDesignator;
-import org.eclipse.cdt.internal.core.dom.parser.c.CASTCompositeTypeSpecifier;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarator;
-import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTLiteralExpression;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -934,7 +930,7 @@ class ASTConverter {
 
     // To recognize and simplify constructs e.g. struct s *ps = (struct s *) malloc(.../* e.g.
     // sizeof(struct s)*/);
-    if (e.getOperand() instanceof CASTFunctionCallExpression
+    if (e.getOperand() instanceof IASTFunctionCallExpression
         && castType.getCanonicalType() instanceof CPointerType
         && isRightHandSide(e)
         && isPointerToVoid(e.getOperand())) {
@@ -2042,7 +2038,7 @@ class ASTConverter {
 
   private List<CCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(
       final IASTDeclaration d, int nofMember) {
-    if (d.getParent() instanceof CASTCompositeTypeSpecifier) {
+    if (d.getParent() instanceof IASTCompositeTypeSpecifier) {
       // FIXME: remove conditional after debugging
     }
     if (d instanceof IASTProblemDeclaration) {
@@ -2173,7 +2169,7 @@ class ASTConverter {
           }
 
           IASTExpression bitField = ((IASTFieldDeclarator) currentDecl).getBitFieldSize();
-          if (bitField instanceof CASTLiteralExpression) {
+          if (bitField instanceof IASTLiteralExpression) {
             CExpression cExpression = convertExpressionWithoutSideEffects(bitField);
             if (cExpression instanceof CIntegerLiteralExpression) {
               bitFieldSize = ((CIntegerLiteralExpression) cExpression).getValue().intValue();
@@ -2276,12 +2272,12 @@ class ASTConverter {
 
         if (initClause instanceof ICASTDesignatedInitializer designatedInitializer) {
           for (ICASTDesignator designator : designatedInitializer.getDesignators()) {
-            if (designator instanceof CASTArrayRangeDesignator rangeDesignator) {
+            if (designator instanceof IGCCASTArrayRangeDesignator rangeDesignator) {
               BigInteger c = evaluateIntegerConstantExpression(rangeDesignator.getRangeCeiling());
               position = c.add(BigInteger.ONE);
               length = Comparators.max(length, position);
 
-            } else if (designator instanceof CASTArrayDesignator arrayDesignator) {
+            } else if (designator instanceof ICASTArrayDesignator arrayDesignator) {
               BigInteger s =
                   evaluateIntegerConstantExpression(arrayDesignator.getSubscriptExpression());
               position = s.add(BigInteger.ONE);
