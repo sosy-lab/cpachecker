@@ -258,9 +258,10 @@ public class InvariantValidationAlgorithm implements Algorithm {
       prover.push(bfmgr.and(program, invariantHolds));
       if (!prover.isUnsat()) {
         Iterable<ValueAssignment> model = prover.getModelAssignments();
+        // Postcondition counterexamples lead to an error state and are thus negative by definition
         post_samples.add(
             SampleUtils.extractSampleFromRelevantAssignments(
-                model, pLocation, SampleClass.POSITIVE));
+                model, pLocation, SampleClass.NEGATIVE));
       }
     }
 
