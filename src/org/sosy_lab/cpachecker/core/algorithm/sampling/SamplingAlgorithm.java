@@ -279,6 +279,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     // Continuously collect samples until shutdown is requested
     ImmutableSet.Builder<Sample> samples = ImmutableSet.builder();
     Set<NoDuplicatesConstraint> constraints = new HashSet<>();
+    logger.log(Level.INFO, "Collecting samples...");
     while (!shutdownNotifier.shouldShutdown()) {
       // Collect positive samples using predicate-based sampling
       Set<Sample> positiveSamples = new HashSet<>();
@@ -293,6 +294,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
                   constraints,
                   SampleClass.POSITIVE));
         }
+        logger.logf(Level.FINER, "Collected %s initial positive samples", positiveSamples.size());
       }
 
       // Collect negative sampling using predicate-based sampling
@@ -308,6 +310,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
                   constraints,
                   SampleClass.NEGATIVE));
         }
+        logger.logf(Level.FINER, "Collected %s initial negative samples", negativeSamples.size());
       }
 
       // Shutdown if requested or neither positive nor negative samples can be found anymore
@@ -363,6 +366,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       // Export samples
       writeSamplesToFile(samples.build());
     }
+    logger.log(Level.INFO, "Finished sample collection");
 
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
