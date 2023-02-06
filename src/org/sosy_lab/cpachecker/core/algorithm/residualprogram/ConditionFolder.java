@@ -54,6 +54,7 @@ public abstract class ConditionFolder {
     LOOP_SAME_CONTEXT
   }
 
+  @FunctionalInterface
   private interface MergeUpdateFunction {
     void updateAfterMerging(ARGState merged, ARGState mergedInto);
   }
