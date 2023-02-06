@@ -542,7 +542,7 @@ public class ConstraintsSolver {
     }
   }
 
-  private final static class DummyCache implements ConstraintsCache {
+  private static final class DummyCache implements ConstraintsCache {
 
     @Override
     public CacheResult getCachedResult(Collection<BooleanFormula> pConstraints) {

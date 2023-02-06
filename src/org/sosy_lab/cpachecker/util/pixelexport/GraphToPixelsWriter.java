@@ -259,7 +259,7 @@ public abstract class GraphToPixelsWriter<Node> {
     void writeToFile(Path pOutputFile) throws IOException, InvalidConfigurationException;
   }
 
-  private final static class BitmapProvider implements CanvasProvider {
+  private static final class BitmapProvider implements CanvasProvider {
 
     private String imageFormat;
     private BufferedImage bufferedImage = null;
