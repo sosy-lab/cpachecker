@@ -1038,7 +1038,7 @@ public final class LoopStructure implements Serializable {
    * from the exit always lead to the entry. The smallest possible loop-free section contains a
    * single node, which is also automatically the entry and exit node of the loop-free section.
    */
-  private static interface LoopFreeSectionFinder {
+  private interface LoopFreeSectionFinder {
 
     /**
      * Returns the entry node of the loop-free section that the specified node belongs to.
