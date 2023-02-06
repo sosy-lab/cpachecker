@@ -280,7 +280,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     void visit(int pSuccessor);
   }
 
-  private class CollectingNodeVisitor implements NodeVisitor {
+  private final class CollectingNodeVisitor implements NodeVisitor {
 
     private final Set<AbstractState> setRes = new HashSet<>();
     private final boolean collectAsARGState;
@@ -299,7 +299,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     }
   }
 
-  private static class CountingNodeVisitor implements NodeVisitor {
+  private static final class CountingNodeVisitor implements NodeVisitor {
 
     private long numOutside = 0;
 

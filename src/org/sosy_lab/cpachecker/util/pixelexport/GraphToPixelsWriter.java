@@ -253,13 +253,13 @@ public abstract class GraphToPixelsWriter<Node> {
     canvasHandler.writeToFile(fullOutputFile);
   }
 
-  private interface CanvasProvider {
+  private sealed interface CanvasProvider {
     Graphics2D createCanvas(int pWidth, int pHeight);
 
     void writeToFile(Path pOutputFile) throws IOException, InvalidConfigurationException;
   }
 
-  private static class BitmapProvider implements CanvasProvider {
+  private final static class BitmapProvider implements CanvasProvider {
 
     private String imageFormat;
     private BufferedImage bufferedImage = null;
@@ -291,7 +291,7 @@ public abstract class GraphToPixelsWriter<Node> {
     }
   }
 
-  private static class SvgProvider implements CanvasProvider {
+  private static final class SvgProvider implements CanvasProvider {
 
     private SVGGraphics2D svgGenerator = null;
 

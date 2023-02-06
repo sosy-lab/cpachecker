@@ -333,7 +333,7 @@ public class ConstraintsTransferRelation
     }
   }
 
-  private class ValueAnalysisStrengthenOperator implements StrengthenOperator {
+  private final class ValueAnalysisStrengthenOperator implements StrengthenOperator {
 
     @Override
     public Optional<Collection<ConstraintsState>> strengthen(
@@ -385,7 +385,7 @@ public class ConstraintsTransferRelation
     }
   }
 
-  private class AutomatonStrengthenOperator implements StrengthenOperator {
+  private final class AutomatonStrengthenOperator implements StrengthenOperator {
 
     @Override
     public Optional<Collection<ConstraintsState>> strengthen(

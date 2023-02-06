@@ -385,7 +385,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     String prettyPrint(String prefix);
   }
 
-  private class SingleEdge implements EdgeWrapper {
+  private final class SingleEdge implements EdgeWrapper {
     private final CFAEdge edge;
 
     SingleEdge(CFAEdge e) {
