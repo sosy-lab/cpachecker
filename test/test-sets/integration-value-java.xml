@@ -21,7 +21,7 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <tasks>
-    <propertyfile>../config/properties/assert_java.prp</propertyfile>
+    <propertyfile>../config/properties/assert.prp</propertyfile>
     <include>../programs/java/TryCatch/*.yml</include>
   </tasks>
 
@@ -122,6 +122,6 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks>
     <includesfile>../programs/java-benchmarks/ReachSafety-Java.set</includesfile>
-    <propertyfile>../programs/java-benchmarks/properties/assert.prp</propertyfile>
+    <propertyfile>../programs/java-benchmarks/properties/assert_java.prp</propertyfile>
   </tasks>
 </benchmark>
