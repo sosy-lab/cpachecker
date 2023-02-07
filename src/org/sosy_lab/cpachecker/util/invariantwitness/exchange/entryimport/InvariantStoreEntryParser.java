@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
-import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessFactory;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LocationInvariantEntry;
@@ -50,7 +49,6 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.comm
 class InvariantStoreEntryParser {
   private final ListMultimap<String, Integer> lineOffsetsByFileHash;
   private final LogManager logger;
-  private final InvariantWitnessFactory invariantWitnessFactory;
   private final CParser parser;
   private final CProgramScope scope;
   private final ParserTools parserTools;
@@ -59,14 +57,12 @@ class InvariantStoreEntryParser {
   private InvariantStoreEntryParser(
       ListMultimap<String, Integer> pLineOffsetsByFileHash,
       LogManager pLogger,
-      InvariantWitnessFactory pInvariantWitnessFactory,
       CParser pParser,
       CProgramScope pScope,
       ParserTools pParserTools,
       CFA pCfa) {
     lineOffsetsByFileHash = ArrayListMultimap.create(pLineOffsetsByFileHash);
     logger = Objects.requireNonNull(pLogger);
-    invariantWitnessFactory = Objects.requireNonNull(pInvariantWitnessFactory);
     parser = Objects.requireNonNull(pParser);
     scope = Objects.requireNonNull(pScope);
     parserTools = Objects.requireNonNull(pParserTools);
@@ -80,10 +76,6 @@ class InvariantStoreEntryParser {
       CFA pCFA,
       ListMultimap<String, Integer> pLineOffsetsByFileHash)
       throws InvalidConfigurationException {
-
-    InvariantWitnessFactory invariantWitnessFactory =
-        InvariantWitnessFactory.getFactory(pLogger, pCFA);
-
     // initialize the parser to convert the string to Expressions (e.g. AExpressionTree).
     CProgramScope scope = new CProgramScope(pCFA, pLogger);
     ParserTools parserTools =
@@ -96,7 +88,7 @@ class InvariantStoreEntryParser {
             pShutdownNotifier);
 
     return new InvariantStoreEntryParser(
-        pLineOffsetsByFileHash, pLogger, invariantWitnessFactory, parser, scope, parserTools, pCFA);
+        pLineOffsetsByFileHash, pLogger, parser, scope, parserTools, pCFA);
   }
 
   /**
@@ -161,8 +153,11 @@ class InvariantStoreEntryParser {
       }
 
       result.add(
-          invariantWitnessFactory.fromLocationAndInvariant(
-              fileLocation, candidateNode, ExpressionTrees.cast(invariantFormula)));
+          new InvariantWitness(
+              ExpressionTrees.cast(invariantFormula),
+              fileLocation,
+              candidateNode,
+              Optional.of(location.getFileHash())));
     }
 
     return result.build();

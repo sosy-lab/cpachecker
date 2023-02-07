@@ -9,7 +9,10 @@
 package org.sosy_lab.cpachecker.util.invariantwitness;
 
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -21,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 /**
@@ -64,18 +68,20 @@ public class InvariantWitnessFactory {
     }
 
     for (FileLocation invariantLocation : effectiveLocations) {
-      InvariantWitness invariantWitness = new InvariantWitness(invariant, invariantLocation, node);
+      Path fileName = invariantLocation.getFileName();
+      Optional<String> fileHash;
+      try {
+        fileHash = Optional.of(AutomatonGraphmlCommon.computeHash(fileName));
+      } catch (IOException pE) {
+        fileHash = Optional.empty();
+      }
+      InvariantWitness invariantWitness =
+          new InvariantWitness(invariant, invariantLocation, node, fileHash);
 
       result.add(invariantWitness);
     }
 
     return result.build();
-  }
-
-  /** Generates a witness from the given fileLocation, node and expression tree. */
-  public InvariantWitness fromLocationAndInvariant(
-      FileLocation fileLocation, CFANode node, ExpressionTree<Object> invariant) {
-    return new InvariantWitness(invariant, fileLocation, node);
   }
 
   private Set<FileLocation> getEffectiveLocations(CFANode node) {

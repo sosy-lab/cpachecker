@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.invariantwitness;
 
 import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -30,11 +31,17 @@ public class InvariantWitness {
   private final ExpressionTree<Object> formula;
   private final CFANode node;
   private final FileLocation location;
+  private final Optional<String> fileHash;
 
-  InvariantWitness(ExpressionTree<Object> pFormula, FileLocation pLocation, CFANode pNode) {
+  public InvariantWitness(
+      ExpressionTree<Object> pFormula,
+      FileLocation pLocation,
+      CFANode pNode,
+      Optional<String> pFileHash) {
     formula = Objects.requireNonNull(pFormula);
     node = Objects.requireNonNull(pNode);
     location = Objects.requireNonNull(pLocation);
+    fileHash = pFileHash;
   }
 
   public FileLocation getLocation() {
@@ -47,6 +54,10 @@ public class InvariantWitness {
 
   public ExpressionTree<Object> getFormula() {
     return formula;
+  }
+
+  public Optional<String> getFileHash() {
+    return fileHash;
   }
 
   @Override
