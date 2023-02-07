@@ -22,6 +22,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -45,13 +46,17 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.entryimport.InvariantWitnessProvider;
 
 @Options(prefix = "wacsl")
 public class WitnessToAnnotationAlgorithm implements Algorithm {
@@ -95,6 +100,7 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
   private final LogManager logger;
   private final CFA cfa;
   private final ShutdownNotifier shutdownNotifier;
+  private final boolean isGraphmlWitness;
 
   public WitnessToAnnotationAlgorithm(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
@@ -104,10 +110,16 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
     logger = pLogger;
     cfa = pCfa;
     shutdownNotifier = pShutdownNotifier;
+    isGraphmlWitness = AutomatonGraphmlParser.isGraphmlAutomatonFromConfiguration(witness);
   }
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    if (!isGraphmlWitness) {
+      createAnnotationsFromInvariantWitness();
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    }
+
     // Collect invariants from the witness
     Set<ExpressionTreeLocationInvariant> invariants;
     try {
@@ -135,6 +147,93 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
     }
 
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
+  }
+
+  private void createAnnotationsFromInvariantWitness() throws CPAException, InterruptedException {
+    Collection<InvariantWitness> invariantWitnesses;
+    try {
+      Configuration invariantWitnessConfig =
+          Configuration.builder()
+              .copyFrom(config)
+              .setOption(
+                  "invariantStore.import.storeDirectory",
+                  witness.getParent().toAbsolutePath().toString())
+              .build();
+      InvariantWitnessProvider witnessProvider =
+          InvariantWitnessProvider.getNewFromDiskWitnessProvider(
+              invariantWitnessConfig, cfa, logger, shutdownNotifier);
+      invariantWitnesses = witnessProvider.getCurrentWitnesses();
+    } catch (InvalidConfigurationException pE) {
+      throw new CPAException("Invalid configuration while analyzing witness", pE);
+    } catch (IOException pE) {
+      throw new CPAException("Failed to access witness", pE);
+    }
+
+    // Determine referenced program files
+    Multimap<Path, InvariantWitness> programsToInvariants = LinkedHashMultimap.create();
+    for (InvariantWitness invariantWitness : invariantWitnesses) {
+      Path file = invariantWitness.getLocation().getFileName();
+      if (Files.isRegularFile(file)) {
+        programsToInvariants.put(file, invariantWitness);
+      } else {
+        // Path in the witness might be different, so check whether one of the input files matches
+        // by hash
+        Optional<String> hash = invariantWitness.getFileHash();
+        if (hash.isPresent()) {
+          for (Path inputFile : cfa.getFileNames()) {
+            try {
+              String inputFileHash = AutomatonGraphmlCommon.computeHash(inputFile);
+              if (inputFileHash.equals(hash.orElseThrow())) {
+                programsToInvariants.put(inputFile, invariantWitness);
+              }
+            } catch (IOException pE) {
+              continue;
+            }
+          }
+        }
+      }
+    }
+
+    // Annotate programs
+    for (Entry<Path, Collection<InvariantWitness>> entry :
+        programsToInvariants.asMap().entrySet()) {
+      annotateProgramFromInvariantWitnesses(entry.getKey(), entry.getValue());
+    }
+  }
+
+  private void annotateProgramFromInvariantWitnesses(
+      Path file, Collection<InvariantWitness> invariantWitnesses) {
+    // Read in program
+    String fileContent;
+    try {
+      fileContent = Files.readString(file);
+    } catch (IOException pE) {
+      logger.logfUserException(Level.WARNING, pE, "Could not read file %s", file);
+      return;
+    }
+
+    // Create and insert annotations at correct locations in the program
+    String output = fileContent;
+    PriorityQueue<InvariantWitness> sortedInvariantWitnesses =
+        new PriorityQueue<>(
+            invariantWitnesses.size(),
+            Comparator.comparingInt(i -> -i.getLocation().getNodeOffset()));
+    sortedInvariantWitnesses.addAll(invariantWitnesses);
+    while (!sortedInvariantWitnesses.isEmpty()) {
+      InvariantWitness currentWitness = sortedInvariantWitnesses.poll();
+      int currentLocation = currentWitness.getLocation().getNodeOffset();
+      String annotation =
+          makeAnnotation(currentWitness.getFormula(), isAtLoopStart(currentWitness.getNode()));
+      output =
+          output.substring(0, currentLocation) + annotation + output.substring(currentLocation);
+    }
+
+    // Write out annotated program
+    try {
+      writeToFile(file, output);
+    } catch (IOException pE) {
+      logger.logfUserException(Level.WARNING, pE, "Could not write annotations for file %s", file);
+    }
   }
 
   /**
@@ -210,11 +309,12 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
           locationsToInvariants.removeAll(currentLocation);
         } else {
           for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
-            if (isAtLoopStart(inv)) {
+            if (isAtLoopStart(inv.getLocation())) {
               collectedLoopInvariants.add(inv.asExpressionTree());
               continue;
             }
-            String annotation = makeAnnotation(inv.asExpressionTree(), isAtLoopStart(inv));
+            String annotation =
+                makeAnnotation(inv.asExpressionTree(), isAtLoopStart(inv.getLocation()));
             String indentation = i > 0 ? getIndentation(splitContent.get(i - 1)) : "";
             output.add(indentation + annotation);
           }
@@ -250,7 +350,8 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
     while (!sortedLocations.isEmpty()) {
       int currentLocation = -sortedLocations.poll();
       for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
-        String annotation = makeAnnotation(inv.asExpressionTree(), isAtLoopStart(inv));
+        String annotation =
+            makeAnnotation(inv.asExpressionTree(), isAtLoopStart(inv.getLocation()));
         output =
             output.substring(0, currentLocation) + annotation + output.substring(currentLocation);
       }
@@ -332,10 +433,9 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
     }
   }
 
-  private boolean isAtLoopStart(ExpressionTreeLocationInvariant inv) {
+  private boolean isAtLoopStart(CFANode node) {
     Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
     if (loopStructure.isPresent()) {
-      CFANode node = inv.getLocation();
       for (Loop loop : loopStructure.orElseThrow().getLoopsForFunction(node.getFunctionName())) {
         for (CFAEdge edge : loop.getIncomingEdges()) {
           if (edge.getPredecessor().equals(node)) {
