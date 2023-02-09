@@ -152,12 +152,12 @@ public class WitnessToAnnotationAlgorithm implements Algorithm {
   private void createAnnotationsFromInvariantWitness() throws CPAException, InterruptedException {
     Collection<InvariantWitness> invariantWitnesses;
     try {
+      final Path tmpDir = Files.createTempDirectory("witnessStore");
+      Files.copy(witness, tmpDir.resolve(witness.getFileName()));
       Configuration invariantWitnessConfig =
           Configuration.builder()
               .copyFrom(config)
-              .setOption(
-                  "invariantStore.import.storeDirectory",
-                  witness.getParent().toAbsolutePath().toString())
+              .setOption("invariantStore.import.storeDirectory", tmpDir.toString())
               .build();
       InvariantWitnessProvider witnessProvider =
           InvariantWitnessProvider.getNewFromDiskWitnessProvider(
