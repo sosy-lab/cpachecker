@@ -1,3 +1,4 @@
+
 // This file is part of CPAchecker,
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
@@ -67,6 +68,7 @@ public class AutomatonStateARGCombiningHelper {
           nameToAutomaton.get(toReplace.getOwningAutomatonName()),
           toReplace.getAssumptions(),
           toReplace.getCandidateInvariants(),
+          toReplace.hasDefaultCandidateInvariants(),
           toReplace.getMatches(),
           toReplace.getFailedMatches(),
           targetInformation,

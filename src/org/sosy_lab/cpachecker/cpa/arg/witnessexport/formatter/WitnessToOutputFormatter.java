@@ -22,9 +22,16 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 public abstract class WitnessToOutputFormatter<T> {
 
   protected final Witness witness;
+  private final boolean exportAllInvariants;
+
+  protected WitnessToOutputFormatter(Witness pWitness, boolean pExportAllInvariants) {
+    witness = pWitness;
+    exportAllInvariants = pExportAllInvariants;
+  }
 
   protected WitnessToOutputFormatter(Witness pWitness) {
     witness = pWitness;
+    exportAllInvariants = false;
   }
 
   /**
@@ -73,7 +80,7 @@ public abstract class WitnessToOutputFormatter<T> {
       return ExpressionTrees.getTrue();
     }
     ExpressionTree<Object> tree = witness.getStateInvariant(pStateId);
-    if (!tree.equals(ExpressionTrees.getTrue())) {
+    if (exportAllInvariants || !tree.equals(ExpressionTrees.getTrue())) {
       addInvariantsData(t, tree, witness.getStateScopes().get(pStateId), pTarget);
     }
     return tree;

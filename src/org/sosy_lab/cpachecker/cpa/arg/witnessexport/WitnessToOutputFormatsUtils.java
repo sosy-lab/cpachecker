@@ -64,6 +64,18 @@ public class WitnessToOutputFormatsUtils {
     new WitnessToGraphMLFormatter(witness).appendTo(pTarget);
   }
 
+  /**
+   * Appends the witness as GraphML to the supplied {@link Appendable}
+   *
+   * @param witness contains the information necessary to generate the GraphML representation
+   * @param pTarget where to append the GraphML
+   * @param pExportAllInvariants enable to also export true invariants
+   */
+  public static void writeToGraphMl(
+      Witness witness, boolean pExportAllInvariants, Appendable pTarget) throws IOException {
+    new WitnessToGraphMLFormatter(witness, pExportAllInvariants).appendTo(pTarget);
+  }
+
   /** Appends the witness as Dot/Graphviz to the supplied {@link Appendable}. */
   public static void writeToDot(Witness witness, Appendable pTarget) throws IOException {
     new WitnessToDotFormatter(witness).appendTo(pTarget);

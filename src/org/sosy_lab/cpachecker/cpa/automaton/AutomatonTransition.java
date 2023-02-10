@@ -77,6 +77,8 @@ class AutomatonTransition {
 
   private final ExpressionTree<AExpression> candidateInvariants;
 
+  private final boolean areDefaultCandidateInvariants;
+
   /** The actions are applied after the assertion are checked successfully. */
   private final ImmutableList<AutomatonAction> actions;
 
@@ -99,6 +101,7 @@ class AutomatonTransition {
     private String followStateName;
     private @Nullable AutomatonInternalState followState;
     private ExpressionTree<AExpression> candidateInvariants;
+    private boolean areDefaultCandidateInvariants;
     private @Nullable StringExpression targetInformation;
 
     Builder(AutomatonBoolExpr pTrigger, String pFollowStateName) {
@@ -108,6 +111,7 @@ class AutomatonTransition {
       actions = ImmutableList.of();
       followStateName = pFollowStateName;
       candidateInvariants = ExpressionTrees.getTrue();
+      areDefaultCandidateInvariants = true;
     }
 
     Builder(AutomatonBoolExpr pTrigger, @Nullable AutomatonInternalState pFollowState) {
@@ -146,6 +150,12 @@ class AutomatonTransition {
     }
 
     @CanIgnoreReturnValue
+    Builder withNonDefaultCandidateInvariants() {
+      areDefaultCandidateInvariants = false;
+      return this;
+    }
+
+    @CanIgnoreReturnValue
     Builder withTargetInformation(StringExpression pTargetInformation) {
       targetInformation = pTargetInformation;
       return this;
@@ -157,6 +167,7 @@ class AutomatonTransition {
           assertions,
           assumptions,
           candidateInvariants,
+          areDefaultCandidateInvariants,
           actions,
           followStateName,
           followState,
@@ -170,6 +181,7 @@ class AutomatonTransition {
         b.assertions,
         b.assumptions,
         b.candidateInvariants,
+        b.areDefaultCandidateInvariants,
         b.actions,
         b.followStateName,
         b.followState,
@@ -181,6 +193,7 @@ class AutomatonTransition {
       List<AutomatonBoolExpr> pAssertions,
       List<AExpression> pAssumptions,
       ExpressionTree<AExpression> pCandidateInvariants,
+      boolean pAreDefaultCandidateInvariants,
       List<AutomatonAction> pActions,
       String pFollowStateName,
       AutomatonInternalState pFollowState,
@@ -195,6 +208,7 @@ class AutomatonTransition {
     }
 
     candidateInvariants = checkNotNull(pCandidateInvariants);
+    areDefaultCandidateInvariants = pAreDefaultCandidateInvariants;
 
     actions = ImmutableList.copyOf(pActions);
     followStateName = checkNotNull(pFollowStateName);
@@ -432,6 +446,10 @@ class AutomatonTransition {
 
   public ExpressionTree<AExpression> getCandidateInvariants() {
     return candidateInvariants;
+  }
+
+  public boolean hasDefaultCandidateInvariants() {
+    return areDefaultCandidateInvariants;
   }
 
   public boolean isTransitionWithAssumptions() {
