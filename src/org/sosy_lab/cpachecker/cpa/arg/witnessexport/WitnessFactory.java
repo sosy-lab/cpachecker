@@ -1767,11 +1767,11 @@ class WitnessFactory implements EdgeAppender {
 
     return exportInvariant0(pEdge, pFromState)
         && (!witnessOptions.exportJointWitnesses()
-            || pFromState.isPresent()
+            || (pFromState.isPresent()
                 && from(pFromState.orElseThrow())
                     .transformAndConcat(argState -> AbstractStates.asIterable(argState))
                     .filter(AutomatonState.class)
-                    .anyMatch(state -> !state.hasDefaultCandidateInvariants()));
+                    .anyMatch(state -> !state.hasDefaultCandidateInvariants())));
   }
 
   private boolean exportInvariant0(CFAEdge pEdge, Optional<Collection<ARGState>> pFromState) {
