@@ -1,4 +1,3 @@
-
 // This file is part of CPAchecker,
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org

@@ -90,7 +90,8 @@ public class WitnessOptions {
   @Option(
       secure = true,
       description =
-          "Export witness that is a combination of multiple (partial) correctness witnesses, do not export default invariants")
+          "Export witness that is a combination of multiple (partial) correctness witnesses, do not"
+              + " export default invariants")
   private boolean exportJointWitnesses = false;
 
   boolean exportFunctionCallsAndReturns() {
