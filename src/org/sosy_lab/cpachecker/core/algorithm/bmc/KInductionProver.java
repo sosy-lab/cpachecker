@@ -522,10 +522,35 @@ class KInductionProver implements AutoCloseable {
             BooleanFormula consistentAssignments =
                 bfmgr.and(valuesBefore.stream().map(x -> x.getAssignmentAsFormula()).toList());
             prover.push(consistentAssignments);
-            assert !prover.isUnsat();
-            Collection<ValueAssignment> valuesAfter = prover.getModelAssignments();
+            while (prover.isUnsat()) {
+              // Might be UNSAT if valuesBefore already corresponds to the last loop iteration.
+              // In that case, retry with a different assignment.
+              prover.pop();
+              prover.pop();
+              prover.pop();
+              prover.addConstraint(bfmgr.not(consistentAssignments));
+              assert !prover.isUnsat();
 
-            // Restore previous state of the prover stack and create step case cex
+              valuesBefore = new ArrayList<>();
+              for (ValueAssignment assignment :
+                  SampleUtils.getRelevantAssignments(
+                      prover.getModelAssignments(),
+                      ((ExpressionTreeLocationInvariant) pCandidateInvariant).getLocation())) {
+                valuesBefore.add(assignment);
+              }
+
+              prover.push(successorViolation);
+              prover.push(loopHeadInv);
+              consistentAssignments =
+                  bfmgr.and(valuesBefore.stream().map(x -> x.getAssignmentAsFormula()).toList());
+              prover.push(consistentAssignments);
+            }
+
+            // Create step case cex
+            Collection<ValueAssignment> valuesAfter = prover.getModelAssignments();
+            stepCex = new StepCaseCounterexample(pCandidateInvariant, valuesBefore, valuesAfter);
+
+            // Restore previous state of the prover stack
             prover.pop();
             prover.pop();
             prover.pop();
@@ -534,7 +559,6 @@ class KInductionProver implements AutoCloseable {
             prover.push(predecessorAssertion);
             prover.push(successorViolation);
             prover.push(loopHeadInv);
-            stepCex = new StepCaseCounterexample(pCandidateInvariant, valuesBefore, valuesAfter);
           }
 
           if (!loopHeadInvChanged) {
