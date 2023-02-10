@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.witnessjoiner;
 
-import com.google.common.collect.FluentIterable;
 import java.util.Collection;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -29,9 +29,8 @@ public class WitnessJoinerStopOperator implements StopOperator {
       throws CPAException, InterruptedException {
     return wrappedStop.stop(
         ((WitnessJoinerState) pState).getWrappedState(),
-        FluentIterable.from(pReached)
-            .transform(state -> ((WitnessJoinerState) state).getWrappedState())
-            .toList(),
+        Collections3.transformedImmutableListCopy(
+            pReached, state -> ((WitnessJoinerState) state).getWrappedState()),
         pPrecision);
   }
 }
