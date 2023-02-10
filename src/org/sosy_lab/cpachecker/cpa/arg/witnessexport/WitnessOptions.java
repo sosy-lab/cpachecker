@@ -146,11 +146,11 @@ public class WitnessOptions {
     return produceInvariantWitnesses;
   }
 
-  public boolean exportInvariantsForNonExploredStates() {
+  boolean exportInvariantsForNonExploredStates() {
     return exportInvariantsForNonExploredStates;
   }
 
-  public boolean exportJointWitnesses() {
+  boolean exportJointWitnesses() {
     return exportJointWitnesses;
   }
 }
