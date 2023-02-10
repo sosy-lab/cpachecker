@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -44,6 +45,8 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -72,7 +75,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * Therefore, errors have to be inlined instead of calling reach_error().
  */
 @Options(prefix = "imctr")
-public class IMCTRAlgorithm implements Algorithm {
+public class IMCTRAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(secure = true, description = "enable interpolation-based model checking")
   private boolean interpolation = true;
@@ -99,6 +102,8 @@ public class IMCTRAlgorithm implements Algorithm {
   private final BooleanFormulaManagerView bfmgr;
   private final PathFormulaManager pfmgr;
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
+
+  private final IMCTRStatistics stats;
 
   private static final String PROGRAM_COUNTER_NAME = "__pc";
   private static final CDeclaration PROGRAM_COUNTER_DECLARATION =
@@ -139,6 +144,8 @@ public class IMCTRAlgorithm implements Algorithm {
             cfa,
             AnalysisDirection.FORWARD);
     binaryExpressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
+
+    stats = new IMCTRStatistics();
   }
 
   @Override
@@ -187,6 +194,7 @@ public class IMCTRAlgorithm implements Algorithm {
     PathFormula transitionRelation = initialCondition;
     while (true) {
       ++unrolledEdges;
+      stats.numUnroll = unrolledEdges;
       transitionRelation = buildTransitionRelation(transitionRelation);
       bmcQuery.add(transitionRelation.getFormula());
       // Forward-condition check: I && T && ... && T
@@ -426,9 +434,16 @@ public class IMCTRAlgorithm implements Algorithm {
     formulaA.add(pProver.push(prefixFormula));
 
     BooleanFormula currentImage = bfmgr.or(bfmgr.makeFalse(), prefixFormula);
-    while (pProver.isUnsat()) {
+    while (true) {
       logger.log(Level.ALL, "Current image:", currentImage);
+      stats.itpQuery.start();
+      if (!pProver.isUnsat()) {
+        stats.itpQuery.stop();
+        break;
+      }
       BooleanFormula interpolant = getInterpolantFrom(pProver, formulaA, formulaB);
+      stats.itpQuery.stop();
+      stats.numItp = stats.numItp + 1;
       logger.log(Level.ALL, "Interpolant:", interpolant);
       interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), pPrefixSsaMap);
       logger.log(Level.ALL, "After changing SSA indices:", interpolant);
@@ -482,5 +497,10 @@ public class IMCTRAlgorithm implements Algorithm {
       logger.log(Level.INFO, "    #atoms with pc:", numAtomsWithProgramCounter);
       logger.log(Level.INFO, "    #atoms:", atoms.size());
     }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 }
