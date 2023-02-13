@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -18,18 +17,18 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockEndUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public abstract class BlockTransferRelation implements TransferRelation {
+public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
 
   protected boolean shouldComputeSuccessor(BlockState pBlockState) {
-    if (pBlockState.isTargetLoopHead()) {
+    if (pBlockState.targetIsLastState()) {
       if (pBlockState.hasLoopHeadEncountered()) {
         return false;
       }
@@ -38,7 +37,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
   }
 
   protected boolean hasLoopHeadEncountered(BlockState pBlockState) {
-    if (pBlockState.isTargetLoopHead()) {
+    if (pBlockState.targetIsLastState()) {
       return !pBlockState.hasLoopHeadEncountered();
     }
     return pBlockState.hasLoopHeadEncountered();
@@ -47,10 +46,6 @@ public abstract class BlockTransferRelation implements TransferRelation {
   @Override
   public abstract Collection<BlockState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision prec, CFAEdge cfaEdge);
-
-  @Override
-  public abstract Collection<BlockState> getAbstractSuccessors(
-      AbstractState element, Precision prec) throws CPATransferException;
 
   static class ForwardBlockTransferRelation extends BlockTransferRelation {
 
@@ -68,18 +63,36 @@ public abstract class BlockTransferRelation implements TransferRelation {
     public Collection<BlockState> getAbstractSuccessorsForEdge(
         AbstractState element, Precision prec, CFAEdge cfaEdge) {
       BlockState blockState = (BlockState) element;
-
       CFANode node = blockState.getLocationNode();
       Set<CFAEdge> intersection =
           Sets.intersection(
-              ImmutableSet.copyOf(CFAUtils.allLeavingEdges(node)),
+              CFAUtils.allLeavingEdges(node).toSet(),
               blockState.getBlockNode().getEdgesInBlock());
+
+      // last node was already seen
+      if (!shouldComputeSuccessor(blockState)) {
+        // edge is block end and block actually has a block end (1 last successor)
+        if (!intersection.isEmpty()
+            && cfaEdge.getDescription().equals(BlockEndUtil.UNIQUE_DESCRIPTION)) {
+          BlockState successor =
+              new BlockState(
+                  cfaEdge.getSuccessor(),
+                  blockState.getBlockNode(),
+                  AnalysisDirection.FORWARD,
+                  getType(blockState.getBlockNode(), cfaEdge.getSuccessor()),
+                  true,
+                  blockState.getErrorCondition());
+          return ImmutableSet.of(successor);
+        }
+        // do not compute successor if last node was seen *and*
+        return ImmutableSet.of();
+      }
+      if (cfaEdge.getDescription().equals(BlockEndUtil.UNIQUE_DESCRIPTION) && intersection.size() > 1) {
+        return ImmutableSet.of();
+      }
       if (intersection.contains(cfaEdge)
           || (cfaEdge instanceof CFunctionCallEdge callEdge
               && intersection.contains(callEdge.getSummaryEdge()))) {
-        if (!shouldComputeSuccessor(blockState)) {
-          return ImmutableSet.of();
-        }
         BlockState successor =
             new BlockState(
                 cfaEdge.getSuccessor(),
@@ -92,31 +105,6 @@ public abstract class BlockTransferRelation implements TransferRelation {
       }
 
       return ImmutableList.of();
-    }
-
-    @Override
-    public Collection<BlockState> getAbstractSuccessors(AbstractState element, Precision prec)
-        throws CPATransferException {
-      BlockState blockState = (BlockState) element;
-
-      if (!shouldComputeSuccessor(blockState)) {
-        return ImmutableSet.of();
-      }
-
-      CFANode node = blockState.getLocationNode();
-      // may not work with function calls if a block solely consists of a summary edge
-      return CFAUtils.allSuccessorsOf(node)
-          .filter(n -> blockState.getBlockNode().getNodesInBlock().contains(n))
-          .transform(
-              n ->
-                  new BlockState(
-                      n,
-                      blockState.getBlockNode(),
-                      AnalysisDirection.FORWARD,
-                      getType(blockState.getBlockNode(), n),
-                      hasLoopHeadEncountered(blockState),
-                      blockState.getErrorCondition()))
-          .toList();
     }
   }
 
@@ -134,9 +122,9 @@ public abstract class BlockTransferRelation implements TransferRelation {
       CFANode node = blockState.getLocationNode();
       Set<CFAEdge> entering =
           Sets.intersection(
-              ImmutableSet.copyOf(CFAUtils.allEnteringEdges(node)),
+              CFAUtils.allEnteringEdges(node).toSet(),
               blockState.getBlockNode().getEdgesInBlock());
-      if (entering.contains(node)
+      if (entering.contains(cfaEdge)
           || (cfaEdge instanceof CFunctionCallEdge callEdge
               && entering.contains(callEdge.getSummaryEdge()))) {
         if (!shouldComputeSuccessor(blockState)) {
@@ -154,32 +142,6 @@ public abstract class BlockTransferRelation implements TransferRelation {
       }
 
       return ImmutableSet.of();
-    }
-
-    @Override
-    public Collection<BlockState> getAbstractSuccessors(AbstractState element, Precision prec)
-        throws CPATransferException {
-      BlockState blockState = (BlockState) element;
-
-      if (!shouldComputeSuccessor(blockState)) {
-        return ImmutableSet.of();
-      }
-
-      CFANode node = blockState.getLocationNode();
-      // might not work with blocks consisting solely of function summary edges
-      FluentIterable<CFANode> predecessors = CFAUtils.allPredecessorsOf(node);
-      return predecessors
-          .filter(n -> blockState.getBlockNode().getNodesInBlock().contains(n))
-          .transform(
-              n ->
-                  new BlockState(
-                      n,
-                      blockState.getBlockNode(),
-                      AnalysisDirection.BACKWARD,
-                      getType(blockState.getBlockNode(), n),
-                      hasLoopHeadEncountered(blockState),
-                      blockState.getErrorCondition()))
-          .toList();
     }
   }
 }

@@ -12,8 +12,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.MapType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ForwardingMap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.util.HashMap;
@@ -55,8 +57,12 @@ public class BlockSummaryMessagePayload extends ForwardingMap<String, Object> {
   }
 
   public String toJSONString() throws IOException {
+    return toJSONString(s -> true);
+  }
+
+  public String toJSONString(Predicate<String> pKeyFilter) throws IOException {
     StringBuilder builder = new StringBuilder();
-    JSON.writeJSONString(delegate, builder);
+    JSON.writeJSONString(Maps.filterKeys(delegate, pKeyFilter), builder);
     return builder.toString();
   }
 

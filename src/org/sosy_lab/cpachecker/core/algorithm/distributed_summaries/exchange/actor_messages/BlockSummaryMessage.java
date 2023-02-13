@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import java.io.ByteArrayInputStream;
@@ -103,8 +104,8 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
         BlockSummaryMessagePayload.builder().addAllEntries(copy).buildPayload());
   }
 
-  public final String getPayloadJSON() throws IOException {
-    return payload.toJSONString();
+  public final String getPayloadJSON(Predicate<String> pKeyFilter) throws IOException {
+    return payload.toJSONString(pKeyFilter);
   }
 
   public Optional<Object> getAbstractState(Class<? extends ConfigurableProgramAnalysis> pKey) {

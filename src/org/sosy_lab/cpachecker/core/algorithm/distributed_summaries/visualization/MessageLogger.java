@@ -97,7 +97,8 @@ public class MessageLogger {
     if (pMessage.getAbstractState(PredicateCPA.class).isEmpty()) {
       pMessage = BlockSummaryMessage.addEntry(pMessage, PredicateCPA.class.getName(), "true");
     }
-    messageToJSON.put("payload", pMessage.getPayloadJSON());
+    // s.contains("CPA") || s.contains("reason")
+    messageToJSON.put("payload", pMessage.getPayloadJSON(s -> true));
     entries.get(pMessage.getUniqueBlockId()).put("messages", messageToJSON);
     Map<String, Map<String, Collection<Object>>> converted = new HashMap<>();
     entries.forEach((k, v) -> converted.put(k, v.asMap()));

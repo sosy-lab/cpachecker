@@ -77,8 +77,8 @@ public class BlockState
     return blockNode;
   }
 
-  public boolean isTargetLoopHead() {
-    return targetCFANode.equals(getLocationNode());
+  public boolean targetIsLastState() {
+    return blockNode.getLastNode().equals(getLocationNode());
   }
 
   public boolean hasLoopHeadEncountered() {
@@ -140,14 +140,13 @@ public class BlockState
 
   @Override
   public boolean equals(Object pO) {
-    if (!(pO instanceof BlockState)) {
-      return false;
+    if (pO instanceof BlockState that) {
+      return direction == that.direction
+          && Objects.equals(targetCFANode, that.targetCFANode)
+          && Objects.equals(node, that.node)
+          && type == that.type;
     }
-    BlockState that = (BlockState) pO;
-    return direction == that.direction
-        && Objects.equals(targetCFANode, that.targetCFANode)
-        && Objects.equals(node, that.node)
-        && type == that.type;
+    return false;
   }
 
   @Override
