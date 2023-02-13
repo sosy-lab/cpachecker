@@ -18,6 +18,7 @@ public class IdentityDeserializeOperator implements DeserializeOperator {
 
   private final ConfigurableProgramAnalysis parentCPA;
   private final CFANode blockStart;
+
   public IdentityDeserializeOperator(ConfigurableProgramAnalysis pParentCPA, CFANode pBlockStart) {
     parentCPA = pParentCPA;
     blockStart = pBlockStart;
@@ -25,6 +26,10 @@ public class IdentityDeserializeOperator implements DeserializeOperator {
 
   @Override
   public AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
-    return (AbstractState) pMessage.getAbstractState(parentCPA.getClass()).orElse(parentCPA.getInitialState(blockStart, StateSpacePartition.getDefaultPartition()));
+    return (AbstractState)
+        pMessage
+            .getAbstractState(parentCPA.getClass())
+            .orElse(
+                parentCPA.getInitialState(blockStart, StateSpacePartition.getDefaultPartition()));
   }
 }

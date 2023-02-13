@@ -41,8 +41,7 @@ public class ProceedBlockStateOperator implements ProceedOperator {
   public BlockSummaryMessageProcessing proceedBackward(AbstractState pState) {
     CFANode node = Objects.requireNonNull(AbstractStates.extractLocation(pState));
     if (!(node.equals(block.getLastNode())
-        || (!node.equals(block.getStartNode())
-            && block.getNodesInBlock().contains(node)))) {
+        || (!node.equals(block.getStartNode()) && block.getNodesInBlock().contains(node)))) {
       return BlockSummaryMessageProcessing.stop();
     }
     return BlockSummaryMessageProcessing.proceed();

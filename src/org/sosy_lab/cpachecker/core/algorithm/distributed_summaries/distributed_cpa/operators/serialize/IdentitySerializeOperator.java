@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 public class IdentitySerializeOperator implements SerializeOperator {
 
   private final Class<? extends ConfigurableProgramAnalysis> parentCPA;
+
   public IdentitySerializeOperator(Class<? extends ConfigurableProgramAnalysis> pParentCPA) {
     parentCPA = pParentCPA;
   }
@@ -25,5 +26,4 @@ public class IdentitySerializeOperator implements SerializeOperator {
         .addEntry(parentCPA.getName(), pState)
         .buildPayload();
   }
-
 }

@@ -82,6 +82,9 @@ public class MessageLogger {
     JSON.writeJSONString(treeMap, blockCFAFile);
   }
 
+  // suppress warnings is fine here because error-prone does not recognize that we call
+  // getEpochSeconds before accessing nanos.
+  @SuppressWarnings("JavaInstantGetSecondsGetNano")
   public synchronized void log(BlockSummaryMessage pMessage) throws IOException {
     if (entries.get(pMessage.getUniqueBlockId()) == null) {
       return;

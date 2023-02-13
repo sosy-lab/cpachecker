@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -25,8 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class BlockSummaryResultWorker extends BlockSummaryWorker {
 
@@ -52,8 +49,7 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
   }
 
   @Override
-  public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage)
-      throws InterruptedException, CPAException, IOException, SolverException {
+  public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage) {
     String senderId = pMessage.getUniqueBlockId();
 
     // not an analysis-worker

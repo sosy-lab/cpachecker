@@ -96,7 +96,7 @@ public class DCPAAlgorithm {
     predecessors = transformedImmutableSetCopy(block.getPredecessors(), BlockNodeMetaData::getId);
   }
 
-  private Collection<BlockSummaryMessage> reportUnreachableBlockEnd() {
+  public Collection<BlockSummaryMessage> reportUnreachableBlockEnd() {
     // if sent once, it will never change (precondition is always the most general information)
     if (alreadyReportedInfeasibility) {
       return ImmutableSet.of();
@@ -239,7 +239,7 @@ public class DCPAAlgorithm {
     }
     if (!result.getViolations().isEmpty() && !alreadyReportedError) {
       alreadyReportedError = true;
-      answers.addAll(createErrorConditionMessages(result.getViolations()));
+      return createErrorConditionMessages(result.getViolations());
     }
     return answers.build();
   }

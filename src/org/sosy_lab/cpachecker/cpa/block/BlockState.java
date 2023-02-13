@@ -160,8 +160,9 @@ public class BlockState
   private boolean isStartNodeOfBlock() {
     return blockNode.getStartNode().equals(node);
   }
+
   @Override
   public boolean isTarget() {
-    return (isLocatedOnTargetNode() || isLastNodeOfBlock() || isStartNodeOfBlock()) && errorCondition.isPresent();
+    return isLocatedOnTargetNode() || isLastNodeOfBlock() || isStartNodeOfBlock();
   }
 }

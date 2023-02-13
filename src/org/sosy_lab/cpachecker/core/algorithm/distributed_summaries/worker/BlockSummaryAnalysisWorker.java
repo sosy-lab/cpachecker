@@ -113,8 +113,15 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       throws InterruptedException, CPAException, SolverException {
     switch (message.getType()) {
       case ERROR_CONDITION:
-        return dcpaBackwardAlgorithm.runAnalysisForMessage(
-            (BlockSummaryErrorConditionMessage) message);
+        ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
+        if (message.getBlockId().equals(block.getId())) {
+          answers.addAll(dcpaAlgorithm.reportUnreachableBlockEnd());
+        }
+        return answers
+            .addAll(
+                dcpaBackwardAlgorithm.runAnalysisForMessage(
+                    (BlockSummaryErrorConditionMessage) message))
+            .build();
       case BLOCK_POSTCONDITION:
         return dcpaAlgorithm.runAnalysisForMessage((BlockSummaryPostConditionMessage) message);
       case ERROR:

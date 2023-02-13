@@ -119,7 +119,7 @@ public class DCPABackwardAlgorithm {
     BlockAnalysisIntermediateResult result =
         DCPAAlgorithms.findReachableTargetStatesInBlock(
             algorithm, reachedSet, block.getStartNode());
-    Set<ARGState> targetStates = result.getBlockTargets();
+    Set<ARGState> targetStates = result.getBlockEnds();
     status = status.update(result.getStatus());
     List<AbstractState> states =
         transformedImmutableListCopy(

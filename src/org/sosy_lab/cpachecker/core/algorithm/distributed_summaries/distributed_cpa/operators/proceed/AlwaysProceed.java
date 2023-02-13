@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class AlwaysProceed implements ProceedOperator {
   @Override
