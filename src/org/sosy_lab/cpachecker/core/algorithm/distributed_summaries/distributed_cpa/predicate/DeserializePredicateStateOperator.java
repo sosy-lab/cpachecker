@@ -78,7 +78,10 @@ public class DeserializePredicateStateOperator
                 StateSpacePartition.getDefaultPartition());
 
     PredicateAbstractState deserialized;
-    if (pMessage.getType() == MessageType.ERROR_CONDITION) {
+    deserialized =
+        PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
+            abstraction, previousState);
+    /*if (pMessage.getType() == MessageType.ERROR_CONDITION) {
       deserialized =
           PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
               abstraction, previousState);
@@ -92,7 +95,7 @@ public class DeserializePredicateStateOperator
                       formulaManagerView.getBooleanFormulaManager().makeTrue(), abstraction),
               PathCopyingPersistentTreeMap.of(),
               previousState);
-    }
+    }*/
 
     if (pMessage instanceof BlockSummaryErrorConditionMessage) {
       errorCondition =

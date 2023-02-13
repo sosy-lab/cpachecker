@@ -35,7 +35,8 @@ public class BlockState
   public enum BlockStateType {
     INITIAL,
     MID,
-    FINAL
+    FINAL,
+    ABSTRACTION
   }
 
   private final CFANode targetCFANode;
@@ -43,7 +44,6 @@ public class BlockState
   private final AnalysisDirection direction;
   private final BlockStateType type;
   private final BlockNode blockNode;
-  private final boolean wasLoopHeadEncountered;
   private Optional<AbstractState> errorCondition;
 
   public BlockState(
@@ -51,7 +51,6 @@ public class BlockState
       BlockNode pTargetNode,
       AnalysisDirection pDirection,
       BlockStateType pType,
-      boolean pWasLoopHeadEncountered,
       Optional<AbstractState> pErrorCondition) {
     node = pNode;
     direction = pDirection;
@@ -64,7 +63,6 @@ public class BlockState
               ? pTargetNode.getAbstractionNode()
               : pTargetNode.getStartNode();
     }
-    wasLoopHeadEncountered = pWasLoopHeadEncountered;
     blockNode = pTargetNode;
     errorCondition = pErrorCondition;
   }
@@ -75,14 +73,6 @@ public class BlockState
 
   public BlockNode getBlockNode() {
     return blockNode;
-  }
-
-  public boolean targetIsLastState() {
-    return blockNode.getLastNode().equals(getLocationNode());
-  }
-
-  public boolean hasLoopHeadEncountered() {
-    return wasLoopHeadEncountered;
   }
 
   public CFANode getLocationNode() {
@@ -124,6 +114,8 @@ public class BlockState
     return isTarget()
             && direction == AnalysisDirection.FORWARD
             && !blockNode.getLastNode().equals(blockNode.getAbstractionNode())
+            && !blockNode.getLastNode().equals(node)
+            && !isStartNodeOfBlock()
         ? errorCondition
             .map(
                 state ->
@@ -154,8 +146,22 @@ public class BlockState
     return Objects.hash(targetCFANode, node, direction, type);
   }
 
+  private boolean isLocatedOnTargetNode() {
+    // equal to isLastNodeOfBlock iff there is no artificial block end,
+    // else true iff node is equal to artificial block end
+    return targetCFANode.equals(node);
+  }
+
+  private boolean isLastNodeOfBlock() {
+    // abstract at the real block end (last node, not artificial block end)
+    return blockNode.getLastNode().equals(node);
+  }
+
+  private boolean isStartNodeOfBlock() {
+    return blockNode.getStartNode().equals(node);
+  }
   @Override
   public boolean isTarget() {
-    return targetCFANode.equals(node);
+    return (isLocatedOnTargetNode() || isLastNodeOfBlock() || isStartNodeOfBlock()) && errorCondition.isPresent();
   }
 }

@@ -27,25 +27,64 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
 
-  protected boolean shouldComputeSuccessor(BlockState pBlockState) {
-    if (pBlockState.targetIsLastState()) {
-      if (pBlockState.hasLoopHeadEncountered()) {
-        return false;
+  @Override
+  public Collection<BlockState> getAbstractSuccessorsForEdge(
+      AbstractState element, Precision prec, CFAEdge cfaEdge) {
+    BlockState blockState = (BlockState) element;
+    CFANode node = blockState.getLocationNode();
+    // block end cannot be reached directly after processing the first
+    if (blockState.getType().equals(BlockStateType.INITIAL)) {
+      if (cfaEdge.getDescription().equals(BlockEndUtil.UNIQUE_DESCRIPTION)) {
+        return ImmutableSet.of();
       }
     }
-    return true;
-  }
 
-  protected boolean hasLoopHeadEncountered(BlockState pBlockState) {
-    if (pBlockState.targetIsLastState()) {
-      return !pBlockState.hasLoopHeadEncountered();
+    final BlockState successor = computeSuccessorFor(blockState, cfaEdge);
+
+    // we are at the final location of the block and have already seen every
+    // CFANode in the BlockNode once => transition only over the "BlockendEdge"
+    if (node.equals(getBlockEnd(blockState.getBlockNode()))
+        && !blockState.getType().equals(BlockStateType.INITIAL)) {
+      if (cfaEdge.getDescription().equals(BlockEndUtil.UNIQUE_DESCRIPTION)) {
+        return onTransitionToBlockEnd(successor);
+      }
+      return ImmutableSet.of();
     }
-    return pBlockState.hasLoopHeadEncountered();
+
+    Set<CFAEdge> intersection =
+        Sets.intersection(
+            computePossibleSuccessors(node), blockState.getBlockNode().getEdgesInBlock());
+
+    if (intersection.contains(cfaEdge)
+        || (cfaEdge instanceof CFunctionCallEdge callEdge
+            && intersection.contains(callEdge.getSummaryEdge()))) {
+      return ImmutableList.of(successor);
+    }
+
+    return ImmutableList.of();
   }
 
-  @Override
-  public abstract Collection<BlockState> getAbstractSuccessorsForEdge(
-      AbstractState element, Precision prec, CFAEdge cfaEdge);
+  abstract Set<CFAEdge> computePossibleSuccessors(CFANode pNode);
+
+  abstract BlockState computeSuccessorFor(BlockState pBlockState, CFAEdge pCFAEdge);
+
+  abstract Collection<BlockState> onTransitionToBlockEnd(BlockState pPossibleSuccessor);
+
+  abstract CFANode getBlockEnd(BlockNode pNode);
+
+  private static BlockStateType getBlockStateTypeOfLocation(
+      AnalysisDirection pDirection, BlockNode pBlockNode, CFANode pNode) {
+    if (pNode.equals(
+        pDirection == AnalysisDirection.FORWARD
+            ? pBlockNode.getLastNode()
+            : pBlockNode.getStartNode())) {
+      return BlockStateType.FINAL;
+    }
+    if (pNode.equals(pBlockNode.getAbstractionNode())) {
+      return BlockStateType.ABSTRACTION;
+    }
+    return BlockStateType.MID;
+  }
 
   static class ForwardBlockTransferRelation extends BlockTransferRelation {
 
@@ -55,93 +94,59 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
      */
     public ForwardBlockTransferRelation() {}
 
-    private BlockStateType getType(BlockNode pBlockNode, CFANode pNode) {
-      return pNode.equals(pBlockNode.getLastNode()) ? BlockStateType.FINAL : BlockStateType.MID;
+    @Override
+    Set<CFAEdge> computePossibleSuccessors(CFANode pNode) {
+      return CFAUtils.leavingEdges(pNode).toSet();
     }
 
     @Override
-    public Collection<BlockState> getAbstractSuccessorsForEdge(
-        AbstractState element, Precision prec, CFAEdge cfaEdge) {
-      BlockState blockState = (BlockState) element;
-      CFANode node = blockState.getLocationNode();
-      Set<CFAEdge> intersection =
-          Sets.intersection(
-              CFAUtils.allLeavingEdges(node).toSet(),
-              blockState.getBlockNode().getEdgesInBlock());
+    BlockState computeSuccessorFor(BlockState pBlockState, CFAEdge pCFAEdge) {
+      return new BlockState(
+          pCFAEdge.getSuccessor(),
+          pBlockState.getBlockNode(),
+          AnalysisDirection.FORWARD,
+          getBlockStateTypeOfLocation(
+              AnalysisDirection.FORWARD, pBlockState.getBlockNode(), pCFAEdge.getSuccessor()),
+          pBlockState.getErrorCondition());
+    }
 
-      // last node was already seen
-      if (!shouldComputeSuccessor(blockState)) {
-        // edge is block end and block actually has a block end (1 last successor)
-        if (!intersection.isEmpty()
-            && cfaEdge.getDescription().equals(BlockEndUtil.UNIQUE_DESCRIPTION)) {
-          BlockState successor =
-              new BlockState(
-                  cfaEdge.getSuccessor(),
-                  blockState.getBlockNode(),
-                  AnalysisDirection.FORWARD,
-                  getType(blockState.getBlockNode(), cfaEdge.getSuccessor()),
-                  true,
-                  blockState.getErrorCondition());
-          return ImmutableSet.of(successor);
-        }
-        // do not compute successor if last node was seen *and*
-        return ImmutableSet.of();
-      }
-      if (cfaEdge.getDescription().equals(BlockEndUtil.UNIQUE_DESCRIPTION) && intersection.size() > 1) {
-        return ImmutableSet.of();
-      }
-      if (intersection.contains(cfaEdge)
-          || (cfaEdge instanceof CFunctionCallEdge callEdge
-              && intersection.contains(callEdge.getSummaryEdge()))) {
-        BlockState successor =
-            new BlockState(
-                cfaEdge.getSuccessor(),
-                blockState.getBlockNode(),
-                AnalysisDirection.FORWARD,
-                getType(blockState.getBlockNode(), cfaEdge.getSuccessor()),
-                hasLoopHeadEncountered(blockState),
-                blockState.getErrorCondition());
-        return ImmutableList.of(successor);
-      }
+    @Override
+    Collection<BlockState> onTransitionToBlockEnd(BlockState pPossibleSuccessor) {
+      return ImmutableSet.of(pPossibleSuccessor);
+    }
 
-      return ImmutableList.of();
+    @Override
+    CFANode getBlockEnd(BlockNode pNode) {
+      return pNode.getLastNode();
     }
   }
 
   static class BackwardBlockTransferRelation extends BlockTransferRelation {
 
-    private BlockStateType getType(BlockNode pBlockNode, CFANode pNode) {
-      return pNode.equals(pBlockNode.getStartNode()) ? BlockStateType.FINAL : BlockStateType.MID;
+    @Override
+    Set<CFAEdge> computePossibleSuccessors(CFANode pCFANode) {
+      return CFAUtils.enteringEdges(pCFANode).toSet();
     }
 
     @Override
-    public Collection<BlockState> getAbstractSuccessorsForEdge(
-        AbstractState element, Precision prec, CFAEdge cfaEdge) {
-      BlockState blockState = (BlockState) element;
+    BlockState computeSuccessorFor(BlockState pBlockState, CFAEdge pCFAEdge) {
+      return new BlockState(
+          pCFAEdge.getPredecessor(),
+          pBlockState.getBlockNode(),
+          AnalysisDirection.BACKWARD,
+          getBlockStateTypeOfLocation(
+              AnalysisDirection.BACKWARD, pBlockState.getBlockNode(), pCFAEdge.getPredecessor()),
+          pBlockState.getErrorCondition());
+    }
 
-      CFANode node = blockState.getLocationNode();
-      Set<CFAEdge> entering =
-          Sets.intersection(
-              CFAUtils.allEnteringEdges(node).toSet(),
-              blockState.getBlockNode().getEdgesInBlock());
-      if (entering.contains(cfaEdge)
-          || (cfaEdge instanceof CFunctionCallEdge callEdge
-              && entering.contains(callEdge.getSummaryEdge()))) {
-        if (!shouldComputeSuccessor(blockState)) {
-          return ImmutableSet.of();
-        }
-        BlockState successor =
-            new BlockState(
-                cfaEdge.getPredecessor(),
-                blockState.getBlockNode(),
-                AnalysisDirection.BACKWARD,
-                getType(blockState.getBlockNode(), cfaEdge.getPredecessor()),
-                hasLoopHeadEncountered(blockState),
-                blockState.getErrorCondition());
-        return ImmutableList.of(successor);
-      }
+    @Override
+    Collection<BlockState> onTransitionToBlockEnd(BlockState pPossibleSuccessor) {
+      throw new AssertionError("Backward analysis does not support abstraction");
+    }
 
-      return ImmutableSet.of();
+    @Override
+    CFANode getBlockEnd(BlockNode pNode) {
+      return pNode.getStartNode();
     }
   }
 }

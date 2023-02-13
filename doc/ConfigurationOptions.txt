@@ -2401,9 +2401,6 @@ cpa.predicate.pseudoExistQE.useUPD = true
 # as input, not the concrete block.
 cpa.predicate.refinement.abstractInterpolantOnly = false
 
-# add conditions to block formulas
-cpa.predicate.refinement.acceptAdditionalErrorCondition = false
-
 # use only the atoms from the interpolantsas predicates, and not the whole
 # interpolant
 cpa.predicate.refinement.atomicInterpolants = true

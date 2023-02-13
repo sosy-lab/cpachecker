@@ -34,7 +34,6 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
         blockNode,
         direction,
         BlockStateType.INITIAL,
-        false,
         Optional.empty());
   }
 }

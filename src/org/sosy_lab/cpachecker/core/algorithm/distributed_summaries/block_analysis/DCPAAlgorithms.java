@@ -184,7 +184,7 @@ public class DCPAAlgorithms {
     }
 
     public boolean isEmpty() {
-      return violations.isEmpty() && blockTargets.isEmpty();
+      return violations.isEmpty() && blockTargets.isEmpty() && blockEnds.isEmpty();
     }
 
     @Override

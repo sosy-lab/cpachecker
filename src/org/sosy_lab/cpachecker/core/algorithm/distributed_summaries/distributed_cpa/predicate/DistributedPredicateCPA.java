@@ -12,6 +12,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.AlwaysProceed;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -25,7 +26,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
 
   private final SerializeOperator serialize;
   private final DeserializePredicateStateOperator deserialize;
-  private final ProceedPredicateStateOperator proceed;
+  private final ProceedOperator proceed;
 
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA, BlockNode pNode, AnalysisDirection pDirection) {
@@ -41,7 +42,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
             predicateCPA.getSolver().getFormulaManager(),
             predicateCPA.getPathFormulaManager(),
             pNode);
-    proceed = new ProceedPredicateStateOperator(predicateCPA.getSolver(), pNode, pDirection);
+    proceed = new AlwaysProceed();//ProceedPredicateStateOperator(predicateCPA.getSolver(), pNode, pDirection);
   }
 
   @Override

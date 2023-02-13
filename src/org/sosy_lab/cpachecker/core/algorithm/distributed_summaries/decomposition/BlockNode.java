@@ -63,15 +63,10 @@ public class BlockNode {
         pMetaData.getNodesInBlock(),
         pMetaData.getStartNode(),
         pMetaData.getLastNode());
-    /* + 1 = Final blank edge node
-    checkArgument(
-        pCfa.getAllNodes().size() <= pMetaData.getNodesInBlock().size() + 2,
-        "Mismatch in number of nodes of CFA %s and number of nodes in block %s with %s nodes. The"
-            + " start node has type %s.",
-        pCfa.getAllNodes().size(),
-        pMetaData.getId(),
-        pMetaData.getNodesInBlock().size(),
-        pMetaData.getStartNode().getClass().getSimpleName()); */
+    // block node is not root implies that there is at least one edge in the block
+    Preconditions.checkArgument(
+        !pMetaData.getEdgesInBlock().isEmpty() || pPredecessors.isEmpty(),
+        "Every block needs at least one edge");
     Preconditions.checkArgument(
         isBlockNodeValid(pMetaData.getStartNode(), pMetaData.getEdgesInBlock()),
         "BlockNodes require to have exactly one exit node.");

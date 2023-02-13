@@ -92,7 +92,7 @@ public class LinearDecomposition implements CFADecomposer {
     while (!nodes.isEmpty()) {
       List<CFANode> currentPath = nodes.remove(0);
       CFANode last = getLastNodeFromPath(currentPath);
-      for (CFANode cfaNode : CFAUtils.allSuccessorsOf(last)) {
+      for (CFANode cfaNode : CFAUtils.successorsOf(last)) {
         if (findEdge(last, cfaNode).getDescription().equals(BlockEndUtil.UNIQUE_DESCRIPTION)) {
           continue;
         }

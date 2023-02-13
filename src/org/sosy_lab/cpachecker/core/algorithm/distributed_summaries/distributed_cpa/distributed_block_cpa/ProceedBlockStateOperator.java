@@ -29,8 +29,7 @@ public class ProceedBlockStateOperator implements ProceedOperator {
   }
 
   @Override
-  public BlockSummaryMessageProcessing proceedForward(AbstractState pState)
-      throws InterruptedException {
+  public BlockSummaryMessageProcessing proceedForward(AbstractState pState) {
     if (Objects.equals(AbstractStates.extractLocation(pState), block.getStartNode())) {
       return BlockSummaryMessageProcessing.proceed();
     } else {
@@ -39,12 +38,10 @@ public class ProceedBlockStateOperator implements ProceedOperator {
   }
 
   @Override
-  public BlockSummaryMessageProcessing proceedBackward(AbstractState pState)
-      throws InterruptedException, SolverException {
+  public BlockSummaryMessageProcessing proceedBackward(AbstractState pState) {
     CFANode node = Objects.requireNonNull(AbstractStates.extractLocation(pState));
     if (!(node.equals(block.getLastNode())
-        || (!node.equals(block.getLastNode())
-            && !node.equals(block.getStartNode())
+        || (!node.equals(block.getStartNode())
             && block.getNodesInBlock().contains(node)))) {
       return BlockSummaryMessageProcessing.stop();
     }

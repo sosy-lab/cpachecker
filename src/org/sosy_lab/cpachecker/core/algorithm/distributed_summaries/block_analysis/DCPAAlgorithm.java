@@ -212,13 +212,15 @@ public class DCPAAlgorithm {
       BlockAnalysisIntermediateResult result) throws InterruptedException {
     status = status.update(result.getStatus());
     if (reachedSet.getLastState() != null) {
-      initialPrecision = reachedSet.getPrecision(reachedSet.getLastState());
+      initialPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
     }
     if (result.isEmpty()) {
       return reportUnreachableBlockEnd();
     }
     ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
-    if (!result.getBlockTargets().isEmpty()) {
+    // empty block ends imply that there was no abstraction node reached
+    assert !result.getBlockEnds().isEmpty() || result.getBlockTargets().isEmpty();
+    if (!result.getBlockEnds().isEmpty()) {
       answers.addAll(
           FluentIterable.from(result.getBlockEnds())
               .transform(dcpa.getSerializeOperator()::serialize)
