@@ -373,7 +373,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
         }
       }
     }
-    return builder.build();
+    return builder.buildOrThrow();
   }
 
   private boolean virtuallyEqual(CFAEdge pCFAEdge, CFAEdge pCFAEdge2) {
