@@ -42,9 +42,8 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
             predicateCPA.getSolver().getFormulaManager(),
             predicateCPA.getPathFormulaManager(),
             pNode);
-    proceed =
-        new AlwaysProceed(); // ProceedPredicateStateOperator(predicateCPA.getSolver(), pNode,
-                             // pDirection);
+    proceed = new AlwaysProceed(); // ProceedPredicateStateOperator(predicateCPA.getSolver(), pNode,
+    // pDirection);
   }
 
   @Override
