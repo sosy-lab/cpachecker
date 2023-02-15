@@ -203,7 +203,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    * @return a view of this {@link CfaNetwork} that only contains nodes for which the specified
    *     predicate evaluates to {@code true}
    */
-  default CfaNetwork filterNodes(Predicate<CFANode> pRetainPredicate) {
+  default CfaNetwork withFilteredNodes(Predicate<CFANode> pRetainPredicate) {
     return CheckingCfaNetwork.wrapIfAssertionsEnabled(
         new NodeFilteringCfaNetwork(this, pRetainPredicate));
   }
@@ -220,7 +220,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    * @return a view of this {@link CfaNetwork} that only contains edges for which the specified
    *     predicate evaluates to {@code true}
    */
-  default CfaNetwork filterEdges(Predicate<CFAEdge> pRetainPredicate) {
+  default CfaNetwork withFilteredEdges(Predicate<CFAEdge> pRetainPredicate) {
     return CheckingCfaNetwork.wrapIfAssertionsEnabled(
         new EdgeFilteringCfaNetwork(this, pRetainPredicate));
   }
@@ -240,7 +240,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    * @return a view of this {@link CfaNetwork} in which all edges are replaced by their function
    *     result
    */
-  default CfaNetwork transformEdges(Function<CFAEdge, CFAEdge> pEdgeTransformer) {
+  default CfaNetwork withTransformedEdges(Function<CFAEdge, CFAEdge> pEdgeTransformer) {
     return CheckingCfaNetwork.wrapIfAssertionsEnabled(
         new EdgeTransformingCfaNetwork(this, pEdgeTransformer));
   }
@@ -253,7 +253,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    * @return a view of this {@link CfaNetwork} that doesn't contain any summary edges
    */
   default CfaNetwork withoutSummaryEdges() {
-    return filterEdges(edge -> !(edge instanceof FunctionSummaryEdge));
+    return withFilteredEdges(edge -> !(edge instanceof FunctionSummaryEdge));
   }
 
   /**
@@ -265,7 +265,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    * @return a view of this {@link CfaNetwork} that doesn't contain any super-edges
    */
   default CfaNetwork withoutSuperEdges() {
-    return filterEdges(
+    return withFilteredEdges(
         edge -> !(edge instanceof FunctionCallEdge) && !(edge instanceof FunctionReturnEdge));
   }
 }
