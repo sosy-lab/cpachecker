@@ -93,7 +93,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
   public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage)
       throws InterruptedException, SolverException, CPAException, IOException {
     switch (pMessage.getType()) {
-      case ERROR_CONDITION:
+      case ERROR_CONDITION -> {
         AbstractState currentState = dcpa.getDeserializeOperator().deserialize(pMessage);
         BlockSummaryMessageProcessing processing = dcpa.getProceedOperator().proceed(currentState);
         if (processing.end()) {
@@ -105,19 +105,15 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
                 root.getLastNode().getNodeNumber(),
                 Result.FALSE,
                 ((BlockSummaryErrorConditionMessage) pMessage).visitedBlockIds()));
-      case FOUND_RESULT:
-        // fall through
-      case ERROR:
+      }
+      case FOUND_RESULT, ERROR -> {
         shutdown = true;
         return ImmutableSet.of();
-      case STATISTICS:
-        // fall through
-      case BLOCK_POSTCONDITION:
-        // fall through
-      case ERROR_CONDITION_UNREACHABLE:
+      }
+      case STATISTICS, BLOCK_POSTCONDITION, ERROR_CONDITION_UNREACHABLE -> {
         return ImmutableSet.of();
-      default:
-        throw new AssertionError("Unknown MessageType " + pMessage.getType());
+      }
+      default -> throw new AssertionError("Unknown MessageType " + pMessage.getType());
     }
   }
 
