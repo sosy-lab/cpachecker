@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.TreeMultimap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -52,23 +53,23 @@ public class MutableCFA implements CFA {
    * @param pNode the node to add to this CFA
    * @return {@code true} if this CFA was modified as a result of the call
    * @throws NullPointerException if {@code pNode == null}
-   * @throws IllegalArgumentException if adding the new node would lead to multiple function entry
+   * @throws IllegalStateException if adding the new node would lead to multiple function entry
    *     nodes for the same function
    */
   @CanIgnoreReturnValue
   public boolean addNode(CFANode pNode) {
     String functionName = pNode.getFunctionName();
-    boolean allNodesModified = allNodes.put(functionName, pNode);
-    boolean functionsModified = false;
     if (pNode instanceof FunctionEntryNode entryNode) {
-      @Nullable FunctionEntryNode oldEntryNode = functions.put(functionName, entryNode);
-      functionsModified = !entryNode.equals(oldEntryNode);
-      checkArgument(
-          !functionsModified || oldEntryNode == null,
+      checkState(
+          !functions.containsKey(functionName),
           "Cannot add multiple function entry nodes for function '%s'",
           functionName);
+      functions.put(functionName, entryNode);
+      allNodes.put(functionName, pNode);
+      return true; // due to the precondition we are certain that we modified this CFA
+    } else {
+      return allNodes.put(functionName, pNode);
     }
-    return allNodesModified || functionsModified;
   }
 
   public void clear() {
@@ -86,12 +87,13 @@ public class MutableCFA implements CFA {
   @CanIgnoreReturnValue
   public boolean removeNode(CFANode pNode) {
     String functionName = pNode.getFunctionName();
-    boolean allNodesModified = allNodes.remove(functionName, pNode);
     if (pNode instanceof FunctionEntryNode && pNode.equals(functions.get(functionName))) {
       functions.remove(functionName);
-      return true;
+      allNodes.remove(functionName, pNode);
+      return true; // due to the if-condition we are certain that we modified this CFA
+    } else {
+      return allNodes.remove(functionName, pNode);
     }
-    return allNodesModified;
   }
 
   @Override
