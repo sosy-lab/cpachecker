@@ -107,8 +107,13 @@ final class WrappingMutableCfaNetwork extends WrappingCfaNetwork implements Muta
   public boolean removeNode(CFANode pNode) {
     checkNotNull(pNode);
     boolean nodeRemoved = mutableCfa.removeNode(pNode);
-    if (nodeRemoved && pNode instanceof FunctionExitNode) {
-      ((FunctionExitNode) pNode).getEntryNode().removeExitNode();
+    if (nodeRemoved) {
+      for (CFAEdge edge : incidentEdges(pNode)) {
+        removeEdge(edge);
+      }
+      if (pNode instanceof FunctionExitNode exitNode) {
+        exitNode.getEntryNode().removeExitNode();
+      }
     }
 
     return nodeRemoved;
