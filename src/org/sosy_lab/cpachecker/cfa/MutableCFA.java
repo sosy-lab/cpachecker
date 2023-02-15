@@ -20,6 +20,8 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.graph.MutableCfaNetwork;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.LiveVariables;
@@ -165,5 +167,30 @@ public class MutableCFA implements CFA {
    */
   public void setMetadata(CfaMetadata pCfaMetadata) {
     metadata = checkNotNull(pCfaMetadata);
+  }
+
+  /**
+   * Returns a {@link MutableCfaNetwork} for this {@link MutableCFA}.
+   *
+   * <p>All modifying operations on the returned {@link MutableCfaNetwork} change this {@link
+   * MutableCFA}.
+   *
+   * <p>All changes to this CFA are reflected in the returned {@link MutableCfaNetwork}. The CFA
+   * represented by the returned {@link MutableCfaNetwork} always matches the CFA represented by its
+   * elements (e.g., {@link CFAEdge#getSuccessor()} and {@link MutableCfaNetwork#successor(CFAEdge)}
+   * always return the same value). Endpoints of a CFA edge and endpoints given as arguments to an
+   * {@code addEdge} method must match.
+   *
+   * <p>IMPORTANT: The specified CFA must not contain any parallel edges (i.e., edges that connect
+   * the same nodes in the same order) and never add them in the future. Additionally, the
+   * collections returned by {@link CFA#getAllNodes()} and {@link CFA#getAllFunctionHeads()} must
+   * not contain any duplicates and never add them in the future. Be aware that these requirements
+   * are not enforced if Java assertions are disabled.
+   *
+   * @return a {@link MutableCfaNetwork} for this {@link MutableCFA}
+   */
+  @Override
+  public MutableCfaNetwork asNetwork() {
+    return MutableCfaNetwork.wrap(this);
   }
 }
