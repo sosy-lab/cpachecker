@@ -122,7 +122,6 @@ class PollingResultDownloader:
         self._shutdown = threading.Event()
 
     def _poll_run_states(self):
-
         # in every iteration the states of all unfinished runs are requested once
         while not self._shutdown.is_set():
             start = time()
@@ -137,7 +136,6 @@ class PollingResultDownloader:
 
             # Collect states of runs
             for state_future in as_completed(states.keys()):
-
                 run_id = states[state_future]
                 state = state_future.result()
 
@@ -227,11 +225,9 @@ if HAS_SSECLIENT:
                 logging.debug("Exception in SSE connection: %s", error)
                 return False
             else:
-
                 return True
 
         def _start_sse_connection(self):
-
             while self._new_runs:
                 run_ids = set(self._web_interface._unfinished_runs.keys())
                 self._new_runs = False
@@ -643,7 +639,6 @@ class WebInterface:
         revision,
         counter=0,
     ):
-
         params = []
         opened_files = []  # open file handles are passed to the request library
 
@@ -1268,7 +1263,6 @@ def _handle_result(
     result_files_patterns,
     run_identifier,
 ):
-
     files = set(resultZipFile.namelist())
 
     # extract run info
