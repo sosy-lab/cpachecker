@@ -68,7 +68,7 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
   }
 
   @Override
-  public MutableNetwork<CFANode, CFAEdge> delegateMutableNetwork() {
+  protected MutableNetwork<CFANode, CFAEdge> delegateMutableNetwork() {
     return delegate;
   }
 
