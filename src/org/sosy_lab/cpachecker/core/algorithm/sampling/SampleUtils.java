@@ -37,6 +37,26 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 /** Helper class containing sampling-related utility methods. */
 public class SampleUtils {
 
+  public static Iterable<ValueAssignment> getAssignmentsWithLowestIndices(
+      Iterable<ValueAssignment> model) {
+    Map<String, ValueAssignment> assignmentsWithLowestIndizes = new HashMap<>();
+    Splitter indexSplitter = Splitter.on("@");
+    for (ValueAssignment assignment : model) {
+      List<String> parts = indexSplitter.splitToList(assignment.getName());
+      String qualifiedName = parts.get(0);
+      if (assignmentsWithLowestIndizes.containsKey(qualifiedName)) {
+        ValueAssignment current = assignmentsWithLowestIndizes.get(qualifiedName);
+        int currentIndex = Integer.parseInt(indexSplitter.splitToList(current.getName()).get(1));
+        int newIndex = Integer.parseInt(parts.get(1));
+        if (currentIndex <= newIndex) {
+          continue;
+        }
+      }
+      assignmentsWithLowestIndizes.put(qualifiedName, assignment);
+    }
+    return assignmentsWithLowestIndizes.values();
+  }
+
   /**
    * Filter the given model for relevant assignments. Relevant for sampling are only the most recent
    * variable assignments to variables in the current function.

@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
@@ -43,18 +44,23 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.Expression
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantChecker;
 import org.sosy_lab.cpachecker.core.algorithm.sampling.Sample.SampleClass;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -88,6 +94,11 @@ public class InvariantValidationAlgorithm implements Algorithm {
 
   @Option(secure = true, description = "The invariant to be validated.")
   private String invariant;
+
+  @Option(
+      secure = true,
+      description = "Whether to use a BMC-based approach for counterexample extraction.")
+  private boolean useBMC = false;
 
   private final Configuration config;
   private final Algorithm algorithm;
@@ -145,7 +156,11 @@ public class InvariantValidationAlgorithm implements Algorithm {
     } else {
       CFANode loopHead = Iterables.getOnlyElement(cfa.getAllLoopHeads().orElseThrow());
       try {
-        validateAt(loopHead);
+        if (useBMC) {
+          validateBMC(loopHead);
+        } else {
+          validateSMT(reachedSet, loopHead);
+        }
       } catch (InvalidConfigurationException pE) {
         logger.log(Level.WARNING, "Invariant validation failed due to invalid configuration.");
       } catch (SolverException pE) {
@@ -156,7 +171,113 @@ public class InvariantValidationAlgorithm implements Algorithm {
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  private void validateAt(CFANode pLocation)
+  private void validateSMT(ReachedSet pReachedSet, CFANode pLocation)
+      throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
+    // TODO: Might need to further adjust scope according to pLocation.
+    //       On the other hand: Is constructing a CandidateInvariant really necessary?
+    CProgramScope scope =
+        new CProgramScope(cfa, logger).withFunctionScope(pLocation.getFunctionName());
+    ExpressionTree<AExpression> expressionTree =
+        CParserUtils.parseStatementsAsExpressionTree(
+            ImmutableSet.of(invariant), Optional.empty(), parser, scope, parserTools);
+    CandidateInvariant candidate =
+        new ExpressionTreeLocationInvariant(
+            pLocation.toString(), pLocation, expressionTree, new ConcurrentHashMap<>());
+
+    // Retrieve formula managers
+    PredicateCPA predicateCPA =
+        CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, InvariantValidationAlgorithm.class);
+    Solver solver = predicateCPA.getSolver();
+    FormulaManagerView fmgr = solver.getFormulaManager();
+    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+    PathFormulaManager pmgr = predicateCPA.getPathFormulaManager();
+
+    // Run algorithm to determine reachable states
+    algorithm.run(pReachedSet);
+
+    PathFormula pathFormula = pmgr.makeEmptyPathFormula();
+    Iterable<AbstractState> statesAtLocation = candidate.filterApplicable(pReachedSet);
+    for (AbstractState state : statesAtLocation) {
+      for (ARGState covered : ((ARGState) state).getCoveredByThis()) {
+        Collection<ARGState> parents = covered.getParents();
+        assert parents.size() == 1;
+        PredicateAbstractState predicateState =
+            AbstractStates.extractStateByType(
+                Iterables.getOnlyElement(parents), PredicateAbstractState.class);
+        pathFormula = predicateState.getPathFormula();
+      }
+    }
+
+    // Assert that target location is not reachable
+    CandidateInvariant targetReachable = TargetLocationCandidateInvariant.INSTANCE;
+    BooleanFormula programSafe = targetReachable.getAssertion(pReachedSet, fmgr, pmgr);
+
+    // Assert that precondition holds
+    BooleanFormula preconditionFulfilled = BMCHelper.createFormulaFor(statesAtLocation, bfmgr);
+
+    // Assert that invariant holds
+    BooleanFormula invariantHolds = candidate.getAssertion(pReachedSet, fmgr, pmgr);
+
+    // Any models satisfying this formula are precondition counterexamples: !(P => I)
+    BooleanFormula preconditionFormula =
+        bfmgr.and(preconditionFulfilled, bfmgr.not(invariantHolds));
+    // Any models satisfying this formula are counterexamples to inductiveness
+    BooleanFormula invariantHoldsAfter =
+        fmgr.instantiate(fmgr.uninstantiate(invariantHolds), pathFormula.getSsa());
+    BooleanFormula inductivenessFormula =
+        bfmgr.and(invariantHolds, pathFormula.getFormula(), bfmgr.not(invariantHoldsAfter));
+    // Any models satisfying this formula are postcondition counterexamples: !(I & !B => Q)
+    BooleanFormula postconditionFormula = bfmgr.and(invariantHolds, bfmgr.not(programSafe));
+
+    Set<Sample> pre_samples = new HashSet<>();
+    Set<Sample> step_samples = new HashSet<>();
+    Set<Sample> post_samples = new HashSet<>();
+
+    // TODO: Could also obtain more than one counterexample for each formula if it exists
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      prover.push(preconditionFormula);
+      if (!prover.isUnsat()) {
+        Iterable<ValueAssignment> model = prover.getModelAssignments();
+        pre_samples.add(
+            SampleUtils.extractSampleFromRelevantAssignments(
+                model, pLocation, SampleClass.POSITIVE));
+      }
+      prover.pop();
+
+      prover.push(inductivenessFormula);
+      if (!prover.isUnsat()) {
+        Iterable<ValueAssignment> model = prover.getModelAssignments();
+
+        // Add sample before
+        step_samples.add(
+            SampleUtils.extractSampleFromModel(
+                SampleUtils.getAssignmentsWithLowestIndices(model),
+                pLocation,
+                SampleClass.POSITIVE));
+
+        // Add sample after
+        step_samples.add(
+            SampleUtils.extractSampleFromRelevantAssignments(
+                model, pLocation, SampleClass.POSITIVE));
+      }
+      prover.pop();
+
+      prover.push(postconditionFormula);
+      if (!prover.isUnsat()) {
+        Iterable<ValueAssignment> model = prover.getModelAssignments();
+        post_samples.add(
+            SampleUtils.extractSampleFromRelevantAssignments(
+                model, pLocation, SampleClass.NEGATIVE));
+      }
+      prover.pop();
+    }
+
+    writeSamplesToFile(pre_samples, preCexOutFile);
+    writeSamplesToFile(step_samples, stepCexOutFile);
+    writeSamplesToFile(post_samples, postCexOutFile);
+  }
+
+  private void validateBMC(CFANode pLocation)
       throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
     // TODO: Might need to further adjust scope according to pLocation
     CProgramScope scope =
