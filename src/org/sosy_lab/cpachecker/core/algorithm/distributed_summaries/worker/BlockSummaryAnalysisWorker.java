@@ -126,12 +126,12 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       case BLOCK_POSTCONDITION -> {
         return dcpaAlgorithm.runAnalysisForMessage((BlockSummaryPostConditionMessage) message);
       }
-      // fall through
+        // fall through
       case ERROR, FOUND_RESULT -> {
         shutdown = true;
         return ImmutableSet.of(BlockSummaryMessage.newStatisticsMessage(getBlockId(), getStats()));
       }
-      // fall through
+        // fall through
       case ERROR_CONDITION_UNREACHABLE, STATISTICS -> {
         return ImmutableSet.of();
       }

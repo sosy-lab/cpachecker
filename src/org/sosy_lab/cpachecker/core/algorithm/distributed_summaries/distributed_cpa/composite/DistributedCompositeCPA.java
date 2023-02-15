@@ -58,7 +58,8 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
         new DeserializeCompositeStateOperator(compositeCPA, pNode, registered, statistics);
     proceed = new ProceedCompositeStateOperator(registered, pDirection, statistics);
     serializePrecisionOperator = new SerializeCompositePrecisionOperator(registered);
-    deserializePrecisionOperator = new DeserializeCompositePrecisionOperator(registered, compositeCPA, pNode);
+    deserializePrecisionOperator =
+        new DeserializeCompositePrecisionOperator(registered, compositeCPA, pNode);
     analyses = registered;
   }
 

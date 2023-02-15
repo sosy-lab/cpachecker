@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -37,10 +36,14 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class DCPAAlgorithms {
 
   public static BlockSummaryMessagePayload chainSerialization(
-      DistributedConfigurableProgramAnalysis pDistributedConfigurableProgramAnalysis, Precision pPrecision, AbstractState pAbstractState) {
+      DistributedConfigurableProgramAnalysis pDistributedConfigurableProgramAnalysis,
+      Precision pPrecision,
+      AbstractState pAbstractState) {
     return BlockSummaryMessagePayload.builder()
         .addAllEntries(
-            pDistributedConfigurableProgramAnalysis.getSerializeOperator().serialize(pAbstractState))
+            pDistributedConfigurableProgramAnalysis
+                .getSerializeOperator()
+                .serialize(pAbstractState))
         .addAllEntries(
             pDistributedConfigurableProgramAnalysis
                 .getSerializePrecisionOperator()

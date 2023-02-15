@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
 import com.google.common.collect.Iterables;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
@@ -84,9 +82,7 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
   }
 
   static DistributedConfigurableProgramAnalysis distribute(
-      ConfigurableProgramAnalysis pCPA,
-      BlockNode pBlock,
-      AnalysisDirection pDirection) {
+      ConfigurableProgramAnalysis pCPA, BlockNode pBlock, AnalysisDirection pDirection) {
     DCPAHandler handler = new DCPAHandler();
     CompositeCPA compositeCPA = CPAs.retrieveCPA(pCPA, CompositeCPA.class);
     if (compositeCPA == null) {

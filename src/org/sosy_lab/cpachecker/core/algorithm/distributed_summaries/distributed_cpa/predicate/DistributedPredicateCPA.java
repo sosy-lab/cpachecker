@@ -35,9 +35,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   private final ProceedOperator proceed;
 
   public DistributedPredicateCPA(
-      PredicateCPA pPredicateCPA,
-      BlockNode pNode,
-      AnalysisDirection pDirection) {
+      PredicateCPA pPredicateCPA, BlockNode pNode, AnalysisDirection pDirection) {
     predicateCPA = pPredicateCPA;
     serialize =
         new SerializePredicateStateOperator(
@@ -55,7 +53,9 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
         new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());
     deserializePrecisionOperator =
         new DeserializePredicatePrecisionOperator(
-            predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), pNode::getNodeWithNumber);
+            predicateCPA.getAbstractionManager(),
+            predicateCPA.getSolver(),
+            pNode::getNodeWithNumber);
   }
 
   public SerializePrecisionOperator getSerializePrecisionOperator() {

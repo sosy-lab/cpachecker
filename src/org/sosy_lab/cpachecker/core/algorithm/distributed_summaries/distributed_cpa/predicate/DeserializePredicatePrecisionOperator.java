@@ -108,14 +108,10 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
           transformedImmutableSetCopy(
               globalsCollection,
               o ->
-                  abstractionManager.makePredicate(
-                      solver.getFormulaManager().parse(o.toString())));
+                  abstractionManager.makePredicate(solver.getFormulaManager().parse(o.toString())));
 
       return new PredicatePrecision(
-          locationInstances.build(),
-          localPredicates.build(),
-          functionPredicates.build(),
-          globals);
+          locationInstances.build(), localPredicates.build(), functionPredicates.build(), globals);
     }
     throw new AssertionError(
         "Expected a map describing the precision but got " + extractedPrecision.getClass());

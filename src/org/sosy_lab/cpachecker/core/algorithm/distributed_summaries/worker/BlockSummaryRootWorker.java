@@ -19,7 +19,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -84,9 +83,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
     // never needs precision
     dcpa =
         DistributedConfigurableProgramAnalysis.distribute(
-            parts.cpa(),
-            pNode,
-            AnalysisDirection.FORWARD);
+            parts.cpa(), pNode, AnalysisDirection.FORWARD);
     topState =
         Objects.requireNonNull(parts.cpa())
             .getInitialState(root.getLastNode(), StateSpacePartition.getDefaultPartition());

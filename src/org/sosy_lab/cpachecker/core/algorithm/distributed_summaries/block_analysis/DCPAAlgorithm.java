@@ -226,7 +226,8 @@ public class DCPAAlgorithm {
           FluentIterable.from(result.getBlockEnds())
               .transform(
                   state ->
-                      DCPAAlgorithms.chainSerialization(dcpa, reachedSet.getPrecision(state), state))
+                      DCPAAlgorithms.chainSerialization(
+                          dcpa, reachedSet.getPrecision(state), state))
               .transform(
                   p ->
                       BlockSummaryMessage.newBlockPostCondition(
