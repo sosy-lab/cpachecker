@@ -63,7 +63,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    * @throws NullPointerException if {@code pCfa == null}
    */
   public static CfaNetwork wrap(CFA pCfa) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(WrappingCfaNetwork.wrap(pCfa));
+    return WrappingCfaNetwork.wrap(pCfa);
   }
 
   /**
@@ -84,8 +84,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    *     node
    */
   public static CfaNetwork forFunction(FunctionEntryNode pFunctionEntryNode) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        SingleFunctionCfaNetwork.forFunction(pFunctionEntryNode));
+    return SingleFunctionCfaNetwork.forFunction(pFunctionEntryNode);
   }
 
   /**
@@ -204,8 +203,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    *     predicate evaluates to {@code true}
    */
   default CfaNetwork withFilteredNodes(Predicate<CFANode> pRetainPredicate) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        new NodeFilteringCfaNetwork(this, pRetainPredicate));
+    return NodeFilteringCfaNetwork.of(this, pRetainPredicate);
   }
 
   /**
@@ -221,8 +219,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    *     predicate evaluates to {@code true}
    */
   default CfaNetwork withFilteredEdges(Predicate<CFAEdge> pRetainPredicate) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        new EdgeFilteringCfaNetwork(this, pRetainPredicate));
+    return EdgeFilteringCfaNetwork.of(this, pRetainPredicate);
   }
 
   /**
@@ -241,8 +238,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    *     result
    */
   default CfaNetwork withTransformedEdges(Function<CFAEdge, CFAEdge> pEdgeTransformer) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        new EdgeTransformingCfaNetwork(this, pEdgeTransformer));
+    return EdgeTransformingCfaNetwork.of(this, pEdgeTransformer);
   }
 
   /**

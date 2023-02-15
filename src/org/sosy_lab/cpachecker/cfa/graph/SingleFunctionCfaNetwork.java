@@ -36,7 +36,8 @@ final class SingleFunctionCfaNetwork extends AbstractCfaNetwork {
   }
 
   static CfaNetwork forFunction(FunctionEntryNode pFunctionEntryNode) {
-    return new SingleFunctionCfaNetwork(pFunctionEntryNode);
+    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
+        new SingleFunctionCfaNetwork(pFunctionEntryNode));
   }
 
   private boolean isSuperEdge(CFAEdge pEdge) {

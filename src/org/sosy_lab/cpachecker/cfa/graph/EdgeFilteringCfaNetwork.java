@@ -27,9 +27,14 @@ final class EdgeFilteringCfaNetwork extends AbstractCfaNetwork {
   private final CfaNetwork delegate;
   private final Predicate<CFAEdge> retainPredicate;
 
-  EdgeFilteringCfaNetwork(CfaNetwork pDelegate, Predicate<CFAEdge> pRetainPredicate) {
+  private EdgeFilteringCfaNetwork(CfaNetwork pDelegate, Predicate<CFAEdge> pRetainPredicate) {
     delegate = checkNotNull(pDelegate);
     retainPredicate = checkNotNull(pRetainPredicate);
+  }
+
+  static CfaNetwork of(CfaNetwork pDelegate, Predicate<CFAEdge> pRetainPredicate) {
+    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
+        new EdgeFilteringCfaNetwork(pDelegate, pRetainPredicate));
   }
 
   @Override

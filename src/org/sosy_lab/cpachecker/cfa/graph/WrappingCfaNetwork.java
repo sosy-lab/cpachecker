@@ -42,7 +42,7 @@ class WrappingCfaNetwork extends AbstractCfaNetwork {
   }
 
   static CfaNetwork wrap(CFA pCfa) {
-    return new WrappingCfaNetwork(pCfa);
+    return CheckingCfaNetwork.wrapIfAssertionsEnabled(new WrappingCfaNetwork(pCfa));
   }
 
   // network-level accessors
