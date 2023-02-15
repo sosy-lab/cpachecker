@@ -14,6 +14,8 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
@@ -33,9 +35,13 @@ public class DCPAHandler {
   private final Map<
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
       analyses;
+  private final Configuration configuration;
+  private final LogManager logger;
 
-  public DCPAHandler() {
+  public DCPAHandler(Configuration pConfiguration, LogManager pLogger) {
     analyses = new HashMap<>();
+    configuration = pConfiguration;
+    logger = pLogger;
   }
 
   /**
@@ -85,7 +91,7 @@ public class DCPAHandler {
       PredicateCPA pPredicateCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
     return analyses.put(
         pPredicateCPA.getClass(),
-        new DistributedPredicateCPA(pPredicateCPA, pBlockNode, pDirection));
+        new DistributedPredicateCPA(configuration, logger, pPredicateCPA, pBlockNode, pDirection));
   }
 
   private DistributedConfigurableProgramAnalysis registerDCPA(

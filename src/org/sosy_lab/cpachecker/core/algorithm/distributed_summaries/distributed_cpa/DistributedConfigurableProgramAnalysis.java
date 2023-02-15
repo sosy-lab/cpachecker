@@ -9,12 +9,18 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
 import com.google.common.collect.Iterables;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.NoPrecisionDeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.NoPrecisionSerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -30,6 +36,10 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    */
   SerializeOperator getSerializeOperator();
 
+  default SerializePrecisionOperator getSerializePrecisionOperator() {
+    return new NoPrecisionSerializeOperator();
+  }
+
   /**
    * Operator that knows how to deserialize a message to abstract states of type {@link
    * DistributedConfigurableProgramAnalysis#getAbstractStateClass()}.
@@ -37,6 +47,10 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    * @return Deserialize operator for a distributed CPA.
    */
   DeserializeOperator getDeserializeOperator();
+
+  default DeserializePrecisionOperator getDeserializePrecisionOperator() {
+    return new NoPrecisionDeserializeOperator();
+  }
 
   /**
    * Operator that decides whether to proceed with an analysis based on the given message.
@@ -70,8 +84,12 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
   }
 
   static DistributedConfigurableProgramAnalysis distribute(
-      ConfigurableProgramAnalysis pCPA, BlockNode pBlock, AnalysisDirection pDirection) {
-    DCPAHandler handler = new DCPAHandler();
+      Configuration pConfiguration,
+      LogManager pLogManager,
+      ConfigurableProgramAnalysis pCPA,
+      BlockNode pBlock,
+      AnalysisDirection pDirection) {
+    DCPAHandler handler = new DCPAHandler(pConfiguration, pLogManager);
     CompositeCPA compositeCPA = CPAs.retrieveCPA(pCPA, CompositeCPA.class);
     if (compositeCPA == null) {
       handler.registerDCPA(pCPA, pBlock, pDirection);

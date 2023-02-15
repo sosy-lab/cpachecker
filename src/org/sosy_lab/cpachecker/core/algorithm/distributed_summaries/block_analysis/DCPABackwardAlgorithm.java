@@ -79,7 +79,8 @@ public class DCPABackwardAlgorithm {
 
     block = pBlock;
     dcpa =
-        DistributedConfigurableProgramAnalysis.distribute(cpa, pBlock, AnalysisDirection.BACKWARD);
+        DistributedConfigurableProgramAnalysis.distribute(
+            pConfiguration, pLogger, cpa, pBlock, AnalysisDirection.BACKWARD);
     logger = pLogger;
     forwardAnalysis = pForwardAnalysis;
   }

@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 /**
  * Immutable communication entity for the actor model. Messages cannot be created with the
@@ -108,11 +109,12 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     return payload.toJSONString(pKeyFilter);
   }
 
+  public Optional<Object> getPrecision(Class<? extends Precision> pKey) {
+    return Optional.ofNullable(getPayload().get(pKey.getName()));
+  }
+
   public Optional<Object> getAbstractState(Class<? extends ConfigurableProgramAnalysis> pKey) {
     Object value = getPayload().get(pKey.getName());
-    if (value == null) {
-      return Optional.empty();
-    }
     return Optional.ofNullable(value);
   }
 

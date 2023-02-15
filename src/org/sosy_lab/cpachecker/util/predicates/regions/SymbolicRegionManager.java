@@ -29,6 +29,17 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 public class SymbolicRegionManager implements RegionManager {
 
+  public static boolean isSymbolicRegion(Region pRegion) {
+    return pRegion instanceof SymbolicRegion;
+  }
+
+  public static BooleanFormula extractFormula(Region pRegion) {
+    if (!isSymbolicRegion(pRegion)) {
+      throw new AssertionError("Cannot extract predicate from non symbolic region");
+    }
+    return ((SymbolicRegion) pRegion).f;
+  }
+
   private static class SymbolicRegion implements Region {
 
     private final BooleanFormula f;

@@ -57,6 +57,7 @@ public class DCPAAlgorithm {
   private final BlockNode block;
   private final ReachedSet reachedSet;
   private Precision initialPrecision;
+  private Precision lastPrecision;
   private final Algorithm algorithm;
   private final AbstractState startState;
   private final Set<String> predecessors;
@@ -86,13 +87,15 @@ public class DCPAAlgorithm {
 
     checkNotNull(reachedSet, "BlockAnalysis requires the initial reachedSet");
     initialPrecision = reachedSet.getPrecision(Objects.requireNonNull(reachedSet.getFirstState()));
+    lastPrecision = initialPrecision;
     startState = reachedSet.getFirstState();
 
     states = new HashMap<>();
 
     block = pBlock;
     dcpa =
-        DistributedConfigurableProgramAnalysis.distribute(cpa, pBlock, AnalysisDirection.FORWARD);
+        DistributedConfigurableProgramAnalysis.distribute(
+            pConfiguration, pLogger, cpa, pBlock, AnalysisDirection.FORWARD);
     predecessors = transformedImmutableSetCopy(block.getPredecessors(), BlockNodeMetaData::getId);
   }
 
@@ -134,6 +137,7 @@ public class DCPAAlgorithm {
       throws SolverException, InterruptedException, CPAException {
     AbstractState deserialized =
         new ARGState(dcpa.getDeserializeOperator().deserialize(pReceived), null);
+    initialPrecision = dcpa.getDeserializePrecisionOperator().deserializePrecision(pReceived);
     if (predecessors.contains(pReceived.getBlockId())) {
       if (pReceived.isReachable()) {
         states.put(pReceived.getBlockId(), pReceived);
@@ -213,6 +217,7 @@ public class DCPAAlgorithm {
     status = status.update(result.getStatus());
     if (reachedSet.getLastState() != null) {
       initialPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
+      lastPrecision = reachedSet.getPrecision(reachedSet.getLastState());
     }
     if (result.isEmpty()) {
       return reportUnreachableBlockEnd();
@@ -223,7 +228,8 @@ public class DCPAAlgorithm {
     if (!result.getBlockEnds().isEmpty()) {
       answers.addAll(
           FluentIterable.from(result.getBlockEnds())
-              .transform(dcpa.getSerializeOperator()::serialize)
+              .transform(
+                  state -> DCPAAlgorithms.chainSerialization(dcpa).apply(state, lastPrecision))
               .transform(
                   p ->
                       BlockSummaryMessage.newBlockPostCondition(

@@ -8,13 +8,17 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.AlwaysProceed;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -25,11 +29,19 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   private final PredicateCPA predicateCPA;
 
   private final SerializeOperator serialize;
+
+  private final SerializePrecisionOperator serializePrecisionOperator;
   private final DeserializePredicateStateOperator deserialize;
+
+  private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final ProceedOperator proceed;
 
   public DistributedPredicateCPA(
-      PredicateCPA pPredicateCPA, BlockNode pNode, AnalysisDirection pDirection) {
+      Configuration pConfiguration,
+      LogManager pLogManager,
+      PredicateCPA pPredicateCPA,
+      BlockNode pNode,
+      AnalysisDirection pDirection) {
     predicateCPA = pPredicateCPA;
     serialize =
         new SerializePredicateStateOperator(
@@ -42,8 +54,12 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
             predicateCPA.getSolver().getFormulaManager(),
             predicateCPA.getPathFormulaManager(),
             pNode);
-    proceed = new AlwaysProceed(); // ProceedPredicateStateOperator(predicateCPA.getSolver(), pNode,
-    // pDirection);
+    proceed = new AlwaysProceed();
+    serializePrecisionOperator =
+        new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());
+    deserializePrecisionOperator =
+        new DeserializePredicatePrecisionOperator(
+            pConfiguration, pLogManager, predicateCPA.getSolver(), pNode::getNodeWithNumber);
   }
 
   @Override
