@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.graph;
 
-import com.google.common.graph.Network;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -21,61 +20,53 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.graph.ForwardingNetwork;
 
 /**
- * A {@link CfaNetwork} that forwards all calls to a delegate {@link CfaNetwork} or delegate {@link
- * Network}.
+ * A {@link CfaNetwork} that forwards all calls to a delegate {@link CfaNetwork}.
  *
- * <p>All {@link CfaNetwork} specific calls (i.e., methods not in {@link Network}) are forwarded to
- * the delegate specified using {@link ForwardingCfaNetwork#delegateCfaNetwork()}. All other calls
- * are forwarded to the delegate specified using {@link ForwardingCfaNetwork#delegateNetwork()}.
- * These delegates can be the same {@link CfaNetwork} instance (default implementation).
+ * <p>The delegate {@link CfaNetwork} is specified using {@link ForwardingCfaNetwork#delegate()}.
  */
 abstract class ForwardingCfaNetwork extends ForwardingNetwork<CFANode, CFAEdge>
     implements CfaNetwork {
 
   /**
-   * Returns the delegate {@link CfaNetwork} to forward {@link CfaNetwork} specific calls to.
+   * Returns the delegate {@link CfaNetwork} to forward all calls to.
    *
-   * @return the delegate {@link CfaNetwork} to forward {@link CfaNetwork} specific calls to
+   * @return the delegate {@link CfaNetwork} to forward all calls to
    */
-  protected abstract CfaNetwork delegateCfaNetwork();
-
   @Override
-  protected Network<CFANode, CFAEdge> delegateNetwork() {
-    return delegateCfaNetwork();
-  }
+  protected abstract CfaNetwork delegate();
 
   @Override
   public Set<FunctionEntryNode> entryNodes() {
-    return delegateCfaNetwork().entryNodes();
+    return delegate().entryNodes();
   }
 
   @Override
   public CFANode predecessor(CFAEdge pEdge) {
-    return delegateCfaNetwork().predecessor(pEdge);
+    return delegate().predecessor(pEdge);
   }
 
   @Override
   public CFANode successor(CFAEdge pEdge) {
-    return delegateCfaNetwork().successor(pEdge);
+    return delegate().successor(pEdge);
   }
 
   @Override
   public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
-    return delegateCfaNetwork().functionEntryNode(pFunctionSummaryEdge);
+    return delegate().functionEntryNode(pFunctionSummaryEdge);
   }
 
   @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
-    return delegateCfaNetwork().functionExitNode(pFunctionEntryNode);
+    return delegate().functionExitNode(pFunctionEntryNode);
   }
 
   @Override
   public FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
-    return delegateCfaNetwork().functionSummaryEdge(pFunctionCallEdge);
+    return delegate().functionSummaryEdge(pFunctionCallEdge);
   }
 
   @Override
   public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
-    return delegateCfaNetwork().functionSummaryEdge(pFunctionReturnEdge);
+    return delegate().functionSummaryEdge(pFunctionReturnEdge);
   }
 }

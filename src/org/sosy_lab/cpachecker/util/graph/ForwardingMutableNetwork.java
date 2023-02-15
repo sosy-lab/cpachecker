@@ -10,56 +10,46 @@ package org.sosy_lab.cpachecker.util.graph;
 
 import com.google.common.graph.EndpointPair;
 import com.google.common.graph.MutableNetwork;
-import com.google.common.graph.Network;
 
 /**
- * A {@link MutableNetwork} that forwards all calls to a delegate {@link MutableNetwork} or delegate
- * {@link Network}.
+ * A {@link MutableNetwork} that forwards all calls to a delegate {@link MutableNetwork}.
  *
- * <p>All {@link MutableNetwork} specific calls (i.e., add/remove method calls) are forwarded to the
- * delegate specified using {@link ForwardingMutableNetwork#delegateMutableNetwork()}. All other
- * calls are forwarded to the delegate specified using {@link
- * ForwardingMutableNetwork#delegateNetwork()}. These delegates can be the same {@link
- * MutableNetwork} instance (default implementation).
+ * <p>The delegate {@link MutableNetwork} is specified using {@link
+ * ForwardingMutableNetwork#delegate()}.
  */
 public abstract class ForwardingMutableNetwork<N, E> extends ForwardingNetwork<N, E>
     implements MutableNetwork<N, E> {
 
   /**
-   * Returns the delegate {@link MutableNetwork} to forward {@link MutableNetwork} specific calls
-   * to.
+   * Returns the delegate {@link MutableNetwork} to forward all calls to.
    *
-   * @return the delegate {@link MutableNetwork} to forward {@link MutableNetwork} specific calls to
+   * @return the delegate {@link MutableNetwork} to forward all calls to
    */
-  protected abstract MutableNetwork<N, E> delegateMutableNetwork();
-
   @Override
-  protected Network<N, E> delegateNetwork() {
-    return delegateMutableNetwork();
-  }
+  protected abstract MutableNetwork<N, E> delegate();
 
   @Override
   public boolean addNode(N pNode) {
-    return delegateMutableNetwork().addNode(pNode);
+    return delegate().addNode(pNode);
   }
 
   @Override
   public boolean addEdge(N pNodeU, N pNodeV, E pEdge) {
-    return delegateMutableNetwork().addEdge(pNodeU, pNodeV, pEdge);
+    return delegate().addEdge(pNodeU, pNodeV, pEdge);
   }
 
   @Override
   public boolean addEdge(EndpointPair<N> pEndpoints, E pEdge) {
-    return delegateMutableNetwork().addEdge(pEndpoints, pEdge);
+    return delegate().addEdge(pEndpoints, pEdge);
   }
 
   @Override
   public boolean removeNode(N pNode) {
-    return delegateMutableNetwork().removeNode(pNode);
+    return delegate().removeNode(pNode);
   }
 
   @Override
   public boolean removeEdge(E pEdge) {
-    return delegateMutableNetwork().removeEdge(pEdge);
+    return delegate().removeEdge(pEdge);
   }
 }
