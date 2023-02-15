@@ -18,8 +18,10 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -34,6 +36,9 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   private final ProceedCompositeStateOperator proceed;
 
   private final BlockAnalysisStatistics statistics;
+
+  private final DeserializeCompositePrecisionOperator deserializePrecisionOperator;
+  private final SerializeCompositePrecisionOperator serializePrecisionOperator;
 
   private final Map<
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
@@ -52,6 +57,8 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
     deserialize =
         new DeserializeCompositeStateOperator(compositeCPA, pNode, registered, statistics);
     proceed = new ProceedCompositeStateOperator(registered, pDirection, statistics);
+    serializePrecisionOperator = new SerializeCompositePrecisionOperator(registered);
+    deserializePrecisionOperator = new DeserializeCompositePrecisionOperator(registered, compositeCPA, pNode);
     analyses = registered;
   }
 
@@ -78,6 +85,14 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   @Override
   public ConfigurableProgramAnalysis getCPA() {
     return compositeCPA;
+  }
+
+  public SerializePrecisionOperator getSerializePrecisionOperator() {
+    return serializePrecisionOperator;
+  }
+
+  public DeserializePrecisionOperator getDeserializePrecisionOperator() {
+    return deserializePrecisionOperator;
   }
 
   @Override

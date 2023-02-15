@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
@@ -37,8 +35,6 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   private final ProceedOperator proceed;
 
   public DistributedPredicateCPA(
-      Configuration pConfiguration,
-      LogManager pLogManager,
       PredicateCPA pPredicateCPA,
       BlockNode pNode,
       AnalysisDirection pDirection) {
@@ -59,7 +55,15 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
         new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());
     deserializePrecisionOperator =
         new DeserializePredicatePrecisionOperator(
-            pConfiguration, pLogManager, predicateCPA.getSolver(), pNode::getNodeWithNumber);
+            predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), pNode::getNodeWithNumber);
+  }
+
+  public SerializePrecisionOperator getSerializePrecisionOperator() {
+    return serializePrecisionOperator;
+  }
+
+  public DeserializePrecisionOperator getDeserializePrecisionOperator() {
+    return deserializePrecisionOperator;
   }
 
   @Override

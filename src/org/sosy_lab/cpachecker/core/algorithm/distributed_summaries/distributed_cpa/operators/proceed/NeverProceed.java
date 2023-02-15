@@ -15,14 +15,12 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class NeverProceed implements ProceedOperator {
 
   @Override
-  public BlockSummaryMessageProcessing proceedForward(AbstractState pState)
-      throws InterruptedException {
+  public BlockSummaryMessageProcessing proceedForward(AbstractState pState) {
     return proceed(pState);
   }
 
   @Override
-  public BlockSummaryMessageProcessing proceedBackward(AbstractState pState)
-      throws InterruptedException, SolverException {
+  public BlockSummaryMessageProcessing proceedBackward(AbstractState pState) {
     return proceed(pState);
   }
 

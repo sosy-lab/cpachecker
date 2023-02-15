@@ -12,6 +12,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -43,5 +44,11 @@ public interface ForwardingDistributedConfigurableProgramAnalysis
   default AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return getCPA().getInitialState(node, partition);
+  }
+
+  @Override
+  default Precision getInitialPrecision(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
+    return getCPA().getInitialPrecision(node, partition);
   }
 }

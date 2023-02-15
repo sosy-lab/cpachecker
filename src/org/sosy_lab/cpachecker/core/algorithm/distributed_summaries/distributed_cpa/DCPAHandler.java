@@ -35,13 +35,9 @@ public class DCPAHandler {
   private final Map<
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
       analyses;
-  private final Configuration configuration;
-  private final LogManager logger;
 
-  public DCPAHandler(Configuration pConfiguration, LogManager pLogger) {
+  public DCPAHandler() {
     analyses = new HashMap<>();
-    configuration = pConfiguration;
-    logger = pLogger;
   }
 
   /**
@@ -91,7 +87,7 @@ public class DCPAHandler {
       PredicateCPA pPredicateCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
     return analyses.put(
         pPredicateCPA.getClass(),
-        new DistributedPredicateCPA(configuration, logger, pPredicateCPA, pBlockNode, pDirection));
+        new DistributedPredicateCPA(pPredicateCPA, pBlockNode, pDirection));
   }
 
   private DistributedConfigurableProgramAnalysis registerDCPA(

@@ -94,8 +94,7 @@ public class DCPAAlgorithm {
 
     block = pBlock;
     dcpa =
-        DistributedConfigurableProgramAnalysis.distribute(
-            pConfiguration, pLogger, cpa, pBlock, AnalysisDirection.FORWARD);
+        DistributedConfigurableProgramAnalysis.distribute(cpa, pBlock, AnalysisDirection.FORWARD);
     predecessors = transformedImmutableSetCopy(block.getPredecessors(), BlockNodeMetaData::getId);
   }
 
@@ -154,16 +153,13 @@ public class DCPAAlgorithm {
     }
     assert processing.isEmpty() : "Proceed is not possible with unprocessed messages";
     BlockSummaryMessage previousMessage = states.get(pReceived.getUniqueBlockId());
-    AbstractState previous = null;
     if (previousMessage != null) {
       AbstractState abstractState = dcpa.getDeserializeOperator().deserialize(previousMessage);
       if (abstractState != null) {
-        previous = new ARGState(abstractState, null);
-      }
-    }
-    if (states.containsKey(pReceived.getUniqueBlockId())) {
-      if (previous != null && cpa.getAbstractDomain().isLessOrEqual(previous, deserialized)) {
-        return BlockSummaryMessageProcessing.stop();
+        AbstractState previous = new ARGState(abstractState, null);
+        if (cpa.getAbstractDomain().isLessOrEqual(previous, deserialized)) {
+          return BlockSummaryMessageProcessing.stop();
+        }
       }
     }
     states.put(pReceived.getBlockId(), pReceived);
@@ -229,7 +225,8 @@ public class DCPAAlgorithm {
       answers.addAll(
           FluentIterable.from(result.getBlockEnds())
               .transform(
-                  state -> DCPAAlgorithms.chainSerialization(dcpa).apply(state, lastPrecision))
+                  state ->
+                      DCPAAlgorithms.chainSerialization(dcpa, reachedSet.getPrecision(state), state))
               .transform(
                   p ->
                       BlockSummaryMessage.newBlockPostCondition(

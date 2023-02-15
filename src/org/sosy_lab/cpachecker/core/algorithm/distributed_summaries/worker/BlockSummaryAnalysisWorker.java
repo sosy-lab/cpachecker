@@ -112,7 +112,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
   public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage message)
       throws InterruptedException, CPAException, SolverException {
     switch (message.getType()) {
-      case ERROR_CONDITION:
+      case ERROR_CONDITION -> {
         ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
         if (message.getBlockId().equals(block.getId())) {
           answers.addAll(dcpaAlgorithm.reportUnreachableBlockEnd());
@@ -122,19 +122,20 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
                 dcpaBackwardAlgorithm.runAnalysisForMessage(
                     (BlockSummaryErrorConditionMessage) message))
             .build();
-      case BLOCK_POSTCONDITION:
+      }
+      case BLOCK_POSTCONDITION -> {
         return dcpaAlgorithm.runAnalysisForMessage((BlockSummaryPostConditionMessage) message);
-      case ERROR:
-        // fall through
-      case FOUND_RESULT:
+      }
+      // fall through
+      case ERROR, FOUND_RESULT -> {
         shutdown = true;
         return ImmutableSet.of(BlockSummaryMessage.newStatisticsMessage(getBlockId(), getStats()));
-      case ERROR_CONDITION_UNREACHABLE:
-        // fall through
-      case STATISTICS:
+      }
+      // fall through
+      case ERROR_CONDITION_UNREACHABLE, STATISTICS -> {
         return ImmutableSet.of();
-      default:
-        throw new AssertionError("MessageType " + message.getType() + " does not exist");
+      }
+      default -> throw new AssertionError("MessageType " + message.getType() + " does not exist");
     }
   }
 

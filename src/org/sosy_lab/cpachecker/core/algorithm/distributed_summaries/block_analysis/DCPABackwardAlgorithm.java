@@ -79,8 +79,7 @@ public class DCPABackwardAlgorithm {
 
     block = pBlock;
     dcpa =
-        DistributedConfigurableProgramAnalysis.distribute(
-            pConfiguration, pLogger, cpa, pBlock, AnalysisDirection.BACKWARD);
+        DistributedConfigurableProgramAnalysis.distribute(cpa, pBlock, AnalysisDirection.BACKWARD);
     logger = pLogger;
     forwardAnalysis = pForwardAnalysis;
   }
@@ -128,9 +127,9 @@ public class DCPABackwardAlgorithm {
     if (states.isEmpty()) {
       // should only happen if abstraction is activated
       logger.log(Level.ALL, "Cannot reach block start?", reachedSet);
-      return ImmutableSet.of(
+      return ImmutableSet.<BlockSummaryMessage>builder().addAll(messages).add(
           BlockSummaryMessage.newErrorConditionUnreachableMessage(
-              block.getId(), "backwards analysis cannot reach target at block entry"));
+              block.getId(), "backwards analysis cannot reach target at block entry")).build();
     }
     ImmutableSet.Builder<BlockSummaryMessage> responses = ImmutableSet.builder();
     for (AbstractState state : states) {

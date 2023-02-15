@@ -84,12 +84,10 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
   }
 
   static DistributedConfigurableProgramAnalysis distribute(
-      Configuration pConfiguration,
-      LogManager pLogManager,
       ConfigurableProgramAnalysis pCPA,
       BlockNode pBlock,
       AnalysisDirection pDirection) {
-    DCPAHandler handler = new DCPAHandler(pConfiguration, pLogManager);
+    DCPAHandler handler = new DCPAHandler();
     CompositeCPA compositeCPA = CPAs.retrieveCPA(pCPA, CompositeCPA.class);
     if (compositeCPA == null) {
       handler.registerDCPA(pCPA, pBlock, pDirection);

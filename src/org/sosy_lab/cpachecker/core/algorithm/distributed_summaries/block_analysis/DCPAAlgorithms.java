@@ -36,17 +36,16 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class DCPAAlgorithms {
 
-  public static BiFunction<AbstractState, Precision, BlockSummaryMessagePayload> chainSerialization(
-      DistributedConfigurableProgramAnalysis pDistributedConfigurableProgramAnalysis) {
-    return (a, p) ->
-        BlockSummaryMessagePayload.builder()
-            .addAllEntries(
-                pDistributedConfigurableProgramAnalysis.getSerializeOperator().serialize(a))
-            .addAllEntries(
-                pDistributedConfigurableProgramAnalysis
-                    .getSerializePrecisionOperator()
-                    .serializePrecision(p))
-            .buildPayload();
+  public static BlockSummaryMessagePayload chainSerialization(
+      DistributedConfigurableProgramAnalysis pDistributedConfigurableProgramAnalysis, Precision pPrecision, AbstractState pAbstractState) {
+    return BlockSummaryMessagePayload.builder()
+        .addAllEntries(
+            pDistributedConfigurableProgramAnalysis.getSerializeOperator().serialize(pAbstractState))
+        .addAllEntries(
+            pDistributedConfigurableProgramAnalysis
+                .getSerializePrecisionOperator()
+                .serializePrecision(pPrecision))
+        .buildPayload();
   }
 
   static Optional<CFANode> abstractStateToLocation(AbstractState state) {

@@ -84,8 +84,6 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
     // never needs precision
     dcpa =
         DistributedConfigurableProgramAnalysis.distribute(
-            Configuration.builder().build(),
-            LogManager.createNullLogManager(),
             parts.cpa(),
             pNode,
             AnalysisDirection.FORWARD);
