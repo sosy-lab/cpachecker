@@ -233,7 +233,7 @@ check-format-python:
   needs: []
   image: python
   before_script:
-    - pip install 'black<2024'
+    - pip install 'black[jupyter]<2024'
   script:
     - black . --check --diff
   <<: *pip-cache
