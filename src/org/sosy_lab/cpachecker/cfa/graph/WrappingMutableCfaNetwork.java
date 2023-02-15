@@ -30,23 +30,17 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  * WrappingMutableCfaNetwork#successor(CFAEdge)} always return the same value). Endpoints of a CFA
  * edge and endpoints given as arguments to an {@code addEdge} method must match.
  */
-final class WrappingMutableCfaNetwork extends ForwardingCfaNetwork implements MutableCfaNetwork {
+final class WrappingMutableCfaNetwork extends WrappingCfaNetwork implements MutableCfaNetwork {
 
   private final MutableCFA mutableCfa;
-  private final CfaNetwork wrappedMutableCfa;
 
   private WrappingMutableCfaNetwork(MutableCFA pMutableCfa) {
+    super(pMutableCfa);
     mutableCfa = checkNotNull(pMutableCfa);
-    wrappedMutableCfa = CfaNetwork.wrap(pMutableCfa);
   }
 
   static MutableCfaNetwork wrap(MutableCFA pMutableCfa) {
     return new WrappingMutableCfaNetwork(pMutableCfa);
-  }
-
-  @Override
-  public CfaNetwork delegateCfaNetwork() {
-    return wrappedMutableCfa;
   }
 
   @Override

@@ -33,11 +33,11 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  * elements (e.g., {@link CFAEdge#getSuccessor()} and {@link WrappingCfaNetwork#successor(CFAEdge)}
  * always return the same value).
  */
-final class WrappingCfaNetwork extends AbstractCfaNetwork {
+class WrappingCfaNetwork extends AbstractCfaNetwork {
 
   private final CFA cfa;
 
-  private WrappingCfaNetwork(CFA pCfa) {
+  protected WrappingCfaNetwork(CFA pCfa) {
     cfa = checkNotNull(pCfa);
   }
 
