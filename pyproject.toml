@@ -8,4 +8,4 @@
 
 [tool.black]
 include = '(contrib|scripts|test/util).*\.(ipynb|py)$'
-target-version = ['py34']
+target-version = ['py37']

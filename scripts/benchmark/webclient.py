@@ -172,7 +172,7 @@ if HAS_SSECLIENT:
             last_id=None,
             retry=3000,
             session=None,
-            **kwargs
+            **kwargs,
         ):
             super().__init__(url, last_id, retry, session, **kwargs)
             self._should_reconnect = should_reconnect
