@@ -40,7 +40,7 @@ final class WrappingMutableCfaNetwork extends WrappingCfaNetwork implements Muta
   }
 
   static MutableCfaNetwork wrap(MutableCFA pMutableCfa) {
-    return new WrappingMutableCfaNetwork(pMutableCfa);
+    return CheckingCfaNetwork.wrapIfAssertionsEnabled(new WrappingMutableCfaNetwork(pMutableCfa));
   }
 
   @Override
