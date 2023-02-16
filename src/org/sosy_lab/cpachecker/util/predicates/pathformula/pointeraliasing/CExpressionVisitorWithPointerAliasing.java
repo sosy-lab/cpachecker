@@ -725,6 +725,17 @@ class CExpressionVisitorWithPointerAliasing
         return handleCmpFunction(functionName, e);
       }
 
+      boolean isMemCpy = functionName.equals("memcpy");
+      boolean isMemMove = functionName.equals("memmove");
+
+      if (isMemCpy || isMemMove) {
+        return handleMemoryCopyFunction(e, isMemMove);
+      }
+
+      if (functionName.equals("memset")) {
+        return handleMemorySetFunction(e);
+      }
+
       if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
         List<CExpression> parameters = e.getParameterExpressions();
         assert parameters.size() == 3;
@@ -874,6 +885,139 @@ class CExpressionVisitorWithPointerAliasing
     constraints.addConstraint(conv.bfmgr.equivalence(resultIsNeg, isLess));
 
     return Value.ofValue(result);
+  }
+
+
+  /** This method provides an approximation of the builtin function memset. */
+  private Value handleMemorySetFunction(final CFunctionCallExpression e)
+      throws UnrecognizedCodeException {
+    // we extract three parameters, representing the destination, value to be set, and size in bytes respectively
+    final List<CExpression> parameters = e.getParameterExpressions();
+    assert parameters.size() == 3;
+    CExpression paramDestination = parameters.get(0);
+    final CExpression paramSetValue = parameters.get(1);
+    final CExpression paramSizeInBytes = parameters.get(2);
+
+    // First parameter (destination) processing
+    // TODO: make sure that the destination is flagged not to be ignored
+    // for testing, this can be kludged by cpa.predicate.ignoreIrrelevantVariables=false
+
+    // we need to know the element size
+    // we ensure we have a pointer first and then take sizeof of the underlying type
+    CType destinationType = paramDestination.getExpressionType();
+    destinationType = CTypes.adjustFunctionOrArrayType(destinationType);
+    if (!(destinationType instanceof CPointerType)) {
+      throw new UnrecognizedCodeException("Expected memset destination type to be a pointer (adjusted if necessary)", e);
+    }
+
+    CPointerType destinationPointerType = (CPointerType) destinationType;
+
+    CType underlyingType = destinationPointerType.getType();
+
+
+    // we reject underlying types that are not simple integers
+    // TODO: Support more underlying types
+
+    if (!(underlyingType instanceof CSimpleType)) {
+      throw new UnrecognizedCodeException("Memset currently does not support destination with non-simple underlying type", e);
+    }
+
+    CSimpleType underlyingSimpleType = (CSimpleType) underlyingType;
+
+    if (!underlyingSimpleType.getType().isIntegerType()) {
+      throw new UnrecognizedCodeException("Memset currently does not support destination with non-integer underlying type", e);
+    }
+
+    long elementSizeInBytes = typeHandler.getSizeof(underlyingType);
+
+
+    // we convert the destination, which should be of pointer or array type, to a formula
+    AliasedLocation destinationAsAliasedLocation = dereference(paramDestination, paramDestination.accept(this));
+    Formula destinationFormula = destinationAsAliasedLocation.getAddress();
+
+    // Second parameter (value to be set) processing
+
+    // the value to be set is passed as int, but converted to unsigned char internally before setting each byte to this value
+    // we cast it to unsigned char here first, then to the underlying type
+    CExpression setValueUnsignedChar = new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, paramSetValue);
+
+    CExpression setValueLowestByte = new CCastExpression(FileLocation.DUMMY, underlyingType, setValueUnsignedChar);
+
+    // Third parameter (size) processing
+
+    // currently, we only support fixed sizes
+    if (!(paramSizeInBytes instanceof CIntegerLiteralExpression)) {
+      throw new UnrecognizedCodeException("Memset with non-literal sizes not implemented", e);
+    }
+
+    // we have the size to be set in bytes, but want to internally set the values to the actual elements
+    long operationSizeInBytes = ((CIntegerLiteralExpression) paramSizeInBytes).asLong();
+    long operationSizeInWholeElements = operationSizeInBytes / elementSizeInBytes;
+
+    long numBytesInWholeElements = operationSizeInWholeElements * elementSizeInBytes;
+
+    // TODO: Should we handle setting the fraction of last element? Would require endianness handling.
+    if (operationSizeInBytes != numBytesInWholeElements) {
+      throw new UnrecognizedCodeException("Memset with fractional element set not implemented", e);
+    }
+
+    // Formula creation for elements to be set to their new values
+
+    CType machineSizeType = conv.machineModel.getPointerEquivalentSimpleType();
+
+
+    // we iterate over the actual elements in the outer loop so that we can assign once to each one
+    for (long elementIndex = 0; elementIndex < operationSizeInWholeElements; ++elementIndex) {
+
+      CIntegerLiteralExpression indexLiteral =
+          CIntegerLiteralExpression.createDummyLiteral(elementIndex, machineSizeType);
+
+      CArraySubscriptExpression destinationAtIndexExpression =
+          new CArraySubscriptExpression(FileLocation.DUMMY, underlyingType, paramDestination, indexLiteral);
+      Formula destinationAtIndex = asValueFormula(this.visit(destinationAtIndexExpression), underlyingType);
+
+
+      // we iterate over the bytes that the element is comprised of in the inner loop, building the formula to be assigned
+      // first, we set the expression to zero literal and then bit-or the shifted bytes containing the value to be set
+      Formula setValueFormula = delegate.visit(
+          CIntegerLiteralExpression.createDummyLiteral(0, underlyingType));
+
+      for (long byteIndex = 0; byteIndex < elementSizeInBytes; ++byteIndex) {
+        // shift the byte left
+        long bitIndex = byteIndex * conv.getBitSizeof(CNumericTypes.UNSIGNED_CHAR);
+        CIntegerLiteralExpression bitIndexLiteral =
+            CIntegerLiteralExpression.createDummyLiteral(bitIndex, underlyingType);
+
+        CBinaryExpression setValueShiftedByteExpression = new CBinaryExpression(FileLocation.DUMMY, underlyingType, underlyingType,
+            setValueLowestByte, bitIndexLiteral, BinaryOperator.SHIFT_LEFT);
+
+        Formula setValueShiftedByteFormula = this.visit(setValueShiftedByteExpression).getValue();
+
+        // bit-or with previous formula
+        setValueFormula = conv.fmgr.makeOr(setValueFormula, setValueShiftedByteFormula);
+      }
+
+      // assign the prepared formula of value to be set
+      BooleanFormula assignmentFormula = conv.fmgr.assignment(destinationAtIndex, setValueFormula);
+      constraints.addConstraint(assignmentFormula);
+    }
+
+    // Result value formula creation
+    // we just copy the destination parameter to the result
+
+    final CType returnType = e.getExpressionType().getCanonicalType();
+    final Formula result = conv.makeNondet("memset", returnType, ssa, constraints);
+    constraints.addConstraint(conv.fmgr.assignment(result, destinationFormula));
+
+    return Value.ofValue(result);
+  }
+
+  /** This method provides approximations of the builtin functions memcpy and memmove. */
+  private Value handleMemoryCopyFunction(
+      final CFunctionCallExpression e, @SuppressWarnings("unused") boolean isMemMove)
+      throws UnrecognizedCodeException {
+    // TODO
+    throw new UnrecognizedCodeException("Memcpy & memmove not implemented", e);
   }
 
   /**
