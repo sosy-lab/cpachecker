@@ -193,7 +193,7 @@ analysis.algorithm.IMC = false
 
 # use McMillan's interpolation-based model checking algorithm by encoding a
 # CFA as a transition relation with a symbolic program counter
-analysis.algorithm.IMCTR = false
+analysis.algorithm.IMCSPC = false
 
 # Use MPI for running analyses in new subprocesses. The resulting reachedset
 # is the one of the first analysis returning in time. All other mpi-processes

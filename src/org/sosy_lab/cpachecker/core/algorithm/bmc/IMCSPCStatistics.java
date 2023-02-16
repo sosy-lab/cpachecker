@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
-public class IMCTRStatistics implements Statistics {
+public class IMCSPCStatistics implements Statistics {
 
   final Timer itpQuery = new Timer();
   int numUnroll = 0;
@@ -29,6 +29,6 @@ public class IMCTRStatistics implements Statistics {
 
   @Override
   public String getName() {
-    return "IMC-TR algorithm";
+    return "IMC-SPC algorithm";
   }
 }

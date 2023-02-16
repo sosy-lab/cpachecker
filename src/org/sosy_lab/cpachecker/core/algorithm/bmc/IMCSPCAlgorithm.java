@@ -75,7 +75,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * Therefore, errors have to be inlined instead of calling reach_error().
  */
 @Options(prefix = "imctr")
-public class IMCTRAlgorithm implements Algorithm, StatisticsProvider {
+public class IMCSPCAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(secure = true, description = "enable interpolation-based model checking")
   private boolean interpolation = true;
@@ -103,7 +103,7 @@ public class IMCTRAlgorithm implements Algorithm, StatisticsProvider {
   private final PathFormulaManager pfmgr;
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
-  private final IMCTRStatistics stats;
+  private final IMCSPCStatistics stats;
 
   private static final String PROGRAM_COUNTER_NAME = "__pc";
   private static final CDeclaration PROGRAM_COUNTER_DECLARATION =
@@ -121,9 +121,9 @@ public class IMCTRAlgorithm implements Algorithm, StatisticsProvider {
           FileLocation.DUMMY, CNumericTypes.INT, PROGRAM_COUNTER_NAME, PROGRAM_COUNTER_DECLARATION);
 
   private static final DummyTargetState DUMMY_TARGET_STATE =
-      DummyTargetState.withSimpleTargetInformation("IMC-TR");
+      DummyTargetState.withSimpleTargetInformation("IMC-SPC");
 
-  public IMCTRAlgorithm(
+  public IMCSPCAlgorithm(
       CFA pCFA, Configuration pConfig, LogManager pLogger, ShutdownManager pShutdownManager)
       throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -145,7 +145,7 @@ public class IMCTRAlgorithm implements Algorithm, StatisticsProvider {
             AnalysisDirection.FORWARD);
     binaryExpressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
 
-    stats = new IMCTRStatistics();
+    stats = new IMCSPCStatistics();
   }
 
   @Override

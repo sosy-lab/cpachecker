@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.core.algorithm.WitnessToACSLAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.WitnessToInvariantWitnessAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCTRAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCSPCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
@@ -167,11 +167,11 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.IMCTR",
+      name = "algorithm.IMCSPC",
       description =
           "use McMillan's interpolation-based model checking algorithm by encoding a CFA as a"
               + " transition relation with a symbolic program counter")
-  private boolean useIMCTR = false;
+  private boolean useIMCSPC = false;
 
   @Option(
       secure = true,
@@ -457,7 +457,7 @@ public class CoreComponentsFactory {
         && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
-        && (useBMC || useIMC || useInvariantExportAlgorithm || useIMCTR);
+        && (useBMC || useIMC || useInvariantExportAlgorithm || useIMCSPC);
   }
 
   public Algorithm createAlgorithm(
@@ -632,9 +632,9 @@ public class CoreComponentsFactory {
                 aggregatedReachedSets);
       }
 
-      if (useIMCTR) {
+      if (useIMCSPC) {
         verifyNotNull(shutdownManager);
-        algorithm = new IMCTRAlgorithm(cfa, config, logger, shutdownManager);
+        algorithm = new IMCSPCAlgorithm(cfa, config, logger, shutdownManager);
       }
 
       if (useTerminationAlgorithm) {
