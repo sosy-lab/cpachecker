@@ -290,7 +290,8 @@ public class IMCTRAlgorithm implements Algorithm, StatisticsProvider {
       throws CPATransferException, InterruptedException {
     ImmutableSet<CFANode> errorLocations =
         cfa.getAllNodes().stream()
-            .filter(n -> n instanceof CFALabelNode && ((CFALabelNode) n).getLabel().equals("ERROR"))
+            .filter(
+                n -> n instanceof CFALabelNode && ((CFALabelNode) n).getLabel().equals("__ERROR"))
             .collect(ImmutableSet.toImmutableSet());
     @SuppressWarnings("deprecation")
     PathFormula errorCondition =
