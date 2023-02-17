@@ -477,7 +477,7 @@ class WebInterface:
                     line = path + "\t" + mTime + "\t" + hashValue + "\n"
                     tmpFile.write(line.encode())
 
-            os.renames(tmpFile.name, HASH_CODE_CACHE_PATH)
+            os.replace(tmpFile.name, HASH_CODE_CACHE_PATH)
         except OSError as e:
             logging.warning(
                 "Could not write hash-code cache file to %s: %s",
