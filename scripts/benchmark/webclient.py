@@ -472,12 +472,19 @@ class WebInterface:
         directory = os.path.dirname(HASH_CODE_CACHE_PATH)
         try:
             os.makedirs(directory, exist_ok=True)
-            with tempfile.NamedTemporaryFile(dir=directory, delete=False) as tmpFile:
-                for (path, mTime), hashValue in hash_code_cache.items():
-                    line = path + "\t" + mTime + "\t" + hashValue + "\n"
-                    tmpFile.write(line.encode())
+            try:
+                with tempfile.NamedTemporaryFile(dir=directory, delete=False) as tmpFile:
+                    for (path, mTime), hashValue in hash_code_cache.items():
+                        line = path + "\t" + mTime + "\t" + hashValue + "\n"
+                        tmpFile.write(line.encode())
 
-            os.replace(tmpFile.name, HASH_CODE_CACHE_PATH)
+                os.replace(tmpFile.name, HASH_CODE_CACHE_PATH)
+            except OSError:
+                try:
+                    os.remove(tmpFile.name)
+                except OSError:
+                    pass
+                raise
         except OSError as e:
             logging.warning(
                 "Could not write hash-code cache file to %s: %s",
