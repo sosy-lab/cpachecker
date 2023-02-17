@@ -183,6 +183,11 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
         pUniqueBlockId, pTargetNodeNumber, newPayload, Instant.now());
   }
 
+  public static BlockSummaryMessage newAbstractionStateMessage(
+      String pId, int pTargetNodeNumber, BlockSummaryMessagePayload pPayload) {
+    return new BlockSummaryAbstractStateMessage(pId, pTargetNodeNumber, pPayload);
+  }
+
   public static BlockSummaryMessage newErrorConditionMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
@@ -331,6 +336,9 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
      * BlockSummaryErrorMessage}.
      */
     ERROR,
+
+    /** Represents an abstraction state. */
+    ABSTRACTION_STATE,
 
     /**
      * Messages of this type deny a previously received {@link BlockSummaryErrorConditionMessage}.

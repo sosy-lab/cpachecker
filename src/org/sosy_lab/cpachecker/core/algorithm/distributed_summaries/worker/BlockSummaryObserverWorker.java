@@ -52,27 +52,23 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
   @Override
   public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage) {
     switch (pMessage.getType()) {
-      case FOUND_RESULT:
+      case FOUND_RESULT -> {
         result = Optional.of(((BlockSummaryResultMessage) pMessage).getResult());
         statusObserver.updateStatus(pMessage);
-        break;
-      case ERROR_CONDITION_UNREACHABLE:
-        // fall-through
-      case ERROR_CONDITION:
-        // fall-through
-      case BLOCK_POSTCONDITION:
-        statusObserver.updateStatus(pMessage);
-        break;
-      case ERROR:
+      }
+      case ERROR_CONDITION_UNREACHABLE,
+          ERROR_CONDITION,
+          BLOCK_POSTCONDITION,
+          ABSTRACTION_STATE -> statusObserver.updateStatus(pMessage);
+      case ERROR -> {
         shutdown = true;
         errorMessage = Optional.of(((BlockSummaryErrorMessage) pMessage).getErrorMessage());
-        break;
-      case STATISTICS:
+      }
+      case STATISTICS -> {
         stats.put(pMessage.getBlockId(), ((BlockSummaryStatisticsMessage) pMessage).getStats());
         shutdown = stats.keySet().size() == numberOfBlocks - 1;
-        break;
-      default:
-        throw new AssertionError("Unknown message type: " + pMessage.getType());
+      }
+      default -> throw new AssertionError("Unknown message type: " + pMessage.getType());
     }
     return ImmutableList.of();
   }

@@ -101,7 +101,9 @@ public class BlockState
   @Override
   public @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException {
     return isTarget()
-        ? ImmutableSet.of(new BlockEntryReachedTargetInformation(targetCFANode))
+        ? ImmutableSet.of(
+            new BlockEntryReachedTargetInformation(
+                targetCFANode, type == BlockStateType.ABSTRACTION))
         : ImmutableSet.of();
   }
 
@@ -163,6 +165,7 @@ public class BlockState
 
   @Override
   public boolean isTarget() {
-    return isLocatedOnTargetNode() || isLastNodeOfBlock() || isStartNodeOfBlock();
+    return isLocatedOnTargetNode()
+        || (direction == AnalysisDirection.FORWARD ? isLastNodeOfBlock() : isStartNodeOfBlock());
   }
 }

@@ -110,7 +110,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
         shutdown = true;
         return ImmutableSet.of();
       }
-      case STATISTICS, BLOCK_POSTCONDITION, ERROR_CONDITION_UNREACHABLE -> {
+      case STATISTICS, BLOCK_POSTCONDITION, ERROR_CONDITION_UNREACHABLE, ABSTRACTION_STATE -> {
         return ImmutableSet.of();
       }
       default -> throw new AssertionError("Unknown MessageType " + pMessage.getType());

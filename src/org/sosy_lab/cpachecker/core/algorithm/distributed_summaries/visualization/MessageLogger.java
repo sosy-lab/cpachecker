@@ -9,19 +9,17 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.visualization;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Path;
-import java.util.Collection;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.JSON;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -29,7 +27,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 
@@ -37,32 +34,22 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 public class MessageLogger {
 
   @Option(description = "output file for visualizing message exchange")
-  @FileOption(Type.OUTPUT_FILE)
-  private Path reportFile = Path.of("block_analysis/block_analysis.json");
+  @FileOption(Type.OUTPUT_DIRECTORY)
+  private Path reportFiles = Path.of("block_analysis/block_analysis");
 
   @Option(description = "output file for visualizing the block graph")
   @FileOption(Type.OUTPUT_FILE)
   private Path blockCFAFile = Path.of("block_analysis/blocks.json");
 
-  private final Map<String, Multimap<String, Object>> entries;
   private final BlockGraph tree;
+  private static final UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
+
+  private final int hashCode = Instant.now().hashCode();
 
   public MessageLogger(BlockGraph pTree, Configuration pConfiguration)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
-    // IO.openOutputFile(reportFile, StandardCharsets.US_ASCII, StandardOpenOption.CREATE);
-    entries = new HashMap<>();
     tree = pTree;
-    pTree.getDistinctNodes().forEach(n -> entries.put(n.getId(), createInitialMap(n)));
-  }
-
-  private Multimap<String, Object> createInitialMap(BlockNode pNode) {
-    Multimap<String, Object> map = ArrayListMultimap.create();
-    map.putAll("code", Splitter.on("\n").splitToList(pNode.getCode()));
-    map.putAll(
-        "predecessors", transformedImmutableSetCopy(pNode.getPredecessors(), p -> p.getId()));
-    map.putAll("successors", transformedImmutableSetCopy(pNode.getSuccessors(), p -> p.getId()));
-    return map;
   }
 
   public synchronized void logBlockGraph() throws IOException {
@@ -86,9 +73,6 @@ public class MessageLogger {
   // getEpochSeconds before accessing nanos.
   @SuppressWarnings("JavaInstantGetSecondsGetNano")
   public synchronized void log(BlockSummaryMessage pMessage) throws IOException {
-    if (entries.get(pMessage.getUniqueBlockId()) == null) {
-      return;
-    }
     Map<String, Object> messageToJSON = new HashMap<>();
     messageToJSON.put("type", pMessage.getType().name());
     BigInteger secondsToNano =
@@ -96,15 +80,13 @@ public class MessageLogger {
             .multiply(BigInteger.valueOf(1000000000))
             .add(BigInteger.valueOf(pMessage.getTimestamp().getNano()));
     messageToJSON.put("timestamp", secondsToNano.toString());
+    messageToJSON.put("hashCode", hashCode);
     messageToJSON.put("from", pMessage.getUniqueBlockId());
     if (pMessage.getAbstractState(PredicateCPA.class).isEmpty()) {
       pMessage = BlockSummaryMessage.addEntry(pMessage, PredicateCPA.class.getName(), "true");
     }
-    // s.contains("CPA") || s.contains("reason")
-    messageToJSON.put("payload", pMessage.getPayloadJSON(s -> true));
-    entries.get(pMessage.getUniqueBlockId()).put("messages", messageToJSON);
-    Map<String, Map<String, Collection<Object>>> converted = new HashMap<>();
-    entries.forEach((k, v) -> converted.put(k, v.asMap()));
-    JSON.writeJSONString(converted, reportFile);
+    messageToJSON.put("payload", pMessage.getPayloadJSON(s -> s.contains("PredicateCPA")));
+    JSON.writeJSONString(
+        messageToJSON, reportFiles.resolve("M" + ID_GENERATOR.getFreshId() + ".json"));
   }
 }

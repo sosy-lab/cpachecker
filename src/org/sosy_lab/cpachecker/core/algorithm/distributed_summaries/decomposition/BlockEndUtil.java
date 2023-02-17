@@ -8,9 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class BlockEndUtil {
 
@@ -23,5 +29,23 @@ public class BlockEndUtil {
         pPredecessor,
         new CFANode(pPredecessor.getFunction()),
         UNIQUE_DESCRIPTION);
+  }
+
+  public static boolean hasAbstractionOccurred(BlockNode pBlockNode, ReachedSet pReachedSet) {
+    if (pBlockNode.getEdgesInBlock().stream()
+        .noneMatch(e -> e.getDescription().equals(UNIQUE_DESCRIPTION))) {
+      return false;
+    }
+    if (pReachedSet.getReached(pBlockNode.getLastNode()).isEmpty()) {
+      return false;
+    }
+    for (AbstractState abstractState : pReachedSet) {
+      if (Objects.requireNonNull(AbstractStates.extractStateByType(abstractState, BlockState.class))
+              .getType()
+          == BlockStateType.ABSTRACTION) {
+        return false;
+      }
+    }
+    return true;
   }
 }

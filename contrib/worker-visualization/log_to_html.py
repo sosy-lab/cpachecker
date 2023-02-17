@@ -21,6 +21,9 @@ from airium import Airium
 import networkx as nx
 import pydot
 
+from os import listdir
+from os.path import isfile, join
+
 ENCODING = "UTF-8"
 
 
@@ -28,8 +31,8 @@ def create_arg_parser():
     parser = argparse.ArgumentParser(description="Transforms Worker logs to HTML.")
     parser.add_argument(
         "--messages-json",
-        help="Path to JSON file that contains messages sent during distributed block analysis.",
-        default="output/block_analysis/block_analysis.json",
+        help="Path to directory containing JSON files sent during distributed block analysis.",
+        default="output/block_analysis/block_analysis",
     )
     parser.add_argument(
         "--block-structure-json",
@@ -55,7 +58,7 @@ def parse_args(argv):
         raise ValueError(f"Path {args.block_structure_json} does not exist.")
 
     args.messages_json = Path(args.messages_json)
-    if not args.messages_json.exists():
+    if not args.messages_json.is_dir():
         raise ValueError(f"Path {args.messages_json} does not exist.")
 
     args.output = Path(args.output)
@@ -84,6 +87,7 @@ def html_for_message(message, block_log: Dict[str, str]):
     arrow = "-"
     senders = ["all"]
     receivers = ["all"]
+    msg_id = message["filename"]
     if direction == "BLOCK_POSTCONDITION":
         receivers = successors
         senders = predecessors
@@ -101,7 +105,7 @@ def html_for_message(message, block_log: Dict[str, str]):
 
     code = "\n".join([x for x in infos["code"] if x])
 
-    with div.div(title=code):
+    with div.div(title=f"{message['from']}:\n{code}"):
         with div.p():
             with div.span():
                 div(arrow)
@@ -110,7 +114,7 @@ def html_for_message(message, block_log: Dict[str, str]):
                     sender = ", ".join(senders)
                 else:
                     sender = "Self"
-                div(f"React to message from <strong>{sender}</strong>:")
+                div(f"React to message from <strong>{sender}</strong> (ID: {msg_id[1:-5]}):")
         with div.p():
             if receivers:
                 receiver = ", ".join(receivers)
@@ -222,17 +226,31 @@ def export_messages_table(
     return output_file
 
 
-def visualize_messages(messages_file: Path, output_path: Path):
-    block_logs = parse_jsons(messages_file)
+def visualize_messages(
+    message_dir: Path, block_structure_json: Path, output_path: Path
+):
     all_messages = []
-    for key in block_logs:
-        if "messages" in block_logs[key]:
-            all_messages += block_logs[key]["messages"]
+    hash_code = None
+    jsons = list(
+        sorted(
+            [f for f in listdir(message_dir) if isfile(join(message_dir, f))],
+            key=lambda text: int(text[1:-5]),
+        )
+    )
+    for message_json in jsons:
+        parsed_file = parse_jsons(join(message_dir, message_json))
+        if hash_code is None:
+            hash_code = parsed_file["hashCode"]
+        if hash_code == parsed_file["hashCode"]:
+            parsed_file["filename"] = str(message_json)
+            all_messages.append(parsed_file)
     if not all_messages:
         return
 
     export_filename = export_messages_table(
-        all_messages=all_messages, block_logs=block_logs, output_path=output_path
+        all_messages=all_messages,
+        block_logs=parse_jsons(block_structure_json),
+        output_path=output_path,
     )
     webbrowser.open(str(export_filename))
 
@@ -247,7 +265,11 @@ def main(argv=None):
         block_structure_file=args.block_structure_json, output_path=output_path
     )
 
-    visualize_messages(messages_file=args.messages_json, output_path=output_path)
+    visualize_messages(
+        message_dir=args.messages_json,
+        block_structure_json=args.block_structure_json,
+        output_path=output_path,
+    )
 
 
 if __name__ == "__main__":

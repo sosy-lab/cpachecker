@@ -11,10 +11,12 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,12 +32,14 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.AlgorithmFactory.AnalysisComponents;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithms.BlockAnalysisIntermediateResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithms.BlockAndLocation;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -56,15 +60,18 @@ public class DCPAAlgorithm {
   private final ConfigurableProgramAnalysis cpa;
   private final BlockNode block;
   private final ReachedSet reachedSet;
-  private Precision initialPrecision;
-  private Precision lastPrecision;
   private final Algorithm algorithm;
   private final AbstractState startState;
   private final Set<String> predecessors;
+  private final Map<BlockAndLocation, ARGState> abstractionStates;
 
+  // forward analysis variables
   private AlgorithmStatus status;
   private boolean alreadyReportedError;
+  private boolean isInfeasible;
   private boolean alreadyReportedInfeasibility;
+  private Precision initialPrecision;
+  private Precision lastPrecision;
 
   public DCPAAlgorithm(
       LogManager pLogger,
@@ -76,6 +83,7 @@ public class DCPAAlgorithm {
       throws CPAException, InterruptedException, InvalidConfigurationException {
     alreadyReportedError = false;
     alreadyReportedInfeasibility = false;
+    isInfeasible = false;
     AnalysisComponents parts =
         AlgorithmFactory.createAlgorithm(
             pLogger, pSpecification, pCFA, pConfiguration, pShutdownManager, pBlock);
@@ -96,6 +104,7 @@ public class DCPAAlgorithm {
     dcpa =
         DistributedConfigurableProgramAnalysis.distribute(cpa, pBlock, AnalysisDirection.FORWARD);
     predecessors = transformedImmutableSetCopy(block.getPredecessors(), BlockNodeMetaData::getId);
+    abstractionStates = new LinkedHashMap<>();
   }
 
   public Collection<BlockSummaryMessage> reportUnreachableBlockEnd() {
@@ -124,11 +133,22 @@ public class DCPAAlgorithm {
     Collection<BlockSummaryMessage> results =
         processIntermediateResult(
             DCPAAlgorithms.findReachableTargetStatesInBlock(
-                algorithm, reachedSet, block.getLastNode()));
+                algorithm, reachedSet, block, AnalysisDirection.FORWARD));
     if (results.isEmpty()) {
       return reportUnreachableBlockEnd();
     }
     return results;
+  }
+
+  public void addAbstractionState(BlockSummaryMessage pMessage) throws InterruptedException {
+    Preconditions.checkArgument(pMessage.getType() == MessageType.ABSTRACTION_STATE);
+    if (pMessage.getTargetNodeNumber() != block.getStartNode().getNodeNumber()) {
+      return;
+    }
+    AbstractState deserialized = dcpa.getDeserializeOperator().deserialize(pMessage);
+    abstractionStates.put(
+        new BlockAndLocation(pMessage.getBlockId(), pMessage.getTargetNodeNumber()),
+        new ARGState(deserialized, null));
   }
 
   public Collection<BlockSummaryMessage> runAnalysisForMessage(
@@ -152,6 +172,7 @@ public class DCPAAlgorithm {
       return processing;
     }
     assert processing.isEmpty() : "Proceed is not possible with unprocessed messages";
+    /*
     BlockSummaryMessage previousMessage = states.get(pReceived.getUniqueBlockId());
     if (previousMessage != null) {
       AbstractState abstractState = dcpa.getDeserializeOperator().deserialize(previousMessage);
@@ -161,7 +182,7 @@ public class DCPAAlgorithm {
           return BlockSummaryMessageProcessing.stop();
         }
       }
-    }
+    }*/
     states.put(pReceived.getBlockId(), pReceived);
     if (states.size() != block.getPredecessors().size()) {
       return ImmutableSet.of();
@@ -172,6 +193,7 @@ public class DCPAAlgorithm {
   public Collection<BlockSummaryMessage> runAnalysisUnderCondition(
       Optional<AbstractState> errorCondition) throws CPAException, InterruptedException {
     reachedSet.clear();
+    // abstractionStates.values().forEach(a -> reachedSet.addNoWaitlist(a, initialPrecision));
     for (BlockSummaryMessage message : states.values()) {
       if (message == null) {
         continue;
@@ -204,17 +226,25 @@ public class DCPAAlgorithm {
     }
 
     BlockAnalysisIntermediateResult result =
-        DCPAAlgorithms.findReachableTargetStatesInBlock(algorithm, reachedSet, block.getLastNode());
+        DCPAAlgorithms.findReachableTargetStatesInBlock(
+            algorithm, reachedSet, block, AnalysisDirection.FORWARD);
+    result =
+        result.refine(
+            abstractionStates.values(), dcpa.getAbstractDomain(), dcpa.getAbstractStateClass());
     return processIntermediateResult(result);
   }
 
   private Collection<BlockSummaryMessage> processIntermediateResult(
       BlockAnalysisIntermediateResult result) throws InterruptedException {
+    // adapt precision
+    isInfeasible = result.wasAbstracted();
     status = status.update(result.getStatus());
+    assert reachedSet.getFirstState() != null;
     if (reachedSet.getLastState() != null) {
       initialPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
       lastPrecision = reachedSet.getPrecision(reachedSet.getLastState());
     }
+    // no feasible path to block end ==> block is unreachable
     if (result.isEmpty()) {
       return reportUnreachableBlockEnd();
     }
@@ -222,25 +252,42 @@ public class DCPAAlgorithm {
     // empty block ends imply that there was no abstraction node reached
     assert !result.getBlockEnds().isEmpty() || result.getBlockTargets().isEmpty();
     if (!result.getBlockEnds().isEmpty()) {
-      answers.addAll(
-          FluentIterable.from(result.getBlockEnds())
-              .transform(
-                  state ->
-                      DCPAAlgorithms.chainSerialization(
-                          dcpa, reachedSet.getPrecision(state), state))
-              .transform(
-                  p ->
-                      BlockSummaryMessage.newBlockPostCondition(
-                          block.getId(),
-                          block.getLastNode().getNodeNumber(),
-                          p,
-                          false,
-                          true,
-                          ImmutableSet.of()))
-              .toSet());
+      answers
+          // serialize all target states (they are for sure abstraction states, necessary for
+          // covered by)
+          .addAll(
+              FluentIterable.from(reachedSet.getReached(block.getStartNode()))
+                  .append(reachedSet.getReached(block.getLastNode()))
+                  .filter(AbstractStates::isTargetState)
+                  .transform(
+                      a ->
+                          BlockSummaryMessage.newAbstractionStateMessage(
+                              block.getId(),
+                              Objects.requireNonNull(AbstractStates.extractLocation(a))
+                                  .getNodeNumber(),
+                              dcpa.getSerializeOperator().serialize(a))))
+          .addAll(
+              // serialize the precision and the states at the block ends
+              // (BlockPostConditionMessages)
+              FluentIterable.from(result.getBlockEnds())
+                  .transform(
+                      state ->
+                          DCPAAlgorithms.chainSerialization(
+                              dcpa, reachedSet.getPrecision(state), state))
+                  .transform(
+                      p ->
+                          BlockSummaryMessage.newBlockPostCondition(
+                              block.getId(),
+                              block.getLastNode().getNodeNumber(),
+                              p,
+                              false,
+                              true,
+                              ImmutableSet.of())));
     } else {
       answers.addAll(reportUnreachableBlockEnd());
     }
+    // if we encounter an error location for the first time, we notify the same block to start
+    // a backwards analysis from there
     if (!result.getViolations().isEmpty() && !alreadyReportedError) {
       alreadyReportedError = true;
       return createErrorConditionMessages(result.getViolations());
@@ -272,6 +319,16 @@ public class DCPAAlgorithm {
               ImmutableSet.of(block.getId())));
     }
     return answers.build();
+  }
+
+  boolean isInfeasible() {
+    boolean storage = isInfeasible;
+    isInfeasible = false;
+    return storage;
+  }
+
+  Precision getLastPrecision() {
+    return lastPrecision;
   }
 
   public DistributedConfigurableProgramAnalysis getDCPA() {

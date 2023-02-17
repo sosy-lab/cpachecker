@@ -19,9 +19,15 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 public class BlockEntryReachedTargetInformation implements TargetInformation {
 
   private final CFANode node;
+  private final boolean abstraction;
 
-  public BlockEntryReachedTargetInformation(CFANode pNode) {
+  public BlockEntryReachedTargetInformation(CFANode pNode, boolean pAbstraction) {
     node = pNode;
+    abstraction = pAbstraction;
+  }
+
+  public boolean isAbstraction() {
+    return abstraction;
   }
 
   @Override

@@ -10,18 +10,25 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockEndUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver.StatusPrecise;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver.StatusPropertyChecked;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver.StatusSoundness;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
@@ -34,6 +41,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class DCPAAlgorithms {
+
+  record BlockAndLocation(String blockID, int nodeNumber) {}
 
   public static BlockSummaryMessagePayload chainSerialization(
       DistributedConfigurableProgramAnalysis pDistributedConfigurableProgramAnalysis,
@@ -70,13 +79,16 @@ public class DCPAAlgorithms {
    * @return subset of targetStates where the target information equals {@link
    *     BlockEntryReachedTargetInformation}
    */
-  static ImmutableSet<ARGState> extractBlockTargetStates(Set<ARGState> targetStates) {
+  static ImmutableSet<ARGState> extractBlockTargetStatesWithoutAbstractionType(
+      Set<ARGState> targetStates) {
     ImmutableSet.Builder<ARGState> blockTargetStates = ImmutableSet.builder();
     for (ARGState targetState : targetStates) {
       for (TargetInformation targetInformation : targetState.getTargetInformation()) {
-        if (targetInformation instanceof BlockEntryReachedTargetInformation) {
-          blockTargetStates.add(targetState);
-          break;
+        if (targetInformation instanceof BlockEntryReachedTargetInformation tInfo) {
+          if (!tInfo.isAbstraction()) {
+            blockTargetStates.add(targetState);
+            break;
+          }
         }
       }
     }
@@ -130,7 +142,10 @@ public class DCPAAlgorithms {
    * @throws InterruptedException thread interrupted
    */
   static BlockAnalysisIntermediateResult findReachableTargetStatesInBlock(
-      Algorithm pAlgorithm, ReachedSet pReachedSet, CFANode pRealBlockEnd)
+      Algorithm pAlgorithm,
+      ReachedSet pReachedSet,
+      BlockNode pBlockNode,
+      AnalysisDirection pDirection)
       throws CPAException, InterruptedException {
 
     AbstractState startState = pReachedSet.getFirstState();
@@ -142,7 +157,8 @@ public class DCPAAlgorithms {
       AbstractStates.getTargetStates(pReachedSet).forEach(pReachedSet::removeOnlyFromWaitlist);
     }
 
-    return BlockAnalysisIntermediateResult.of(pReachedSet, startState, pRealBlockEnd, status);
+    return BlockAnalysisIntermediateResult.of(
+        pReachedSet, startState, pBlockNode, status, pDirection);
   }
 
   public static class BlockAnalysisIntermediateResult {
@@ -151,48 +167,112 @@ public class DCPAAlgorithms {
     private final ImmutableSet<ARGState> blockTargets;
     private final ImmutableSet<ARGState> blockEnds;
     private final AlgorithmStatus status;
+    private final AnalysisDirection direction;
+    private final boolean wasAbstracted;
 
     private BlockAnalysisIntermediateResult(
         ReachedSet pReachedSet,
         AbstractState pStartState,
-        CFANode pLastNode,
-        AlgorithmStatus pStatus) {
-      ImmutableSet<ARGState> allTargetStates =
+        BlockNode pBlockNode,
+        AlgorithmStatus pStatus,
+        AnalysisDirection pDirection) {
+      wasAbstracted = BlockEndUtil.hasAbstractionOccurred(pBlockNode, pReachedSet);
+      FluentIterable<ARGState> prefiltered =
           from(pReachedSet)
-              .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
+              .filter(s -> !Objects.equals(pStartState, s))
+              .transform(s -> AbstractStates.extractStateByType(s, ARGState.class));
+      ImmutableSet<ARGState> allTargetStates =
+          prefiltered
               .filter(AbstractStates::isTargetState)
               .filter(s -> !Objects.equals(pStartState, s))
               .toSet();
+      final CFANode blockEnd =
+          pDirection == AnalysisDirection.FORWARD
+              ? pBlockNode.getLastNode()
+              : pBlockNode.getStartNode();
       blockEnds =
-          from(pReachedSet)
-              .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
+          prefiltered
               .filter(
                   s ->
                       abstractStateToLocation(s)
-                          .flatMap(node -> Optional.of(pLastNode.equals(node)))
+                          .flatMap(node -> Optional.of(blockEnd.equals(node)))
                           .orElse(false))
               .toSet();
-      blockTargets = extractBlockTargetStates(allTargetStates);
+      blockTargets = extractBlockTargetStatesWithoutAbstractionType(allTargetStates);
       violations = extractViolations(allTargetStates);
       status = pStatus;
+      direction = pDirection;
+    }
+
+    private BlockAnalysisIntermediateResult(
+        ImmutableSet<ARGState> pViolations,
+        ImmutableSet<ARGState> pBlockEnds,
+        ImmutableSet<ARGState> pBlockTargets,
+        AlgorithmStatus pStatus,
+        boolean pWasAbstracted,
+        AnalysisDirection pDirection) {
+      violations = pViolations;
+      blockEnds = pBlockEnds;
+      blockTargets = pBlockTargets;
+      status = pStatus;
+      wasAbstracted = pWasAbstracted;
+      direction = pDirection;
     }
 
     private static BlockAnalysisIntermediateResult of(
         ReachedSet pReachedSet,
         AbstractState pStartState,
-        CFANode pLastNode,
-        AlgorithmStatus pStatus) {
-      return new BlockAnalysisIntermediateResult(pReachedSet, pStartState, pLastNode, pStatus);
+        BlockNode pBlockNode,
+        AlgorithmStatus pStatus,
+        AnalysisDirection pDirection) {
+      return new BlockAnalysisIntermediateResult(
+          pReachedSet, pStartState, pBlockNode, pStatus, pDirection);
     }
 
     public AlgorithmStatus getStatus() {
       return status;
     }
 
+    public BlockAnalysisIntermediateResult refine(
+        Collection<ARGState> pAbstractionStates,
+        AbstractDomain pAbstractDomain,
+        Class<? extends AbstractState> pAbstractStateClass)
+        throws CPAException, InterruptedException {
+      ImmutableSet.Builder<ARGState> remove = ImmutableSet.builder();
+      for (ARGState blockEnd : getBlockEnds()) {
+        for (ARGState value : pAbstractionStates) {
+          if (pAbstractDomain.isLessOrEqual(
+              Objects.requireNonNull(
+                  AbstractStates.extractStateByType(blockEnd, pAbstractStateClass)),
+              Objects.requireNonNull(
+                  AbstractStates.extractStateByType(value, pAbstractStateClass)))) {
+            remove.add(blockEnd);
+          }
+        }
+      }
+      return new BlockAnalysisIntermediateResult(
+          violations,
+          ImmutableSet.copyOf(Sets.difference(getBlockEnds(), remove.build())),
+          blockTargets,
+          status,
+          wasAbstracted,
+          direction);
+    }
+
+    /**
+     * Returns all abstract states after specification violation
+     *
+     * @return return abstract states after specification violation
+     */
     public ImmutableSet<ARGState> getViolations() {
       return violations;
     }
 
+    /**
+     * Returns all abstract states on last nodes
+     *
+     * @return return abstract states
+     */
     public ImmutableSet<ARGState> getBlockEnds() {
       return blockEnds;
     }
@@ -203,6 +283,10 @@ public class DCPAAlgorithms {
 
     public boolean isEmpty() {
       return violations.isEmpty() && blockTargets.isEmpty() && blockEnds.isEmpty();
+    }
+
+    public boolean wasAbstracted() {
+      return wasAbstracted;
     }
 
     @Override

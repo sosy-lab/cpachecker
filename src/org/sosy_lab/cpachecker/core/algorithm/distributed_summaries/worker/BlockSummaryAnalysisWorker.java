@@ -135,8 +135,17 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       case ERROR_CONDITION_UNREACHABLE, STATISTICS -> {
         return ImmutableSet.of();
       }
+      case ABSTRACTION_STATE -> {
+        addAbstractState(message);
+        return ImmutableSet.of();
+      }
       default -> throw new AssertionError("MessageType " + message.getType() + " does not exist");
     }
+  }
+
+  private void addAbstractState(BlockSummaryMessage pMessage) throws InterruptedException {
+    dcpaBackwardAlgorithm.addAbstractionState(pMessage);
+    dcpaAlgorithm.addAbstractionState(pMessage);
   }
 
   @Override
