@@ -473,7 +473,9 @@ class WebInterface:
         try:
             os.makedirs(directory, exist_ok=True)
             try:
-                with tempfile.NamedTemporaryFile(dir=directory, delete=False) as tmpFile:
+                with tempfile.NamedTemporaryFile(
+                    dir=directory, delete=False
+                ) as tmpFile:
                     for (path, mTime), hashValue in hash_code_cache.items():
                         line = path + "\t" + mTime + "\t" + hashValue + "\n"
                         tmpFile.write(line.encode())
