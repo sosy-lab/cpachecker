@@ -35,6 +35,7 @@ def get_benchmark_data_from_file(f):
     run_data_file = os.path.join(f, "output", "output.txt")
     file_data = open(run_data_file, "r")
     file_data.readline()
+    file_data.readline()
 
     benchmark_times = file_data.readline().split(";")[:-1]
     return list(map(lambda x: int(x) / 1000000, benchmark_times))
@@ -58,18 +59,23 @@ def generate_benchmark_runs_plots(directory):
     print("Starting graph plotting...")
     for x in range(start_index, end_index + 1):
         print("Plotting " + benchmark_dirs[x].name)
-        output_file_graph = os.path.join(benchmark_dirs[x], "output", "graph.png")
+        output_file_graph = os.path.join(benchmark_dirs[x], "output", "graph.svg")
         benchmark_times = get_benchmark_data_from_file(benchmark_dirs[x])
-        plt.bar(
+        
+        fig, ax = plt.subplots()
+        vbars = ax.bar(
             ["#"+str((x+1)) for x in range(0, len(benchmark_times))],
-            benchmark_times
+            benchmark_times,
         )
+        ax.bar_label(vbars, fmt='%.2f', rotation=90)
         mean = sum(benchmark_times) / len(benchmark_times)
-        plt.axhline(mean, color='orange', linewidth=2)
+        plt.axhline(mean, color='orange', linewidth=2, label='avg: %.2f ms' % mean)
         plt.xlabel("# Benchmark Run")
         plt.ylabel("Run time in milliseconds")
-        plt.savefig(output_file_graph)
+        plt.legend()
+        plt.savefig(output_file_graph, bbox_inches='tight')
         plt.clf()
+        print("Saved to " + output_file_graph)
 
 
 def get_label_for_benchmark_run(directory):
@@ -120,7 +126,7 @@ def generate_multi_run_plot(directory):
     fig.set_size_inches(width, width / 2)
     x_ticks = [(val + num_included_runs * bar_width / 2 - bar_width / 2) for val in x_values]
     ax.set_xticks(x_ticks, ["#"+str((x+1)) for x in range(0, run_entry_count)])
-    output_file_graph = os.path.join(directory, "combined-graph.png")
+    output_file_graph = os.path.join(directory, "combined-graph.svg")
     plt.savefig(output_file_graph, bbox_inches='tight')
 
 

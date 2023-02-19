@@ -43,6 +43,17 @@ public class MicroBenchmarking implements Algorithm {
     long duration;
   }
 
+  private static class ConfigProgramExecutions {
+    private String configFileName;
+    private String programFileName;
+
+    private List<BenchmarkExecutionRun> runTimes;
+
+    private double averageRunTime;
+    private double variance;
+    private double standardDeviation;
+  }
+
   private final Algorithm child;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -51,7 +62,7 @@ public class MicroBenchmarking implements Algorithm {
   @Option(
     secure = true,
       description = "Number of iterations for each algorithm/program combination. Defaults to 10.")
-  private int numExecutions = 20;
+  private int numExecutions = 22;
 
   @Option(
     secure = true,
@@ -92,18 +103,19 @@ public class MicroBenchmarking implements Algorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
     try {
+      logger.logf(Level.INFO, "Starting micro benchmarking");
       TickerWithUnit ticker = Tickers.getCurrentThreadCputime();
 
-      Map<String, List<Map<String, List<BenchmarkExecutionRun>>>> benchmarkTimes = new HashMap<>();
+      Map<String, List<ConfigProgramExecutions>> benchmarkTimes = new HashMap<>();
 
       Iterator<Path> propertyFilesIterator = propertyFiles.iterator();
-
-
       int index = 0;
-      while (propertyFilesIterator.hasNext()) {
+      while (propertyFilesIterator.hasNext()) { // Allow for running benchmark applications on
+                                                // multiple algorithms
         Path singleConfigFilePath = propertyFilesIterator.next();
-        List<Map<String, List<BenchmarkExecutionRun>>> times = new ArrayList<>();
-        for (Path singleProgramFilePath : programFiles) {
+        List<ConfigProgramExecutions> runTimes = new ArrayList<>();
+        for (Path singleProgramFilePath : programFiles) { // Run a single algorithm against one or
+                                                          // more program files
 
           ConfigurationBuilder configurationBuilder = Configuration.builder();
           configurationBuilder.loadFromFile(singleConfigFilePath);
@@ -129,41 +141,73 @@ public class MicroBenchmarking implements Algorithm {
 
           List<BenchmarkExecutionRun> list =
               runProgramAnalysis(ticker, algorithm, reached, reachedSetFactory, cpa, cfa);
-          Map<String, List<BenchmarkExecutionRun>> map = new HashMap<>();
-          map.put(singleProgramFilePath.toString(), list);
-          times.add(map);
+          // This list contains the time each run took to complete
 
+          ConfigProgramExecutions obj = new ConfigProgramExecutions();
+          obj.configFileName = singleConfigFilePath.toString();
+          obj.programFileName = singleProgramFilePath.toString();
+          obj.runTimes = list;
+          double averageRunTime = calculateAverage(obj);
+          obj.averageRunTime = averageRunTime;
+          double variance = calculateVariance(obj, averageRunTime);
+          obj.variance = variance;
+          double standardDeviation = Math.sqrt(variance);
+          obj.standardDeviation = standardDeviation;
+          runTimes.add(obj);
+
+          String programFileName =
+              singleProgramFilePath.toString();
           logger.logf(
-              Level.INFO,
-              "Running analysis %s on program %s",
-              singleConfigFilePath.toString()
-                  .substring(singleConfigFilePath.toString().lastIndexOf('/') + 1),
-              singleProgramFilePath.toString()
-                  .substring(singleProgramFilePath.toString().lastIndexOf('/') + 1));
-
+              Level.FINE,
+              "Finished running micro benchmark analysis for program file %s",
+              programFileName);
 
         }
-        benchmarkTimes.put(singleConfigFilePath.toString() + "-" + index, times);
+
+        String configFileName =
+            singleConfigFilePath.toString();
+        logger.logf(
+            Level.FINE,
+            "Finished running micro benchmark analysis for config file %s",
+            configFileName);
+
+        benchmarkTimes.put(singleConfigFilePath.toString() + "-" + index, runTimes);
         index++;
       }
 
       if (this.outputFile != null) {
         try (Writer writer = IO.openOutputFile(this.outputFile, Charset.defaultCharset())) {
           benchmarkTimes.entrySet()
-              .forEach(entry -> entry.getValue().forEach(l -> l.entrySet().forEach(e -> {
+              .forEach(entry -> entry.getValue().forEach(l -> {
                 try {
-                  writer.append(entry.getKey() + " - " + e.getKey() + "\n");
-                  for (BenchmarkExecutionRun run : e.getValue()) {
-                    writer.append(run.duration + ";");
+                  writer.append("Config file: ");
+                  writer.append(l.configFileName + "\n");
+                  writer.append("Program file: ");
+                  writer.append(l.programFileName + "\n");
+
+                  for (BenchmarkExecutionRun run : l.runTimes) {
+                    writer.append(String.valueOf(run.duration));
+                    writer.append(';');
                   }
                   writer.append("\n");
-                  writer.flush();
-                } catch (IOException e1) {
-                  logger
-                      .logUserException(Level.WARNING, e1, "Failed to write time values to file!");
-                }
 
-              })));
+                  writer.append("Average run time: ");
+                  writer.append(String.valueOf(l.averageRunTime) + "\n");
+
+                  writer.append("Variance: ");
+                  writer.append(String.valueOf(l.variance) + "\n");
+
+                  writer.append("Standard deviation: ");
+                  writer.append(String.valueOf(l.standardDeviation) + "\n");
+
+                  writer.append("\n\n");
+                } catch (IOException e) {
+                  logger.logfUserException(
+                      Level.WARNING,
+                      e,
+                      "Failed to write run time data to file.");
+                }
+              }));
         } catch (IOException ex) {
           logger.logUserException(Level.WARNING, ex, "Could not write CFA to dot file");
         }
@@ -202,10 +246,34 @@ public class MicroBenchmarking implements Algorithm {
       }
 
 
-      BenchmarkExecutionRun run = new BenchmarkExecutionRun();
-      run.duration = timeDiff;
-      list.add(run);
+      // Ignore the first two runs because of initialisation outliers
+      if (i >= 2) {
+        BenchmarkExecutionRun run = new BenchmarkExecutionRun();
+        run.duration = timeDiff;
+        list.add(run);
+      }
+      logger.logf(Level.FINEST, "Finished run #%s", i);
     }
     return list;
+  }
+
+  private double calculateAverage(ConfigProgramExecutions cpe) {
+
+    long sum = 0;
+    for (BenchmarkExecutionRun run : cpe.runTimes) {
+      sum += (run.duration / 1000);
+    }
+
+    return sum / (double) cpe.runTimes.size();
+  }
+
+  private double calculateVariance(ConfigProgramExecutions cpe, double average) {
+
+    double sum = 0.0;
+    for (BenchmarkExecutionRun run : cpe.runTimes) {
+      sum += Math.pow((run.duration / 1000) - average, 2);
+    }
+
+    return sum / (cpe.runTimes.size());
   }
 }
