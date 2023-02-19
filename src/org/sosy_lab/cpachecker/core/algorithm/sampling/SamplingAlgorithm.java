@@ -37,7 +37,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NestingAlgorithm;
@@ -265,13 +264,12 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       ReachedSet backwardReachedSet = reachedSet.getDelegate();
 
       ImmutableMap.Builder<CFANode, ImmutableSet<BooleanFormula>> builder = ImmutableMap.builder();
-      for (CFAEdge outgoing : loop.getOutgoingEdges()) {
-        CFANode lastNode = outgoing.getPredecessor();
+      for (CFANode loopHead : loop.getLoopHeads()) {
         BooleanFormulaManagerView bfmgr =
             backwardsSolver.getFormulaManager().getBooleanFormulaManager();
         ImmutableSet<BooleanFormula> formulas =
-            collectFormulasFromReachedSet(backwardReachedSet, lastNode, bfmgr);
-        builder.put(lastNode, formulas);
+            collectFormulasFromReachedSet(backwardReachedSet, loopHead, bfmgr);
+        builder.put(loopHead, formulas);
       }
       formulasForNegativeSamples = builder.build();
     }
