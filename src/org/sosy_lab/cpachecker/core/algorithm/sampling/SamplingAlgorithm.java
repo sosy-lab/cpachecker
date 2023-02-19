@@ -197,14 +197,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       logger.log(Level.INFO, "Program contains no loops, nothing to do for SamplingAlgorithm.");
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
-
     Collection<Loop> loops = cfa.getLoopStructure().orElseThrow().getAllLoops();
-    if (loops.size() != 1) {
-      // TODO: Support multi-loop programs
-      logger.log(Level.INFO, "Only single-loop programs are currently supported.");
-      return AlgorithmStatus.NO_PROPERTY_CHECKED;
-    }
-    Loop loop = loops.iterator().next();
 
     Collection<CFANode> targets = getTargetNodes();
     if (targets.size() != 1) {
@@ -235,12 +228,14 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       ReachedSet forwardReachedSet = reachedSet.getDelegate();
 
       ImmutableMap.Builder<CFANode, ImmutableSet<BooleanFormula>> builder = ImmutableMap.builder();
-      for (CFANode loopHead : loop.getLoopHeads()) {
-        BooleanFormulaManagerView bfmgr =
-            forwardSolver.getFormulaManager().getBooleanFormulaManager();
-        ImmutableSet<BooleanFormula> formulas =
-            collectFormulasFromReachedSet(forwardReachedSet, loopHead, bfmgr);
-        builder.put(loopHead, formulas);
+      for (Loop loop : loops) {
+        for (CFANode loopHead : loop.getLoopHeads()) {
+          BooleanFormulaManagerView bfmgr =
+              forwardSolver.getFormulaManager().getBooleanFormulaManager();
+          ImmutableSet<BooleanFormula> formulas =
+              collectFormulasFromReachedSet(forwardReachedSet, loopHead, bfmgr);
+          builder.put(loopHead, formulas);
+        }
       }
       formulasForPositiveSamples = builder.build();
     }
@@ -264,12 +259,14 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       ReachedSet backwardReachedSet = reachedSet.getDelegate();
 
       ImmutableMap.Builder<CFANode, ImmutableSet<BooleanFormula>> builder = ImmutableMap.builder();
-      for (CFANode loopHead : loop.getLoopHeads()) {
-        BooleanFormulaManagerView bfmgr =
-            backwardsSolver.getFormulaManager().getBooleanFormulaManager();
-        ImmutableSet<BooleanFormula> formulas =
-            collectFormulasFromReachedSet(backwardReachedSet, loopHead, bfmgr);
-        builder.put(loopHead, formulas);
+      for (Loop loop : loops) {
+        for (CFANode loopHead : loop.getLoopHeads()) {
+          BooleanFormulaManagerView bfmgr =
+              backwardsSolver.getFormulaManager().getBooleanFormulaManager();
+          ImmutableSet<BooleanFormula> formulas =
+              collectFormulasFromReachedSet(backwardReachedSet, loopHead, bfmgr);
+          builder.put(loopHead, formulas);
+        }
       }
       formulasForNegativeSamples = builder.build();
     }
@@ -319,7 +316,8 @@ public class SamplingAlgorithm extends NestingAlgorithm {
 
       // Unroll positive samples using value-based sampling
       for (Sample sample : positiveSamples) {
-        samples.addAll(forwardUnrollingAlgorithm.unrollSample(sample, loop));
+        samples.addAll(
+            forwardUnrollingAlgorithm.unrollSample(sample, getLoopForSample(sample, loops)));
 
         // Use test-based sampling to potentially find negative samples
         if (useTestBasedSampling) {
@@ -348,7 +346,9 @@ public class SamplingAlgorithm extends NestingAlgorithm {
                   relevantAssignments, location, SampleClass.UNKNOWN);
 
           // Unroll unknown sample, add to known samples if they can be classified
-          Set<Sample> unrolledSamples = forwardUnrollingAlgorithm.unrollSample(unknownSample, loop);
+          Set<Sample> unrolledSamples =
+              forwardUnrollingAlgorithm.unrollSample(
+                  unknownSample, getLoopForSample(unknownSample, loops));
           samples.addAll(
               unrolledSamples.stream()
                   .filter(s -> s.getSampleClass() != SampleClass.UNKNOWN)
@@ -358,7 +358,8 @@ public class SamplingAlgorithm extends NestingAlgorithm {
 
       // Unroll negative samples using backward sampling
       for (Sample sample : negativeSamples) {
-        samples.addAll(backwardUnrollingAlgorithm.unrollSample(sample, loop));
+        samples.addAll(
+            backwardUnrollingAlgorithm.unrollSample(sample, getLoopForSample(sample, loops)));
       }
 
       // Export samples
@@ -512,6 +513,15 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       }
     }
     return samples;
+  }
+
+  private Loop getLoopForSample(Sample pSample, Collection<Loop> pLoops) {
+    for (Loop loop : pLoops) {
+      if (loop.getLoopHeads().contains(pSample.getLocation())) {
+        return loop;
+      }
+    }
+    return null;
   }
 
   @Override
