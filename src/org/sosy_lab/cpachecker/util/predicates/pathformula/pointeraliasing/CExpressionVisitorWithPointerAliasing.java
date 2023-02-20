@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -61,8 +62,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Expression
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 /** A visitor the handle C expressions with the support for pointer aliasing. */
 class CExpressionVisitorWithPointerAliasing
@@ -924,12 +927,41 @@ class CExpressionVisitorWithPointerAliasing
 
     CSimpleType underlyingSimpleType = (CSimpleType) underlyingType;
 
-    if (!underlyingSimpleType.getType().isIntegerType()) {
-      throw new UnrecognizedCodeException("Memset currently does not support destination with non-integer underlying type", e);
-    }
-
     long elementSizeInBytes = typeHandler.getSizeof(underlyingType);
 
+    // Floating-point handling, part 1: create underlying integer type and SMT floating-point type
+
+    CBasicType underlyingBasicType = underlyingSimpleType.getType();
+
+    CSimpleType underlyingIntegerType = underlyingSimpleType;
+    FormulaType.FloatingPointType fpType = null;
+
+    if (underlyingBasicType.isFloatingPointType()) {
+
+      // we need to construct the corresponding integer type with the same byte size
+      // as the floating-point type so that we can populate it
+
+      if (underlyingBasicType == CBasicType.FLOAT) {
+        fpType = FormulaType.getSinglePrecisionFloatingPointType();
+        // TODO: integer type with the same sizeof as float should be resolved by a reverse lookup
+        // into the machine model
+        // we use unsigned int in the meantime
+        underlyingIntegerType =
+            new CSimpleType(
+                false, false, CBasicType.INT, false, false, false, true, false, false, false);
+      } else if (underlyingBasicType == CBasicType.DOUBLE) {
+        fpType = FormulaType.getDoublePrecisionFloatingPointType();
+        // TODO: integer type with the same sizeof as float should be resolved by a reverse lookup
+        // into the machine model
+        // we use unsigned long long in the meantime
+        underlyingIntegerType =
+            new CSimpleType(
+                false, false, CBasicType.INT, false, false, false, true, false, false, true);
+      } else {
+        throw new UnrecognizedCodeException(
+            "Memset does not support destination with the used floating-point underlying type", e);
+      }
+    }
 
     // we convert the destination, which should be of pointer or array type, to a formula
     AliasedLocation destinationAsAliasedLocation = dereference(paramDestination, paramDestination.accept(this));
@@ -941,7 +973,8 @@ class CExpressionVisitorWithPointerAliasing
     // we cast it to unsigned char here first, then to the underlying type
     CExpression setValueUnsignedChar = new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, paramSetValue);
 
-    CExpression setValueLowestByte = new CCastExpression(FileLocation.DUMMY, underlyingType, setValueUnsignedChar);
+    CExpression setValueLowestByte =
+        new CCastExpression(FileLocation.DUMMY, underlyingIntegerType, setValueUnsignedChar);
 
     // Third parameter (size) processing
 
@@ -970,19 +1003,19 @@ class CExpressionVisitorWithPointerAliasing
     // we set the expression to zero literal and then bit-or the shifted bytes containing the value
     // to be set
     Formula setValueFormula =
-        delegate.visit(CIntegerLiteralExpression.createDummyLiteral(0, underlyingType));
+        delegate.visit(CIntegerLiteralExpression.createDummyLiteral(0, underlyingIntegerType));
 
     for (long byteIndex = 0; byteIndex < elementSizeInBytes; ++byteIndex) {
       // shift the byte left
       long bitIndex = byteIndex * conv.getBitSizeof(CNumericTypes.UNSIGNED_CHAR);
       CIntegerLiteralExpression bitIndexLiteral =
-          CIntegerLiteralExpression.createDummyLiteral(bitIndex, underlyingType);
+          CIntegerLiteralExpression.createDummyLiteral(bitIndex, underlyingIntegerType);
 
       CBinaryExpression setValueShiftedByteExpression =
           new CBinaryExpression(
               FileLocation.DUMMY,
-              underlyingType,
-              underlyingType,
+              underlyingIntegerType,
+              underlyingIntegerType,
               setValueLowestByte,
               bitIndexLiteral,
               BinaryOperator.SHIFT_LEFT);
@@ -991,6 +1024,16 @@ class CExpressionVisitorWithPointerAliasing
 
       // bit-or with previous formula
       setValueFormula = conv.fmgr.makeOr(setValueFormula, setValueShiftedByteFormula);
+    }
+
+    // Floating-point handling, part 2: convert the bitvector formula to floating point
+
+    if (fpType != null) {
+      // setValueFormula should be a bitvector formula before this
+      setValueFormula =
+          conv.fmgr
+              .getFloatingPointFormulaManager()
+              .fromIeeeBitvector((BitvectorFormula) setValueFormula, fpType);
     }
 
     // we iterate over the actual elements so that we can assign once to each one
