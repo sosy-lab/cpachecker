@@ -965,8 +965,35 @@ class CExpressionVisitorWithPointerAliasing
 
     CType machineSizeType = conv.machineModel.getPointerEquivalentSimpleType();
 
+    // the value to be set is specified as an unsigned byte, but the element may be larger,
+    // so we need to compose the value to be set to each element
+    // we set the expression to zero literal and then bit-or the shifted bytes containing the value
+    // to be set
+    Formula setValueFormula =
+        delegate.visit(CIntegerLiteralExpression.createDummyLiteral(0, underlyingType));
 
-    // we iterate over the actual elements in the outer loop so that we can assign once to each one
+    for (long byteIndex = 0; byteIndex < elementSizeInBytes; ++byteIndex) {
+      // shift the byte left
+      long bitIndex = byteIndex * conv.getBitSizeof(CNumericTypes.UNSIGNED_CHAR);
+      CIntegerLiteralExpression bitIndexLiteral =
+          CIntegerLiteralExpression.createDummyLiteral(bitIndex, underlyingType);
+
+      CBinaryExpression setValueShiftedByteExpression =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              underlyingType,
+              underlyingType,
+              setValueLowestByte,
+              bitIndexLiteral,
+              BinaryOperator.SHIFT_LEFT);
+
+      Formula setValueShiftedByteFormula = this.visit(setValueShiftedByteExpression).getValue();
+
+      // bit-or with previous formula
+      setValueFormula = conv.fmgr.makeOr(setValueFormula, setValueShiftedByteFormula);
+    }
+
+    // we iterate over the actual elements so that we can assign once to each one
     for (long elementIndex = 0; elementIndex < operationSizeInWholeElements; ++elementIndex) {
 
       CIntegerLiteralExpression indexLiteral =
@@ -975,27 +1002,6 @@ class CExpressionVisitorWithPointerAliasing
       CArraySubscriptExpression destinationAtIndexExpression =
           new CArraySubscriptExpression(FileLocation.DUMMY, underlyingType, paramDestination, indexLiteral);
       Formula destinationAtIndex = asValueFormula(this.visit(destinationAtIndexExpression), underlyingType);
-
-
-      // we iterate over the bytes that the element is comprised of in the inner loop, building the formula to be assigned
-      // first, we set the expression to zero literal and then bit-or the shifted bytes containing the value to be set
-      Formula setValueFormula = delegate.visit(
-          CIntegerLiteralExpression.createDummyLiteral(0, underlyingType));
-
-      for (long byteIndex = 0; byteIndex < elementSizeInBytes; ++byteIndex) {
-        // shift the byte left
-        long bitIndex = byteIndex * conv.getBitSizeof(CNumericTypes.UNSIGNED_CHAR);
-        CIntegerLiteralExpression bitIndexLiteral =
-            CIntegerLiteralExpression.createDummyLiteral(bitIndex, underlyingType);
-
-        CBinaryExpression setValueShiftedByteExpression = new CBinaryExpression(FileLocation.DUMMY, underlyingType, underlyingType,
-            setValueLowestByte, bitIndexLiteral, BinaryOperator.SHIFT_LEFT);
-
-        Formula setValueShiftedByteFormula = this.visit(setValueShiftedByteExpression).getValue();
-
-        // bit-or with previous formula
-        setValueFormula = conv.fmgr.makeOr(setValueFormula, setValueShiftedByteFormula);
-      }
 
       // assign the prepared formula of value to be set
       BooleanFormula assignmentFormula = conv.fmgr.assignment(destinationAtIndex, setValueFormula);
