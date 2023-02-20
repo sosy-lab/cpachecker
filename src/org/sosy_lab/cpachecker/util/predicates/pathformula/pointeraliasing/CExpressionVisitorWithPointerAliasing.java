@@ -42,7 +42,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -915,19 +917,142 @@ class CExpressionVisitorWithPointerAliasing
 
     CPointerType destinationPointerType = (CPointerType) destinationType;
 
-    CType underlyingType = destinationPointerType.getType();
+    CType underlyingType = destinationPointerType.getType().getCanonicalType();
+    long elementSizeInBytes = typeHandler.getSizeof(underlyingType);
 
+
+    // we convert the destination, which should be of pointer or array type, to a formula
+    AliasedLocation destinationAsAliasedLocation = dereference(paramDestination, paramDestination.accept(this));
+    Formula destinationFormula = destinationAsAliasedLocation.getAddress();
+
+    // Second parameter (value to be set) processing
+
+    // the value to be set is passed as int, but converted to unsigned char internally before setting each byte to this value
+    // we cast it to unsigned char here first, then to the underlying type
+    CExpression setValueUnsignedChar = new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, paramSetValue);
+
+    // Third parameter (size) processing
+
+    // currently, we only support fixed sizes
+    if (!(paramSizeInBytes instanceof CIntegerLiteralExpression)) {
+      throw new UnrecognizedCodeException("Memset with non-literal sizes not implemented", e);
+    }
+
+    // we have the size to be set in bytes, but want to internally set the values to the actual elements
+    long operationSizeInBytes = ((CIntegerLiteralExpression) paramSizeInBytes).asLong();
+    long operationSizeInWholeElements = operationSizeInBytes / elementSizeInBytes;
+
+    long numBytesInWholeElements = operationSizeInWholeElements * elementSizeInBytes;
+
+    // TODO: Should we handle setting the fraction of last element? Would require endianness handling.
+    if (operationSizeInBytes != numBytesInWholeElements) {
+      throw new UnrecognizedCodeException("Memset with fractional element set not implemented", e);
+    }
+
+    // Formula creation for elements to be set to their new values
+
+    CType machineSizeType = conv.machineModel.getPointerEquivalentSimpleType();
+
+    // for structs, enumerate members so that each one can be set separately
+    List<CCompositeTypeMemberDeclaration> members = null;
+
+    if (underlyingType instanceof CCompositeType compositeUnderlyingType) {
+      if (compositeUnderlyingType.getKind() != ComplexTypeKind.STRUCT) {
+        throw new UnrecognizedCodeException(
+            "Destination with non-struct composite underlying type not supported for memset", e);
+      }
+
+      members = compositeUnderlyingType.getMembers();
+    }
+
+    // we iterate over the actual elements so that we can assign to each one
+    for (long elementIndex = 0; elementIndex < operationSizeInWholeElements; ++elementIndex) {
+
+      CIntegerLiteralExpression indexLiteral =
+          CIntegerLiteralExpression.createDummyLiteral(elementIndex, machineSizeType);
+
+      CArraySubscriptExpression destinationAtIndexExpression =
+          new CArraySubscriptExpression(
+              FileLocation.DUMMY, underlyingType, paramDestination, indexLiteral);
+      Formula destinationAtIndex =
+          asValueFormula(this.visit(destinationAtIndexExpression), underlyingType);
+
+      // TODO: create the set value formula once for each used simple underlying type
+
+      if (members != null) {
+        // set a value formula each member of struct
+
+        for (CCompositeTypeMemberDeclaration member : members) {
+          CType memberType = member.getType();
+          final CFieldReference memberExpression =
+              new CFieldReference(
+                  FileLocation.DUMMY,
+                  member.getType(),
+                  member.getName(),
+                  destinationAtIndexExpression,
+                  false);
+
+          // the acceptance creates an aliased location and thus takes address-of
+          AliasedLocation memberAtIndexAliasedLocation =
+              (AliasedLocation) memberExpression.accept(this);
+
+          AliasedLocation memberDereferenced =
+              dereference(memberExpression, memberAtIndexAliasedLocation);
+
+          Formula memberDereferencedFormula = memberDereferenced.getAddress();
+
+          Formula setValueFormula =
+              createSetValueFormula(e, member.getType().getCanonicalType(), setValueUnsignedChar);
+
+          /*BooleanFormula assignmentFormula =
+          new AssignmentHandler(conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr).
+          makeDestructiveAssignment(memberType, memberType, memberDereferenced, Value.ofValue(setValueFormula), false, null);*/
+
+          // TODO: use higher-level assignment rather than just SMT assignment which will lead to
+          // problems later
+
+          BooleanFormula assignmentFormula =
+              conv.fmgr.assignment(memberDereferencedFormula, setValueFormula);
+
+          constraints.addConstraint(assignmentFormula);
+        }
+
+      } else {
+        // just set the value formula to the underlying type
+        Formula setValueFormula = createSetValueFormula(e, underlyingType, setValueUnsignedChar);
+        // TODO: use higher-level assignment rather than just SMT assignment which will lead to
+        // problems later
+        BooleanFormula assignmentFormula =
+            conv.fmgr.assignment(destinationAtIndex, setValueFormula);
+        constraints.addConstraint(assignmentFormula);
+      }
+    }
+
+    // Result value formula creation
+    // we just copy the destination parameter to the result
+
+    final CType returnType = e.getExpressionType().getCanonicalType();
+    final Formula result = conv.makeNondet("memset", returnType, ssa, constraints);
+    constraints.addConstraint(conv.fmgr.assignment(result, destinationFormula));
+
+    return Value.ofValue(result);
+  }
+
+  private Formula createSetValueFormula(
+      final CFunctionCallExpression e, CType underlyingType, CExpression setValueUnsignedChar)
+      throws UnrecognizedCodeException {
+
+    long elementSizeInBytes = typeHandler.getSizeof(underlyingType);
 
     // we reject underlying types that are not simple integers
     // TODO: Support more underlying types
 
     if (!(underlyingType instanceof CSimpleType)) {
-      throw new UnrecognizedCodeException("Memset currently does not support destination with non-simple underlying type", e);
+      throw new UnrecognizedCodeException(
+          "Only struct and simple underlying destination types are supported for memset", e);
     }
 
     CSimpleType underlyingSimpleType = (CSimpleType) underlyingType;
-
-    long elementSizeInBytes = typeHandler.getSizeof(underlyingType);
 
     // Floating-point handling, part 1: create underlying integer type and SMT floating-point type
 
@@ -963,47 +1088,15 @@ class CExpressionVisitorWithPointerAliasing
       }
     }
 
-    // we convert the destination, which should be of pointer or array type, to a formula
-    AliasedLocation destinationAsAliasedLocation = dereference(paramDestination, paramDestination.accept(this));
-    Formula destinationFormula = destinationAsAliasedLocation.getAddress();
-
-    // Second parameter (value to be set) processing
-
-    // the value to be set is passed as int, but converted to unsigned char internally before setting each byte to this value
-    // we cast it to unsigned char here first, then to the underlying type
-    CExpression setValueUnsignedChar = new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, paramSetValue);
-
-    CExpression setValueLowestByte =
-        new CCastExpression(FileLocation.DUMMY, underlyingIntegerType, setValueUnsignedChar);
-
-    // Third parameter (size) processing
-
-    // currently, we only support fixed sizes
-    if (!(paramSizeInBytes instanceof CIntegerLiteralExpression)) {
-      throw new UnrecognizedCodeException("Memset with non-literal sizes not implemented", e);
-    }
-
-    // we have the size to be set in bytes, but want to internally set the values to the actual elements
-    long operationSizeInBytes = ((CIntegerLiteralExpression) paramSizeInBytes).asLong();
-    long operationSizeInWholeElements = operationSizeInBytes / elementSizeInBytes;
-
-    long numBytesInWholeElements = operationSizeInWholeElements * elementSizeInBytes;
-
-    // TODO: Should we handle setting the fraction of last element? Would require endianness handling.
-    if (operationSizeInBytes != numBytesInWholeElements) {
-      throw new UnrecognizedCodeException("Memset with fractional element set not implemented", e);
-    }
-
-    // Formula creation for elements to be set to their new values
-
-    CType machineSizeType = conv.machineModel.getPointerEquivalentSimpleType();
-
     // the value to be set is specified as an unsigned byte, but the element may be larger,
     // so we need to compose the value to be set to each element
     // we set the expression to zero literal and then bit-or the shifted bytes containing the value
     // to be set
     Formula setValueFormula =
         delegate.visit(CIntegerLiteralExpression.createDummyLiteral(0, underlyingIntegerType));
+
+    CExpression setValueLowestByte =
+        new CCastExpression(FileLocation.DUMMY, underlyingIntegerType, setValueUnsignedChar);
 
     for (long byteIndex = 0; byteIndex < elementSizeInBytes; ++byteIndex) {
       // shift the byte left
@@ -1036,29 +1129,7 @@ class CExpressionVisitorWithPointerAliasing
               .fromIeeeBitvector((BitvectorFormula) setValueFormula, fpType);
     }
 
-    // we iterate over the actual elements so that we can assign once to each one
-    for (long elementIndex = 0; elementIndex < operationSizeInWholeElements; ++elementIndex) {
-
-      CIntegerLiteralExpression indexLiteral =
-          CIntegerLiteralExpression.createDummyLiteral(elementIndex, machineSizeType);
-
-      CArraySubscriptExpression destinationAtIndexExpression =
-          new CArraySubscriptExpression(FileLocation.DUMMY, underlyingType, paramDestination, indexLiteral);
-      Formula destinationAtIndex = asValueFormula(this.visit(destinationAtIndexExpression), underlyingType);
-
-      // assign the prepared formula of value to be set
-      BooleanFormula assignmentFormula = conv.fmgr.assignment(destinationAtIndex, setValueFormula);
-      constraints.addConstraint(assignmentFormula);
-    }
-
-    // Result value formula creation
-    // we just copy the destination parameter to the result
-
-    final CType returnType = e.getExpressionType().getCanonicalType();
-    final Formula result = conv.makeNondet("memset", returnType, ssa, constraints);
-    constraints.addConstraint(conv.fmgr.assignment(result, destinationFormula));
-
-    return Value.ofValue(result);
+    return setValueFormula;
   }
 
   /** This method provides approximations of the builtin functions memcpy and memmove. */
