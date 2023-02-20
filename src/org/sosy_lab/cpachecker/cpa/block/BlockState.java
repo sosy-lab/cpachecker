@@ -121,17 +121,25 @@ public class BlockState
         ? errorCondition
             .map(
                 state ->
-                    PredicateOperatorUtil.uninstantiate(
-                            Objects.requireNonNull(
-                                    AbstractStates.extractStateByType(
-                                        state, PredicateAbstractState.class))
-                                .getPathFormula(),
-                            manager)
-                        .booleanFormula())
+                    extractFormula(
+                        Objects.requireNonNull(
+                            AbstractStates.extractStateByType(state, PredicateAbstractState.class)),
+                        manager))
             .orElse(manager.getBooleanFormulaManager().makeTrue())
         : manager.getBooleanFormulaManager().makeTrue();
   }
 
+  private BooleanFormula extractFormula(
+      PredicateAbstractState pPredicateAbstractState, FormulaManagerView manager) {
+    if (pPredicateAbstractState.isAbstractionState()) {
+      // already uninstantiated by convention
+      return pPredicateAbstractState.getAbstractionFormula().asFormula();
+    }
+    return PredicateOperatorUtil.uninstantiate(pPredicateAbstractState.getPathFormula(), manager)
+        .booleanFormula();
+  }
+
+  // error condition intentionally left out as it is mutable
   @Override
   public boolean equals(Object pO) {
     if (pO instanceof BlockState that) {

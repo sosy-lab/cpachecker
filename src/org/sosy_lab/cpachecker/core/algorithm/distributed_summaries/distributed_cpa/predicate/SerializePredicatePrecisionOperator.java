@@ -29,7 +29,7 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
   }
 
   private String serializeAbstractionPredicate(AbstractionPredicate pPredicate) {
-    return formulaManagerView.dumpArbitraryFormula(pPredicate.getSymbolicAtom());
+    return formulaManagerView.dumpFormula(pPredicate.getSymbolicAtom()).toString();
   }
 
   @Override

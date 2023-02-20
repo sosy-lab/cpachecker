@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 
 public class BlockSummaryResultWorker extends BlockSummaryWorker {
 
@@ -121,15 +120,8 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
     if (messageReceived.size() == numWorkers
         && expectAnswer.values().stream().allMatch(i -> i == 0)) {
       shutdown = true;
-      Set<String> visited = ImmutableSet.of();
-      if (pMessage.getType() == MessageType.BLOCK_POSTCONDITION) {
-        visited = ((BlockSummaryPostConditionMessage) pMessage).visitedBlockIds();
-      } else if (pMessage.getType() == MessageType.ERROR_CONDITION) {
-        visited = ((BlockSummaryErrorConditionMessage) pMessage).visitedBlockIds();
-      }
       return ImmutableSet.of(
-          BlockSummaryMessage.newResultMessage(
-              pMessage.getUniqueBlockId(), 0, Result.TRUE, visited));
+          BlockSummaryMessage.newResultMessage(pMessage.getUniqueBlockId(), 0, Result.TRUE));
     }
     return ImmutableSet.of();
   }

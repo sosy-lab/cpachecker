@@ -16,6 +16,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -68,6 +70,32 @@ public class BlockGraph {
     return fromMetaData(pMetaDataSet, pCFA, pNotifier, false);
   }
 
+  private static Multimap<BlockNodeMetaData, BlockNodeMetaData> findLoopPredecessors(
+      CFA pCFA, Multimap<CFANode, BlockNodeMetaData> pStart) {
+    List<List<BlockNodeMetaData>> waitList = new ArrayList<>();
+    Multimap<BlockNodeMetaData, BlockNodeMetaData> loopPredecessors = ArrayListMultimap.create();
+    for (BlockNodeMetaData blockNodeMetaData : pStart.get(pCFA.getMainFunction())) {
+      ArrayList<BlockNodeMetaData> entry = new ArrayList<>();
+      entry.add(blockNodeMetaData);
+      waitList.add(entry);
+    }
+    while (!waitList.isEmpty()) {
+      List<BlockNodeMetaData> current = waitList.remove(0);
+      BlockNodeMetaData last = current.get(current.size() - 1);
+      CFANode lastNode = last.getLastNode();
+      for (BlockNodeMetaData blockNodeMetaData : pStart.get(lastNode)) {
+        if (current.contains(blockNodeMetaData)) {
+          loopPredecessors.put(blockNodeMetaData, last);
+          continue;
+        }
+        ArrayList<BlockNodeMetaData> entry = new ArrayList<>(current);
+        entry.add(blockNodeMetaData);
+        waitList.add(entry);
+      }
+    }
+    return loopPredecessors;
+  }
+
   private static BlockGraph fromMetaData(
       Set<BlockNodeMetaData> pMetaDataSet,
       CFA pCFA,
@@ -98,6 +126,7 @@ public class BlockGraph {
               rootMetaData,
               ImmutableSet.of(),
               ImmutableSet.copyOf(startingPoints.get(pCFA.getMainFunction())),
+              ImmutableSet.of(),
               pNotifier,
               idToNode);
       nodes.add(root);
@@ -110,11 +139,15 @@ public class BlockGraph {
       if (pPrependRoot && root != null && blockNode.getStartNode().equals(root.getLastNode())) {
         predecessors.add(root.getMetaData());
       }
+      Set<BlockNodeMetaData> predecessorSet = predecessors.build();
+      Multimap<BlockNodeMetaData, BlockNodeMetaData> loopPredecessors =
+          findLoopPredecessors(pCFA, startingPoints);
       BlockNode curr =
           new BlockNode(
               blockNode,
-              predecessors.build(),
+              predecessorSet,
               ImmutableSet.copyOf(startingPoints.get(blockNode.getLastNode())),
+              ImmutableSet.copyOf(loopPredecessors.get(blockNode)),
               pNotifier,
               idToNode);
       nodes.add(curr);

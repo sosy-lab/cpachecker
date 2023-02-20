@@ -88,10 +88,12 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
     return compositeCPA;
   }
 
+  @Override
   public SerializePrecisionOperator getSerializePrecisionOperator() {
     return serializePrecisionOperator;
   }
 
+  @Override
   public DeserializePrecisionOperator getDeserializePrecisionOperator() {
     return deserializePrecisionOperator;
   }

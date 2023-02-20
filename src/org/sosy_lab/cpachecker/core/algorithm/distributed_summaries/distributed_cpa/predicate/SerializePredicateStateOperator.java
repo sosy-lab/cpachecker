@@ -16,21 +16,16 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Ser
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class SerializePredicateStateOperator implements SerializeOperator {
-
-  private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView formulaManagerView;
   private final AnalysisDirection direction;
 
   public SerializePredicateStateOperator(
-      PathFormulaManager pPathFormulaManager,
-      FormulaManagerView pFormulaManagerView,
-      AnalysisDirection pDirection) {
-    pathFormulaManager = pPathFormulaManager;
+      FormulaManagerView pFormulaManagerView, AnalysisDirection pDirection) {
     formulaManagerView = pFormulaManagerView;
     direction = pDirection;
   }
@@ -38,31 +33,32 @@ public class SerializePredicateStateOperator implements SerializeOperator {
   @Override
   public BlockSummaryMessagePayload serialize(AbstractState pState) {
     PredicateAbstractState state = (PredicateAbstractState) pState;
-    PathFormula pathFormula;
+    BooleanFormula booleanFormula;
+    SSAMap ssaMap;
     if (state.isAbstractionState()) {
       if (state.getAbstractionFormula().isTrue() && direction == AnalysisDirection.BACKWARD) {
-        pathFormula = state.getAbstractionFormula().getBlockFormula();
+        booleanFormula = state.getAbstractionFormula().getBlockFormula().getFormula();
+        ssaMap = state.getAbstractionFormula().getBlockFormula().getSsa();
       } else {
-        pathFormula =
-            pathFormulaManager
-                .makeEmptyPathFormula()
-                .withFormula(state.getAbstractionFormula().asFormula());
+        booleanFormula = state.getAbstractionFormula().asFormula();
+        ssaMap = SSAMap.emptySSAMap();
       }
     } else {
-      pathFormula = state.getPathFormula();
+      booleanFormula = state.getPathFormula().getFormula();
+      ssaMap = state.getPathFormula().getSsa();
     }
-    String formula = formulaManagerView.dumpFormula(pathFormula.getFormula()).toString();
-    String ssa;
+    String serializedFormula = formulaManagerView.dumpFormula(booleanFormula).toString();
+    String serializedSSAMap;
     // String pts;
     try {
-      ssa = SerializeUtil.serialize(state.getPathFormula().getSsa());
+      serializedSSAMap = SerializeUtil.serialize(ssaMap);
       // pts = SerializeUtil.serialize(state.getPathFormula().getPointerTargetSet());
     } catch (IOException pE) {
       throw new AssertionError("Unable to serialize SSAMap " + state.getPathFormula().getSsa());
     }
     return BlockSummaryMessagePayload.builder()
-        .addEntry(PredicateCPA.class.getName(), formula)
-        .addEntry(BlockSummaryMessagePayload.SSA, ssa)
+        .addEntry(PredicateCPA.class.getName(), serializedFormula)
+        .addEntry(BlockSummaryMessagePayload.SSA, serializedSSAMap)
         // .addEntry(BlockSummaryMessagePayload.PTS, pts)
         .buildPayload();
   }

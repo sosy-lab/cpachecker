@@ -9,14 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages;
 
 import java.time.Instant;
-import java.util.Set;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 
 public class BlockSummaryResultMessage extends BlockSummaryMessage {
 
   private final Result result;
-  private final Set<String> visited;
 
   protected BlockSummaryResultMessage(
       String pUniqueBlockId,
@@ -25,15 +23,10 @@ public class BlockSummaryResultMessage extends BlockSummaryMessage {
       Instant pTimeStamp) {
     super(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, pPayload, pTimeStamp);
     result = Result.valueOf((String) getPayload().get(BlockSummaryMessagePayload.RESULT));
-    visited = extractVisited();
   }
 
   public Result getResult() {
     return result;
-  }
-
-  public Set<String> getVisited() {
-    return visited;
   }
 
   @Override

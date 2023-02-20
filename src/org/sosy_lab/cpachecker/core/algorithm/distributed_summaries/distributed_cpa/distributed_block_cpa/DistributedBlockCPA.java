@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
@@ -55,8 +54,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
                 : pNode.getLastNode().getNodeNumber(),
             BlockSummaryMessagePayload.empty(),
             false,
-            true,
-            ImmutableSet.of());
+            true);
   }
 
   @Override

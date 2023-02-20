@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -101,10 +100,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
         }
         return ImmutableSet.of(
             BlockSummaryMessage.newResultMessage(
-                root.getId(),
-                root.getLastNode().getNodeNumber(),
-                Result.FALSE,
-                ((BlockSummaryErrorConditionMessage) pMessage).visitedBlockIds()));
+                root.getId(), root.getLastNode().getNodeNumber(), Result.FALSE));
       }
       case FOUND_RESULT, ERROR -> {
         shutdown = true;
@@ -137,8 +133,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
                   root.getLastNode().getNodeNumber(),
                   dcpa.getSerializeOperator().serialize(topState),
                   true,
-                  true,
-                  ImmutableSet.of(root.getId()))));
+                  true)));
       super.run();
     } catch (InterruptedException pE) {
       getLogger().logException(Level.SEVERE, pE, "Root worker stopped unexpectedly.");

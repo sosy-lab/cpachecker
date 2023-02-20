@@ -122,8 +122,7 @@ public class DCPAAlgorithm {
             // we can assume full here as no precondition will ever change unsatisfiability of
             // this block
             true,
-            false,
-            ImmutableSet.of()));
+            false));
   }
 
   public Collection<BlockSummaryMessage> runInitialAnalysis()
@@ -193,7 +192,6 @@ public class DCPAAlgorithm {
   public Collection<BlockSummaryMessage> runAnalysisUnderCondition(
       Optional<AbstractState> errorCondition) throws CPAException, InterruptedException {
     reachedSet.clear();
-    // abstractionStates.values().forEach(a -> reachedSet.addNoWaitlist(a, initialPrecision));
     for (BlockSummaryMessage message : states.values()) {
       if (message == null) {
         continue;
@@ -206,17 +204,15 @@ public class DCPAAlgorithm {
           AbstractState merged =
               cpa.getMergeOperator().merge(value, abstractState, initialPrecision);
           if (!merged.equals(abstractState)) {
-            reachedSet.remove(value);
+            reachedSet.add(merged, initialPrecision);
+            reachedSet.remove(abstractState);
           }
-          reachedSet.add(merged, initialPrecision);
         }
       }
     }
 
     if (reachedSet.isEmpty()) {
-      reachedSet.add(
-          cpa.getInitialState(block.getStartNode(), StateSpacePartition.getDefaultPartition()),
-          initialPrecision);
+      reachedSet.add(startState, initialPrecision);
     }
 
     for (AbstractState abstractState : reachedSet) {
@@ -255,34 +251,30 @@ public class DCPAAlgorithm {
       answers
           // serialize all target states (they are for sure abstraction states, necessary for
           // covered by)
+          /*.addAll(
+          FluentIterable.from(reachedSet.getReached(block.getStartNode()))
+              .append(reachedSet.getReached(block.getLastNode()))
+              .filter(AbstractStates::isTargetState)
+              .filter(s -> !startState.equals(s))
+              .transform(
+                  a ->
+                      BlockSummaryMessage.newAbstractionStateMessage(
+                          block.getId(),
+                          Objects.requireNonNull(AbstractStates.extractLocation(a))
+                              .getNodeNumber(),
+                          dcpa.getSerializeOperator().serialize(a))))*/
           .addAll(
-              FluentIterable.from(reachedSet.getReached(block.getStartNode()))
-                  .append(reachedSet.getReached(block.getLastNode()))
-                  .filter(AbstractStates::isTargetState)
-                  .transform(
-                      a ->
-                          BlockSummaryMessage.newAbstractionStateMessage(
-                              block.getId(),
-                              Objects.requireNonNull(AbstractStates.extractLocation(a))
-                                  .getNodeNumber(),
-                              dcpa.getSerializeOperator().serialize(a))))
-          .addAll(
-              // serialize the precision and the states at the block ends
-              // (BlockPostConditionMessages)
-              FluentIterable.from(result.getBlockEnds())
-                  .transform(
-                      state ->
-                          DCPAAlgorithms.chainSerialization(
-                              dcpa, reachedSet.getPrecision(state), state))
-                  .transform(
-                      p ->
-                          BlockSummaryMessage.newBlockPostCondition(
-                              block.getId(),
-                              block.getLastNode().getNodeNumber(),
-                              p,
-                              false,
-                              true,
-                              ImmutableSet.of())));
+          // serialize the precision and the states at the block ends
+          // (BlockPostConditionMessages)
+          FluentIterable.from(result.getBlockEnds())
+              .transform(
+                  state ->
+                      DCPAAlgorithms.chainSerialization(
+                          dcpa, reachedSet.getPrecision(state), state))
+              .transform(
+                  p ->
+                      BlockSummaryMessage.newBlockPostCondition(
+                          block.getId(), block.getLastNode().getNodeNumber(), p, false, true)));
     } else {
       answers.addAll(reportUnreachableBlockEnd());
     }
@@ -312,11 +304,7 @@ public class DCPAAlgorithm {
       initial = DCPAAlgorithms.appendStatus(status, initial);
       answers.add(
           BlockSummaryMessage.newErrorConditionMessage(
-              block.getId(),
-              targetNode.orElseThrow().getNodeNumber(),
-              initial,
-              true,
-              ImmutableSet.of(block.getId())));
+              block.getId(), targetNode.orElseThrow().getNodeNumber(), initial, true));
     }
     return answers.build();
   }

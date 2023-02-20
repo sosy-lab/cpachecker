@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ac
 
 import java.time.Instant;
 import java.util.Objects;
-import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.SerializeUtil;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -20,7 +19,6 @@ public class BlockSummaryPostConditionMessage extends BlockSummaryMessage {
 
   private final boolean fullPath;
   private final boolean reachable;
-  private final Set<String> visited;
 
   BlockSummaryPostConditionMessage(
       String pUniqueBlockId,
@@ -30,15 +28,10 @@ public class BlockSummaryPostConditionMessage extends BlockSummaryMessage {
     super(MessageType.BLOCK_POSTCONDITION, pUniqueBlockId, pTargetNodeNumber, pPayload, pInstant);
     fullPath = extractFlag(BlockSummaryMessagePayload.FULL_PATH, false);
     reachable = extractFlag(BlockSummaryMessagePayload.REACHABLE, true);
-    visited = extractVisited();
   }
 
   public boolean representsFullPath() {
     return fullPath;
-  }
-
-  public Set<String> visitedBlockIds() {
-    return visited;
   }
 
   public SSAMap getSSAMap() {

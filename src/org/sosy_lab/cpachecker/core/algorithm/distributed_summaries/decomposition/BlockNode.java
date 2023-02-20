@@ -31,6 +31,7 @@ public class BlockNode {
 
   private final Set<BlockNodeMetaData> predecessors;
   private final Set<BlockNodeMetaData> successors;
+  private final Set<BlockNodeMetaData> loopPredecessors;
 
   private final Map<Integer, CFANode> idToNodeMap;
 
@@ -48,6 +49,7 @@ public class BlockNode {
       @NonNull BlockNodeMetaData pMetaData,
       @NonNull Set<BlockNodeMetaData> pPredecessors,
       @NonNull Set<BlockNodeMetaData> pSuccessors,
+      @NonNull Set<BlockNodeMetaData> pLoopPredecessors,
       @NonNull ShutdownNotifier pShutdownNotifier,
       @NonNull Map<Integer, CFANode> pIdToNodeMap)
       throws InterruptedException {
@@ -70,10 +72,14 @@ public class BlockNode {
     Preconditions.checkArgument(
         isBlockNodeValid(pMetaData.getStartNode(), pMetaData.getEdgesInBlock()),
         "BlockNodes require to have exactly one exit node.");
+    Preconditions.checkArgument(
+        pPredecessors.containsAll(pLoopPredecessors),
+        "Found loop predecessors that are not in the set of predecessors?");
 
     metaData = pMetaData;
     predecessors = pPredecessors;
     successors = pSuccessors;
+    loopPredecessors = pLoopPredecessors;
     idToNodeMap = pIdToNodeMap;
     code = metaData.getCode();
   }
@@ -145,6 +151,10 @@ public class BlockNode {
     return metaData.getLastNode();
   }
 
+  public Set<BlockNodeMetaData> getLoopPredecessors() {
+    return loopPredecessors;
+  }
+
   public CFANode getAbstractionNode() {
     return metaData.getAbstractionEnd();
   }
@@ -159,11 +169,10 @@ public class BlockNode {
 
   @Override
   public boolean equals(Object pO) {
-    if (!(pO instanceof BlockNode)) {
-      return false;
+    if (pO instanceof BlockNode blockNode) {
+      return getId().equals(blockNode.getId());
     }
-    BlockNode blockNode = (BlockNode) pO;
-    return getId().equals(blockNode.getId());
+    return false;
   }
 
   @Override

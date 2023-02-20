@@ -168,12 +168,10 @@ public class DCPABackwardAlgorithm {
     ImmutableSet.Builder<BlockSummaryMessage> responses = ImmutableSet.builder();
     for (AbstractState state : states) {
       BlockSummaryMessagePayload payload = dcpa.getSerializeOperator().serialize(state);
-      ImmutableSet<String> visited =
-          ImmutableSet.<String>builder().addAll(ImmutableSet.of()).add(block.getId()).build();
       payload = DCPAAlgorithms.appendStatus(status, payload);
       responses.add(
           BlockSummaryMessage.newErrorConditionMessage(
-              block.getId(), block.getStartNode().getNodeNumber(), payload, false, visited));
+              block.getId(), block.getStartNode().getNodeNumber(), payload, false));
     }
     return responses.addAll(messages).build();
   }
@@ -197,8 +195,7 @@ public class DCPABackwardAlgorithm {
             block.getAbstractionNode().getNodeNumber(),
             getDCPA().getSerializeOperator().serialize(pBackwardAnalysis),
             false,
-            true,
-            ImmutableSet.of());
+            true);
     return forwardAnalysis.getDCPA().getDeserializeOperator().deserialize(forwardMessage);
   }
 
@@ -213,8 +210,7 @@ public class DCPABackwardAlgorithm {
                         .getDCPA()
                         .getSerializePrecisionOperator()
                         .serializePrecision(forwardAnalysis.getLastPrecision()),
-                    false,
-                    ImmutableSet.of()));
+                    false));
   }
 
   private boolean denyMessage() {

@@ -28,20 +28,16 @@ public class BlockSummaryMessagePayload extends ForwardingMap<String, Object> {
   public static final String FULL_PATH = "full";
   public static final String FIRST = "first";
   public static final String RESULT = "result";
-  public static final String VISITED = "visited";
   public static final String EXCEPTION = "exception";
   public static final String REACHABLE = "reach";
-  public static final String SMART = "smart";
   // reason why error condition is reachable
   public static final String REASON = "reason";
-
-  // fault localization
-  public static final String FAULT_LOCALIZATION = "fl";
 
   // AlgorithmStatus
   public static final String SOUND = "sound";
   public static final String PRECISE = "precise";
   public static final String PROPERTY = "property";
+
   public static final String SSA = "ssa";
   public static final String PTS = "pts";
   public static final String STATS = "stats";

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ac
 
 import java.time.Instant;
 import java.util.Objects;
-import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.SerializeUtil;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -18,7 +17,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 
 public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
 
-  private final Set<String> visited;
   private final boolean first;
 
   BlockSummaryErrorConditionMessage(
@@ -27,7 +25,6 @@ public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
       BlockSummaryMessagePayload pPayload,
       Instant pInstant) {
     super(MessageType.ERROR_CONDITION, pUniqueBlockId, pTargetNodeNumber, pPayload, pInstant);
-    visited = extractVisited();
     first = extractFlag(BlockSummaryMessagePayload.FIRST, false);
   }
 
@@ -47,10 +44,6 @@ public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
           PointerTargetSet.class);
     }
     return PointerTargetSet.emptyPointerTargetSet();
-  }
-
-  public Set<String> visitedBlockIds() {
-    return visited;
   }
 
   public boolean isFirst() {

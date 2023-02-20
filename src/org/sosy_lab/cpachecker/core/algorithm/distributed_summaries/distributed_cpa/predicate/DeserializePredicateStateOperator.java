@@ -8,11 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryErrorConditionTracker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -31,6 +33,8 @@ public class DeserializePredicateStateOperator
   private final PredicateCPA predicateCPA;
   private final FormulaManagerView formulaManagerView;
   private final PathFormulaManager pathFormulaManager;
+
+  private final PredicateAbstractState previousState;
   private final BlockNode block;
   private BooleanFormula errorCondition;
 
@@ -44,6 +48,10 @@ public class DeserializePredicateStateOperator
     pathFormulaManager = pPathFormulaManager;
     block = pBlockNode;
     errorCondition = pFormulaManagerView.getBooleanFormulaManager().makeTrue();
+    previousState =
+        (PredicateAbstractState)
+            predicateCPA.getInitialState(
+                block.getStartNode(), StateSpacePartition.getDefaultPartition());
   }
 
   @Override
@@ -69,30 +77,24 @@ public class DeserializePredicateStateOperator
             PointerTargetSet.emptyPointerTargetSet(),
             map);
 
-    PredicateAbstractState previousState =
-        (PredicateAbstractState)
-            predicateCPA.getInitialState(
-                block.getNodeWithNumber(pMessage.getTargetNodeNumber()),
-                StateSpacePartition.getDefaultPartition());
-
     PredicateAbstractState deserialized;
-    deserialized =
-        PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(abstraction, previousState);
-    /*if (pMessage.getType() == MessageType.ERROR_CONDITION) {
+    if (pMessage.getType() == MessageType.ERROR_CONDITION) {
       deserialized =
           PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
               abstraction, previousState);
     } else {
       deserialized =
           PredicateAbstractState.mkAbstractionState(
-              abstraction,
+              pathFormulaManager.makeEmptyPathFormula(),
               predicateCPA
                   .getPredicateManager()
                   .asAbstraction(
-                      formulaManagerView.getBooleanFormulaManager().makeTrue(), abstraction),
+                      PredicateOperatorUtil.uninstantiate(abstraction, formulaManagerView)
+                          .booleanFormula(),
+                      abstraction),
               PathCopyingPersistentTreeMap.of(),
               previousState);
-    }*/
+    }
 
     if (pMessage instanceof BlockSummaryErrorConditionMessage) {
       errorCondition =

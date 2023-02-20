@@ -114,7 +114,9 @@ def html_for_message(message, block_log: Dict[str, str]):
                     sender = ", ".join(senders)
                 else:
                     sender = "Self"
-                div(f"React to message from <strong>{sender}</strong> (ID: {msg_id[1:-5]}):")
+                div(
+                    f"React to message from <strong>{sender}</strong> (ID: {msg_id[1:-5]}):"
+                )
         with div.p():
             if receivers:
                 receiver = ", ".join(receivers)
