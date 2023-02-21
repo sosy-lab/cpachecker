@@ -38,7 +38,15 @@ def get_benchmark_data_from_file(f):
     file_data.readline()
 
     benchmark_times = file_data.readline().split(";")[:-1]
+    file_data.close()
     return list(map(lambda x: int(x) / 1000000, benchmark_times))
+
+
+def get_standard_variations_from_file(f):
+    run_data_file = os.path.join(f, "output", "output.txt")
+    file_data = open(run_data_file, "r")
+    deviations = [float(l.replace("Standard deviation: ", "").replace("\n", "")) for l in file_data.readlines() if l.startswith("Standard deviation")]
+    return deviations
 
 
 def generate_benchmark_runs_plots(directory):
@@ -76,6 +84,15 @@ def generate_benchmark_runs_plots(directory):
         plt.savefig(output_file_graph, bbox_inches='tight')
         plt.clf()
         print("Saved to " + output_file_graph)
+
+        output_file_deviation = os.path.join(benchmark_dirs[x], "output", "standard_deviation.svg")
+        standard_deviations = get_standard_variations_from_file(benchmark_dirs[x])
+        fig2 = plt.figure()
+        ax2 = fig2.add_axes([0, 0, 1, 1])
+        run_num = ["#" + str(num) for num in range(0, len(standard_deviations))]
+        ax2.bar(run_num, standard_deviations)
+        plt.savefig(output_file_deviation, bbox_inches='tight')
+        plt.clf()
 
 
 def get_label_for_benchmark_run(directory):
