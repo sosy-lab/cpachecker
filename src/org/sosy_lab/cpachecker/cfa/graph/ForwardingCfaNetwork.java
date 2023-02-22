@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.util.graph.ForwardingNetwork;
  *
  * <p>The delegate {@link CfaNetwork} is specified using {@link ForwardingCfaNetwork#delegate()}.
  */
-abstract class ForwardingCfaNetwork extends ForwardingNetwork<CFANode, CFAEdge>
+public abstract class ForwardingCfaNetwork extends ForwardingNetwork<CFANode, CFAEdge>
     implements CfaNetwork {
 
   /**

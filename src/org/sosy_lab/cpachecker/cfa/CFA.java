@@ -16,7 +16,6 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -24,7 +23,7 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-public interface CFA {
+public interface CFA extends CfaNetwork {
 
   default MachineModel getMachineModel() {
     return getMetadata().getMachineModel();
@@ -81,24 +80,4 @@ public interface CFA {
    * @return the metadata associated with this CFA
    */
   CfaMetadata getMetadata();
-
-  /**
-   * Returns a {@link CfaNetwork} view that represents this {@link CFA}.
-   *
-   * <p>All changes to this CFA are reflected in the returned {@link CfaNetwork}. The CFA
-   * represented by the returned {@link CfaNetwork} always matches the CFA represented by its
-   * individual elements (e.g., {@link CFAEdge#getSuccessor()} and {@link
-   * CfaNetwork#successor(CFAEdge)} always return the same value).
-   *
-   * <p>IMPORTANT: This CFA must not contain any parallel edges (i.e., edges that connect the same
-   * nodes in the same order) and never add them in the future (if the CFA is mutable).
-   * Additionally, the collections returned by {@link CFA#getAllNodes()} and {@link
-   * CFA#getAllFunctionHeads()} must not contain any duplicates and never add them in the future. Be
-   * aware that these requirements are not enforced if Java assertions are disabled.
-   *
-   * @return a {@link CfaNetwork} view that represents this {@link CFA}
-   */
-  default CfaNetwork asNetwork() {
-    return CfaNetwork.wrap(this);
-  }
 }
