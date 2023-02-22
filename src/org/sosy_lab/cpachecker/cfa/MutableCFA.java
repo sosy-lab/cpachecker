@@ -45,7 +45,7 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
    * @param pAllNodes a mapping of function names to nodes of the corresponding function
    * @param pCfaMetadata the metadata of the CFA
    * @throws NullPointerException if any parameter is {@code null}
-   * @throws IllegalArgumentException if {@code pFunction} and {@code pAllNodes} do not contain the
+   * @throws IllegalArgumentException if {@code pFunctions} and {@code pAllNodes} do not contain the
    *     same functions
    * @throws IllegalArgumentException if {@code pAllNodes} doesn't contain all entries in {@code
    *     pFunctions}
