@@ -70,27 +70,6 @@ class CheckingCfaNetwork implements CfaNetwork {
     return cfaNetwork;
   }
 
-  /**
-   * Returns the specified {@link MutableCfaNetwork} that is also wrapped in a {@link
-   * CheckingCfaNetwork} if Java assertions are enabled.
-   *
-   * @param pMutableCfaNetwork the {@link MutableCfaNetwork} to wrap if Java assertions are enabled
-   * @return If Java assertions are enabled, the specified {@link MutableCfaNetwork} wrapped in a
-   *     {@link CheckingCfaNetwork} is returned. Otherwise, if Java assertions are disabled, just
-   *     the specified {@link MutableCfaNetwork} is returned.
-   * @throws NullPointerException if {@code pMutableCfaNetwork == null}
-   */
-  static MutableCfaNetwork wrapIfAssertionsEnabled(MutableCfaNetwork pMutableCfaNetwork) {
-    MutableCfaNetwork mutableCfaNetwork = checkNotNull(pMutableCfaNetwork);
-    // Even though this is bad practice in general, the assert statement is used for its side-effect
-    // (wrapping the specified `MutableCfaNetwork` if evaluated).
-    // The checks defined in this class can be rather expensive, so we only want to run them if Java
-    // assertions are enabled.
-    assert (mutableCfaNetwork = new CheckingMutableCfaNetwork(mutableCfaNetwork)) != null;
-
-    return mutableCfaNetwork;
-  }
-
   private static <E> Set<E> checkNoDuplicates(Set<E> pSet) {
     ImmutableSet<List<E>> duplicates = UnmodifiableSetView.duplicates(pSet);
     checkArgument(duplicates.isEmpty(), "Set contains duplicates: %s", duplicates);
@@ -392,41 +371,5 @@ class CheckingCfaNetwork implements CfaNetwork {
   @Override
   public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
     return delegate.functionSummaryEdge(checkContainsEdge(pFunctionReturnEdge));
-  }
-
-  private static final class CheckingMutableCfaNetwork extends CheckingCfaNetwork
-      implements MutableCfaNetwork {
-
-    private final MutableCfaNetwork delegate;
-
-    private CheckingMutableCfaNetwork(MutableCfaNetwork pDelegate) {
-      super(pDelegate);
-      delegate = pDelegate;
-    }
-
-    @Override
-    public boolean addNode(CFANode pNode) {
-      return delegate.addNode(pNode);
-    }
-
-    @Override
-    public boolean removeEdge(CFAEdge pEdge) {
-      return delegate.removeEdge(pEdge);
-    }
-
-    @Override
-    public boolean removeNode(CFANode pNode) {
-      return delegate.removeNode(pNode);
-    }
-
-    @Override
-    public boolean addEdge(CFANode pPredecessor, CFANode pSuccessor, CFAEdge pNewEdge) {
-      return delegate.addEdge(pPredecessor, pSuccessor, pNewEdge);
-    }
-
-    @Override
-    public boolean addEdge(EndpointPair<CFANode> pEndpoints, CFAEdge pNewEdge) {
-      return delegate.addEdge(pEndpoints, pNewEdge);
-    }
   }
 }
