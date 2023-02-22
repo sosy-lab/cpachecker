@@ -30,16 +30,31 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 
 public class MutableCFA implements CFA {
 
+  // all entries in `functions` must also be in `allNodes`
   private final NavigableMap<String, FunctionEntryNode> functions;
   private final TreeMultimap<String, CFANode> allNodes;
 
   private CfaMetadata metadata;
 
+  /**
+   * Creates a new {@link MutableCFA}.
+   *
+   * @param pFunctions a mapping of function names to corresponding function entry nodes
+   * @param pAllNodes a mapping of function names to nodes of the corresponding function
+   * @param pCfaMetadata the metadata of the CFA
+   * @throws NullPointerException if any parameter is {@code null}
+   * @throws IllegalArgumentException if {@code pFunction} and {@code pAllNodes} do not contain the
+   *     same functions
+   * @throws IllegalArgumentException if {@code pAllNodes} doesn't contain all entries in {@code
+   *     pFunctions}
+   * @throws IllegalArgumentException if not all parameters have the same main function entry node
+   */
   public MutableCFA(
       NavigableMap<String, FunctionEntryNode> pFunctions,
       TreeMultimap<String, CFANode> pAllNodes,
       CfaMetadata pCfaMetadata) {
     checkArgument(pFunctions.keySet().equals(pAllNodes.keySet()));
+    checkArgument(pAllNodes.entries().containsAll(pFunctions.entrySet()));
     FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
     checkArgument(mainFunctionEntry.equals(pFunctions.get(mainFunctionEntry.getFunctionName())));
 
@@ -67,11 +82,8 @@ public class MutableCFA implements CFA {
           "Cannot add multiple function entry nodes for function '%s'",
           functionName);
       functions.put(functionName, entryNode);
-      allNodes.put(functionName, pNode);
-      return true; // due to the precondition we are certain that we modified this CFA
-    } else {
-      return allNodes.put(functionName, pNode);
     }
+    return allNodes.put(functionName, pNode);
   }
 
   public void clear() {
@@ -91,11 +103,8 @@ public class MutableCFA implements CFA {
     String functionName = pNode.getFunctionName();
     if (pNode instanceof FunctionEntryNode && pNode.equals(functions.get(functionName))) {
       functions.remove(functionName);
-      allNodes.remove(functionName, pNode);
-      return true; // due to the if-condition we are certain that we modified this CFA
-    } else {
-      return allNodes.remove(functionName, pNode);
     }
+    return allNodes.remove(functionName, pNode);
   }
 
   @Override
