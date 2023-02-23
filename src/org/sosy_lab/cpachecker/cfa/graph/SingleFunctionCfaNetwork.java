@@ -10,15 +10,11 @@ package org.sosy_lab.cpachecker.cfa.graph;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.graph.EndpointPair;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
+import com.google.common.graph.Traverser;
 import java.util.Iterator;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -50,30 +46,9 @@ final class SingleFunctionCfaNetwork extends AbstractCfaNetwork {
 
       @Override
       public Iterator<CFANode> iterator() {
-        return new AbstractIterator<>() {
-
-          private final Set<CFANode> waitlisted = new HashSet<>(ImmutableSet.of(functionEntryNode));
-          private final Deque<CFANode> waitlist = new ArrayDeque<>(waitlisted);
-
-          @Override
-          protected @Nullable CFANode computeNext() {
-            while (!waitlist.isEmpty()) {
-
-              CFANode node = waitlist.remove();
-
-              for (CFAEdge outEdge : outEdges(node)) {
-                CFANode successor = successor(outEdge);
-                if (waitlisted.add(successor)) {
-                  waitlist.add(successor);
-                }
-              }
-
-              return node;
-            }
-
-            return endOfData();
-          }
-        };
+        return Traverser.forGraph(SingleFunctionCfaNetwork.this)
+            .depthFirstPreOrder(functionEntryNode)
+            .iterator();
       }
     };
   }

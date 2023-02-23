@@ -11,15 +11,12 @@ package org.sosy_lab.cpachecker.cfa.graph;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.common.graph.AbstractNetwork;
 import com.google.common.graph.ElementOrder;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
+import com.google.common.graph.Traverser;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
@@ -173,29 +170,11 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
-    Set<CFANode> waitlisted = new HashSet<>(ImmutableList.of(pFunctionEntryNode));
-    Deque<CFANode> waitlist = new ArrayDeque<>(waitlisted);
-
-    while (!waitlist.isEmpty()) {
-
-      CFANode node = waitlist.remove();
-
-      if (node instanceof FunctionExitNode) {
-        return Optional.of((FunctionExitNode) node);
-      }
-
-      for (CFAEdge outEdge : outEdges(node)) {
-        // we don't want to leave the current function
-        if (!(outEdge instanceof FunctionCallEdge)) {
-          CFANode successor = successor(outEdge);
-          if (waitlisted.add(successor)) {
-            waitlist.add(successor);
-          }
-        }
-      }
-    }
-
-    return Optional.empty();
+    return Iterables.tryFind(
+            Traverser.forGraph(withoutSuperEdges()).depthFirstPostOrder(pFunctionEntryNode),
+            node -> node instanceof FunctionExitNode)
+        .transform(node -> (FunctionExitNode) node)
+        .toJavaUtil();
   }
 
   @Override
