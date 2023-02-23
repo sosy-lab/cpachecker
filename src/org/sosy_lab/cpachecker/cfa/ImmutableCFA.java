@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.ConsistentCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ForwardingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -54,7 +55,7 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
     FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
     checkArgument(mainFunctionEntry.equals(functions.get(mainFunctionEntry.getFunctionName())));
 
-    network = CfaNetwork.wrap(this);
+    network = ConsistentCfaNetwork.of(allNodes, functions.values());
   }
 
   @Override
@@ -139,6 +140,6 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
       edge.getPredecessor().addLeavingEdge(edge);
     }
 
-    network = CfaNetwork.wrap(this);
+    network = ConsistentCfaNetwork.of(allNodes, functions.values());
   }
 }

@@ -45,28 +45,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 public interface CfaNetwork extends Network<CFANode, CFAEdge> {
 
   /**
-   * Returns a new {@link CfaNetwork} view that represents the specified {@link CFA}.
-   *
-   * <p>All changes to the specified CFA are reflected in the returned {@link CfaNetwork}. The CFA
-   * represented by the returned {@link CfaNetwork} always matches the CFA represented by its
-   * elements (e.g., {@link CFAEdge#getSuccessor()} and {@link CfaNetwork#successor(CFAEdge)} always
-   * return the same value).
-   *
-   * <p>IMPORTANT: The specified CFA must not contain any parallel edges (i.e., edges that connect
-   * the same nodes in the same order) and never add them in the future (if the CFA is mutable).
-   * Additionally, the collections returned by {@link CFA#getAllNodes()} and {@link
-   * CFA#getAllFunctionHeads()} must not contain any duplicates and never add them in the future. Be
-   * aware that these requirements are not enforced if Java assertions are disabled.
-   *
-   * @param pCfa the CFA to create a {@link CfaNetwork} view for
-   * @return a new {@link CfaNetwork} view that represents the specified {@link CFA}
-   * @throws NullPointerException if {@code pCfa == null}
-   */
-  public static CfaNetwork wrap(CFA pCfa) {
-    return WrappingCfaNetwork.wrap(pCfa);
-  }
-
-  /**
    * Returns a new {@link CfaNetwork} that represents a single function.
    *
    * <p>The function is specified using the function entry node. The returned {@link CfaNetwork}

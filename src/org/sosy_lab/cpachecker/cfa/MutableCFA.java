@@ -21,6 +21,7 @@ import java.util.NavigableSet;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.ConsistentCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ForwardingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -65,7 +66,7 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
 
     metadata = pCfaMetadata;
 
-    network = CfaNetwork.wrap(this);
+    network = ConsistentCfaNetwork.of(allNodes.values(), functions.values());
   }
 
   @Override
