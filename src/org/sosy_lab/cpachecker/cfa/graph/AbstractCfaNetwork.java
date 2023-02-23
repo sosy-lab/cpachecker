@@ -136,8 +136,7 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
       @Override
       public Iterator<FunctionEntryNode> iterator() {
-        Set<CFANode> entryNodeSet = Sets.filter(nodes(), node -> node instanceof FunctionEntryNode);
-        return Iterators.transform(entryNodeSet.iterator(), node -> (FunctionEntryNode) node);
+        return Iterators.filter(nodes().iterator(), FunctionEntryNode.class);
       }
     };
   }
