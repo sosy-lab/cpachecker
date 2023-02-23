@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.graph;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -19,13 +18,11 @@ import com.google.common.collect.Sets;
 import com.google.common.graph.AbstractNetwork;
 import com.google.common.graph.ElementOrder;
 import java.util.ArrayDeque;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -50,25 +47,8 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return new AbstractIterator<>() {
-
-          private final Iterator<CFANode> nodeIterator = nodes().iterator();
-          private Iterator<CFAEdge> currentNodeOutEdgeIterator = Collections.emptyIterator();
-
-          @Override
-          protected @Nullable CFAEdge computeNext() {
-            while (!currentNodeOutEdgeIterator.hasNext()) {
-              if (nodeIterator.hasNext()) {
-                CFANode currentNode = nodeIterator.next();
-                currentNodeOutEdgeIterator = outEdges(currentNode).iterator();
-              } else {
-                return endOfData();
-              }
-            }
-
-            return currentNodeOutEdgeIterator.next();
-          }
-        };
+        return Iterators.unmodifiableIterator(
+            Iterables.concat(Iterables.transform(nodes(), node -> outEdges(node))).iterator());
       }
     };
   }
