@@ -104,7 +104,7 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public Set<CFANode> adjacentNodes(CFANode pNode) {
-    return Collections.unmodifiableSet(Sets.union(predecessors(pNode), successors(pNode)));
+    return Sets.union(predecessors(pNode), successors(pNode));
   }
 
   @Override
@@ -145,7 +145,7 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public Set<CFAEdge> incidentEdges(CFANode pNode) {
-    return Collections.unmodifiableSet(Sets.union(inEdges(pNode), outEdges(pNode)));
+    return Sets.union(inEdges(pNode), outEdges(pNode));
   }
 
   // `CfaNetwork` specific
