@@ -13,7 +13,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -23,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 /**
- * Represents a {@link CFA} as a {@link Network}.
+ * The graph representation of a CFA.
  *
  * <p>All connections between elements of a CFA (i.e., nodes and edges) are defined by a {@link
  * CfaNetwork}. Depending on the implementation, the CFA represented by a {@link CfaNetwork} may
