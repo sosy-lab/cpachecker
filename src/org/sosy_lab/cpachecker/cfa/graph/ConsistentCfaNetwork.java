@@ -50,7 +50,7 @@ public abstract class ConsistentCfaNetwork extends AbstractCfaNetwork {
    *     any duplicates)
    * @param pEntryNodes the function entry nodes of the CFA (a {@link Collection} for flexibility,
    *     but must not contain any duplicates)
-   * @returns a new consistent {@link CfaNetwork} for the specified nodes
+   * @return a new consistent {@link CfaNetwork} for the specified nodes
    * @throws NullPointerException if any parameter is {@code null}
    */
   public static CfaNetwork of(
