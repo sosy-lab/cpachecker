@@ -45,10 +45,10 @@ public final class ConsistentCfaNetwork extends AbstractCfaNetwork {
   /**
    * Returns a new consistent {@link CfaNetwork} for the specified nodes.
    *
-   * <p>All changes are reflected in the returned {@link CfaNetwork} view. The CFA represented by
-   * the returned {@link CfaNetwork} always matches the CFA represented by its elements (e.g.,
-   * {@link CFAEdge#getSuccessor()} and {@link CfaNetwork#successor(CFAEdge)} always return the same
-   * value).
+   * <p>All changes, including changes to the specified collections, are reflected in the returned
+   * {@link CfaNetwork} view. The CFA represented by the returned {@link CfaNetwork} always matches
+   * the CFA represented by its elements (e.g., {@link CFAEdge#getSuccessor()} and {@link
+   * CfaNetwork#successor(CFAEdge)} always return the same value).
    *
    * <p>IMPORTANT: There must be no parallel edges (i.e., edges that connect the same nodes in the
    * same order) and must never be added in the future (if the CFA is mutable). Additionally, {@code
