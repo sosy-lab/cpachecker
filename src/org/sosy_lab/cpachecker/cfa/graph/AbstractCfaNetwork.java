@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.graph;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -170,11 +171,9 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
-    return Iterables.tryFind(
-            Traverser.forGraph(withoutSuperEdges()).depthFirstPostOrder(pFunctionEntryNode),
-            node -> node instanceof FunctionExitNode)
-        .transform(node -> (FunctionExitNode) node)
-        .toJavaUtil();
+    Iterable<CFANode> functionNodes =
+        Traverser.forGraph(withoutSuperEdges()).depthFirstPostOrder(pFunctionEntryNode);
+    return FluentIterable.from(functionNodes).filter(FunctionExitNode.class).first().toJavaUtil();
   }
 
   @Override
