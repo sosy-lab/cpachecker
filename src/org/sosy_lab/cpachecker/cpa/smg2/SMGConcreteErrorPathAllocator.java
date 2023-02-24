@@ -274,6 +274,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
             }
           } catch (SMG2Exception e) {
             // Do nothing, should not happen
+            throw new AssertionError("Failed to create a concrete error path.");
           }
         }
         continue;
