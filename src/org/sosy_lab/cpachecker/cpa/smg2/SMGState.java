@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import com.google.common.base.CharMatcher;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -769,7 +770,7 @@ public class SMGState
    */
   protected boolean isLocalVariablePresentOnPreviousStackFrame(String pVarName) {
     PersistentStack<StackFrame> frames = memoryModel.getStackFrames();
-    if (frames == null) {
+    if (frames == null || frames.size() < 2) {
       return false;
     }
     StackFrame stackframe = frames.popAndCopy().peek();
@@ -923,9 +924,13 @@ public class SMGState
 
   @Override
   public String toDOTLabel() {
-    // TODO: implement to showcase the SMG better
-    // This can't be not supported!
-    return toString();
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("[");
+    Joiner.on(", ").withKeyValueSeparator("=").appendTo(sb, getMemoryModel().getMemoryLocationsAndValuesForSPCWithoutHeap());
+    sb.append("]");
+
+    return sb.toString();
   }
 
   @Override
@@ -1018,7 +1023,6 @@ public class SMGState
     }
     // Now check the remaining values. We don't allow the merging of states if one has pointers/heap
     for (Entry<MemoryLocation, ValueAndValueSize> remainingThisEntry : memLocAndValues.entrySet()) {
-      // MemoryLocation key = remainingThisEntry.getKey();
       Value otherValue = remainingThisEntry.getValue().getValue();
       if (memoryModel.isPointer(otherValue)) {
         return false;
@@ -3818,7 +3822,9 @@ public class SMGState
             .getSmg()
             .getHasValueEdgeByPredicate(memory, o -> o.getOffset().compareTo(offsetInBits) == 0);
 
-    if (maybeEdge.isEmpty()) {
+    if (maybeEdge.isEmpty() || maybeEdge.orElseThrow().hasValue().isZero()) {
+      // Also return for 0, as 0 is invalid for memory but valid as a value.
+      // If we don't remove 0s, we allow all variables, e.g. length, that start at 0
       return false;
     }
     return memoryModel.getSmg().isPointer(maybeEdge.orElseThrow().hasValue());
