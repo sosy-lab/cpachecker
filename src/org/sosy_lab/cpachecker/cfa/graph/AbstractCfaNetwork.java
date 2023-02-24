@@ -69,12 +69,12 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public ElementOrder<CFANode> nodeOrder() {
-    return ElementOrder.unordered();
+    return ElementOrder.stable();
   }
 
   @Override
   public ElementOrder<CFAEdge> edgeOrder() {
-    return ElementOrder.unordered();
+    return ElementOrder.stable();
   }
 
   // element-level accessors
