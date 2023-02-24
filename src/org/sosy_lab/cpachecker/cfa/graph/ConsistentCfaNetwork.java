@@ -26,12 +26,21 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
- * This class provides a skeletal implementation of {@link CfaNetwork} where the CFA represented by
- * the {@link CfaNetwork} always matches the CFA represented by its elements (e.g., {@link
+ * This class provides an implementation of {@link CfaNetwork} where the CFA represented by the
+ * {@link CfaNetwork} always matches the CFA represented by its elements (e.g., {@link
  * CFAEdge#getSuccessor()} and {@link ConsistentCfaNetwork#successor(CFAEdge)} always return the
  * same value).
  */
-public abstract class ConsistentCfaNetwork extends AbstractCfaNetwork {
+public final class ConsistentCfaNetwork extends AbstractCfaNetwork {
+
+  private final Collection<CFANode> nodes;
+  private final Collection<FunctionEntryNode> entryNodes;
+
+  private ConsistentCfaNetwork(
+      Collection<CFANode> pNodes, Collection<FunctionEntryNode> pEntryNodes) {
+    nodes = checkNotNull(pNodes);
+    entryNodes = checkNotNull(pEntryNodes);
+  }
 
   /**
    * Returns a new consistent {@link CfaNetwork} for the specified nodes.
@@ -55,64 +64,36 @@ public abstract class ConsistentCfaNetwork extends AbstractCfaNetwork {
    */
   public static CfaNetwork of(
       Collection<CFANode> pNodes, Collection<FunctionEntryNode> pEntryNodes) {
-    checkNotNull(pNodes);
-    checkNotNull(pEntryNodes);
-
     return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        new ConsistentCfaNetwork() {
+        new ConsistentCfaNetwork(pNodes, pEntryNodes));
+  }
 
-          @Override
-          public Set<CFANode> nodes() {
-            return new UnmodifiableSetView<>() {
+  // network-level accessors
 
-              @Override
-              public Iterator<CFANode> iterator() {
-                return Iterators.unmodifiableIterator(pNodes.iterator());
-              }
+  @Override
+  public Set<CFANode> nodes() {
+    return new UnmodifiableSetView<>() {
 
-              @Override
-              public int size() {
-                return pNodes.size();
-              }
+      @Override
+      public Iterator<CFANode> iterator() {
+        return Iterators.unmodifiableIterator(nodes.iterator());
+      }
 
-              @Override
-              public boolean contains(Object pObject) {
-                return pNodes.contains(pObject);
-              }
+      @Override
+      public int size() {
+        return nodes.size();
+      }
 
-              @Override
-              public boolean containsAll(Collection<?> pCollection) {
-                return pNodes.containsAll(pCollection);
-              }
-            };
-          }
+      @Override
+      public boolean contains(Object pObject) {
+        return nodes.contains(pObject);
+      }
 
-          @Override
-          public Set<FunctionEntryNode> entryNodes() {
-            return new UnmodifiableSetView<>() {
-
-              @Override
-              public Iterator<FunctionEntryNode> iterator() {
-                return Iterators.unmodifiableIterator(pEntryNodes.iterator());
-              }
-
-              @Override
-              public int size() {
-                return pEntryNodes.size();
-              }
-
-              @Override
-              public boolean contains(Object pObject) {
-                return pEntryNodes.contains(pObject);
-              }
-
-              @Override
-              public boolean containsAll(Collection<?> pCollection) {
-                return pEntryNodes.containsAll(pCollection);
-              }
-            };
-          }
-        });
+      @Override
+      public boolean containsAll(Collection<?> pCollection) {
+        return nodes.containsAll(pCollection);
+      }
+    };
   }
 
   // element-level accessors
@@ -181,6 +162,32 @@ public abstract class ConsistentCfaNetwork extends AbstractCfaNetwork {
   }
 
   // `CfaNetwork` specific
+
+  @Override
+  public Set<FunctionEntryNode> entryNodes() {
+    return new UnmodifiableSetView<>() {
+
+      @Override
+      public Iterator<FunctionEntryNode> iterator() {
+        return Iterators.unmodifiableIterator(entryNodes.iterator());
+      }
+
+      @Override
+      public int size() {
+        return entryNodes.size();
+      }
+
+      @Override
+      public boolean contains(Object pObject) {
+        return entryNodes.contains(pObject);
+      }
+
+      @Override
+      public boolean containsAll(Collection<?> pCollection) {
+        return entryNodes.containsAll(pCollection);
+      }
+    };
+  }
 
   @Override
   public CFANode predecessor(CFAEdge pEdge) {
