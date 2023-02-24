@@ -1411,7 +1411,7 @@ public class SymbolicProgramConfiguration {
             .append(smgValue)
             .append(pointerInfo)
             .append(")")
-            .append(memoryString);
+            .append(memoryString).append("\n");
         builder.append("\n");
       }
     }
@@ -1455,7 +1455,7 @@ public class SymbolicProgramConfiguration {
               .append("(")
               .append(smgValue)
               .append(pointerInfo)
-              .append(")");
+              .append(")").append("\n");
         }
       } else {
         builder.append("\n");
@@ -1489,7 +1489,7 @@ public class SymbolicProgramConfiguration {
               .append(smgValue)
               .append(pointerInfo)
               .append(")")
-              .append(memoryString);
+              .append(memoryString).append("\n");
         }
       }
       builder.append("\n");
