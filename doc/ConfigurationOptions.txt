@@ -2980,6 +2980,14 @@ cpa.smg2.assignEqualityAssumptions = true
 # Treat symbolic values as unknowns and assign new concrete values to them.
 cpa.smg2.assignSymbolicValues = true
 
+# with this option enabled, memory addresses (pointers) are transformed into
+# a numeric assumption upon casting the pointer to a number. This assumption
+# can be returned to a proper pointer by casting it back. This enables
+# numeric operations beyond pointer arithmetics, but loses precision for
+# comparisons/assumptions, as the numeric assumption is static. May be
+# unsound!
+cpa.smg2.castMemoryAddressesToNumeric = false
+
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
 cpa.smg2.checkForMemLeaksAtEveryFrameDrop = true
