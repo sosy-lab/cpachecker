@@ -23,7 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.SMG;
@@ -48,7 +48,7 @@ public class SMGCPAAbstractionManager {
     minimumLengthForListsForAbstraction = pMinimumLengthForListsForAbstraction;
   }
 
-  public SMGState findAndAbstractLists() throws SMG2Exception {
+  public SMGState findAndAbstractLists() throws SMGException {
     SMGState currentState = state;
     equalityCache = EqualityCache.of();
     ImmutableList<SMGCandidate> refinedCandidates = getRefinedLinkedCandidates();
@@ -263,7 +263,7 @@ public class SMGCPAAbstractionManager {
               root, pointsToNext.pointsTo(), nfo, maybePfo, alreadySeen, currentLength + 1);
         }
       }
-    } catch (SMG2Exception pE) {
+    } catch (SMGException pE) {
       // Fallthrough to false
     }
     return false;

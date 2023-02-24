@@ -16,7 +16,7 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -35,10 +35,10 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
   /**
    * Compare 2 lists that are equal, but one is abstracted, the other is not.
    *
-   * @throws SMG2Exception never thrown
+   * @throws SMGException never thrown
    */
   @Test
-  public void concreteAndAbstractedListLessOrEqualTest() throws SMG2Exception {
+  public void concreteAndAbstractedListLessOrEqualTest() throws SMGException {
     Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength);
     SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
     currentState = absFinder.findAndAbstractLists();
@@ -126,10 +126,10 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * In any case, a 10 long concrete list can not subsume a 10+ abstracted list, but the abstracted
    * can subsume the concrete.
    *
-   * @throws SMG2Exception never thrown.
+   * @throws SMGException never thrown.
    */
   @Test
-  public void concreteAndAbstractedListWSublistLessOrEqualTest() throws SMG2Exception {
+  public void concreteAndAbstractedListWSublistLessOrEqualTest() throws SMGException {
     Value[] pointersAbstractedList = buildConcreteList(false, sllSize, listLength);
     addSubListsToList(listLength, pointersAbstractedList, false);
     SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
@@ -175,10 +175,10 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * input 10, 9 (in that order. Because of the <= relation. And yes 10 <= 9!! Because 9+ also
    * covers 10+, but 10+ not 9+)
    *
-   * @throws SMG2Exception never thrown
+   * @throws SMGException never thrown
    */
   @Test
-  public void abstractedListWSublistLessOrEqualTest() throws SMG2Exception {
+  public void abstractedListWSublistLessOrEqualTest() throws SMGException {
     Value[] pointersSmallerAbstractedList = buildConcreteList(false, sllSize, listLength - 1);
     addSubListsToList(listLength, pointersSmallerAbstractedList, false);
     SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
@@ -273,12 +273,12 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * Compare 2 lists with nested lists. We make 1 nested list shorter, such that it does not
    * abstract, should therefore not be equal.
    *
-   * @throws SMG2Exception never thrown
+   * @throws SMGException never thrown
    * @throws InvalidConfigurationException never thrown
    */
   @Test
   public void abstractedListWSublistNotLessOrEqualTest()
-      throws SMG2Exception, InvalidConfigurationException {
+      throws SMGException, InvalidConfigurationException {
     for (int i = 0; i < listLength; i++) {
       resetSMGStateAndVisitor();
       Value[] pointersAbstractedShortList = buildConcreteList(false, sllSize, listLength);
@@ -370,12 +370,12 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * they are equal by shape with 2 lists, one concrete, one abstracted with all values equal expect
    * that one. None should be equal.
    *
-   * @throws SMG2Exception never thrown
+   * @throws SMGException never thrown
    * @throws InvalidConfigurationException never thrown
    */
   @Test
   public void abstractedListWSublistNotLessOrEqualTest2()
-      throws SMG2Exception, InvalidConfigurationException {
+      throws SMGException, InvalidConfigurationException {
     for (int i = 0; i < listLength; i++) {
       resetSMGStateAndVisitor();
       Value[] pointersConcreteDifferentList = buildConcreteList(false, sllSize, listLength);

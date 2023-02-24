@@ -71,7 +71,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
@@ -384,7 +384,7 @@ public class SMGTransferRelation
 
     if (!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
       if (paramDecl.size() != arguments.size()) {
-        throw new SMG2Exception(
+        throw new SMGException(
             "The number of arguments expected and given do not match for function call "
                 + callEdge.getDescription()
                 + ".");
@@ -501,7 +501,7 @@ public class SMGTransferRelation
       CType cParamType,
       CFAEdge callEdge,
       SMGState pCurrentState)
-      throws SMG2Exception {
+      throws SMGException {
     SMGState currentState = pCurrentState;
     if (valueType instanceof CArrayType && cParamType instanceof CArrayType) {
       // Take the pointer to the local array and get the memory area, then associate this memory
@@ -512,9 +512,9 @@ public class SMGTransferRelation
       SMGStateAndOptionalSMGObjectAndOffset knownMemoryAndState = knownMemoriesAndStates.get(0);
       currentState = knownMemoryAndState.getSMGState();
       if (!knownMemoryAndState.hasSMGObjectAndOffset()) {
-        throw new SMG2Exception("Could not associate a local array in a new function.");
+        throw new SMGException("Could not associate a local array in a new function.");
       } else if (knownMemoryAndState.getOffsetForObject().compareTo(BigInteger.ZERO) != 0) {
-        throw new SMG2Exception("Could not associate a local array in a new function.");
+        throw new SMGException("Could not associate a local array in a new function.");
       }
       // arrays don't get copied! They are handled via pointers.
       SMGObject knownMemory = knownMemoryAndState.getSMGObject();
@@ -538,7 +538,7 @@ public class SMGTransferRelation
               .getObjectForVisibleVariableFromPreviousStackframe(
                   locationInPrevStackFrame.getQualifiedName());
       if (maybeKnownMemory.isEmpty()) {
-        throw new SMG2Exception("Usage of unknown variable in function " + callEdge);
+        throw new SMGException("Usage of unknown variable in function " + callEdge);
       }
       // Structs get copies
       BigInteger offsetSource = BigInteger.valueOf(locationInPrevStackFrame.getOffset());
@@ -941,7 +941,7 @@ public class SMGTransferRelation
       CType rightHandSideType,
       SMGState pCurrentState,
       CFAEdge edge)
-      throws SMG2Exception {
+      throws SMGException {
     SMGState currentState = pCurrentState;
 
     // Size of the left hand side as vv.evaluate() casts automatically to this type

@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
@@ -1025,7 +1025,7 @@ public class SMGCPATransferRelationTest {
    */
   private boolean checkMallocFailure(
       SMGState stateAfterMallocAssignFailure, String variableName, CType pointerType)
-      throws SMG2Exception {
+      throws SMGException {
     SymbolicProgramConfiguration memoryModel = stateAfterMallocAssignFailure.getMemoryModel();
     assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
     SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);

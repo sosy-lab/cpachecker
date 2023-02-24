@@ -12,19 +12,18 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-// Name subject to change; i just need the exception right now
-public class SMG2Exception extends CPATransferException {
+public class SMGException extends CPATransferException {
   private static final long serialVersionUID = -1677699207895867889L;
 
   // Null for String msgs only
   private final @Nullable SMGState errorState;
 
-  public SMG2Exception(SMGState pErrorState) {
+  public SMGException(SMGState pErrorState) {
     super(pErrorState.getErrorInfo().toString());
     errorState = pErrorState;
   }
 
-  public SMG2Exception(String errorMsg) {
+  public SMGException(String errorMsg) {
     super(errorMsg);
     errorState = null;
   }

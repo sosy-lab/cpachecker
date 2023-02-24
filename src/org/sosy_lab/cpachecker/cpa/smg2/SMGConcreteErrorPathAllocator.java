@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -272,7 +272,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
             if (target.hasSMGObjectAndOffset() && !alreadyVisited.contains(target.getSMGObject())) {
               todo.add(target.getSMGObject());
             }
-          } catch (SMG2Exception e) {
+          } catch (SMGException e) {
             // Do nothing, should not happen
             throw new AssertionError("Failed to create a concrete error path.");
           }

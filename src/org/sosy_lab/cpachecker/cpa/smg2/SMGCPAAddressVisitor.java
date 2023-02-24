@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
@@ -165,7 +165,7 @@ public class SMGCPAAddressVisitor
    * Get the return from the array behind arrayValue and the subscript offset in bits.
    */
   private SMGStateAndOptionalSMGObjectAndOffset handleSubscriptExpression(
-      Value arrayValue, BigInteger subscriptOffset, SMGState pCurrentState) throws SMG2Exception {
+      Value arrayValue, BigInteger subscriptOffset, SMGState pCurrentState) throws SMGException {
 
     if ((arrayValue instanceof AddressExpression)) {
       AddressExpression arrayAddr = (AddressExpression) arrayValue;
@@ -307,7 +307,7 @@ public class SMGCPAAddressVisitor
     CSimpleDeclaration varDecl = e.getDeclaration();
     if (varDecl == null) {
       // The var was not declared
-      throw new SMG2Exception("Usage of undeclared variable: " + e.getName() + ".");
+      throw new SMGException("Usage of undeclared variable: " + e.getName() + ".");
     }
     Optional<SMGObjectAndOffset> maybeTarget =
         evaluator.getTargetObjectAndOffset(state, varDecl.getQualifiedName());

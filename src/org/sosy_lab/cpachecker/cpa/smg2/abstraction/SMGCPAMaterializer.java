@@ -18,7 +18,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -50,11 +50,11 @@ public class SMGCPAMaterializer {
    * @param state current {@link SMGState}.
    * @return list of returned {@link SMGValueAndSMGState} with the value being the updated pointers.
    *     (In the context of the new state valueTopointerToAbstractObject behaves the same!)
-   * @throws SMG2Exception in case of critical errors.
+   * @throws SMGException in case of critical errors.
    */
   public List<SMGValueAndSMGState> handleMaterilisation(
       SMGValue valueTopointerToAbstractObject, SMGObject pAbstractObject, SMGState state)
-      throws SMG2Exception {
+      throws SMGException {
 
     if (pAbstractObject instanceof SMGDoublyLinkedListSegment) {
       SMGDoublyLinkedListSegment sllListSeg = (SMGDoublyLinkedListSegment) pAbstractObject;
@@ -75,7 +75,7 @@ public class SMGCPAMaterializer {
         return ImmutableList.of(materialiseSLLS(dllListSeg, valueTopointerToAbstractObject, state));
       }
     }
-    throw new SMG2Exception("The SMG failed to materialize a abstract list.");
+    throw new SMGException("The SMG failed to materialize a abstract list.");
   }
 
   /*
@@ -88,7 +88,7 @@ public class SMGCPAMaterializer {
    */
   private List<SMGValueAndSMGState> handleZeroPlusSLS(
       SMGSinglyLinkedListSegment pListSeg, SMGValue pointerValueTowardsThisSegment, SMGState state)
-      throws SMG2Exception {
+      throws SMGException {
 
     logger.log(Level.ALL, "Split into 2 states because of 0+ SLS materialization.", pListSeg);
     ImmutableList.Builder<SMGValueAndSMGState> returnStates = ImmutableList.builder();
@@ -125,7 +125,7 @@ public class SMGCPAMaterializer {
    */
   private List<SMGValueAndSMGState> handleZeroPlusDLS(
       SMGDoublyLinkedListSegment pListSeg, SMGValue pointerValueTowardsThisSegment, SMGState state)
-      throws SMG2Exception {
+      throws SMGException {
 
     logger.log(Level.ALL, "Split into 2 states because of 0+ DLS materialization.", pListSeg);
     ImmutableList.Builder<SMGValueAndSMGState> returnStates = ImmutableList.builder();
@@ -178,10 +178,10 @@ public class SMGCPAMaterializer {
    */
   private SMGValueAndSMGState materialiseSLLS(
       SMGSinglyLinkedListSegment pListSeg, SMGValue pValueOfPointerToAbstractObject, SMGState state)
-      throws SMG2Exception {
+      throws SMGException {
 
     if (!state.getMemoryModel().isObjectValid(pListSeg)) {
-      throw new SMG2Exception("Error when materializing a SLL.");
+      throw new SMGException("Error when materializing a SLL.");
     }
     SMGValue initialPointer = pValueOfPointerToAbstractObject;
 
@@ -265,10 +265,10 @@ public class SMGCPAMaterializer {
    */
   private SMGValueAndSMGState materialiseDLLS(
       SMGDoublyLinkedListSegment pListSeg, SMGValue pValueOfPointerToAbstractObject, SMGState state)
-      throws SMG2Exception {
+      throws SMGException {
 
     if (!state.getMemoryModel().isObjectValid(pListSeg)) {
-      throw new SMG2Exception("Error when materializing a DLL.");
+      throw new SMGException("Error when materializing a DLL.");
     }
 
     SMGValue initialPointer = pValueOfPointerToAbstractObject;

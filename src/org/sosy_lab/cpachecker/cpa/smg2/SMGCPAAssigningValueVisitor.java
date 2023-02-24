@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -392,9 +392,9 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
    *
    * @param expr {@link CExpression} you want the qualified name for.
    * @return the qualified name of the variable expression.
-   * @throws SMG2Exception in case of a critical error.
+   * @throws SMGException in case of a critical error.
    */
-  private String getExtendedQualifiedName(CExpression expr) throws SMG2Exception {
+  private String getExtendedQualifiedName(CExpression expr) throws SMGException {
     if (expr instanceof CIdExpression) {
       return ((CIdExpression) expr).getName();
     } else if (expr instanceof CArraySubscriptExpression) {
@@ -405,7 +405,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     } else if (expr instanceof CPointerExpression) {
       return expr.toQualifiedASTString();
     }
-    throw new SMG2Exception("Internal error when getting the qualified name of a CExpression.");
+    throw new SMGException("Internal error when getting the qualified name of a CExpression.");
   }
 
   /**

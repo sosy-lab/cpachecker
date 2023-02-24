@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAMaterializer;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -88,7 +88,7 @@ public class SMGCPATest0 {
    * Valid sizes are divisible by 32. The nfo for the last and pfo for the first segment are 0.
    */
   protected Value[] buildConcreteList(boolean dll, BigInteger sizeOfSegment, int listLength)
-      throws SMG2Exception {
+      throws SMGException {
     Value[] pointerArray = new Value[listLength];
     SMGObject prevObject = null;
 
@@ -152,7 +152,7 @@ public class SMGCPATest0 {
   // Adds an EQUAL sublists depending on nfo, pfo and dll to each object that the pointer array
   // points to
   protected Value[][] addSubListsToList(int listLength, Value[] pointersOfTopList, boolean dll)
-      throws SMG2Exception {
+      throws SMGException {
     Value[][] nestedPointers = new Value[listLength][];
     int i = 0;
     for (Value pointer : pointersOfTopList) {

@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -313,7 +313,7 @@ public class SMGCPABuiltins {
     SMGState currentState = addressAndState.getState();
     if (addressAndState.getValue().isUnknown()) {
       // Critical error, should never happen
-      throw new SMG2Exception(
+      throw new SMGException(
           "Critical error in builtin function va_copy. The source does not reflect a valid value"
               + " when read.");
     }
@@ -334,7 +334,7 @@ public class SMGCPABuiltins {
   @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateVaArg(
       CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState)
-      throws SMG2Exception {
+      throws SMGException {
     // Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
     // The first argument is the va_list pointer CidExpression
     // CExpression srcArg = cFCExpression.getParameterExpressions().get(0);
@@ -345,7 +345,7 @@ public class SMGCPABuiltins {
     // Preconditions.checkArgument(srcArg instanceof CIdExpression);
     // CIdExpression srcIdArg = (CIdExpression) srcArg;
     // If the type is not compatible with the types saved in the array, behavior is undefined
-    throw new SMG2Exception(
+    throw new SMGException(
         "Feature va_arg() not finished because our parser does not like the function.");
 
     // return null;
@@ -676,7 +676,7 @@ public class SMGCPABuiltins {
           continue;
         } else {
 
-          throw new SMG2Exception(
+          throw new SMGException(
               "An allocation function was called with a symbolic size. This is not supported"
                   + " currently by the SMG2 analysis. Try GuessSizeOfUnknownMemorySize.");
         }
@@ -922,8 +922,8 @@ public class SMGCPABuiltins {
   // TODO all functions are external in C, do we even need this?
   @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateExternalAllocation(
-      CFunctionCallExpression pFunctionCall, SMGState pState) throws SMG2Exception {
-    throw new SMG2Exception("evaluateExternalAllocation in SMGBUILTINS");
+      CFunctionCallExpression pFunctionCall, SMGState pState) throws SMGException {
+    throw new SMGException("evaluateExternalAllocation in SMGBUILTINS");
     /*
     String functionName = pFunctionCall.getFunctionNameExpression().toASTString();
 
@@ -1168,14 +1168,14 @@ public class SMGCPABuiltins {
    * @return {@link ValueAndSMGState} with either the targetAddress pointer expression and the state
    *     in which the copy was successful, or a unknown value and maybe a error state if something
    *     went wrong, i.e. invalid/read/write.
-   * @throws SMG2Exception in case of critical errors when materilizing memory
+   * @throws SMGException in case of critical errors when materilizing memory
    */
   private List<ValueAndSMGState> evaluateMemcpy(
       SMGState pState,
       AddressExpression targetAddress,
       AddressExpression sourceAddress,
       Value numOfBytesValue)
-      throws SMG2Exception {
+      throws SMGException {
 
     Preconditions.checkArgument(numOfBytesValue instanceof NumericValue);
     long numOfBytes = numOfBytesValue.asNumericValue().bigInteger().longValue();

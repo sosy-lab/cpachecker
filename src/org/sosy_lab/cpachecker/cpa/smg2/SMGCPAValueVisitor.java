@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
@@ -390,7 +390,7 @@ public class SMGCPAValueVisitor
 
   private List<ValueAndSMGState> handleBinaryOperation(
       Value leftValue, Value rightValue, CBinaryExpression e, SMGState currentState)
-      throws SMG2Exception {
+      throws SMGException {
     final BinaryOperator binaryOperator = e.getOperator();
     final CType calculationType = e.getCalculationType();
     final CExpression lVarInBinaryExp = e.getOperand1();
@@ -706,7 +706,7 @@ public class SMGCPAValueVisitor
     CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(e.getExpressionType());
     if (varDecl == null) {
       // The variable was not declared
-      throw new SMG2Exception("Usage of undeclared variable: " + e.getName() + ".");
+      throw new SMGException("Usage of undeclared variable: " + e.getName() + ".");
     }
 
     String variableName = varDecl.getQualifiedName();
@@ -723,7 +723,7 @@ public class SMGCPAValueVisitor
             evaluator.handleVariableDeclarationWithoutInizializer(
                 state, ((CParameterDeclaration) varDecl).asVariableDeclaration()));
       } else {
-        throw new SMG2Exception("Unhandled on-the-fly variable creation type: " + varDecl);
+        throw new SMGException("Unhandled on-the-fly variable creation type: " + varDecl);
       }
     } else {
       creationBuilder.add(state);
@@ -2042,7 +2042,7 @@ public class SMGCPAValueVisitor
    * @return {@link ValueAndSMGState} with the result Value that may be {@link AddressExpression} /
    *     {@link UnknownValue} or a symbolic/numeric one depending on input + the new up-to-date
    *     state.
-   * @throws SMG2Exception in case of critical errors when materilizing abstract memory.
+   * @throws SMGException in case of critical errors when materilizing abstract memory.
    */
   private List<ValueAndSMGState> calculatePointerArithmetics(
       Value leftValue,
@@ -2051,7 +2051,7 @@ public class SMGCPAValueVisitor
       CType expressionType,
       CType calculationType,
       SMGState currentState)
-      throws SMG2Exception {
+      throws SMGException {
     // Find the address, check that the other is a numeric value and use as offset, else if both
     // are addresses we allow the distance, else unknown (we can't dereference symbolics)
     // TODO: stop for illegal pointer arith?

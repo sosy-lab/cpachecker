@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo.Property;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAMaterializer;
 import org.sosy_lab.cpachecker.cpa.smg2.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
@@ -452,7 +452,7 @@ public class SMGState
    * @param valueAndSize new Value and size of the type in bits.
    * @param variableNameToMemorySizeInBits the size of the variable in total in bits.
    * @return a new state with given values written to the variable given at the position given.
-   * @throws SMG2Exception should never happen in this case as the writes are copies and therefore
+   * @throws SMGException should never happen in this case as the writes are copies and therefore
    *     save.
    */
   public SMGState assignNonHeapConstant(
@@ -460,7 +460,7 @@ public class SMGState
       ValueAndValueSize valueAndSize,
       Map<String, BigInteger> variableNameToMemorySizeInBits,
       Map<String, CType> variableTypeMap)
-      throws SMG2Exception {
+      throws SMGException {
 
     if (isFunctionReturnVariableAndPresent(memLoc)) {
       return assignReturnValue(
@@ -579,14 +579,14 @@ public class SMGState
    *     each variable to be changed.
    * @param variableNameToMemorySizeInBits the overall size of the variables.
    * @return a new SMGState with all entered variables (MemoryLocations) removed and then
-   * @throws SMG2Exception should never be thrown! If it is thrown, then there is a bug.
+   * @throws SMGException should never be thrown! If it is thrown, then there is a bug.
    */
   public SMGState reconstructSMGStateFromNonHeapAssignments(
       @Nullable PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments,
       @Nullable Map<String, BigInteger> variableNameToMemorySizeInBits,
       @Nullable Map<String, CType> variableTypeMap,
       PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations)
-      throws SMG2Exception {
+      throws SMGException {
     if (nonHeapAssignments == null || pStackDeclarations == null) {
       return this;
     }
@@ -790,12 +790,12 @@ public class SMGState
    * @param pTypeSize Size of the type the new local variable in bits.
    * @param pVarName Name of the local variable
    * @return {@link SMGState} with the new variables searchable by the name given.
-   * @throws SMG2Exception thrown if the stack frame is empty.
+   * @throws SMGException thrown if the stack frame is empty.
    */
   public SMGState copyAndAddLocalVariable(int pTypeSize, String pVarName, CType type)
-      throws SMG2Exception {
+      throws SMGException {
     if (memoryModel.getStackFrames().isEmpty()) {
-      throw new SMG2Exception(
+      throw new SMGException(
           "Can't add a variable named "
               + pVarName
               + " to the memory model because there is no stack frame.");
@@ -816,12 +816,12 @@ public class SMGState
    * @param pVarName variable name qualified
    * @param type the type of the object
    * @return the new state with the association
-   * @throws SMG2Exception in case of critical errors
+   * @throws SMGException in case of critical errors
    */
   public SMGState copyAndAddLocalVariable(SMGObject object, String pVarName, CType type)
-      throws SMG2Exception {
+      throws SMGException {
     if (memoryModel.getStackFrames().isEmpty()) {
-      throw new SMG2Exception(
+      throw new SMGException(
           "Can't add a variable named "
               + pVarName
               + " to the memory model because there is no stack frame.");
@@ -843,12 +843,12 @@ public class SMGState
    * @param pTypeSize Size of the type the new local variable in bits.
    * @param pVarName Name of the local variable
    * @return {@link SMGState} with the new variables searchable by the name given.
-   * @throws SMG2Exception thrown if the stack frame is empty.
+   * @throws SMGException thrown if the stack frame is empty.
    */
   public SMGState copyAndAddLocalVariable(BigInteger pTypeSize, String pVarName, CType type)
-      throws SMG2Exception {
+      throws SMGException {
     if (memoryModel.getStackFrames().isEmpty()) {
-      throw new SMG2Exception(
+      throw new SMGException(
           "Can't add a variable named "
               + pVarName
               + " to the memory model because there is no stack frame.");
@@ -864,9 +864,9 @@ public class SMGState
 
   private SMGState copyAndAddLocalVariableToSpecificStackframe(
       String functionNameForStackFrame, BigInteger pTypeSize, String pVarName, CType type)
-      throws SMG2Exception {
+      throws SMGException {
     if (memoryModel.getStackFrames().isEmpty()) {
-      throw new SMG2Exception(
+      throw new SMGException(
           "Can't add a variable named "
               + pVarName
               + " to the memory model because there is no stack frame.");
@@ -1068,7 +1068,7 @@ public class SMGState
    * @param otherValue value in otherState
    * @param equalityCache current cache of values that are known to be equal
    * @return true if the entered values are equal.
-   * @throws SMG2Exception for critical errors
+   * @throws SMGException for critical errors
    */
   public boolean areValuesEqual(
       SMGState thisState,
@@ -1076,7 +1076,7 @@ public class SMGState
       SMGState otherState,
       @Nullable Value otherValue,
       EqualityCache<Value> equalityCache)
-      throws SMG2Exception {
+      throws SMGException {
     return areValuesEqual(
         thisState, thisValue, otherState, otherValue, equalityCache, new HashSet<>());
   }
@@ -1091,7 +1091,7 @@ public class SMGState
    * @param otherValue value in otherState
    * @param equalityCache current cache of values that are known to be equal
    * @return true if the entered values are equal.
-   * @throws SMG2Exception for critical errors
+   * @throws SMGException for critical errors
    */
   private boolean areValuesEqual(
       SMGState thisState,
@@ -1100,7 +1100,7 @@ public class SMGState
       @Nullable Value otherValue,
       EqualityCache<Value> equalityCache,
       Set<Value> thisAlreadyCheckedPointers)
-      throws SMG2Exception {
+      throws SMGException {
     // Comparing pointers leads to == true, but they may be not equal because of the heap!!!
     if (thisValue == otherValue && thisValue.isExplicitlyKnown()) {
       return true;
@@ -1177,7 +1177,7 @@ public class SMGState
       Value otherAddress,
       EqualityCache<Value> equalityCache,
       Set<Value> thisAlreadyCheckedPointers)
-      throws SMG2Exception {
+      throws SMGException {
     // Careful, dereference might materialize new memory out of abstractions!
     Optional<SMGStateAndOptionalSMGObjectAndOffset> thisDeref =
         thisState.dereferencePointerWithoutMaterilization(thisAddress);
@@ -1236,7 +1236,7 @@ public class SMGState
       SMGObject otherObj,
       EqualityCache<Value> equalityCache,
       Set<Value> thisPointerValueAlreadyVisited)
-      throws SMG2Exception {
+      throws SMGException {
 
     // If one is DLL and the other is SLL, something is wrong
     if ((otherObj instanceof SMGDoublyLinkedListSegment
@@ -1295,7 +1295,7 @@ public class SMGState
       SMGObject otherObj,
       EqualityCache<Value> equalityCache,
       Set<Value> thisPointerValuesAlreadyVisited)
-      throws SMG2Exception {
+      throws SMGException {
     // one is an abstracted list, the other is not, we check this by materializing the abstracted
     // as long as the concrete allows
     if (thisObj instanceof SMGSinglyLinkedListSegment) {
@@ -1420,7 +1420,7 @@ public class SMGState
    * @param otherState the state to which the other object belongs.
    * @param equalityCache basic value check cache.
    * @return true if the 2 memory sections given are equal. False else.
-   * @throws SMG2Exception for critical errors.
+   * @throws SMGException for critical errors.
    */
   public boolean checkEqualValuesForTwoStatesWithExemptions(
       SMGObject thisObject,
@@ -1429,7 +1429,7 @@ public class SMGState
       SMGState thisState,
       SMGState otherState,
       EqualityCache<Value> equalityCache)
-      throws SMG2Exception {
+      throws SMGException {
     return checkEqualValuesForTwoStatesWithExemptions(
         thisObject,
         otherObject,
@@ -1451,7 +1451,7 @@ public class SMGState
    * @param otherState the state to which the other object belongs.
    * @param equalityCache basic value check cache.
    * @return true if the 2 memory sections given are equal. False else.
-   * @throws SMG2Exception for critical errors.
+   * @throws SMGException for critical errors.
    */
   private boolean checkEqualValuesForTwoStatesWithExemptions(
       SMGObject thisObject,
@@ -1461,7 +1461,7 @@ public class SMGState
       SMGState otherState,
       EqualityCache<Value> equalityCache,
       Set<Value> thisPointerValuesAlreadyVisited)
-      throws SMG2Exception {
+      throws SMGException {
 
     Map<BigInteger, SMGHasValueEdge> otherOffsetToHVEdgeMap = new HashMap<>();
     for (SMGHasValueEdge hve :
@@ -2206,14 +2206,14 @@ public class SMGState
    * @param pSizeofInBits {@link BigInteger} sizeInBits.
    * @param readType the {@link CType} of the read. Not casted! Null for irrelevant types.
    * @return The {@link Value} read and the {@link SMGState} after the read.
-   * @throws SMG2Exception for critical errors if a list is materialized.
+   * @throws SMGException for critical errors if a list is materialized.
    */
   public List<ValueAndSMGState> readValue(
       SMGObject pObject,
       BigInteger pFieldOffset,
       BigInteger pSizeofInBits,
       @Nullable CType readType)
-      throws SMG2Exception {
+      throws SMGException {
     if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
       return ImmutableList.of(
           ValueAndSMGState.of(UnknownValue.getInstance(), withInvalidRead(pObject)));
@@ -2403,11 +2403,11 @@ public class SMGState
    * @param pFunctionCall debug / logging info.
    * @param cfaEdge debug / logging info.
    * @return a new {@link SMGState} with the memory region behind the {@link Value} freed.
-   * @throws SMG2Exception in case of critical errors in the concretization of memory.
+   * @throws SMGException in case of critical errors in the concretization of memory.
    */
   public List<SMGState> free(
       Value addressToFree, CFunctionCallExpression pFunctionCall, CFAEdge cfaEdge)
-      throws SMG2Exception {
+      throws SMGException {
     Value sanitizedAddressToFree = addressToFree;
     BigInteger baseOffset = BigInteger.ZERO;
     // if the entered value is a AddressExpression think of it as a internal wrapper of pointer +
@@ -2620,7 +2620,7 @@ public class SMGState
    * @param valueType {@link CType} of the value to be written. Use the expression type, not the
    *     canonical!
    * @return new {@link SMGState} with the value written to the object.
-   * @throws SMG2Exception if something goes wrong. I.e. the sizes of the write don't match with the
+   * @throws SMGException if something goes wrong. I.e. the sizes of the write don't match with the
    *     size of the object.
    */
   public SMGState writeValueTo(
@@ -2630,7 +2630,7 @@ public class SMGState
       Value valueToWrite,
       CType valueType,
       CFAEdge edge)
-      throws SMG2Exception {
+      throws SMGException {
     if (object.isZero()) {
       // Write to 0
       return withInvalidWriteToZeroObject(object);
@@ -2669,7 +2669,7 @@ public class SMGState
    * @param valueType the type of the value to be written. Used for unknown values only, to
    *     translate them into a symbolic value.
    * @return new {@link SMGState} with the value written to the object.
-   * @throws SMG2Exception if something goes wrong. I.e. the sizes of the write don't match with the
+   * @throws SMGException if something goes wrong. I.e. the sizes of the write don't match with the
    *     size of the object.
    */
   public List<SMGState> writeValueTo(
@@ -2679,7 +2679,7 @@ public class SMGState
       Value valueToWrite,
       CType valueType,
       CFAEdge edge)
-      throws SMG2Exception {
+      throws SMGException {
     ImmutableList.Builder<SMGState> returnBuilder = ImmutableList.builder();
     for (SMGStateAndOptionalSMGObjectAndOffset maybeRegion : dereferencePointer(addressToMemory)) {
       if (!maybeRegion.hasSMGObjectAndOffset()) {
@@ -2715,9 +2715,9 @@ public class SMGState
    * @param addressToMemory {@link Value} that is a address pointing to a memory region.
    * @return the new {@link SMGState} with the memory region pointed to by the address written 0
    *     completely.
-   * @throws SMG2Exception if there is no memory/or pointer for the given Value.
+   * @throws SMGException if there is no memory/or pointer for the given Value.
    */
-  public List<SMGState> writeToZero(Value addressToMemory, CType type) throws SMG2Exception {
+  public List<SMGState> writeToZero(Value addressToMemory, CType type) throws SMGException {
     ImmutableList.Builder<SMGState> returnBuilder = ImmutableList.builder();
     for (SMGStateAndOptionalSMGObjectAndOffset maybeRegion : dereferencePointer(addressToMemory)) {
       if (!maybeRegion.hasSMGObjectAndOffset()) {
@@ -2799,8 +2799,7 @@ public class SMGState
    *     mapping will be added.
    * @return a {@link SMGState} with the {@link Value} written at the given position in the variable
    *     given.
-   * @throws SMG2Exception if the write is out of range or invalid due to the variable being
-   *     unknown.
+   * @throws SMGException if the write is out of range or invalid due to the variable being unknown.
    */
   public SMGState writeToStackOrGlobalVariable(
       String variableName,
@@ -2809,7 +2808,7 @@ public class SMGState
       Value valueToWrite,
       CType valueType,
       CFAEdge edge)
-      throws SMG2Exception {
+      throws SMGException {
     Optional<SMGObject> maybeVariableMemory =
         getMemoryModel().getObjectForVisibleVariable(variableName);
 
@@ -2822,7 +2821,7 @@ public class SMGState
     if (variableMemory.getOffset().compareTo(writeOffsetInBits) > 0
         || variableMemory.getSize().compareTo(writeSizeInBits.add(writeOffsetInBits)) < 0) {
       // Out of range write
-      throw new SMG2Exception(
+      throw new SMGException(
           withOutOfRangeWrite(
               variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite, edge));
     }
@@ -2883,16 +2882,16 @@ public class SMGState
    * @param variableName name of the variable that should be known already.
    * @return a {@link SMGState} with the {@link Value} wirrten at the given position in the variable
    *     given.
-   * @throws SMG2Exception in case of errors like write to not declared variable.
+   * @throws SMGException in case of errors like write to not declared variable.
    */
   public SMGState writeToStackOrGlobalVariableToZero(String variableName, CType type)
-      throws SMG2Exception {
+      throws SMGException {
     Optional<SMGObject> maybeVariableMemory =
         getMemoryModel().getObjectForVisibleVariable(variableName);
 
     if (maybeVariableMemory.isEmpty()) {
       // Write to unknown variable
-      throw new SMG2Exception(withWriteToUnknownVariable(variableName));
+      throw new SMGException(withWriteToUnknownVariable(variableName));
     }
 
     SMGObject variableMemory = maybeVariableMemory.orElseThrow();
@@ -3259,7 +3258,7 @@ public class SMGState
               valueAndSize,
               pForgottenInformation.getSizeInformationForVariablesMap(),
               pForgottenInformation.getTypeOfVariablesMap());
-    } catch (SMG2Exception e) {
+    } catch (SMGException e) {
       // Should never happen
       throw new RuntimeException(e);
     }
@@ -3315,7 +3314,7 @@ public class SMGState
    */
   public SMGState abstractIntoDLL(
       SMGObject root, BigInteger nfo, BigInteger pfo, Set<SMGObject> alreadyVisited)
-      throws SMG2Exception {
+      throws SMGException {
     // Check that the next object exists, is valid, has the same size and the same value in head
     Optional<SMGObject> maybeNext = getValidNextSLL(root, nfo);
     if (maybeNext.isEmpty()
@@ -3482,7 +3481,7 @@ public class SMGState
    * Only abstracts lists with == values.
    */
   public SMGState abstractIntoSLL(SMGObject root, BigInteger nfo, Set<SMGObject> alreadyVisited)
-      throws SMG2Exception {
+      throws SMGException {
 
     // Check that the next object exists, is valid, has the same size and the same value in head
     Optional<SMGObject> maybeNext = getValidNextSLL(root, nfo);
@@ -3633,10 +3632,10 @@ public class SMGState
    * @param pointer the {@link Value} to dereference.
    * @return Optional filled with the {@link SMGObjectAndOffset} of the target of the pointer. Empty
    *     if its not a pointer in the current {@link SymbolicProgramConfiguration}.
-   * @throws SMG2Exception in case of critical errors in the materialization of abstract memory.
+   * @throws SMGException in case of critical errors in the materialization of abstract memory.
    */
   public List<SMGStateAndOptionalSMGObjectAndOffset> dereferencePointer(Value pointer)
-      throws SMG2Exception {
+      throws SMGException {
     if (!memoryModel.isPointer(pointer)) {
       // Not known or not known as a pointer, return nothing
       return ImmutableList.of(SMGStateAndOptionalSMGObjectAndOffset.of(this));
@@ -3655,7 +3654,7 @@ public class SMGState
   }
 
   private List<SMGStateAndOptionalSMGObjectAndOffset> materializeLinkedList(
-      SMGValue initialPointerValue, SMGPointsToEdge ptEdge, SMGState pState) throws SMG2Exception {
+      SMGValue initialPointerValue, SMGPointsToEdge ptEdge, SMGState pState) throws SMGException {
     SMGState currentState = pState;
     if (ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment) {
       List<SMGValueAndSMGState> newPointersValueAndStates =
@@ -3685,7 +3684,7 @@ public class SMGState
 
       } else if (newPointersValueAndStates.size() != 1) {
         // Error
-        throw new SMG2Exception("Critical error: Unexpected return from list materialization.");
+        throw new SMGException("Critical error: Unexpected return from list materialization.");
       }
       // Default case, only 1 returned list segment
       SMGValueAndSMGState newPointerValueAndState = newPointersValueAndStates.get(0);
@@ -3735,10 +3734,10 @@ public class SMGState
    * @param valueToPointerToAbstractObject a SMGValue that has a points to edge leading to
    *     abstracted memory.
    * @return SMGValueAndSMGState with the pointer value to the concrete memory extracted.
-   * @throws SMG2Exception in case of critical errors.
+   * @throws SMGException in case of critical errors.
    */
   public List<SMGValueAndSMGState> materializeReturnPointerValueAndCopy(
-      SMGValue valueToPointerToAbstractObject) throws SMG2Exception {
+      SMGValue valueToPointerToAbstractObject) throws SMGException {
     SMGPointsToEdge ptEdge =
         memoryModel.getSmg().getPTEdge(valueToPointerToAbstractObject).orElseThrow();
     SMGState currentState = this;
@@ -3747,7 +3746,7 @@ public class SMGState
     while (ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment) {
       SMGObject obj = ptEdge.pointsTo();
       if (obj.isZero() || !currentState.memoryModel.isObjectValid(obj)) {
-        throw new SMG2Exception("");
+        throw new SMGException("");
       }
       // DLLs are also SLLs
       Preconditions.checkArgument(obj instanceof SMGSinglyLinkedListSegment);

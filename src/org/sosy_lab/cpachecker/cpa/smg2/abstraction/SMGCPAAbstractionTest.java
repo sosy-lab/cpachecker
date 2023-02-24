@@ -23,7 +23,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPATest0;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager.SMGCandidate;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -81,7 +81,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * identity.
    */
   @Test
-  public void nestedListSLLTest() throws SMG2Exception {
+  public void nestedListSLLTest() throws SMGException {
     // Smaller lengths are fine here, else this runs a while!
     // Increasing this is a good test for the overall performance of the SMGs!
     int listLength = 15;
@@ -152,7 +152,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * point to the correct segments.
    */
   @Test
-  public void correctPointerNestingSLLTest() throws InvalidConfigurationException, SMG2Exception {
+  public void correctPointerNestingSLLTest() throws InvalidConfigurationException, SMGException {
     int lengthOfList = 10;
     resetSMGStateAndVisitor();
     Value[] pointers = buildConcreteList(false, sllSize, lengthOfList);
@@ -174,7 +174,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * point to the correct segments.
    */
   @Test
-  public void correctPointerNestingDLLTest() throws InvalidConfigurationException, SMG2Exception {
+  public void correctPointerNestingDLLTest() throws InvalidConfigurationException, SMGException {
     int lengthOfList = 10;
     resetSMGStateAndVisitor();
     Value[] pointers = buildConcreteList(true, dllSize, lengthOfList);
@@ -197,7 +197,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    */
   @Test
   public void correctZeroPlusAbsorptionSLLTest()
-      throws InvalidConfigurationException, SMG2Exception {
+      throws InvalidConfigurationException, SMGException {
     int lengthOfList = 10;
     nfo = BigInteger.ZERO;
     sllSize = pointerSizeInBits;
@@ -230,7 +230,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    */
   @Test
   public void correctZeroPlusAbsorptionDLLTest()
-      throws InvalidConfigurationException, SMG2Exception {
+      throws InvalidConfigurationException, SMGException {
     int lengthOfList = 10;
     nfo = BigInteger.ZERO;
     pfo = nfo.add(pointerSizeInBits);
@@ -311,11 +311,11 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * into 2 states, one where the 0+ is deleted and the end of the list nfo value is read, one for
    * the extension of the list.
    *
-   * @throws SMG2Exception not thrown
+   * @throws SMGException not thrown
    * @throws InvalidConfigurationException not thrown
    */
   @Test
-  public void zeroPlusRemovalSLLTest() throws SMG2Exception, InvalidConfigurationException {
+  public void zeroPlusRemovalSLLTest() throws SMGException, InvalidConfigurationException {
     // We use a small length, does not matter at all
     int sizeOfList = 3;
     resetSMGStateAndVisitor();
@@ -347,11 +347,11 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * into 2 states, one where the 0+ is deleted and the end of the list nfo value is read, one for
    * the extension of the list.
    *
-   * @throws SMG2Exception not thrown
+   * @throws SMGException not thrown
    * @throws InvalidConfigurationException not thrown
    */
   @Test
-  public void zeroPlusRemovalDLLTest() throws SMG2Exception, InvalidConfigurationException {
+  public void zeroPlusRemovalDLLTest() throws SMGException, InvalidConfigurationException {
     // We use a small length, does not matter at all
     int sizeOfList = 3;
     resetSMGStateAndVisitor();
@@ -415,11 +415,11 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * @param dll true for DLLs. False else.
    * @param lastConcreteListObject the last concrete segment who's nfo points to 0+.
    * @param expectedNfoValue the value for the non extented read state.
-   * @throws SMG2Exception not thrown
+   * @throws SMGException not thrown
    */
   private void checkZeroPlusBehaviour(
       boolean dll, SMGObject lastConcreteListObject, BigInteger expectedNfoValue)
-      throws SMG2Exception {
+      throws SMGException {
     List<ValueAndSMGState> statesAndReadValueZeroPlus =
         currentState.readValue(lastConcreteListObject, nfo, pointerSizeInBits, null);
     assertThat(statesAndReadValueZeroPlus).hasSize(2);
@@ -480,7 +480,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * Build a concrete list by hand and then use the abstraction algorithm on it and check the result.
    */
   @Test
-  public void basicSLLFullAbstractionTest() throws SMG2Exception {
+  public void basicSLLFullAbstractionTest() throws SMGException {
     Value[] pointers = buildConcreteList(false, sllSize, TEST_LIST_LENGTH);
 
     {
@@ -558,7 +558,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * Build a concrete list by hand and then use the abstraction algorithm on it and check the result.
    */
   @Test
-  public void basicDLLFullAbstractionTest() throws SMG2Exception {
+  public void basicDLLFullAbstractionTest() throws SMGException {
     int listSize = 100;
     Value[] pointers =
         buildConcreteList(true, pointerSizeInBits.multiply(BigInteger.valueOf(3)), listSize);
@@ -612,7 +612,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * Build a concrete list by hand that has pointers from the outside on it and then use the abstraction algorithm on it and check the result.
    */
   @Test
-  public void basicSLLFullAbstractionWithExternalPointerTest() throws SMG2Exception {
+  public void basicSLLFullAbstractionWithExternalPointerTest() throws SMGException {
     Value[] pointers =
         buildConcreteList(
             false, pointerSizeInBits.multiply(BigInteger.valueOf(2)), TEST_LIST_LENGTH);
@@ -673,7 +673,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * Build a concrete list by hand that has pointers from the outside on it and then use the abstraction algorithm on it and check the result.
    */
   @Test
-  public void basicDLLFullAbstractionWithExternalPointerTest() throws SMG2Exception {
+  public void basicDLLFullAbstractionWithExternalPointerTest() throws SMGException {
     // Min abstraction length before the list is abstracted
     int minAbstractionLength = 3;
     Value[] pointers = buildConcreteList(true, dllSize, TEST_LIST_LENGTH);
@@ -749,7 +749,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * Then materialize the list back and check every pointer.
    */
   @Test
-  public void basicDLLFullAbstractionWithExternalPointerMaterializationTest() throws SMG2Exception {
+  public void basicDLLFullAbstractionWithExternalPointerMaterializationTest() throws SMGException {
     int listSize = 100;
     Value[] pointers =
         buildConcreteList(true, pointerSizeInBits.multiply(BigInteger.valueOf(3)), listSize);
@@ -850,7 +850,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * Then materialize the list back and check every pointer.
    */
   @Test
-  public void basicSLLFullAbstractionWithExternalPointerMaterializationTest() throws SMG2Exception {
+  public void basicSLLFullAbstractionWithExternalPointerMaterializationTest() throws SMGException {
     Value[] pointers = buildConcreteList(false, sllSize, TEST_LIST_LENGTH);
 
     {
@@ -945,7 +945,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   @Test
-  public void basicDLLMaterializationTest() throws SMG2Exception {
+  public void basicDLLMaterializationTest() throws SMGException {
     BigInteger offset = BigInteger.ZERO;
 
     SMGDoublyLinkedListSegment currentAbstraction =
@@ -1079,7 +1079,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   @Test
-  public void basicSLLMaterializationTest() throws SMG2Exception {
+  public void basicSLLMaterializationTest() throws SMGException {
     BigInteger offset = BigInteger.ZERO;
 
     SMGSinglyLinkedListSegment currentAbstraction =
@@ -1187,7 +1187,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   @Test
-  public void basicSLLDetectionTest() throws SMG2Exception, InvalidConfigurationException {
+  public void basicSLLDetectionTest() throws SMGException, InvalidConfigurationException {
     // Min abstraction length before the list is abstracted
     int minAbstractionLength = 3;
     for (int i = 1; i < TEST_LIST_LENGTH; i++) {
@@ -1208,7 +1208,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   @Test
-  public void basicDLLDetectionTest() throws SMG2Exception, InvalidConfigurationException {
+  public void basicDLLDetectionTest() throws SMGException, InvalidConfigurationException {
     // Min abstraction length before the list is abstracted
     int minAbstractionLength = 3;
     for (int i = 1; i < TEST_LIST_LENGTH; i++) {
@@ -1232,7 +1232,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
   @SuppressWarnings("null")
   @Test
-  public void abstractSLLTest() throws InvalidConfigurationException, SMG2Exception {
+  public void abstractSLLTest() throws InvalidConfigurationException, SMGException {
     // Minimum abstraction length before a list is abstracted
     int minAbstractionLength = 3;
 
@@ -1269,7 +1269,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
   @SuppressWarnings("null")
   @Test
-  public void abstractDLLTest() throws InvalidConfigurationException, SMG2Exception {
+  public void abstractDLLTest() throws InvalidConfigurationException, SMGException {
     // Min abstraction length before the list is abstracted
     int minAbstractionLength = 3;
     for (int i = 1; i < TEST_LIST_LENGTH; i++) {
@@ -1309,7 +1309,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // Test the minimum length needed for abstraction
   @SuppressWarnings("null")
   @Test
-  public void abstractDLLLimitTest() throws InvalidConfigurationException, SMG2Exception {
+  public void abstractDLLLimitTest() throws InvalidConfigurationException, SMGException {
     // Min abstraction length before the list is abstracted
     int minAbstractionLength = 3;
 
@@ -1353,7 +1353,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
   // The next and prev pointers at the end point to 0. The nfo is offset 32, pfo 64.
   // value at offset 0 is 1
-  private SMGState createXLongExplicitDLLOnHeap(int length) throws SMG2Exception {
+  private SMGState createXLongExplicitDLLOnHeap(int length) throws SMGException {
     BigInteger offset = BigInteger.ZERO;
 
     SMGDoublyLinkedListSegment currentAbstraction =
@@ -1434,7 +1434,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   // The next pointer at the end points to 0. nfo offset 32. value at 0 is 1.
-  private SMGState createXLongExplicitSLLOnHeap(int length) throws SMG2Exception {
+  private SMGState createXLongExplicitSLLOnHeap(int length) throws SMGException {
     BigInteger offset = BigInteger.ZERO;
 
     SMGSinglyLinkedListSegment currentAbstraction =
@@ -1519,11 +1519,11 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    *     Expected to be as large as totalSizeOfList.
    * @param derefPositions ordered array of deref positions, min: 0, max: totalSizeOfList - 1.
    * @param dll true if dlls tested.
-   * @throws SMG2Exception indicates errors
+   * @throws SMGException indicates errors
    */
   private void derefPointersAtAndCheckListMaterialization(
       int totalSizeOfList, Value[] pointers, int[] derefPositions, boolean dll)
-      throws SMG2Exception {
+      throws SMGException {
     int tmp = 0;
     assertThat(derefPositions[0]).isAtLeast(0);
     for (int num : derefPositions) {
