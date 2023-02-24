@@ -1380,6 +1380,24 @@ public class SymbolicProgramConfiguration {
         memoryAddressAssumptionsMap);
   }
 
+  /**
+   * Removes the {@link SMGPointsToEdge} and {@link SMGValue} from the {@link SMG}.
+   * Caution when using this method, should only ever be applied to SMGValues that are no longer used.
+   *
+   * @return a new {@link SMG} with the {@link SMGValue} and its {@link SMGPointsToEdge} removed.
+   */
+  public SymbolicProgramConfiguration removePointerFromSMGAndCopy(SMGValue value) {
+    return new SymbolicProgramConfiguration(
+        smg.copyAndRemovePointsToEdge(value).copyAndRemoveValue(value),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        memoryAddressAssumptionsMap);
+  }
+
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();

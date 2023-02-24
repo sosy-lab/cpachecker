@@ -3407,15 +3407,36 @@ public class SMGState
 
     // Replace ALL pointers that previously pointed to the root or the next object to the SLL
     // This currently simply changes where the pointers point to, the values are the same
-    // TODO: increment the nesting level of all of those by 1
-    // Careful as to not introduce a loop! As root does point to next,
-    currentState =
-        currentState.copyAndReplaceMemoryModel(
-            currentState.memoryModel.replaceAllPointersTowardsWith(nextObj, newDLL));
-    currentState =
-        currentState.copyAndReplaceMemoryModel(
-            currentState.memoryModel.replaceAllPointersTowardsWithAndIncrementNestingLevel(
-                root, newDLL, incrementAmount));
+    // Careful as to not introduce a loop! As root does point to next
+    SMGValueAndSMGState nextPointerFromRoot =
+        currentState.readSMGValue(root, nfo, memoryModel.getSizeOfPointer());
+    if (incrementAmount == 0) {
+      // If we merge a 0+ currently, we actually want to remove the pointer instead of switching it
+      // to the new Obj, as it already exists from the previous segment (same nesting level)
+      // There can never be more than 1 pointer to a 0+, and that is the next pointer
+      // Since we override the next pointer anyway, we can just ignore the pointer
+
+      // Assert that it truly only points towards the 0+
+      assert (currentState.getMemoryModel().getSmg().getNumberOfSMGValueUsages(nextPointerFromRoot.getSMGValue()) == 1);
+      assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj) == 1);
+
+      // Delete old 0+ pointer
+      currentState = currentState.copyAndReplaceMemoryModel(currentState.getMemoryModel().removePointerFromSMGAndCopy(nextPointerFromRoot.getSMGValue()));
+
+      // Switch all other pointers
+      currentState =
+          currentState.copyAndReplaceMemoryModel(
+              currentState.memoryModel.replaceAllPointersTowardsWithAndIncrementNestingLevel(
+                  root, newDLL, incrementAmount));
+    } else {
+      currentState =
+          currentState.copyAndReplaceMemoryModel(
+              currentState.memoryModel.replaceAllPointersTowardsWith(nextObj, newDLL));
+      currentState =
+          currentState.copyAndReplaceMemoryModel(
+              currentState.memoryModel.replaceAllPointersTowardsWithAndIncrementNestingLevel(
+                  root, newDLL, incrementAmount));
+    }
 
     // Remove the 2 old objects and continue
     currentState =
@@ -3424,6 +3445,11 @@ public class SMGState
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.copyAndRemoveObjectFromHeap(root));
+
+    if (incrementAmount == 0) {
+      assert (currentState.getMemoryModel().getSmg().getNumberOfSMGValueUsages(nextPointerFromRoot.getSMGValue()) == 0);
+      assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj) == 0);
+    }
     return currentState.abstractIntoDLL(
         newDLL,
         nfo,
