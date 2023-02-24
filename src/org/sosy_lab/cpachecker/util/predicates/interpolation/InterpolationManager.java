@@ -439,7 +439,7 @@ public final class InterpolationManager {
               "Interpolation failed, attempting to solve without interpolation");
           return fallbackWithoutInterpolation(f, imprecisePath, itpException);
         }
-        throw new RefinementFailedException(Reason.InterpolationFailed, null, itpException);
+        throw RefinementFailedException.forInterpolationFailureInSolver(itpException, solver);
       }
 
     } finally {
@@ -484,7 +484,7 @@ public final class InterpolationManager {
         return solveCounterexample(f, imprecisePath);
       } catch (SolverException e) {
         // TODO: Do we need to rebuild the interpolator here? i.e. is it ever used again?
-        throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
+        throw RefinementFailedException.forInterpolationFailureInSolver(e, solver);
       }
 
     } finally {
@@ -538,7 +538,7 @@ public final class InterpolationManager {
       // in case of exception throw original one below but do not forget e2
       itpException.addSuppressed(solvingException);
     }
-    throw new RefinementFailedException(Reason.InterpolationFailed, null, itpException);
+    throw RefinementFailedException.forInterpolationFailureInSolver(itpException, solver);
   }
 
   /**
