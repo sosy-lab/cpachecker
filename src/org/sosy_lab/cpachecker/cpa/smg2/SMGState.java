@@ -927,7 +927,9 @@ public class SMGState
     StringBuilder sb = new StringBuilder();
 
     sb.append("[");
-    Joiner.on(", ").withKeyValueSeparator("=").appendTo(sb, getMemoryModel().getMemoryLocationsAndValuesForSPCWithoutHeap());
+    Joiner.on(", ")
+        .withKeyValueSeparator("=")
+        .appendTo(sb, getMemoryModel().getMemoryLocationsAndValuesForSPCWithoutHeap());
     sb.append("]");
 
     return sb.toString();
