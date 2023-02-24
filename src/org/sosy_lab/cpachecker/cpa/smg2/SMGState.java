@@ -923,8 +923,8 @@ public class SMGState
 
   @Override
   public String toDOTLabel() {
-    // Not needed
-    return toString();
+    // TODO: implement to showcase the SMG better
+    throw new UnsupportedOperationException();
   }
 
   @Override
