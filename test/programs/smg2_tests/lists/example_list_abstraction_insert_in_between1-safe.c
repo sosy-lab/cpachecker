@@ -18,41 +18,38 @@ typedef struct node {
   struct node *prev;
 } *List;
 
+// Make a list, but with one concrete value at the end, 
+// and inserts such that new elements are only inserted before that last elem
 void main() {
   List curr = (List) malloc(sizeof(struct node));
   if (curr == 0) exit(1);
-  // Create a list element with -3 as value
-  List old = curr;
+  // Create a list element with -3 as value as last elem
+  List last = curr;
   curr->next = 0;
   curr->prev = 0;
   curr->data = -3;
-  // We track the length of the list, but never assert it
-  int length = 0;
 
-  // Create nondet # of elements in the list, with the value being 
+  // Create nondet # of elements in the list, with the value being 1 (distinct from the last)
   for (int i = 0; i < __VERIFIER_nondet_int(); i++) {
-    curr->next = (List) malloc(sizeof(struct node));
-    if (curr->next == 0) exit(1);
-    curr->next->prev = curr;
-    curr = curr->next;
-    curr->next = 0;
+    curr->prev = (List) malloc(sizeof(struct node));
+    if (curr->prev == 0) exit(1);
+    curr->prev->next = curr;
+    curr = curr->prev;
+    curr->prev = 0;
     curr->data = 1;
-    length++;
   }
   
+  // Rewind to the beginning
   while (curr->prev != 0) {
-    length--;
     curr = curr->prev;
   }
-  // Assert that the first element is -3 in value (all others are 1)
-  // If we track length, we never end up here, as the changing states 
-  // are not covered by each other due to the different lengths. This needs CEGAR!
-  assert(curr->data == -3);
-  
+
   // Make the program memsafe
   while(curr->next != 0) {
     curr = curr->next;
     free(curr->prev);
   }
+  // Assert that the last element is -3 in value (all others are 1)
+  assert(curr->data == -3);
   free(curr);
 }
