@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth8.assertThat;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Preconditions;
@@ -1939,8 +1940,8 @@ public class SMGCPAValueVisitorTest {
       assertThat(resultList).hasSize(1);
       Value resultValue = resultList.get(0).getValue();
       assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
-      assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().longValue() == 0)
-          .isTrue();
+      assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigInteger())
+          .isEqualTo(BigInteger.ZERO);
       resultValue = ((AddressExpression) resultValue).getMemoryAddress();
       // & actually changes the state!
       currentState = resultList.get(0).getState();
@@ -1971,9 +1972,8 @@ public class SMGCPAValueVisitorTest {
       assertThat(
               currentState
                   .getMemoryModel()
-                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
-                  .isPresent())
-          .isTrue();
+                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset))
+          .isPresent();
 
       SMGValue smgValueForPointer =
           currentState
@@ -2009,8 +2009,8 @@ public class SMGCPAValueVisitorTest {
       assertThat(resultList).hasSize(1);
       Value resultValue = resultList.get(0).getValue();
       assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
-      assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().longValue() == 0)
-          .isTrue();
+      assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigInteger())
+          .isEqualTo(BigInteger.ZERO);
       resultValue = ((AddressExpression) resultValue).getMemoryAddress();
       // & actually changes the state!
       currentState = resultList.get(0).getState();
@@ -2041,9 +2041,8 @@ public class SMGCPAValueVisitorTest {
       assertThat(
               currentState
                   .getMemoryModel()
-                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
-                  .isPresent())
-          .isTrue();
+                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset))
+          .isPresent();
 
       SMGValue smgValueForPointer =
           currentState
@@ -2089,8 +2088,8 @@ public class SMGCPAValueVisitorTest {
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.get(0).getValue();
         assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
-        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().longValue() == 0)
-            .isTrue();
+        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigInteger())
+            .isEqualTo(BigInteger.ZERO);
         resultValue = ((AddressExpression) resultValue).getMemoryAddress();
         // & actually changes the state!
         currentState = resultList.get(0).getState();
@@ -2119,9 +2118,8 @@ public class SMGCPAValueVisitorTest {
         assertThat(
                 currentState
                     .getMemoryModel()
-                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
-                    .isPresent())
-            .isTrue();
+                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset))
+            .isPresent();
 
         SMGValue smgValueForPointer =
             currentState
@@ -2164,8 +2162,8 @@ public class SMGCPAValueVisitorTest {
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.get(0).getValue();
         assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
-        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().longValue() == 0)
-            .isTrue();
+        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigInteger())
+            .isEqualTo(BigInteger.ZERO);
         resultValue = ((AddressExpression) resultValue).getMemoryAddress();
         // & actually changes the state!
         currentState = resultList.get(0).getState();
@@ -2194,9 +2192,8 @@ public class SMGCPAValueVisitorTest {
         assertThat(
                 currentState
                     .getMemoryModel()
-                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
-                    .isPresent())
-            .isTrue();
+                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset))
+            .isPresent();
 
         SMGValue smgValueForPointer =
             currentState
@@ -2238,8 +2235,8 @@ public class SMGCPAValueVisitorTest {
       assertThat(resultList).hasSize(1);
       Value resultValue = resultList.get(0).getValue();
       assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
-      assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().longValue() == 0)
-          .isTrue();
+      assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigInteger())
+          .isEqualTo(BigInteger.ZERO);
       resultValue = ((AddressExpression) resultValue).getMemoryAddress();
       // & actually changes the state!
       currentState = resultList.get(0).getState();
@@ -2270,9 +2267,8 @@ public class SMGCPAValueVisitorTest {
       assertThat(
               currentState
                   .getMemoryModel()
-                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
-                  .isPresent())
-          .isTrue();
+                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset))
+          .isPresent();
 
       SMGValue smgValueForPointer =
           currentState
@@ -2310,8 +2306,8 @@ public class SMGCPAValueVisitorTest {
       assertThat(resultList).hasSize(1);
       Value resultValue = resultList.get(0).getValue();
       assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
-      assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().longValue() == 0)
-          .isTrue();
+      assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigInteger())
+          .isEqualTo(BigInteger.ZERO);
       resultValue = ((AddressExpression) resultValue).getMemoryAddress();
       // & actually changes the state!
       currentState = resultList.get(0).getState();
@@ -2342,9 +2338,8 @@ public class SMGCPAValueVisitorTest {
       assertThat(
               currentState
                   .getMemoryModel()
-                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
-                  .isPresent())
-          .isTrue();
+                  .getAddressValueForPointsToTarget(expectedTarget, expectedOffset))
+          .isPresent();
 
       SMGValue smgValueForPointer =
           currentState
@@ -2388,8 +2383,8 @@ public class SMGCPAValueVisitorTest {
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.get(0).getValue();
         assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
-        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().longValue() == 0)
-            .isTrue();
+        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigInteger())
+            .isEqualTo(BigInteger.ZERO);
         resultValue = ((AddressExpression) resultValue).getMemoryAddress();
         // & actually changes the state!
         currentState = resultList.get(0).getState();
@@ -2418,9 +2413,8 @@ public class SMGCPAValueVisitorTest {
         assertThat(
                 currentState
                     .getMemoryModel()
-                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
-                    .isPresent())
-            .isTrue();
+                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset))
+            .isPresent();
 
         SMGValue smgValueForPointer =
             currentState
@@ -2463,8 +2457,8 @@ public class SMGCPAValueVisitorTest {
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.get(0).getValue();
         assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
-        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().longValue() == 0)
-            .isTrue();
+        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().bigInteger())
+            .isEqualTo(BigInteger.ZERO);
         resultValue = ((AddressExpression) resultValue).getMemoryAddress();
         // & actually changes the state!
         currentState = resultList.get(0).getState();
@@ -2496,9 +2490,8 @@ public class SMGCPAValueVisitorTest {
         assertThat(
                 currentState
                     .getMemoryModel()
-                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset)
-                    .isPresent())
-            .isTrue();
+                    .getAddressValueForPointsToTarget(expectedTarget, expectedOffset))
+            .isPresent();
 
         SMGValue smgValueForPointer =
             currentState
