@@ -27,14 +27,18 @@ public interface ImmutableForgetfulState<T> extends ForgetfulState<T> {
    */
   @Deprecated
   @Override
-  T forget(MemoryLocation location);
+  default T forget(MemoryLocation location) {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * @deprecated do not use this method.
    */
   @Deprecated
   @Override
-  void remember(MemoryLocation location, T forgottenInformation);
+  default void remember(MemoryLocation location, T forgottenInformation) {
+      throw new UnsupportedOperationException();
+  }
 
   /**
    * Modify the abstract state by removing all information associated with the location.

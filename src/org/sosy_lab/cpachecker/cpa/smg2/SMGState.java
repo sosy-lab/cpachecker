@@ -3071,18 +3071,6 @@ public class SMGState
         memoryModel);
   }
 
-  @Deprecated
-  @Override
-  public void remember(MemoryLocation pLocation, SMGInformation pForgottenInformation) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Deprecated
-  @Override
-  public SMGInformation forget(MemoryLocation pLocation) {
-    throw new UnsupportedOperationException();
-  }
-
   /**
    * Takes the {@link Value}s that should be retained in the Heap and removes all other explicit
    * Values from the heap.
