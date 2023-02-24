@@ -53,7 +53,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       boolean pTruthValue,
       SMGOptions pOptions,
       Collection<String> booleanVariables) {
-    super(pEvaluator, currentState, edge, pLogger);
+    super(pEvaluator, currentState, edge, pLogger, pOptions);
     booleans = booleanVariables;
     truthValue = pTruthValue;
     options = pOptions;
@@ -74,11 +74,13 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     ImmutableList.Builder<ValueAndSMGState> finalValueAndStateBuilder = ImmutableList.builder();
 
     for (ValueAndSMGState leftValueAndState :
-        lVarInBinaryExp.accept(new SMGCPAValueVisitor(evaluator, initialState, edge, logger))) {
+        lVarInBinaryExp.accept(
+            new SMGCPAValueVisitor(evaluator, initialState, edge, logger, options))) {
       Value leftValue = leftValueAndState.getValue();
       for (ValueAndSMGState rightValueAndState :
           rVarInBinaryExp.accept(
-              new SMGCPAValueVisitor(evaluator, leftValueAndState.getState(), edge, logger))) {
+              new SMGCPAValueVisitor(
+                  evaluator, leftValueAndState.getState(), edge, logger, options))) {
         Value rightValue = rightValueAndState.getValue();
         SMGState currentState = rightValueAndState.getState();
 
@@ -100,7 +102,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
         // The states are set such that now we get the values we want in the value visitor
         finalValueAndStateBuilder.addAll(
-            pE.accept(new SMGCPAValueVisitor(evaluator, currentState, edge, logger)));
+            pE.accept(new SMGCPAValueVisitor(evaluator, currentState, edge, logger, options)));
       }
     }
 
@@ -349,7 +351,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               super.getInitialVisitorEvaluator(),
               currentState,
               super.getInitialVisitorCFAEdge(),
-              super.getInitialVisitorLogger());
+              super.getInitialVisitorLogger(),
+              options);
       // The exception is only thrown if an invalid statement is detected i.e. usage of undeclared
       // variable. Invalid input like constants are returned as empty optional
       return expression.accept(av);

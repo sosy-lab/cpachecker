@@ -137,6 +137,8 @@ public class SMGCPAValueVisitorTest {
   // The visitor should always use the currentState!
   private SMGCPAValueVisitor visitor;
 
+  private SMGOptions options;
+
   @Before
   public void init() throws InvalidConfigurationException {
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
@@ -144,10 +146,12 @@ public class SMGCPAValueVisitorTest {
     // null, null is fine as long as builtin functions are not used!
     evaluator = new SMGCPAExpressionEvaluator(MACHINE_MODEL, logger, null, null);
 
-    currentState =
-        SMGState.of(MACHINE_MODEL, logger, new SMGOptions(Configuration.defaultConfiguration()));
+    options = new SMGOptions(Configuration.defaultConfiguration());
+    currentState = SMGState.of(MACHINE_MODEL, logger, options);
 
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
+    visitor =
+        new SMGCPAValueVisitor(
+            evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
   }
 
   // Resets state and visitor to an empty state
@@ -155,7 +159,9 @@ public class SMGCPAValueVisitorTest {
     currentState =
         SMGState.of(MACHINE_MODEL, logger, new SMGOptions(Configuration.defaultConfiguration()));
 
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
+    visitor =
+        new SMGCPAValueVisitor(
+            evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
   }
 
   /*
@@ -3256,7 +3262,9 @@ public class SMGCPAValueVisitorTest {
 
     currentState = currentState.copyAndAddLocalVariable(sizeInBits, variableName, null);
 
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
+    visitor =
+        new SMGCPAValueVisitor(
+            evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
   }
 
   /*
@@ -3284,7 +3292,9 @@ public class SMGCPAValueVisitorTest {
             BigInteger.valueOf(writeSizeInBits),
             smgValue);
 
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
+    visitor =
+        new SMGCPAValueVisitor(
+            evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
   }
 
   /**
@@ -3318,7 +3328,9 @@ public class SMGCPAValueVisitorTest {
             logger,
             new SMGOptions(Configuration.defaultConfiguration()),
             currentState.getErrorInfo());
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
+    visitor =
+        new SMGCPAValueVisitor(
+            evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
   }
 
   /**
@@ -3333,7 +3345,9 @@ public class SMGCPAValueVisitorTest {
         currentState.searchOrCreateAddress(pTarget, BigInteger.valueOf(offset));
 
     currentState = addressAndState.getState();
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
+    visitor =
+        new SMGCPAValueVisitor(
+            evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
     return addressAndState.getValue();
   }
 
@@ -3353,7 +3367,9 @@ public class SMGCPAValueVisitorTest {
 
     // This state now has the stack variable that is the pointer to the struct and the struct with a
     // value in the second int, and none in the first
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
+    visitor =
+        new SMGCPAValueVisitor(
+            evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
     return newPointerValueAndState.getValue();
   }
 
@@ -3389,7 +3405,9 @@ public class SMGCPAValueVisitorTest {
             logger,
             new SMGOptions(Configuration.defaultConfiguration()),
             currentState.getErrorInfo());
-    visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
+    visitor =
+        new SMGCPAValueVisitor(
+            evaluator, currentState, new DummyCFAEdge(null, null), logger, options);
   }
 
   /**

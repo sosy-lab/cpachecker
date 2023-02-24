@@ -395,7 +395,8 @@ public class SMGCPABuiltins {
     Value address = pointerAndState.getValue();
 
     List<SMGStateAndOptionalSMGObjectAndOffset> targets =
-        firstArg.accept(new SMGCPAAddressVisitor(evaluator, currentState, cfaEdge, logger));
+        firstArg.accept(
+            new SMGCPAAddressVisitor(evaluator, currentState, cfaEdge, logger, options));
     Preconditions.checkArgument(targets.size() == 1);
     for (SMGStateAndOptionalSMGObjectAndOffset target : targets) {
       // We assume that there is only 1 valid returned target
@@ -450,7 +451,7 @@ public class SMGCPABuiltins {
     for (CExpression param : cFCExpression.getParameterExpressions()) {
       if (param instanceof CPointerExpression) {
         SMGCPAValueVisitor valueVisitor =
-            new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger);
+            new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger, options);
         for (ValueAndSMGState valueAndState : param.accept(valueVisitor)) {
           // We only want error states
           currentState = valueAndState.getState();
@@ -637,7 +638,7 @@ public class SMGCPABuiltins {
           functionName + " argument #" + pParameterNumber + " not found.", cfaEdge, functionCall);
     }
 
-    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
+    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger, options);
     return vv.evaluate(expr, SMGCPAExpressionEvaluator.getCanonicalType(functionCall));
   }
 
@@ -687,7 +688,7 @@ public class SMGCPABuiltins {
 
       if (sizeInBits.compareTo(BigInteger.ZERO) == 0) {
         // C99 says that allocation functions with argument 0 can return a null-pointer (or a valid
-        // pointer that may not be accessed but can be freed)
+        // pointer that may not be dereferenced but can be freed)
         // This mapping always exists
         Value addressToZero = new NumericValue(0);
         resultBuilder.add(ValueAndSMGState.of(addressToZero, currentState));

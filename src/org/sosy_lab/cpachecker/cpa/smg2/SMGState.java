@@ -3795,6 +3795,47 @@ public class SMGState
     return memoryModel.getSmg().isPointer(maybeEdge.orElseThrow().hasValue());
   }
 
+  /**
+   * Searches for a numeric address assumption and returns it if possible. The assumption has all
+   * possible offsets already added. As in C standard.
+   *
+   * @param addressValue the pointer {@link Value} or {@link AddressExpression}
+   * @return Optional, either a {@link BigInteger} as numeric address (pointer in Bytes) or empty.
+   */
+  public Optional<Value> transformAddressIntoNumericValue(Value addressValue) {
+    BigInteger offset = BigInteger.ZERO;
+    SMGObject target;
+    if (addressValue instanceof AddressExpression) {
+      AddressExpression addressExpr = ((AddressExpression) addressValue);
+      if (addressExpr.getOffset().isNumericValue()) {
+        offset = addressExpr.getOffset().asNumericValue().bigInteger();
+      } else {
+        return Optional.empty();
+      }
+      SMGPointsToEdge ptEdge =
+          memoryModel
+              .getSmg()
+              .getPTEdge(
+                  memoryModel.getSMGValueFromValue(addressExpr.getMemoryAddress()).orElseThrow())
+              .orElseThrow();
+      target = ptEdge.pointsTo();
+      offset = offset.add(ptEdge.getOffset());
+
+    } else if (memoryModel.isPointer(addressValue)) {
+      SMGPointsToEdge ptEdge =
+          memoryModel
+              .getSmg()
+              .getPTEdge(memoryModel.getSMGValueFromValue(addressValue).orElseThrow())
+              .orElseThrow();
+      target = ptEdge.pointsTo();
+      offset = ptEdge.getOffset();
+    } else {
+      return Optional.empty();
+    }
+    return Optional.of(
+        new NumericValue(memoryModel.getNumericAssumptionForMemoryRegion(target).add(offset)));
+  }
+
   // TODO: To be replaced with a better structure, i.e. union-find
   // This is mutable on purpose!
   public static class EqualityCache<V> {

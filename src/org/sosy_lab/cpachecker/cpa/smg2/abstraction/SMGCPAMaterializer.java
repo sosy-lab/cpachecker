@@ -408,7 +408,8 @@ public class SMGCPAMaterializer {
     if (prevPointer.isPresent()) {
       // There is at least 1 object before the new materialized,
       // if it is a valid list, we start from there
-      // Note: there might be objects before that one! Or the prev object might look like a list segment, without being one, i.e. the nfo does not point back to the start object.
+      // Note: there might be objects before that one! Or the prev object might look like a list
+      // segment, without being one, i.e. the nfo does not point back to the start object.
       SMGObject maybeStart = prevPointer.orElseThrow().pointsTo();
       if (state.getMemoryModel().isObjectValid(maybeStart)
           && maybeStart.getSize().compareTo(start.getSize()) == 0
@@ -418,7 +419,8 @@ public class SMGCPAMaterializer {
         SMGValue nextPointerValueOfPrev = nextPointerAndStateOfPrev.getSMGValue();
         Optional<SMGPointsToEdge> nextPointerOfPrev =
             currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValueOfPrev);
-        if (nextPointerOfPrev.isPresent() && nextPointerOfPrev.orElseThrow().pointsTo().equals(start)) {
+        if (nextPointerOfPrev.isPresent()
+            && nextPointerOfPrev.orElseThrow().pointsTo().equals(start)) {
           start = maybeStart;
           listOfObjects.add(start);
         }

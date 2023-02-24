@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -331,7 +332,7 @@ public class SMGCPAExpressionEvaluator {
     // only interesting in a failure case in which the analysis stops!
     SMGState currentState = pState;
     SMGCPAAddressVisitor addressVisitor =
-        new SMGCPAAddressVisitor(this, currentState, cfaEdge, logger);
+        new SMGCPAAddressVisitor(this, currentState, cfaEdge, logger, options);
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (SMGStateAndOptionalSMGObjectAndOffset objectAndOffsetOrState :
         operand.accept(addressVisitor)) {
@@ -432,6 +433,90 @@ public class SMGCPAExpressionEvaluator {
   private ValueAndSMGState searchOrCreatePointer(
       SMGObject targetObject, BigInteger offsetInBits, SMGState pState) {
     return pState.searchOrCreateAddress(targetObject, offsetInBits);
+  }
+
+  /**
+   * Creates a pointer from the numeric value entered on the state entered. The pointer is based on
+   * the states numeric address assumption. For numeric values less or equal to 0 a 0 pointer is
+   * returned. The pointers may also not be valid due to the offsets. This should optimally only be
+   * used in this, or a similar way (int *)(int)malloc(..);
+   *
+   * @param numericPointer {@link NumericValue} to be transformed into a pointer.
+   * @param state current {@link SMGState}
+   * @return {@link ValueAndSMGState} with a potential new state and a pointer value NOT wrapped in
+   *     a {@link AddressExpression}.
+   */
+  public ValueAndSMGState getPointerFromNumeric(Value numericPointer, SMGState state) {
+    Preconditions.checkArgument(numericPointer.isNumericValue());
+    if (numericPointer.asNumericValue().bigInteger() != null) {
+      return getPointerFromNumeric(numericPointer.asNumericValue().bigInteger(), state);
+    } else {
+      return ValueAndSMGState.ofUnknownValue(state);
+    }
+  }
+
+  /**
+   * @param numericPointer {@link BigInteger} to be transformed into a pointer.
+   * @param state current {@link SMGState}
+   * @return {@link ValueAndSMGState} with a potential new state and a pointer value NOT wrapped in
+   *     a {@link AddressExpression}.
+   */
+  private ValueAndSMGState getPointerFromNumeric(BigInteger numericPointer, SMGState state) {
+    // TODO: replace currentMemoryAssumptionMax with a better data structure
+    SMGObject bestObj = null;
+    if (numericPointer.compareTo(BigInteger.ZERO) <= 0) {
+      // negative or 0 -> invalid
+      return ValueAndSMGState.of(new NumericValue(0), state);
+    }
+    // bestDifFound = min dif to any boundary of memory!
+    BigInteger bestDifFound = null;
+    // bestDifToMemBeginning is dif to current best mem region 0 offset, this can be negative!
+    BigInteger bestDifToMemBeginning = null;
+    for (Entry<SMGObject, BigInteger> entry :
+        state.getMemoryModel().getNumericAssumptionForMemoryRegionMap().entrySet()) {
+      // Search for the closest entry
+      BigInteger memoryRegionStart = entry.getValue();
+      SMGObject object = entry.getKey();
+      BigInteger memoryRegionEnd = memoryRegionStart.add(object.getSize());
+      BigInteger difToZero = memoryRegionStart.subtract(numericPointer);
+      BigInteger difToEnd = memoryRegionEnd.subtract(numericPointer);
+      if (bestObj == null) {
+        bestObj = entry.getKey();
+        bestDifToMemBeginning = difToZero;
+        bestDifFound = difToZero;
+        if (bestDifFound.abs().compareTo(difToEnd.abs()) > 0) {
+          bestDifFound = difToEnd;
+        }
+        if (numericPointer.compareTo(memoryRegionStart) >= 0
+            && numericPointer.compareTo(memoryRegionEnd) < 0) {
+          // Inside mem region
+          break;
+        }
+
+      } else if (numericPointer.compareTo(memoryRegionStart) < 0) {
+        // smaller than obj
+        if (difToZero.abs().compareTo(bestDifFound.abs()) < 0) {
+          bestDifFound = difToZero;
+          bestDifToMemBeginning = difToZero;
+          bestObj = object;
+        }
+
+      } else if (numericPointer.compareTo(memoryRegionEnd) > 0) {
+        // bigger than obj
+        if (difToEnd.abs().compareTo(bestDifFound.abs()) < 0) {
+          bestDifFound = difToEnd;
+          bestDifToMemBeginning = difToZero;
+          bestObj = object;
+        }
+
+      } else {
+        // is inside object
+        bestObj = object;
+        bestDifToMemBeginning = difToZero;
+        break;
+      }
+    }
+    return searchOrCreatePointer(bestObj, bestDifToMemBeginning, state);
   }
 
   /**
@@ -790,7 +875,8 @@ public class SMGCPAExpressionEvaluator {
     // Get the memory for the left hand side variable
     // Write the return value into the left hand side variable
     for (SMGStateAndOptionalSMGObjectAndOffset variableMemoryAndOffsetOrState :
-        leftHandSideValue.accept(new SMGCPAAddressVisitor(this, currentState, edge, logger))) {
+        leftHandSideValue.accept(
+            new SMGCPAAddressVisitor(this, currentState, edge, logger, options))) {
       if (!variableMemoryAndOffsetOrState.hasSMGObjectAndOffset()) {
         // throw new SMG2Exception("No memory found to assign the value to.");
         successorsBuilder.add(variableMemoryAndOffsetOrState.getSMGState());
@@ -801,7 +887,7 @@ public class SMGCPAExpressionEvaluator {
       BigInteger offsetInBits = variableMemoryAndOffsetOrState.getOffsetForObject();
 
       ValueAndSMGState castedValueAndState =
-          new SMGCPAValueVisitor(this, currentState, edge, logger)
+          new SMGCPAValueVisitor(this, currentState, edge, logger, options)
               .castCValue(valueToWrite, leftHandSideValue.getExpressionType(), currentState);
       valueToWrite = castedValueAndState.getValue();
       currentState = castedValueAndState.getState();
@@ -1219,7 +1305,8 @@ public class SMGCPAExpressionEvaluator {
                     evaluator,
                     state,
                     new DummyCFAEdge(CFANode.newDummyCFANode(), CFANode.newDummyCFANode()),
-                    logger))) {
+                    logger,
+                    options))) {
           Value lengthValue = lengthValueAndState.getValue();
           // We simply ignore the State for this as if it's not numeric it does not matter
           if (lengthValue.isNumericValue()) {
@@ -1925,7 +2012,7 @@ public class SMGCPAExpressionEvaluator {
       // Copy of the entire structure instead of just writing
       // Source == right hand side
       for (SMGStateAndOptionalSMGObjectAndOffset sourceObjectAndOffsetOrState :
-          exprToWrite.accept(new SMGCPAAddressVisitor(this, pState, cfaEdge, logger))) {
+          exprToWrite.accept(new SMGCPAAddressVisitor(this, pState, cfaEdge, logger, options))) {
         if (!sourceObjectAndOffsetOrState.hasSMGObjectAndOffset()) {
           resultStatesBuilder.add(sourceObjectAndOffsetOrState.getSMGState());
           continue;
@@ -1968,7 +2055,7 @@ public class SMGCPAExpressionEvaluator {
 
     } else {
       // Just a normal write
-      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(this, pState, cfaEdge, logger);
+      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(this, pState, cfaEdge, logger, options);
       for (ValueAndSMGState valueAndState : vv.evaluate(exprToWrite, typeOfWrite)) {
 
         ValueAndSMGState valueAndStateToAssign =
