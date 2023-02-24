@@ -29,10 +29,6 @@ public class SMG2Exception extends CPATransferException {
     errorState = null;
   }
 
-  public boolean hasState() {
-    return errorState != null;
-  }
-
   /**
    * Returns the {@link SMGState} that is the error state. Careful, might be null! Check with
    * hasState().
