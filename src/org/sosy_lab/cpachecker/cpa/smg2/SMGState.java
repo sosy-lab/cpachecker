@@ -924,7 +924,8 @@ public class SMGState
   @Override
   public String toDOTLabel() {
     // TODO: implement to showcase the SMG better
-    throw new UnsupportedOperationException();
+    // This can't be not supported!
+    return toString();
   }
 
   @Override
