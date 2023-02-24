@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Deque;
@@ -133,7 +132,8 @@ public class SMG {
   }
 
   /**
-   * Removes the {@link SMGPointsToEdge} associated with the entered {@link SMGValue} iff there is a {@link SMGPointsToEdge}, else does nothing.
+   * Removes the {@link SMGPointsToEdge} associated with the entered {@link SMGValue} iff there is a
+   * {@link SMGPointsToEdge}, else does nothing.
    *
    * @param pValue the {@link SMGValue} for which the {@link SMGPointsToEdge} should be removed.
    * @return a new {@link SMG} in which the mapping is removed.
@@ -143,24 +143,23 @@ public class SMG {
       return this;
     }
     ImmutableMap.Builder<SMGValue, SMGPointsToEdge> builder = ImmutableMap.builder();
-    for (Entry<SMGValue, SMGPointsToEdge> entry: pointsToEdges.entrySet()) {
+    for (Entry<SMGValue, SMGPointsToEdge> entry : pointsToEdges.entrySet()) {
       if (!entry.getKey().equals(pValue)) {
         builder = builder.put(entry);
       }
     }
-    return new SMG(
-        smgObjects, smgValues, hasValueEdges, builder.build(), sizeOfPointer);
+    return new SMG(smgObjects, smgValues, hasValueEdges, builder.build(), sizeOfPointer);
   }
 
   /**
    * Returns the number of {@link SMGHasValueEdge}s that have the {@link SMGValue} in them.
    *
-   * @param pValue
-   * @return
+   * @param pValue {@link SMGValue} to search usages for.
+   * @return number of usages of the pValue.
    */
   public int getNumberOfSMGValueUsages(SMGValue pValue) {
     int found = 0;
-    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> entry: hasValueEdges.entrySet()) {
+    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> entry : hasValueEdges.entrySet()) {
       for (SMGHasValueEdge hve : entry.getValue()) {
         if (hve.hasValue().equals(pValue)) {
           found++;
@@ -171,16 +170,15 @@ public class SMG {
   }
 
   /**
-   * Returns the number of (distinct) SMGValues that have a {@link SMGPointsToEdge} pointing
-   * towards the target {@link SMGObject}. Different nesting levels and offsets are counted
-   * separately.
+   * Returns the number of (distinct) SMGValues that have a {@link SMGPointsToEdge} pointing towards
+   * the target {@link SMGObject}. Different nesting levels and offsets are counted separately.
    *
    * @param target {@link SMGObject} that the pointers point towards.
    * @return num of distinct pointers towards target.
    */
   public int getNumberOfSMGPointsToEdgesTowards(SMGObject target) {
-    HashSet<SMGValue> pointerValues = new HashSet<>();
-    for (Entry<SMGValue, SMGPointsToEdge> entry: pointsToEdges.entrySet()) {
+    Set<SMGValue> pointerValues = new HashSet<>();
+    for (Entry<SMGValue, SMGPointsToEdge> entry : pointsToEdges.entrySet()) {
       if (entry.getValue().pointsTo().equals(target)) {
         pointerValues.add(entry.getKey());
       }

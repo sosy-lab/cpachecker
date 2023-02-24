@@ -1381,8 +1381,8 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Removes the {@link SMGPointsToEdge} and {@link SMGValue} from the {@link SMG}.
-   * Caution when using this method, should only ever be applied to SMGValues that are no longer used.
+   * Removes the {@link SMGPointsToEdge} and {@link SMGValue} from the {@link SMG}. Caution when
+   * using this method, should only ever be applied to SMGValues that are no longer used.
    *
    * @return a new {@link SMG} with the {@link SMGValue} and its {@link SMGPointsToEdge} removed.
    */
@@ -1429,7 +1429,8 @@ public class SymbolicProgramConfiguration {
             .append(smgValue)
             .append(pointerInfo)
             .append(")")
-            .append(memoryString).append("\n");
+            .append(memoryString)
+            .append("\n");
         builder.append("\n");
       }
     }
@@ -1473,7 +1474,8 @@ public class SymbolicProgramConfiguration {
               .append("(")
               .append(smgValue)
               .append(pointerInfo)
-              .append(")").append("\n");
+              .append(")")
+              .append("\n");
         }
       } else {
         builder.append("\n");
@@ -1507,7 +1509,8 @@ public class SymbolicProgramConfiguration {
               .append(smgValue)
               .append(pointerInfo)
               .append(")")
-              .append(memoryString).append("\n");
+              .append(memoryString)
+              .append("\n");
         }
       }
       builder.append("\n");

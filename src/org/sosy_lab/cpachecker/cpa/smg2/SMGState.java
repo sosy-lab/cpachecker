@@ -3417,11 +3417,20 @@ public class SMGState
       // Since we override the next pointer anyway, we can just ignore the pointer
 
       // Assert that it truly only points towards the 0+
-      assert (currentState.getMemoryModel().getSmg().getNumberOfSMGValueUsages(nextPointerFromRoot.getSMGValue()) == 1);
-      assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj) == 1);
+      assert (currentState
+              .getMemoryModel()
+              .getSmg()
+              .getNumberOfSMGValueUsages(nextPointerFromRoot.getSMGValue())
+          == 1);
+      assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj)
+          == 1);
 
       // Delete old 0+ pointer
-      currentState = currentState.copyAndReplaceMemoryModel(currentState.getMemoryModel().removePointerFromSMGAndCopy(nextPointerFromRoot.getSMGValue()));
+      currentState =
+          currentState.copyAndReplaceMemoryModel(
+              currentState
+                  .getMemoryModel()
+                  .removePointerFromSMGAndCopy(nextPointerFromRoot.getSMGValue()));
 
       // Switch all other pointers
       currentState =
@@ -3447,8 +3456,13 @@ public class SMGState
             currentState.memoryModel.copyAndRemoveObjectFromHeap(root));
 
     if (incrementAmount == 0) {
-      assert (currentState.getMemoryModel().getSmg().getNumberOfSMGValueUsages(nextPointerFromRoot.getSMGValue()) == 0);
-      assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj) == 0);
+      assert (currentState
+              .getMemoryModel()
+              .getSmg()
+              .getNumberOfSMGValueUsages(nextPointerFromRoot.getSMGValue())
+          == 0);
+      assert (currentState.getMemoryModel().getSmg().getNumberOfSMGPointsToEdgesTowards(nextObj)
+          == 0);
     }
     return currentState.abstractIntoDLL(
         newDLL,

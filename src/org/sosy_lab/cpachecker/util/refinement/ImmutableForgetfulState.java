@@ -37,7 +37,7 @@ public interface ImmutableForgetfulState<T> extends ForgetfulState<T> {
   @Deprecated
   @Override
   default void remember(MemoryLocation location, T forgottenInformation) {
-      throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException();
   }
 
   /**
