@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.graph.EndpointPair;
@@ -24,8 +25,10 @@ import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
 
 public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge> {
 
+  private final MutableNetwork<CFANode, CFAEdge> delegate;
+
   private CfaMutableNetwork(MutableNetwork<CFANode, CFAEdge> pDelegate) {
-    super(pDelegate);
+    delegate = checkNotNull(pDelegate);
   }
 
   /**
@@ -62,6 +65,11 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
     }
 
     return new CfaMutableNetwork(mutableNetwork);
+  }
+
+  @Override
+  protected MutableNetwork<CFANode, CFAEdge> delegate() {
+    return delegate;
   }
 
   /**

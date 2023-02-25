@@ -19,6 +19,9 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.ConsistentCfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.ForwardingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -28,7 +31,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  * This class represents a CFA after it has been fully created (parsing, linking of functions,
  * etc.).
  */
-class ImmutableCFA implements CFA, Serializable {
+class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
 
   private static final long serialVersionUID = 5399965350156780812L;
 
@@ -36,6 +39,9 @@ class ImmutableCFA implements CFA, Serializable {
   private final ImmutableSortedSet<CFANode> allNodes;
 
   private final CfaMetadata metadata;
+
+  // `network` isn't `final` due to serialization, but shouldn't be reassigned anywhere else
+  private transient CfaNetwork network;
 
   ImmutableCFA(
       Map<String, FunctionEntryNode> pFunctions,
@@ -48,6 +54,13 @@ class ImmutableCFA implements CFA, Serializable {
 
     FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
     checkArgument(mainFunctionEntry.equals(functions.get(mainFunctionEntry.getFunctionName())));
+
+    network = ConsistentCfaNetwork.of(allNodes, functions.values());
+  }
+
+  @Override
+  protected CfaNetwork delegate() {
+    return network;
   }
 
   @Override
@@ -126,5 +139,7 @@ class ImmutableCFA implements CFA, Serializable {
     for (CFAEdge edge : (List<CFAEdge>) s.readObject()) {
       edge.getPredecessor().addLeavingEdge(edge);
     }
+
+    network = ConsistentCfaNetwork.of(allNodes, functions.values());
   }
 }
