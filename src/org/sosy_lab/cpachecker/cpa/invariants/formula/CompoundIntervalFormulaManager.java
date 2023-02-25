@@ -72,8 +72,7 @@ public class CompoundIntervalFormulaManager {
     if (this == pObj) {
       return true;
     }
-    if (pObj instanceof CompoundIntervalFormulaManager) {
-      CompoundIntervalFormulaManager other = (CompoundIntervalFormulaManager) pObj;
+    if (pObj instanceof CompoundIntervalFormulaManager other) {
       return compoundIntervalManagerFactory.equals(other.compoundIntervalManagerFactory)
           && evaluationVisitor.equals(other.evaluationVisitor)
           && partialEvaluator.equals(other.partialEvaluator);

@@ -107,6 +107,7 @@ public class FunctionApplicationManager {
   }
 
   /** common interface for all function-evaluators. */
+  @FunctionalInterface
   private interface FunctionApplication {
 
     /** returns a constraint "UF(params) == result" or TRUE if we cannot evaluate the UF. */

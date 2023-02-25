@@ -175,10 +175,10 @@ public class CFABuilder {
 
     addFunctionDeclarations(pItem, pFileName);
 
-    /* create globals */
+    // create globals
     iterateOverGlobals(pItem, pFileName);
 
-    /* create CFA for all functions */
+    // create CFA for all functions
     iterateOverFunctions(pItem, pFileName);
   }
 
@@ -198,7 +198,7 @@ public class CFABuilder {
 
   private void iterateOverGlobals(final Module pItem, final Path pFileName) throws LLVMException {
     Value globalItem = pItem.getFirstGlobal();
-    /* no globals? */
+    // no globals?
     if (globalItem == null) {
       return;
     }
@@ -211,7 +211,7 @@ public class CFABuilder {
 
       globalDeclarations.add(Pair.of(decl, globalItem.toString()));
 
-      /* we processed the last global variable? */
+      // we processed the last global variable?
       if (globalItem.equals(globalItemLast)) {
         break;
       }
@@ -1211,15 +1211,12 @@ public class CFABuilder {
     if (pItem.isConstantInt()) {
       BigInteger constantValue = BigInteger.valueOf(pItem.constIntGetSExtValue());
 
-      if (pExpectedType instanceof CSimpleType) {
-        CSimpleType castType = (CSimpleType) pExpectedType;
-
-        if (castType.getType().equals(CBasicType.INT)) {
-          assert machineModel.getMinimalIntegerValue(castType).compareTo(constantValue) <= 0;
-          assert machineModel.getMaximalIntegerValue(castType).compareTo(constantValue) >= 0;
-          return new CIntegerLiteralExpression(
-              getLocation(pItem, pFileName), pExpectedType, constantValue);
-        }
+      if ((pExpectedType instanceof CSimpleType castType)
+          && castType.getType().equals(CBasicType.INT)) {
+        assert machineModel.getMinimalIntegerValue(castType).compareTo(constantValue) <= 0;
+        assert machineModel.getMaximalIntegerValue(castType).compareTo(constantValue) >= 0;
+        return new CIntegerLiteralExpression(
+            getLocation(pItem, pFileName), pExpectedType, constantValue);
       }
 
       // if the expected type is no integer type and we have to cast the literal,
@@ -1518,7 +1515,7 @@ public class CFABuilder {
     } else if (expressionType instanceof CPointerType) {
       return getDereference(location, expression);
     } else if (expressionType instanceof CArrayType) {
-      /* Pointer to an array is the pointer to the beginning of the array */
+      // Pointer to an array is the pointer to the beginning of the array
       if (pExpectedType instanceof CPointerType) {
         if (getReferencedType(pExpectedType)
             .equals(((CArrayType) expressionType).getType().getCanonicalType())) {
@@ -1707,7 +1704,7 @@ public class CFABuilder {
 
   private CExpression getReference(FileLocation fileLocation, CExpression expr) {
     CType exprType = expr.getExpressionType();
-    /* if this expression starts with *, just remove the * */
+    // if this expression starts with *, just remove the *
     if (expr instanceof CPointerExpression) {
       return ((CPointerExpression) expr).getOperand();
     } else if (expr instanceof CArraySubscriptExpression) {
@@ -1771,13 +1768,13 @@ public class CFABuilder {
         : "Too few operands in GEP operation : " + pItem.getNumOperands();
 
     for (int i = 1; i < pItem.getNumOperands(); i++) {
-      /* get the value of the index */
+      // get the value of the index
       Value indexValue = pItem.getOperand(i);
       CExpression index = getExpression(indexValue, CNumericTypes.INT, pFileName);
 
       if (currentType instanceof CPointerType) {
         if (valueIsZero(indexValue)) {
-          /* if we do not shift the pointer, just dereference the type (and expression) */
+          // if we do not shift the pointer, just dereference the type (and expression)
           currentExpression = getDereference(fileLocation, currentExpression);
         } else {
           currentExpression =
@@ -1808,7 +1805,7 @@ public class CFABuilder {
             ((CCompositeType) currentType).getMembers().get(memberIndex);
         String fieldName = field.getName();
 
-        /* use "ptr_to_struct->elem" instead of "(*ptr_to_struct).elem" */
+        // use "ptr_to_struct->elem" instead of "(*ptr_to_struct).elem"
         if (currentExpression instanceof CPointerExpression) {
           currentExpression =
               new CFieldReference(
@@ -1824,11 +1821,11 @@ public class CFABuilder {
         }
       }
 
-      /* update the expression type */
+      // update the expression type
       currentType = currentExpression.getExpressionType();
     }
 
-    /* we want pointer to the element */
+    // we want pointer to the element
     return getReference(fileLocation, currentExpression);
   }
 

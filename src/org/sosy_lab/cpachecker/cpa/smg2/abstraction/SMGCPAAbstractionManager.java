@@ -240,8 +240,7 @@ public class SMGCPAAbstractionManager {
     // The first element might not have a prev pointer
     // In theory the first prev pointer of a list may not have been set, we check the next
     SMGObject nextObject = null;
-    if (root instanceof SMGDoublyLinkedListSegment) {
-      SMGDoublyLinkedListSegment dll = (SMGDoublyLinkedListSegment) root;
+    if (root instanceof SMGDoublyLinkedListSegment dll) {
       if (dll.getNextOffset().compareTo(nfo) == 0) {
         return Optional.of(dll.getPrevOffset());
       } else if (dll.getPrevOffset().compareTo(nfo) == 0) {
@@ -462,12 +461,10 @@ public class SMGCPAAbstractionManager {
       BigInteger nfo = hve.getOffset();
       SMGPointsToEdge pointsToEdge = pInputSmg.getPTEdge(value).orElseThrow();
       SMGObject reachedObject = pointsToEdge.pointsTo();
-      if (reachedObject instanceof SMGSinglyLinkedListSegment) {
-        SMGSinglyLinkedListSegment sll = (SMGSinglyLinkedListSegment) reachedObject;
-        if (sll.getNextOffset().compareTo(nfo) == 0) {
-          pAlreadyVisited.add(potentialRoot);
-          return Optional.of(new SMGCandidate(potentialRoot, nfo));
-        }
+      if ((reachedObject instanceof SMGSinglyLinkedListSegment sll)
+          && (sll.getNextOffset().compareTo(nfo) == 0)) {
+        pAlreadyVisited.add(potentialRoot);
+        return Optional.of(new SMGCandidate(potentialRoot, nfo));
       }
 
       // Check that reached object has a pointer at the same offset

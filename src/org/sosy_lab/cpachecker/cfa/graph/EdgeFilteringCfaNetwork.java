@@ -25,15 +25,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 final class EdgeFilteringCfaNetwork extends AbstractCfaNetwork {
 
   private final CfaNetwork delegate;
-  private final Predicate<CFAEdge> keepEdgePredicate;
+  private final Predicate<CFAEdge> retainPredicate;
 
-  private EdgeFilteringCfaNetwork(CfaNetwork pDelegate, Predicate<CFAEdge> pKeepEdgePredicate) {
-    delegate = pDelegate;
-    keepEdgePredicate = pKeepEdgePredicate;
+  private EdgeFilteringCfaNetwork(CfaNetwork pDelegate, Predicate<CFAEdge> pRetainPredicate) {
+    delegate = checkNotNull(pDelegate);
+    retainPredicate = checkNotNull(pRetainPredicate);
   }
 
-  static CfaNetwork of(CfaNetwork pDelegate, Predicate<CFAEdge> pKeepEdgePredicate) {
-    return new EdgeFilteringCfaNetwork(checkNotNull(pDelegate), checkNotNull(pKeepEdgePredicate));
+  static CfaNetwork of(CfaNetwork pDelegate, Predicate<CFAEdge> pRetainPredicate) {
+    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
+        new EdgeFilteringCfaNetwork(pDelegate, pRetainPredicate));
   }
 
   @Override
@@ -43,14 +44,13 @@ final class EdgeFilteringCfaNetwork extends AbstractCfaNetwork {
 
   @Override
   public Set<CFAEdge> inEdges(CFANode pNode) {
-    return Collections.unmodifiableSet(
-        Sets.filter(delegate.inEdges(pNode), keepEdgePredicate::test));
+    return Collections.unmodifiableSet(Sets.filter(delegate.inEdges(pNode), retainPredicate::test));
   }
 
   @Override
   public Set<CFAEdge> outEdges(CFANode pNode) {
     return Collections.unmodifiableSet(
-        Sets.filter(delegate.outEdges(pNode), keepEdgePredicate::test));
+        Sets.filter(delegate.outEdges(pNode), retainPredicate::test));
   }
 
   @Override

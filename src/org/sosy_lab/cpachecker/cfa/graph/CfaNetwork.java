@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.cfa.graph;
 
 import com.google.common.graph.Network;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 /**
- * Represents a {@link CFA} as a {@link Network}.
+ * The graph representation of a CFA.
  *
  * <p>All connections between elements of a CFA (i.e., nodes and edges) are defined by a {@link
  * CfaNetwork}. Depending on the implementation, the CFA represented by a {@link CfaNetwork} may
@@ -44,28 +44,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 public interface CfaNetwork extends Network<CFANode, CFAEdge> {
 
   /**
-   * Returns a new {@link CfaNetwork} view that represents the specified {@link CFA}.
-   *
-   * <p>All changes to the specified CFA are reflected in the returned {@link CfaNetwork}. The CFA
-   * represented by the returned {@link CfaNetwork} always matches the CFA represented by its
-   * elements (e.g., {@link CFAEdge#getSuccessor()} and {@link CfaNetwork#successor(CFAEdge)} always
-   * return the same value).
-   *
-   * <p>IMPORTANT: The specified CFA must not contain any parallel edges (i.e., edges that connect
-   * the same nodes in the same order) and never add them in the future (if the CFA is mutable).
-   * Additionally, the set returned by {@link CFA#getAllNodes()} must not contain any duplicates and
-   * never add them in the future. Be aware that these requirements are not enforced if Java
-   * assertions are disabled.
-   *
-   * @param pCfa the CFA to create a {@link CfaNetwork} view for
-   * @return a new {@link CfaNetwork} view that represents the specified {@link CFA}
-   * @throws NullPointerException if {@code pCfa == null}
-   */
-  public static CfaNetwork wrap(CFA pCfa) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(WrappingCfaNetwork.wrap(pCfa));
-  }
-
-  /**
    * Returns a new {@link CfaNetwork} that represents a single function.
    *
    * <p>The function is specified using the function entry node. The returned {@link CfaNetwork}
@@ -83,9 +61,18 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    *     node
    */
   public static CfaNetwork forFunction(FunctionEntryNode pFunctionEntryNode) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        SingleFunctionCfaNetwork.forFunction(pFunctionEntryNode));
+    return SingleFunctionCfaNetwork.forFunction(pFunctionEntryNode);
   }
+
+  /**
+   * Returns a set containing all function entry nodes of this {@link CfaNetwork}.
+   *
+   * <p>The returned set is unmodifiable, but modifications of this {@link CfaNetwork} are reflected
+   * in the returned set.
+   *
+   * @return a set containing all function entry nodes of this {@link CfaNetwork}
+   */
+  Set<FunctionEntryNode> entryNodes();
 
   /**
    * Returns the predecessor of the specified CFA edge in this {@link CfaNetwork}.
@@ -186,15 +173,14 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    *
    * <p>Modifications of this {@link CfaNetwork} are reflected in the view.
    *
-   * @param pKeepNodePredicate predicate that specifies the nodes that should be part of the
-   *     returned {@link CfaNetwork}
-   * @throws NullPointerException if {@code pKeepNodePredicate == null}
+   * @param pRetainPredicate predicate that specifies the nodes that should be part of the returned
+   *     {@link CfaNetwork}
+   * @throws NullPointerException if {@code pRetainPredicate == null}
    * @return a view of this {@link CfaNetwork} that only contains nodes for which the specified
    *     predicate evaluates to {@code true}
    */
-  default CfaNetwork filterNodes(Predicate<CFANode> pKeepNodePredicate) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        NodeFilteringCfaNetwork.of(this, pKeepNodePredicate));
+  default CfaNetwork withFilteredNodes(Predicate<CFANode> pRetainPredicate) {
+    return NodeFilteringCfaNetwork.of(this, pRetainPredicate);
   }
 
   /**
@@ -203,15 +189,14 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    *
    * <p>Modifications of this {@link CfaNetwork} are reflected in the view.
    *
-   * @param pKeepEdgePredicate predicate that specifies the edges that should be part of the
-   *     returned {@link CfaNetwork}
-   * @throws NullPointerException if {@code pKeepEdgePredicate == null}
+   * @param pRetainPredicate predicate that specifies the edges that should be part of the returned
+   *     {@link CfaNetwork}
+   * @throws NullPointerException if {@code pRetainPredicate == null}
    * @return a view of this {@link CfaNetwork} that only contains edges for which the specified
    *     predicate evaluates to {@code true}
    */
-  default CfaNetwork filterEdges(Predicate<CFAEdge> pKeepEdgePredicate) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        EdgeFilteringCfaNetwork.of(this, pKeepEdgePredicate));
+  default CfaNetwork withFilteredEdges(Predicate<CFAEdge> pRetainPredicate) {
+    return EdgeFilteringCfaNetwork.of(this, pRetainPredicate);
   }
 
   /**
@@ -229,9 +214,8 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    * @return a view of this {@link CfaNetwork} in which all edges are replaced by their function
    *     result
    */
-  default CfaNetwork transformEdges(Function<CFAEdge, CFAEdge> pEdgeTransformer) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        EdgeTransformingCfaNetwork.of(this, pEdgeTransformer));
+  default CfaNetwork withTransformedEdges(Function<CFAEdge, CFAEdge> pEdgeTransformer) {
+    return EdgeTransformingCfaNetwork.of(this, pEdgeTransformer);
   }
 
   /**
@@ -242,7 +226,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    * @return a view of this {@link CfaNetwork} that doesn't contain any summary edges
    */
   default CfaNetwork withoutSummaryEdges() {
-    return filterEdges(edge -> !(edge instanceof FunctionSummaryEdge));
+    return withFilteredEdges(edge -> !(edge instanceof FunctionSummaryEdge));
   }
 
   /**
@@ -254,7 +238,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    * @return a view of this {@link CfaNetwork} that doesn't contain any super-edges
    */
   default CfaNetwork withoutSuperEdges() {
-    return filterEdges(
+    return withFilteredEdges(
         edge -> !(edge instanceof FunctionCallEdge) && !(edge instanceof FunctionReturnEdge));
   }
 }

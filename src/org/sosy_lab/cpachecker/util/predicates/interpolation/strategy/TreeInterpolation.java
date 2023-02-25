@@ -16,9 +16,8 @@ import java.util.Deque;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationGroup;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -40,9 +39,9 @@ public class TreeInterpolation extends AbstractTreeInterpolation {
   @Override
   public <T> List<BooleanFormula> getInterpolants(
       final InterpolationManager.Interpolator<T> interpolator,
-      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+      final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds)
       throws InterruptedException, SolverException {
-    final Pair<List<Triple<BooleanFormula, AbstractState, T>>, ImmutableIntArray> p =
+    final Pair<List<InterpolationGroup<T>>, ImmutableIntArray> p =
         buildTreeStructure(formulasWithStatesAndGroupdIds);
     final ImmutableList.Builder<BooleanFormula> itps =
         ImmutableList.builderWithExpectedSize(p.getFirst().size());
@@ -57,7 +56,7 @@ public class TreeInterpolation extends AbstractTreeInterpolation {
   private <T> BooleanFormula getTreeInterpolant(
       final InterpolationManager.Interpolator<T> interpolator,
       final Deque<Pair<BooleanFormula, Integer>> itpStack,
-      final List<Triple<BooleanFormula, AbstractState, T>> formulas,
+      final List<InterpolationGroup<T>> formulas,
       final ImmutableIntArray startOfSubTree,
       final int positionOfA)
       throws SolverException, InterruptedException {
@@ -72,7 +71,7 @@ public class TreeInterpolation extends AbstractTreeInterpolation {
       while (!itpStack.isEmpty() && currentSubtree <= itpStack.peekLast().getSecond()) {
         A.add(itpProver.push(itpStack.pollLast().getFirst()));
       }
-      A.add(itpProver.push(formulas.get(positionOfA).getFirst()));
+      A.add(itpProver.push(formulas.get(positionOfA).formula()));
 
       assert itpStack.isEmpty() == (currentSubtree == 0)
           : "empty stack is only allowed, if we are in the left-most branch"
@@ -89,7 +88,7 @@ public class TreeInterpolation extends AbstractTreeInterpolation {
         B.add(itpProver.push(externalChild.getFirst()));
       }
       for (int i = positionOfA + 1; i < formulas.size(); i++) {
-        B.add(itpProver.push(formulas.get(i).getFirst()));
+        B.add(itpProver.push(formulas.get(i).formula()));
       }
 
       final boolean check = itpProver.isUnsat();

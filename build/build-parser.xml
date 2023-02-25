@@ -62,8 +62,8 @@ SPDX-License-Identifier: Apache-2.0
         <jflex file="${dir.parser}/${scanner.source}" destdir="${dir.src}" skel="${dir.parser}/${skeleton.source}" if:set="skeleton.source"/>
         <jflex file="${dir.parser}/${scanner.source}" destdir="${dir.src}" unless:set="skeleton.source"/>
         <replace file="${dir.parser}/${scanner.target}.java"
-            token="@SuppressWarnings(&quot;FallThrough&quot;)"
-            value="@SuppressWarnings({&quot;FallThrough&quot;, &quot;all&quot;, &quot;cast&quot;})"
+            token="@SuppressWarnings(&quot;fallthrough&quot;)"
+            value="@SuppressWarnings({&quot;fallthrough&quot;, &quot;all&quot;, &quot;cast&quot;})"
         />
     </target>
 

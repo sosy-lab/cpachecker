@@ -67,8 +67,7 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
   public boolean equals(Object pObj) {
     if (this == pObj) {
       return true;
-    } else if (pObj instanceof MonitorState) {
-      MonitorState otherElem = (MonitorState) pObj;
+    } else if (pObj instanceof MonitorState otherElem) {
       return getWrappedState().equals(otherElem.getWrappedState());
     } else {
       return false;

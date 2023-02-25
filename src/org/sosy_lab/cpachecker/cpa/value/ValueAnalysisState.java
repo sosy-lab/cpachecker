@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -45,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -204,9 +204,7 @@ public final class ValueAnalysisState
       if (pValue.isNumericValue()) {
         CIntegerLiteralExpression valueAsExpression =
             new CIntegerLiteralExpression(
-                FileLocation.DUMMY,
-                memLocType,
-                BigInteger.valueOf(pValue.asNumericValue().longValue()));
+                FileLocation.DUMMY, memLocType, pValue.asNumericValue().bigIntegerValue());
         try {
           typedValue = pValueVisitor.evaluate(valueAsExpression, memLocType);
         } catch (UnrecognizedCodeException pE) {
@@ -637,8 +635,7 @@ public final class ValueAnalysisState
       if (num != null) {
         MemoryLocation memoryLocation = entry.getKey();
         Type type = entry.getValue().getType();
-        if (!memoryLocation.isReference() && type instanceof CSimpleType) {
-          CSimpleType simpleType = (CSimpleType) type;
+        if (!memoryLocation.isReference() && type instanceof CSimpleType simpleType) {
           if (simpleType.getType().isIntegerType()) {
             int bitSize = machineModel.getSizeof(simpleType) * machineModel.getSizeofCharInBits();
             BitvectorFormula var =
@@ -653,17 +650,13 @@ public final class ValueAnalysisState
             }
             result.add(bitvectorFMGR.equal(var, val));
           } else if (simpleType.getType().isFloatingPointType()) {
-            final FloatingPointType fpType;
-            switch (simpleType.getType()) {
-              case FLOAT:
-                fpType = FormulaType.getSinglePrecisionFloatingPointType();
-                break;
-              case DOUBLE:
-                fpType = FormulaType.getDoublePrecisionFloatingPointType();
-                break;
-              default:
-                throw new AssertionError("Unsupported floating point type: " + simpleType);
-            }
+            final FloatingPointType fpType =
+                switch (simpleType.getType()) {
+                  case FLOAT -> FormulaType.getSinglePrecisionFloatingPointType();
+                  case DOUBLE -> FormulaType.getDoublePrecisionFloatingPointType();
+                  default -> throw new AssertionError(
+                      "Unsupported floating point type: " + simpleType);
+                };
             FloatingPointFormula var =
                 floatFMGR.makeVariable(entry.getKey().getExtendedQualifiedName(), fpType);
             FloatingPointFormula val = floatFMGR.makeNumber(num.doubleValue(), fpType);
@@ -812,9 +805,8 @@ public final class ValueAnalysisState
         Type type = entry.getValue().getType();
         if (!memoryLocation.isReference()
             && memoryLocation.isOnFunctionStack(pFunctionScope.getFunctionName())
-            && type instanceof CType
+            && type instanceof CType cType
             && CTypes.isArithmeticType((CType) type)) {
-          CType cType = (CType) type;
           if (cType instanceof CBitFieldType) {
             cType = ((CBitFieldType) cType).getType();
           }
@@ -856,8 +848,7 @@ public final class ValueAnalysisState
               } else {
                 throw new AssertionError("Unexpected type: " + simpleType);
               }
-            } else if (cType instanceof CEnumType) {
-              CEnumType enumType = (CEnumType) cType;
+            } else if (cType instanceof CEnumType enumType) {
               Long value = num.getNumber().longValue();
               for (CEnumerator enumerator : enumType.getEnumerators()) {
                 if (enumerator.getValue() == value) {

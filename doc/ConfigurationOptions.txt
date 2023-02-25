@@ -1289,6 +1289,9 @@ cpa.arg.export.code.header = true
 # this file
 cpa.arg.export.code.metadataOutput = no default value
 
+# when enabled also write invariant true to correctness-witness automata
+cpa.arg.exportTrueInvariants = false
+
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
 
@@ -1352,6 +1355,13 @@ cpa.arg.witness.exportAssumptions = true
 
 # Verification witness: Include function calls and function returns?
 cpa.arg.witness.exportFunctionCallsAndReturns = true
+
+# Export invariants in correctness witness also if location was not explored
+cpa.arg.witness.exportInvariantsForNonExploredStates = true
+
+# Export witness that is a combination of multiple (partial) correctness
+# witnesses, do not export default invariants
+cpa.arg.witness.exportJointWitnesses = false
 
 # Verification witness: Include the (starting) line numbers of the operations
 # on the transitions?
@@ -1717,9 +1727,6 @@ cpa.dca.refiner.dotExport = false
 # replaced by the automaton name.
 cpa.dca.refiner.dotExportFile = "%s.dot"
 
-# If set to true, all infeasible dummy states will be kept in the ARG.
-cpa.dca.refiner.keepInfeasibleStates = false
-
 # The max amount of refinements for the trace abstraction algorithm. Setting
 # it to 0 leads to an analysis of the ARG without executing any refinements.
 # This is used for debugging purposes.
@@ -2059,6 +2066,9 @@ cpa.predicate.abstraction.simplify = false
 # What to use for storing abstractions
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, FORMULA]
+
+# Export abstraction formulas as (way more readable) expressions.
+cpa.predicate.abstractions.asExpressions = false
 
 # Export one abstraction formula for each abstraction state into a file?
 cpa.predicate.abstractions.export = true
@@ -2818,7 +2828,7 @@ cpa.smg.deallocationFunctions = {"free"}
 # with this option enabled, heap abstraction will be enabled.
 cpa.smg.enableHeapAbstraction = false
 
-# If this Option is enabled, failure of mallocis simulated
+# If this Option is enabled, failure of malloc is simulated
 cpa.smg.enableMallocFail = true
 
 # Filename format for SMG graph dumps
@@ -2993,7 +3003,7 @@ cpa.smg2.deallocationFunctions = {"free"}
 # with this option enabled, heap abstraction will be enabled.
 cpa.smg2.enableHeapAbstraction = false
 
-# If this Option is enabled, failure of mallocis simulated
+# If this Option is enabled, failure of malloc is simulated
 cpa.smg2.enableMallocFail = true
 
 # Filename format for SMG graph dumps
@@ -4909,6 +4919,9 @@ witness.strictChecking = true
 # neccessary.This option is intended to be used with an ISA (c.f. option
 # witness.invariantsSpecificationAutomaton)
 witness.useInvariantsAsAssumptions = true
+
+# extend name of each witness automaton with a unique id
+witness.useUniqueName = false
 
 # Validate program using invariants from ACSL annotations.
 witness.validation.correctness.acsl = false

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.base.Verify.verify;
@@ -448,8 +449,7 @@ class PointerTargetSetManager {
      * <p>We check for UNION-type with special fieldnames.
      */
     private static boolean isAlreadyMergedCompositeType(final CType type) {
-      if (type instanceof CCompositeType) {
-        final CCompositeType compositeType = (CCompositeType) type;
+      if (type instanceof CCompositeType compositeType) {
         return compositeType.getKind() == ComplexTypeKind.UNION
             && !compositeType.getMembers().isEmpty()
             && compositeType.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0));
@@ -518,7 +518,7 @@ class PointerTargetSetManager {
           && !DynamicMemoryHandler.isAllocVariableName(baseName)) {
         highestAllocatedAddresses =
             makeBaseAddressConstraints(
-                baseName, base.getValue(), null, highestAllocatedAddresses, pConstraints);
+                baseName, base.getValue(), null, false, highestAllocatedAddresses, pConstraints);
       }
     }
 
@@ -533,9 +533,12 @@ class PointerTargetSetManager {
    *   <li>for alignment
    * </ul>
    *
+   * <p>Either pType or pAllocationSize need to be given.
+   *
    * @param pNewBase The name of the new base.
    * @param pType The type of the new base.
    * @param pAllocationSize An optional expression for the size in bytes of the new base.
+   * @param pIsDynamicAllocation Whether this is an allocation from malloc etc.
    * @param pHighestAllocatedAddresses list of addresses for which this method will ensure that the
    *     new base does not overlap
    * @param pConstraints Where the constraints about addresses will be added to.
@@ -544,12 +547,15 @@ class PointerTargetSetManager {
    */
   PersistentList<Formula> makeBaseAddressConstraints(
       final String pNewBase,
-      final CType pType,
+      final @Nullable CType pType,
       final @Nullable Formula pAllocationSize,
+      final boolean pIsDynamicAllocation,
       final PersistentList<Formula> pHighestAllocatedAddresses,
       final Constraints pConstraints) {
+    checkArgument(pType != null || pAllocationSize != null);
+    checkArgument(!pIsDynamicAllocation || pAllocationSize != null);
 
-    if (!options.trackFunctionPointers() && CTypes.isFunctionPointer(pType)) {
+    if (!options.trackFunctionPointers() && pType != null && CTypes.isFunctionPointer(pType)) {
       // Avoid adding constraints about function addresses,
       // otherwise we might track facts about function pointers for code like "if (p == &f)".
       return pHighestAllocatedAddresses;
@@ -572,17 +578,20 @@ class PointerTargetSetManager {
 
     // Add alignment constraint
     // For incomplete types, better not add constraints (imprecise) than a wrong one (unsound).
-    if (!pType.isIncomplete()) {
+    int alignment = 0;
+    if (pIsDynamicAllocation) {
+      alignment = conv.machineModel.getAlignofMalloc();
+    } else if (pType != null && !pType.isIncomplete()) {
+      alignment = typeHandler.getAlignof(pType);
+    }
+    if (alignment != 0) {
       pConstraints.addConstraint(
           formulaManager.makeModularCongruence(
-              newBaseFormula,
-              formulaManager.makeNumber(pointerType, 0L),
-              typeHandler.getAlignof(pType),
-              false));
+              newBaseFormula, formulaManager.makeNumber(pointerType, 0L), alignment, false));
     }
 
     final long typeSize =
-        pType.hasKnownConstantSize()
+        pType != null && pType.hasKnownConstantSize()
             ? typeHandler.getSizeof(pType)
             : options.defaultAllocationSize();
     final Formula typeSizeF = formulaManager.makeNumber(pointerType, typeSize);
@@ -596,9 +605,9 @@ class PointerTargetSetManager {
     // elsewhere and we must thus ensure here, too.
     // Furthermore, in case of linear approximation we need a constraint that the size is
     // positive, and using the type size takes care of this automatically.
-    // In cases where the precise size is known and correct, we need only one of the constraints.
-    // We use the one with typeSize instead of allocationSize, because the latter would add one
-    // multiplication to the formula.
+    // There are also cases where both sizes are given but different, for example in cases like
+    // "int* p = malloc(i);", where pType is "int" and pAllocationSize contains "i".
+    // But if both are the same, we can optimize one away.
     // We also need to ensure that the highest allocated address (both variants) is greater than
     // zero to prevent overflows with bitvector arithmetic.
 
@@ -606,8 +615,7 @@ class PointerTargetSetManager {
     PersistentList<Formula> highestAllocatedAddresses =
         PersistentLinkedList.of(newBasePlusTypeSize);
 
-    if (pAllocationSize != null
-        && !pAllocationSize.equals(formulaManager.makeNumber(pointerType, typeSize))) {
+    if (pAllocationSize != null && !pAllocationSize.equals(typeSizeF)) {
       Formula basePlusAllocationSize = formulaManager.makePlus(newBaseFormula, pAllocationSize);
       pConstraints.addConstraint(makeGreaterZero(basePlusAllocationSize));
 
@@ -686,8 +694,7 @@ class PointerTargetSetManager {
      */
     // assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type " + cType  + " for
     // base " + base;
-    if (cType instanceof CArrayType) {
-      final CArrayType arrayType = (CArrayType) cType;
+    if (cType instanceof CArrayType arrayType) {
       final int length = CTypeUtils.getArrayLength(arrayType, options);
       long offset = 0;
       for (int i = 0; i < length; ++i) {
@@ -704,8 +711,7 @@ class PointerTargetSetManager {
                 fields);
         offset += typeHandler.getSizeof(arrayType.getType());
       }
-    } else if (cType instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) cType;
+    } else if (cType instanceof CCompositeType compositeType) {
       assert compositeType.getKind() != ComplexTypeKind.ENUM
           : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {

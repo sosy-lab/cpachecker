@@ -330,7 +330,7 @@ public class SMGCPAAbstractionTest {
             currentState.readValueWithoutMaterialization(obj, nfo, pointerSizeInBits, null);
         currentState = readNfoWithoutMaterialization.getState();
         assertThat(readNfoWithoutMaterialization.getValue().isNumericValue()).isTrue();
-        assertThat(readNfoWithoutMaterialization.getValue().asNumericValue().bigInteger())
+        assertThat(readNfoWithoutMaterialization.getValue().asNumericValue().bigIntegerValue())
             .isEquivalentAccordingToCompareTo(BigInteger.ZERO);
         if (dll) {
           assertThat(obj instanceof SMGDoublyLinkedListSegment).isTrue();
@@ -338,7 +338,7 @@ public class SMGCPAAbstractionTest {
               currentState.readValueWithoutMaterialization(obj, pfo, pointerSizeInBits, null);
           currentState = readPfoWithoutMaterialization.getState();
           assertThat(readPfoWithoutMaterialization.getValue().isNumericValue()).isTrue();
-          assertThat(readPfoWithoutMaterialization.getValue().asNumericValue().bigInteger())
+          assertThat(readPfoWithoutMaterialization.getValue().asNumericValue().bigIntegerValue())
               .isEquivalentAccordingToCompareTo(BigInteger.ZERO);
         }
       }
@@ -467,7 +467,7 @@ public class SMGCPAAbstractionTest {
     ValueAndSMGState firstReadValueAndState = statesAndReadValueZeroPlus.get(0);
     currentState = firstReadValueAndState.getState();
     assertThat(firstReadValueAndState.getValue().isNumericValue()).isTrue();
-    assertThat(firstReadValueAndState.getValue().asNumericValue().bigInteger())
+    assertThat(firstReadValueAndState.getValue().asNumericValue().bigIntegerValue())
         .isEquivalentAccordingToCompareTo(expectedNfoValue);
 
     // The second is the one with a new concrete segment and another 0+
@@ -835,7 +835,7 @@ public class SMGCPAAbstractionTest {
       Value nextPointer = nextPointerAndState.getValue();
       assertThat(currentState.getMemoryModel().isPointer(nextPointer)).isTrue();
       if (i == listSize - 1) {
-        assertThat(nextPointer.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0)
+        assertThat(nextPointer.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0)
             .isTrue();
         // Check the nesting level
         // We only change the nesting level for the values mappings to pointers and in the objects
@@ -935,7 +935,7 @@ public class SMGCPAAbstractionTest {
       Value nextPointer = nextPointerAndState.getValue();
       assertThat(currentState.getMemoryModel().isPointer(nextPointer)).isTrue();
       if (i == TEST_LIST_LENGTH - 1) {
-        assertThat(nextPointer.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0)
+        assertThat(nextPointer.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0)
             .isTrue();
         // Check the nesting level
         // We only change the nesting level for the values mappings to pointers and in the objects
@@ -1055,7 +1055,7 @@ public class SMGCPAAbstractionTest {
                 .get(0);
         assertThat(nextPointer.getValue().isNumericValue()).isTrue();
         assertThat(
-                nextPointer.getValue().asNumericValue().bigInteger().compareTo(BigInteger.ZERO)
+                nextPointer.getValue().asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO)
                     == 0)
             .isTrue();
         break;
@@ -1092,7 +1092,7 @@ public class SMGCPAAbstractionTest {
                       .getValueFromSMGValue(headAndState.getSMGValue())
                       .orElseThrow()
                       .asNumericValue()
-                      .bigInteger()
+                      .bigIntegerValue()
                       .compareTo(BigInteger.ONE)
                   == 0)
           .isTrue();
@@ -1196,7 +1196,7 @@ public class SMGCPAAbstractionTest {
                 .get(0);
         assertThat(nextPointer.getValue().isNumericValue()).isTrue();
         assertThat(
-                nextPointer.getValue().asNumericValue().bigInteger().compareTo(BigInteger.ZERO)
+                nextPointer.getValue().asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO)
                     == 0)
             .isTrue();
         break;
@@ -1233,7 +1233,7 @@ public class SMGCPAAbstractionTest {
                       .getValueFromSMGValue(headAndState.getSMGValue())
                       .orElseThrow()
                       .asNumericValue()
-                      .bigInteger()
+                      .bigIntegerValue()
                       .compareTo(BigInteger.ONE)
                   == 0)
           .isTrue();
@@ -1881,7 +1881,7 @@ public class SMGCPAAbstractionTest {
                 null);
         currentState = readDataWithoutMaterialization.getState();
         assertThat(readDataWithoutMaterialization.getValue().isNumericValue()).isTrue();
-        assertThat(readDataWithoutMaterialization.getValue().asNumericValue().bigInteger())
+        assertThat(readDataWithoutMaterialization.getValue().asNumericValue().bigIntegerValue())
             .isEquivalentAccordingToCompareTo(BigInteger.valueOf(j));
       }
     }

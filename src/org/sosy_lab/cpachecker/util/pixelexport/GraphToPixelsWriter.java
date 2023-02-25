@@ -173,7 +173,7 @@ public abstract class GraphToPixelsWriter<Node> {
       if (intendedWidth > 0) {
         if (intendedWidth < neededWidth) {
           throw new InvalidConfigurationException(
-              "Graph doesn't fit on the defined canvas. Needed " + "width: " + neededWidth);
+              "Graph doesn't fit on the defined canvas. Needed width: " + neededWidth);
         }
         finalWidth = intendedWidth;
       } else {
@@ -194,7 +194,7 @@ public abstract class GraphToPixelsWriter<Node> {
       if (intendedHeight > 0) {
         if (intendedHeight < neededHeight) {
           throw new InvalidConfigurationException(
-              "Graph doesn't fit on the defined canvas. Needed " + "height: " + neededHeight);
+              "Graph doesn't fit on the defined canvas. Needed height: " + neededHeight);
         }
         finalHeight = intendedHeight;
       } else {
@@ -253,13 +253,13 @@ public abstract class GraphToPixelsWriter<Node> {
     canvasHandler.writeToFile(fullOutputFile);
   }
 
-  private interface CanvasProvider {
+  private sealed interface CanvasProvider {
     Graphics2D createCanvas(int pWidth, int pHeight);
 
     void writeToFile(Path pOutputFile) throws IOException, InvalidConfigurationException;
   }
 
-  private static class BitmapProvider implements CanvasProvider {
+  private static final class BitmapProvider implements CanvasProvider {
 
     private String imageFormat;
     private BufferedImage bufferedImage = null;
@@ -272,7 +272,7 @@ public abstract class GraphToPixelsWriter<Node> {
     public Graphics2D createCanvas(int pWidth, int pHeight) {
       checkState(
           bufferedImage == null,
-          "createCanvas can only be called after writing the old " + "canvas to a file");
+          "createCanvas can only be called after writing the old canvas to a file");
       bufferedImage = new BufferedImage(pWidth, pHeight, BufferedImage.TYPE_3BYTE_BGR);
       return bufferedImage.createGraphics();
     }
@@ -291,7 +291,7 @@ public abstract class GraphToPixelsWriter<Node> {
     }
   }
 
-  private static class SvgProvider implements CanvasProvider {
+  private static final class SvgProvider implements CanvasProvider {
 
     private SVGGraphics2D svgGenerator = null;
 

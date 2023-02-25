@@ -72,6 +72,7 @@ public enum MachineModel {
       1, // void
       1, // bool
       4, // pointer
+      8, // malloc
       true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
       ),
@@ -105,6 +106,7 @@ public enum MachineModel {
       1, // void
       1, // bool
       8, // pointer
+      16, // malloc
       true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
       ),
@@ -138,6 +140,7 @@ public enum MachineModel {
       1, // void
       1, // bool
       4, // pointer
+      8, // malloc
       false, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
       ),
@@ -171,6 +174,7 @@ public enum MachineModel {
       1, // void
       1, // bool
       8, // pointer
+      16, // malloc
       false, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
       );
@@ -204,6 +208,7 @@ public enum MachineModel {
   private final int alignofVoid;
   private final int alignofBool;
   private final int alignofPtr;
+  private final int alignofMalloc;
 
   // according to ANSI C, sizeof(char) is always 1
   private final int mSizeofChar = 1;
@@ -235,6 +240,7 @@ public enum MachineModel {
       int pAlignofVoid,
       int pAlignofBool,
       int pAlignofPtr,
+      int pAlignofMalloc,
       boolean pDefaultCharSigned,
       ByteOrder pEndianness) {
     sizeofShort = pSizeofShort;
@@ -258,6 +264,7 @@ public enum MachineModel {
     alignofVoid = pAlignofVoid;
     alignofBool = pAlignofBool;
     alignofPtr = pAlignofPtr;
+    alignofMalloc = pAlignofMalloc;
     defaultCharSigned = pDefaultCharSigned;
     endianness = pEndianness;
 
@@ -487,6 +494,14 @@ public enum MachineModel {
 
   public int getAlignofPtr() {
     return alignofPtr;
+  }
+
+  /**
+   * Return the alignment that malloc needs to guarantee for the returned memory. Source:
+   * https://www.gnu.org/software/libc/manual/html_node/Malloc-Examples.html
+   */
+  public int getAlignofMalloc() {
+    return alignofMalloc;
   }
 
   /** returns INT, if the type is smaller than INT, else the type itself. */
@@ -918,29 +933,11 @@ public enum MachineModel {
         CCompositeTypeMemberDeclaration typeMember = iterator.next();
         CType type = typeMember.getType();
 
-        BigInteger fieldSizeInBits = BigInteger.valueOf(-1);
-        // If incomplete type at end of struct, just assume 0 for its size
-        // and compute its offset as usual, since it isn't affected.
-        //
-        // If incomplete and not the end of the struct, something is wrong
-        // and we return an empty Optional.
-        if (type.isIncomplete()) {
-          if (iterator.hasNext()) {
-            throw new AssertionError(
-                "unexpected incomplete type "
-                    + type
-                    + " for field "
-                    + pFieldName
-                    + " in "
-                    + pOwnerType);
-          } else {
-            // XXX: Should there be a check for CArrayType here
-            // as there was in handleSizeOfStruct or is it
-            // safe to say, that this case will not occur
-            // and if it does due to an error we already crash
-            // in the getPadding-step below?
-            fieldSizeInBits = BigInteger.ZERO;
-          }
+        final BigInteger fieldSizeInBits;
+        if (!iterator.hasNext() && typeMember.isFlexibleArrayMember()) {
+          // If incomplete type at end of struct, just assume 0 for its size
+          // and compute its offset as usual, since it isn't affected.
+          fieldSizeInBits = BigInteger.ZERO;
         } else {
           fieldSizeInBits = getSizeofInBits(type);
         }

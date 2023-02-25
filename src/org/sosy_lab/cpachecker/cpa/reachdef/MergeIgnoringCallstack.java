@@ -24,9 +24,7 @@ public class MergeIgnoringCallstack implements MergeOperator {
   @Override
   public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision)
       throws CPAException {
-    if (pState1 instanceof ReachingDefState && pState2 instanceof ReachingDefState) {
-      ReachingDefState e1 = (ReachingDefState) pState1;
-      ReachingDefState e2 = (ReachingDefState) pState2;
+    if (pState1 instanceof ReachingDefState e1 && pState2 instanceof ReachingDefState e2) {
       Map<MemoryLocation, Set<DefinitionPoint>> local =
           unionMaps(e1.getLocalReachingDefinitions(), e2.getLocalReachingDefinitions());
       Map<MemoryLocation, Set<DefinitionPoint>> global =

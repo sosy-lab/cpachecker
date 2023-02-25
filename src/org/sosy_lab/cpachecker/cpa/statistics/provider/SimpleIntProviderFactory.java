@@ -83,8 +83,7 @@ public class SimpleIntProviderFactory {
       case DeclarationEdge:
         CDeclarationEdge declEdge = (CDeclarationEdge) pEdge;
         CDeclaration decl = declEdge.getDeclaration();
-        if (decl instanceof CVariableDeclaration) {
-          CVariableDeclaration varDecl = (CVariableDeclaration) decl;
+        if (decl instanceof CVariableDeclaration varDecl) {
           CInitializer init = varDecl.getInitializer();
           if (init != null) {
             count += countExpressions(init, counter);
@@ -501,12 +500,10 @@ public class SimpleIntProviderFactory {
                     public int count(CDeclaration declaration) {
                       if (declaration instanceof CVariableDeclaration) {
                         CType canonical = declaration.getType().getCanonicalType();
-                        if (canonical instanceof CSimpleType) {
-                          CSimpleType simple = (CSimpleType) canonical;
-                          if (simple.getType() == CBasicType.INT
-                              || simple.getType() == CBasicType.CHAR) {
-                            return 1;
-                          }
+                        if ((canonical instanceof CSimpleType simple)
+                            && (simple.getType() == CBasicType.INT
+                                || simple.getType() == CBasicType.CHAR)) {
+                          return 1;
                         }
                       }
                       return 0;
@@ -536,12 +533,10 @@ public class SimpleIntProviderFactory {
                     public int count(CDeclaration declaration) {
                       if (declaration instanceof CVariableDeclaration) {
                         CType canonical = declaration.getType().getCanonicalType();
-                        if (canonical instanceof CSimpleType) {
-                          CSimpleType simple = (CSimpleType) canonical;
-                          if (simple.getType() == CBasicType.FLOAT
-                              || simple.getType() == CBasicType.DOUBLE) {
-                            return 1;
-                          }
+                        if ((canonical instanceof CSimpleType simple)
+                            && (simple.getType() == CBasicType.FLOAT
+                                || simple.getType() == CBasicType.DOUBLE)) {
+                          return 1;
                         }
                       }
                       return 0;
@@ -586,11 +581,9 @@ public class SimpleIntProviderFactory {
                   new Counter<CExpression>() {
                     @Override
                     public int count(CExpression pExpression) {
-                      if (pExpression instanceof CBinaryExpression) {
-                        CBinaryExpression binexp = (CBinaryExpression) pExpression;
-                        if (isBitwiseOperation(binexp)) {
-                          return 1;
-                        }
+                      if ((pExpression instanceof CBinaryExpression binexp)
+                          && isBitwiseOperation(binexp)) {
+                        return 1;
                       }
                       return 0;
                     }
@@ -693,11 +686,9 @@ public class SimpleIntProviderFactory {
                   new Counter<CExpression>() {
                     @Override
                     public int count(CExpression pExpression) {
-                      if (pExpression instanceof CBinaryExpression) {
-                        CBinaryExpression binexp = (CBinaryExpression) pExpression;
-                        if (isArithmeticOperation(binexp)) {
-                          return 1;
-                        }
+                      if ((pExpression instanceof CBinaryExpression binexp)
+                          && isArithmeticOperation(binexp)) {
+                        return 1;
                       }
                       return 0;
                     }

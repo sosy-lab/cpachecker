@@ -98,6 +98,11 @@ class PredicateCPAStatistics implements Statistics {
   private boolean abstractionsExport = true;
 
   @Option(
+      description = "Export abstraction formulas as (way more readable) expressions.",
+      name = "abstractions.asExpressions")
+  private boolean abstractionsAsExpressions = false;
+
+  @Option(
       secure = true,
       description = "file that consists of one abstraction formula for each abstraction state",
       name = "abstractions.file")
@@ -242,7 +247,11 @@ class PredicateCPAStatistics implements Statistics {
     }
 
     if (abstractionsExport && abstractionsFile != null) {
-      abstractionsWriter.writeAbstractions(abstractionsFile, reached);
+      if (abstractionsAsExpressions) {
+        abstractionsWriter.writeAbstractionsAsExpressions(abstractionsFile, reached);
+      } else {
+        abstractionsWriter.writeAbstractions(abstractionsFile, reached);
+      }
     }
 
     if (exportInvariantsAsPrecision && invariantPrecisionsFile != null) {

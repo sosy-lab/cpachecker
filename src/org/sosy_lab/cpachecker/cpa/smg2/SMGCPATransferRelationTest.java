@@ -284,7 +284,13 @@ public class SMGCPATransferRelationTest {
       // The read state should not have any errors
       // TODO: error check
       assertThat(readValueAndState.get(0).getValue().isNumericValue()).isTrue();
-      assertThat(readValueAndState.get(0).getValue().asNumericValue().bigInteger().intValueExact())
+      assertThat(
+              readValueAndState
+                  .get(0)
+                  .getValue()
+                  .asNumericValue()
+                  .bigIntegerValue()
+                  .intValueExact())
           .isEqualTo(i + 1);
     }
   }
@@ -472,7 +478,7 @@ public class SMGCPATransferRelationTest {
       // The read state should not have any errors
       // TODO: error check
       assertThat(readValueAndState.get(0).getValue().isNumericValue()).isTrue();
-      assertThat(readValueAndState.get(0).getValue().asNumericValue().bigInteger())
+      assertThat(readValueAndState.get(0).getValue().asNumericValue().bigIntegerValue())
           .isEquivalentAccordingToCompareTo(expectedValue);
       expectedValue = expectedValue.add(BigInteger.ONE);
     }
@@ -497,7 +503,7 @@ public class SMGCPATransferRelationTest {
       // The read state should not have any errors
       // TODO: error check
       assertThat(readValueAndState.get(0).getValue().isNumericValue()).isTrue();
-      assertThat(readValueAndState.get(0).getValue().asNumericValue().bigInteger())
+      assertThat(readValueAndState.get(0).getValue().asNumericValue().bigIntegerValue())
           .isEquivalentAccordingToCompareTo(expectedValue);
       expectedValue = expectedValue.add(BigInteger.ONE);
     }
@@ -522,7 +528,7 @@ public class SMGCPATransferRelationTest {
                 .get(0)
                 .getValue()
                 .asNumericValue()
-                .bigInteger()
+                .bigIntegerValue()
                 .compareTo(expectedValue)
             != 0) {
           // Overflow for char
@@ -531,11 +537,11 @@ public class SMGCPATransferRelationTest {
                       .get(0)
                       .getValue()
                       .asNumericValue()
-                      .bigInteger()
+                      .bigIntegerValue()
                       .add(BigInteger.valueOf(256)))
               .isEquivalentAccordingToCompareTo(expectedValue);
         } else {
-          assertThat(readValueAndState.get(0).getValue().asNumericValue().bigInteger())
+          assertThat(readValueAndState.get(0).getValue().asNumericValue().bigIntegerValue())
               .isEquivalentAccordingToCompareTo(expectedValue);
         }
         expectedValue = expectedValue.add(BigInteger.ONE);
@@ -558,7 +564,7 @@ public class SMGCPATransferRelationTest {
       // The read state should not have any errors
       // TODO: error check
       assertThat(readValueAndState.get(0).getValue().isNumericValue()).isTrue();
-      assertThat(readValueAndState.get(0).getValue().asNumericValue().bigInteger())
+      assertThat(readValueAndState.get(0).getValue().asNumericValue().bigIntegerValue())
           .isEquivalentAccordingToCompareTo(BigInteger.ZERO);
     }
   }
@@ -655,7 +661,12 @@ public class SMGCPATransferRelationTest {
         // TODO: error check
         assertThat(readValueAndState.get(0).getValue().isNumericValue()).isTrue();
         assertThat(
-                readValueAndState.get(0).getValue().asNumericValue().bigInteger().intValueExact())
+                readValueAndState
+                    .get(0)
+                    .getValue()
+                    .asNumericValue()
+                    .bigIntegerValue()
+                    .intValueExact())
             .isEqualTo(i);
       }
     }
@@ -737,7 +748,12 @@ public class SMGCPATransferRelationTest {
       // TODO: error check
       assertThat(readValueAndState.get(0).getValue().isExplicitlyKnown()).isTrue();
       assertThat(
-              readValueAndState.get(0).getValue().asNumericValue().bigInteger().compareTo(value)
+              readValueAndState
+                      .get(0)
+                      .getValue()
+                      .asNumericValue()
+                      .bigIntegerValue()
+                      .compareTo(value)
                   == 0)
           .isTrue();
       // We increment the value to make them distinct
@@ -1062,7 +1078,7 @@ public class SMGCPATransferRelationTest {
                     .get(0)
                     .getValue()
                     .asNumericValue()
-                    .bigInteger()
+                    .bigIntegerValue()
                     .compareTo(BigInteger.ZERO)
                 == 0)
         .isTrue();
@@ -1130,7 +1146,7 @@ public class SMGCPATransferRelationTest {
                         .get(0)
                         .getValue()
                         .asNumericValue()
-                        .bigInteger()
+                        .bigIntegerValue()
                         .compareTo(expectedValue)
                     == 0)
             .isTrue();
@@ -1212,7 +1228,7 @@ public class SMGCPATransferRelationTest {
                         .get(0)
                         .getValue()
                         .asNumericValue()
-                        .bigInteger()
+                        .bigIntegerValue()
                         .compareTo(expectedValue)
                     == 0)
             .isTrue();
@@ -1291,7 +1307,7 @@ public class SMGCPATransferRelationTest {
                         .get(0)
                         .getValue()
                         .asNumericValue()
-                        .bigInteger()
+                        .bigIntegerValue()
                         .compareTo(expectedValue)
                     == 0)
             .isTrue();
@@ -1380,7 +1396,7 @@ public class SMGCPATransferRelationTest {
                         .get(0)
                         .getValue()
                         .asNumericValue()
-                        .bigInteger()
+                        .bigIntegerValue()
                         .compareTo(expectedValue)
                     == 0)
             .isTrue();
@@ -1427,7 +1443,12 @@ public class SMGCPATransferRelationTest {
         assertThat(readValueAndState.get(0).getValue().isNumericValue()).isTrue();
 
         assertThat(
-                readValueAndState.get(0).getValue().asNumericValue().bigInteger().compareTo(value)
+                readValueAndState
+                        .get(0)
+                        .getValue()
+                        .asNumericValue()
+                        .bigIntegerValue()
+                        .compareTo(value)
                     == 0)
             .isTrue();
       }

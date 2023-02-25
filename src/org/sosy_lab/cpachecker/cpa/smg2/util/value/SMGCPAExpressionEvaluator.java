@@ -122,7 +122,7 @@ public class SMGCPAExpressionEvaluator {
       return ValueAndSMGState.ofUnknownValue(currentState);
     }
 
-    if (offset.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
+    if (offset.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
       // offset == 0 -> known pointer
       return ValueAndSMGState.of(addressExpression.getMemoryAddress(), currentState);
     } else {
@@ -130,7 +130,7 @@ public class SMGCPAExpressionEvaluator {
       List<ValueAndSMGState> pointers =
           findOrcreateNewPointer(
               addressExpression.getMemoryAddress(),
-              offset.asNumericValue().bigInteger(),
+              offset.asNumericValue().bigIntegerValue(),
               currentState);
       Preconditions.checkArgument(pointers.size() == 1);
       // It is impossible for 0+ list abstractions to happen in this context -> only 1 return value
@@ -155,7 +155,7 @@ public class SMGCPAExpressionEvaluator {
     if (isNotEqual.isUnknown()) {
       return isNotEqual;
     }
-    return isNotEqual.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0
+    return isNotEqual.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0
         ? new NumericValue(1)
         : new NumericValue(0);
   }
@@ -209,7 +209,7 @@ public class SMGCPAExpressionEvaluator {
     AddressExpression address1 = (AddressExpression) value;
     Value offsetValue = address1.getOffset();
     if (offsetValue.isNumericValue()
-        && offsetValue.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
+        && offsetValue.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {
       return ValueAndSMGState.of(address1.getMemoryAddress(), state);
     } else {
       // Get the correct address with its offset in the SMGPointsToEdge
@@ -225,7 +225,7 @@ public class SMGCPAExpressionEvaluator {
             "Comparison of non numeric offset values not possible when comparing addresses.");
       }
       BigInteger offset =
-          offsetValue.asNumericValue().bigInteger().add(targetAndOffset.getOffsetForObject());
+          offsetValue.asNumericValue().bigIntegerValue().add(targetAndOffset.getOffsetForObject());
 
       return searchOrCreatePointer(target, offset, state);
     }
@@ -849,13 +849,11 @@ public class SMGCPAExpressionEvaluator {
    * This should be used to not confuse enums with structs/unions.
    */
   public static boolean isStructOrUnionType(CType rValueType) {
-    if (rValueType instanceof CCompositeType) {
-      CCompositeType type = (CCompositeType) rValueType;
+    if (rValueType instanceof CCompositeType type) {
       return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
 
-    if (rValueType instanceof CElaboratedType) {
-      CElaboratedType type = (CElaboratedType) rValueType;
+    if (rValueType instanceof CElaboratedType type) {
       return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
     return false;
@@ -1123,7 +1121,10 @@ public class SMGCPAExpressionEvaluator {
       // method because of abstraction.
       // easy, just compare the numeric value and return if != 0
       int compare =
-          value1.asNumericValue().bigInteger().compareTo(value2.asNumericValue().bigInteger());
+          value1
+              .asNumericValue()
+              .bigIntegerValue()
+              .compareTo(value2.asNumericValue().bigIntegerValue());
       if (compare != 0) {
         return ValueAndSMGState.of(new NumericValue(compare), pState);
       }
@@ -1145,9 +1146,10 @@ public class SMGCPAExpressionEvaluator {
   }
 
   /**
+   * Checks if the entered value is a {@link AddressExpression} or a {@link SymbolicIdentifier} with
+   * a {@link MemoryLocation}.
+   *
    * @param value {@link Value} to be checked.
-   * @return true if the entered value is a {@link AddressExpression} or a {@link
-   *     SymbolicIdentifier} with a {@link MemoryLocation}.
    */
   public static boolean valueIsAddressExprOrVariableOffset(@Nullable Value value) {
     if (value == null) {
@@ -1221,7 +1223,7 @@ public class SMGCPAExpressionEvaluator {
           Value lengthValue = lengthValueAndState.getValue();
           // We simply ignore the State for this as if it's not numeric it does not matter
           if (lengthValue.isNumericValue()) {
-            return lengthValue.asNumericValue().bigInteger().multiply(sizeOfType);
+            return lengthValue.asNumericValue().bigIntegerValue().multiply(sizeOfType);
           } else if (options.isGuessSizeOfUnknownMemorySize()) {
             return options.getGuessSize().multiply(sizeOfType);
           }
@@ -1283,10 +1285,9 @@ public class SMGCPAExpressionEvaluator {
     SMGObject newVariableMemory = maybeObject.orElseThrow();
     BigInteger ZeroOffsetInBits = BigInteger.ZERO;
 
-    if (valueToWrite instanceof AddressExpression) {
+    if (valueToWrite instanceof AddressExpression paramAddrExpr) {
       // This is either a pointer to be written or this points to a memory region
       // to be copied depending on the type
-      AddressExpression paramAddrExpr = (AddressExpression) valueToWrite;
       Value paramAddrOffsetValue = paramAddrExpr.getOffset();
 
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(parameterType)
@@ -1518,8 +1519,7 @@ public class SMGCPAExpressionEvaluator {
               "Could not determine correct type size for an array for initializer expression: "
                   + init);
         }
-      } else if (init instanceof CInitializerList) {
-        CInitializerList initList = ((CInitializerList) init);
+      } else if (init instanceof CInitializerList initList) {
         CType realCType = cType.getCanonicalType();
 
         CArrayType arrayType = (CArrayType) realCType;
@@ -1630,16 +1630,13 @@ public class SMGCPAExpressionEvaluator {
         return writeCExpressionToLocalOrGlobalVariable(
             pNewState, pEdge, variableName, pOffset, pLValueType, expression);
       }
-    } else if (pInitializer instanceof CInitializerList) {
-      CInitializerList pNewInitializer = ((CInitializerList) pInitializer);
+    } else if (pInitializer instanceof CInitializerList pNewInitializer) {
       CType realCType = pLValueType.getCanonicalType();
 
-      if (realCType instanceof CArrayType) {
-        CArrayType arrayType = (CArrayType) realCType;
+      if (realCType instanceof CArrayType arrayType) {
         return handleInitializerList(
             pNewState, pVarDecl, pEdge, variableName, pOffset, arrayType, pNewInitializer);
-      } else if (realCType instanceof CCompositeType) {
-        CCompositeType structType = (CCompositeType) realCType;
+      } else if (realCType instanceof CCompositeType structType) {
         return handleInitializerList(
             pNewState, pVarDecl, pEdge, variableName, pOffset, structType, pNewInitializer);
       }

@@ -41,12 +41,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  *       UnmodifiableSetView} incorrectly may lead to duplicates in sets.
  * </ul>
  */
-final class CheckingCfaNetwork implements CfaNetwork {
+class CheckingCfaNetwork implements CfaNetwork {
 
   private final CfaNetwork delegate;
 
   private CheckingCfaNetwork(CfaNetwork pDelegate) {
-    delegate = pDelegate;
+    delegate = checkNotNull(pDelegate);
   }
 
   /**
@@ -60,7 +60,6 @@ final class CheckingCfaNetwork implements CfaNetwork {
    * @throws NullPointerException if {@code pCfaNetwork == null}
    */
   static CfaNetwork wrapIfAssertionsEnabled(CfaNetwork pCfaNetwork) {
-
     CfaNetwork cfaNetwork = checkNotNull(pCfaNetwork);
     // Even though this is bad practice in general, the assert statement is used for its side-effect
     // (wrapping the specified `CfaNetwork` if evaluated).
@@ -72,7 +71,6 @@ final class CheckingCfaNetwork implements CfaNetwork {
   }
 
   private static <E> Set<E> checkNoDuplicates(Set<E> pSet) {
-
     ImmutableSet<List<E>> duplicates = UnmodifiableSetView.duplicates(pSet);
     checkArgument(duplicates.isEmpty(), "Set contains duplicates: %s", duplicates);
 
@@ -80,7 +78,6 @@ final class CheckingCfaNetwork implements CfaNetwork {
   }
 
   private <T extends CFANode> T checkContainsNode(T pNode) {
-
     checkArgument(
         delegate.nodes().contains(pNode),
         "`CfaNetwork` doesn't contain the specified CFA node: %s",
@@ -90,7 +87,6 @@ final class CheckingCfaNetwork implements CfaNetwork {
   }
 
   private <T extends CFAEdge> T checkContainsEdge(T pEdge) {
-
     checkArgument(
         delegate.edges().contains(pEdge),
         "`CfaNetwork` doesn't contain the specified CFA edge: %s",
@@ -195,7 +191,6 @@ final class CheckingCfaNetwork implements CfaNetwork {
 
       @Override
       public boolean hasEdgeConnecting(EndpointPair<CFANode> pEndpoints) {
-
         checkContainsNode(pEndpoints.nodeU());
         checkContainsNode(pEndpoints.nodeV());
 
@@ -296,7 +291,6 @@ final class CheckingCfaNetwork implements CfaNetwork {
 
   @Override
   public Set<CFAEdge> edgesConnecting(EndpointPair<CFANode> pEndpoints) {
-
     checkContainsNode(pEndpoints.nodeU());
     checkContainsNode(pEndpoints.nodeV());
 
@@ -310,7 +304,6 @@ final class CheckingCfaNetwork implements CfaNetwork {
 
   @Override
   public Optional<CFAEdge> edgeConnecting(EndpointPair<CFANode> pEndpoints) {
-
     checkContainsNode(pEndpoints.nodeU());
     checkContainsNode(pEndpoints.nodeV());
 
@@ -324,7 +317,6 @@ final class CheckingCfaNetwork implements CfaNetwork {
 
   @Override
   public CFAEdge edgeConnectingOrNull(EndpointPair<CFANode> pEndpoints) {
-
     checkContainsNode(pEndpoints.nodeU());
     checkContainsNode(pEndpoints.nodeV());
 
@@ -338,7 +330,6 @@ final class CheckingCfaNetwork implements CfaNetwork {
 
   @Override
   public boolean hasEdgeConnecting(EndpointPair<CFANode> pEndpoints) {
-
     checkContainsNode(pEndpoints.nodeU());
     checkContainsNode(pEndpoints.nodeV());
 
@@ -346,6 +337,11 @@ final class CheckingCfaNetwork implements CfaNetwork {
   }
 
   // `CfaNetwork` specific
+
+  @Override
+  public Set<FunctionEntryNode> entryNodes() {
+    return checkNoDuplicates(delegate.entryNodes());
+  }
 
   @Override
   public CFANode predecessor(CFAEdge pEdge) {

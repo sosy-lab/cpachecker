@@ -46,8 +46,7 @@ public class VariableSkipper {
 
   public boolean shouldBeSkipped(AbstractIdentifier id, String functionName) {
 
-    if (id instanceof SingleIdentifier) {
-      SingleIdentifier singleId = (SingleIdentifier) id;
+    if (id instanceof SingleIdentifier singleId) {
       if (checkId(singleId)) {
         return true;
       } else if (singleId instanceof StructureIdentifier) {

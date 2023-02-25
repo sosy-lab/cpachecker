@@ -85,9 +85,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     }
   }
 
-  @Option(
-      secure = true,
-      description = "Apply AND- LBE transformation to loop " + "transition relation.")
+  @Option(secure = true, description = "Apply AND- LBE transformation to loop transition relation.")
   private boolean applyLBETransformation = true;
 
   @Option(
@@ -375,7 +373,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     return out;
   }
 
-  private interface EdgeWrapper {
+  private sealed interface EdgeWrapper {
     CFANode getPredecessor();
 
     CFANode getSuccessor();
@@ -387,7 +385,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     String prettyPrint(String prefix);
   }
 
-  private class SingleEdge implements EdgeWrapper {
+  private final class SingleEdge implements EdgeWrapper {
     private final CFAEdge edge;
 
     SingleEdge(CFAEdge e) {
@@ -422,7 +420,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     }
   }
 
-  private class AndEdge implements EdgeWrapper {
+  private final class AndEdge implements EdgeWrapper {
     private final List<EdgeWrapper> edges;
     private final CFANode predecessor;
     private final CFANode successor;
@@ -474,7 +472,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     }
   }
 
-  private class OrEdge implements EdgeWrapper {
+  private final class OrEdge implements EdgeWrapper {
     private final List<EdgeWrapper> edges;
     private final CFANode predecessor;
     private final CFANode successor;

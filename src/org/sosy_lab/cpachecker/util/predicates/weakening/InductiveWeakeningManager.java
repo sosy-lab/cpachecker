@@ -335,8 +335,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
 
     @Override
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-      out.printf(
-          "Histogram of number of iterations required for convergence: " + "%s %n", iterationsNo);
+      out.printf("Histogram of number of iterations required for convergence: %s %n", iterationsNo);
     }
 
     @Override

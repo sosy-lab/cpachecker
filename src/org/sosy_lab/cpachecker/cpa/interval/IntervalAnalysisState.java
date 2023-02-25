@@ -297,8 +297,7 @@ public class IntervalAnalysisState
       return true;
     }
 
-    if (other instanceof IntervalAnalysisState) {
-      IntervalAnalysisState otherElement = (IntervalAnalysisState) other;
+    if (other instanceof IntervalAnalysisState otherElement) {
       return intervals.equals(otherElement.intervals);
     }
     return false;

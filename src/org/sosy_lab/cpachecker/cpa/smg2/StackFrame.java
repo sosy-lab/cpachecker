@@ -40,7 +40,7 @@ public final class StackFrame {
   /** An object to store function return value. The Object is Null if function has Void-type. */
   private final Optional<SMGObject> returnValueObject;
 
-  /** var args are given when a function is called (if they are not the optional is empty). * */
+  /** var args are given when a function is called (if they are not the optional is empty). */
   private final Optional<ImmutableList<Value>> variableArguments;
 
   private StackFrame(
@@ -199,7 +199,7 @@ public final class StackFrame {
       }
     }
     if (returnValueObject.isPresent()) {
-      builder.append(" return object:" + " -> " + returnValueObject.orElseThrow() + "  ");
+      builder.append(" return object: -> " + returnValueObject.orElseThrow() + "  ");
     }
     return builder.toString();
   }

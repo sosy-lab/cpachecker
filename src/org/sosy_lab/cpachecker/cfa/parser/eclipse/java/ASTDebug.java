@@ -39,265 +39,94 @@ class ASTDebug extends ASTVisitor {
   }
 
   public static String getTypeName(int type) {
-    String name;
-
-    switch (type) {
-      case ASTNode.ANNOTATION_TYPE_DECLARATION:
-        name = "ANNOTATION_TYPE_DECLARATION";
-        break;
-      case ASTNode.ANNOTATION_TYPE_MEMBER_DECLARATION:
-        name = "ANNOTATION_TYPE_MEMBER_DECLARATION";
-        break;
-      case ASTNode.ANONYMOUS_CLASS_DECLARATION:
-        name = "ANONYMOUS_CLASS_DECLARATION";
-        break;
-      case ASTNode.ARRAY_ACCESS:
-        name = "ARRAY_ACCESS";
-        break;
-      case ASTNode.ARRAY_CREATION:
-        name = "ARRAY_CREATION";
-        break;
-      case ASTNode.ARRAY_INITIALIZER:
-        name = "ARRAY_INITIALIZER";
-        break;
-      case ASTNode.ARRAY_TYPE:
-        name = "ARRAY_TYPE";
-        break;
-      case ASTNode.ASSERT_STATEMENT:
-        name = "ASSERT_STATEMENT";
-        break;
-      case ASTNode.ASSIGNMENT:
-        name = "ASSIGNMENT";
-        break;
-      case ASTNode.BLOCK:
-        name = "BLOCK";
-        break;
-      case ASTNode.BLOCK_COMMENT:
-        name = "BLOCK_COMMENT";
-        break;
-      case ASTNode.BOOLEAN_LITERAL:
-        name = "BOOLEAN_LITERAL";
-        break;
-      case ASTNode.BREAK_STATEMENT:
-        name = "BREAK_STATEMENT";
-        break;
-      case ASTNode.CAST_EXPRESSION:
-        name = "CAST_EXPRESSION";
-        break;
-      case ASTNode.CATCH_CLAUSE:
-        name = "CATCH_CLAUSE";
-        break;
-      case ASTNode.CHARACTER_LITERAL:
-        name = "CHARACTER_LITERAL";
-        break;
-      case ASTNode.CLASS_INSTANCE_CREATION:
-        name = "CLASS_INSTANCE_CREATION";
-        break;
-      case ASTNode.COMPILATION_UNIT:
-        name = "COMPILATION_UNIT";
-        break;
-      case ASTNode.CONDITIONAL_EXPRESSION:
-        name = "CONDITIONAL_EXPRESSION";
-        break;
-      case ASTNode.CONSTRUCTOR_INVOCATION:
-        name = "CONSTRUCTOR_INVOCATION";
-        break;
-      case ASTNode.CONTINUE_STATEMENT:
-        name = "CONTINUE_STATEMENT";
-        break;
-      case ASTNode.DO_STATEMENT:
-        name = "DO_STATEMENT";
-        break;
-      case ASTNode.EMPTY_STATEMENT:
-        name = "EMPTY_STATEMENT";
-        break;
-      case ASTNode.ENHANCED_FOR_STATEMENT:
-        name = "ENHANCED_FOR_STATEMENT";
-        break;
-      case ASTNode.ENUM_CONSTANT_DECLARATION:
-        name = "ENUM_CONSTANT_DECLARATION";
-        break;
-      case ASTNode.ENUM_DECLARATION:
-        name = "ENUM_DECLARATION";
-        break;
-      case ASTNode.EXPRESSION_STATEMENT:
-        name = "EXPRESSION_STATEMENT";
-        break;
-      case ASTNode.FIELD_ACCESS:
-        name = "FIELD_ACCESS";
-        break;
-      case ASTNode.FIELD_DECLARATION:
-        name = "FIELD_DECLARATION";
-        break;
-      case ASTNode.FOR_STATEMENT:
-        name = "FOR_STATEMENT";
-        break;
-      case ASTNode.IF_STATEMENT:
-        name = "IF_STATEMENT";
-        break;
-      case ASTNode.IMPORT_DECLARATION:
-        name = "IMPORT_DECLARATION";
-        break;
-      case ASTNode.INFIX_EXPRESSION:
-        name = "INFIX_EXPRESSION";
-        break;
-      case ASTNode.INITIALIZER:
-        name = "INITIALIZER";
-        break;
-      case ASTNode.INSTANCEOF_EXPRESSION:
-        name = "INSTANCEOF_EXPRESSION";
-        break;
-      case ASTNode.JAVADOC:
-        name = "JAVADOC";
-        break;
-      case ASTNode.LABELED_STATEMENT:
-        name = "LABELED_STATEMENT";
-        break;
-      case ASTNode.LINE_COMMENT:
-        name = "LINE_COMMENT";
-        break;
-      case ASTNode.MARKER_ANNOTATION:
-        name = "MARKER_ANNOTATION";
-        break;
-      case ASTNode.MEMBER_REF:
-        name = "MEMBER_REF";
-        break;
-      case ASTNode.MEMBER_VALUE_PAIR:
-        name = "MEMBER_VALUE_PAIR";
-        break;
-      case ASTNode.METHOD_DECLARATION:
-        name = "METHOD_DECLARATION";
-        break;
-      case ASTNode.METHOD_INVOCATION:
-        name = "METHOD_INVOCATION";
-        break;
-      case ASTNode.METHOD_REF:
-        name = "METHOD_REF";
-        break;
-      case ASTNode.METHOD_REF_PARAMETER:
-        name = "METHOD_REF_PARAMETER";
-        break;
-      case ASTNode.MODIFIER:
-        name = "MODIFIER";
-        break;
-      case ASTNode.NORMAL_ANNOTATION:
-        name = "NORMAL_ANNOTATION";
-        break;
-      case ASTNode.NULL_LITERAL:
-        name = "NULL_LITERAL";
-        break;
-      case ASTNode.NUMBER_LITERAL:
-        name = "NUMBER_LITERAL";
-        break;
-      case ASTNode.PACKAGE_DECLARATION:
-        name = "PACKAGE_DECLARATION";
-        break;
-      case ASTNode.PARAMETERIZED_TYPE:
-        name = "PARAMETERIZED_TYPE";
-        break;
-      case ASTNode.PARENTHESIZED_EXPRESSION:
-        name = "PARENTHESIZED_EXPRESSION";
-        break;
-      case ASTNode.POSTFIX_EXPRESSION:
-        name = "POSTFIX_EXPRESSION";
-        break;
-      case ASTNode.PREFIX_EXPRESSION:
-        name = "PREFIX_EXPRESSION";
-        break;
-      case ASTNode.PRIMITIVE_TYPE:
-        name = "PRIMITIVE_TYPE";
-        break;
-      case ASTNode.QUALIFIED_NAME:
-        name = "QUALIFIED_NAME";
-        break;
-      case ASTNode.QUALIFIED_TYPE:
-        name = "QUALIFIED_TYPE";
-        break;
-      case ASTNode.RETURN_STATEMENT:
-        name = "RETURN_STATEMENT";
-        break;
-      case ASTNode.SIMPLE_NAME:
-        name = "SIMPLE_NAME";
-        break;
-      case ASTNode.SIMPLE_TYPE:
-        name = "SIMPLE_TYPE";
-        break;
-      case ASTNode.SINGLE_MEMBER_ANNOTATION:
-        name = "SINGLE_MEMBER_ANNOTATION";
-        break;
-      case ASTNode.SINGLE_VARIABLE_DECLARATION:
-        name = "SINGLE_VARIABLE_DECLARATION";
-        break;
-      case ASTNode.STRING_LITERAL:
-        name = "STRING_LITERAL";
-        break;
-      case ASTNode.SUPER_CONSTRUCTOR_INVOCATION:
-        name = "SUPER_CONSTRUCTOR_INVOCATION";
-        break;
-      case ASTNode.SUPER_FIELD_ACCESS:
-        name = "SUPER_FIELD_ACCESS";
-        break;
-      case ASTNode.SUPER_METHOD_INVOCATION:
-        name = "SUPER_METHOD_INVOCATION";
-        break;
-      case ASTNode.SWITCH_CASE:
-        name = "SWITCH_CASE";
-        break;
-      case ASTNode.SWITCH_STATEMENT:
-        name = "SWITCH_STATEMENT";
-        break;
-      case ASTNode.SYNCHRONIZED_STATEMENT:
-        name = "SYNCHRONIZED_STATEMENT";
-        break;
-      case ASTNode.TAG_ELEMENT:
-        name = "TAG_ELEMENT";
-        break;
-      case ASTNode.TEXT_ELEMENT:
-        name = "TEXT_ELEMENT";
-        break;
-      case ASTNode.THIS_EXPRESSION:
-        name = "THIS_EXPRESSION";
-        break;
-      case ASTNode.THROW_STATEMENT:
-        name = "THROW_STATEMENT";
-        break;
-      case ASTNode.TRY_STATEMENT:
-        name = "TRY_STATEMENT";
-        break;
-      case ASTNode.TYPE_DECLARATION:
-        name = "TYPE_DECLARATION";
-        break;
-      case ASTNode.TYPE_DECLARATION_STATEMENT:
-        name = "TYPE_DECLARATION_STATEMENT";
-        break;
-      case ASTNode.TYPE_LITERAL:
-        name = "TYPE_LITERAL";
-        break;
-      case ASTNode.TYPE_PARAMETER:
-        name = "TYPE_PARAMETER";
-        break;
-      case ASTNode.UNION_TYPE:
-        name = "UNION_TYPE";
-        break;
-      case ASTNode.VARIABLE_DECLARATION_EXPRESSION:
-        name = "VARIABLE_DECLARATION_EXPRESSION";
-        break;
-      case ASTNode.VARIABLE_DECLARATION_FRAGMENT:
-        name = "VARIABLE_DECLARATION_FRAGMENT";
-        break;
-      case ASTNode.VARIABLE_DECLARATION_STATEMENT:
-        name = "VARIABLE_DECLARATION_STATEMENT";
-        break;
-      case ASTNode.WHILE_STATEMENT:
-        name = "WHILE_STATEMENT";
-        break;
-      case ASTNode.WILDCARD_TYPE:
-        name = "WILDCARD_TYPE";
-        break;
-      default:
-        name = "";
-        break;
-    }
+    String name =
+        switch (type) {
+          case ASTNode.ANNOTATION_TYPE_DECLARATION -> "ANNOTATION_TYPE_DECLARATION";
+          case ASTNode.ANNOTATION_TYPE_MEMBER_DECLARATION -> "ANNOTATION_TYPE_MEMBER_DECLARATION";
+          case ASTNode.ANONYMOUS_CLASS_DECLARATION -> "ANONYMOUS_CLASS_DECLARATION";
+          case ASTNode.ARRAY_ACCESS -> "ARRAY_ACCESS";
+          case ASTNode.ARRAY_CREATION -> "ARRAY_CREATION";
+          case ASTNode.ARRAY_INITIALIZER -> "ARRAY_INITIALIZER";
+          case ASTNode.ARRAY_TYPE -> "ARRAY_TYPE";
+          case ASTNode.ASSERT_STATEMENT -> "ASSERT_STATEMENT";
+          case ASTNode.ASSIGNMENT -> "ASSIGNMENT";
+          case ASTNode.BLOCK -> "BLOCK";
+          case ASTNode.BLOCK_COMMENT -> "BLOCK_COMMENT";
+          case ASTNode.BOOLEAN_LITERAL -> "BOOLEAN_LITERAL";
+          case ASTNode.BREAK_STATEMENT -> "BREAK_STATEMENT";
+          case ASTNode.CAST_EXPRESSION -> "CAST_EXPRESSION";
+          case ASTNode.CATCH_CLAUSE -> "CATCH_CLAUSE";
+          case ASTNode.CHARACTER_LITERAL -> "CHARACTER_LITERAL";
+          case ASTNode.CLASS_INSTANCE_CREATION -> "CLASS_INSTANCE_CREATION";
+          case ASTNode.COMPILATION_UNIT -> "COMPILATION_UNIT";
+          case ASTNode.CONDITIONAL_EXPRESSION -> "CONDITIONAL_EXPRESSION";
+          case ASTNode.CONSTRUCTOR_INVOCATION -> "CONSTRUCTOR_INVOCATION";
+          case ASTNode.CONTINUE_STATEMENT -> "CONTINUE_STATEMENT";
+          case ASTNode.DO_STATEMENT -> "DO_STATEMENT";
+          case ASTNode.EMPTY_STATEMENT -> "EMPTY_STATEMENT";
+          case ASTNode.ENHANCED_FOR_STATEMENT -> "ENHANCED_FOR_STATEMENT";
+          case ASTNode.ENUM_CONSTANT_DECLARATION -> "ENUM_CONSTANT_DECLARATION";
+          case ASTNode.ENUM_DECLARATION -> "ENUM_DECLARATION";
+          case ASTNode.EXPRESSION_STATEMENT -> "EXPRESSION_STATEMENT";
+          case ASTNode.FIELD_ACCESS -> "FIELD_ACCESS";
+          case ASTNode.FIELD_DECLARATION -> "FIELD_DECLARATION";
+          case ASTNode.FOR_STATEMENT -> "FOR_STATEMENT";
+          case ASTNode.IF_STATEMENT -> "IF_STATEMENT";
+          case ASTNode.IMPORT_DECLARATION -> "IMPORT_DECLARATION";
+          case ASTNode.INFIX_EXPRESSION -> "INFIX_EXPRESSION";
+          case ASTNode.INITIALIZER -> "INITIALIZER";
+          case ASTNode.INSTANCEOF_EXPRESSION -> "INSTANCEOF_EXPRESSION";
+          case ASTNode.JAVADOC -> "JAVADOC";
+          case ASTNode.LABELED_STATEMENT -> "LABELED_STATEMENT";
+          case ASTNode.LINE_COMMENT -> "LINE_COMMENT";
+          case ASTNode.MARKER_ANNOTATION -> "MARKER_ANNOTATION";
+          case ASTNode.MEMBER_REF -> "MEMBER_REF";
+          case ASTNode.MEMBER_VALUE_PAIR -> "MEMBER_VALUE_PAIR";
+          case ASTNode.METHOD_DECLARATION -> "METHOD_DECLARATION";
+          case ASTNode.METHOD_INVOCATION -> "METHOD_INVOCATION";
+          case ASTNode.METHOD_REF -> "METHOD_REF";
+          case ASTNode.METHOD_REF_PARAMETER -> "METHOD_REF_PARAMETER";
+          case ASTNode.MODIFIER -> "MODIFIER";
+          case ASTNode.NORMAL_ANNOTATION -> "NORMAL_ANNOTATION";
+          case ASTNode.NULL_LITERAL -> "NULL_LITERAL";
+          case ASTNode.NUMBER_LITERAL -> "NUMBER_LITERAL";
+          case ASTNode.PACKAGE_DECLARATION -> "PACKAGE_DECLARATION";
+          case ASTNode.PARAMETERIZED_TYPE -> "PARAMETERIZED_TYPE";
+          case ASTNode.PARENTHESIZED_EXPRESSION -> "PARENTHESIZED_EXPRESSION";
+          case ASTNode.POSTFIX_EXPRESSION -> "POSTFIX_EXPRESSION";
+          case ASTNode.PREFIX_EXPRESSION -> "PREFIX_EXPRESSION";
+          case ASTNode.PRIMITIVE_TYPE -> "PRIMITIVE_TYPE";
+          case ASTNode.QUALIFIED_NAME -> "QUALIFIED_NAME";
+          case ASTNode.QUALIFIED_TYPE -> "QUALIFIED_TYPE";
+          case ASTNode.RETURN_STATEMENT -> "RETURN_STATEMENT";
+          case ASTNode.SIMPLE_NAME -> "SIMPLE_NAME";
+          case ASTNode.SIMPLE_TYPE -> "SIMPLE_TYPE";
+          case ASTNode.SINGLE_MEMBER_ANNOTATION -> "SINGLE_MEMBER_ANNOTATION";
+          case ASTNode.SINGLE_VARIABLE_DECLARATION -> "SINGLE_VARIABLE_DECLARATION";
+          case ASTNode.STRING_LITERAL -> "STRING_LITERAL";
+          case ASTNode.SUPER_CONSTRUCTOR_INVOCATION -> "SUPER_CONSTRUCTOR_INVOCATION";
+          case ASTNode.SUPER_FIELD_ACCESS -> "SUPER_FIELD_ACCESS";
+          case ASTNode.SUPER_METHOD_INVOCATION -> "SUPER_METHOD_INVOCATION";
+          case ASTNode.SWITCH_CASE -> "SWITCH_CASE";
+          case ASTNode.SWITCH_STATEMENT -> "SWITCH_STATEMENT";
+          case ASTNode.SYNCHRONIZED_STATEMENT -> "SYNCHRONIZED_STATEMENT";
+          case ASTNode.TAG_ELEMENT -> "TAG_ELEMENT";
+          case ASTNode.TEXT_ELEMENT -> "TEXT_ELEMENT";
+          case ASTNode.THIS_EXPRESSION -> "THIS_EXPRESSION";
+          case ASTNode.THROW_STATEMENT -> "THROW_STATEMENT";
+          case ASTNode.TRY_STATEMENT -> "TRY_STATEMENT";
+          case ASTNode.TYPE_DECLARATION -> "TYPE_DECLARATION";
+          case ASTNode.TYPE_DECLARATION_STATEMENT -> "TYPE_DECLARATION_STATEMENT";
+          case ASTNode.TYPE_LITERAL -> "TYPE_LITERAL";
+          case ASTNode.TYPE_PARAMETER -> "TYPE_PARAMETER";
+          case ASTNode.UNION_TYPE -> "UNION_TYPE";
+          case ASTNode.VARIABLE_DECLARATION_EXPRESSION -> "VARIABLE_DECLARATION_EXPRESSION";
+          case ASTNode.VARIABLE_DECLARATION_FRAGMENT -> "VARIABLE_DECLARATION_FRAGMENT";
+          case ASTNode.VARIABLE_DECLARATION_STATEMENT -> "VARIABLE_DECLARATION_STATEMENT";
+          case ASTNode.WHILE_STATEMENT -> "WHILE_STATEMENT";
+          case ASTNode.WILDCARD_TYPE -> "WILDCARD_TYPE";
+          default -> "";
+        };
 
     return name;
   }

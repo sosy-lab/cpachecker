@@ -82,7 +82,7 @@ public class ConstraintsSolver {
   private CtoFormulaConverter converter;
   private SymbolicIdentifierLocator locator;
 
-  /** Table of id constraints set, id identifier assignment, formula * */
+  /** Table of id constraints set, id identifier assignment, formula */
   private Map<Constraint, BooleanFormula> constraintFormulas = new HashMap<>();
 
   private BooleanFormula literalForSingleAssignment;
@@ -356,7 +356,7 @@ public class ConstraintsSolver {
     void addUnsat(Collection<BooleanFormula> pConstraints);
   }
 
-  private class MatchingConstraintsCache implements ConstraintsCache {
+  private final class MatchingConstraintsCache implements ConstraintsCache {
 
     // TODO This should use an immutable data structure as key, and not Collection but List/Set
     private Map<Collection<BooleanFormula>, CacheResult> cacheMap = new HashMap<>();
@@ -395,7 +395,7 @@ public class ConstraintsSolver {
     }
   }
 
-  private class SupersetConstraintsCache implements ConstraintsCache {
+  private final class SupersetConstraintsCache implements ConstraintsCache {
 
     private ConstraintsCache delegate;
 
@@ -473,7 +473,7 @@ public class ConstraintsSolver {
     }
   }
 
-  private class SubsetConstraintsCache implements ConstraintsCache {
+  private final class SubsetConstraintsCache implements ConstraintsCache {
 
     private ConstraintsCache delegate;
 
@@ -542,7 +542,7 @@ public class ConstraintsSolver {
     }
   }
 
-  private static class DummyCache implements ConstraintsCache {
+  private static final class DummyCache implements ConstraintsCache {
 
     @Override
     public CacheResult getCachedResult(Collection<BooleanFormula> pConstraints) {

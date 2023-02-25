@@ -118,21 +118,21 @@ public class NumericValueTest {
   @Test
   public void bigInteger_conversionFromPositiveLong() {
     NumericValue val = new NumericValue(5L);
-    BigInteger result = val.bigInteger();
+    BigInteger result = val.bigIntegerValue();
     assertThat(result).isEqualTo(BigInteger.valueOf(5));
   }
 
   @Test
   public void bigInteger_conversionFromDouble() {
     NumericValue val = new NumericValue(5.3d);
-    BigInteger result = val.bigInteger();
+    BigInteger result = val.bigIntegerValue();
     assertThat(result).isEqualTo(BigInteger.valueOf(5));
   }
 
   @Test
   public void bigInteger_conversionFromFloat() {
     NumericValue val = new NumericValue(5.3f);
-    BigInteger result = val.bigInteger();
+    BigInteger result = val.bigIntegerValue();
     assertThat(result).isEqualTo(BigInteger.valueOf(5));
   }
 
@@ -140,7 +140,7 @@ public class NumericValueTest {
   public void bigInteger_conversionFromRationalWithDecimals() {
     Rational input = Rational.of(BigInteger.ONE, BigInteger.TWO);
     NumericValue val = new NumericValue(input);
-    BigInteger result = val.bigInteger();
+    BigInteger result = val.bigIntegerValue();
     assertThat(result).isEqualTo(BigInteger.valueOf(0));
   }
 
@@ -148,14 +148,14 @@ public class NumericValueTest {
   public void bigInteger_conversionFromRationalWithoutDecimals() {
     Rational input = Rational.of(BigInteger.TEN, BigInteger.TWO);
     NumericValue val = new NumericValue(input);
-    BigInteger result = val.bigInteger();
+    BigInteger result = val.bigIntegerValue();
     assertThat(result).isEqualTo(BigInteger.valueOf(5));
   }
 
   @Test
   public void bigInteger_conversionFromInteger() {
     NumericValue val = new NumericValue(10);
-    BigInteger result = val.bigInteger();
+    BigInteger result = val.bigIntegerValue();
     assertThat(result).isEqualTo(BigInteger.TEN);
   }
 

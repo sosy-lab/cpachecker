@@ -31,19 +31,20 @@ SPDX-License-Identifier: Apache-2.0
     <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
     <property name="ivy.configurations" value="build, runtime, test, format-source, spotbugs, checkstyle"/>
     <property name="documentation.options.file" value="doc/ConfigurationOptions.txt"/>
+    <property name="source.release" value="17"/>
 
     <!-- The following error-prone checks are disabled:
          BadImport: we often import FluentIterable.from and we have a Checkstyle check instead
          ReferenceEquality: TODO enable this and fix alarms (but there are many cases where reference equality is desired)
-         MissingSummary: currently buggy (fails build without specifying class)
          UnusedMethods: Most CPAs have private constructors that are called only via reflection
+         UnusedVariable: false alarms for private records: https://github.com/google/error-prone/issues/2713
          -->
     <property name="errorprone.options" value="
         -Xep:BadImport:OFF
         -Xep:ReferenceEquality:OFF
-        -Xep:MissingSummary:OFF
         -Xep:BanSerializableRead:OFF
         -Xep:UnusedMethod:OFF
+        -Xep:UnusedVariable:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>

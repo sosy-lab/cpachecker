@@ -53,7 +53,6 @@ abstract class UnmodifiableSetView<E> extends AbstractCollection<E> implements S
    * @throws NullPointerException if {@code pIterable == null}
    */
   static <E> ImmutableSet<List<E>> duplicates(Iterable<E> pIterable) {
-
     int iterableSize = Iterators.size(pIterable.iterator());
     Set<E> set = new HashSet<>(iterableSize);
     Iterables.addAll(set, pIterable);

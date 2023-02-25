@@ -11,21 +11,16 @@ package org.sosy_lab.cpachecker.cfa.graph;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.common.graph.AbstractNetwork;
 import com.google.common.graph.ElementOrder;
-import java.util.ArrayDeque;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
+import com.google.common.graph.Traverser;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -50,26 +45,8 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return new AbstractIterator<>() {
-
-          private final Iterator<CFANode> nodeIterator = nodes().iterator();
-          private Iterator<CFAEdge> currentNodeOutEdgeIterator = Collections.emptyIterator();
-
-          @Override
-          protected @Nullable CFAEdge computeNext() {
-
-            while (!currentNodeOutEdgeIterator.hasNext()) {
-              if (nodeIterator.hasNext()) {
-                CFANode currentNode = nodeIterator.next();
-                currentNodeOutEdgeIterator = outEdges(currentNode).iterator();
-              } else {
-                return endOfData();
-              }
-            }
-
-            return currentNodeOutEdgeIterator.next();
-          }
-        };
+        return Iterators.unmodifiableIterator(
+            Iterables.concat(Iterables.transform(nodes(), node -> outEdges(node))).iterator());
       }
     };
   }
@@ -93,24 +70,23 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public ElementOrder<CFANode> nodeOrder() {
-    return ElementOrder.unordered();
+    return ElementOrder.stable();
   }
 
   @Override
   public ElementOrder<CFAEdge> edgeOrder() {
-    return ElementOrder.unordered();
+    return ElementOrder.stable();
   }
 
   // element-level accessors
 
   @Override
   public Set<CFANode> adjacentNodes(CFANode pNode) {
-    return Collections.unmodifiableSet(Sets.union(predecessors(pNode), successors(pNode)));
+    return Sets.union(predecessors(pNode), successors(pNode));
   }
 
   @Override
   public Set<CFANode> predecessors(CFANode pNode) {
-
     checkNotNull(pNode);
 
     return new UnmodifiableSetView<>() {
@@ -129,7 +105,6 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public Set<CFANode> successors(CFANode pNode) {
-
     checkNotNull(pNode);
 
     return new UnmodifiableSetView<>() {
@@ -148,10 +123,21 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public Set<CFAEdge> incidentEdges(CFANode pNode) {
-    return Collections.unmodifiableSet(Sets.union(inEdges(pNode), outEdges(pNode)));
+    return Sets.union(inEdges(pNode), outEdges(pNode));
   }
 
   // `CfaNetwork` specific
+
+  @Override
+  public Set<FunctionEntryNode> entryNodes() {
+    return new UnmodifiableSetView<>() {
+
+      @Override
+      public Iterator<FunctionEntryNode> iterator() {
+        return Iterators.filter(nodes().iterator(), FunctionEntryNode.class);
+      }
+    };
+  }
 
   @Override
   public CFANode predecessor(CFAEdge pEdge) {
@@ -165,7 +151,6 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
-
     CFANode predecessor = predecessor(pFunctionSummaryEdge);
     Set<CFAEdge> nonSummaryOutEdges = withoutSummaryEdges().outEdges(predecessor);
     checkState(
@@ -186,35 +171,13 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
-
-    Set<CFANode> waitlisted = new HashSet<>(ImmutableList.of(pFunctionEntryNode));
-    Deque<CFANode> waitlist = new ArrayDeque<>(waitlisted);
-
-    while (!waitlist.isEmpty()) {
-
-      CFANode node = waitlist.remove();
-
-      if (node instanceof FunctionExitNode) {
-        return Optional.of((FunctionExitNode) node);
-      }
-
-      for (CFAEdge outEdge : outEdges(node)) {
-        // we don't want to leave the current function
-        if (!(outEdge instanceof FunctionCallEdge)) {
-          CFANode successor = successor(outEdge);
-          if (waitlisted.add(successor)) {
-            waitlist.add(successor);
-          }
-        }
-      }
-    }
-
-    return Optional.empty();
+    Iterable<CFANode> functionNodes =
+        Traverser.forGraph(withoutSuperEdges()).depthFirstPostOrder(pFunctionEntryNode);
+    return FluentIterable.from(functionNodes).filter(FunctionExitNode.class).first().toJavaUtil();
   }
 
   @Override
   public FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
-
     CFANode predecessor = predecessor(pFunctionCallEdge);
     Set<CFAEdge> nonSuperOutEdges = withoutSuperEdges().outEdges(predecessor);
     checkState(nonSuperOutEdges.size() == 1, "Single non-super out-edge expected: %s", predecessor);
@@ -229,7 +192,6 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
-
     CFANode successor = successor(pFunctionReturnEdge);
     Set<CFAEdge> nonSuperInEdges = withoutSuperEdges().inEdges(successor);
     checkState(nonSuperInEdges.size() == 1, "Single non-super in-edge expected: %s", successor);
