@@ -151,11 +151,6 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
     return Collections.unmodifiableNavigableSet(allNodes.get(pName));
   }
 
-  @Override
-  public Collection<CFANode> getAllNodes() {
-    return Collections.unmodifiableCollection(allNodes.values());
-  }
-
   public void setLoopStructure(LoopStructure pLoopStructure) {
     metadata = metadata.withLoopStructure(pLoopStructure);
   }

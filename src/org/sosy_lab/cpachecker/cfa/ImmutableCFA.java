@@ -94,11 +94,6 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
   }
 
   @Override
-  public ImmutableSortedSet<CFANode> getAllNodes() {
-    return allNodes;
-  }
-
-  @Override
   public CfaMetadata getMetadata() {
     return metadata;
   }

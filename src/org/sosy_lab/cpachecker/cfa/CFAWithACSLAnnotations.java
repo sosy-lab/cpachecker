@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ForwardingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 public class CFAWithACSLAnnotations extends ForwardingCfaNetwork implements CFA {
@@ -67,11 +66,6 @@ public class CFAWithACSLAnnotations extends ForwardingCfaNetwork implements CFA 
   @Override
   public NavigableMap<String, FunctionEntryNode> getAllFunctions() {
     return delegate.getAllFunctions();
-  }
-
-  @Override
-  public Collection<CFANode> getAllNodes() {
-    return delegate.getAllNodes();
   }
 
   @Override

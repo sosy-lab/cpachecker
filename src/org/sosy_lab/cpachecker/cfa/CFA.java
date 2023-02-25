@@ -41,8 +41,6 @@ public interface CFA extends CfaNetwork {
 
   NavigableMap<String, FunctionEntryNode> getAllFunctions();
 
-  Collection<CFANode> getAllNodes();
-
   default FunctionEntryNode getMainFunction() {
     return getMetadata().getMainFunctionEntry();
   }
