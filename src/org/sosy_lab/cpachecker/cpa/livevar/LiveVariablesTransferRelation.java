@@ -162,7 +162,7 @@ public class LiveVariablesTransferRelation
       }
     }
 
-    for (CFANode node : pCFA.getAllNodes()) {
+    for (CFANode node : pCFA.nodes()) {
       liveVariables.put(node, new BitSet(noVars));
     }
 
@@ -204,7 +204,7 @@ public class LiveVariablesTransferRelation
 
   public ImmutableList<Wrapper<ASimpleDeclaration>> gatherAllDeclarations(CFA pCFA) {
     Set<Wrapper<ASimpleDeclaration>> allDecls = new HashSet<>();
-    for (CFANode node : pCFA.getAllNodes()) {
+    for (CFANode node : pCFA.nodes()) {
 
       if (node instanceof FunctionEntryNode entryNode) {
         Optional<? extends AVariableDeclaration> returnVarName = entryNode.getReturnVariable();
@@ -410,7 +410,7 @@ public class LiveVariablesTransferRelation
   public Multimap<CFANode, Wrapper<ASimpleDeclaration>> getLiveVariables() {
     ImmutableListMultimap.Builder<CFANode, Wrapper<ASimpleDeclaration>> builder =
         ImmutableListMultimap.builder();
-    for (CFANode node : cfa.getAllNodes()) {
+    for (CFANode node : cfa.nodes()) {
       builder.putAll(node, dataToVars(liveVariables.get(node)));
     }
     return builder.build();

@@ -44,7 +44,7 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
     shutdownNotifier = pShutdownNotifier;
     logManager = pLogManager.withComponentName("TargetLocationProvider");
     cfa = pCfa;
-    allNodes = ImmutableSet.copyOf(cfa.getAllNodes());
+    allNodes = ImmutableSet.copyOf(cfa.nodes());
   }
 
   @Override

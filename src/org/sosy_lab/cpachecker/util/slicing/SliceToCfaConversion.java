@@ -190,7 +190,7 @@ final class SliceToCfaConversion {
     NavigableMap<String, FunctionEntryNode> functionEntryNodes = new TreeMap<>();
     TreeMultimap<String, CFANode> allNodes = TreeMultimap.create();
 
-    for (CFANode node : pCfa.getAllNodes()) {
+    for (CFANode node : pCfa.nodes()) {
 
       String functionName = node.getFunction().getQualifiedName();
       allNodes.put(functionName, node);

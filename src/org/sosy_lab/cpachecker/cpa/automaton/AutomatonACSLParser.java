@@ -132,11 +132,11 @@ public class AutomatonACSLParser {
    * stay the same.
    */
   public boolean areIsomorphicCFAs(CFA other) {
-    if (cfa.getAllNodes().size() != other.getAllNodes().size()) {
+    if (cfa.nodes().size() != other.nodes().size()) {
       return false;
     }
-    Iterator<CFANode> nodes = cfa.getAllNodes().iterator();
-    Iterator<CFANode> other_nodes = other.getAllNodes().iterator();
+    Iterator<CFANode> nodes = cfa.nodes().iterator();
+    Iterator<CFANode> other_nodes = other.nodes().iterator();
     while (nodes.hasNext()) {
       CFANode node = nodes.next();
       CFANode other_node = other_nodes.next();

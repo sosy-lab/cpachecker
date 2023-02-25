@@ -112,7 +112,7 @@ public class SymbolEncoding {
 
   /** create symbol encoding with information about symbol from variables of the CFA */
   public SymbolEncoding(CFA pCfa) {
-    decls = getAllDeclarations(pCfa.getAllNodes());
+    decls = getAllDeclarations(pCfa.nodes());
     machineModel = pCfa.getMachineModel();
 
     encodedSymbols.put("true", new Type<FormulaType<?>>(FormulaType.BooleanType));

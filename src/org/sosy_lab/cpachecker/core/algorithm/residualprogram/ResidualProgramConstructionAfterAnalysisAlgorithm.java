@@ -231,7 +231,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       throws InterruptedException {
     // overapproximating this set, considering all syntactical paths
 
-    Set<CFANode> seen = Sets.newHashSetWithExpectedSize(cfa.getAllNodes().size());
+    Set<CFANode> seen = Sets.newHashSetWithExpectedSize(cfa.nodes().size());
     Deque<CFANode> toProcess = new ArrayDeque<>();
     CFANode current;
 
@@ -266,7 +266,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     // overapproximating this set, considering all syntactical paths
 
     Multimap<CFANode, CallstackStateEqualsWrapper> seen =
-        HashMultimap.create(cfa.getAllNodes().size(), cfa.getNumberOfFunctions());
+        HashMultimap.create(cfa.nodes().size(), cfa.getNumberOfFunctions());
     Deque<Pair<CFANode, CallstackState>> toProcess = new ArrayDeque<>();
     Pair<CFANode, CallstackState> current, explored;
 

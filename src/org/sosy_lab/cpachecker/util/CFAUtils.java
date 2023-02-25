@@ -337,7 +337,7 @@ public class CFAUtils {
   }
 
   public static Map<Integer, CFANode> getMappingFromNodeIDsToCFANodes(CFA pCfa) {
-    return Maps.uniqueIndex(pCfa.getAllNodes(), CFANode::getNodeNumber);
+    return Maps.uniqueIndex(pCfa.nodes(), CFANode::getNodeNumber);
   }
 
   /**

@@ -251,8 +251,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
             intEqualPartitions,
             intAddPartitions,
             dependencies.edgeToPartition,
-            extractAssumedVariables(cfa.getAllNodes()),
-            extractAssignedVariables(cfa.getAllNodes()));
+            extractAssumedVariables(cfa.nodes()),
+            extractAssignedVariables(cfa.nodes()));
     stats.buildTimer.stop();
 
     stats.exportTimer.start();
@@ -403,7 +403,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
    * different sets, i.e. nonBoolean and nonIntEuqalNumber.
    */
   private void collectVars(CFA cfa) throws UnrecognizedCodeException {
-    Collection<CFANode> nodes = cfa.getAllNodes();
+    Collection<CFANode> nodes = cfa.nodes();
     VarFieldDependencies varFieldDependencies = VarFieldDependencies.emptyDependencies();
     for (CFANode node : nodes) {
       for (CFAEdge edge : leavingEdges(node)) {

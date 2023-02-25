@@ -345,7 +345,7 @@ public class TemplatePrecision implements Precision {
   private Set<Template> templatesFromAsserts() {
     Set<Template> templates = new HashSet<>();
 
-    for (CFANode node : cfa.getAllNodes()) {
+    for (CFANode node : cfa.nodes()) {
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
         String statement = edge.getRawStatement();
         Optional<LinearExpression<CIdExpression>> template = Optional.empty();

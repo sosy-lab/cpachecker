@@ -469,7 +469,7 @@ class MainCPAStatistics implements Statistics {
           "  Number of reached locations:   "
               + locs
               + " ("
-              + StatisticsUtils.toPercent(locs, cfa.getAllNodes().size())
+              + StatisticsUtils.toPercent(locs, cfa.nodes().size())
               + ")");
       out.println("    Avg states per location:     " + reachedSize / locs);
       out.println(
@@ -508,12 +508,12 @@ class MainCPAStatistics implements Statistics {
   private void printCfaStatistics(PrintStream out) {
     if (cfa != null) {
       StatisticsWriter.writingStatisticsTo(out)
-          .put("Number of program locations", cfa.getAllNodes().size())
+          .put("Number of program locations", cfa.nodes().size())
           .put(
               StatInt.forStream(
                   StatKind.SUM,
                   "Number of CFA edges (per node)",
-                  cfa.getAllNodes().stream().mapToInt(CFANode::getNumLeavingEdges)))
+                  cfa.nodes().stream().mapToInt(CFANode::getNumLeavingEdges)))
           .putIfPresent(
               cfa.getVarClassification(),
               "Number of relevant variables",

@@ -276,7 +276,7 @@ public class PredicateStaticRefiner extends StaticRefiner
   private Multimap<String, AStatementEdge> buildDirectlyAffectingStatements() {
     Multimap<String, AStatementEdge> directlyAffectingStatements = LinkedHashMultimap.create();
 
-    for (CFANode u : cfa.getAllNodes()) {
+    for (CFANode u : cfa.nodes()) {
       Deque<CFAEdge> edgesToHandle = CFAUtils.leavingEdges(u).copyInto(new ArrayDeque<>());
       while (!edgesToHandle.isEmpty()) {
         CFAEdge e = edgesToHandle.pop();

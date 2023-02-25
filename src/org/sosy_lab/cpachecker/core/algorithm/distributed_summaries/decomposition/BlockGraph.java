@@ -92,7 +92,7 @@ public class BlockGraph {
      * @param pCfa CFA that will be partitioned into a graph of {@link BlockNode}s
      */
     public BlockGraphFactory(CFA pCfa, ShutdownNotifier pShutdownNotifier) {
-      idToNodeMap = Maps.uniqueIndex(pCfa.getAllNodes(), CFANode::getNodeNumber);
+      idToNodeMap = Maps.uniqueIndex(pCfa.nodes(), CFANode::getNodeNumber);
       successors = ArrayListMultimap.create();
       predecessors = ArrayListMultimap.create();
       blocks = new LinkedHashSet<>();

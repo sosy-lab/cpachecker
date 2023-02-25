@@ -595,7 +595,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   private void removeIntermediateStates(ReachedSet pReachedSet, AbstractState pTargetState) {
     Preconditions.checkArgument(AbstractStates.isTargetState(pTargetState));
-    Preconditions.checkArgument(!cfa.getAllNodes().contains(extractLocation(pTargetState)));
+    Preconditions.checkArgument(!cfa.nodes().contains(extractLocation(pTargetState)));
     ARGState targetState = AbstractStates.extractStateByType(pTargetState, ARGState.class);
     Preconditions.checkArgument(targetState.getCounterexampleInformation().isPresent());
     CounterexampleInfo counterexample = targetState.getCounterexampleInformation().orElseThrow();
@@ -647,7 +647,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         CFANode location = outgoingEdge.getPredecessor();
         CFANode nextLocation = outgoingEdge.getSuccessor();
 
-        if (cfa.getAllNodes().contains(location) && cfa.getAllNodes().contains(nextLocation)) {
+        if (cfa.nodes().contains(location) && cfa.nodes().contains(nextLocation)) {
 
           if (targetPathIt.isPositionWithState() || lastStateInCfa.isPresent()) {
             ARGState state = lastStateInCfa.orElseGet(targetPathIt::getAbstractState);
@@ -663,7 +663,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
           lastStateInCfa = Optional.empty();
 
-        } else if (cfa.getAllNodes().contains(location) && targetPathIt.isPositionWithState()) {
+        } else if (cfa.nodes().contains(location) && targetPathIt.isPositionWithState()) {
           lastStateInCfa = Optional.of(targetPathIt.getAbstractState());
         }
       }

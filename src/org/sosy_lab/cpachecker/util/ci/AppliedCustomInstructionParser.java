@@ -92,7 +92,7 @@ public class AppliedCustomInstructionParser {
     cfa = pCfa;
 
     ImmutableMap.Builder<Integer, CFANode> nodeNumberToNode0 = ImmutableMap.builder();
-    for (CFANode node : cfa.getAllNodes()) {
+    for (CFANode node : cfa.nodes()) {
       nodeNumberToNode0.put(node.getNodeNumber(), node);
     }
     numberToCFANode = nodeNumberToNode0.buildOrThrow();
