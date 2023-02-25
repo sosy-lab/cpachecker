@@ -149,17 +149,19 @@ public class InvariantValidationAlgorithm implements Algorithm {
     if (cfa.getAllLoopHeads().isEmpty()) {
       logger.log(
           Level.INFO, "No loop heads detected, nothing to do for invariant validation algorithm.");
-    } else if (cfa.getAllLoopHeads().orElseThrow().size() != 1) {
-      logger.log(
-          Level.INFO,
-          "Only single-loop programs with exactly one loop head are currently supported.");
-    } else {
-      CFANode loopHead = Iterables.getOnlyElement(cfa.getAllLoopHeads().orElseThrow());
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    }
+
+    Set<Sample> preSamples = new HashSet<>();
+    Set<Sample> stepSamples = new HashSet<>();
+    Set<Sample> postSamples = new HashSet<>();
+
+    for (CFANode loopHead : cfa.getAllLoopHeads().orElseThrow()) {
       try {
         if (useBMC) {
-          validateBMC(loopHead);
+          validateBMC(loopHead, preSamples, stepSamples, postSamples);
         } else {
-          validateSMT(reachedSet, loopHead);
+          validateSMT(reachedSet, loopHead, preSamples, stepSamples, postSamples);
         }
       } catch (InvalidConfigurationException pE) {
         logger.log(Level.WARNING, "Invariant validation failed due to invalid configuration.");
@@ -167,11 +169,21 @@ public class InvariantValidationAlgorithm implements Algorithm {
         logger.log(Level.WARNING, "Invariant validation failed due to solver failure.");
       }
     }
+
+    writeSamplesToFile(preSamples, preCexOutFile);
+    writeSamplesToFile(stepSamples, stepCexOutFile);
+    writeSamplesToFile(postSamples, postCexOutFile);
+
     // TODO: Add statistics
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  private void validateSMT(ReachedSet pReachedSet, CFANode pLocation)
+  private void validateSMT(
+      ReachedSet pReachedSet,
+      CFANode pLocation,
+      Set<Sample> pPreSamples,
+      Set<Sample> pStepSamples,
+      Set<Sample> pPostSamples)
       throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
     // TODO: Might need to further adjust scope according to pLocation.
     //       On the other hand: Is constructing a CandidateInvariant really necessary?
@@ -229,16 +241,12 @@ public class InvariantValidationAlgorithm implements Algorithm {
     // Any models satisfying this formula are postcondition counterexamples: !(I & !B => Q)
     BooleanFormula postconditionFormula = bfmgr.and(invariantHolds, bfmgr.not(programSafe));
 
-    Set<Sample> pre_samples = new HashSet<>();
-    Set<Sample> step_samples = new HashSet<>();
-    Set<Sample> post_samples = new HashSet<>();
-
     // TODO: Could also obtain more than one counterexample for each formula if it exists
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       prover.push(preconditionFormula);
       if (!prover.isUnsat()) {
         Iterable<ValueAssignment> model = prover.getModelAssignments();
-        pre_samples.add(
+        pPreSamples.add(
             SampleUtils.extractSampleFromRelevantAssignments(
                 model, pLocation, SampleClass.POSITIVE));
       }
@@ -249,14 +257,14 @@ public class InvariantValidationAlgorithm implements Algorithm {
         Iterable<ValueAssignment> model = prover.getModelAssignments();
 
         // Add sample before
-        step_samples.add(
+        pStepSamples.add(
             SampleUtils.extractSampleFromModel(
                 SampleUtils.getAssignmentsWithLowestIndices(model),
                 pLocation,
                 SampleClass.POSITIVE));
 
         // Add sample after
-        step_samples.add(
+        pStepSamples.add(
             SampleUtils.extractSampleFromRelevantAssignments(
                 model, pLocation, SampleClass.POSITIVE));
       }
@@ -265,19 +273,19 @@ public class InvariantValidationAlgorithm implements Algorithm {
       prover.push(postconditionFormula);
       if (!prover.isUnsat()) {
         Iterable<ValueAssignment> model = prover.getModelAssignments();
-        post_samples.add(
+        pPostSamples.add(
             SampleUtils.extractSampleFromRelevantAssignments(
                 model, pLocation, SampleClass.NEGATIVE));
       }
       prover.pop();
     }
-
-    writeSamplesToFile(pre_samples, preCexOutFile);
-    writeSamplesToFile(step_samples, stepCexOutFile);
-    writeSamplesToFile(post_samples, postCexOutFile);
   }
 
-  private void validateBMC(CFANode pLocation)
+  private void validateBMC(
+      CFANode pLocation,
+      Set<Sample> pPreSamples,
+      Set<Sample> pStepSamples,
+      Set<Sample> pPostSamples)
       throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
     // TODO: Might need to further adjust scope according to pLocation
     CProgramScope scope =
@@ -300,14 +308,10 @@ public class InvariantValidationAlgorithm implements Algorithm {
     Set<? extends CandidateInvariant> confirmed = candidateGenerator.getConfirmedCandidates();
     boolean validated = !confirmed.isEmpty();
 
-    Set<Sample> pre_samples = new HashSet<>();
-    Set<Sample> step_samples = new HashSet<>();
-    Set<Sample> post_samples = new HashSet<>();
-
     if (validated) {
       // Just because the invariant was validated does not mean it is also useful, so check whether
       // an error location is still reachable
-      post_samples = checkPostcondition(candidate, pLocation);
+      checkPostcondition(candidate, pLocation, pPostSamples);
     } else {
       logger.log(Level.INFO, "Invariant was not validated, collecting counterexamples...");
       Set<PreconditionCounterexample> pre_cexs = invariantChecker.getPreconditionCounterexamples();
@@ -319,7 +323,7 @@ public class InvariantValidationAlgorithm implements Algorithm {
           continue;
         }
         Iterable<ValueAssignment> model = pre_cex.pre();
-        pre_samples.add(
+        pPreSamples.add(
             SampleUtils.extractSampleFromRelevantAssignments(
                 model, pLocation, SampleClass.POSITIVE));
       }
@@ -332,25 +336,20 @@ public class InvariantValidationAlgorithm implements Algorithm {
         Sample sampleBefore =
             SampleUtils.extractSampleFromRelevantAssignments(
                 step_cex.loopBefore(), pLocation, SampleClass.POSITIVE);
-        step_samples.add(sampleBefore);
+        pStepSamples.add(sampleBefore);
 
         Sample sampleAfter =
             SampleUtils.extractSampleFromRelevantAssignments(
                     step_cex.loopAfter(), pLocation, SampleClass.POSITIVE)
                 .withPrevious(sampleBefore);
-        step_samples.add(sampleAfter);
+        pStepSamples.add(sampleAfter);
       }
     }
-
-    writeSamplesToFile(pre_samples, preCexOutFile);
-    writeSamplesToFile(step_samples, stepCexOutFile);
-    writeSamplesToFile(post_samples, postCexOutFile);
   }
 
-  private Set<Sample> checkPostcondition(CandidateInvariant pCandidate, CFANode pLocation)
+  private void checkPostcondition(
+      CandidateInvariant pCandidate, CFANode pLocation, Set<Sample> pPostSamples)
       throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
-    Set<Sample> post_samples = new HashSet<>();
-
     // Retrieve formula managers
     PredicateCPA predicateCPA =
         CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, InvariantValidationAlgorithm.class);
@@ -380,13 +379,11 @@ public class InvariantValidationAlgorithm implements Algorithm {
       if (!prover.isUnsat()) {
         Iterable<ValueAssignment> model = prover.getModelAssignments();
         // Postcondition counterexamples lead to an error state and are thus negative by definition
-        post_samples.add(
+        pPostSamples.add(
             SampleUtils.extractSampleFromRelevantAssignments(
                 model, pLocation, SampleClass.NEGATIVE));
       }
     }
-
-    return post_samples;
   }
 
   private void writeSamplesToFile(Set<Sample> samples, Path outFile) {
