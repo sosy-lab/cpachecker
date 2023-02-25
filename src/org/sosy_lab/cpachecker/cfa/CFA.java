@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
@@ -32,8 +31,6 @@ public interface CFA extends CfaNetwork {
   int getNumberOfFunctions();
 
   NavigableSet<String> getAllFunctionNames();
-
-  Collection<FunctionEntryNode> getAllFunctionHeads();
 
   FunctionEntryNode getFunctionHead(String name);
 

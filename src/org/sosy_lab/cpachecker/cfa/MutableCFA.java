@@ -14,7 +14,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.TreeMultimap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
@@ -125,11 +124,6 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
   @Override
   public NavigableSet<String> getAllFunctionNames() {
     return Collections.unmodifiableNavigableSet(functions.navigableKeySet());
-  }
-
-  @Override
-  public Collection<FunctionEntryNode> getAllFunctionHeads() {
-    return Collections.unmodifiableCollection(functions.values());
   }
 
   @Override

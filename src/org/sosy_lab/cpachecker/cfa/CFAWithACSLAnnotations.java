@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
-import java.util.Collection;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
@@ -46,11 +45,6 @@ public class CFAWithACSLAnnotations extends ForwardingCfaNetwork implements CFA 
   @Override
   public NavigableSet<String> getAllFunctionNames() {
     return delegate.getAllFunctionNames();
-  }
-
-  @Override
-  public Collection<FunctionEntryNode> getAllFunctionHeads() {
-    return delegate.getAllFunctionHeads();
   }
 
   @Override
