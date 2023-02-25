@@ -217,7 +217,7 @@ public class CFunctionPointerResolver implements StatisticsProvider {
       }
     } else {
       return new TargetFunctionsProvider(
-          cfa.getMachineModel(), logger, pFunctionSets, cfa.getAllFunctionHeads());
+          cfa.getMachineModel(), logger, pFunctionSets, cfa.entryNodes());
     }
   }
 
@@ -230,7 +230,7 @@ public class CFunctionPointerResolver implements StatisticsProvider {
     stats.totalTimer.start();
     // 1.Step: get all function calls
     final FunctionPointerCallCollector visitor = new FunctionPointerCallCollector();
-    for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode functionStartNode : cfa.entryNodes()) {
       CFATraversal.dfs().traverseOnce(functionStartNode, visitor);
     }
 

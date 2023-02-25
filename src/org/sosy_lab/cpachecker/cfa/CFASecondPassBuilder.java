@@ -104,7 +104,7 @@ public class CFASecondPassBuilder {
 
     // 1.Step: get all function calls
     final FunctionCallCollector visitor = new FunctionCallCollector();
-    for (final FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+    for (final FunctionEntryNode entryNode : cfa.entryNodes()) {
       CFATraversal.dfs().traverseOnce(entryNode, visitor);
       // No need for Traversal.ignoreFunctionCalls(), because there are no functioncall-edges.
       // They are created in the next loop.

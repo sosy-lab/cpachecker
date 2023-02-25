@@ -39,7 +39,7 @@ public class CFASimplifier {
    * @param cfa The cfa which should be simplified
    */
   public static void simplifyCFA(MutableCFA cfa) {
-    for (CFANode root : cfa.getAllFunctionHeads()) {
+    for (CFANode root : cfa.entryNodes()) {
       simplifyFunction(root, cfa);
     }
   }

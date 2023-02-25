@@ -187,7 +187,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     terminationInformation = terminationCpa.getTerminationInformation();
 
     DeclarationCollectionCFAVisitor visitor = new DeclarationCollectionCFAVisitor();
-    for (CFANode function : cfa.getAllFunctionHeads()) {
+    for (CFANode function : cfa.entryNodes()) {
       CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(function, visitor);
     }
     localDeclarations = ImmutableSetMultimap.copyOf(visitor.localDeclarations);

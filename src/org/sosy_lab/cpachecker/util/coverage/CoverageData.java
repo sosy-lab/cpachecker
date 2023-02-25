@@ -59,7 +59,7 @@ public final class CoverageData {
     pCFA.withoutSummaryEdges().edges().forEach(this::putExistingEdge);
 
     // ------------ Existing functions -------------
-    for (FunctionEntryNode entryNode : pCFA.getAllFunctionHeads()) {
+    for (FunctionEntryNode entryNode : pCFA.entryNodes()) {
       putExistingFunction(entryNode);
     }
   }

@@ -716,7 +716,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     ImmutableMultimap<String, CFAEdge> complexTypeDeclarationEdges =
         getComplexTypeDeclarationEdges(globalEdges);
 
-    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode entryNode : cfa.entryNodes()) {
 
       shutdownNotifier.shutdownIfNecessary();
 
@@ -751,7 +751,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
   private void insertControlDependencies(ImmutableSet<AFunctionDeclaration> pReachableFunctions) {
 
-    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode entryNode : cfa.entryNodes()) {
 
       if (onlyReachableFunctions && !pReachableFunctions.contains(entryNode.getFunction())) {
         continue;

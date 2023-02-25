@@ -206,7 +206,7 @@ public class TemplatePrecision implements Precision {
     ImmutableSetMultimap.Builder<String, ASimpleDeclaration> builder =
         ImmutableSetMultimap.builder();
     if (includeFunctionParameters) {
-      for (FunctionEntryNode node : cfa.getAllFunctionHeads()) {
+      for (FunctionEntryNode node : cfa.entryNodes()) {
         CFunctionEntryNode casted = (CFunctionEntryNode) node;
 
         casted.getFunctionParameters().stream()

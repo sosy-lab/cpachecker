@@ -246,8 +246,7 @@ final class SliceToCfaConversion {
     irrelevantNodes.forEach(graph::removeNode);
 
     ImmutableMap<AFunctionDeclaration, FunctionEntryNode> functionToEntryNodeMap =
-        Maps.uniqueIndex(
-            pSlice.getOriginalCfa().getAllFunctionHeads(), FunctionEntryNode::getFunction);
+        Maps.uniqueIndex(pSlice.getOriginalCfa().entryNodes(), FunctionEntryNode::getFunction);
 
     // if the program slice is empty, return a CFA containing an empty main function
     if (relevantEdges.isEmpty()) {
