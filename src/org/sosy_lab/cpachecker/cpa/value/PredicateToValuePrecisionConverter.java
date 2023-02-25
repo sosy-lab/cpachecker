@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.BackwardsVisitor;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.Node;
@@ -418,9 +417,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
         logger.logException(Level.SEVERE, e, "Failed to determine relevant edges");
       }
     }
-    return FluentIterable.from(cfa.getAllNodes())
-        .transformAndConcat(node -> CFAUtils.leavingEdges(node))
-        .toSet();
+    return ImmutableSet.copyOf(cfa.withoutSummaryEdges().edges());
   }
 
   private Collection<Node> getRelevantGraphUsing(

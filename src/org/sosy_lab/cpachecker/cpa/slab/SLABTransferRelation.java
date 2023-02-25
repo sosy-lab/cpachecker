@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.slab;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -21,7 +19,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.SymbolicLocationsUtility;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class SLABTransferRelation implements TransferRelation {
@@ -74,6 +71,6 @@ public class SLABTransferRelation implements TransferRelation {
   }
 
   private static ImmutableSet<CFAEdge> makeTotalTransitionEdgeSet(CFA pCfa) {
-    return from(pCfa.getAllNodes()).transformAndConcat(CFAUtils::leavingEdges).toSet();
+    return ImmutableSet.copyOf(pCfa.withoutSummaryEdges().edges());
   }
 }

@@ -347,12 +347,10 @@ public class PredicateStaticRefiner extends StaticRefiner
       throws SolverException, CPATransferException, InterruptedException {
     Set<AssumeEdge> result = new HashSet<>();
 
-    for (CFANode u : cfa.getAllNodes()) {
-      for (CFAEdge e : CFAUtils.leavingEdges(u)) {
-        if ((e instanceof AssumeEdge assume) && !isAssumeOnLoopVariable(assume)) {
-          if (hasContradictingOperationInFlow(assume, directlyAffectingStatements)) {
-            result.add(assume);
-          }
+    for (CFAEdge edge : cfa.withoutSummaryEdges().edges()) {
+      if ((edge instanceof AssumeEdge assume) && !isAssumeOnLoopVariable(assume)) {
+        if (hasContradictingOperationInFlow(assume, directlyAffectingStatements)) {
+          result.add(assume);
         }
       }
     }
@@ -499,14 +497,12 @@ public class PredicateStaticRefiner extends StaticRefiner
 
   private void dumpAssumePredicate(Path target) {
     try (Writer w = IO.openOutputFile(target, Charset.defaultCharset())) {
-      for (CFANode u : cfa.getAllNodes()) {
-        for (CFAEdge e : CFAUtils.leavingEdges(u)) {
-          if (e instanceof AssumeEdge) {
-            Collection<AbstractionPredicate> preds = assumeEdgeToPredicates(false, (AssumeEdge) e);
-            for (AbstractionPredicate p : preds) {
-              w.append(p.getSymbolicAtom().toString());
-              w.append("\n");
-            }
+      for (CFAEdge e : cfa.withoutSummaryEdges().edges()) {
+        if (e instanceof AssumeEdge) {
+          Collection<AbstractionPredicate> preds = assumeEdgeToPredicates(false, (AssumeEdge) e);
+          for (AbstractionPredicate p : preds) {
+            w.append(p.getSymbolicAtom().toString());
+            w.append("\n");
           }
         }
       }

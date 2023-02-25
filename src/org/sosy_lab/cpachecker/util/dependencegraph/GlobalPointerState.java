@@ -9,12 +9,10 @@
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -62,10 +60,8 @@ abstract class GlobalPointerState {
     Set<MemoryLocation> addressableVariables = new HashSet<>();
     EdgeDefUseData.Extractor extractor = EdgeDefUseData.createExtractor(false);
 
-    for (CFANode node : pCfa.getAllNodes()) {
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-        addressableVariables.addAll(extractor.extract(edge).getDefs());
-      }
+    for (CFAEdge edge : pCfa.edges()) {
+      addressableVariables.addAll(extractor.extract(edge).getDefs());
     }
 
     return ImmutableSet.copyOf(addressableVariables);
@@ -189,17 +185,6 @@ abstract class GlobalPointerState {
           pointerState, addressableVariables, addressedVariables, pExpression);
     }
 
-    private static Collection<CFAEdge> getAllEdges(CFA pCfa) {
-
-      List<CFAEdge> edges = new ArrayList<>();
-
-      for (CFANode node : pCfa.getAllNodes()) {
-        Iterables.addAll(edges, CFAUtils.leavingEdges(node));
-      }
-
-      return edges;
-    }
-
     private static PointerState next(PointerState pPointerState, CFAEdge pEdge)
         throws CPATransferException, InterruptedException {
 
@@ -218,7 +203,7 @@ abstract class GlobalPointerState {
     private static GlobalPointerState create(CFA pCfa, ShutdownNotifier pShutdownNotifier)
         throws CPAException, InterruptedException {
 
-      Collection<CFAEdge> edges = getAllEdges(pCfa);
+      Collection<CFAEdge> edges = new ArrayList<>(pCfa.withoutSummaryEdges().edges());
       PointerState pointerState = PointerState.INITIAL_STATE;
       Map<MemoryLocation, LocationSet> pointsToMap = new HashMap<>();
 

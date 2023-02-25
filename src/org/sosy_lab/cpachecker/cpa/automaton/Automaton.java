@@ -23,7 +23,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -218,25 +217,22 @@ public class Automaton {
    * analysis of the given CFA.
    */
   public boolean isRelevantForCFA(CFA cfa) {
-    for (CFANode node : cfa.getAllNodes()) {
-      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        CFAEdge edge = node.getLeavingEdge(i);
-        for (AutomatonTransition transition : initState.getTransitions()) {
-          AutomatonExpressionArguments args =
-              new AutomatonExpressionArguments(
-                  null,
-                  ImmutableMap.of(),
-                  ImmutableList.of(),
-                  edge,
-                  LogManager.createNullLogManager());
-          try {
-            if (!transition.getTrigger().eval(args).canNotEvaluate()
-                && transition.getTrigger().eval(args).getValue()) {
-              return true;
-            }
-          } catch (CPATransferException e) {
-            // ignore it, since we cannot process all transition triggers here.
+    for (CFAEdge edge : cfa.withoutSummaryEdges().edges()) {
+      for (AutomatonTransition transition : initState.getTransitions()) {
+        AutomatonExpressionArguments args =
+            new AutomatonExpressionArguments(
+                null,
+                ImmutableMap.of(),
+                ImmutableList.of(),
+                edge,
+                LogManager.createNullLogManager());
+        try {
+          if (!transition.getTrigger().eval(args).canNotEvaluate()
+              && transition.getTrigger().eval(args).getValue()) {
+            return true;
           }
+        } catch (CPATransferException e) {
+          // ignore it, since we cannot process all transition triggers here.
         }
       }
     }

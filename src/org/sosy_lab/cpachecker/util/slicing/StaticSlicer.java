@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
@@ -45,7 +44,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -159,20 +157,10 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     sliceEdgesNumber.setNextValue(relevantEdges.size());
     if (programEdgesNumber.getValueCount() == 0) {
-      programEdgesNumber.setNextValue(countProgramEdges(pCfa));
+      programEdgesNumber.setNextValue(pCfa.edges().size());
     }
 
     return slice;
-  }
-
-  private int countProgramEdges(CFA pCfa) {
-
-    int programEdgeCounter = 0;
-    for (CFANode node : pCfa.getAllNodes()) {
-      programEdgeCounter += CFAUtils.allLeavingEdges(node).size();
-    }
-
-    return programEdgeCounter;
   }
 
   private double getSliceProgramRatio() {

@@ -16,9 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public final class CoverageData {
 
@@ -57,12 +55,8 @@ public final class CoverageData {
 
   public void putCFA(CFA pCFA) {
     // ------------ Existing lines ----------------
-    for (CFANode node : pCFA.getAllNodes()) {
-      // This part adds lines, which are only on edges, such as "return" or "goto"
-      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-        putExistingEdge(edge);
-      }
-    }
+    // This part adds lines, which are only on edges, such as "return" or "goto"
+    pCFA.withoutSummaryEdges().edges().forEach(this::putExistingEdge);
 
     // ------------ Existing functions -------------
     for (FunctionEntryNode entryNode : pCFA.getAllFunctionHeads()) {

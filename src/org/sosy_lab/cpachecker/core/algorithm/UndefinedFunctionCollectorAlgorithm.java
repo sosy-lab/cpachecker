@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -56,7 +55,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
 
@@ -137,14 +135,12 @@ public class UndefinedFunctionCollectorAlgorithm
   }
 
   private void collectUndefinedFunctions() throws InterruptedException {
-    for (CFANode node : cfa.getAllNodes()) {
+    for (CFAEdge edge : cfa.withoutSummaryEdges().edges()) {
       shutdownNotifier.shutdownIfNecessary();
-      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-        if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
-          final AStatementEdge stmtEdge = (AStatementEdge) edge;
-          if (stmtEdge.getStatement() instanceof AFunctionCall) {
-            collectUndefinedFunction((AFunctionCall) stmtEdge.getStatement());
-          }
+      if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
+        final AStatementEdge stmtEdge = (AStatementEdge) edge;
+        if (stmtEdge.getStatement() instanceof AFunctionCall) {
+          collectUndefinedFunction((AFunctionCall) stmtEdge.getStatement());
         }
       }
     }

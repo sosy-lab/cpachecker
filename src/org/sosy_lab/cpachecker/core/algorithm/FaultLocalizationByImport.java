@@ -352,10 +352,7 @@ public class FaultLocalizationByImport implements Algorithm {
 
     public FaultsDeserializer(CFA pCFA) {
       super(IntermediateFaults.class);
-      edges =
-          FluentIterable.from(pCFA.getAllNodes())
-              .transformAndConcat(CFAUtils::allLeavingEdges)
-              .toSet();
+      edges = ImmutableSet.copyOf(pCFA.edges());
     }
 
     @Override

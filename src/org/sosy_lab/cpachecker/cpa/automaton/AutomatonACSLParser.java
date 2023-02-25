@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -66,23 +65,19 @@ public class AutomatonACSLParser {
       String automatonName = "ACSLInvariantsAutomaton";
       String initialStateName = "VALID";
       ImmutableList.Builder<AutomatonTransition> transitions = ImmutableList.builder();
-      for (CFANode node : cfa.getAllNodes()) {
-        if (node.getNumLeavingEdges() > 0) {
-          for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
-            Collection<ACSLAnnotation> annotations = cfa.getEdgesToAnnotations().get(leavingEdge);
-            if (!annotations.isEmpty()) {
-              ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
-              List<ExpressionTree<Object>> representations = new ArrayList<>(annotations.size());
-              for (ACSLAnnotation annotation : annotations) {
-                ACSLPredicate predicate = annotation.getPredicateRepresentation();
-                representations.add(predicate.accept(visitor));
-              }
-              @SuppressWarnings("unchecked")
-              ExpressionTree<AExpression> inv =
-                  (ExpressionTree<AExpression>) (ExpressionTree<?>) factory.and(representations);
-              createLocationInvariantsTransitions(transitions, leavingEdge, inv);
-            }
+      for (CFAEdge edge : cfa.withoutSummaryEdges().edges()) {
+        Collection<ACSLAnnotation> annotations = cfa.getEdgesToAnnotations().get(edge);
+        if (!annotations.isEmpty()) {
+          ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
+          List<ExpressionTree<Object>> representations = new ArrayList<>(annotations.size());
+          for (ACSLAnnotation annotation : annotations) {
+            ACSLPredicate predicate = annotation.getPredicateRepresentation();
+            representations.add(predicate.accept(visitor));
           }
+          @SuppressWarnings("unchecked")
+          ExpressionTree<AExpression> inv =
+              (ExpressionTree<AExpression>) (ExpressionTree<?>) factory.and(representations);
+          createLocationInvariantsTransitions(transitions, edge, inv);
         }
       }
       AutomatonInternalState state =

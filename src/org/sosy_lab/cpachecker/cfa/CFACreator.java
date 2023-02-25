@@ -93,7 +93,6 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -814,19 +813,17 @@ public class CFACreator {
   /** check, whether the program contains function calls to crate a new thread. */
   private boolean isMultiThreadedProgram(MutableCFA pCfa) {
     // for all possible edges
-    for (CFANode node : pCfa.getAllNodes()) {
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-        // check for creation of new thread
-        if (edge instanceof AStatementEdge) {
-          final AStatement statement = ((AStatementEdge) edge).getStatement();
-          if (statement instanceof AFunctionCall) {
-            final AExpression functionNameExp =
-                ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-            if (functionNameExp instanceof AIdExpression) {
-              if (ThreadingTransferRelation.THREAD_START.equals(
-                  ((AIdExpression) functionNameExp).getName())) {
-                return true;
-              }
+    for (CFAEdge edge : pCfa.edges()) {
+      // check for creation of new thread
+      if (edge instanceof AStatementEdge) {
+        final AStatement statement = ((AStatementEdge) edge).getStatement();
+        if (statement instanceof AFunctionCall) {
+          final AExpression functionNameExp =
+              ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression) {
+            if (ThreadingTransferRelation.THREAD_START.equals(
+                ((AIdExpression) functionNameExp).getName())) {
+              return true;
             }
           }
         }

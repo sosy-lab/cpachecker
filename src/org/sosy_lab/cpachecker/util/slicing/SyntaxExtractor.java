@@ -91,7 +91,7 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
 
     Set<CFAEdge> notFoundTargets = new HashSet<>(nodesReachingTargetEdges.values());
     ImmutableSet.Builder<CFAEdge> relevantTargets = ImmutableSet.builder();
-    Collection<CFAEdge> allEdges = extractAllCFAEdges(pCfa);
+    Collection<CFAEdge> allEdges = new ArrayList<>(pCfa.edges());
 
     // currently we assume that
     // (1) we goto dedicated state __FALSE when successors are not explored
@@ -116,15 +116,6 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
     }
 
     return relevantTargets.build();
-  }
-
-  private Collection<CFAEdge> extractAllCFAEdges(final CFA pCfa) {
-    Collection<CFAEdge> edges = new ArrayList<>(2 * pCfa.getAllNodes().size());
-
-    for (CFANode node : pCfa.getAllNodes()) {
-      CFAUtils.allLeavingEdges(node).copyInto(edges);
-    }
-    return edges;
   }
 
   private Iterable<CFANode> getTargetNodes(

@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Represents an array that can be transformed by an array abstraction. */
@@ -216,8 +215,7 @@ final class TransformableArray {
 
   private static ImmutableSet<CDeclarationEdge> findArrayDeclarationEdges(CFA pCfa) {
 
-    return pCfa.getAllNodes().stream()
-        .flatMap(node -> CFAUtils.allLeavingEdges(node).stream())
+    return pCfa.edges().stream()
         .filter(edge -> edge instanceof CDeclarationEdge)
         .map(edge -> (CDeclarationEdge) edge)
         .filter(TransformableArray::isArrayDeclarationEdge)
@@ -253,34 +251,32 @@ final class TransformableArray {
         new LinkedHashSet<>(findArrayDeclarationEdges(pCfa));
     Set<CDeclarationEdge> relevantArrayDeclarationEdges = new LinkedHashSet<>();
 
-    for (CFANode node : pCfa.getAllNodes()) {
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+    for (CFAEdge edge : pCfa.edges()) {
 
-        Iterator<CDeclarationEdge> iterator = unproblematicArrayDeclarationEdges.iterator();
-        while (iterator.hasNext()) {
+      Iterator<CDeclarationEdge> iterator = unproblematicArrayDeclarationEdges.iterator();
+      while (iterator.hasNext()) {
 
-          CDeclarationEdge arrayDeclarationEdge = iterator.next();
-          CDeclaration declaration = arrayDeclarationEdge.getDeclaration();
+        CDeclarationEdge arrayDeclarationEdge = iterator.next();
+        CDeclaration declaration = arrayDeclarationEdge.getDeclaration();
 
-          // we skip the array declaration edge itself (it would otherwise be a problematic usage)
-          if (arrayDeclarationEdge.equals(edge)) {
-            continue;
-          }
+        // we skip the array declaration edge itself (it would otherwise be a problematic usage)
+        if (arrayDeclarationEdge.equals(edge)) {
+          continue;
+        }
 
-          if (ProblematicArrayUsageFinder.containsProblematicUsage(
-              edge, arrayDeclarationEdge.getDeclaration())) {
-            iterator.remove();
-          }
+        if (ProblematicArrayUsageFinder.containsProblematicUsage(
+            edge, arrayDeclarationEdge.getDeclaration())) {
+          iterator.remove();
+        }
 
-          // is array declaration already relevant?
-          if (relevantArrayDeclarationEdges.contains(arrayDeclarationEdge)) {
-            continue;
-          }
+        // is array declaration already relevant?
+        if (relevantArrayDeclarationEdges.contains(arrayDeclarationEdge)) {
+          continue;
+        }
 
-          for (ArrayAccess arrayAccess : ArrayAccess.findArrayAccesses(edge)) {
-            if (isRelevantArrayAccessOfArray(arrayAccess, declaration)) {
-              relevantArrayDeclarationEdges.add(arrayDeclarationEdge);
-            }
+        for (ArrayAccess arrayAccess : ArrayAccess.findArrayAccesses(edge)) {
+          if (isRelevantArrayAccessOfArray(arrayAccess, declaration)) {
+            relevantArrayDeclarationEdges.add(arrayDeclarationEdge);
           }
         }
       }
