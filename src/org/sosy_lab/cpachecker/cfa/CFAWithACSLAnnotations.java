@@ -39,11 +39,6 @@ public class CFAWithACSLAnnotations extends ForwardingCfaNetwork implements CFA 
   }
 
   @Override
-  public boolean isEmpty() {
-    return delegate.isEmpty();
-  }
-
-  @Override
   public int getNumberOfFunctions() {
     return delegate.getNumberOfFunctions();
   }

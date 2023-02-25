@@ -64,11 +64,6 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
   }
 
   @Override
-  public boolean isEmpty() {
-    return functions.isEmpty();
-  }
-
-  @Override
   public int getNumberOfFunctions() {
     return functions.size();
   }

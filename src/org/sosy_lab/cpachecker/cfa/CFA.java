@@ -29,8 +29,6 @@ public interface CFA extends CfaNetwork {
     return getMetadata().getMachineModel();
   }
 
-  boolean isEmpty();
-
   int getNumberOfFunctions();
 
   NavigableSet<String> getAllFunctionNames();

@@ -118,11 +118,6 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
   }
 
   @Override
-  public boolean isEmpty() {
-    return functions.isEmpty();
-  }
-
-  @Override
   public int getNumberOfFunctions() {
     return functions.size();
   }
