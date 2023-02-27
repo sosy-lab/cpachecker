@@ -123,7 +123,10 @@ public class SMGUseDefBasedInterpolator {
 
       Collection<ASimpleDeclaration> declarationsNeededForState = useDefSequence.get(state);
 
-      SMGInterpolant interpolant = declarationsNeededForState.isEmpty() ? trivialItp : createInterpolant(declarationsNeededForState);
+      SMGInterpolant interpolant =
+          declarationsNeededForState.isEmpty()
+              ? trivialItp
+              : createInterpolant(declarationsNeededForState);
 
       interpolants.add(Pair.of(state, interpolant));
 
@@ -167,7 +170,8 @@ public class SMGUseDefBasedInterpolator {
    * @param declarationsNeededForState the variable declaration for which to create the interpolant
    * @return the interpolant for the given variable declaration
    */
-  private SMGInterpolant createInterpolant(Collection<ASimpleDeclaration> declarationsNeededForState) {
+  private SMGInterpolant createInterpolant(
+      Collection<ASimpleDeclaration> declarationsNeededForState) {
     PersistentMap<MemoryLocation, ValueAndValueSize> useDefInterpolant =
         PathCopyingPersistentTreeMap.of();
 
