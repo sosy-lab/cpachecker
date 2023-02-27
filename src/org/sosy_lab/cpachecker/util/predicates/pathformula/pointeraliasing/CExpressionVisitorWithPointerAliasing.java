@@ -728,15 +728,10 @@ class CExpressionVisitorWithPointerAliasing
         return handleCmpFunction(functionName, e);
       }
 
-      boolean isMemCpy = functionName.equals("memcpy");
-      boolean isMemMove = functionName.equals("memmove");
-
-      if (isMemCpy || isMemMove) {
-        return handleMemoryCopyFunction(e, isMemMove);
-      }
-
-      if (functionName.equals("memset")) {
-        return handleMemorySetFunction(e);
+      if (functionName.equals("memcpy")
+          || functionName.equals("memmove")
+          || functionName.equals("memset")) {
+        return handleMemoryAssignmentFunction(functionName, e);
       }
 
       if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
@@ -890,15 +885,15 @@ class CExpressionVisitorWithPointerAliasing
     return Value.ofValue(result);
   }
 
-
   /** This method provides an approximation of the builtin function memset. */
-  private Value handleMemorySetFunction(final CFunctionCallExpression e)
+  private Value handleMemoryAssignmentFunction(final String fnName, final CFunctionCallExpression e)
       throws UnrecognizedCodeException {
-    // we extract three parameters, representing the destination, value to be set, and size in bytes respectively
+
+    // all of the functions have exactly three parameters
+    // the first and third parameter is the same for all functions
     final List<CExpression> parameters = e.getParameterExpressions();
     assert parameters.size() == 3;
     CExpression paramDestination = parameters.get(0);
-    final CExpression paramSetValue = parameters.get(1);
     final CExpression paramSizeInBytes = parameters.get(2);
 
     // First parameter (destination) processing
@@ -909,31 +904,28 @@ class CExpressionVisitorWithPointerAliasing
     // we ensure we have a pointer first and then take sizeof of the underlying type
 
     if (!(paramDestination instanceof CLeftHandSide)) {
-      throw new UnrecognizedCodeException("Expected memset destination to be an lvalue", e);
+      throw new UnrecognizedCodeException("Expected destination to be an lvalue", e);
     }
+    CLeftHandSide destinationLValue = (CLeftHandSide) paramDestination;
 
-    CType destinationType = paramDestination.getExpressionType();
+    CType destinationType = destinationLValue.getExpressionType();
     destinationType = CTypes.adjustFunctionOrArrayType(destinationType);
     if (!(destinationType instanceof CPointerType)) {
-      throw new UnrecognizedCodeException("Expected memset destination type to be a pointer (adjusted if necessary)", e);
+      throw new UnrecognizedCodeException(
+          "Expected destination type to be a pointer (adjusted if necessary)", e);
     }
 
     CPointerType destinationPointerType = (CPointerType) destinationType;
 
-    CType underlyingType = destinationPointerType.getType().getCanonicalType();
-    long elementSizeInBytes = typeHandler.getSizeof(underlyingType);
-
-    // Second parameter (value to be set) processing
-
-    // the value to be set is passed as int, but converted to unsigned char internally before setting each byte to this value
-    // we cast it to unsigned char here first, then to the underlying type
-    CExpression setValueUnsignedChar = new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, paramSetValue);
+    CType destinationUnderlyingType = destinationPointerType.getType().getCanonicalType();
+    long elementSizeInBytes = typeHandler.getSizeof(destinationUnderlyingType);
 
     // Third parameter (size) processing
 
     // currently, we only support fixed sizes
     if (!(paramSizeInBytes instanceof CIntegerLiteralExpression)) {
-      throw new UnrecognizedCodeException("Memset with non-literal sizes not implemented", e);
+      throw new UnrecognizedCodeException(
+          "Memory manipulation with non-literal sizes not implemented", e);
     }
 
     // we have the size to be set in bytes, but want to internally set the values to the actual elements
@@ -944,42 +936,112 @@ class CExpressionVisitorWithPointerAliasing
 
     // setting a fraction of element bytes would complicate matters and is almost never used
     if (operationSizeInBytes != numBytesInWholeElements) {
-      throw new UnrecognizedCodeException("Memset with fractional element set not implemented", e);
+      throw new UnrecognizedCodeException(
+          "Memory manipulation with fractional element set not implemented", e);
     }
 
-    // Formula creation for elements to be set to their new values
+    // Handover to function-specific code
+    final CExpression secondParameter = parameters.get(1);
 
-    CType machineSizeType = conv.machineModel.getPointerEquivalentSimpleType();
+    if (fnName.equals("memset")) {
+      handleMemsetFunction(
+          e,
+          destinationLValue,
+          destinationUnderlyingType,
+          operationSizeInWholeElements,
+          secondParameter);
+    } else {
 
+      // memcpy and memmove only differ in that memcpy is not well-defined
+      // if destination and source overlap
+      // TODO: should we somehow handle possible memcpy overlap here?
 
-    // we iterate over the actual elements so that we can assign to each one
-    for (long elementIndex = 0; elementIndex < operationSizeInWholeElements; ++elementIndex) {
-
-      CIntegerLiteralExpression indexLiteral =
-          CIntegerLiteralExpression.createDummyLiteral(elementIndex, machineSizeType);
-
-      CArraySubscriptExpression destinationAtIndexExpression =
-          new CArraySubscriptExpression(
-              FileLocation.DUMMY, underlyingType, paramDestination, indexLiteral);
-
-      performMemorySetAssignment(e, destinationAtIndexExpression, setValueUnsignedChar);
+      handleMemmoveFunction(
+          e,
+          destinationLValue,
+          destinationUnderlyingType,
+          operationSizeInWholeElements,
+          secondParameter);
     }
 
-    // Result value formula creation
+    // Result value creation
 
-    // we convert the destination, which should be of pointer or array type,
-    // to a formula, and return it
+    // all of the functions just return destination
+    // we convert the destination to a formula, and return it as a value
     AliasedLocation destinationAsAliasedLocation =
         dereference(paramDestination, paramDestination.accept(this));
     Formula destinationFormula = destinationAsAliasedLocation.getAddress();
     return Value.ofValue(destinationFormula);
   }
 
-  private void performMemorySetAssignment(
-      final CFunctionCallExpression e,
-      final CLeftHandSide lvalue,
-      final CExpression setValueUnsignedChar)
+  private void handleMemmoveFunction(
+      @SuppressWarnings("unused") CFunctionCallExpression e,
+      CLeftHandSide destinationLValue,
+      CType destinationUnderlyingType,
+      long sizeInElements,
+      CExpression sourceExpression)
       throws UnrecognizedCodeException {
+
+    // we iterate over the actual elements so that we can assign to each one
+    for (long elementIndex = 0; elementIndex < sizeInElements; ++elementIndex) {
+
+      CIntegerLiteralExpression indexLiteral =
+          CIntegerLiteralExpression.createDummyLiteral(
+              elementIndex, conv.machineModel.getPointerEquivalentSimpleType());
+
+      CArraySubscriptExpression destinationAtIndex =
+          new CArraySubscriptExpression(
+              FileLocation.DUMMY, destinationUnderlyingType, destinationLValue, indexLiteral);
+
+      CArraySubscriptExpression sourceAtIndex =
+          new CArraySubscriptExpression(
+              FileLocation.DUMMY, destinationUnderlyingType, sourceExpression, indexLiteral);
+
+      // it is possible to use AssignmentHandler on whole structures
+      // so we will do just that
+      try {
+        AssignmentHandler assignmentHandler =
+            new AssignmentHandler(
+                conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
+        BooleanFormula assignmentFormula =
+            assignmentHandler.handleAssignment(
+                destinationAtIndex, destinationAtIndex, sourceAtIndex, false);
+        constraints.addConstraint(assignmentFormula);
+      } catch (InterruptedException exc) {
+        throw CtoFormulaConverter.propagateInterruptedException(exc);
+      }
+    }
+  }
+
+  private void handleMemsetFunction(
+      final CFunctionCallExpression e,
+      CLeftHandSide destinationLValue,
+      CType destinationUnderlyingType,
+      long sizeInElements,
+      CExpression setValue)
+      throws UnrecognizedCodeException {
+
+    // we iterate over the actual elements so that we can assign to each one
+    for (long elementIndex = 0; elementIndex < sizeInElements; ++elementIndex) {
+
+      CIntegerLiteralExpression indexLiteral =
+          CIntegerLiteralExpression.createDummyLiteral(
+              elementIndex, conv.machineModel.getPointerEquivalentSimpleType());
+
+      CArraySubscriptExpression destinationAtIndexExpression =
+          new CArraySubscriptExpression(
+              FileLocation.DUMMY, destinationUnderlyingType, destinationLValue, indexLiteral);
+
+      performMemsetAssignment(e, destinationAtIndexExpression, setValue);
+    }
+  }
+
+  private void performMemsetAssignment(
+      final CFunctionCallExpression e, final CLeftHandSide lvalue, final CExpression setValue)
+      throws UnrecognizedCodeException {
+
+    CExpression setValueUnsignedChar =
+        new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, setValue);
 
     CType type = lvalue.getExpressionType().getCanonicalType();
 
@@ -992,7 +1054,7 @@ class CExpressionVisitorWithPointerAliasing
             new CFieldReference(
                 FileLocation.DUMMY, member.getType(), member.getName(), lvalue, false);
 
-        performMemorySetAssignment(e, leftHandExpression, setValueUnsignedChar);
+        performMemsetAssignment(e, leftHandExpression, setValueUnsignedChar);
       }
       return;
     }
@@ -1093,14 +1155,6 @@ class CExpressionVisitorWithPointerAliasing
     }
 
     return setValueExpression;
-  }
-
-  /** This method provides approximations of the builtin functions memcpy and memmove. */
-  private Value handleMemoryCopyFunction(
-      final CFunctionCallExpression e, @SuppressWarnings("unused") boolean isMemMove)
-      throws UnrecognizedCodeException {
-    // TODO
-    throw new UnrecognizedCodeException("Memcpy & memmove not implemented", e);
   }
 
   /**
