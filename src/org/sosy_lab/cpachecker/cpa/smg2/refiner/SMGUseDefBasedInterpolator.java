@@ -164,7 +164,7 @@ public class SMGUseDefBasedInterpolator {
    * because interesting offsets are not known statically. The same applies for complex types, where
    * also the whole type ends up in the interpolant and not only partially.
    *
-   * @param uses the variable declaration for which to create the interpolant
+   * @param declarationsNeededForState the variable declaration for which to create the interpolant
    * @return the interpolant for the given variable declaration
    */
   private SMGInterpolant createInterpolant(Collection<ASimpleDeclaration> declarationsNeededForState) {
