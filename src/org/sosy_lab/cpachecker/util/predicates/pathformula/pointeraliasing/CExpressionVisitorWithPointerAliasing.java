@@ -951,21 +951,6 @@ class CExpressionVisitorWithPointerAliasing
 
     CType machineSizeType = conv.machineModel.getPointerEquivalentSimpleType();
 
-    // for structs, enumerate members so that each one can be set separately
-    List<CCompositeTypeMemberDeclaration> members = null;
-
-    if (underlyingType instanceof CCompositeType compositeUnderlyingType) {
-      if (compositeUnderlyingType.getKind() != ComplexTypeKind.STRUCT) {
-        throw new UnrecognizedCodeException(
-            "Destination with non-struct composite underlying type not supported for memset", e);
-      }
-
-      members = compositeUnderlyingType.getMembers();
-    }
-
-    AssignmentHandler assignmentHandler =
-        new AssignmentHandler(
-            conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
 
     // we iterate over the actual elements so that we can assign to each one
     for (long elementIndex = 0; elementIndex < operationSizeInWholeElements; ++elementIndex) {
@@ -977,56 +962,7 @@ class CExpressionVisitorWithPointerAliasing
           new CArraySubscriptExpression(
               FileLocation.DUMMY, underlyingType, paramDestination, indexLiteral);
 
-      // TODO: create the set value expression once for each used simple underlying type
-
-      if (members != null) {
-        // set a value formula each member of struct
-
-        for (CCompositeTypeMemberDeclaration member : members) {
-          final CFieldReference leftHandExpression =
-              new CFieldReference(
-                  FileLocation.DUMMY,
-                  member.getType(),
-                  member.getName(),
-                  destinationAtIndexExpression,
-                  false);
-
-          CExpression setValueExpression =
-              createSetValueExpression(
-                  e, member.getType().getCanonicalType(), setValueUnsignedChar);
-
-          // reinterpret instead of casting in assignment to properly handle memset of floats
-          try {
-            BooleanFormula assignmentFormula =
-                assignmentHandler.handleAssignment(
-                    leftHandExpression, leftHandExpression, setValueExpression, false, true);
-            constraints.addConstraint(assignmentFormula);
-          } catch (InterruptedException exc) {
-            throw CtoFormulaConverter.propagateInterruptedException(exc);
-          }
-
-        }
-
-      } else {
-        // just set the value formula to the underlying type
-
-        CExpression setValueExpression =
-            createSetValueExpression(e, underlyingType, setValueUnsignedChar);
-
-        // reinterpret instead of casting in assignment to properly handle memset of floats
-        try {
-          BooleanFormula assignmentFormula =
-              assignmentHandler.handleAssignment(
-                  destinationAtIndexExpression,
-                  destinationAtIndexExpression,
-                  setValueExpression,
-                  false,
-                  true);
-          constraints.addConstraint(assignmentFormula);
-        } catch (InterruptedException exc) {
-          throw CtoFormulaConverter.propagateInterruptedException(exc);
-        }
-      }
+      performMemorySetAssignment(e, destinationAtIndexExpression, setValueUnsignedChar);
     }
 
     // Result value formula creation
@@ -1039,25 +975,61 @@ class CExpressionVisitorWithPointerAliasing
     return Value.ofValue(destinationFormula);
   }
 
+  private void performMemorySetAssignment(
+      final CFunctionCallExpression e,
+      final CLeftHandSide lvalue,
+      final CExpression setValueUnsignedChar)
+      throws UnrecognizedCodeException {
+
+    CType type = lvalue.getExpressionType().getCanonicalType();
+
+    if (type instanceof CCompositeType compositeUnderlyingType
+        && compositeUnderlyingType.getKind() == ComplexTypeKind.STRUCT) {
+      // for structs, perform recursive assignment
+
+      for (CCompositeTypeMemberDeclaration member : compositeUnderlyingType.getMembers()) {
+        final CFieldReference leftHandExpression =
+            new CFieldReference(
+                FileLocation.DUMMY, member.getType(), member.getName(), lvalue, false);
+
+        performMemorySetAssignment(e, leftHandExpression, setValueUnsignedChar);
+      }
+      return;
+    }
+
+    if (!(type instanceof CSimpleType)) {
+      throw new UnrecognizedCodeException("Memset destination type not supported", e);
+    }
+
+    // for simple types, add assignment to the set value expression
+
+    CExpression setValueExpression =
+        createSetValueExpression(e, (CSimpleType) type, setValueUnsignedChar);
+
+    // reinterpret instead of casting in assignment to properly handle memset of floats
+    try {
+      AssignmentHandler assignmentHandler =
+          new AssignmentHandler(
+              conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
+      BooleanFormula assignmentFormula =
+          assignmentHandler.handleAssignment(lvalue, lvalue, setValueExpression, false, true);
+      constraints.addConstraint(assignmentFormula);
+    } catch (InterruptedException exc) {
+      throw CtoFormulaConverter.propagateInterruptedException(exc);
+    }
+  }
+
   private CExpression createSetValueExpression(
-      final CFunctionCallExpression e, CType underlyingType, CExpression setValueUnsignedChar)
+      final CFunctionCallExpression e, CSimpleType underlyingType, CExpression setValueUnsignedChar)
       throws UnrecognizedCodeException {
 
     long elementSizeInBytes = typeHandler.getSizeof(underlyingType);
 
-    // we reject underlying types that are not simple
-    if (!(underlyingType instanceof CSimpleType)) {
-      throw new UnrecognizedCodeException(
-          "Only struct and simple underlying destination types are supported for memset", e);
-    }
-
-    CSimpleType underlyingSimpleType = (CSimpleType) underlyingType;
-
     // Floating-point handling: create underlying integer type
 
-    CBasicType underlyingBasicType = underlyingSimpleType.getType();
+    CBasicType underlyingBasicType = underlyingType.getType();
 
-    CSimpleType underlyingIntegerType = underlyingSimpleType;
+    CSimpleType underlyingIntegerType = underlyingType;
 
     if (underlyingBasicType.isFloatingPointType()) {
 
@@ -1099,7 +1071,6 @@ class CExpressionVisitorWithPointerAliasing
       long bitIndex = byteIndex * conv.getBitSizeof(CNumericTypes.UNSIGNED_CHAR);
       CIntegerLiteralExpression bitIndexLiteral =
           CIntegerLiteralExpression.createDummyLiteral(bitIndex, underlyingIntegerType);
-
       CBinaryExpression setValueShiftedByteExpression =
           new CBinaryExpression(
               FileLocation.DUMMY,
