@@ -64,10 +64,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Expression
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
-import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaType;
 
 /** A visitor the handle C expressions with the support for pointer aliasing. */
 class CExpressionVisitorWithPointerAliasing
@@ -909,6 +907,11 @@ class CExpressionVisitorWithPointerAliasing
 
     // we need to know the element size
     // we ensure we have a pointer first and then take sizeof of the underlying type
+
+    if (!(paramDestination instanceof CLeftHandSide)) {
+      throw new UnrecognizedCodeException("Expected memset destination to be an lvalue", e);
+    }
+
     CType destinationType = paramDestination.getExpressionType();
     destinationType = CTypes.adjustFunctionOrArrayType(destinationType);
     if (!(destinationType instanceof CPointerType)) {
@@ -919,11 +922,6 @@ class CExpressionVisitorWithPointerAliasing
 
     CType underlyingType = destinationPointerType.getType().getCanonicalType();
     long elementSizeInBytes = typeHandler.getSizeof(underlyingType);
-
-
-    // we convert the destination, which should be of pointer or array type, to a formula
-    AliasedLocation destinationAsAliasedLocation = dereference(paramDestination, paramDestination.accept(this));
-    Formula destinationFormula = destinationAsAliasedLocation.getAddress();
 
     // Second parameter (value to be set) processing
 
@@ -944,7 +942,7 @@ class CExpressionVisitorWithPointerAliasing
 
     long numBytesInWholeElements = operationSizeInWholeElements * elementSizeInBytes;
 
-    // TODO: Should we handle setting the fraction of last element? Would require endianness handling.
+    // setting a fraction of element bytes would complicate matters and is almost never used
     if (operationSizeInBytes != numBytesInWholeElements) {
       throw new UnrecognizedCodeException("Memset with fractional element set not implemented", e);
     }
@@ -965,6 +963,10 @@ class CExpressionVisitorWithPointerAliasing
       members = compositeUnderlyingType.getMembers();
     }
 
+    AssignmentHandler assignmentHandler =
+        new AssignmentHandler(
+            conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
+
     // we iterate over the actual elements so that we can assign to each one
     for (long elementIndex = 0; elementIndex < operationSizeInWholeElements; ++elementIndex) {
 
@@ -974,17 +976,14 @@ class CExpressionVisitorWithPointerAliasing
       CArraySubscriptExpression destinationAtIndexExpression =
           new CArraySubscriptExpression(
               FileLocation.DUMMY, underlyingType, paramDestination, indexLiteral);
-      Formula destinationAtIndex =
-          asValueFormula(this.visit(destinationAtIndexExpression), underlyingType);
 
-      // TODO: create the set value formula once for each used simple underlying type
+      // TODO: create the set value expression once for each used simple underlying type
 
       if (members != null) {
         // set a value formula each member of struct
 
         for (CCompositeTypeMemberDeclaration member : members) {
-          CType memberType = member.getType();
-          final CFieldReference memberExpression =
+          final CFieldReference leftHandExpression =
               new CFieldReference(
                   FileLocation.DUMMY,
                   member.getType(),
@@ -992,61 +991,61 @@ class CExpressionVisitorWithPointerAliasing
                   destinationAtIndexExpression,
                   false);
 
-          // the acceptance creates an aliased location and thus takes address-of
-          AliasedLocation memberAtIndexAliasedLocation =
-              (AliasedLocation) memberExpression.accept(this);
+          CExpression setValueExpression =
+              createSetValueExpression(
+                  e, member.getType().getCanonicalType(), setValueUnsignedChar);
 
-          AliasedLocation memberDereferenced =
-              dereference(memberExpression, memberAtIndexAliasedLocation);
+          // reinterpret instead of casting in assignment to properly handle memset of floats
+          try {
+            BooleanFormula assignmentFormula =
+                assignmentHandler.handleAssignment(
+                    leftHandExpression, leftHandExpression, setValueExpression, false, true);
+            constraints.addConstraint(assignmentFormula);
+          } catch (InterruptedException exc) {
+            throw CtoFormulaConverter.propagateInterruptedException(exc);
+          }
 
-          Formula memberDereferencedFormula = memberDereferenced.getAddress();
-
-          Formula setValueFormula =
-              createSetValueFormula(e, member.getType().getCanonicalType(), setValueUnsignedChar);
-
-          /*BooleanFormula assignmentFormula =
-          new AssignmentHandler(conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr).
-          makeDestructiveAssignment(memberType, memberType, memberDereferenced, Value.ofValue(setValueFormula), false, null);*/
-
-          // TODO: use higher-level assignment rather than just SMT assignment which will lead to
-          // problems later
-
-          BooleanFormula assignmentFormula =
-              conv.fmgr.assignment(memberDereferencedFormula, setValueFormula);
-
-          constraints.addConstraint(assignmentFormula);
         }
 
       } else {
         // just set the value formula to the underlying type
-        Formula setValueFormula = createSetValueFormula(e, underlyingType, setValueUnsignedChar);
-        // TODO: use higher-level assignment rather than just SMT assignment which will lead to
-        // problems later
-        BooleanFormula assignmentFormula =
-            conv.fmgr.assignment(destinationAtIndex, setValueFormula);
-        constraints.addConstraint(assignmentFormula);
+
+        CExpression setValueExpression =
+            createSetValueExpression(e, underlyingType, setValueUnsignedChar);
+
+        // reinterpret instead of casting in assignment to properly handle memset of floats
+        try {
+          BooleanFormula assignmentFormula =
+              assignmentHandler.handleAssignment(
+                  destinationAtIndexExpression,
+                  destinationAtIndexExpression,
+                  setValueExpression,
+                  false,
+                  true);
+          constraints.addConstraint(assignmentFormula);
+        } catch (InterruptedException exc) {
+          throw CtoFormulaConverter.propagateInterruptedException(exc);
+        }
       }
     }
 
     // Result value formula creation
-    // we just copy the destination parameter to the result
 
-    final CType returnType = e.getExpressionType().getCanonicalType();
-    final Formula result = conv.makeNondet("memset", returnType, ssa, constraints);
-    constraints.addConstraint(conv.fmgr.assignment(result, destinationFormula));
-
-    return Value.ofValue(result);
+    // we convert the destination, which should be of pointer or array type,
+    // to a formula, and return it
+    AliasedLocation destinationAsAliasedLocation =
+        dereference(paramDestination, paramDestination.accept(this));
+    Formula destinationFormula = destinationAsAliasedLocation.getAddress();
+    return Value.ofValue(destinationFormula);
   }
 
-  private Formula createSetValueFormula(
+  private CExpression createSetValueExpression(
       final CFunctionCallExpression e, CType underlyingType, CExpression setValueUnsignedChar)
       throws UnrecognizedCodeException {
 
     long elementSizeInBytes = typeHandler.getSizeof(underlyingType);
 
-    // we reject underlying types that are not simple integers
-    // TODO: Support more underlying types
-
+    // we reject underlying types that are not simple
     if (!(underlyingType instanceof CSimpleType)) {
       throw new UnrecognizedCodeException(
           "Only struct and simple underlying destination types are supported for memset", e);
@@ -1054,12 +1053,11 @@ class CExpressionVisitorWithPointerAliasing
 
     CSimpleType underlyingSimpleType = (CSimpleType) underlyingType;
 
-    // Floating-point handling, part 1: create underlying integer type and SMT floating-point type
+    // Floating-point handling: create underlying integer type
 
     CBasicType underlyingBasicType = underlyingSimpleType.getType();
 
     CSimpleType underlyingIntegerType = underlyingSimpleType;
-    FormulaType.FloatingPointType fpType = null;
 
     if (underlyingBasicType.isFloatingPointType()) {
 
@@ -1067,7 +1065,6 @@ class CExpressionVisitorWithPointerAliasing
       // as the floating-point type so that we can populate it
 
       if (underlyingBasicType == CBasicType.FLOAT) {
-        fpType = FormulaType.getSinglePrecisionFloatingPointType();
         // TODO: integer type with the same sizeof as float should be resolved by a reverse lookup
         // into the machine model
         // we use unsigned int in the meantime
@@ -1075,7 +1072,6 @@ class CExpressionVisitorWithPointerAliasing
             new CSimpleType(
                 false, false, CBasicType.INT, false, false, false, true, false, false, false);
       } else if (underlyingBasicType == CBasicType.DOUBLE) {
-        fpType = FormulaType.getDoublePrecisionFloatingPointType();
         // TODO: integer type with the same sizeof as float should be resolved by a reverse lookup
         // into the machine model
         // we use unsigned long long in the meantime
@@ -1092,8 +1088,8 @@ class CExpressionVisitorWithPointerAliasing
     // so we need to compose the value to be set to each element
     // we set the expression to zero literal and then bit-or the shifted bytes containing the value
     // to be set
-    Formula setValueFormula =
-        delegate.visit(CIntegerLiteralExpression.createDummyLiteral(0, underlyingIntegerType));
+    CExpression setValueExpression =
+        CIntegerLiteralExpression.createDummyLiteral(0, underlyingIntegerType);
 
     CExpression setValueLowestByte =
         new CCastExpression(FileLocation.DUMMY, underlyingIntegerType, setValueUnsignedChar);
@@ -1113,23 +1109,19 @@ class CExpressionVisitorWithPointerAliasing
               bitIndexLiteral,
               BinaryOperator.SHIFT_LEFT);
 
-      Formula setValueShiftedByteFormula = this.visit(setValueShiftedByteExpression).getValue();
-
       // bit-or with previous formula
-      setValueFormula = conv.fmgr.makeOr(setValueFormula, setValueShiftedByteFormula);
+      // plus could also be used
+      setValueExpression =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              underlyingIntegerType,
+              underlyingIntegerType,
+              setValueExpression,
+              setValueShiftedByteExpression,
+              BinaryOperator.BINARY_OR);
     }
 
-    // Floating-point handling, part 2: convert the bitvector formula to floating point
-
-    if (fpType != null) {
-      // setValueFormula should be a bitvector formula before this
-      setValueFormula =
-          conv.fmgr
-              .getFloatingPointFormulaManager()
-              .fromIeeeBitvector((BitvectorFormula) setValueFormula, fpType);
-    }
-
-    return setValueFormula;
+    return setValueExpression;
   }
 
   /** This method provides approximations of the builtin functions memcpy and memmove. */

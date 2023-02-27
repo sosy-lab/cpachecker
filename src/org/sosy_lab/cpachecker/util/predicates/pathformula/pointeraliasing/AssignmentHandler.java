@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Kind;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
@@ -139,6 +140,31 @@ class AssignmentHandler {
       final @Nullable CRightHandSide rhs,
       final boolean useOldSSAIndicesIfAliased)
       throws UnrecognizedCodeException, InterruptedException {
+    return handleAssignment(lhs, lhsForChecking, lhsType, rhs, useOldSSAIndicesIfAliased, false);
+  }
+  /**
+   * Creates a formula to handle assignments.
+   *
+   * @param lhs The left hand side of an assignment.
+   * @param lhsForChecking The left hand side of an assignment to check.
+   * @param rhs Either {@code null} or the right hand side of the assignment.
+   * @param useOldSSAIndicesIfAliased A flag indicating whether we can use old SSA indices for
+   *     aliased locations (because the location was not used before)
+   * @param reinterpretInsteadOfCasting A flag indicating whether we should reinterpret the
+   *     right-hand side type, preserving the bit-vector representation, to the left-hand side type
+   *     instead of casting it according to C rules
+   * @return A formula for the assignment.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
+   * @throws InterruptedException If the execution was interrupted.
+   */
+  BooleanFormula handleAssignment(
+      final CLeftHandSide lhs,
+      final CLeftHandSide lhsForChecking,
+      final CType lhsType,
+      final @Nullable CRightHandSide rhs,
+      final boolean useOldSSAIndicesIfAliased,
+      final boolean reinterpretInsteadOfCasting)
+      throws UnrecognizedCodeException, InterruptedException {
     if (!conv.isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
       return conv.bfmgr.makeTrue();
@@ -156,7 +182,7 @@ class AssignmentHandler {
         && (rhs == null || !rhs.accept(new IsRelevantWithHavocAbstractionVisitor(conv)))) {
       rhsExpression = Value.nondetValue();
     } else {
-      rhsExpression = createRHSExpression(rhs, lhsType, rhsVisitor);
+      rhsExpression = createRHSExpression(rhs, lhsType, rhsVisitor, reinterpretInsteadOfCasting);
     }
 
     pts.addEssentialFields(rhsVisitor.getInitializedFields());
@@ -221,7 +247,7 @@ class AssignmentHandler {
                 ownersOwnerType,
                 (CCompositeType) ownersOwnerType,
                 ownerType,
-                createRHSExpression(owner, ownerType, rhsVisitor),
+                createRHSExpression(owner, ownerType, rhsVisitor, false),
                 useOldSSAIndices,
                 updatedRegions,
                 owner);
@@ -247,16 +273,47 @@ class AssignmentHandler {
   }
 
   private Expression createRHSExpression(
-      CRightHandSide pRhs, CType pLhsType, CExpressionVisitorWithPointerAliasing pRhsVisitor)
+      CRightHandSide pRhs,
+      CType pLhsType,
+      CExpressionVisitorWithPointerAliasing pRhsVisitor,
+      boolean reinterpretInsteadOfCasting)
       throws UnrecognizedCodeException {
     if (pRhs == null) {
       return Value.nondetValue();
     }
     CRightHandSide r = pRhs;
-    if (r instanceof CExpression) {
-      r = conv.convertLiteralToFloatIfNecessary((CExpression) r, pLhsType);
+
+    // cast if we are supposed to cast and it is necessary
+    if (!reinterpretInsteadOfCasting && (r instanceof CExpression)) {
+        r = conv.convertLiteralToFloatIfNecessary((CExpression) r, pLhsType);
     }
-    return r.accept(pRhsVisitor);
+    Expression rhsExpression = r.accept(pRhsVisitor);
+    CType rhsType = r.getExpressionType();
+
+    if (!reinterpretInsteadOfCasting) {
+      // return if we are not supposed to reinterpret
+      return rhsExpression;
+    }
+
+    // perform reinterpretation
+
+    if (rhsExpression.getKind() == Kind.NONDET) {
+      // nondeterministic value does not correspond to a formula
+      // and is the same for every type, just return it
+      return rhsExpression;
+    }
+
+    Formula rhsFormula = getValueFormula(rhsType, rhsExpression).orElseThrow();
+
+    Formula reinterpretedRhsFormula =
+        conv.makeValueReinterpretation(r.getExpressionType(), pLhsType, rhsFormula);
+    // makeValueReinterpretation returns null if no reinterpretation happened
+    // return the original expression
+    if (reinterpretedRhsFormula == null) {
+      return rhsExpression;
+    }
+
+    return Value.ofValue(reinterpretedRhsFormula);
   }
 
   private CExpressionVisitorWithPointerAliasing newExpressionVisitor() {
@@ -272,6 +329,22 @@ class AssignmentHandler {
       throws UnrecognizedCodeException, InterruptedException {
     return handleAssignment(
         lhs, lhsForChecking, typeHandler.getSimplifiedType(lhs), rhs, useOldSSAIndicesIfAliased);
+  }
+
+  BooleanFormula handleAssignment(
+      final CLeftHandSide lhs,
+      final CLeftHandSide lhsForChecking,
+      final @Nullable CRightHandSide rhs,
+      final boolean useOldSSAIndicesIfAliased,
+      final boolean reinterpretInsteadOfCasting)
+      throws UnrecognizedCodeException, InterruptedException {
+    return handleAssignment(
+        lhs,
+        lhsForChecking,
+        typeHandler.getSimplifiedType(lhs),
+        rhs,
+        useOldSSAIndicesIfAliased,
+        reinterpretInsteadOfCasting);
   }
 
   /**
@@ -909,7 +982,7 @@ class AssignmentHandler {
               getValueFormula(
                       innerMember.getType(),
                       createRHSExpression(
-                          innerMemberFieldReference, innerMember.getType(), expVisitor))
+                          innerMemberFieldReference, innerMember.getType(), expVisitor, false))
                   .orElseThrow();
           if (!(memberFormula instanceof BitvectorFormula)) {
             CType interType = TypeUtils.createTypeWithLength(innerMemberSize);
