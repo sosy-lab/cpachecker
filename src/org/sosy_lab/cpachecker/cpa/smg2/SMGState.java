@@ -958,12 +958,7 @@ public class SMGState
     return this;
   }
 
-  @Override
-  public boolean isLessOrEqual(SMGState pOther) throws CPAException, InterruptedException {
-    // also, this element is not less or equal than the other element, if it contains less elements
-    if (getSize() < pOther.getSize()) {
-      return false;
-    }
+  private boolean checkErrorEqualityForTwoStates(SMGState pOther) {
     if (!errorInfo.isEmpty()) {
       // As long as the other has at least once the same type of error its fine
       ImmutableSet<Property> otherSetOfPropertyViolations =
@@ -976,11 +971,11 @@ public class SMGState
         return false;
       }
     }
+    return true;
+  }
 
-    EqualityCache<Value> equalityCache = EqualityCache.<Value>of();
-    // also, this element is not less or equal than the other element,
-    // if any one constant's value of the other element differs from the constant's value in this
-    // element
+  private boolean checkStackFrameEqualityForTwoStates(
+      SMGState pOther, EqualityCache<Value> equalityCache) throws SMGException {
     Iterator<CFunctionDeclarationAndOptionalValue> thisStackFrames =
         memoryModel.getFunctionDeclarationsFromStackFrames().iterator();
     Iterator<CFunctionDeclarationAndOptionalValue> otherStackFrames =
@@ -997,6 +992,8 @@ public class SMGState
           return false;
         }
         Value thisRetVal = thisFrame.getReturnValue();
+        // TODO: overapproximation is OK! We can accept that a concrete value is covered by a
+        // overapproximation
         if (!areValuesEqual(this, thisRetVal, pOther, otherRetVal, equalityCache)) {
           return false;
         }
@@ -1005,6 +1002,25 @@ public class SMGState
           return false;
         }
       }
+    }
+    return true;
+  }
+
+  @Override
+  public boolean isLessOrEqual(SMGState pOther) throws CPAException, InterruptedException {
+    // also, this element is not less or equal than the other element, if it contains less elements
+    if (getSize() < pOther.getSize()) {
+      return false;
+    }
+
+    if (!checkErrorEqualityForTwoStates(pOther)) {
+      return false;
+    }
+
+    EqualityCache<Value> equalityCache = EqualityCache.<Value>of();
+
+    if (!checkStackFrameEqualityForTwoStates(pOther, equalityCache)) {
+      return false;
     }
 
     // the tolerant way: ignore all type information.
@@ -1192,6 +1208,13 @@ public class SMGState
       SMGObject thisObj = thisDerefObjAndOffset.getSMGObject();
       SMGObject otherObj = otherDerefObjAndOffset.getSMGObject();
 
+      if ((getMemoryModel().isObjectValid(thisObj) && !getMemoryModel().isObjectValid(otherObj))
+          || (!getMemoryModel().isObjectValid(thisObj)
+              && getMemoryModel().isObjectValid(otherObj))) {
+        // One invalid, one valid
+        return false;
+      }
+
       if (thisDerefObjAndOffset
               .getOffsetForObject()
               .compareTo(otherDerefObjAndOffset.getOffsetForObject())
@@ -1212,6 +1235,11 @@ public class SMGState
           || otherObj instanceof SMGSinglyLinkedListSegment) {
         return checkAbstractedListEquality(
             thisState, thisObj, otherState, otherObj, equalityCache, thisAlreadyCheckedPointers);
+      }
+
+      if (!getMemoryModel().isObjectValid(thisObj) && !getMemoryModel().isObjectValid(otherObj)) {
+        // both invalid (we checked sizes etc. already)
+        return true;
       }
 
       return checkEqualValuesForTwoStatesWithExemptions(
@@ -2508,7 +2536,6 @@ public class SMGState
       // Perform free by invalidating the object behind the address and delete all its edges.
       SymbolicProgramConfiguration newSPC =
           currentState.memoryModel.invalidateSMGObject(regionToFree);
-      // TODO: is a consistency check needed? As far as i understand we never enter a inconsistent
       // state in our implementation.
       // performConsistencyCheck(SMGRuntimeCheck.HALF);
       returnBuilder.add(currentState.copyAndReplaceMemoryModel(newSPC));
@@ -3052,6 +3079,9 @@ public class SMGState
     return trackedHeapValues.build();
   }
 
+  /*
+   * Returns the number of variables in the memory model
+   */
   @Override
   public int getSize() {
     // Note: this might be inaccurate! We track Strings and functions as encoded variables!
