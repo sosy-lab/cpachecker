@@ -29,8 +29,7 @@ public interface Targetable {
    *     available.
    * @throws IllegalStateException if {@link #isTarget()} returns false
    */
-  @NonNull
-  Set<TargetInformation> getTargetInformation() throws IllegalStateException;
+  @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException;
 
   /**
    * This interface represents information about target states.

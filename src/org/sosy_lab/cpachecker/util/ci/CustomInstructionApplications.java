@@ -179,7 +179,9 @@ public class CustomInstructionApplications {
     }
 
     public abstract CustomInstructionApplications identifyCIApplications()
-        throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException,
+        throws AppliedCustomInstructionParsingFailedException,
+            IOException,
+            InterruptedException,
             UnrecognizedCodeException;
 
     public static CustomInstructionApplicationBuilder getBuilder(
@@ -319,7 +321,9 @@ public class CustomInstructionApplications {
     }
 
     private CustomInstructionApplications findSimpleCustomInstructionApplications()
-        throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException,
+        throws AppliedCustomInstructionParsingFailedException,
+            IOException,
+            InterruptedException,
             UnrecognizedCodeException {
       // build simple custom instruction, is of the form r= x pOp y;
       // create variable expressions
@@ -409,8 +413,10 @@ public class CustomInstructionApplications {
 
     @Override
     public CustomInstructionApplications identifyCIApplications()
-        throws UnrecognizedCodeException, AppliedCustomInstructionParsingFailedException,
-            IOException, InterruptedException {
+        throws UnrecognizedCodeException,
+            AppliedCustomInstructionParsingFailedException,
+            IOException,
+            InterruptedException {
       CustomInstructionApplications cia = findSimpleCustomInstructionApplications();
       logger.log(
           Level.INFO,
