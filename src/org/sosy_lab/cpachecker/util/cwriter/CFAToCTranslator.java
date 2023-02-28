@@ -279,7 +279,7 @@ public class CFAToCTranslator {
 
   private CFANode getSuccessorNode(CFAEdge pE) {
     if (pE.getEdgeType().equals(FunctionCallEdge)) {
-      return ((CFunctionCallEdge) pE).getSummaryEdge().getSuccessor();
+      return ((CFunctionCallEdge) pE).getReturnNode();
     } else {
       return pE.getSuccessor();
     }

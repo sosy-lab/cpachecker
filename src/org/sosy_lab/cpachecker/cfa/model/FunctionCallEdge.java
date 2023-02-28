@@ -70,4 +70,9 @@ public class FunctionCallEdge extends AbstractCFAEdge {
     // the constructor enforces that the successor is always a FunctionEntryNode
     return (FunctionEntryNode) super.getSuccessor();
   }
+
+  /** Returns the {@link CFANode} after the function return in the calling function. */
+  public CFANode getReturnNode() {
+    return summaryEdge.getSuccessor();
+  }
 }

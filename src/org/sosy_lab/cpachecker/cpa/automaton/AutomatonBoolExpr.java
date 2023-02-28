@@ -915,7 +915,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         AFunctionCall call = callEdge.getFunctionCall();
         if (call instanceof AFunctionCallAssignmentStatement) {
           Iterable<? extends CFAEdge> potentialFurtherMatches =
-              CFAUtils.enteringEdges(summaryEdge.getSuccessor())
+              CFAUtils.enteringEdges(callEdge.getReturnNode())
                   .filter(
                       e ->
                           (e instanceof AStatementEdge

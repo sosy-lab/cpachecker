@@ -559,7 +559,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
         } else if (leave instanceof FunctionCallEdge && pred.getChildren().isEmpty()) {
           // function calls are not considered to be part of the loop
-          CFANode locContinueLoop = ((FunctionCallEdge) leave).getSummaryEdge().getSuccessor();
+          CFANode locContinueLoop = ((FunctionCallEdge) leave).getReturnNode();
           Map<Pair<CFANode, CallstackState>, ARGState> contextToARGState = new HashMap<>();
           Pair<CFANode, CallstackState> context =
               Pair.of(

@@ -305,10 +305,7 @@ public class AppliedCustomInstructionParser {
                     + leavingEdge.getSuccessor().getFunctionName()
                     + " is not side effect free, uses global variables");
           }
-          nextPair =
-              Pair.of(
-                  ((CFunctionCallEdge) leavingEdge).getSummaryEdge().getSuccessor(),
-                  succOutputVars);
+          nextPair = Pair.of(((CFunctionCallEdge) leavingEdge).getReturnNode(), succOutputVars);
         } else {
           nextPair = Pair.of(leavingEdge.getSuccessor(), succOutputVars);
         }
