@@ -1059,6 +1059,11 @@ class CExpressionVisitorWithPointerAliasing
       return;
     }
 
+    if (type instanceof CPointerType) {
+      // assign reinterpreted size_t
+      type = conv.machineModel.getPointerEquivalentSimpleType();
+    }
+
     if (!(type instanceof CSimpleType)) {
       throw new UnrecognizedCodeException("Memset destination type not supported", e);
     }
