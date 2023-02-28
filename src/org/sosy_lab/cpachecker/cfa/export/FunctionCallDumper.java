@@ -244,9 +244,7 @@ public final class FunctionCallDumper {
           }
 
         case FunctionCallEdge:
-          {
-            throw new AssertionError("traversal-strategy should ignore functioncalls");
-          }
+          throw new AssertionError("traversal-strategy should ignore functioncalls");
 
         default:
           // nothing to do

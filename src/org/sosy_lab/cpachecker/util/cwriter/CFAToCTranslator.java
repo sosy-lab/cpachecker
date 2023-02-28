@@ -449,10 +449,8 @@ public class CFAToCTranslator {
     switch (pCFAEdge.getEdgeType()) {
       case BlankEdge:
       case AssumeEdge:
-        {
-          // nothing to do
-          break;
-        }
+        // nothing to do
+        break;
 
       case StatementEdge:
       case ReturnStatementEdge:
@@ -527,16 +525,12 @@ public class CFAToCTranslator {
         }
 
       case CallToReturnEdge:
-        {
-          //          this should not have been taken
-          throw new AssertionError("CallToReturnEdge in path: " + pCFAEdge);
-        }
+        //          this should not have been taken
+        throw new AssertionError("CallToReturnEdge in path: " + pCFAEdge);
 
       default:
-        {
-          throw new AssertionError(
-              "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
-        }
+        throw new AssertionError(
+            "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
     }
 
     return "";

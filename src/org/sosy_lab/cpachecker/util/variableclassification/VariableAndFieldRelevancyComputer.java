@@ -560,9 +560,7 @@ final class VariableAndFieldRelevancyComputer {
         }
 
       case FunctionReturnEdge:
-        {
-          break;
-        }
+        break;
 
       case ReturnStatementEdge:
         {
@@ -589,14 +587,10 @@ final class VariableAndFieldRelevancyComputer {
 
       case BlankEdge:
       case CallToReturnEdge:
-        {
-          break;
-        }
+        break;
 
       default:
-        {
-          throw new UnrecognizedCodeException("Unknown edge type: " + edge.getEdgeType(), edge);
-        }
+        throw new UnrecognizedCodeException("Unknown edge type: " + edge.getEdgeType(), edge);
     }
 
     return result;

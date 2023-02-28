@@ -712,16 +712,12 @@ public class ARGToCTranslator {
 
     switch (pCFAEdge.getEdgeType()) {
       case BlankEdge:
-        {
-          // nothing to do
-          break;
-        }
+        // nothing to do
+        break;
 
       case AssumeEdge:
-        {
-          // nothing to do
-          break;
-        }
+        // nothing to do
+        break;
 
       case StatementEdge:
         {
@@ -795,16 +791,12 @@ public class ARGToCTranslator {
         }
 
       case CallToReturnEdge:
-        {
-          //          this should not have been taken
-          throw new AssertionError("CallToReturnEdge in counterexample path: " + pCFAEdge);
-        }
+        //          this should not have been taken
+        throw new AssertionError("CallToReturnEdge in counterexample path: " + pCFAEdge);
 
       default:
-        {
-          throw new AssertionError(
-              "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
-        }
+        throw new AssertionError(
+            "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
     }
 
     return "";

@@ -241,9 +241,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       case ReturnStatementEdge:
       case BlankEdge:
       case CallToReturnEdge:
-        {
-          break;
-        }
+        break;
 
       default:
         throw new UnrecognizedCFAEdgeException(pCfaEdge);

@@ -335,16 +335,12 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
         // maybe two function pointers are compared.
       case AssumeEdge:
-        {
-          break;
-        }
+        break;
 
         // nothing to do.
       case BlankEdge:
       case CallToReturnEdge:
-        {
-          break;
-        }
+        break;
 
       default:
         throw new UnrecognizedCFAEdgeException(pCfaEdge);

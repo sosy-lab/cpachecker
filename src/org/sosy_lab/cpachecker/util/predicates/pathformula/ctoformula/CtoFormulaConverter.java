@@ -1168,10 +1168,8 @@ public class CtoFormulaConverter {
       throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
     switch (edge.getEdgeType()) {
       case StatementEdge:
-        {
-          return makeStatement(
-              (CStatementEdge) edge, function, ssa, pts, constraints, errorConditions);
-        }
+        return makeStatement(
+            (CStatementEdge) edge, function, ssa, pts, constraints, errorConditions);
 
       case ReturnStatementEdge:
         {
@@ -1187,10 +1185,8 @@ public class CtoFormulaConverter {
         }
 
       case DeclarationEdge:
-        {
-          return makeDeclaration(
-              (CDeclarationEdge) edge, function, ssa, pts, constraints, errorConditions);
-        }
+        return makeDeclaration(
+            (CDeclarationEdge) edge, function, ssa, pts, constraints, errorConditions);
 
       case AssumeEdge:
         {
@@ -1207,15 +1203,11 @@ public class CtoFormulaConverter {
         }
 
       case BlankEdge:
-        {
-          return bfmgr.makeTrue();
-        }
+        return bfmgr.makeTrue();
 
       case FunctionCallEdge:
-        {
-          return makeFunctionCall(
-              (CFunctionCallEdge) edge, function, ssa, pts, constraints, errorConditions);
-        }
+        return makeFunctionCall(
+            (CFunctionCallEdge) edge, function, ssa, pts, constraints, errorConditions);
 
       case FunctionReturnEdge:
         {
