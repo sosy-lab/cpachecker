@@ -1066,10 +1066,21 @@ class CExpressionVisitorWithPointerAliasing
       final CFunctionCallExpression e, final CLeftHandSide lvalue, final CExpression setValue)
       throws UnrecognizedCodeException {
 
-    CExpression setValueUnsignedChar =
-        new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, setValue);
-
     CType type = lvalue.getExpressionType().getCanonicalType();
+
+    if (type instanceof CArrayType arrayType) {
+      // handle arrays inside memsetted element by memsetting all of their elements
+      if (!arrayType.hasKnownConstantSize()) {
+        throw new UnrecognizedCodeException(
+            "Memset destination containing variable-length array not supported", e);
+      }
+      long length = ((CIntegerLiteralExpression) arrayType.getLength()).getValue().longValueExact();
+
+      CType underlyingType = arrayType.getType().getCanonicalType();
+
+      handleMemsetFunction(e, lvalue, underlyingType, length, setValue);
+      return;
+    }
 
     if (type instanceof CCompositeType compositeUnderlyingType) {
 
@@ -1081,7 +1092,7 @@ class CExpressionVisitorWithPointerAliasing
             new CFieldReference(
                 FileLocation.DUMMY, member.getType(), member.getName(), lvalue, false);
 
-        performMemsetAssignment(e, leftHandExpression, setValueUnsignedChar);
+        performMemsetAssignment(e, leftHandExpression, setValue);
       }
       return;
     }
@@ -1103,6 +1114,9 @@ class CExpressionVisitorWithPointerAliasing
     }
 
     // for simple types, add assignment to the set value expression
+
+    CExpression setValueUnsignedChar =
+        new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, setValue);
 
     CExpression setValueExpression =
         createSetValueExpression(e, (CSimpleType) type, setValueUnsignedChar);
