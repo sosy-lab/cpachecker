@@ -498,7 +498,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
                 new MemoryLocationExtractor(
                     compoundIntervalManagerFactory,
                     machineModel,
-                    summaryEdge.getFunctionEntry().getFunctionName(),
+                    pFunctionReturnEdge.getFunctionEntry().getFunctionName(),
                     pElement.getEnvironment()),
                 pElement);
         CExpression idExpression =

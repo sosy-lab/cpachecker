@@ -279,7 +279,7 @@ public class SMGTransferRelation
 
     Preconditions.checkArgument(
         state.getMemoryModel().getStackFrames().peek().getFunctionDefinition()
-            == summaryEdge.getFunctionEntry().getFunctionDefinition());
+            == functionReturnEdge.getFunctionEntry().getFunctionDefinition());
 
     if (summaryExpr instanceof CFunctionCallAssignmentStatement funcCallExpr) {
       CExpression leftValue = funcCallExpr.getLeftHandSide();

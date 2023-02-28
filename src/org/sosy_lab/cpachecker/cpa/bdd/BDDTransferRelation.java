@@ -387,7 +387,7 @@ public class BDDTransferRelation
     // handle assignments like "y = f(x);"
     if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
       final String returnVar =
-          fnkCall.getFunctionEntry().getReturnVariable().orElseThrow().getQualifiedName();
+          cfaEdge.getFunctionEntry().getReturnVariable().orElseThrow().getQualifiedName();
       CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) summaryExpr;
       CExpression lhs = cAssignment.getLeftHandSide();
       final int size = bvComputer.getBitsize(partition, lhs.getExpressionType());

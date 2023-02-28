@@ -504,7 +504,7 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
     }
 
     Optional<CVariableDeclaration> maybeReturnVar =
-        summaryEdge.getFunctionEntry().getReturnVariable();
+        pReturnEdge.getFunctionEntry().getReturnVariable();
     if (maybeReturnVar.isPresent()) {
       Set<MemoryLocation> possibleDefs = null;
       CFunctionCall call = summaryEdge.getExpression();

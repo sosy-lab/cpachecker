@@ -98,7 +98,7 @@ public class IntervalAnalysisTransferRelation
       throws UnrecognizedCodeException {
 
     IntervalAnalysisState newState = state;
-    Optional<CVariableDeclaration> retVar = fnkCall.getFunctionEntry().getReturnVariable();
+    Optional<CVariableDeclaration> retVar = cfaEdge.getFunctionEntry().getReturnVariable();
     if (retVar.isPresent()) {
       newState = newState.removeInterval(retVar.orElseThrow().getQualifiedName());
     }

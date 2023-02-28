@@ -914,7 +914,7 @@ public class OctagonTransferRelation
           state.getVariableIndexFor(
               MemoryLocation.forLocalVariable(
                   calledFunctionName,
-                  fnkCall.getFunctionEntry().getReturnVariable().orElseThrow().getName()));
+                  cfaEdge.getFunctionEntry().getReturnVariable().orElseThrow().getName()));
 
       if (returnVarIndex == -1) {
         state = state.forget(assignedVarName);

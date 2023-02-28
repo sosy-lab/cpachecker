@@ -691,7 +691,7 @@ public class ApronTransferRelation
       MemoryLocation returnVarName =
           MemoryLocation.forLocalVariable(
               calledFunctionName,
-              fnkCall.getFunctionEntry().getReturnVariable().orElseThrow().getName());
+              cfaEdge.getFunctionEntry().getReturnVariable().orElseThrow().getName());
 
       Texpr0Node right = new Texpr0DimNode(state.getVariableIndexFor(returnVarName));
 

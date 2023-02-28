@@ -150,7 +150,7 @@ public class LocalTransferRelation
 
     // Update the outer parameters:
     CFunctionSummaryEdge sEdge = cfaEdge.getSummaryEdge();
-    CFunctionEntryNode entry = sEdge.getFunctionEntry();
+    CFunctionEntryNode entry = cfaEdge.getFunctionEntry();
     String funcName = entry.getFunctionName();
     assert funcName.equals(getFunctionName());
 

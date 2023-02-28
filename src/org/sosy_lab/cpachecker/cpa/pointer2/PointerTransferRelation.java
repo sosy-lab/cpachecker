@@ -151,8 +151,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     CFunctionCall callEdge = summaryEdge.getExpression();
 
     if (callEdge instanceof CFunctionCallAssignmentStatement callAssignment) {
-      Optional<MemoryLocation> returnVar =
-          getFunctionReturnVariable(summaryEdge.getFunctionEntry());
+      Optional<MemoryLocation> returnVar = getFunctionReturnVariable(pCfaEdge.getFunctionEntry());
 
       assert returnVar.isPresent()
           : "Return edge with assignment, but no return variable: " + summaryEdge;

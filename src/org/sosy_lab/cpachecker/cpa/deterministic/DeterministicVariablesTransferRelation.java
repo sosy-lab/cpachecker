@@ -199,9 +199,9 @@ public class DeterministicVariablesTransferRelation
 
     // cleanup by removing function parameter from state
     Set<Wrapper<ASimpleDeclaration>> parameters =
-        new HashSet<>(fnkCall.getFunctionEntry().getFunctionDefinition().getParameters().size());
+        new HashSet<>(cfaEdge.getFunctionEntry().getFunctionDefinition().getParameters().size());
     for (AParameterDeclaration param :
-        fnkCall.getFunctionEntry().getFunctionDefinition().getParameters()) {
+        cfaEdge.getFunctionEntry().getFunctionDefinition().getParameters()) {
       parameters.add(LIVE_DECL_EQUIVALENCE.wrap(param));
     }
     return state.removeDeterministicVariables(parameters);
