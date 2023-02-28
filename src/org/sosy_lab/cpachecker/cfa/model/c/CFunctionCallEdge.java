@@ -39,12 +39,12 @@ public class CFunctionCallEdge extends FunctionCallEdge implements CCfaEdge {
 
   @Override
   public CFunctionSummaryEdge getSummaryEdge() {
-    return (CFunctionSummaryEdge) summaryEdge;
+    return (CFunctionSummaryEdge) super.getSummaryEdge();
   }
 
   @Override
   public CFunctionCall getFunctionCall() {
-    return (CFunctionCall) functionCall;
+    return (CFunctionCall) super.getFunctionCall();
   }
 
   @Override
@@ -59,7 +59,7 @@ public class CFunctionCallEdge extends FunctionCallEdge implements CCfaEdge {
 
   @Override
   public String getCode() {
-    return functionCall.getFunctionCallExpression().toASTString();
+    return getFunctionCall().getFunctionCallExpression().toASTString();
   }
 
   @Override

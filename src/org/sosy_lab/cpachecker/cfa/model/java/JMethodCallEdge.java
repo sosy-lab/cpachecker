@@ -39,12 +39,12 @@ public class JMethodCallEdge extends FunctionCallEdge {
 
   @Override
   public JMethodSummaryEdge getSummaryEdge() {
-    return (JMethodSummaryEdge) summaryEdge;
+    return (JMethodSummaryEdge) super.getSummaryEdge();
   }
 
   @Override
   public JMethodOrConstructorInvocation getFunctionCall() {
-    return (JMethodOrConstructorInvocation) functionCall;
+    return (JMethodOrConstructorInvocation) super.getFunctionCall();
   }
 
   @Override
@@ -59,7 +59,7 @@ public class JMethodCallEdge extends FunctionCallEdge {
 
   @Override
   public String getCode() {
-    return functionCall.getFunctionCallExpression().toASTString();
+    return getFunctionCall().getFunctionCallExpression().toASTString();
   }
 
   @Override
