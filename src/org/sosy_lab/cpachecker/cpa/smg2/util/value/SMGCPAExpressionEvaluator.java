@@ -689,7 +689,6 @@ public class SMGCPAExpressionEvaluator {
         // The value is unknown and therefore does not point to a valid memory location
         SMGState errorState =
             targetAndOffset.getSMGState().withUnknownPointerDereferenceWhenReading(value);
-        // TODO: the analysis is not precise from this point onwards
         returnBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(errorState));
         continue;
       }
