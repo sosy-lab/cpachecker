@@ -328,18 +328,17 @@ public class CustomInstructionApplications {
       // build simple custom instruction, is of the form r= x pOp y;
       // create variable expressions
       CType type = CNumericTypes.INT;
-      CIdExpression r, x, y;
-      r =
+      CIdExpression r =
           new CIdExpression(
               FileLocation.DUMMY,
               new CVariableDeclaration(
                   FileLocation.DUMMY, true, CStorageClass.AUTO, type, "r", "r", "r", null));
-      x =
+      CIdExpression x =
           new CIdExpression(
               FileLocation.DUMMY,
               new CVariableDeclaration(
                   FileLocation.DUMMY, true, CStorageClass.AUTO, type, "x", "x", "x", null));
-      y =
+      CIdExpression y =
           new CIdExpression(
               FileLocation.DUMMY,
               new CVariableDeclaration(

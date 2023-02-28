@@ -68,10 +68,8 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
   protected void printUnsafe(SingleIdentifier pId, Pair<UsageInfo, UsageInfo> pTmpPair) {
     UsageInfo firstUsage = pTmpPair.getFirst();
     UsageInfo secondUsage = pTmpPair.getSecond();
-    List<CFAEdge> firstPath, secondPath;
-
-    firstPath = getPath(firstUsage);
-    secondPath = getPath(secondUsage);
+    List<CFAEdge> firstPath = getPath(firstUsage);
+    List<CFAEdge> secondPath = getPath(secondUsage);
 
     if (firstPath == null || secondPath == null) {
       return;
