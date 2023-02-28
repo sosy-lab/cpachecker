@@ -159,8 +159,8 @@ public class SMG {
    */
   public int getNumberOfSMGValueUsages(SMGValue pValue) {
     int found = 0;
-    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> entry : hasValueEdges.entrySet()) {
-      for (SMGHasValueEdge hve : entry.getValue()) {
+    for (PersistentSet<SMGHasValueEdge> hvEdges : hasValueEdges.values()) {
+      for (SMGHasValueEdge hve : hvEdges) {
         if (hve.hasValue().equals(pValue)) {
           found++;
         }
