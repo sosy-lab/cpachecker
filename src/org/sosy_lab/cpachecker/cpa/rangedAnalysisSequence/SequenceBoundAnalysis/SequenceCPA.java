@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.rangedAnalysisSequence.SequenceBoundAnalysis;
 
+import com.google.common.base.Splitter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -63,9 +64,9 @@ public class SequenceCPA extends AbstractCPA implements ProofCheckerCPA {
     List<Boolean> result = new ArrayList<>();
     try {
       for (String line : Files.readAllLines(pPath2Bound, Charset.defaultCharset())){
-            String[] elems = line.split(",");
-            if (elems.length == 2){
-              result.add( elems[1].equals("true"));
+        List<String> elems = Splitter.on(',').splitToList(line);
+            if (elems.size() == 2){
+              result.add( elems.get(1).equals("true"));
             }else{throw new InvalidConfigurationException("Excepting lines to be pair of line number and decision");}
 }
     } catch (IOException pE) {

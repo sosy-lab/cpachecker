@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.rangedExecInputSequences;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -22,11 +21,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.rangedExecInput.RangedExecutionInputComputation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -40,24 +34,13 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.rangedExecutionInput")
 public class RangedExecutionInputComputationSequence implements Algorithm {
 
   private final CFA cfa;
-
-  @Option(
-      secure = true,
-      name = "namesOfRandomFunctions",
-      description =
-          "List of names (or a part of the name) of functions, that return a random value")
-  private ImmutableSet<String> namesOfRandomFunctions =
-      ImmutableSet.of("rand", "__VERIFIER_nondet_");
 
   @Option(
       secure = true,
@@ -82,7 +65,7 @@ public class RangedExecutionInputComputationSequence implements Algorithm {
     this.cfa = pCfa;
     LogManager logger = Objects.requireNonNull(pLogger);
 
-    utils = new SequenceGenUtils(namesOfRandomFunctions, logger);
+    utils = new SequenceGenUtils(logger);
     ControlAutomatonCPA automatonCPA =
         CPAs.retrieveCPAOrFail(pCpa, ControlAutomatonCPA.class, RangedExecutionInputComputation.class);
 
@@ -137,7 +120,7 @@ public class RangedExecutionInputComputationSequence implements Algorithm {
       }
       utils.printFileToOutput(inputs, testcaseName);
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
-    } catch (SolverException | IOException pE) {
+    } catch (IOException pE) {
       throw new CPAException(Throwables.getStackTraceAsString(pE));
     }
     //    }

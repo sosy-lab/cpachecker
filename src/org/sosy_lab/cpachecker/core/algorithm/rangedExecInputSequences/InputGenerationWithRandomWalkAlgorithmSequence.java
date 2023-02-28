@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.rangedExecInputSequences;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -38,7 +37,6 @@ import org.sosy_lab.cpachecker.cpa.randomWalk.RandomWalkState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.inputGenWithRandomWalk")
 public class InputGenerationWithRandomWalkAlgorithmSequence implements Algorithm {
@@ -61,13 +59,6 @@ public class InputGenerationWithRandomWalkAlgorithmSequence implements Algorithm
 
   private final Map<RandomWalkState, ARGPath> computedPath;
 
-  @Option(
-      secure = true,
-      name = "namesOfRandomFunctions",
-      description =
-          "List of names (or a part of the name) of functions, that return a random value")
-  private ImmutableSet<String> namesOfRandomFunctions =
-      ImmutableSet.of("rand", "__VERIFIER_nondet_");
 
   @Option(
       secure = true,
@@ -93,7 +84,7 @@ public class InputGenerationWithRandomWalkAlgorithmSequence implements Algorithm
     factory = new ReachedSetFactory(pConfig, pLogger);
     reties = 0;
 
-    utils = new SequenceGenUtils(namesOfRandomFunctions, pLogger);
+    utils = new SequenceGenUtils(pLogger);
 
     if (testcaseName == null) {
       testcaseName = PathTemplate.ofFormatString("testcase.%d.xml");
@@ -138,7 +129,7 @@ public class InputGenerationWithRandomWalkAlgorithmSequence implements Algorithm
       try {
         List<Pair<Boolean, Integer>> inputs = utils.computeSequenceForLoopbound(path);
         utils.printFileToOutput(inputs, testcaseName.getPath(i));
-      } catch (SolverException | IOException | InterruptedException pE) {
+      } catch (IOException pE) {
         throw new CPAException(Throwables.getStackTraceAsString(pE));
       }
     }

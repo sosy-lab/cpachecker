@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.rangedExecInputSequences;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -19,28 +18,20 @@ import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class SequenceGenUtils {
   private static final CharSequence DELIMITER = System.lineSeparator();
-  private ImmutableSet<String> namesOfRandomFunctions;
   private LogManager logger;
 
-  public SequenceGenUtils(ImmutableSet<String> pNamesOfRandomFunctions, LogManager pLogger) {
-
-    namesOfRandomFunctions = pNamesOfRandomFunctions;
+  public SequenceGenUtils(LogManager pLogger) {
     logger = pLogger;
   }
 
-  public List<Pair<Boolean, Integer>> computeSequenceForLoopbound(ARGPath pARGPath)
-      throws InterruptedException, SolverException {
+  public List<Pair<Boolean, Integer>> computeSequenceForLoopbound(ARGPath pARGPath) {
 
     // Check, if the given path is sat by conjoining the path formulae of the abstraction locations.
     // If not, cut off the last part and recursively continue.
