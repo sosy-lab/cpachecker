@@ -304,7 +304,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
         // a[x] = b(); TODO: for now, nothing is done here, but cloning the current state
 
       } else {
-        throw new UnrecognizedCodeException("on function return", fnkCall, op1);
+        throw new UnrecognizedCodeException("on function return", cfaEdge, op1);
       }
     }
 

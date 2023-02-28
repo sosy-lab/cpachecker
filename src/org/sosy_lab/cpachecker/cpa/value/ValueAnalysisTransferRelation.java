@@ -511,7 +511,7 @@ public class ValueAnalysisTransferRelation
           // a* = b(); TODO: for now, nothing is done here, but cloning the current element
 
         } else {
-          throw new UnrecognizedCodeException("on function return", summaryEdge, op1);
+          throw new UnrecognizedCodeException("on function return", functionReturnEdge, op1);
         }
 
         // assign the value if a memory location was successfully computed

@@ -154,7 +154,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       Optional<MemoryLocation> returnVar = getFunctionReturnVariable(pCfaEdge.getFunctionEntry());
 
       assert returnVar.isPresent()
-          : "Return edge with assignment, but no return variable: " + summaryEdge;
+          : "Return edge with assignment, but no return variable: " + pCfaEdge;
 
       LocationSet pointedTo = pState.getPointsToSet(returnVar.orElseThrow());
 

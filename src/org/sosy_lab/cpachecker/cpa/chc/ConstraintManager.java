@@ -354,7 +354,7 @@ public class ConstraintManager {
       else if (op1 instanceof CArraySubscriptExpression) {
         return new Constraint();
       } else {
-        throw new UnrecognizedCodeException("on function return", summaryEdge, null);
+        throw new UnrecognizedCodeException("on function return", fretEdge, null);
       }
     }
     return new Constraint();
