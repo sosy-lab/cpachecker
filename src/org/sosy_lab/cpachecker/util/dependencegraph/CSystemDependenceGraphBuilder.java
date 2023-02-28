@@ -761,7 +761,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
       Optional<AFunctionDeclaration> procedure = Optional.of(entryNode.getFunction());
 
-      for (CFAEdge edge : CFAUtils.allEnteringEdges(entryNode)) {
+      for (CFAEdge edge : CFAUtils.enteringEdges(entryNode)) {
         if (edge instanceof CFunctionCallEdge callEdge) {
 
           builder
