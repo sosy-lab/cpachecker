@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
@@ -900,15 +901,26 @@ class CExpressionVisitorWithPointerAliasing
     // TODO: make sure that the destination is flagged not to be ignored
     // for testing, this can be kludged by cpa.predicate.ignoreIrrelevantVariables=false
 
+    // we remove the C++ style cast of destination to void* if necessary
+    // it is a no-op anyway apart from the effects on the typing system
+    if (paramDestination instanceof CCastExpression destinationCast) {
+      CType castType = destinationCast.getCastType();
+      if (castType instanceof CPointerType castPointerType) {
+        if (castPointerType.isConst()) {
+          throw new UnrecognizedCodeException("Expected destination type cast to be non-const", e);
+        }
+        CType castPointerUnderlyingType = castPointerType.getType();
+        if (castPointerUnderlyingType instanceof CVoidType) {
+          // remove cast to void*
+          paramDestination = destinationCast.getOperand();
+        }
+      }
+    }
+
     // we need to know the element size
     // we ensure we have a pointer first and then take sizeof of the underlying type
 
-    if (!(paramDestination instanceof CLeftHandSide)) {
-      throw new UnrecognizedCodeException("Expected destination to be an lvalue", e);
-    }
-    CLeftHandSide destinationLValue = (CLeftHandSide) paramDestination;
-
-    CType destinationType = destinationLValue.getExpressionType();
+    CType destinationType = paramDestination.getExpressionType();
     destinationType = CTypes.adjustFunctionOrArrayType(destinationType);
     if (!(destinationType instanceof CPointerType)) {
       throw new UnrecognizedCodeException(
@@ -946,7 +958,7 @@ class CExpressionVisitorWithPointerAliasing
     if (fnName.equals("memset")) {
       handleMemsetFunction(
           e,
-          destinationLValue,
+          paramDestination,
           destinationUnderlyingType,
           operationSizeInWholeElements,
           secondParameter);
@@ -958,7 +970,7 @@ class CExpressionVisitorWithPointerAliasing
 
       handleMemmoveFunction(
           e,
-          destinationLValue,
+          paramDestination,
           destinationUnderlyingType,
           operationSizeInWholeElements,
           secondParameter);
@@ -976,11 +988,25 @@ class CExpressionVisitorWithPointerAliasing
 
   private void handleMemmoveFunction(
       @SuppressWarnings("unused") CFunctionCallExpression e,
-      CLeftHandSide destinationLValue,
+      CExpression destination,
       CType destinationUnderlyingType,
       long sizeInElements,
-      CExpression sourceExpression)
+      CExpression source)
       throws UnrecognizedCodeException {
+
+    // we remove the C++ style cast of destination to const void* or void* if necessary
+    // it is a no-op anyway apart from the effects on the typing system
+
+    if (source instanceof CCastExpression sourceCast) {
+      CType castType = sourceCast.getCastType();
+      if (castType instanceof CPointerType castPointerType) {
+        CType castPointerUnderlyingType = castPointerType.getType();
+        if (castPointerUnderlyingType instanceof CVoidType) {
+          // remove cast to const void* or void*
+          source = sourceCast.getOperand();
+        }
+      }
+    }
 
     // we iterate over the actual elements so that we can assign to each one
     for (long elementIndex = 0; elementIndex < sizeInElements; ++elementIndex) {
@@ -991,11 +1017,11 @@ class CExpressionVisitorWithPointerAliasing
 
       CArraySubscriptExpression destinationAtIndex =
           new CArraySubscriptExpression(
-              FileLocation.DUMMY, destinationUnderlyingType, destinationLValue, indexLiteral);
+              FileLocation.DUMMY, destinationUnderlyingType, destination, indexLiteral);
 
       CArraySubscriptExpression sourceAtIndex =
           new CArraySubscriptExpression(
-              FileLocation.DUMMY, destinationUnderlyingType, sourceExpression, indexLiteral);
+              FileLocation.DUMMY, destinationUnderlyingType, source, indexLiteral);
 
       // it is possible to use AssignmentHandler on whole structures
       // so we will do just that
@@ -1015,7 +1041,7 @@ class CExpressionVisitorWithPointerAliasing
 
   private void handleMemsetFunction(
       final CFunctionCallExpression e,
-      CLeftHandSide destinationLValue,
+      CExpression destination,
       CType destinationUnderlyingType,
       long sizeInElements,
       CExpression setValue)
@@ -1030,7 +1056,7 @@ class CExpressionVisitorWithPointerAliasing
 
       CArraySubscriptExpression destinationAtIndexExpression =
           new CArraySubscriptExpression(
-              FileLocation.DUMMY, destinationUnderlyingType, destinationLValue, indexLiteral);
+              FileLocation.DUMMY, destinationUnderlyingType, destination, indexLiteral);
 
       performMemsetAssignment(e, destinationAtIndexExpression, setValue);
     }
