@@ -216,7 +216,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     @Override
     TraversalProcess onCallEdge(FunctionCallEdge callEdge) {
       visitedEdges.add(callEdge);
-      expectedJoinNodes.add(callEdge.getPredecessor().getLeavingSummaryEdge().getSuccessor());
+      expectedJoinNodes.add(callEdge.getReturnNode());
       return TraversalProcess.CONTINUE;
     }
 
@@ -240,7 +240,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
 
     @Override
     TraversalProcess onReturnEdge(FunctionReturnEdge edge) {
-      CFANode callsite = edge.getSuccessor().getEnteringSummaryEdge().getPredecessor();
+      CFANode callsite = edge.getCallNode();
       expectedCallsites.add(callsite);
       visitedEdges.add(edge);
       return TraversalProcess.CONTINUE;
