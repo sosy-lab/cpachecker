@@ -443,8 +443,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     assertThat(currentState.getMemoryModel().getSmg().isPointer(pointerValueFromZeroPlus)).isTrue();
     SMGPointsToEdge pointsToAdditionalSegmentEdge =
         currentState.getMemoryModel().getSmg().getPTEdge(pointerValueFromZeroPlus).orElseThrow();
-    assertThat(pointsToAdditionalSegmentEdge.pointsTo() instanceof SMGSinglyLinkedListSegment)
-        .isFalse();
+    assertThat(pointsToAdditionalSegmentEdge.pointsTo())
+        .isNotInstanceOf(SMGSinglyLinkedListSegment.class);
     assertThat(pointsToAdditionalSegmentEdge.targetSpecifier())
         .isEqualTo(SMGTargetSpecifier.IS_REGION);
     // Read the next pointer, check that it is a pointer to a 0+
@@ -483,13 +483,11 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   public void basicSLLFullAbstractionTest() throws SMGException {
     Value[] pointers = buildConcreteList(false, sllSize, TEST_LIST_LENGTH);
 
-    {
-      SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
-          currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
-      currentState = stateAndObject.getSMGState();
-      assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
-      assertThat(stateAndObject.getSMGObject() instanceof SMGSinglyLinkedListSegment).isFalse();
-    }
+    SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
+        currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
+    currentState = stateAndObject.getSMGState();
+    assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
+    assertThat(stateAndObject.getSMGObject()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
     SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, 3);
     currentState = absFinder.findAndAbstractLists();
@@ -563,13 +561,11 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     Value[] pointers =
         buildConcreteList(true, pointerSizeInBits.multiply(BigInteger.valueOf(3)), listSize);
 
-    {
-      SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
-          currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
-      currentState = stateAndObject.getSMGState();
-      assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
-      assertThat(stateAndObject.getSMGObject() instanceof SMGSinglyLinkedListSegment).isFalse();
-    }
+    SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
+        currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
+    currentState = stateAndObject.getSMGState();
+    assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
+    assertThat(stateAndObject.getSMGObject()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
     SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, 3);
     currentState = absFinder.findAndAbstractLists();
@@ -617,13 +613,11 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         buildConcreteList(
             false, pointerSizeInBits.multiply(BigInteger.valueOf(2)), TEST_LIST_LENGTH);
 
-    {
-      SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
-          currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
-      currentState = stateAndObject.getSMGState();
-      assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
-      assertThat(stateAndObject.getSMGObject() instanceof SMGSinglyLinkedListSegment).isFalse();
-    }
+    SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
+        currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
+    currentState = stateAndObject.getSMGState();
+    assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
+    assertThat(stateAndObject.getSMGObject()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
     SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, 3);
     currentState = absFinder.findAndAbstractLists();
@@ -678,13 +672,11 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     int minAbstractionLength = 3;
     Value[] pointers = buildConcreteList(true, dllSize, TEST_LIST_LENGTH);
 
-    {
-      SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
-          currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
-      currentState = stateAndObject.getSMGState();
-      assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
-      assertThat(stateAndObject.getSMGObject() instanceof SMGSinglyLinkedListSegment).isFalse();
-    }
+    SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
+        currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
+    currentState = stateAndObject.getSMGState();
+    assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
+    assertThat(stateAndObject.getSMGObject()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
     SMGCPAAbstractionManager absFinder =
         new SMGCPAAbstractionManager(currentState, minAbstractionLength);
@@ -754,13 +746,11 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     Value[] pointers =
         buildConcreteList(true, pointerSizeInBits.multiply(BigInteger.valueOf(3)), listSize);
 
-    {
-      SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
-          currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
-      currentState = stateAndObject.getSMGState();
-      assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
-      assertThat(stateAndObject.getSMGObject() instanceof SMGSinglyLinkedListSegment).isFalse();
-    }
+    SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
+        currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
+    currentState = stateAndObject.getSMGState();
+    assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
+    assertThat(stateAndObject.getSMGObject()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
     SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, 3);
     currentState = absFinder.findAndAbstractLists();
@@ -853,13 +843,11 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   public void basicSLLFullAbstractionWithExternalPointerMaterializationTest() throws SMGException {
     Value[] pointers = buildConcreteList(false, sllSize, TEST_LIST_LENGTH);
 
-    {
-      SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
-          currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
-      currentState = stateAndObject.getSMGState();
-      assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
-      assertThat(stateAndObject.getSMGObject() instanceof SMGSinglyLinkedListSegment).isFalse();
-    }
+    SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
+        currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
+    currentState = stateAndObject.getSMGState();
+    assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
+    assertThat(stateAndObject.getSMGObject()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
     SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, 3);
     currentState = absFinder.findAndAbstractLists();
@@ -1537,14 +1525,14 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       assertThat(derefAtList).hasSize(1);
       SMGStateAndOptionalSMGObjectAndOffset derefAt = derefAtList.get(0);
       currentState = derefAt.getSMGState();
-      assertThat(derefAt.getSMGObject() instanceof SMGSinglyLinkedListSegment).isFalse();
+      assertThat(derefAt.getSMGObject()).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
       // pointers 0 ... k-1 are now pointing to non-abstracted segments w nesting level 0
       for (int i = 0; i <= k; i++) {
         Optional<SMGStateAndOptionalSMGObjectAndOffset> derefWConcreteTarget =
             currentState.dereferencePointerWithoutMaterilization(pointers[i]);
         assertThat(derefWConcreteTarget).isPresent();
         SMGObject currentObj = derefWConcreteTarget.orElseThrow().getSMGObject();
-        assertThat(currentObj instanceof SMGSinglyLinkedListSegment).isFalse();
+        assertThat(currentObj).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
         ValueAndSMGState addressAndState =
             currentState.searchOrCreateAddress(
                 derefWConcreteTarget.orElseThrow().getSMGObject(), BigInteger.ZERO);
@@ -1570,14 +1558,14 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               currentState.dereferencePointerWithoutMaterilization(backPointer);
           assertThat(derefPrevFromRead).isPresent();
           SMGObject prevObjFromRead = derefPrevFromRead.orElseThrow().getSMGObject();
-          assertThat(prevObjFromRead instanceof SMGSinglyLinkedListSegment).isFalse();
+          assertThat(prevObjFromRead).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
           // Get prev obj from pointers
           Optional<SMGStateAndOptionalSMGObjectAndOffset> derefPrevWConcreteTarget =
               currentState.dereferencePointerWithoutMaterilization(pointers[i - 1]);
           assertThat(derefPrevWConcreteTarget).isPresent();
           SMGObject prevObj = derefPrevWConcreteTarget.orElseThrow().getSMGObject();
-          assertThat(prevObj instanceof SMGSinglyLinkedListSegment).isFalse();
+          assertThat(prevObj).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
           // Should be the same obj and pointer
           assertThat(prevObjFromRead).isEqualTo(prevObj);
@@ -1620,8 +1608,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
               currentState.dereferencePointerWithoutMaterilization(backPointer);
           assertThat(derefPrevFromRead).isPresent();
           SMGObject prevObjFromRead = derefPrevFromRead.orElseThrow().getSMGObject();
-          assertThat(prevObjFromRead instanceof SMGSinglyLinkedListSegment).isFalse();
-          assertThat(prevConcreteObj instanceof SMGSinglyLinkedListSegment).isFalse();
+          assertThat(prevObjFromRead).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
+          assertThat(prevConcreteObj).isNotInstanceOf(SMGSinglyLinkedListSegment.class);
 
           // Should be the same obj and pointer
           assertThat(prevObjFromRead).isEqualTo(prevConcreteObj);
