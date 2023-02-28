@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -187,7 +188,9 @@ public class LoopTransitionFinder implements StatisticsProvider {
 
       } else if (edge instanceof FunctionReturnEdge) {
         return onReturnEdge((FunctionReturnEdge) edge);
-      } else if (edge instanceof FunctionSummaryEdge) {
+      } else if (edge instanceof FunctionSummaryEdge
+          || edge instanceof CFunctionSummaryStatementEdge) {
+        // skip because we handle the super edges instead
         return TraversalProcess.SKIP;
       } else {
         visitedEdges.add(edge);
