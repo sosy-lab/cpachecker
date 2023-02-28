@@ -111,26 +111,26 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
   }
 
   @Override
-  public void addEnteringSummaryEdge(FunctionSummaryEdge pEdge) {
+  public final void addEnteringSummaryEdge(FunctionSummaryEdge pEdge) {
     throw new AssertionError("function-entry nodes cannot have summary eges");
   }
 
   @Override
-  public void addLeavingSummaryEdge(FunctionSummaryEdge pEdge) {
+  public final void addLeavingSummaryEdge(FunctionSummaryEdge pEdge) {
     throw new AssertionError("function-entry nodes cannot have summary eges");
   }
 
   @Override
   @Deprecated
   @DoNotCall // safe to call but useless
-  public @Nullable FunctionSummaryEdge getEnteringSummaryEdge() {
+  public final @Nullable FunctionSummaryEdge getEnteringSummaryEdge() {
     return null;
   }
 
   @Override
   @Deprecated
   @DoNotCall // safe to call but useless
-  public @Nullable FunctionSummaryEdge getLeavingSummaryEdge() {
+  public final @Nullable FunctionSummaryEdge getLeavingSummaryEdge() {
     return null;
   }
 }
