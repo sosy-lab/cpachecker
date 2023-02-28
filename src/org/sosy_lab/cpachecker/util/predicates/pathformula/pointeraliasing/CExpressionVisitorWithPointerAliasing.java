@@ -904,12 +904,12 @@ class CExpressionVisitorWithPointerAliasing
     // we remove the C++ style cast of destination to void* if necessary
     // it is a no-op anyway apart from the effects on the typing system
     if (paramDestination instanceof CCastExpression destinationCast) {
-      CType castType = destinationCast.getCastType();
+      CType castType = destinationCast.getCastType().getCanonicalType();
       if (castType instanceof CPointerType castPointerType) {
         if (castPointerType.isConst()) {
           throw new UnrecognizedCodeException("Expected destination type cast to be non-const", e);
         }
-        CType castPointerUnderlyingType = castPointerType.getType();
+        CType castPointerUnderlyingType = castPointerType.getType().getCanonicalType();
         if (castPointerUnderlyingType instanceof CVoidType) {
           // remove cast to void*
           paramDestination = destinationCast.getOperand();
@@ -920,7 +920,7 @@ class CExpressionVisitorWithPointerAliasing
     // we need to know the element size
     // we ensure we have a pointer first and then take sizeof of the underlying type
 
-    CType destinationType = paramDestination.getExpressionType();
+    CType destinationType = paramDestination.getExpressionType().getCanonicalType();
     destinationType = CTypes.adjustFunctionOrArrayType(destinationType);
     if (!(destinationType instanceof CPointerType)) {
       throw new UnrecognizedCodeException(
@@ -998,9 +998,9 @@ class CExpressionVisitorWithPointerAliasing
     // it is a no-op anyway apart from the effects on the typing system
 
     if (source instanceof CCastExpression sourceCast) {
-      CType castType = sourceCast.getCastType();
+      CType castType = sourceCast.getCastType().getCanonicalType();
       if (castType instanceof CPointerType castPointerType) {
-        CType castPointerUnderlyingType = castPointerType.getType();
+        CType castPointerUnderlyingType = castPointerType.getType().getCanonicalType();
         if (castPointerUnderlyingType instanceof CVoidType) {
           // remove cast to const void* or void*
           source = sourceCast.getOperand();
