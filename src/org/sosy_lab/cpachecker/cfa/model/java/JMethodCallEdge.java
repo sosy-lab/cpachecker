@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 
-public class JMethodCallEdge extends FunctionCallEdge {
+public final class JMethodCallEdge extends FunctionCallEdge {
 
   private static final long serialVersionUID = -4905542776822697507L;
 

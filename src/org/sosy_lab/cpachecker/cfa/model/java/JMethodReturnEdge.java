@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 
-public class JMethodReturnEdge extends FunctionReturnEdge {
+public final class JMethodReturnEdge extends FunctionReturnEdge {
 
   private static final long serialVersionUID = -8946598759920862594L;
 
