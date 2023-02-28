@@ -912,7 +912,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       Iterable<CFAEdge> leavingEdges = CFAUtils.leavingEdges(edge.getSuccessor());
       if ((edge instanceof FunctionCallEdge callEdge) && (callEdge.getSummaryEdge() != null)) {
         FunctionSummaryEdge summaryEdge = callEdge.getSummaryEdge();
-        AFunctionCall call = summaryEdge.getExpression();
+        AFunctionCall call = callEdge.getFunctionCall();
         if (call instanceof AFunctionCallAssignmentStatement) {
           Iterable<? extends CFAEdge> potentialFurtherMatches =
               CFAUtils.enteringEdges(summaryEdge.getSuccessor())

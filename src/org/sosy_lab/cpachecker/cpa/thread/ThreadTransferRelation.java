@@ -113,7 +113,7 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
       throws CPATransferException {
 
     ThreadState newState = state;
-    CFunctionCall fCall = pCfaEdge.getSummaryEdge().getExpression();
+    CFunctionCall fCall = pCfaEdge.getFunctionCall();
     if (isThreadCreateFunction(fCall)) {
       newState = handleChildThread(state, (CThreadCreateStatement) fCall);
       if (threadStatistics.createdThreads.add(pCfaEdge.getSuccessor().getFunctionName())) {

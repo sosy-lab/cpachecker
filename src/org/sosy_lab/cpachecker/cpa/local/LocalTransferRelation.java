@@ -183,8 +183,7 @@ public class LocalTransferRelation
         extractIdentifiers(
             arguments, paramNames, parameterTypes, getFunctionName(), calledFunctionName);
     // TODO Make it with config
-    boolean isThreadCreate =
-        cfaEdge.getSummaryEdge().getExpression() instanceof CThreadCreateStatement;
+    boolean isThreadCreate = cfaEdge.getFunctionCall() instanceof CThreadCreateStatement;
 
     for (Identifier pairId : toProcess) {
       if (isThreadCreate) {

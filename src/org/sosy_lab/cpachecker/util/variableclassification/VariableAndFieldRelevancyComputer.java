@@ -541,7 +541,7 @@ final class VariableAndFieldRelevancyComputer {
                                 pCfa,
                                 VariableOrField.newVariable(params.get(i).getQualifiedName()))));
           }
-          CFunctionCall statement = call.getSummaryEdge().getExpression();
+          CFunctionCall statement = call.getFunctionCall();
           Optional<CVariableDeclaration> returnVar = call.getSuccessor().getReturnVariable();
           if (returnVar.isPresent()) {
             String scopedRetVal = returnVar.orElseThrow().getQualifiedName();

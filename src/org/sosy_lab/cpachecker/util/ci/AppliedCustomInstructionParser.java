@@ -423,7 +423,7 @@ public class AppliedCustomInstructionParser {
           ImmutableSet.of(((CDeclarationEdge) pLeavingEdge).getDeclaration().getQualifiedName());
 
     } else if (pLeavingEdge instanceof CFunctionCallEdge) {
-      CFunctionCall funCall = ((CFunctionCallEdge) pLeavingEdge).getSummaryEdge().getExpression();
+      CFunctionCall funCall = ((CFunctionCallEdge) pLeavingEdge).getFunctionCall();
       if (funCall instanceof CFunctionCallAssignmentStatement) {
         edgeOutputVariables =
             getFunctionalCallAssignmentOutputVars((CFunctionCallAssignmentStatement) funCall);

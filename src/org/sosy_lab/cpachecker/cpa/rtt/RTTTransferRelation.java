@@ -347,7 +347,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
     }
 
     JMethodInvocationExpression functionCall =
-        cfaEdge.getSummaryEdge().getExpression().getFunctionCallExpression();
+        cfaEdge.getFunctionCall().getFunctionCallExpression();
 
     // There are five possibilities when assigning this and the new object Scope.
 

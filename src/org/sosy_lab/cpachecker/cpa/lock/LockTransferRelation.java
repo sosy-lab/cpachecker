@@ -401,8 +401,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       result.add(saveState);
     }
     result.addAll(
-        handleFunctionCallExpression(
-            callEdge.getSummaryEdge().getExpression().getFunctionCallExpression()));
+        handleFunctionCallExpression(callEdge.getFunctionCall().getFunctionCallExpression()));
     return result;
   }
 

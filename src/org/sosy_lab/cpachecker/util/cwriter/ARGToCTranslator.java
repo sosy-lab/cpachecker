@@ -1071,12 +1071,7 @@ public class ARGToCTranslator {
       ImmutableMap.Builder<CDeclaration, String> builder = ImmutableMap.builder();
 
       for (CParameterDeclaration paramDecl :
-          callEdge
-              .getSummaryEdge()
-              .getExpression()
-              .getFunctionCallExpression()
-              .getDeclaration()
-              .getParameters()) {
+          callEdge.getFunctionCall().getFunctionCallExpression().getDeclaration().getParameters()) {
         builder.put(paramDecl.asVariableDeclaration(), decId);
       }
 

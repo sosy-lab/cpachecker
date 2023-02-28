@@ -305,8 +305,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
   private CThreadCreateStatement getThreadCreateStatementIfExists(CFAEdge pEdge) {
     if (pEdge instanceof CFunctionCallEdge) {
-      CFunctionSummaryEdge sEdge = ((CFunctionCallEdge) pEdge).getSummaryEdge();
-      CFunctionCall fCall = sEdge.getExpression();
+      CFunctionCall fCall = ((CFunctionCallEdge) pEdge).getFunctionCall();
       if (fCall instanceof CThreadCreateStatement) {
         return (CThreadCreateStatement) fCall;
       }

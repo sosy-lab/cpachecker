@@ -866,7 +866,7 @@ public final class AutomatonGraphmlCommon {
             AAssignment assignment = null;
             if (successorEdge instanceof FunctionCallEdge functionCallEdge) {
               FunctionSummaryEdge summaryEdge = functionCallEdge.getSummaryEdge();
-              AFunctionCall functionCall = summaryEdge.getExpression();
+              AFunctionCall functionCall = functionCallEdge.getFunctionCall();
               if (functionCall instanceof AAssignment) {
                 assignment = (AAssignment) functionCall;
                 successorEdge = summaryEdge;
