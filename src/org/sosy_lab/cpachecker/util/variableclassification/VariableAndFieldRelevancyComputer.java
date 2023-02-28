@@ -401,7 +401,8 @@ final class VariableAndFieldRelevancyComputer {
     private final Set<String> addressedVariables;
     private final Multimap<VariableOrField, VariableOrField> dependencies;
     private final PersistentList<VarFieldDependencies> pendingMerges;
-    private final int currentSize, pendingSize;
+    private final int currentSize;
+    private final int pendingSize;
     private @Nullable VarFieldDependencies squashed = null;
 
     private static final int INITIAL_SIZE = 500;

@@ -161,8 +161,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           if (pCfaEdge instanceof CDeclarationEdge) {
             for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
               if (edgeInOriginal instanceof CDeclarationEdge) {
-                final CDeclaration declOr = ((CDeclarationEdge) edgeInOriginal).getDeclaration(),
-                    declMo = ((CDeclarationEdge) pCfaEdge).getDeclaration();
+                final CDeclaration declOr = ((CDeclarationEdge) edgeInOriginal).getDeclaration();
+                final CDeclaration declMo = ((CDeclarationEdge) pCfaEdge).getDeclaration();
                 if (declOr.getOrigName() != null
                     && declOr.getOrigName().equals(declMo.getOrigName())) {
                   helper.logCase("Taking case 4 for different declarations or modified variables.");
@@ -183,8 +183,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           if (pCfaEdge instanceof CReturnStatementEdge) {
             for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
               if (edgeInOriginal instanceof CReturnStatementEdge) {
-                final CReturnStatementEdge retOr = (CReturnStatementEdge) edgeInOriginal,
-                    retMo = (CReturnStatementEdge) pCfaEdge;
+                final CReturnStatementEdge retOr = (CReturnStatementEdge) edgeInOriginal;
+                final CReturnStatementEdge retMo = (CReturnStatementEdge) pCfaEdge;
                 if (helper.inSameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
                   helper.logCase(
                       "Taking case 4 for function returns, potentially with modified variables or"
@@ -268,8 +268,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
               for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
                 if (edgeInOriginal instanceof CFunctionReturnEdge
                     && edgeInOriginal.getSuccessor().equals(summaryGoal)) {
-                  final CFunctionReturnEdge retOr = (CFunctionReturnEdge) edgeInOriginal,
-                      retMo = (CFunctionReturnEdge) pCfaEdge;
+                  final CFunctionReturnEdge retOr = (CFunctionReturnEdge) edgeInOriginal;
+                  final CFunctionReturnEdge retMo = (CFunctionReturnEdge) pCfaEdge;
                   if (helper.inSameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
                     helper.logCase(
                         "Taking case 4 for function return statement with modified variables or"
@@ -405,9 +405,10 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
 
           // look for assignments to same variable (cases 5/6)
           // This could be left out, but we expect to find more related statements this way.
-          Pair<CFANode, ImmutableSet<String>>
-              givenTup = helper.skipAssignment(nodeInMod, changedVars),
-              originalTup = helper.skipAssignment(nodeInOriginal, changedVars);
+          Pair<CFANode, ImmutableSet<String>> givenTup =
+              helper.skipAssignment(nodeInMod, changedVars);
+          Pair<CFANode, ImmutableSet<String>> originalTup =
+              helper.skipAssignment(nodeInOriginal, changedVars);
           if (!(givenTup.getFirst().equals(nodeInMod)
               || originalTup.getFirst().equals(nodeInOriginal))) {
             String lhsVar = CFAEdgeUtils.getLeftHandVariable(nodeInMod.getLeavingEdge(0));
@@ -461,7 +462,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                 if (ce instanceof CAssumeEdge assOrig) {
                   helper.logCase("Checking for case 7 compliance.");
                   if (helper.implies(assGiven, assOrig)) {
-                    final Set<String> varsInAssGiven, varsInAssOrig;
+                    final Set<String> varsInAssGiven;
+                    final Set<String> varsInAssOrig;
                     try {
                       varsInAssGiven = assGiven.getExpression().accept(helper.getVisitor());
                       varsInAssOrig = assOrig.getExpression().accept(helper.getVisitor());

@@ -164,8 +164,8 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private boolean successorsMatch(final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
-    CFANode givenSuccessor = pEdgeInGiven.getSuccessor(),
-        originalSuccessor = pEdgeInOriginal.getSuccessor();
+    CFANode givenSuccessor = pEdgeInGiven.getSuccessor();
+    CFANode originalSuccessor = pEdgeInOriginal.getSuccessor();
     if (pEdgeInGiven.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
       nextEdge:
       for (CFAEdge enterBeforeCall :

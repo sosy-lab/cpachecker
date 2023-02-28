@@ -67,6 +67,7 @@ SPDX-License-Identifier: Apache-2.0
       <property name="illegalClassNames" value="java.lang.InternalError, java.util.Date, java.util.GregorianCalendar, java.text.DateFormat, java.text.SimpleDateFormat, java.util.Hashtable, java.util.HashSet, java.util.HashMap, java.util.ArrayList, java.util.LinkedList, java.util.LinkedHashMap, java.util.LinkedHashSet, java.util.TreeSet, java.util.Stack, java.util.Vector, com.google.common.collect.ArrayListMultimap, com.google.common.collect.HashMultimap, com.google.common.collect.HashMultiset, com.google.common.collect.LinkedHashMultimap, com.google.common.collect.LinkedHashMultiset, com.google.common.collect.LinkedListMultimap, com.google.common.collect.TreeMultiset, com.google.common.base.Optional, javax.annotation.Nullable, javax.annotation.CheckReturnValue, javax.annotation.concurrent.GuardedBy, javax.annotation.concurrent.Immutable"/>
       <property name="legalAbstractClassNames" value="AbstractConfigurationBuilderFactory, AbstractPathFactory"/>
     </module>
+    <module name="MultipleVariableDeclarations"/>
     <module name="NoFinalizer"/>
     <module name="PackageDeclaration"/>
     <module name="SimplifyBooleanExpression"/>

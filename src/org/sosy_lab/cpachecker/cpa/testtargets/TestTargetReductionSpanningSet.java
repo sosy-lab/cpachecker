@@ -68,15 +68,14 @@ public class TestTargetReductionSpanningSet {
     } catch (IOException e) {
     }*/
 
-    DomTree<CFANode>
-        domTree =
-            DomTree.forGraph(
-                CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf, entryExit.getFirst()),
-        inverseDomTree =
-            entryExit.getSecond() != null
-                ? DomTree.forGraph(
-                    CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf, entryExit.getSecond())
-                : null;
+    DomTree<CFANode> domTree =
+        DomTree.forGraph(
+            CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf, entryExit.getFirst());
+    DomTree<CFANode> inverseDomTree =
+        entryExit.getSecond() != null
+            ? DomTree.forGraph(
+                CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf, entryExit.getSecond())
+            : null;
 
     for (CFAEdge targetPred : pTargets) {
       for (CFAEdge targetSucc : pTargets) {
@@ -189,7 +188,8 @@ public class TestTargetReductionSpanningSet {
       Preconditions.checkArgument(!pComponent.isEmpty());
       CFAEdgeNode superNode = new CFAEdgeNode(pComponent.iterator().next().representativeTarget);
 
-      Set<CFAEdgeNode> newPred = new HashSet<>(), newSucc = new HashSet<>();
+      Set<CFAEdgeNode> newPred = new HashSet<>();
+      Set<CFAEdgeNode> newSucc = new HashSet<>();
       for (CFAEdgeNode elem : pComponent) {
         newPred.addAll(elem.predecessors);
         newSucc.addAll(elem.successors);

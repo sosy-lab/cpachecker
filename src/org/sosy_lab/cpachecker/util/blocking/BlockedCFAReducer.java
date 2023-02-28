@@ -343,7 +343,8 @@ public class BlockedCFAReducer implements BlockComputer {
   @VisibleForTesting
   void applyReductionSequences(ReducedFunction pApplyTo) {
     // Summarize the given function if the summarization-threshold is not already reached.
-    boolean sequenceApplied, choiceApplied;
+    boolean sequenceApplied;
+    boolean choiceApplied;
     do {
       sequenceApplied = applySequenceRule(pApplyTo);
       choiceApplied = applyChoiceRule(pApplyTo);

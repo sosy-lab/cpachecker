@@ -103,6 +103,7 @@ SPDX-License-Identifier: Apache-2.0
       <property name="legalAbstractClassNames" value="AbstractConfigurationBuilderFactory, AbstractPathFactory"/>
     </module>
     <module name="InnerAssignment"/>
+    <module name="MultipleVariableDeclarations"/>
     <module name="NoClone"/>
     <module name="NoFinalizer"/>
     <module name="PackageDeclaration"/>

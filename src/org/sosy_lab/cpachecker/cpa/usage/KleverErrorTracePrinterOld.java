@@ -114,7 +114,8 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
   }
 
   private Element printPath(UsageInfo usage, int threadId, GraphMlBuilder builder) {
-    String currentId = getId(), nextId = currentId;
+    String currentId = getId();
+    String nextId = currentId;
     SingleIdentifier pId = usage.getId();
     List<CFAEdge> path = usage.getPath();
 

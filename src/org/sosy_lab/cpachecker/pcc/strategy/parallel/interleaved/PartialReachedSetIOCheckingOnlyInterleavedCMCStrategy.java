@@ -249,7 +249,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   private class ProofPartReader implements Runnable {
 
     private final AtomicBoolean checkResult;
-    private final Semaphore mainSemaphore, startReading;
+    private final Semaphore mainSemaphore;
+    private final Semaphore startReading;
     private final CMCPartitioningIOHelper[] ioHelperPerProofPart;
     private final PropertyCheckerCPA[] cpas;
     private final AbstractState[] roots;

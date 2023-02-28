@@ -269,7 +269,8 @@ public class CustomInstructionTest {
             "  x = x + 1;",
             "}");
 
-    CFANode aciStartNode = null, aciEndNode = null;
+    CFANode aciStartNode = null;
+    CFANode aciEndNode = null;
 
     Set<CFANode> visitedNodes = new HashSet<>();
     Queue<CFANode> queue = new ArrayDeque<>();

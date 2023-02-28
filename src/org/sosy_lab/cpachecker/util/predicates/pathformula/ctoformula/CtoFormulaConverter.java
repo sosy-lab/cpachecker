@@ -1638,7 +1638,8 @@ public class CtoFormulaConverter {
       rhs = makeCastFromArrayToPointerIfNecessary((CExpression) rhs, lhsType);
     }
 
-    Formula l = null, r = null;
+    Formula l;
+    Formula r;
     if (direction == AnalysisDirection.BACKWARD) {
       l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
       r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
