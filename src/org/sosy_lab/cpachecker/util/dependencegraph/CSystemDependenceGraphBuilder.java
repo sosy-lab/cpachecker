@@ -770,17 +770,13 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               .on(NodeType.STATEMENT, procedure, Optional.of(callEdge), Optional.empty());
 
           CFunctionSummaryEdge summaryEdge = callEdge.getSummaryEdge();
-          Optional<AFunctionDeclaration> summaryEdgeProcedure =
-              Optional.of(summaryEdge.getPredecessor().getFunction());
+          Optional<AFunctionDeclaration> callerProcedure =
+              Optional.of(callEdge.getPredecessor().getFunction());
 
           builder
               .node(NodeType.STATEMENT, procedure, Optional.of(callEdge), Optional.empty())
               .depends(EdgeType.CALL_EDGE, Optional.empty())
-              .on(
-                  NodeType.STATEMENT,
-                  summaryEdgeProcedure,
-                  Optional.of(summaryEdge),
-                  Optional.empty());
+              .on(NodeType.STATEMENT, callerProcedure, Optional.of(summaryEdge), Optional.empty());
         }
       }
     }

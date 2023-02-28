@@ -1071,7 +1071,7 @@ public class ARGUtils {
           handleUseFirstNode(sb, curNode, true);
 
           sb.append("    ( CHECK(location, \"functionname==")
-              .append(sumEdge.getPredecessor().getFunctionName())
+              .append(edge.getPredecessor().getFunctionName())
               .append("\")) -> ");
 
           handlePossibleOutOfLoopSuccessor(sb, intoLoopState, loopHead, sumEdgeSuccessor);
