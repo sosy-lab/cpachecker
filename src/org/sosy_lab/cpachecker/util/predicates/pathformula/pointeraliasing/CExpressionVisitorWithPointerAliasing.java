@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
@@ -1063,7 +1064,7 @@ class CExpressionVisitorWithPointerAliasing
   }
 
   private void performMemsetAssignment(
-      final CFunctionCallExpression e, final CLeftHandSide lvalue, final CExpression setValue)
+      final CFunctionCallExpression e, final CLeftHandSide lvalue, final CExpression paramSetValue)
       throws UnrecognizedCodeException {
 
     CType type = lvalue.getExpressionType().getCanonicalType();
@@ -1078,7 +1079,7 @@ class CExpressionVisitorWithPointerAliasing
 
       CType underlyingType = arrayType.getType().getCanonicalType();
 
-      handleMemsetFunction(e, lvalue, underlyingType, length, setValue);
+      handleMemsetFunction(e, lvalue, underlyingType, length, paramSetValue);
       return;
     }
 
@@ -1092,13 +1093,43 @@ class CExpressionVisitorWithPointerAliasing
             new CFieldReference(
                 FileLocation.DUMMY, member.getType(), member.getName(), lvalue, false);
 
-        performMemsetAssignment(e, leftHandExpression, setValue);
+        performMemsetAssignment(e, leftHandExpression, paramSetValue);
       }
       return;
     }
 
+    // the actual value to be set can be initialized by bitfield handling
+    // or left to the simple type handling, in which case it will
+    // create the element value by bit shifts and bit-or
+    CExpression actualSetValue = null;
+
+    if (type instanceof CBitFieldType bitfieldType) {
+      // the bitfield representation is implementation-defined,
+      // but it is reasonable to assume that all-zeros will set it to zero
+      // and all-ones will set it to the maximum value
+
+      if (!(paramSetValue instanceof CIntegerLiteralExpression)) {
+        throw new UnrecognizedCodeException(
+            "Non-literal memset value not supported for bitfields", e);
+      }
+
+      CIntegerLiteralExpression setLiteral = (CIntegerLiteralExpression) paramSetValue;
+      int setByte = setLiteral.getValue().intValue() & 0xFF;
+      if (setByte != 0 && setByte != 0xFF) {
+        throw new UnrecognizedCodeException(
+            "Only all-zeros and all-ones memset values supported for bitfields", e);
+      }
+
+      // tailor the set value expression to the type and bitfield size
+      type = bitfieldType.getType().getCanonicalType();
+
+      long bitValue = (setByte != 0) ? ((1L << bitfieldType.getBitFieldSize()) - 1) : 0;
+
+      actualSetValue = CIntegerLiteralExpression.createDummyLiteral(bitValue, type);
+    }
+
     if (type instanceof CEnumType) {
-      // for enums,  we simply replace them with the underlying int type
+      // for enums, we simply their type with the underlying int type
       type =
           new CSimpleType(
               false, false, CBasicType.INT, false, false, false, true, false, false, false);
@@ -1119,11 +1150,14 @@ class CExpressionVisitorWithPointerAliasing
 
     // for simple types, add assignment to the set value expression
 
-    CExpression setValueUnsignedChar =
-        new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, setValue);
+    // create the set value expression if it had not been created yet
+    // in bitfield handling
 
-    CExpression setValueExpression =
-        createSetValueExpression(e, (CSimpleType) type, setValueUnsignedChar);
+    if (actualSetValue == null) {
+      CExpression setValueUnsignedChar =
+          new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, paramSetValue);
+      actualSetValue = createSetValueExpression(e, (CSimpleType) type, setValueUnsignedChar);
+    }
 
     // reinterpret instead of casting in assignment to properly handle memset of floats
     try {
@@ -1131,7 +1165,7 @@ class CExpressionVisitorWithPointerAliasing
           new AssignmentHandler(
               conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
       BooleanFormula assignmentFormula =
-          assignmentHandler.handleAssignment(lvalue, lvalue, setValueExpression, false, true);
+          assignmentHandler.handleAssignment(lvalue, lvalue, actualSetValue, false, true);
       constraints.addConstraint(assignmentFormula);
     } catch (InterruptedException exc) {
       throw CtoFormulaConverter.propagateInterruptedException(exc);
