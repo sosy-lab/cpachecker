@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.randomWalk.RandomWalkState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.inputGenWithRandomWalk")
@@ -135,7 +136,7 @@ public class InputGenerationWithRandomWalkAlgorithmSequence implements Algorithm
     for (int i = 0; i < pComputedPath.size(); i++) {
       ARGPath path = pComputedPath.get(i);
       try {
-        List<Boolean> inputs = utils.computeSequenceForLoopbound(path);
+        List<Pair<Boolean, Integer>> inputs = utils.computeSequenceForLoopbound(path);
         utils.printFileToOutput(inputs, testcaseName.getPath(i));
       } catch (SolverException | IOException | InterruptedException pE) {
         throw new CPAException(Throwables.getStackTraceAsString(pE));

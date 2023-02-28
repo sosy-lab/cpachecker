@@ -65,10 +65,10 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
               + " each iteration of the outer loop (hence 9 times in total")
   private boolean useStack = true;
 
-  @Option(
-      secure = true,
-      description = "if there is a branch not associated with a loop, only take the right branch.")
-  private boolean useRigthPath = true;
+//  @Option(
+//      secure = true,
+//      description = "if there is a branch not associated with a loop, only take the right branch.")
+//  private boolean useRigthPath = true;
 
   @Option(
       secure = true,
@@ -255,7 +255,7 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
 
             // Abort, as not the leftmost edge
             logger.log(
-                Level.FINE,
+                Level.INFO,
                 String.format(
                     "Visiting edge %s, is not the leftmost edge inside a loop, hence dont proceed",
                     pCfaEdge));
@@ -265,21 +265,21 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
       }
     }
 
-    if (useRigthPath && pCfaEdge instanceof AssumeEdge && loopState.getLoopStack().isEmpty()) {
-      //    if (useRigthPath && pCfaEdge instanceof AssumeEdge) {
-      AssumeEdge assume = (AssumeEdge) pCfaEdge;
-      if ((!assume.isSwapped() && assume.getTruthAssumption())
-          || (assume.isSwapped() && !assume.getTruthAssumption())) {
-        if (false && !otherEdgeLeadsToTargetStateOrIsBreak(assume, otherStates)) {
-          // Abort, as not the rightmost edge
-          logger.log(
-              Level.FINE,
-              String.format(
-                  "Visiting edge %s, is not the rightmost edge, hence dont proceed", pCfaEdge));
-          return ImmutableList.of();
-        }
-      }
-    }
+//    if (useRigthPath && pCfaEdge instanceof AssumeEdge && loopState.getLoopStack().isEmpty()) {
+//      //    if (useRigthPath && pCfaEdge instanceof AssumeEdge) {
+//      AssumeEdge assume = (AssumeEdge) pCfaEdge;
+//      if ((!assume.isSwapped() && assume.getTruthAssumption())
+//          || (assume.isSwapped() && !assume.getTruthAssumption())) {
+//        if (false && !otherEdgeLeadsToTargetStateOrIsBreak(assume, otherStates)) {
+//          // Abort, as not the rightmost edge
+//          logger.log(
+//              Level.FINE,
+//              String.format(
+//                  "Visiting edge %s, is not the rightmost edge, hence dont proceed", pCfaEdge));
+//          return ImmutableList.of();
+//        }
+//      }
+//    }
     if (((AgressiveLoopBoundState) state).isStop()) {
       logger.log(Level.FINE, String.format("Stoping at edge %s, as stop is set", pCfaEdge));
       return ImmutableList.of();

@@ -91,7 +91,7 @@ public class SequenceState implements LatticeAbstractState<SequenceState>, Targe
       return false;
     }
     for (int i = 0; i < remainingDecisionsToTake.size(); i++) {
-      if (remainingDecisionsToTake.get(i) != other.remainingDecisionsToTake.get(i)) {
+      if (!Objects.equals(remainingDecisionsToTake.get(i), other.remainingDecisionsToTake.get(i))) {
         return false;
       }
     }

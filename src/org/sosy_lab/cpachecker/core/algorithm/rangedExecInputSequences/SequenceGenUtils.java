@@ -25,10 +25,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class SequenceGenUtils {
-  private static final Integer DEFAULT_INT = 0;
   private static final CharSequence DELIMITER = System.lineSeparator();
   private ImmutableSet<String> namesOfRandomFunctions;
   private LogManager logger;
@@ -39,29 +39,30 @@ public class SequenceGenUtils {
     logger = pLogger;
   }
 
-  public List<Boolean> computeSequenceForLoopbound(ARGPath pARGPath)
+  public List<Pair<Boolean, Integer>> computeSequenceForLoopbound(ARGPath pARGPath)
       throws InterruptedException, SolverException {
 
     // Check, if the given path is sat by conjoining the path formulae of the abstraction locations.
     // If not, cut off the last part and recursively continue.
-    List<Boolean> decisionNodesTaken = new ArrayList<>();
+    List<Pair<Boolean, Integer>> decisionNodesTaken = new ArrayList<>();
 
     for (CFAEdge edge : pARGPath.getFullPath()) {
       if (edge instanceof AssumeEdge) {
         AssumeEdge assumeEdge = (AssumeEdge) edge;
+
         if (assumeEdge.getTruthAssumption()) {
           if (assumeEdge.isSwapped()) {
-            decisionNodesTaken.add(false);
+            decisionNodesTaken.add(Pair.of(false, edge.getLineNumber()));
           } else {
 
-            decisionNodesTaken.add(true);
+            decisionNodesTaken.add(Pair.of(true, edge.getLineNumber()));
           }
         } else {
           if (assumeEdge.isSwapped()) {
-            decisionNodesTaken.add(true);
+            decisionNodesTaken.add(Pair.of(true, edge.getLineNumber()));
           } else {
 
-            decisionNodesTaken.add(false);
+            decisionNodesTaken.add(Pair.of(false, edge.getLineNumber()));
           }
         }
       }
@@ -70,7 +71,7 @@ public class SequenceGenUtils {
     return decisionNodesTaken;
   }
 
-  public void printFileToOutput(List<Boolean> pInputs, Path testcaseName) throws IOException {
+  public void printFileToOutput(List<Pair<Boolean, Integer>> pInputs, Path testcaseName) throws IOException {
 
     logger.logf(Level.INFO, "Storing the testcase at %s", testcaseName.toAbsolutePath().toString());
     List<String> content = new ArrayList<>();
@@ -78,16 +79,9 @@ public class SequenceGenUtils {
     content.add(
         String.join(
             DELIMITER,
-            pInputs.stream().map(b -> b.toString()).collect(ImmutableList.toImmutableList())));
+            pInputs.stream().map(pair-> pair.getSecond().toString() +","+pair.getFirst().toString()).collect(ImmutableList.toImmutableList())));
     IO.writeFile(testcaseName, Charset.defaultCharset(), Joiner.on("\n").join(content));
   }
 
-  private boolean isRandomFctCall(CFunctionCallExpression pRightHandSide) {
-    String name = pRightHandSide.getDeclaration().getName();
-    return this.namesOfRandomFunctions.stream().anyMatch(s -> name.contains(s));
-  }
 
-  private boolean leftIsVar(CLeftHandSide pLeftHandSide) {
-    return pLeftHandSide instanceof CIdExpression;
-  }
 }

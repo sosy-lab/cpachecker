@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.rangedExecutionInput")
@@ -109,7 +110,7 @@ public class RangedExecutionInputComputationSequence implements Algorithm {
     PartitionedReachedSet reached = (PartitionedReachedSet) pReached;
 
     // run algorithm
-    AlgorithmStatus status = algorithm.run(reached);
+ algorithm.run(reached);
     //    if (reached.hasWaitingState()) {
     //      // Nested algortihm is not finished, hence do another round by returning to loop in
     // calling
@@ -130,35 +131,16 @@ public class RangedExecutionInputComputationSequence implements Algorithm {
           "There are more than one path present. We cannot compute a testcase for this!");
     }
     try {
-      List<Boolean> inputs = utils.computeSequenceForLoopbound(paths.stream().findFirst().get());
+      List<Pair<Boolean, Integer>> inputs = utils.computeSequenceForLoopbound(paths.stream().findFirst().get());
+      if (inputs.isEmpty()){
+        throw new CPAException("We failed to generate a sequence, aborting!");
+      }
       utils.printFileToOutput(inputs, testcaseName);
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     } catch (SolverException | IOException pE) {
       throw new CPAException(Throwables.getStackTraceAsString(pE));
     }
     //    }
-  }
-
-  private boolean hasRandom() {
-    for (CFANode node : cfa.getAllNodes()) {
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-        if (edge instanceof CStatementEdge
-            && ((CStatementEdge) edge).getStatement() instanceof CAssignment) {
-          if (CFAEdgeUtils.getRightHandSide(edge) instanceof CFunctionCallExpression
-              && namesOfRandomFunctions.stream()
-                  .anyMatch(
-                      name ->
-                          ((CFunctionCallExpression)
-                                  Objects.requireNonNull(CFAEdgeUtils.getRightHandSide(edge)))
-                              .getFunctionNameExpression()
-                              .toString()
-                              .startsWith(name))) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
   }
 
   private boolean hasLoop() {

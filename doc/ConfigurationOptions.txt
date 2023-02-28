@@ -1181,10 +1181,6 @@ cpa.aggressiveloopbound.maxLoopIterations = 0
 # if there is a branch not associated with a loop, only take the left branch.
 cpa.aggressiveloopbound.useLeftPathInsideLoops = true
 
-# if there is a branch not associated with a loop, only take the right
-# branch.
-cpa.aggressiveloopbound.useRigthPath = true
-
 # For nested loops: Reset the counter for inner loops at each iteration of
 # the outer loop. Meanign that, if the loobound is set to 3, the inner loop
 # is executed 3 times in each iteration of the outer loop (hence 9 times in

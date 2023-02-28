@@ -126,7 +126,7 @@ public class RangedExecutionInputComputation implements Algorithm {
     PartitionedReachedSet reached = (PartitionedReachedSet) pReached;
 
     // run algorithm
-    AlgorithmStatus status = algorithm.run(reached);
+    algorithm.run(reached);
 //    if (reached.hasWaitingState()) {
 //      // Nested algortihm is not finished, hence do another round by returning to loop in calling
 //      // class
@@ -148,6 +148,9 @@ public class RangedExecutionInputComputation implements Algorithm {
       try {
         List<Pair<CIdExpression, Long>> inputs =
             utils.computeInputForLoopbound(paths.stream().findFirst().get());
+        if (inputs.isEmpty()){
+          throw new CPAException("We failed to generate a sequence, aborting!");
+        }
         utils.printFileToPutput(inputs, testcaseName);
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
       } catch (SolverException | IOException pE) {

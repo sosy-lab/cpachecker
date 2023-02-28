@@ -60,14 +60,18 @@ public class SequenceCPA extends AbstractCPA implements ProofCheckerCPA {
   }
 
   private List<Boolean> readDecisionNodes(Path pPath2Bound) throws InvalidConfigurationException {
+    List<Boolean> result = new ArrayList<>();
     try {
-      return Files.readAllLines(pPath2Bound, Charset.defaultCharset()).stream()
-          .map(line -> line.equals("true"))
-          .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+      for (String line : Files.readAllLines(pPath2Bound, Charset.defaultCharset())){
+            String[] elems = line.split(",");
+            if (elems.length == 2){
+              result.add( elems[1].equals("true"));
+            }else{throw new InvalidConfigurationException("Excepting lines to be pair of line number and decision");}
+}
     } catch (IOException pE) {
       throw new InvalidConfigurationException(
           "Could not read decision nodes from file " + pPath2Bound, pE);
-    }
+    }return result;
   }
 
   @Override
