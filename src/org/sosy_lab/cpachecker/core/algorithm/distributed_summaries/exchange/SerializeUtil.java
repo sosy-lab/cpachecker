@@ -16,7 +16,9 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Base64;
 
-public class SerializeUtil {
+public final class SerializeUtil {
+
+  private SerializeUtil() {}
 
   public static <T extends Serializable> String serialize(T pObject) throws IOException {
     try (ByteArrayOutputStream bos = new ByteArrayOutputStream();

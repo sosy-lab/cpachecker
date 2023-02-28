@@ -49,7 +49,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  * a tree, but for special cases the graph contains loops (-> recursion) or several root-nodes (->
  * one for each unused function).
  */
-public class FunctionCallDumper {
+public final class FunctionCallDumper {
+
+  private FunctionCallDumper() {}
 
   /**
    * This method iterates over the CFA, searches for function calls and after that, dumps them in a

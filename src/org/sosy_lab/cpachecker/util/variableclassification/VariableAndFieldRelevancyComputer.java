@@ -82,6 +82,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 @FieldsAreNonnullByDefault
 final class VariableAndFieldRelevancyComputer {
 
+  private VariableAndFieldRelevancyComputer() {}
+
   public static final class VarFieldDependencies {
     @SuppressWarnings("unchecked") // Cloning here should work faster than adding all elements
     private static <T> Set<T> copy(final Set<T> source) {
