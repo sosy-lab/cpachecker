@@ -109,7 +109,7 @@ public class TestTargetReductionSpanningSet {
   private ImmutableSet<Collection<CFAEdgeNode>> computeStronglyConnectedComponents(
       final ImmutableSet<CFAEdgeNode> nodes) {
     ImmutableSet.Builder<Collection<CFAEdgeNode>> componentsBuilder = ImmutableSet.builder();
-    Deque<CFAEdgeNode> componentElems, ordered = new ArrayDeque<>(nodes.size());
+    Deque<CFAEdgeNode> ordered = new ArrayDeque<>(nodes.size());
 
     Set<CFAEdgeNode> visited = Sets.newHashSetWithExpectedSize(nodes.size());
     for (CFAEdgeNode node : nodes) {
@@ -118,7 +118,7 @@ public class TestTargetReductionSpanningSet {
 
     visited = Sets.newHashSetWithExpectedSize(nodes.size());
     for (CFAEdgeNode node : ordered) {
-      componentElems = new ArrayDeque<>();
+      Deque<CFAEdgeNode> componentElems = new ArrayDeque<>();
       dfs(node, true, visited, componentElems);
       if (!componentElems.isEmpty()) {
         componentsBuilder.add(componentElems);

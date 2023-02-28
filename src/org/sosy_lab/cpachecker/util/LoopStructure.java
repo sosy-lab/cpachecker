@@ -995,15 +995,15 @@ public final class LoopStructure implements Serializable {
     }
 
     // detect nodes in recursion
-    Set<CFANode> forward, backward, nodes;
     Collection<Loop> result = new ArrayList<>(recHeads.size());
     for (FunctionEntryNode recHead : recHeads) {
-      forward =
+      Set<CFANode> forward =
           CFATraversal.dfs()
               .ignoreEdgeType(CFAEdgeType.FunctionReturnEdge)
               .collectNodesReachableFrom(recHead);
-      backward = CFATraversal.dfs().backwards().collectNodesReachableFrom(recHead);
+      Set<CFANode> backward = CFATraversal.dfs().backwards().collectNodesReachableFrom(recHead);
 
+      Set<CFANode> nodes;
       if (forward.size() <= backward.size()) {
         nodes = Sets.intersection(forward, backward);
       } else {

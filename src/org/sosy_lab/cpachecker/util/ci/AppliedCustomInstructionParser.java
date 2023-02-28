@@ -450,13 +450,12 @@ public class AppliedCustomInstructionParser {
       final Set<FunctionEntryNode> noGlobalVarUse, final FunctionEntryNode function) {
     Deque<CFANode> toVisit = new ArrayDeque<>();
     Collection<CFANode> visited = new HashSet<>();
-    CFANode visit, successor;
 
     toVisit.push(function);
     visited.add(function);
 
     while (!toVisit.isEmpty()) {
-      visit = toVisit.pop();
+      CFANode visit = toVisit.pop();
 
       if (visit instanceof FunctionExitNode) {
         continue;
@@ -471,7 +470,7 @@ public class AppliedCustomInstructionParser {
           return false;
         }
 
-        successor = leave.getSuccessor();
+        CFANode successor = leave.getSuccessor();
         if (visited.add(successor)) {
           toVisit.push(successor);
         }

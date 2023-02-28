@@ -506,7 +506,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       final ARGState newLoopStart) {
     Collection<ARGState> newStates = new HashSet<>();
     boolean first = true;
-    ARGState child, parent = newRoot;
+    ARGState parent = newRoot;
     newStates.add(newRoot);
 
     for (ARGState state : pStem.asStatesList()) {
@@ -521,7 +521,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         break;
       }
 
-      child = new ARGState(state.getWrappedState(), parent);
+      ARGState child = new ARGState(state.getWrappedState(), parent);
       parent = child;
       newStates.add(parent);
     }
@@ -541,22 +541,14 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     Deque<CFANode> waitlist = new ArrayDeque<>();
     waitlist.push(loc);
 
-    ARGState pred, succ;
-
-    CFANode locContinueLoop;
-    Pair<CFANode, CallstackState> context, newContext;
-    ARGState predFun, succFun;
-    Deque<Pair<CFANode, CallstackState>> waitlistFun;
-    Map<Pair<CFANode, CallstackState>, ARGState> contextToARGState;
-
     while (!waitlist.isEmpty()) {
       loc = waitlist.pop();
-      pred = nodeToARGState.get(loc);
+      ARGState pred = nodeToARGState.get(loc);
       assert pred != null;
 
       for (CFAEdge leave : CFAUtils.leavingEdges(loc)) {
         if (nonterminatingLoop.getLoopNodes().contains(leave.getSuccessor())) {
-          succ = nodeToARGState.get(leave.getSuccessor());
+          ARGState succ = nodeToARGState.get(leave.getSuccessor());
           if (succ == null) {
             succ = new ARGState(locFac.getState(leave.getSuccessor()), null);
             nodeToARGState.put(leave.getSuccessor(), succ);
@@ -567,28 +559,29 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
         } else if (leave instanceof FunctionCallEdge && pred.getChildren().isEmpty()) {
           // function calls are not considered to be part of the loop
-          locContinueLoop = ((FunctionCallEdge) leave).getSummaryEdge().getSuccessor();
-          contextToARGState = new HashMap<>();
-          context =
+          CFANode locContinueLoop = ((FunctionCallEdge) leave).getSummaryEdge().getSuccessor();
+          Map<Pair<CFANode, CallstackState>, ARGState> contextToARGState = new HashMap<>();
+          Pair<CFANode, CallstackState> context =
               Pair.of(
                   leave.getSuccessor(),
                   new CallstackState(
                       null, leave.getSuccessor().getFunctionName(), leave.getPredecessor()));
-          waitlistFun = new ArrayDeque<>();
+          Deque<Pair<CFANode, CallstackState>> waitlistFun = new ArrayDeque<>();
           waitlistFun.push(context);
 
-          succFun = new ARGState(locFac.getState(leave.getSuccessor()), null);
+          ARGState succFun = new ARGState(locFac.getState(leave.getSuccessor()), null);
           contextToARGState.put(context, succFun);
 
           succFun.addParent(pred);
 
           while (!waitlistFun.isEmpty()) {
             context = waitlistFun.pop();
-            predFun = contextToARGState.get(context);
+            ARGState predFun = contextToARGState.get(context);
             assert predFun != null;
 
             for (CFAEdge leaveFun : CFAUtils.leavingEdges(context.getFirst())) {
-              newContext = Pair.of(leaveFun.getSuccessor(), context.getSecond());
+              Pair<CFANode, CallstackState> newContext =
+                  Pair.of(leaveFun.getSuccessor(), context.getSecond());
 
               if (leaveFun instanceof FunctionReturnEdge) {
                 if (!context

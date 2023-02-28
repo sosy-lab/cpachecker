@@ -989,14 +989,13 @@ public class ARGToCTranslator {
     Map<ARGState, List<CDeclaration>> probVarDec =
         Maps.newHashMapWithExpectedSize(decProblems.keySet().size());
 
-    boolean containAll, different;
     for (ARGState key : decProblems.keySet()) {
       probs = new ArrayList<>(decProblems.get(key));
       probVars = new ArrayList<>();
 
       for (Entry<CDeclaration, String> prob : probs.get(0).entrySet()) {
-        containAll = true;
-        different = false;
+        boolean containAll = true;
+        boolean different = false;
         for (int i = 1; i < probs.size(); i++) {
           if (!probs.get(i).containsKey(prob.getKey())) {
             containAll = false;
