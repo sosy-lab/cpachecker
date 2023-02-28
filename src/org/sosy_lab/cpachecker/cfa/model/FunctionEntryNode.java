@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.Lists;
@@ -96,6 +97,17 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
    */
   public Optional<? extends AVariableDeclaration> getReturnVariable() {
     return Optional.ofNullable(returnVariable);
+  }
+
+  @Override
+  public void addEnteringEdge(CFAEdge pEnteringEdge) {
+    checkArgument(pEnteringEdge instanceof FunctionCallEdge);
+    super.addEnteringEdge(pEnteringEdge);
+  }
+
+  @Override
+  public FunctionCallEdge getEnteringEdge(int pIndex) {
+    return (FunctionCallEdge) super.getEnteringEdge(pIndex);
   }
 
   @Override

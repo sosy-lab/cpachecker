@@ -102,8 +102,10 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
@@ -238,9 +240,19 @@ public class CFAUtils {
     };
   }
 
+  @SuppressWarnings("unchecked")
+  public static FluentIterable<FunctionCallEdge> enteringEdges(final FunctionEntryNode node) {
+    return (FluentIterable<FunctionCallEdge>) (FluentIterable<?>) enteringEdges((CFANode) node);
+  }
+
+  @SuppressWarnings("unchecked")
+  public static FluentIterable<FunctionReturnEdge> leavingEdges(final FunctionExitNode node) {
+    return (FluentIterable<FunctionReturnEdge>) (FluentIterable<?>) leavingEdges((CFANode) node);
+  }
+
   @Deprecated // entry nodes do not have summary edges
   @InlineMe(replacement = "enteringEdges(node)")
-  public static FluentIterable<CFAEdge> allEnteringEdges(final FunctionEntryNode node) {
+  public static FluentIterable<FunctionCallEdge> allEnteringEdges(final FunctionEntryNode node) {
     return enteringEdges(node);
   }
 
@@ -258,7 +270,7 @@ public class CFAUtils {
 
   @Deprecated // exit nodes do not have summary edges
   @InlineMe(replacement = "leavingEdges(node)")
-  public static FluentIterable<CFAEdge> allLeavingEdges(final FunctionExitNode node) {
+  public static FluentIterable<FunctionReturnEdge> allLeavingEdges(final FunctionExitNode node) {
     return leavingEdges(node);
   }
 

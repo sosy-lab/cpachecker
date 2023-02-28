@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
@@ -32,6 +33,17 @@ public final class FunctionExitNode extends CFANode {
   public FunctionEntryNode getEntryNode() {
     checkState(entryNode != null);
     return entryNode;
+  }
+
+  @Override
+  public void addLeavingEdge(CFAEdge pLeavingEdge) {
+    checkArgument(pLeavingEdge instanceof FunctionReturnEdge);
+    super.addLeavingEdge(pLeavingEdge);
+  }
+
+  @Override
+  public FunctionReturnEdge getLeavingEdge(int pIndex) {
+    return (FunctionReturnEdge) super.getLeavingEdge(pIndex);
   }
 
   @Override
