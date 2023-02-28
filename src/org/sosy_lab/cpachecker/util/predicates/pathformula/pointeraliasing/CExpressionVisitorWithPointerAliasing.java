@@ -42,9 +42,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -1071,9 +1071,10 @@ class CExpressionVisitorWithPointerAliasing
 
     CType type = lvalue.getExpressionType().getCanonicalType();
 
-    if (type instanceof CCompositeType compositeUnderlyingType
-        && compositeUnderlyingType.getKind() == ComplexTypeKind.STRUCT) {
-      // for structs, perform recursive assignment
+    if (type instanceof CCompositeType compositeUnderlyingType) {
+
+      // for structs and unions, perform recursive assignment
+      // it should not matter that there will be multiple assignments for union fields
 
       for (CCompositeTypeMemberDeclaration member : compositeUnderlyingType.getMembers()) {
         final CFieldReference leftHandExpression =
@@ -1083,6 +1084,13 @@ class CExpressionVisitorWithPointerAliasing
         performMemsetAssignment(e, leftHandExpression, setValueUnsignedChar);
       }
       return;
+    }
+
+    if (type instanceof CEnumType) {
+      // for enums,  we simply replace them with the underlying int type
+      type =
+          new CSimpleType(
+              false, false, CBasicType.INT, false, false, false, true, false, false, false);
     }
 
     if (type instanceof CPointerType) {
