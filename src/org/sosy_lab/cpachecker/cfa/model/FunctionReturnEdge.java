@@ -63,4 +63,9 @@ public class FunctionReturnEdge extends AbstractCFAEdge {
   public AFunctionCall getFunctionCall() {
     return summaryEdge.getExpression();
   }
+
+  /** Return the {@link CFANode} that is the call site (before the function call in the caller). */
+  public CFANode getCallNode() {
+    return summaryEdge.getPredecessor();
+  }
 }

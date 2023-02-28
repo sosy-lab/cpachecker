@@ -587,7 +587,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
                 if (!context
                     .getSecond()
                     .getCallNode()
-                    .equals(((FunctionReturnEdge) leaveFun).getSummaryEdge().getPredecessor())) {
+                    .equals(((FunctionReturnEdge) leaveFun).getCallNode())) {
                   continue; // false context
                 }
                 newContext =

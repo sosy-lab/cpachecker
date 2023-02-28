@@ -169,11 +169,9 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
     if (pEdgeInGiven.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
       nextEdge:
       for (CFAEdge enterBeforeCall :
-          CFAUtils.enteringEdges(
-              ((FunctionReturnEdge) pEdgeInGiven).getSummaryEdge().getPredecessor())) {
+          CFAUtils.enteringEdges(((FunctionReturnEdge) pEdgeInGiven).getCallNode())) {
         for (CFAEdge enterOriginalBeforeCAll :
-            CFAUtils.enteringEdges(
-                ((FunctionReturnEdge) pEdgeInOriginal).getSummaryEdge().getPredecessor())) {
+            CFAUtils.enteringEdges(((FunctionReturnEdge) pEdgeInOriginal).getCallNode())) {
           if (edgesMatch(enterBeforeCall, enterOriginalBeforeCAll)) {
             continue nextEdge;
           }

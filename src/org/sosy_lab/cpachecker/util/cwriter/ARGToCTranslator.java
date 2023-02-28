@@ -682,7 +682,7 @@ public class ARGToCTranslator {
     } else {
       CFunctionReturnEdge functionReturnEdge =
           (CFunctionReturnEdge) pReturnEdge.getSuccessor().getLeavingEdge(0);
-      CFANode functionDefNode = functionReturnEdge.getSummaryEdge().getPredecessor();
+      CFANode functionDefNode = functionReturnEdge.getCallNode();
       assert functionDefNode.getNumLeavingEdges() == 1;
       assert functionDefNode.getLeavingEdge(0) instanceof CFunctionCallEdge;
       CFunctionCallEdge callEdge = (CFunctionCallEdge) functionDefNode.getLeavingEdge(0);

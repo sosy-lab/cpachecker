@@ -163,10 +163,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                         CFANode newSucc = enteringEdge.getPredecessor();
                         if (visited.add(newSucc)) {
                           if (enteringEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-                            successors.add(
-                                ((FunctionReturnEdge) enteringEdge)
-                                    .getSummaryEdge()
-                                    .getPredecessor());
+                            successors.add(((FunctionReturnEdge) enteringEdge).getCallNode());
                           } else {
                             successors.offer(newSucc);
                           }
