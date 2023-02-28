@@ -199,9 +199,8 @@ public class ConstraintsTransferRelation
     } else if (pExpression instanceof CBinaryExpression) {
       return createConstraint((CBinaryExpression) pExpression, pFactory, pTruthAssumption);
 
-    }
-    // id expressions in assume edges are created by a call of __VERIFIER_assume(x), for example
-    else if (pExpression instanceof AIdExpression) {
+    } else if (pExpression instanceof AIdExpression) {
+      // id expressions in assume edges are created by a call of __VERIFIER_assume(x), for example
       return createConstraint((AIdExpression) pExpression, pFactory, pTruthAssumption);
 
     } else {

@@ -369,18 +369,17 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   private boolean handleStatement(CStatementEdge edge, Collection<String> importantVars) {
     final AStatement statement = edge.getStatement();
 
-    // expression is an assignment operation, e.g. a = b;
     if (statement instanceof CAssignment) {
+      // expression is an assignment operation, e.g. a = b;
       return handleAssignment((CAssignment) statement, importantVars);
-    }
 
-    // call of external function, "scanf(...)" without assignment
-    // internal functioncalls are handled as FunctionCallEdges
-    else if (statement instanceof CFunctionCallStatement) {
+    } else if (statement instanceof CFunctionCallStatement) {
+      // call of external function, "scanf(...)" without assignment
+      // internal functioncalls are handled as FunctionCallEdges
       return true;
 
-      // "exp;" -> nothing to do?
     } else if (statement instanceof CExpressionStatement) {
+      // "exp;" -> nothing to do?
       return false;
 
     } else {

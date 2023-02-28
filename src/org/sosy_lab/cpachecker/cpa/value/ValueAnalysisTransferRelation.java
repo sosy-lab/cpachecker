@@ -1237,11 +1237,9 @@ public class ValueAnalysisTransferRelation
       if (maybeIndex.isPresent() && enclosingArray != null) {
         enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.orElseThrow());
 
-      }
-      // if the index of unknown array in the enclosing array is also unknown, we assign unknown at
-      // this array's
-      // position in the enclosing array
-      else {
+      } else {
+        // if the index of unknown array in the enclosing array is also unknown, we assign unknown
+        // at this array's position in the enclosing array
         assignUnknownValueToEnclosingInstanceOfArray(enclosingSubscriptExpression);
       }
     }

@@ -313,9 +313,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
               postCondition =
                   eliminateIntermediateVariables(
                       pathFormula, bfmgr.and(preCondition, bfmgr.and(requiredPart)));
-            }
-            // Else no additional assertions
-            else {
+            } else {
+              // Else no additional assertions
               postCondition = preCondition;
             }
             break;
