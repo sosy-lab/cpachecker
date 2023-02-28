@@ -483,7 +483,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       throws UnrecognizedCodeException {
     CFunctionSummaryEdge summaryEdge = pFunctionReturnEdge.getSummaryEdge();
 
-    CFunctionCall expression = summaryEdge.getExpression();
+    final CFunctionCall expression = pFunctionReturnEdge.getFunctionCall();
 
     final String calledFunctionName = pFunctionReturnEdge.getPredecessor().getFunctionName();
 
@@ -512,11 +512,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
     } else {
       Iterator<CExpression> actualParamIterator =
-          summaryEdge
-              .getExpression()
-              .getFunctionCallExpression()
-              .getParameterExpressions()
-              .iterator();
+          expression.getFunctionCallExpression().getParameterExpressions().iterator();
       for (String formalParamName :
           pFunctionReturnEdge.getPredecessor().getEntryNode().getFunctionParameterNames()) {
         if (!actualParamIterator.hasNext()) {

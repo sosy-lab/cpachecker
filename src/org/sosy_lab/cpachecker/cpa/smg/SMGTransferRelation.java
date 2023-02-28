@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -257,8 +256,7 @@ public class SMGTransferRelation
   private List<SMGState> handleFunctionReturn(CFunctionReturnEdge functionReturnEdge)
       throws CPATransferException {
 
-    CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
-    CFunctionCall exprOnSummary = summaryEdge.getExpression();
+    CFunctionCall exprOnSummary = functionReturnEdge.getFunctionCall();
     SMGState newState = state.copyOf();
 
     assert Iterables.getLast(newState.getHeap().getStackFrames())

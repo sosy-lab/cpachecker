@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -329,9 +328,7 @@ public class ConstraintManager {
 
   public static Constraint getConstraint(FunctionReturnEdge fretEdge)
       throws UnrecognizedCodeException {
-
-    FunctionSummaryEdge summaryEdge = fretEdge.getSummaryEdge();
-    AFunctionCall exprOnSummary = summaryEdge.getExpression();
+    AFunctionCall exprOnSummary = fretEdge.getFunctionCall();
 
     // expression is an assignment operation, e.g. a = g(b);
     if (exprOnSummary instanceof AFunctionCallAssignmentStatement assignExp) {

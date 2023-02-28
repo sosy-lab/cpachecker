@@ -275,8 +275,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                         "Taking case 4 for function return statement with modified variables or"
                             + " different statements.");
 
-                    final CFunctionCall summaryOr = retOr.getSummaryEdge().getExpression();
-                    final CFunctionCall summaryMo = retOr.getSummaryEdge().getExpression();
+                    final CFunctionCall summaryOr = retOr.getFunctionCall();
+                    final CFunctionCall summaryMo = retOr.getFunctionCall();
                     if (summaryOr instanceof CFunctionCallAssignmentStatement summaryOrAss
                         && summaryMo instanceof CFunctionCallAssignmentStatement summaryMoAss) {
                       try {

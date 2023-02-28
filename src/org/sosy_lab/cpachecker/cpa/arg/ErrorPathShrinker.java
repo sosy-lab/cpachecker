@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -190,8 +189,7 @@ public final class ErrorPathShrinker {
 
       case FunctionReturnEdge:
         final FunctionReturnEdge fnkReturnEdge = (FunctionReturnEdge) cfaEdge;
-        final FunctionSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
-        handleFunctionReturnEdge(fnkReturnEdge, summaryEdge.getExpression());
+        handleFunctionReturnEdge(fnkReturnEdge, fnkReturnEdge.getFunctionCall());
 
         break;
 

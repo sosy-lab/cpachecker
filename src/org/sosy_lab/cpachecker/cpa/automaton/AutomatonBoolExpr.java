@@ -637,7 +637,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         // Ignore this edge, FunctionReturnEdge will be taken instead.
         return CONST_FALSE;
       } else if (edge.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge)) {
-        ast = Optional.of(((FunctionReturnEdge) edge).getSummaryEdge().getExpression());
+        ast = Optional.of(((FunctionReturnEdge) edge).getFunctionCall());
       } else {
         ast = edge.getRawAST();
       }

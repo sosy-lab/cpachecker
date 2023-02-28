@@ -88,8 +88,7 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
           newState = joinThread(tState, (CThreadJoinStatement) stmnt);
         }
       } else if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-        CFunctionCall functionCall =
-            ((CFunctionReturnEdge) pCfaEdge).getSummaryEdge().getExpression();
+        CFunctionCall functionCall = ((CFunctionReturnEdge) pCfaEdge).getFunctionCall();
         if (isThreadCreateFunction(functionCall)) {
           newState = null;
         }

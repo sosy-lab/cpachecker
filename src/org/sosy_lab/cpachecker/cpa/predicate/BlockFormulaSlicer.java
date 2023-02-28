@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -440,8 +439,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   private boolean handleFunctionReturn(CFunctionReturnEdge edge, Collection<String> importantVars) {
 
     // set result of function equal to variable on left side
-    CFunctionSummaryEdge fnkCall = edge.getSummaryEdge();
-    CFunctionCall call = fnkCall.getExpression();
+    CFunctionCall call = edge.getFunctionCall();
 
     // handle assignments like "y = f(x);"
     if (call instanceof CFunctionCallAssignmentStatement cAssignment) {

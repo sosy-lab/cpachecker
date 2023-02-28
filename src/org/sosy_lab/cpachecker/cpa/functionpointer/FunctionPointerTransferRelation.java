@@ -460,7 +460,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     CFunctionSummaryEdge summaryEdge = pFunctionReturnEdge.getSummaryEdge();
     assert summaryEdge != null;
 
-    CFunctionCall funcCall = summaryEdge.getExpression();
+    CFunctionCall funcCall = pFunctionReturnEdge.getFunctionCall();
     if (funcCall instanceof CFunctionCallAssignmentStatement) {
       CExpression left = ((CFunctionCallAssignmentStatement) funcCall).getLeftHandSide();
       String varName = getLeftHandSide(left, summaryEdge);

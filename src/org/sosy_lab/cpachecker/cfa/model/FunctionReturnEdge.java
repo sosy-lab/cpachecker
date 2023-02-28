@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class FunctionReturnEdge extends AbstractCFAEdge {
@@ -57,5 +58,9 @@ public class FunctionReturnEdge extends AbstractCFAEdge {
 
   public FunctionEntryNode getFunctionEntry() {
     return summaryEdge.getFunctionEntry();
+  }
+
+  public AFunctionCall getFunctionCall() {
+    return summaryEdge.getExpression();
   }
 }

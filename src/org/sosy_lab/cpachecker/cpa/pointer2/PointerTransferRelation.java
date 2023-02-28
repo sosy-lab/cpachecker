@@ -73,7 +73,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -147,8 +146,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
   private PointerState handleFunctionReturnEdge(PointerState pState, CFunctionReturnEdge pCfaEdge)
       throws UnrecognizedCodeException {
-    CFunctionSummaryEdge summaryEdge = pCfaEdge.getSummaryEdge();
-    CFunctionCall callEdge = summaryEdge.getExpression();
+    CFunctionCall callEdge = pCfaEdge.getFunctionCall();
 
     if (callEdge instanceof CFunctionCallAssignmentStatement callAssignment) {
       Optional<MemoryLocation> returnVar = getFunctionReturnVariable(pCfaEdge.getFunctionEntry());

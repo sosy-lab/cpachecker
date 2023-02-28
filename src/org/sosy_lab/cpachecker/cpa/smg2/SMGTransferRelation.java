@@ -272,7 +272,7 @@ public class SMGTransferRelation
   private List<SMGState> handleFunctionReturn(CFunctionReturnEdge functionReturnEdge)
       throws CPATransferException {
     CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
-    CFunctionCall summaryExpr = summaryEdge.getExpression();
+    CFunctionCall summaryExpr = functionReturnEdge.getFunctionCall();
 
     Preconditions.checkArgument(
         state.getMemoryModel().getStackFrames().peek().getFunctionDefinition()

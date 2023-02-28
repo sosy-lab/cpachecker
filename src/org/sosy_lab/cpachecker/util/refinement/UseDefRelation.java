@@ -219,7 +219,7 @@ public class UseDefRelation {
   private void updateUseDefRelation(ARGState state, CFAEdge edge) {
     switch (edge.getEdgeType()) {
       case FunctionReturnEdge:
-        AFunctionCall summaryExpr = ((FunctionReturnEdge) edge).getSummaryEdge().getExpression();
+        AFunctionCall summaryExpr = ((FunctionReturnEdge) edge).getFunctionCall();
 
         if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
           Set<ASimpleDeclaration> assignedVariables =

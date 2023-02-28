@@ -180,7 +180,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
 
                   FunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
                   if (summaryEdge != null) {
-                    AFunctionCall functionCall = summaryEdge.getExpression();
+                    AFunctionCall functionCall = functionReturnEdge.getFunctionCall();
                     if (functionCall
                         instanceof AFunctionCallAssignmentStatement assignmentStatement) {
                       wideningTargetsBuilder.addAll(
