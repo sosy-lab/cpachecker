@@ -183,10 +183,10 @@ public class LoopTransitionFinder implements StatisticsProvider {
         return TraversalProcess.SKIP;
       }
       if (edge instanceof FunctionCallEdge) {
-        return onCallEdge(edge);
+        return onCallEdge((FunctionCallEdge) edge);
 
       } else if (edge instanceof FunctionReturnEdge) {
-        return onReturnEdge(edge);
+        return onReturnEdge((FunctionReturnEdge) edge);
       } else if (edge instanceof FunctionSummaryEdge) {
         return TraversalProcess.SKIP;
       } else {
@@ -195,9 +195,9 @@ public class LoopTransitionFinder implements StatisticsProvider {
       }
     }
 
-    abstract TraversalProcess onCallEdge(CFAEdge callEdge);
+    abstract TraversalProcess onCallEdge(FunctionCallEdge callEdge);
 
-    abstract TraversalProcess onReturnEdge(CFAEdge returnEdge);
+    abstract TraversalProcess onReturnEdge(FunctionReturnEdge returnEdge);
 
     @Override
     public TraversalProcess visitNode(CFANode node) {
@@ -214,14 +214,14 @@ public class LoopTransitionFinder implements StatisticsProvider {
     private final Set<CFANode> expectedJoinNodes = new HashSet<>();
 
     @Override
-    TraversalProcess onCallEdge(CFAEdge callEdge) {
+    TraversalProcess onCallEdge(FunctionCallEdge callEdge) {
       visitedEdges.add(callEdge);
       expectedJoinNodes.add(callEdge.getPredecessor().getLeavingSummaryEdge().getSuccessor());
       return TraversalProcess.CONTINUE;
     }
 
     @Override
-    TraversalProcess onReturnEdge(CFAEdge returnEdge) {
+    TraversalProcess onReturnEdge(FunctionReturnEdge returnEdge) {
       if (expectedJoinNodes.contains(returnEdge.getSuccessor())) {
         visitedEdges.add(returnEdge);
         return TraversalProcess.CONTINUE;
@@ -239,7 +239,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     private final Set<CFANode> expectedCallsites = new HashSet<>();
 
     @Override
-    TraversalProcess onReturnEdge(CFAEdge edge) {
+    TraversalProcess onReturnEdge(FunctionReturnEdge edge) {
       CFANode callsite = edge.getSuccessor().getEnteringSummaryEdge().getPredecessor();
       expectedCallsites.add(callsite);
       visitedEdges.add(edge);
@@ -247,7 +247,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     }
 
     @Override
-    TraversalProcess onCallEdge(CFAEdge edge) {
+    TraversalProcess onCallEdge(FunctionCallEdge edge) {
       if (expectedCallsites.contains(edge.getPredecessor())) {
         visitedEdges.add(edge);
         return TraversalProcess.CONTINUE;
