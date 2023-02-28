@@ -266,7 +266,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    *
    * @param pointers an array of all pointers to check that the properties hold.
    * @param lengthOfList length of the total list
-   * @param dll true if dll
+   * @param isDll true if dll
    */
   private void assertAbstractedList(Value[] pointers, int lengthOfList, boolean isDll) {
     assertThat(currentState.getMemoryModel().getHeapObjects()).hasSize(2);
@@ -412,7 +412,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * Checks that a proper read of the NFO pointing to 0+ generates 2 states. One with a value
    * expectedNfoValue, one with the extented list by 1.
    *
-   * @param dll true for DLLs. False else.
+   * @param isDll true for DLLs. False else.
    * @param lastConcreteListObject the last concrete segment who's nfo points to 0+.
    * @param expectedNfoValue the value for the non extented read state.
    * @throws SMGException not thrown
@@ -1509,7 +1509,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * @param pointers array of all the pointers to the (former) concrete list elements in order.
    *     Expected to be as large as totalSizeOfList.
    * @param derefPositions ordered array of deref positions, min: 0, max: totalSizeOfList - 1.
-   * @param dll true if dlls tested.
+   * @param isDll true if dlls tested.
    * @throws SMGException indicates errors
    */
   private void derefPointersAtAndCheckListMaterialization(
