@@ -268,7 +268,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * @param lengthOfList length of the total list
    * @param dll true if dll
    */
-  private void assertAbstractedList(Value[] pointers, int lengthOfList, boolean dll) {
+  private void assertAbstractedList(Value[] pointers, int lengthOfList, boolean isDll) {
     assertThat(currentState.getMemoryModel().getHeapObjects()).hasSize(2);
     int numOfValidObjects = 0;
     for (SMGObject obj : currentState.getMemoryModel().getSmg().getObjects()) {
@@ -292,7 +292,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         assertThat(readNfoWithoutMaterialization.getValue().isNumericValue()).isTrue();
         assertThat(readNfoWithoutMaterialization.getValue().asNumericValue().bigInteger())
             .isEquivalentAccordingToCompareTo(BigInteger.ZERO);
-        if (dll) {
+        if (isDll) {
           assertThat(obj).isInstanceOf(SMGDoublyLinkedListSegment.class);
           ValueAndSMGState readPfoWithoutMaterialization =
               currentState.readValueWithoutMaterialization(obj, pfo, pointerSizeInBits, null);
@@ -384,7 +384,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    *
    * @param lastConcreteListObject the last concrete segment who's nfo points to 0+.
    */
-  private void checkNextPointsToZeroPlus(SMGObject lastConcreteListObject, boolean dll) {
+  private void checkNextPointsToZeroPlus(SMGObject lastConcreteListObject, boolean isDll) {
     SMGValueAndSMGState readValueAndState =
         currentState.readSMGValue(lastConcreteListObject, nfo, pointerSizeInBits);
     currentState = readValueAndState.getSMGState();
@@ -395,7 +395,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValue).orElseThrow();
     assertThat(pointsToEdge.pointsTo()).isInstanceOf(SMGSinglyLinkedListSegment.class);
     assertThat(((SMGSinglyLinkedListSegment) pointsToEdge.pointsTo()).getMinLength()).isEqualTo(0);
-    if (dll) {
+    if (isDll) {
       SMGValueAndSMGState readPfoValueAndState =
           currentState.readSMGValue(pointsToEdge.pointsTo(), pfo, pointerSizeInBits);
       currentState = readPfoValueAndState.getSMGState();
@@ -418,7 +418,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * @throws SMGException not thrown
    */
   private void checkZeroPlusBehaviour(
-      boolean dll, SMGObject lastConcreteListObject, BigInteger expectedNfoValue)
+      boolean isDll, SMGObject lastConcreteListObject, BigInteger expectedNfoValue)
       throws SMGException {
     List<ValueAndSMGState> statesAndReadValueZeroPlus =
         currentState.readValue(lastConcreteListObject, nfo, pointerSizeInBits, null);
@@ -462,7 +462,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     // assertThat(pointsToNextConcreteEdge.targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_FIRST_POINTER);
     assertThat(((SMGSinglyLinkedListSegment) pointsToNextConcreteEdge.pointsTo()).getMinLength())
         .isEqualTo(0);
-    if (dll) {
+    if (isDll) {
       SMGValueAndSMGState readPfoValueAndState =
           currentState.readSMGValue(
               pointsToAdditionalSegmentEdge.pointsTo(), pfo, pointerSizeInBits);
@@ -549,7 +549,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Test
   public void basicDLLFullAbstractionTest() throws SMGException {
     Value[] pointers =
-        buildConcreteList(true, pointerSizeInBits.multiply(BigInteger.valueOf(3)), TEST_LIST_LENGTH);
+        buildConcreteList(
+            true, pointerSizeInBits.multiply(BigInteger.valueOf(3)), TEST_LIST_LENGTH);
 
     SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
         currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
@@ -733,7 +734,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   @Test
   public void basicDLLFullAbstractionWithExternalPointerMaterializationTest() throws SMGException {
     Value[] pointers =
-        buildConcreteList(true, pointerSizeInBits.multiply(BigInteger.valueOf(3)), TEST_LIST_LENGTH);
+        buildConcreteList(
+            true, pointerSizeInBits.multiply(BigInteger.valueOf(3)), TEST_LIST_LENGTH);
 
     SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
         currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
@@ -913,7 +915,8 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   /**
-   * Builds a concrete SLL with size sllSize and length TEST_LIST_LENGTH, sanity checks and returns all pointers in order.
+   * Builds a concrete SLL with size sllSize and length TEST_LIST_LENGTH, sanity checks and returns
+   * all pointers in order.
    *
    * @return all pointers to the list in order.
    * @throws SMGException never thrown
@@ -1510,7 +1513,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * @throws SMGException indicates errors
    */
   private void derefPointersAtAndCheckListMaterialization(
-      int totalSizeOfList, Value[] pointers, int[] derefPositions, boolean dll)
+      int totalSizeOfList, Value[] pointers, int[] derefPositions, boolean isDll)
       throws SMGException {
     int tmp = 0;
     assertThat(derefPositions[0]).isAtLeast(0);
@@ -1546,7 +1549,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
                     .orElseThrow()
                     .getNestingLevel())
             .isEqualTo(0);
-        if (dll && i > 0) {
+        if (isDll && i > 0) {
           // has a back pointer w nesting level 0 that points to the prev object
           ValueAndSMGState backPointerRead =
               currentState.readValueWithoutMaterialization(
@@ -1591,7 +1594,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         assertThat(derefWOConcreteTarget).isPresent();
         assertThat(derefWOConcreteTarget.orElseThrow().getSMGObject())
             .isInstanceOf(SMGSinglyLinkedListSegment.class);
-        if (dll && i > 0) {
+        if (isDll && i > 0) {
           // has a back pointer w nesting level 0 that points to the previous concrete object
           SMGObject currentObj = derefWOConcreteTarget.orElseThrow().getSMGObject();
           Optional<SMGStateAndOptionalSMGObjectAndOffset> derefWConcreteTarget =
