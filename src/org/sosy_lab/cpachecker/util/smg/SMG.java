@@ -148,7 +148,7 @@ public class SMG {
         builder = builder.put(entry);
       }
     }
-    return new SMG(smgObjects, smgValues, hasValueEdges, builder.build(), sizeOfPointer);
+    return new SMG(smgObjects, smgValues, hasValueEdges, builder.buildOrThrow(), sizeOfPointer);
   }
 
   /**
