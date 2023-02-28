@@ -171,7 +171,6 @@ public class DeterministicVariablesTransferRelation
   @Override
   protected DeterministicVariablesState handleFunctionReturnEdge(
       final FunctionReturnEdge cfaEdge,
-      final FunctionSummaryEdge fnkCall,
       final AFunctionCall summaryExpr,
       final String callerFunctionName)
       throws CPATransferException {

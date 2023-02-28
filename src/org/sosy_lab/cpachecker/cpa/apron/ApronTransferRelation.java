@@ -666,10 +666,7 @@ public class ApronTransferRelation
 
   @Override
   protected Set<ApronState> handleFunctionReturnEdge(
-      CFunctionReturnEdge cfaEdge,
-      CFunctionSummaryEdge fnkCall,
-      CFunctionCall exprOnSummary,
-      String callerFunctionName)
+      CFunctionReturnEdge cfaEdge, CFunctionCall exprOnSummary, String callerFunctionName)
       throws CPATransferException {
     String calledFunctionName = cfaEdge.getPredecessor().getFunctionName();
 

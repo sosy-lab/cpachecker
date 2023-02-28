@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
@@ -265,7 +264,6 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
   @Override
   protected RTTState handleFunctionReturnEdge(
       JMethodReturnEdge cfaEdge,
-      JMethodSummaryEdge fnkCall,
       JMethodOrConstructorInvocation summaryExpr,
       String callerFunctionName)
       throws UnrecognizedCodeException {

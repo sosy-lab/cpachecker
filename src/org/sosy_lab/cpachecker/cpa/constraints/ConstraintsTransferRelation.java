@@ -105,10 +105,7 @@ public class ConstraintsTransferRelation
 
   @Override
   protected ConstraintsState handleFunctionReturnEdge(
-      FunctionReturnEdge pCfaEdge,
-      FunctionSummaryEdge pFunctionCallEdge,
-      AFunctionCall pSummaryExpression,
-      String pCallerFunctionName) {
+      FunctionReturnEdge pCfaEdge, AFunctionCall pSummaryExpression, String pCallerFunctionName) {
     return state;
   }
 

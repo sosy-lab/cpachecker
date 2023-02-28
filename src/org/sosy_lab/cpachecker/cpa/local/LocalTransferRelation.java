@@ -127,10 +127,7 @@ public class LocalTransferRelation
 
   @Override
   protected LocalState handleFunctionReturnEdge(
-      CFunctionReturnEdge cfaEdge,
-      CFunctionSummaryEdge fnkCall,
-      CFunctionCall exprOnSummary,
-      String callerFunctionName)
+      CFunctionReturnEdge cfaEdge, CFunctionCall exprOnSummary, String callerFunctionName)
       throws HandleCodeException {
 
     // NOTE! getFunctionName() return inner function name!

@@ -354,10 +354,7 @@ public class LiveVariablesTransferRelation
 
   @Override
   protected LiveVariablesState handleFunctionReturnEdge(
-      FunctionReturnEdge cfaEdge,
-      FunctionSummaryEdge fnkCall,
-      AFunctionCall summaryExpr,
-      String callerFunctionName)
+      FunctionReturnEdge cfaEdge, AFunctionCall summaryExpr, String callerFunctionName)
       throws CPATransferException {
     /* This analysis is (mostly) used during cfa creation, when no edges between
      * different functions exist, thus this function is mainly unused. However

@@ -84,7 +84,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -441,10 +440,7 @@ public class ValueAnalysisTransferRelation
    */
   @Override
   protected ValueAnalysisState handleFunctionReturnEdge(
-      FunctionReturnEdge functionReturnEdge,
-      FunctionSummaryEdge summaryEdge,
-      AFunctionCall exprOnSummary,
-      String callerFunctionName)
+      FunctionReturnEdge functionReturnEdge, AFunctionCall exprOnSummary, String callerFunctionName)
       throws UnrecognizedCodeException {
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
