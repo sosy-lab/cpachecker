@@ -117,7 +117,7 @@ public class ValidationConfigurationBuilder {
       "pcc.partitioning.kwayfm.optimizationCriterion",
       "pcc.partitioning.maxNumElemsPerPartition",
       "pcc.partitioning.multilevel.matchingGenerator",
-      "pcc.partitioning.multilevel.globalHeuristic"
+      "pcc.partitioning.multilevel.globalHeuristic",
     };
 
     for (String option : options) {

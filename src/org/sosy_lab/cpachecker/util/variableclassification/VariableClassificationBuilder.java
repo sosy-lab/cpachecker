@@ -308,7 +308,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
         {"intBoolVarsRelevant", countNumberOfRelevantVars(vc.getIntBoolVars())},
         {"intEqualVarsRelevant", countNumberOfRelevantVars(vc.getIntEqualVars())},
         {"intAddVarsRelevant", countNumberOfRelevantVars(vc.getIntAddVars())},
-        {"allVarsRelevant", countNumberOfRelevantVars(allVars)}
+        {"allVarsRelevant", countNumberOfRelevantVars(allVars)},
       };
       // Write header
       for (int col = 0; col < statMapping.length; col++) {
