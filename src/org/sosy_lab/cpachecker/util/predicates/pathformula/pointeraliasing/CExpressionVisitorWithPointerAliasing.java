@@ -1109,6 +1109,10 @@ class CExpressionVisitorWithPointerAliasing
       type = conv.machineModel.getPointerEquivalentSimpleType();
     }
 
+    if (type instanceof CVoidType) {
+      throw new UnrecognizedCodeException("Could not resolve underlying memset type from void", e);
+    }
+
     if (!(type instanceof CSimpleType)) {
       throw new UnrecognizedCodeException("Memset destination type not supported", e);
     }
