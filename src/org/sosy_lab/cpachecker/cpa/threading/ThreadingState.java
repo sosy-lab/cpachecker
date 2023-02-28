@@ -265,8 +265,8 @@ public class ThreadingState
   }
 
   @Override
-  public Iterable<CFAEdge> getIngoingEdges() {
-    return getLocations().transformAndConcat(AbstractStateWithLocations::getIngoingEdges);
+  public Iterable<CFAEdge> getIncomingEdges() {
+    return getLocations().transformAndConcat(AbstractStateWithLocations::getIncomingEdges);
   }
 
   @Override

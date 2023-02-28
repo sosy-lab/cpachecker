@@ -136,7 +136,7 @@ public class CFAToCTranslator {
   private void translate(CFunctionEntryNode pEntry) throws CPAException {
     // waitlist for the edges to be processed
     Deque<NodeAndBlock> waitlist = new ArrayDeque<>();
-    Multimap<CFANode, NodeAndBlock> ingoingBlocks = HashMultimap.create();
+    Multimap<CFANode, NodeAndBlock> incomingBlocks = HashMultimap.create();
 
     FunctionDefinition f = startFunction(pEntry);
     functions.add(f);
@@ -157,7 +157,7 @@ public class CFAToCTranslator {
       } else {
         final CompoundStatement originalBlock = current.getCurrentBlock();
         final CompoundStatement currentBlock =
-            getBlockToContinueWith(currentNode, originalBlock, ingoingBlocks.get(currentNode));
+            getBlockToContinueWith(currentNode, originalBlock, incomingBlocks.get(currentNode));
         // create new NodeAndBlock because the block may have changed from the start of the loop
         if (currentBlock != originalBlock) {
           current = new NodeAndBlock(currentNode, currentBlock);
@@ -166,7 +166,7 @@ public class CFAToCTranslator {
         Collection<NodeAndBlock> nextNodes = handleNode(currentNode, currentBlock);
         for (NodeAndBlock next : nextNodes) {
           CFANode nextNode = next.getNode();
-          ingoingBlocks.put(nextNode, current);
+          incomingBlocks.put(nextNode, current);
           pushToWaitlist(waitlist, next);
         }
       }
