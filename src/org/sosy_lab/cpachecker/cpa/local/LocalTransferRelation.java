@@ -129,13 +129,12 @@ public class LocalTransferRelation
   protected LocalState handleFunctionReturnEdge(
       CFunctionReturnEdge cfaEdge,
       CFunctionSummaryEdge fnkCall,
-      CFunctionCall summaryExpr,
+      CFunctionCall exprOnSummary,
       String callerFunctionName)
       throws HandleCodeException {
 
     // NOTE! getFunctionName() return inner function name!
 
-    CFunctionCall exprOnSummary = cfaEdge.getSummaryEdge().getExpression();
     LocalState newElement = state.getClonedPreviousState();
 
     if (exprOnSummary instanceof CFunctionCallAssignmentStatement assignExp) {

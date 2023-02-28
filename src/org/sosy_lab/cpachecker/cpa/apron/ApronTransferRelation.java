@@ -668,11 +668,9 @@ public class ApronTransferRelation
   protected Set<ApronState> handleFunctionReturnEdge(
       CFunctionReturnEdge cfaEdge,
       CFunctionSummaryEdge fnkCall,
-      CFunctionCall summaryExpr,
+      CFunctionCall exprOnSummary,
       String callerFunctionName)
       throws CPATransferException {
-    CFunctionCall exprOnSummary = fnkCall.getExpression();
-
     String calledFunctionName = cfaEdge.getPredecessor().getFunctionName();
 
     // expression is an assignment operation, e.g. a = g(b);
