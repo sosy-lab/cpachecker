@@ -452,8 +452,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   private Optional<MemoryLocation> getReturnVariable(CFunctionSummaryEdge pSummaryEdge) {
 
     CFunctionCallEdge callEdge = getCallEdge(pSummaryEdge);
-    Optional<CVariableDeclaration> returnVariable =
-        callEdge.getSummaryEdge().getFunctionEntry().getReturnVariable();
+    Optional<CVariableDeclaration> returnVariable = callEdge.getSuccessor().getReturnVariable();
 
     if (returnVariable.isPresent()) {
       return Optional.of(MemoryLocation.forDeclaration(returnVariable.orElseThrow()));
