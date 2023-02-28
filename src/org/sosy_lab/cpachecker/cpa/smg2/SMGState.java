@@ -1006,50 +1006,8 @@ public class SMGState
     return true;
   }
 
-  @Override
-  public boolean isLessOrEqual(SMGState pOther) throws CPAException, InterruptedException {
-    // also, this element is not less or equal than the other element, if it contains less elements
-    if (getSize() < pOther.getSize()) {
-      return false;
-    }
-
-    if (!checkErrorEqualityForTwoStates(pOther)) {
-      return false;
-    }
-
-    EqualityCache<Value> equalityCache = EqualityCache.<Value>of();
-
-    if (!checkStackFrameEqualityForTwoStates(pOther, equalityCache)) {
-      return false;
-    }
-
-    // the tolerant way: ignore all type information.
-    PersistentMap<MemoryLocation, ValueAndValueSize> memLocAndValues =
-        memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap();
-    for (Entry<MemoryLocation, ValueAndValueSize> otherEntry :
-        pOther.memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap().entrySet()) {
-      MemoryLocation key = otherEntry.getKey();
-      Value otherValue = otherEntry.getValue().getValue();
-      ValueAndValueSize thisValueAndType = memLocAndValues.get(key);
-      if (thisValueAndType == null
-          || !areValuesEqual(
-              this, thisValueAndType.getValue(), pOther, otherValue, equalityCache)) {
-        return false;
-      }
-      // Remove the checked values
-      memLocAndValues = memLocAndValues.removeAndCopy(key);
-    }
-    // Now check the remaining values. We don't allow the merging of states if one has pointers/heap
-    for (Entry<MemoryLocation, ValueAndValueSize> remainingThisEntry : memLocAndValues.entrySet()) {
-      Value otherValue = remainingThisEntry.getValue().getValue();
-      if (memoryModel.isPointer(otherValue)) {
-        return false;
-      }
-    }
-    if (memLocAndValues.size() > 0) {
-      return false;
-    }
-    // Don't drop heap objects, or we can't determine mem-leaks
+  private boolean checkEqualHeapValidity(SMGState pOther) {
+    // Check equal validity for heap objects, or we can't determine mem-leaks later on
     if (memoryModel.getHeapObjects().size() > pOther.memoryModel.getHeapObjects().size()) {
       return false;
     } else {
@@ -1070,8 +1028,77 @@ public class SMGState
         return false;
       }
     }
-
     return true;
+  }
+
+  private boolean checkEqualityOfMemoryForTwoStates(
+      SMGState pOther, EqualityCache<Value> equalityCache) throws SMGException {
+    // We check the tolerant way; i.e. ignore all type information
+    // Get all (global and local) variables
+    PersistentMap<MemoryLocation, ValueAndValueSize> thisAllMemLocAndValues =
+        memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap();
+    for (Entry<MemoryLocation, ValueAndValueSize> otherMemLocAndValue :
+        pOther.memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap().entrySet()) {
+      MemoryLocation otherMemLoc = otherMemLocAndValue.getKey();
+      Value otherValue = otherMemLocAndValue.getValue().getValue();
+      ValueAndValueSize thisValueAndType = thisAllMemLocAndValues.get(otherMemLoc);
+
+      // Now check the equality of all values. For concrete values, we allow overapproximations.
+      // Pointers/memory is compared by shape, subsumtion is allowed for equal linked lists, such
+      // that the smaller subsumes the larger (5+ >= 6+)
+      if (thisValueAndType == null
+          || !areValuesEqual(
+              this, thisValueAndType.getValue(), pOther, otherValue, equalityCache)) {
+        return false;
+      }
+      // Remove the checked values (don't double-check later)
+      thisAllMemLocAndValues = thisAllMemLocAndValues.removeAndCopy(otherMemLoc);
+    }
+    // Now check the remaining values. We don't allow the merging/subsumption of states if one has
+    // pointers/heap and the other doesn't. The rest is covered by overapproximations.
+    for (Entry<MemoryLocation, ValueAndValueSize> remainingThisEntry :
+        thisAllMemLocAndValues.entrySet()) {
+      Value otherValue = remainingThisEntry.getValue().getValue();
+      if (memoryModel.isPointer(otherValue)) {
+        return false;
+      }
+    }
+
+    // Check that there is no memory left that is not present in the other state
+    if (thisAllMemLocAndValues.size() > 0) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public boolean isLessOrEqual(SMGState pOther) throws CPAException, InterruptedException {
+    // This state needs the same amount of variables as the other state
+    if (getSize() != pOther.getSize()) {
+      return false;
+    }
+
+    // We may not forget any errors already found
+    if (!checkErrorEqualityForTwoStates(pOther)) {
+      return false;
+    }
+
+    // Cache equalities that we already found
+    EqualityCache<Value> equalityCache = EqualityCache.<Value>of();
+    // Check that both have the same stack frames
+    if (!checkStackFrameEqualityForTwoStates(pOther, equalityCache)) {
+      return false;
+    }
+
+    // Check that the values of all variables (local and global) are either equal or
+    // overapproximated and that the memory is equal (such that the shape of memory reachable by
+    // pointers is lessOrEqual)
+    if (!checkEqualityOfMemoryForTwoStates(pOther, equalityCache)) {
+      return false;
+    }
+
+    // Check equal validity for heap objects, or we can't determine mem-leaks later on
+    return checkEqualHeapValidity(pOther);
   }
 
   /**
@@ -1208,9 +1235,10 @@ public class SMGState
       SMGObject thisObj = thisDerefObjAndOffset.getSMGObject();
       SMGObject otherObj = otherDerefObjAndOffset.getSMGObject();
 
-      if ((getMemoryModel().isObjectValid(thisObj) && !getMemoryModel().isObjectValid(otherObj))
+      if ((getMemoryModel().isObjectValid(thisObj)
+              && !otherState.getMemoryModel().isObjectValid(otherObj))
           || (!getMemoryModel().isObjectValid(thisObj)
-              && getMemoryModel().isObjectValid(otherObj))) {
+              && otherState.getMemoryModel().isObjectValid(otherObj))) {
         // One invalid, one valid
         return false;
       }
@@ -1237,7 +1265,8 @@ public class SMGState
             thisState, thisObj, otherState, otherObj, equalityCache, thisAlreadyCheckedPointers);
       }
 
-      if (!getMemoryModel().isObjectValid(thisObj) && !getMemoryModel().isObjectValid(otherObj)) {
+      if (!getMemoryModel().isObjectValid(thisObj)
+          && !otherState.getMemoryModel().isObjectValid(otherObj)) {
         // both invalid (we checked sizes etc. already)
         return true;
       }
