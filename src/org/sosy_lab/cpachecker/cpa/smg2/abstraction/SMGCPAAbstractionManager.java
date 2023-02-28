@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.abstraction;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
@@ -21,6 +22,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
@@ -331,7 +333,7 @@ public class SMGCPAAbstractionManager {
     return refinedLinkedCandidatesBuilder.build();
   }
 
-  // Protected for tests
+  @VisibleForTesting
   private Set<SMGCandidate> getLinkedCandidates() {
     SMG smg = state.getMemoryModel().getSmg();
     Set<SMGCandidate> candidates = new HashSet<>();
@@ -340,11 +342,11 @@ public class SMGCPAAbstractionManager {
       if (!smg.isValid(heapObj)) {
         continue;
       }
-      Optional<SMGCandidate> maybeCandidate =
+      Optional<SMGCandidate> possibleCandidate =
           getSLLinkedCandidatesForObject(
               heapObj, smg, alreadyVisited, state.getMemoryModel().getHeapObjects());
-      if (maybeCandidate.isPresent()) {
-        candidates.add(maybeCandidate.orElseThrow());
+      if (possibleCandidate.isPresent()) {
+        candidates.add(possibleCandidate.orElseThrow());
       }
     }
     // Refine candidates (DLL tend to produce both ends as candidates,
@@ -353,7 +355,15 @@ public class SMGCPAAbstractionManager {
     return candidates;
   }
 
-  // Protected for tests
+  /**
+   * Determines if a candidate is a DLL and returns the suspected PFO if it is. Protected for tests
+   * only.
+   *
+   * @param candidate the {@link SMGCandidate} for a list.
+   * @param smg the {@link SMG}
+   * @return Optional.empty iff not a DLL. Suspected PFO else.
+   */
+  @VisibleForTesting
   protected Optional<BigInteger> isDLL(SMGCandidate candidate, SMG smg) {
     BigInteger nfo = candidate.getSuspectedNfo();
     SMGObject root = candidate.getObject();
@@ -384,7 +394,7 @@ public class SMGCPAAbstractionManager {
         break;
       }
     }
-    return nextHaveBackPointers(nextObject, root, smg, nfo, 1);
+    return findBackPointerOffsetForListObject(nextObject, root, smg, nfo, 1);
   }
 
   Set<SMGCandidate> refineCandidates(Set<SMGCandidate> candidates, SMGState pState) {
@@ -395,7 +405,7 @@ public class SMGCPAAbstractionManager {
       // now kick all found other candidates out
       if (finalCandidates.contains(candi)) {
         finalCandidates =
-            traverseAndKickEqual(
+            traverseAndRemoveEqual(
                 candi.getObject(),
                 candi.getSuspectedNfo(),
                 finalCandidates,
@@ -406,7 +416,7 @@ public class SMGCPAAbstractionManager {
     return finalCandidates;
   }
 
-  private Set<SMGCandidate> traverseAndKickEqual(
+  private Set<SMGCandidate> traverseAndRemoveEqual(
       SMGObject candidate,
       BigInteger nfo,
       Set<SMGCandidate> candidates,
@@ -424,7 +434,7 @@ public class SMGCPAAbstractionManager {
           candidates.stream()
               .filter(can -> !can.getObject().equals(nextObject))
               .collect(ImmutableSet.toImmutableSet());
-      return traverseAndKickEqual(nextObject, nfo, newCandidates, pState, alreadyVisited);
+      return traverseAndRemoveEqual(nextObject, nfo, newCandidates, pState, alreadyVisited);
     } else {
       return candidates;
     }
@@ -448,7 +458,7 @@ public class SMGCPAAbstractionManager {
     return Optional.of(nextObject);
   }
 
-  private Optional<BigInteger> nexthaveBackPointers(
+  private Optional<BigInteger> nextHaveBackPointersWithAssumedPFO(
       SMGObject root,
       SMGObject previous,
       SMG smg,
@@ -464,48 +474,38 @@ public class SMGCPAAbstractionManager {
         getPointersToSameSizeObjectsWithoutOffset(root, smg, alreadyVisited, nfo);
     if (setOfPointers.size() < 1) {
       return Optional.empty();
-    } else {
-      SMGObject nextObject = null;
-      for (SMGHasValueEdge hve : smg.getEdges(root)) {
-        SMGValue value = hve.hasValue();
+    }
 
-        if (hve.getOffset().compareTo(nfo) == 0 && smg.isPointer(value)) {
-          Optional<SMGPointsToEdge> pointsToEdge = smg.getPTEdge(value);
-          if (pointsToEdge.isEmpty()) {
-            break;
-          }
-          nextObject = pointsToEdge.orElseThrow().pointsTo();
-          break;
-        }
+    @Nullable SMGObject nextObject = findNextObjectForListWithNFO(root, nfo, smg);
+
+    // Check all others for validity
+    alreadyVisited.add(previous);
+    for (SMGHasValueEdge hve : setOfPointers) {
+      if (hve.getOffset().compareTo(pfo) != 0) {
+        continue;
       }
-
-      // Check all others for validity
-      alreadyVisited.add(previous);
-      for (SMGHasValueEdge hve : setOfPointers) {
-        if (hve.getOffset().compareTo(pfo) != 0) {
-          continue;
+      SMGValue value = hve.hasValue();
+      SMGPointsToEdge pte = smg.getPTEdge(value).orElseThrow();
+      SMGObject prevInCurrent = pte.pointsTo();
+      if (prevInCurrent.equals(previous)) {
+        // assume that the pfo is correct, test further
+        if (nextObject == null) {
+          return Optional.empty();
         }
-        SMGValue value = hve.hasValue();
-        SMGPointsToEdge pte = smg.getPTEdge(value).orElseThrow();
-        SMGObject prevInCurrent = pte.pointsTo();
-        if (prevInCurrent.equals(previous)) {
-          // assume that the pfo is correct, test further
-          if (nextObject == null) {
-            return Optional.empty();
-          }
-          Optional<BigInteger> maybePFO =
-              nexthaveBackPointers(
-                  nextObject, root, smg, nfo, pfo, lengthToCheck - 1, alreadyVisited);
-          if (maybePFO.isPresent()) {
-            return maybePFO;
-          }
+
+        Optional<BigInteger> maybePFO =
+            nextHaveBackPointersWithAssumedPFO(
+                nextObject, root, smg, nfo, pfo, lengthToCheck - 1, alreadyVisited);
+
+        if (maybePFO.isPresent()) {
+          return maybePFO;
         }
       }
     }
     return Optional.empty();
   }
 
-  private Optional<BigInteger> nextHaveBackPointers(
+  private Optional<BigInteger> findBackPointerOffsetForListObject(
       SMGObject root, SMGObject previous, SMG smg, BigInteger nfo, int lengthToCheck) {
     Set<SMGObject> alreadyVisited = new HashSet<>();
     // pfo unknown, try to find it
@@ -514,40 +514,46 @@ public class SMGCPAAbstractionManager {
         getPointersToSameSizeObjectsWithoutOffset(root, smg, alreadyVisited, nfo);
     if (setOfPointers.size() < 1) {
       return Optional.empty();
-    } else {
-      SMGObject nextObject = null;
-      for (SMGHasValueEdge hve : smg.getEdges(root)) {
-        SMGValue value = hve.hasValue();
+    }
 
-        if (hve.getOffset().compareTo(nfo) == 0 && smg.isPointer(value)) {
-          Optional<SMGPointsToEdge> pointsToEdge = smg.getPTEdge(value);
-          if (pointsToEdge.isEmpty()) {
-            break;
-          }
-          nextObject = pointsToEdge.orElseThrow().pointsTo();
-          break;
-        }
-      }
+    @Nullable SMGObject nextObject = findNextObjectForListWithNFO(root, nfo, smg);
 
-      // Check all others for validity
-      alreadyVisited.add(previous);
-      for (SMGHasValueEdge hve : setOfPointers) {
-        BigInteger pfo = hve.getOffset();
-        SMGValue value = hve.hasValue();
-        SMGPointsToEdge pte = smg.getPTEdge(value).orElseThrow();
-        SMGObject prevInCurrent = pte.pointsTo();
-        if (prevInCurrent.equals(previous)) {
-          // assume that the pfo is correct, test further
-          Optional<BigInteger> maybePFO =
-              nexthaveBackPointers(
-                  nextObject, root, smg, nfo, pfo, lengthToCheck - 1, alreadyVisited);
-          if (maybePFO.isPresent()) {
-            return maybePFO;
-          }
+    // Check all others for validity
+    alreadyVisited.add(previous);
+    for (SMGHasValueEdge hve : setOfPointers) {
+      BigInteger pfo = hve.getOffset();
+      SMGValue value = hve.hasValue();
+      SMGPointsToEdge pte = smg.getPTEdge(value).orElseThrow();
+      SMGObject prevInCurrent = pte.pointsTo();
+      if (prevInCurrent.equals(previous)) {
+        // assume that the pfo is correct, test further
+        Optional<BigInteger> maybePFO =
+            nextHaveBackPointersWithAssumedPFO(
+                nextObject, root, smg, nfo, pfo, lengthToCheck - 1, alreadyVisited);
+
+        if (maybePFO.isPresent()) {
+          return maybePFO;
         }
       }
     }
     return Optional.empty();
+  }
+
+  private SMGObject findNextObjectForListWithNFO(SMGObject root, BigInteger nfo, SMG smg) {
+    SMGObject nextObject = null;
+    for (SMGHasValueEdge hve : smg.getEdges(root)) {
+      SMGValue value = hve.hasValue();
+
+      if (hve.getOffset().compareTo(nfo) == 0 && smg.isPointer(value)) {
+        Optional<SMGPointsToEdge> pointsToEdge = smg.getPTEdge(value);
+        if (pointsToEdge.isEmpty()) {
+          break;
+        }
+        nextObject = pointsToEdge.orElseThrow().pointsTo();
+        break;
+      }
+    }
+    return nextObject;
   }
 
   /* Search for followup segments based on potential root. If we find a object that is already processed in the candidatesMap, we take and remove it from the map, link it to the current segment, and return the new segment. */
@@ -690,6 +696,7 @@ public class SMGCPAAbstractionManager {
     return res.build();
   }
 
+  @VisibleForTesting
   protected static class SMGCandidate {
     private SMGObject object;
     private BigInteger suspectedNfo;
