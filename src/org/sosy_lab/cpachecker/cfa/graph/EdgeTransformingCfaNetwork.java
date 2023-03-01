@@ -14,10 +14,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.Iterators;
 import com.google.common.graph.EndpointPair;
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 /**
@@ -98,5 +101,17 @@ final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
   @Override
   public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
     return delegate.incidentNodes(pEdge);
+  }
+
+  @Override
+  public FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode) {
+    // `delegate` may provide a more performant implementation that returns the correct node
+    return delegate.functionEntryNode(pFunctionExitNode);
+  }
+
+  @Override
+  public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
+    // `delegate` may provide a more performant implementation that returns the correct node
+    return delegate.functionExitNode(pFunctionEntryNode);
   }
 }

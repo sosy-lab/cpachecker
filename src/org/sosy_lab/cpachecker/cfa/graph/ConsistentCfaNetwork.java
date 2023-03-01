@@ -16,7 +16,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -148,30 +147,12 @@ public abstract class ConsistentCfaNetwork extends AbstractCfaNetwork {
     return pFunctionEntryNode.getExitNode();
   }
 
-  // on-the-fly filters & transformers
+  // on-the-fly filters
 
   @Override
   public CfaNetwork withFilteredFunctions(Predicate<AFunctionDeclaration> pRetainPredicate) {
     return CheckingCfaNetwork.wrapIfAssertionsEnabled(
         new EntryExitConsistentCfaNetwork(super.withFilteredFunctions(pRetainPredicate)));
-  }
-
-  @Override
-  public CfaNetwork withFilteredEdges(Predicate<CFAEdge> pRetainPredicate) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        new EntryExitConsistentCfaNetwork(super.withFilteredEdges(pRetainPredicate)));
-  }
-
-  @Override
-  public CfaNetwork withTransformedEdges(Function<CFAEdge, CFAEdge> pEdgeTransformer) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        new EntryExitConsistentCfaNetwork(super.withTransformedEdges(pEdgeTransformer)));
-  }
-
-  @Override
-  public CfaNetwork withoutSuperEdges() {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        new EntryExitConsistentCfaNetwork(super.withoutSuperEdges()));
   }
 
   private static final class EntryExitConsistentCfaNetwork extends ForwardingCfaNetwork {
@@ -201,24 +182,6 @@ public abstract class ConsistentCfaNetwork extends AbstractCfaNetwork {
     public CfaNetwork withFilteredFunctions(Predicate<AFunctionDeclaration> pRetainPredicate) {
       return CheckingCfaNetwork.wrapIfAssertionsEnabled(
           new EntryExitConsistentCfaNetwork(delegate.withFilteredFunctions(pRetainPredicate)));
-    }
-
-    @Override
-    public CfaNetwork withFilteredEdges(Predicate<CFAEdge> pRetainPredicate) {
-      return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-          new EntryExitConsistentCfaNetwork(delegate.withFilteredEdges(pRetainPredicate)));
-    }
-
-    @Override
-    public CfaNetwork withTransformedEdges(Function<CFAEdge, CFAEdge> pEdgeTransformer) {
-      return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-          new EntryExitConsistentCfaNetwork(delegate.withTransformedEdges(pEdgeTransformer)));
-    }
-
-    @Override
-    public CfaNetwork withoutSuperEdges() {
-      return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-          new EntryExitConsistentCfaNetwork(delegate.withoutSuperEdges()));
     }
   }
 }
