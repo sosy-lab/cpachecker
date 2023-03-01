@@ -346,8 +346,8 @@ public class FormulaSlicingManager implements StatisticsProvider {
           e);
       try {
         return solver.isUnsat(reachabilityQuery);
-      } catch (SolverException pE1) {
-        throw new CPAException("Solver error occurred", pE1);
+      } catch (SolverException e2) {
+        throw new CPAException("Solver error occurred", e2);
       }
     }
   }
