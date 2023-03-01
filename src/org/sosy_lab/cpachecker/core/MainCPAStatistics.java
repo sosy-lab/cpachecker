@@ -167,13 +167,10 @@ class MainCPAStatistics implements Statistics {
           Level.WARNING,
           "Your Java VM does not support measuring the cpu time, some statistics will be missing.");
       programCpuTime = -1;
-    }
-    /*
-     * Google App Engine does not allow to use classes from the package java.lang.management.
-     * Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
-     * CPAchecker from crashing in this case we catch the error and log the event.
-     */
-    catch (NoClassDefFoundError e) {
+    } catch (NoClassDefFoundError e) {
+      // Google App Engine does not allow to use classes from the package java.lang.management.
+      // Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
+      // CPAchecker from crashing in this case we catch the error and log the event.
       logger.logDebugException(e, "Querying cpu time failed");
       logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
       programCpuTime = -1;
@@ -204,13 +201,10 @@ class MainCPAStatistics implements Statistics {
       logger.logDebugException(e, "Querying cpu time failed");
       // user was already warned
       analysisCpuTime = -1;
-    }
-    /*
-     * Google App Engine does not allow to use classes from the package java.lang.management.
-     * Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
-     * CPAchecker from crashing in this case we catch the error and log the event.
-     */
-    catch (NoClassDefFoundError e) {
+    } catch (NoClassDefFoundError e) {
+      // Google App Engine does not allow to use classes from the package java.lang.management.
+      // Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
+      // CPAchecker from crashing in this case we catch the error and log the event.
       logger.logDebugException(e, "Querying cpu time failed");
       logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
       analysisCpuTime = -1;
@@ -234,13 +228,10 @@ class MainCPAStatistics implements Statistics {
     } catch (JMException e) {
       logger.logDebugException(e, "Querying cpu time failed");
       // user was already warned
-    }
-    /*
-     * Google App Engine does not allow to use classes from the package java.lang.management.
-     * Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
-     * CPAchecker from crashing in this case we catch the error and log the event.
-     */
-    catch (NoClassDefFoundError e) {
+    } catch (NoClassDefFoundError e) {
+      // Google App Engine does not allow to use classes from the package java.lang.management.
+      // Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
+      // CPAchecker from crashing in this case we catch the error and log the event.
       logger.logDebugException(e, "Querying cpu time failed");
       logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
     }
@@ -294,9 +285,9 @@ class MainCPAStatistics implements Statistics {
               Level.WARNING,
               e,
               "Encountered IO error while generating the invariant as an output program.");
-        } catch (InterruptedException pE) {
+        } catch (InterruptedException e) {
           logger.logUserException(
-              Level.WARNING, pE, "Interrupted while generating the invariant as an output program");
+              Level.WARNING, e, "Interrupted while generating the invariant as an output program");
         } catch (SolverException e) {
           logger.logUserException(
               Level.WARNING,

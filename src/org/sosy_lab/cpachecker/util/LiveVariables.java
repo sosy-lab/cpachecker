@@ -335,7 +335,9 @@ public class LiveVariables {
       final LogManager logger,
       final ShutdownNotifier pShutdownNotifier,
       final Configuration config)
-      throws InvalidConfigurationException, IllegalArgumentException, AssertionError,
+      throws InvalidConfigurationException,
+          IllegalArgumentException,
+          AssertionError,
           InterruptedException {
     checkNotNull(variableClassification);
     checkNotNull(globalsList);

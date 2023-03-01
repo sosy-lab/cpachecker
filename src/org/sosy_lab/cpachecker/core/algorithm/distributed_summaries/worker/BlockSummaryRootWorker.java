@@ -125,9 +125,9 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
               (BlockSummaryPostConditionMessage) initialMessage.stream().findAny().orElseThrow());
       broadcast(initialMessage);
       super.run();
-    } catch (InterruptedException | CPAException pE) {
-      getLogger().logException(Level.SEVERE, pE, "Root worker stopped unexpectedly.");
-      broadcastOrLogException(ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getId(), pE)));
+    } catch (InterruptedException | CPAException e) {
+      getLogger().logException(Level.SEVERE, e, "Root worker stopped unexpectedly.");
+      broadcastOrLogException(ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getId(), e)));
     }
   }
 }

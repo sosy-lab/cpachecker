@@ -364,24 +364,24 @@ public class FaultLocalizationWithTraceFormula
       info.apply();
       logger.log(Level.INFO, "Running " + pAlgorithm.getClass().getSimpleName() + ":\n" + info);
 
-    } catch (SolverException sE) {
+    } catch (SolverException e) {
       throw new CPAException(
-          "The solver was not able to find the UNSAT-core of the path formula.", sE);
-    } catch (VerifyException vE) {
+          "The solver was not able to find the UNSAT-core of the path formula.", e);
+    } catch (VerifyException e) {
       throw new CPAException(
           "No bugs found because the trace formula is satisfiable or the counterexample is"
               + " spurious.",
-          vE);
-    } catch (InvalidConfigurationException iE) {
-      throw new CPAException("Incomplete analysis because of invalid configuration.", iE);
-    } catch (IllegalStateException iE) {
+          e);
+    } catch (InvalidConfigurationException e) {
+      throw new CPAException("Incomplete analysis because of invalid configuration.", e);
+    } catch (IllegalStateException e) {
       throw new CPAException(
-          "The counterexample is spurious. Calculating interpolants is not possible.", iE);
-    } catch (InvalidCounterexampleException pE) {
+          "The counterexample is spurious. Calculating interpolants is not possible.", e);
+    } catch (InvalidCounterexampleException e) {
       throw new CPAException(
           "The counterexample is invalid and cannot be transformed to a proper unsatisfiable"
               + " TraceFormula.",
-          pE);
+          e);
     }
   }
 

@@ -57,7 +57,7 @@ public class CounterexampleCheckAlgorithm
   enum CounterexampleCheckerType {
     CBMC,
     CPACHECKER,
-    CONCRETE_EXECUTION;
+    CONCRETE_EXECUTION,
   }
 
   private final Algorithm algorithm;

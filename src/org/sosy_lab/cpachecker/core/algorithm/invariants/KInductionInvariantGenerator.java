@@ -948,7 +948,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         }
         return asNegatedCandidateInvariants(assumeEdges, loopHeads.orElseThrow());
       }
-    };
+    }
   }
 
   private static Iterable<CandidateInvariant> asNegatedCandidateInvariants(

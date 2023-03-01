@@ -147,8 +147,8 @@ public class RCNFManager implements StatisticsProvider {
         try {
           statistics.quantifierElimination.start();
           result = fmgr.getQuantifiedFormulaManager().eliminateQuantifiers(input);
-        } catch (SolverException pE) {
-          throw new UnsupportedOperationException("Unexpected solver error", pE);
+        } catch (SolverException e) {
+          throw new UnsupportedOperationException("Unexpected solver error", e);
         } finally {
           statistics.quantifierElimination.stop();
         }

@@ -76,10 +76,9 @@ public class PolyhedraWideningManager {
     Abstract1 widened;
     try {
       statistics.polyhedraWideningTimer.start();
-      Abstract1 abs1, abs2;
       Environment env = generateEnvironment(ImmutableList.of(oldData, newData));
-      abs1 = fromTemplates(env, oldData);
-      abs2 = fromTemplates(env, newData);
+      Abstract1 abs1 = fromTemplates(env, oldData);
+      Abstract1 abs2 = fromTemplates(env, newData);
       abs2.join(manager, abs1);
       widened = abs1.widening(manager, abs2);
     } finally {

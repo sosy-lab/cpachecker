@@ -33,7 +33,7 @@ public class SlicerFactory implements StatisticsProvider {
   private enum ExtractorType {
     ALL,
     REDUCER,
-    SYNTAX;
+    SYNTAX,
   }
 
   private enum SlicingType {
@@ -49,7 +49,7 @@ public class SlicerFactory implements StatisticsProvider {
      *
      * @see IdentitySlicer
      */
-    IDENTITY
+    IDENTITY,
   }
 
   @Options(prefix = "slicing")

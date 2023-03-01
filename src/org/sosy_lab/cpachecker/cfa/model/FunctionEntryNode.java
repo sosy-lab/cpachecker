@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.DoNotCall;
 import java.util.List;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -95,5 +97,40 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
    */
   public Optional<? extends AVariableDeclaration> getReturnVariable() {
     return Optional.ofNullable(returnVariable);
+  }
+
+  @Override
+  public void addEnteringEdge(CFAEdge pEnteringEdge) {
+    checkArgument(pEnteringEdge instanceof FunctionCallEdge);
+    super.addEnteringEdge(pEnteringEdge);
+  }
+
+  @Override
+  public FunctionCallEdge getEnteringEdge(int pIndex) {
+    return (FunctionCallEdge) super.getEnteringEdge(pIndex);
+  }
+
+  @Override
+  public final void addEnteringSummaryEdge(FunctionSummaryEdge pEdge) {
+    throw new AssertionError("function-entry nodes cannot have summary eges");
+  }
+
+  @Override
+  public final void addLeavingSummaryEdge(FunctionSummaryEdge pEdge) {
+    throw new AssertionError("function-entry nodes cannot have summary eges");
+  }
+
+  @Override
+  @Deprecated
+  @DoNotCall // safe to call but useless
+  public final @Nullable FunctionSummaryEdge getEnteringSummaryEdge() {
+    return null;
+  }
+
+  @Override
+  @Deprecated
+  @DoNotCall // safe to call but useless
+  public final @Nullable FunctionSummaryEdge getLeavingSummaryEdge() {
+    return null;
   }
 }

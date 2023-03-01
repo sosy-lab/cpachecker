@@ -443,7 +443,10 @@ public class CPAchecker {
   }
 
   private CFA parse(List<String> fileNames, MainCPAStatistics stats)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException,
+      throws InvalidConfigurationException,
+          IOException,
+          ParserException,
+          InterruptedException,
           ClassNotFoundException {
 
     final CFA cfa;

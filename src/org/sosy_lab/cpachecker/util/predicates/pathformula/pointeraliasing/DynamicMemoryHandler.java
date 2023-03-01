@@ -666,11 +666,11 @@ class DynamicMemoryHandler {
                 lhsPointer.ifPresent(
                     (s) -> {
                       pts.removeDeferredAllocationPointer(s)
-                          .forEach((_d) -> handleDeferredAllocationPointerRemoval(s));
+                          .forEach(d -> handleDeferredAllocationPointerRemoval(s));
                       pts.addDeferredAllocationPointer(s, variable); // Now we track the LHS
                       // And not the RHS, it was a dummy, not a code pointer approximation
                       pts.removeDeferredAllocationPointer(variable)
-                          .forEach((_d) -> handleDeferredAllocationPointerRemoval(variable));
+                          .forEach(d -> handleDeferredAllocationPointerRemoval(variable));
                     });
                 if (!lhsPointer.isPresent()) {
                   conv.logger.logfOnce(
@@ -680,7 +680,7 @@ class DynamicMemoryHandler {
                       lhs,
                       edge);
                   pts.removeDeferredAllocationPointer(variable)
-                      .forEach((_d) -> handleDeferredAllocationPointerRemoval(variable));
+                      .forEach(d -> handleDeferredAllocationPointerRemoval(variable));
                 }
               }
               isAllocation = true;
@@ -768,7 +768,7 @@ class DynamicMemoryHandler {
     if (lhs instanceof CIdExpression) {
       // If LHS is a variable, remove previous points-to bindings containing it
       pts.removeDeferredAllocationPointer(((CIdExpression) lhs).getDeclaration().getQualifiedName())
-          .forEach(_d -> handleDeferredAllocationPointerRemoval(lhs));
+          .forEach(d -> handleDeferredAllocationPointerRemoval(lhs));
     } else {
       // Else try to remove bindings and only actually remove if no dangling objects arises
       Optional<String> lhsPointer = lhs.accept(pointerApproximatingVisitor);

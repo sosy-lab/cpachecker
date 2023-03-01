@@ -702,11 +702,11 @@ public abstract class AbstractExpressionValueVisitor
             return Value.UnknownValue.getInstance();
           }
       }
-    } catch (ArithmeticException ae) { // log warning and ignore expression
+    } catch (ArithmeticException e) { // log warning and ignore expression
       logger.logf(
           Level.WARNING,
           "expression causes arithmetic exception (%s): %s %s %s",
-          ae.getMessage(),
+          e.getMessage(),
           lNum.bigDecimalValue(),
           op.getOperator(),
           rNum.bigDecimalValue());

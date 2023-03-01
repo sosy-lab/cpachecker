@@ -83,9 +83,8 @@ public class PathPairIterator
 
   @Override
   protected Pair<ExtendedARGPath, ExtendedARGPath> getNext(Pair<UsageInfo, UsageInfo> pInput) {
-    UsageInfo firstUsage, secondUsage;
-    firstUsage = pInput.getFirst();
-    secondUsage = pInput.getSecond();
+    UsageInfo firstUsage = pInput.getFirst();
+    UsageInfo secondUsage = pInput.getSecond();
 
     if (firstPath == null) {
       // First time or it was unreachable last time
@@ -120,10 +119,8 @@ public class PathPairIterator
   @Override
   protected void finishIteration(
       Pair<ExtendedARGPath, ExtendedARGPath> pathPair, RefinementResult wrapperResult) {
-    ExtendedARGPath firstExtendedPath, secondExtendedPath;
-
-    firstExtendedPath = pathPair.getFirst();
-    secondExtendedPath = pathPair.getSecond();
+    ExtendedARGPath firstExtendedPath = pathPair.getFirst();
+    ExtendedARGPath secondExtendedPath = pathPair.getSecond();
 
     Object predicateInfo = wrapperResult.getInfo(PredicateRefinerAdapter.class);
     if (predicateInfo instanceof List) {

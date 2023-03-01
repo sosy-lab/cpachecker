@@ -251,17 +251,16 @@ public class CEGARAlgorithm
           break;
         }
 
-        // if there is any target state do refinement
         if (refinementNecessary(reached, previousLastState)) {
+          // if there is any target state do refinement
           refinementSuccessful = refine(reached);
           refinedInPreviousIteration = true;
           // Note, with special options reached set still contains violated properties
           // i.e (stopAfterError = true) or race conditions analysis
-        }
 
-        // restart exploration for unsound refiners, as due to unsound refinement
-        // a sound over-approximation has to be found for proving safety
-        else if (mRefiner instanceof UnsoundRefiner) {
+        } else if (mRefiner instanceof UnsoundRefiner) {
+          // restart exploration for unsound refiners, as due to unsound refinement
+          // a sound over-approximation has to be found for proving safety
           if (!refinedInPreviousIteration) {
             break;
           }

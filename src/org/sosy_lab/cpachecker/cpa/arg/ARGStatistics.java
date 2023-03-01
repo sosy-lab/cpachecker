@@ -478,8 +478,8 @@ public class ARGStatistics implements Statistics {
         }
         final int baseId = -1; // id for the exported 'complete' automaton
         writeAutomaton(baseId, argToAutomatonSplitter.getAutomaton(rootState, true));
-      } catch (IOException io) {
-        logger.logUserException(Level.WARNING, io, "Could not write ARG to automata to file");
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to automata to file");
       }
       try {
         int counterId = 0; // id for each exported 'partial' automata, distinct from 'baseId'
@@ -488,8 +488,8 @@ public class ARGStatistics implements Statistics {
           writeAutomaton(counterId, automaton);
         }
         logger.log(Level.INFO, "Number of exported automata after splitting:", counterId);
-      } catch (IOException io) {
-        logger.logUserException(Level.WARNING, io, "Could not write ARG to automata to file");
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to automata to file");
       }
     }
   }

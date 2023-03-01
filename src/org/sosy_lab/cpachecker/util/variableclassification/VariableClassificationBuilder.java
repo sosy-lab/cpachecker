@@ -71,7 +71,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -308,7 +307,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
         {"intBoolVarsRelevant", countNumberOfRelevantVars(vc.getIntBoolVars())},
         {"intEqualVarsRelevant", countNumberOfRelevantVars(vc.getIntEqualVars())},
         {"intAddVarsRelevant", countNumberOfRelevantVars(vc.getIntAddVars())},
-        {"allVarsRelevant", countNumberOfRelevantVars(allVars)}
+        {"allVarsRelevant", countNumberOfRelevantVars(allVars)},
       };
       // Write header
       for (int col = 0; col < statMapping.length; col++) {
@@ -727,8 +726,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     }
 
     // create dependency for functionreturn
-    CFunctionSummaryEdge func = edge.getSummaryEdge();
-    CFunctionCall statement = func.getExpression();
+    CFunctionCall statement = edge.getFunctionCall();
     Optional<CVariableDeclaration> returnVar = edge.getSuccessor().getReturnVariable();
     if (returnVar.isPresent()) {
       String scopedRetVal = returnVar.orElseThrow().getQualifiedName();

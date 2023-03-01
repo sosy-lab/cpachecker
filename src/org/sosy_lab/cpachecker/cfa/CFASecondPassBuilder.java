@@ -439,7 +439,7 @@ public class CFASecondPassBuilder {
 
       // remove function exit node if it has become unreachable
       FunctionEntryNode entryNode =
-          cfa.getAllFunctions().get(edge.getSuccessor().getFunction().getQualifiedName());
+          cfa.getFunctionHead(edge.getSuccessor().getFunction().getQualifiedName());
       Optional<FunctionExitNode> exitNode = entryNode.getExitNode();
       if (exitNode.isPresent() && exitNode.orElseThrow().getNumEnteringEdges() == 0) {
         entryNode.removeExitNode();

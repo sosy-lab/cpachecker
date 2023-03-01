@@ -63,8 +63,8 @@ public class LlvmParser implements Parser {
       parseTimer.start();
       return buildCfa(llvmModule, pFilename);
 
-    } catch (LLVMException pE) {
-      throw new LLVMParserException(pE);
+    } catch (LLVMException e) {
+      throw new LLVMParserException(e);
     }
   }
 

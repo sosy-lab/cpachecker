@@ -93,7 +93,7 @@ public class SMGCPATransferRelationTest {
     INT_TYPE,
     UNSIGNED_INT_TYPE,
     LONG_TYPE,
-    UNSIGNED_LONG_TYPE
+    UNSIGNED_LONG_TYPE,
   };
 
   private static final MachineModel MACHINE_MODEL = MachineModel.LINUX64;

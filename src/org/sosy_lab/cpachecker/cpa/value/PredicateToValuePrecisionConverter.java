@@ -226,7 +226,6 @@ public class PredicateToValuePrecisionConverter implements Statistics {
                     new ControlDependenceVisitor(inspectedVars, toProcess, result));
             MemoryLocation var;
             Collection<CSystemDependenceGraph.Node> relevantGraphNodes;
-            boolean allUsesTracked, oneUseTracked;
             ImmutableSet<MemoryLocation> defs;
             while (!toProcess.isEmpty()) {
               conversionShutdownNotifier.shutdownIfNecessary();
@@ -255,8 +254,8 @@ public class PredicateToValuePrecisionConverter implements Statistics {
                 for (CSystemDependenceGraph.Node relVarUse : relevantGraphNodes) {
                   defs = depGraph.getDefs(relVarUse);
                   if (!defs.isEmpty()) {
-                    allUsesTracked = true;
-                    oneUseTracked = false;
+                    boolean allUsesTracked = true;
+                    boolean oneUseTracked = false;
 
                     for (MemoryLocation varDep : depGraph.getUses(relVarUse)) {
                       if (inspectedVars.contains(varDep)) {

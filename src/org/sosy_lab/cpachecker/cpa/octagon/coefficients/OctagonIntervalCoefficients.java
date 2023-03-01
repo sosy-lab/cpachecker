@@ -383,12 +383,13 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
     StringBuilder builder = new StringBuilder();
 
     for (int i = 0; i < coefficients.length; i++) {
-      String a, b;
+      String a;
       if (coefficients[i].getLow().isInfinite()) {
         a = "INFINITY";
       } else {
         a = coefficients[i].getLow().toString();
       }
+      String b;
       if (coefficients[i].getHigh().isInfinite()) {
         b = "INFINITY";
       } else {

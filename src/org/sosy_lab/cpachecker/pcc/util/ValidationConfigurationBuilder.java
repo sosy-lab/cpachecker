@@ -64,19 +64,16 @@ public class ValidationConfigurationBuilder {
       final ConfigurationBuilder pConfigBuilder) {
     Map<String, String> relevantPropertyEntries = Maps.newHashMapWithExpectedSize(4);
 
-    String line, prop, value;
-    int eqSignPos;
-
     try (Scanner s = new Scanner(veriConfig.asPropertiesString())) {
       while (s.hasNextLine()) {
-        line = s.nextLine();
+        String line = s.nextLine();
 
-        eqSignPos = line.indexOf("=");
+        int eqSignPos = line.indexOf("=");
         if (eqSignPos < 0) {
           continue;
         }
 
-        prop = line.substring(0, eqSignPos).trim();
+        String prop = line.substring(0, eqSignPos).trim();
 
         if (prop.equals("specification")
             || prop.startsWith("analysis.")
@@ -91,7 +88,7 @@ public class ValidationConfigurationBuilder {
         if (prop.contains("cpa")
             || prop.equals("pcc.strategy")
             || prop.equals("analysis.restartAfterUnknown")) {
-          value = line.substring(eqSignPos + 1).trim();
+          String value = line.substring(eqSignPos + 1).trim();
           relevantPropertyEntries.put(prop, value);
         }
       }
@@ -120,7 +117,7 @@ public class ValidationConfigurationBuilder {
       "pcc.partitioning.kwayfm.optimizationCriterion",
       "pcc.partitioning.maxNumElemsPerPartition",
       "pcc.partitioning.multilevel.matchingGenerator",
-      "pcc.partitioning.multilevel.globalHeuristic"
+      "pcc.partitioning.multilevel.globalHeuristic",
     };
 
     for (String option : options) {

@@ -201,12 +201,12 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
     try {
       broadcast(forwardAnalysis.performInitialAnalysis());
       super.run();
-    } catch (CPAException pE) {
-      getLogger().logException(Level.SEVERE, pE, "Worker stopped working...");
+    } catch (CPAException e) {
+      getLogger().logException(Level.SEVERE, e, "Worker stopped working...");
       broadcastOrLogException(
-          ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getBlockId(), pE)));
-    } catch (InterruptedException pE) {
-      getLogger().logException(Level.SEVERE, pE, "Thread interrupted unexpectedly.");
+          ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getBlockId(), e)));
+    } catch (InterruptedException e) {
+      getLogger().logException(Level.SEVERE, e, "Thread interrupted unexpectedly.");
     }
   }
 

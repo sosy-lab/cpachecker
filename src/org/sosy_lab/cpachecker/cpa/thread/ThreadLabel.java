@@ -15,7 +15,7 @@ public final class ThreadLabel implements Comparable<ThreadLabel> {
   public enum LabelStatus {
     PARENT_THREAD,
     CREATED_THREAD,
-    SELF_PARALLEL_THREAD;
+    SELF_PARALLEL_THREAD,
   }
 
   private final String threadName;

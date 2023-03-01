@@ -52,12 +52,12 @@ class DefaultReachedSet implements ReachedSet {
 
   @Override
   public void add(AbstractState state, Precision precision) {
-    add(state, precision, /*updateWaitlist=*/ true);
+    add(state, precision, /* updateWaitlist= */ true);
   }
 
   @Override
   public void addNoWaitlist(AbstractState state, Precision precision) {
-    add(state, precision, /*updateWaitlist=*/ false);
+    add(state, precision, /* updateWaitlist= */ false);
   }
 
   private void add(AbstractState state, Precision precision, boolean updateWaitlist) {

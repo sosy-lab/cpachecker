@@ -296,7 +296,7 @@ final class CallGraph<P> {
 
     private enum Type {
       NON_CALL_EDGE,
-      CALL_EDGE;
+      CALL_EDGE,
     }
   }
 

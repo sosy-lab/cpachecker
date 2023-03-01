@@ -155,7 +155,7 @@ final class CfaSimplifications {
                   .computeIfAbsent(edge, key -> new HashMap<>())
                   .put(current, substituteExpression);
               if (edge instanceof FunctionCallEdge) {
-                FunctionSummaryEdge summaryEdge = edge.getPredecessor().getLeavingSummaryEdge();
+                FunctionSummaryEdge summaryEdge = ((FunctionCallEdge) edge).getSummaryEdge();
                 assert summaryEdge != null : "Missing summary edge for call edge";
                 substitution
                     .computeIfAbsent(summaryEdge, key -> new HashMap<>())

@@ -95,7 +95,7 @@ public class SMGCPAValueVisitorTest {
     INT_TYPE,
     UNSIGNED_INT_TYPE,
     LONG_TYPE,
-    UNSIGNED_LONG_TYPE
+    UNSIGNED_LONG_TYPE,
   };
 
   private static final MachineModel MACHINE_MODEL = MachineModel.LINUX64;
@@ -1779,7 +1779,7 @@ public class SMGCPAValueVisitorTest {
       BigInteger.valueOf(1),
       BigInteger.valueOf(Integer.MAX_VALUE),
       BigInteger.valueOf(Integer.MAX_VALUE).multiply(BigInteger.TWO),
-      BigInteger.valueOf(Integer.MAX_VALUE).multiply(BigInteger.TWO).add(BigInteger.ONE)
+      BigInteger.valueOf(Integer.MAX_VALUE).multiply(BigInteger.TWO).add(BigInteger.ONE),
     };
 
     for (CType typeToTest : BIT_FIELD_TYPES) {
@@ -1866,7 +1866,7 @@ public class SMGCPAValueVisitorTest {
       BigInteger.valueOf(1),
       BigInteger.valueOf(Long.MAX_VALUE),
       BigInteger.valueOf(Long.MAX_VALUE).multiply(BigInteger.TWO),
-      BigInteger.valueOf(Long.MAX_VALUE).multiply(BigInteger.TWO).add(BigInteger.ONE)
+      BigInteger.valueOf(Long.MAX_VALUE).multiply(BigInteger.TWO).add(BigInteger.ONE),
     };
 
     for (CType typeToTest : BIT_FIELD_TYPES) {
