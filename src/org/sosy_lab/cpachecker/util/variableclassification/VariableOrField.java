@@ -29,11 +29,9 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
     public boolean equals(final Object o) {
       if (o == this) {
         return true;
-      } else if (!(o instanceof Unknown)) {
-        return false;
-      } else {
-        return true;
       }
+
+      return o instanceof Unknown;
     }
 
     @Override
