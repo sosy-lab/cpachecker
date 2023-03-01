@@ -18,8 +18,10 @@ import java.util.Collections;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.CheckingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ConsistentCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ForwardingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -65,7 +67,12 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
 
     metadata = pCfaMetadata;
 
-    network = ConsistentCfaNetwork.of(allNodes.values(), functions.values());
+    network = CheckingCfaNetwork.wrapIfAssertionsEnabled(new DelegateCfaNetwork());
+  }
+
+  @Override
+  public CFA immutableCopy() {
+    return new ImmutableCFA(functions, allNodes, metadata);
   }
 
   @Override
@@ -170,5 +177,18 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
    */
   public void setMetadata(CfaMetadata pCfaMetadata) {
     metadata = checkNotNull(pCfaMetadata);
+  }
+
+  private final class DelegateCfaNetwork extends ConsistentCfaNetwork {
+
+    @Override
+    public Set<CFANode> nodes() {
+      return duplicateFreeNodeCollectionToSet(allNodes.values());
+    }
+
+    @Override
+    public Set<FunctionEntryNode> entryNodes() {
+      return duplicateFreeNodeCollectionToSet(functions.values());
+    }
   }
 }

@@ -18,80 +18,54 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
- * This class provides an implementation of {@link CfaNetwork} where the CFA represented by the
- * {@link CfaNetwork} always matches the CFA represented by its elements (e.g., {@link
- * CFAEdge#getSuccessor()} and {@link ConsistentCfaNetwork#successor(CFAEdge)} always return the
- * same value).
+ * This class provides a skeletal implementation of {@link CfaNetwork} where the CFA represented by
+ * the {@link ConsistentCfaNetwork} always matches the CFA, represented by its individual elements
+ * (e.g., {@link CFAEdge#getSuccessor()} and {@link ConsistentCfaNetwork#successor(CFAEdge)} always
+ * return the same value), if summary edges are ignored.
+ *
+ * <p>All changes to a CFA are reflected in a {@link ConsistentCfaNetwork}.
+ *
+ * <p>IMPORTANT: Ignoring all summary edges, there must be no parallel edges (i.e., multiple
+ * directed edges from some node {@code u} to some node {@code v}) and must never be added in the
+ * future (if the CFA is mutable). Be aware that this requirement is not enforced, if Java
+ * assertions are disabled.
  */
-public final class ConsistentCfaNetwork extends AbstractCfaNetwork {
-
-  private final Collection<CFANode> nodes;
-  private final Collection<FunctionEntryNode> entryNodes;
-
-  private ConsistentCfaNetwork(
-      Collection<CFANode> pNodes, Collection<FunctionEntryNode> pEntryNodes) {
-    nodes = checkNotNull(pNodes);
-    entryNodes = checkNotNull(pEntryNodes);
-  }
+public abstract class ConsistentCfaNetwork extends AbstractCfaNetwork {
 
   /**
-   * Returns a new consistent {@link CfaNetwork} for the specified nodes.
+   * Returns a set for the specified duplicate-free node collection.
    *
-   * <p>All changes, including changes to the specified collections, are reflected in the returned
-   * {@link CfaNetwork} view. The CFA represented by the returned {@link CfaNetwork} always matches
-   * the CFA represented by its elements (e.g., {@link CFAEdge#getSuccessor()} and {@link
-   * CfaNetwork#successor(CFAEdge)} always return the same value).
-   *
-   * <p>IMPORTANT: There must be no parallel edges (i.e., edges that connect the same nodes in the
-   * same order) and must never be added in the future (if the CFA is mutable). Additionally, {@code
-   * pNodes} and {@code pEntryNodes} must not contain any duplicates and never add them in the
-   * future. Be aware that these requirements are not enforced if Java assertions are disabled.
-   *
-   * @param pNodes the nodes of the CFA (a {@link Collection} for flexibility, but must not contain
-   *     any duplicates)
-   * @param pEntryNodes the function entry nodes of the CFA (a {@link Collection} for flexibility,
-   *     but must not contain any duplicates)
-   * @return a new consistent {@link CfaNetwork} for the specified nodes
-   * @throws NullPointerException if any parameter is {@code null}
+   * @param <N> the type of CFA node
+   * @param pNodes the duplicate-free node collection to get a set for
+   * @return a set for the specified duplicate-free node collection
    */
-  public static CfaNetwork of(
-      Collection<CFANode> pNodes, Collection<FunctionEntryNode> pEntryNodes) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        new ConsistentCfaNetwork(pNodes, pEntryNodes));
-  }
-
-  // network-level accessors
-
-  @Override
-  public Set<CFANode> nodes() {
+  protected final <N extends CFANode> Set<N> duplicateFreeNodeCollectionToSet(
+      Collection<N> pNodes) {
     return new UnmodifiableSetView<>() {
 
       @Override
-      public Iterator<CFANode> iterator() {
-        return Iterators.unmodifiableIterator(nodes.iterator());
+      public Iterator<N> iterator() {
+        return Iterators.unmodifiableIterator(pNodes.iterator());
       }
 
       @Override
       public int size() {
-        return nodes.size();
+        return pNodes.size();
       }
 
       @Override
       public boolean contains(Object pObject) {
-        return nodes.contains(pObject);
+        return pNodes.contains(pObject);
       }
 
       @Override
       public boolean containsAll(Collection<?> pCollection) {
-        return nodes.containsAll(pCollection);
+        return pNodes.containsAll(pCollection);
       }
     };
   }
@@ -106,7 +80,7 @@ public final class ConsistentCfaNetwork extends AbstractCfaNetwork {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return CFAUtils.allEnteringEdges(pNode).iterator();
+        return CFAUtils.enteringEdges(pNode).iterator();
       }
 
       @Override
@@ -124,7 +98,7 @@ public final class ConsistentCfaNetwork extends AbstractCfaNetwork {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return CFAUtils.allLeavingEdges(pNode).iterator();
+        return CFAUtils.leavingEdges(pNode).iterator();
       }
 
       @Override
@@ -136,24 +110,12 @@ public final class ConsistentCfaNetwork extends AbstractCfaNetwork {
 
   @Override
   public int inDegree(CFANode pNode) {
-    int inDegree = pNode.getNumEnteringEdges();
-
-    if (pNode.getEnteringSummaryEdge() != null) {
-      inDegree++;
-    }
-
-    return inDegree;
+    return pNode.getNumEnteringEdges();
   }
 
   @Override
   public int outDegree(CFANode pNode) {
-    int outDegree = pNode.getNumLeavingEdges();
-
-    if (pNode.getLeavingSummaryEdge() != null) {
-      outDegree++;
-    }
-
-    return outDegree;
+    return pNode.getNumLeavingEdges();
   }
 
   @Override
@@ -162,32 +124,6 @@ public final class ConsistentCfaNetwork extends AbstractCfaNetwork {
   }
 
   // `CfaNetwork` specific
-
-  @Override
-  public Set<FunctionEntryNode> entryNodes() {
-    return new UnmodifiableSetView<>() {
-
-      @Override
-      public Iterator<FunctionEntryNode> iterator() {
-        return Iterators.unmodifiableIterator(entryNodes.iterator());
-      }
-
-      @Override
-      public int size() {
-        return entryNodes.size();
-      }
-
-      @Override
-      public boolean contains(Object pObject) {
-        return entryNodes.contains(pObject);
-      }
-
-      @Override
-      public boolean containsAll(Collection<?> pCollection) {
-        return entryNodes.containsAll(pCollection);
-      }
-    };
-  }
 
   @Override
   public CFANode predecessor(CFAEdge pEdge) {
@@ -200,22 +136,12 @@ public final class ConsistentCfaNetwork extends AbstractCfaNetwork {
   }
 
   @Override
-  public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
-    return pFunctionSummaryEdge.getFunctionEntry();
+  public FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode) {
+    return pFunctionExitNode.getEntryNode();
   }
 
   @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
     return pFunctionEntryNode.getExitNode();
-  }
-
-  @Override
-  public FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
-    return pFunctionCallEdge.getSummaryEdge();
-  }
-
-  @Override
-  public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
-    return pFunctionReturnEdge.getSummaryEdge();
   }
 }

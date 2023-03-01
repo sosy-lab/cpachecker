@@ -20,11 +20,8 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 /**
  * A {@link CfaNetwork} that forwards all calls to another {@link CfaNetwork} and performs
@@ -41,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  *       UnmodifiableSetView} incorrectly may lead to duplicates in sets.
  * </ul>
  */
-class CheckingCfaNetwork implements CfaNetwork {
+public class CheckingCfaNetwork implements CfaNetwork {
 
   private final CfaNetwork delegate;
 
@@ -50,7 +47,7 @@ class CheckingCfaNetwork implements CfaNetwork {
   }
 
   /**
-   * Returns the specified {@link CfaNetwork} that is also wrapped in a {@link CheckingCfaNetwork}
+   * Returns the specified {@link CfaNetwork} that is also wrapped in a {@link CheckingCfaNetwork},
    * if Java assertions are enabled.
    *
    * @param pCfaNetwork the {@link CfaNetwork} to wrap if Java assertions are enabled
@@ -59,7 +56,7 @@ class CheckingCfaNetwork implements CfaNetwork {
    *     specified {@link CfaNetwork} is returned.
    * @throws NullPointerException if {@code pCfaNetwork == null}
    */
-  static CfaNetwork wrapIfAssertionsEnabled(CfaNetwork pCfaNetwork) {
+  public static CfaNetwork wrapIfAssertionsEnabled(CfaNetwork pCfaNetwork) {
     CfaNetwork cfaNetwork = checkNotNull(pCfaNetwork);
     // Even though this is bad practice in general, the assert statement is used for its side-effect
     // (wrapping the specified `CfaNetwork` if evaluated).
@@ -354,22 +351,12 @@ class CheckingCfaNetwork implements CfaNetwork {
   }
 
   @Override
-  public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
-    return delegate.functionEntryNode(checkContainsEdge(pFunctionSummaryEdge));
+  public FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode) {
+    return delegate.functionEntryNode(checkContainsNode(pFunctionExitNode));
   }
 
   @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
     return delegate.functionExitNode(checkContainsNode(pFunctionEntryNode));
-  }
-
-  @Override
-  public FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
-    return delegate.functionSummaryEdge(checkContainsEdge(pFunctionCallEdge));
-  }
-
-  @Override
-  public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
-    return delegate.functionSummaryEdge(checkContainsEdge(pFunctionReturnEdge));
   }
 }

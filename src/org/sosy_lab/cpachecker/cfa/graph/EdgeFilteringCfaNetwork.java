@@ -13,10 +13,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.Sets;
 import com.google.common.graph.EndpointPair;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 /**
  * A {@link CfaNetwork} that only contains those edges of the wrapped {@link CfaNetwork}, for which
@@ -56,5 +59,19 @@ final class EdgeFilteringCfaNetwork extends AbstractCfaNetwork {
   @Override
   public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
     return delegate.incidentNodes(pEdge);
+  }
+
+  @Override
+  public FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode) {
+    // The delegate may provide a more performant implementation that returns the same node as
+    // `super.functionEntryNode`.
+    return delegate.functionEntryNode(pFunctionExitNode);
+  }
+
+  @Override
+  public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
+    // The delegate may provide a more performant implementation that returns the same node as
+    // `super.functionExitNode`.
+    return delegate.functionExitNode(pFunctionEntryNode);
   }
 }
