@@ -18,18 +18,15 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * This class provides an implementation of {@link CfaNetwork} where the CFA represented by the
- * {@link CfaNetwork} always matches the CFA represented by its elements (e.g., {@link
- * CFAEdge#getSuccessor()} and {@link ConsistentCfaNetwork#successor(CFAEdge)} always return the
- * same value).
+ * {@link CfaNetwork} always matches the CFA without summary edges that is represented by its
+ * elements (e.g., {@link CFAEdge#getSuccessor()} and {@link
+ * ConsistentCfaNetwork#successor(CFAEdge)} always return the same value).
  */
 public final class ConsistentCfaNetwork extends AbstractCfaNetwork {
 
@@ -47,13 +44,15 @@ public final class ConsistentCfaNetwork extends AbstractCfaNetwork {
    *
    * <p>All changes, including changes to the specified collections, are reflected in the returned
    * {@link CfaNetwork} view. The CFA represented by the returned {@link CfaNetwork} always matches
-   * the CFA represented by its elements (e.g., {@link CFAEdge#getSuccessor()} and {@link
-   * CfaNetwork#successor(CFAEdge)} always return the same value).
+   * the CFA without summary edges that is represented by its elements (e.g., {@link
+   * CFAEdge#getSuccessor()} and {@link CfaNetwork#successor(CFAEdge)} always return the same
+   * value).
    *
-   * <p>IMPORTANT: There must be no parallel edges (i.e., edges that connect the same nodes in the
-   * same order) and must never be added in the future (if the CFA is mutable). Additionally, {@code
-   * pNodes} and {@code pEntryNodes} must not contain any duplicates and never add them in the
-   * future. Be aware that these requirements are not enforced if Java assertions are disabled.
+   * <p>IMPORTANT: Ignoring all summary edges, there must be no parallel edges (i.e., edges that
+   * connect the same nodes in the same order) and must never be added in the future (if the CFA is
+   * mutable). Additionally, {@code pNodes} and {@code pEntryNodes} must not contain any duplicates
+   * and never add them in the future. Be aware that these requirements are not enforced if Java
+   * assertions are disabled.
    *
    * @param pNodes the nodes of the CFA (a {@link Collection} for flexibility, but must not contain
    *     any duplicates)
@@ -106,7 +105,7 @@ public final class ConsistentCfaNetwork extends AbstractCfaNetwork {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return CFAUtils.allEnteringEdges(pNode).iterator();
+        return CFAUtils.enteringEdges(pNode).iterator();
       }
 
       @Override
@@ -124,7 +123,7 @@ public final class ConsistentCfaNetwork extends AbstractCfaNetwork {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return CFAUtils.allLeavingEdges(pNode).iterator();
+        return CFAUtils.leavingEdges(pNode).iterator();
       }
 
       @Override
@@ -136,24 +135,12 @@ public final class ConsistentCfaNetwork extends AbstractCfaNetwork {
 
   @Override
   public int inDegree(CFANode pNode) {
-    int inDegree = pNode.getNumEnteringEdges();
-
-    if (pNode.getEnteringSummaryEdge() != null) {
-      inDegree++;
-    }
-
-    return inDegree;
+    return pNode.getNumEnteringEdges();
   }
 
   @Override
   public int outDegree(CFANode pNode) {
-    int outDegree = pNode.getNumLeavingEdges();
-
-    if (pNode.getLeavingSummaryEdge() != null) {
-      outDegree++;
-    }
-
-    return outDegree;
+    return pNode.getNumLeavingEdges();
   }
 
   @Override
@@ -200,22 +187,7 @@ public final class ConsistentCfaNetwork extends AbstractCfaNetwork {
   }
 
   @Override
-  public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
-    return pFunctionSummaryEdge.getFunctionEntry();
-  }
-
-  @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
     return pFunctionEntryNode.getExitNode();
-  }
-
-  @Override
-  public FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
-    return pFunctionCallEdge.getSummaryEdge();
-  }
-
-  @Override
-  public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
-    return pFunctionReturnEdge.getSummaryEdge();
   }
 }

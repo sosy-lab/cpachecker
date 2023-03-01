@@ -18,6 +18,7 @@ import java.util.Set;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 /**
  * A {@link CfaNetwork} view in which all edges of the wrapped {@link CfaNetwork} are replaced
@@ -54,6 +55,11 @@ final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
         haveSameEndpoints(pEdge, transformedEdge),
         "Endpoints of original edge and transformed edge are not the same: %s and %s",
         pEdge,
+        transformedEdge);
+    checkArgument(
+        !(transformedEdge instanceof FunctionSummaryEdge),
+        "A `CfaNetwork` must not contain any summary edges, but the transformed edge is a summary"
+            + " edge: %s",
         transformedEdge);
 
     return transformedEdge;

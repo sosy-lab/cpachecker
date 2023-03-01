@@ -20,11 +20,8 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 /**
  * A {@link CfaNetwork} that forwards all calls to another {@link CfaNetwork} and performs
@@ -354,22 +351,7 @@ class CheckingCfaNetwork implements CfaNetwork {
   }
 
   @Override
-  public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
-    return delegate.functionEntryNode(checkContainsEdge(pFunctionSummaryEdge));
-  }
-
-  @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
     return delegate.functionExitNode(checkContainsNode(pFunctionEntryNode));
-  }
-
-  @Override
-  public FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
-    return delegate.functionSummaryEdge(checkContainsEdge(pFunctionCallEdge));
-  }
-
-  @Override
-  public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
-    return delegate.functionSummaryEdge(checkContainsEdge(pFunctionReturnEdge));
   }
 }

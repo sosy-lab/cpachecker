@@ -59,7 +59,7 @@ final class SingleFunctionCfaNetwork extends AbstractCfaNetwork {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return CFAUtils.allEnteringEdges(pNode).filter(edge -> !isSuperEdge(edge)).iterator();
+        return CFAUtils.enteringEdges(pNode).filter(edge -> !isSuperEdge(edge)).iterator();
       }
     };
   }
@@ -70,7 +70,7 @@ final class SingleFunctionCfaNetwork extends AbstractCfaNetwork {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return CFAUtils.allLeavingEdges(pNode).filter(edge -> !isSuperEdge(edge)).iterator();
+        return CFAUtils.leavingEdges(pNode).filter(edge -> !isSuperEdge(edge)).iterator();
       }
     };
   }
