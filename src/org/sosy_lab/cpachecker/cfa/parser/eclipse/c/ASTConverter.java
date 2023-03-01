@@ -2631,7 +2631,8 @@ class ASTConverter {
   }
 
   private static final ImmutableList<CSimpleType> ENUM_REPRESENTATION_CANDIDATE_TYPES =
-      ImmutableList.of( // list of types with incrementing size
+      // list of types with incrementing size
+      ImmutableList.of(
           CNumericTypes.SIGNED_INT, CNumericTypes.UNSIGNED_INT, CNumericTypes.SIGNED_LONG_LONG_INT);
 
   /**

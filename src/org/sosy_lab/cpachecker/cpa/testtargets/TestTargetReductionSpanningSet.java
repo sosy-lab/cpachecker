@@ -85,7 +85,8 @@ public class TestTargetReductionSpanningSet {
         // TODO currently only approximation via dominator trees on nodes, not on edges
         if (targetPred.getSuccessor().getNumEnteringEdges() == 1
             && targetSucc.getSuccessor().getNumEnteringEdges() == 1
-            && (domTree.isAncestorOf( // pred is ancestor/dominator of succ
+            // pred is ancestor/dominator of succ
+            && (domTree.isAncestorOf(
                     targetToCopy.get(targetPred).getSuccessor(),
                     targetToCopy.get(targetSucc).getSuccessor())
                 || (inverseDomTree != null
