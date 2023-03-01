@@ -114,10 +114,10 @@ public class Explainer extends NestingAlgorithm {
       ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
       secondAlg = createAlgorithm(firstStepConfig, cfa, shutdownManager, reached);
       cpa = CPAs.retrieveCPAOrFail(secondAlg.cpa(), PredicateCPA.class, Explainer.class);
-    } catch (IOException pE) {
-      throw new AssertionError(pE);
-    } catch (InvalidConfigurationException pE) {
-      throw new CPAException("First Step Configuration File is invalid", pE);
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    } catch (InvalidConfigurationException e) {
+      throw new CPAException("First Step Configuration File is invalid", e);
     }
 
     currentReached = secondAlg.reached();

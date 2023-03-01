@@ -186,10 +186,10 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
               logger);
       transfer = new ModificationsPropTransferRelation(helper);
 
-    } catch (ParserException pE) {
-      throw new InvalidConfigurationException("Parser error for original program.", pE);
-    } catch (InterruptedException | IOException pE) {
-      throw new AssertionError(pE);
+    } catch (ParserException e) {
+      throw new InvalidConfigurationException("Parser error for original program.", e);
+    } catch (InterruptedException | IOException e) {
+      throw new AssertionError(e);
     }
   }
 

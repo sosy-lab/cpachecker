@@ -636,8 +636,8 @@ public class SMGTransferRelation
           if (newState.hasMemoryErrors() || !smgPredicateManager.isUnsat(predicateFormula)) {
             result.add(newState);
           }
-        } catch (SolverException pE) {
-          throw new CPATransferException("Solver Exception on predicate " + predicateFormula, pE);
+        } catch (SolverException e) {
+          throw new CPATransferException("Solver Exception on predicate " + predicateFormula, e);
         }
       } else if ((truthValue && !explicitValue.equals(SMGZeroValue.INSTANCE))
           || (!truthValue && explicitValue.equals(SMGZeroValue.INSTANCE))) {

@@ -285,9 +285,9 @@ class MainCPAStatistics implements Statistics {
               Level.WARNING,
               e,
               "Encountered IO error while generating the invariant as an output program.");
-        } catch (InterruptedException pE) {
+        } catch (InterruptedException e) {
           logger.logUserException(
-              Level.WARNING, pE, "Interrupted while generating the invariant as an output program");
+              Level.WARNING, e, "Interrupted while generating the invariant as an output program");
         } catch (SolverException e) {
           logger.logUserException(
               Level.WARNING,

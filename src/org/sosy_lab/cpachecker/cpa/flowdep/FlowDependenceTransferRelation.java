@@ -543,8 +543,8 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
       computedReachDefStates =
           delegate.getAbstractSuccessorsForEdge(pOldState, pPrecision, pCfaEdge);
 
-    } catch (InterruptedException pE) {
-      throw new CPATransferException("Exception in reaching definitions transfer", pE);
+    } catch (InterruptedException e) {
+      throw new CPATransferException("Exception in reaching definitions transfer", e);
     }
 
     if (computedReachDefStates.isEmpty()) {

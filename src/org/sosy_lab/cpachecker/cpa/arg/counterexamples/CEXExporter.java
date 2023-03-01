@@ -180,8 +180,8 @@ public class CEXExporter {
         faultExporter.export(
             ((FaultLocalizationInfo) counterexample).getRankedList(),
             errorPath.get(errorPath.size() - 1).getCFAEdge());
-      } catch (IOException pE) {
-        logger.logUserException(Level.WARNING, pE, "Could not export faults as JSON.");
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not export faults as JSON.");
       }
     }
 

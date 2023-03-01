@@ -700,8 +700,8 @@ public class CtoFormulaConverter {
       // benefit: divide_by_constant works without UFs
       try {
         range = fmgr.simplify(range);
-      } catch (InterruptedException pE) {
-        throw propagateInterruptedException(pE);
+      } catch (InterruptedException e) {
+        throw propagateInterruptedException(e);
       }
       if (bfmgr.isTrue(range)) {
         return value;

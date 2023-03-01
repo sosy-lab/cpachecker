@@ -377,11 +377,11 @@ public class FaultLocalizationWithTraceFormula
     } catch (IllegalStateException iE) {
       throw new CPAException(
           "The counterexample is spurious. Calculating interpolants is not possible.", iE);
-    } catch (InvalidCounterexampleException pE) {
+    } catch (InvalidCounterexampleException e) {
       throw new CPAException(
           "The counterexample is invalid and cannot be transformed to a proper unsatisfiable"
               + " TraceFormula.",
-          pE);
+          e);
     }
   }
 
