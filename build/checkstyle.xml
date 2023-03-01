@@ -59,12 +59,13 @@ SPDX-License-Identifier: Apache-2.0
     </module>
     <module name="NoWhitespaceAfter">
       <property name="allowLineBreaks" value="false"/>
-      <property name="tokens" value="INC,DEC,UNARY_MINUS,UNARY_PLUS,BNOT,LNOT,DOT"/>
+      <property name="tokens" value="BNOT,DEC,DOT,INC,LNOT,UNARY_MINUS,UNARY_PLUS"/>
     </module>
     <module name="OperatorWrap">
       <property name="tokens" value="BAND,BOR,BSR,BXOR,DIV,EQUAL,GE,GT,LAND,LE,LITERAL_INSTANCEOF,LOR,LT,MINUS,MOD,NOT_EQUAL,PLUS,QUESTION,SL,SR,STAR"/>
     </module>
     <module name="MethodParamPad"/>
+    <module name="ParenPad"/>
     <module name="TypecastParenPad"/>
     <module name="WhitespaceAfter"/>
     <module name="WhitespaceAround">
@@ -105,12 +106,14 @@ SPDX-License-Identifier: Apache-2.0
       <property name="legalAbstractClassNames" value="AbstractConfigurationBuilderFactory, AbstractPathFactory"/>
     </module>
     <module name="MultipleVariableDeclarations"/>
+    <module name="NoClone"/>
     <module name="NoFinalizer"/>
     <module name="PackageDeclaration"/>
     <module name="SimplifyBooleanExpression"/>
     <module name="StringLiteralEquality"/>
     <module name="OneStatementPerLine"/>
     <module name="ArrayTrailingComma"/>
+    <module name="InterfaceIsType"/>
     <module name="MutableException"/>
     <module name="ArrayTypeStyle"/>
     <module name="UpperEll"/>
@@ -123,6 +126,7 @@ SPDX-License-Identifier: Apache-2.0
       <property name="annotationNames" value="Test"/>
       <property name="annotationTargets" value="METHOD_DEF"/>
     </module>
+    <module name="com.github.sevntu.checkstyle.checks.coding.AvoidDefaultSerializableInInnerClassesCheck"/>
     <module name="com.github.sevntu.checkstyle.checks.coding.ForbidReturnInFinallyBlockCheck"/>
     <module name="com.github.sevntu.checkstyle.checks.coding.ReturnNullInsteadOfBooleanCheck"/>
     <module name="com.github.sevntu.checkstyle.checks.design.NoMainMethodInAbstractClassCheck"/>
@@ -141,6 +145,20 @@ SPDX-License-Identifier: Apache-2.0
     <module name="com.github.sevntu.checkstyle.checks.coding.UselessSingleCatchCheck"/>
     <module name="com.github.sevntu.checkstyle.checks.coding.UselessSuperCtorCallCheck"/>
     <module name="com.github.sevntu.checkstyle.checks.design.PublicReferenceToPrivateTypeCheck"/>
+    <module name="AvoidNoArgumentSuperConstructorCall"/>
+    <module name="IllegalThrows"/>
+    <module name="SimplifyBooleanReturn"/>
+    <module name="UnnecessarySemicolonAfterTypeMemberDeclaration"/>
+    <module name="AvoidDoubleBraceInitialization"/>
+    <module name="UnnecessarySemicolonInEnumeration"/>
+    <module name="UnnecessarySemicolonAfterOuterTypeDeclaration"/>
+    <module name="EmptyCatchBlock"/>
+    <module name="LambdaParameterName"/>
+    <module name="RecordTypeParameterName"/>
+    <module name="CatchParameterName">
+      <property name="format" value="^(e[0-9x]?|t[0-9]?|[a-z][a-z][a-zA-Z0-9]+)$"/>
+    </module>
+    <module name="RecordComponentName"/>
   </module>
   <module name="FileTabCharacter">
     <property name="eachLine" value="true"/>

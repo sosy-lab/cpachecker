@@ -187,6 +187,7 @@ public final class RedundantRequirementsRemover {
             "Cannot make class static as suggested because require generic type parameters of outer"
                 + " class. Removing interface Serializable is also no option because it introduces"
                 + " another warning suggesting to implement Serializable interface.")
+    @SuppressWarnings("checkstyle:AvoidDefaultSerializableInInnerClasses")
     private class SortingArrayHelper implements Comparator<V[]>, Serializable {
 
       private static final long serialVersionUID = 3970718511743910013L;
@@ -211,6 +212,7 @@ public final class RedundantRequirementsRemover {
             "Cannot make class static as suggested because require generic type parameters of outer"
                 + " class. Removing interface Serializable is also no option because it introduces"
                 + " another warning suggesting to implement Serializable interface.")
+    @SuppressWarnings("checkstyle:AvoidDefaultSerializableInInnerClasses")
     private class SortingHelper
         implements Comparator<Pair<V[][], Pair<ARGState, Collection<ARGState>>>>, Serializable {
 
