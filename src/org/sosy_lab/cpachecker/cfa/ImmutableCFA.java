@@ -73,6 +73,18 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
   }
 
   @Override
+  public ImmutableSortedSet<CFANode> nodes() {
+    // we can directly return `allNodes`, no need to use the delegate `CfaNetwork`
+    return allNodes;
+  }
+
+  @Override
+  public ImmutableSet<FunctionEntryNode> entryNodes() {
+    // we are sure that the delegate `CfaNetwork` always returns an `ImmutableSet`
+    return (ImmutableSet<FunctionEntryNode>) network.entryNodes();
+  }
+
+  @Override
   public boolean isEmpty() {
     return functions.isEmpty();
   }
