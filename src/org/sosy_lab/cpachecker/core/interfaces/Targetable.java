@@ -40,6 +40,7 @@ public interface Targetable {
    *   <li>MUST override the {@link #toString()} method to provide a human-readable description!
    *   <li>MIGHT override the {@link Object#equals(Object)} method! (and of course {@link
    *       Object#hashCode()})
+   * </ul>
    */
   interface TargetInformation {
 
