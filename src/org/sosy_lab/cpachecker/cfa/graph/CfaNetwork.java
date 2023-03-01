@@ -45,6 +45,18 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 public interface CfaNetwork extends Network<CFANode, CFAEdge> {
 
   /**
+   * Returns an immutable copy of this {@link CfaNetwork}.
+   *
+   * <p>Due to it's immutability, it's possible to use a more efficient internal representation,
+   * which can improve performance.
+   *
+   * @return an immutable copy of this {@link CfaNetwork}.
+   */
+  default CfaNetwork immutableCopy() {
+    return ImmutableCfaNetwork.copyOf(this);
+  }
+
+  /**
    * Returns a set containing all function entry nodes of this {@link CfaNetwork}.
    *
    * <p>The returned set is unmodifiable, but modifications of this {@link CfaNetwork} are reflected
