@@ -48,12 +48,12 @@ public final class FunctionExitNode extends CFANode {
 
   @Override
   public void addEnteringSummaryEdge(FunctionSummaryEdge pEdge) {
-    throw new AssertionError("function-exit nodes cannot have summary eges");
+    throw new AssertionError("function-exit nodes cannot have summary edges");
   }
 
   @Override
   public void addLeavingSummaryEdge(FunctionSummaryEdge pEdge) {
-    throw new AssertionError("function-exit nodes cannot have summary eges");
+    throw new AssertionError("function-exit nodes cannot have summary edges");
   }
 
   @Override
