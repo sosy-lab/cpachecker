@@ -47,7 +47,7 @@ class CheckingCfaNetwork implements CfaNetwork {
   }
 
   /**
-   * Returns the specified {@link CfaNetwork} that is also wrapped in a {@link CheckingCfaNetwork}
+   * Returns the specified {@link CfaNetwork} that is also wrapped in a {@link CheckingCfaNetwork},
    * if Java assertions are enabled.
    *
    * @param pCfaNetwork the {@link CfaNetwork} to wrap if Java assertions are enabled

@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * This class provides an implementation of {@link CfaNetwork} where the CFA represented by the
- * {@link CfaNetwork} always matches the CFA without summary edges that is represented by its
+ * {@link CfaNetwork} always matches the CFA, without summary edges, represented by its individual
  * elements (e.g., {@link CFAEdge#getSuccessor()} and {@link
  * ConsistentCfaNetwork#successor(CFAEdge)} always return the same value).
  */
@@ -48,11 +48,11 @@ public final class ConsistentCfaNetwork extends AbstractCfaNetwork {
    * CFAEdge#getSuccessor()} and {@link CfaNetwork#successor(CFAEdge)} always return the same
    * value).
    *
-   * <p>IMPORTANT: Ignoring all summary edges, there must be no parallel edges (i.e., edges that
-   * connect the same nodes in the same order) and must never be added in the future (if the CFA is
-   * mutable). Additionally, {@code pNodes} and {@code pEntryNodes} must not contain any duplicates
-   * and never add them in the future. Be aware that these requirements are not enforced if Java
-   * assertions are disabled.
+   * <p>IMPORTANT: Ignoring all summary edges, there must be no parallel edges (i.e., multiple
+   * directed edges from some node {@code u} to some node {@code v}) and must never be added in the
+   * future (if the CFA is mutable). Additionally, {@code pNodes} and {@code pEntryNodes} must not
+   * contain any duplicates and never add them in the future. Be aware that these requirements are
+   * not enforced, if Java assertions are disabled.
    *
    * @param pNodes the nodes of the CFA (a {@link Collection} for flexibility, but must not contain
    *     any duplicates)

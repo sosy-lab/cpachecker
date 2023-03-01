@@ -25,8 +25,9 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  * on-the-fly with their corresponding transformed edges.
  *
  * <p>The specified function returns the transformed edge for a given edge. The given edge and
- * transformed edge must have the same endpoints. The function is applied every time an edge is
- * accessed, so the function may be called multiple times for the same given edge.
+ * transformed edge must have the same endpoints and the transformed edge must not be a summary
+ * edge. The function is applied every time an edge is accessed, so the function may be called
+ * multiple times for the same given edge.
  */
 final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
 
