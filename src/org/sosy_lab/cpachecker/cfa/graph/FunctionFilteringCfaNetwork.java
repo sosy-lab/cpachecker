@@ -68,14 +68,14 @@ final class FunctionFilteringCfaNetwork extends AbstractCfaNetwork {
   @Override
   public FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode) {
     // The unfiltered delegate may provide a more performant implementation that returns the same
-    // node that `super.functionExitNode` would.
+    // node as `super.functionEntryNode`.
     return unfilteredDelegate.functionEntryNode(pFunctionExitNode);
   }
 
   @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
     // The unfiltered delegate may provide a more performant implementation that returns the same
-    // node that `super.functionExitNode` would.
+    // node as `super.functionExitNode`.
     return unfilteredDelegate.functionExitNode(pFunctionEntryNode);
   }
 }

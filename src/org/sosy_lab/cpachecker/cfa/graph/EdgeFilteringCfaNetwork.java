@@ -63,13 +63,15 @@ final class EdgeFilteringCfaNetwork extends AbstractCfaNetwork {
 
   @Override
   public FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode) {
-    // `delegate` may provide a more performant implementation that returns the correct node
+    // The delegate may provide a more performant implementation that returns the same node as
+    // `super.functionEntryNode`.
     return delegate.functionEntryNode(pFunctionExitNode);
   }
 
   @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
-    // `delegate` may provide a more performant implementation that returns the correct node
+    // The delegate may provide a more performant implementation that returns the same node as
+    // `super.functionExitNode`.
     return delegate.functionExitNode(pFunctionEntryNode);
   }
 }
