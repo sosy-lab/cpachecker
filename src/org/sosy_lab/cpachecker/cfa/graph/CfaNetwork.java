@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -42,30 +43,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
  * lead to incorrect iterations.
  */
 public interface CfaNetwork extends Network<CFANode, CFAEdge> {
-
-  /**
-   * Returns a new {@link CfaNetwork} that represents the specified single function.
-   *
-   * <p>The function is specified using its function entry node. The returned {@link CfaNetwork}
-   * only contains nodes that are part of the specified function. Only if both endpoints of an edge
-   * are part of a {@link CfaNetwork} and the edge is not a summary edge, the edge is also part of
-   * the returned {@link CfaNetwork}.
-   *
-   * <p>The returned {@link CfaNetwork} is a view, so it reflects all changes to the specified
-   * function.
-   *
-   * <p>IMPORTANT: Ignoring all summary edges, the specified function must not contain any parallel
-   * edges (i.e., multiple directed edges from some node {@code u} to some node {@code v}) and never
-   * add them in the future (if the CFA is mutable). Be aware that this requirement is not enforced,
-   * if Java assertions are disabled.
-   *
-   * @param pFunctionEntryNode the function's entry node
-   * @return a new {@link CfaNetwork} that represents the function specified by its function entry
-   *     node
-   */
-  public static CfaNetwork forFunction(FunctionEntryNode pFunctionEntryNode) {
-    return SingleFunctionCfaNetwork.forFunction(pFunctionEntryNode);
-  }
 
   /**
    * Returns a set containing all function entry nodes of this {@link CfaNetwork}.
@@ -135,6 +112,26 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
   Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode);
 
   // on-the-fly filters & transformers
+
+  /**
+   * Returns a view of this {@link CfaNetwork} that only contains functions for which the specified
+   * predicate evaluates to {@code true}.
+   *
+   * <p>Only if both endpoints of an edge are part of a {@link CfaNetwork}, the edge is also part of
+   * the {@link CfaNetwork}.
+   *
+   * <p>The returned {@link CfaNetwork} is a view, so it reflects all changes to this {@link
+   * CfaNetwork}. This {@link CfaNetwork} is not changed by this method.
+   *
+   * @param pRetainPredicate the predicate that specifies the functions that should be part of the
+   *     returned {@link CfaNetwork}
+   * @throws NullPointerException if {@code pRetainPredicate == null}
+   * @return a view of this {@link CfaNetwork} that only contains functions for which the specified
+   *     predicate evaluates to {@code true}
+   */
+  default CfaNetwork withFilteredFunctions(Predicate<AFunctionDeclaration> pRetainPredicate) {
+    return withFilteredNodes(node -> pRetainPredicate.test(node.getFunction()));
+  }
 
   /**
    * Returns a view of this {@link CfaNetwork} that only contains nodes for which the specified
