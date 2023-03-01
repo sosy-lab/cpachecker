@@ -19,7 +19,9 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.CheckingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ConsistentCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ForwardingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -55,7 +57,7 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
     FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
     checkArgument(mainFunctionEntry.equals(functions.get(mainFunctionEntry.getFunctionName())));
 
-    network = ConsistentCfaNetwork.of(allNodes, functions.values());
+    network = CheckingCfaNetwork.wrapIfAssertionsEnabled(new DelegateCfaNetwork());
   }
 
   @Override
@@ -140,6 +142,19 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
       edge.getPredecessor().addLeavingEdge(edge);
     }
 
-    network = ConsistentCfaNetwork.of(allNodes, functions.values());
+    network = CheckingCfaNetwork.wrapIfAssertionsEnabled(new DelegateCfaNetwork());
+  }
+
+  private final class DelegateCfaNetwork extends ConsistentCfaNetwork {
+
+    @Override
+    public Set<CFANode> nodes() {
+      return allNodes;
+    }
+
+    @Override
+    public Set<FunctionEntryNode> entryNodes() {
+      return duplicateFreeNodeCollectionToSet(functions.values());
+    }
   }
 }

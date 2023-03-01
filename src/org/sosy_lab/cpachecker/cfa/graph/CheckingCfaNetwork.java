@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
  *       UnmodifiableSetView} incorrectly may lead to duplicates in sets.
  * </ul>
  */
-class CheckingCfaNetwork implements CfaNetwork {
+public class CheckingCfaNetwork implements CfaNetwork {
 
   private final CfaNetwork delegate;
 
@@ -56,7 +56,7 @@ class CheckingCfaNetwork implements CfaNetwork {
    *     specified {@link CfaNetwork} is returned.
    * @throws NullPointerException if {@code pCfaNetwork == null}
    */
-  static CfaNetwork wrapIfAssertionsEnabled(CfaNetwork pCfaNetwork) {
+  public static CfaNetwork wrapIfAssertionsEnabled(CfaNetwork pCfaNetwork) {
     CfaNetwork cfaNetwork = checkNotNull(pCfaNetwork);
     // Even though this is bad practice in general, the assert statement is used for its side-effect
     // (wrapping the specified `CfaNetwork` if evaluated).
