@@ -468,7 +468,7 @@ public class SMGCPAExpressionEvaluator {
       return ValueAndSMGState.of(new NumericValue(0), state);
     }
     // bestDifFound = min dif to any boundary of memory!
-    BigInteger bestDifFound = null;
+    @Nullable BigInteger bestDifFound = null;
     // bestDifToMemBeginning is dif to current best mem region 0 offset, this can be negative!
     BigInteger bestDifToMemBeginning = null;
     for (Entry<SMGObject, BigInteger> entry :
@@ -494,7 +494,7 @@ public class SMGCPAExpressionEvaluator {
 
       } else if (numericPointer.compareTo(memoryRegionStart) < 0) {
         // smaller than obj
-        if (difToZero.abs().compareTo(bestDifFound.abs()) < 0) {
+        if (bestDifFound == null || difToZero.abs().compareTo(bestDifFound.abs()) < 0) {
           bestDifFound = difToZero;
           bestDifToMemBeginning = difToZero;
           bestObj = object;
@@ -502,7 +502,7 @@ public class SMGCPAExpressionEvaluator {
 
       } else if (numericPointer.compareTo(memoryRegionEnd) > 0) {
         // bigger than obj
-        if (difToEnd.abs().compareTo(bestDifFound.abs()) < 0) {
+        if (bestDifFound == null || difToEnd.abs().compareTo(bestDifFound.abs()) < 0) {
           bestDifFound = difToEnd;
           bestDifToMemBeginning = difToZero;
           bestObj = object;
