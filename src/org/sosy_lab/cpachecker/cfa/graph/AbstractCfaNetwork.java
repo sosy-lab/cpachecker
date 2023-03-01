@@ -16,6 +16,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.common.graph.AbstractNetwork;
 import com.google.common.graph.ElementOrder;
+import com.google.common.graph.Graphs;
 import com.google.common.graph.Traverser;
 import java.util.Iterator;
 import java.util.Optional;
@@ -143,6 +144,22 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
   @Override
   public CFANode successor(CFAEdge pEdge) {
     return incidentNodes(pEdge).target();
+  }
+
+  @Override
+  public FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode) {
+    Iterable<CFANode> functionNodes =
+        Traverser.forGraph(Graphs.transpose(withoutSuperEdges()))
+            .depthFirstPostOrder(pFunctionExitNode);
+    return FluentIterable.from(functionNodes)
+        .filter(FunctionEntryNode.class)
+        .first()
+        .toJavaUtil()
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "Cannot determine function entry node for function exit node: "
+                        + pFunctionExitNode));
   }
 
   @Override

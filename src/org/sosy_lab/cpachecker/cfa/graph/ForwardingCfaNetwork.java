@@ -48,6 +48,11 @@ public abstract class ForwardingCfaNetwork extends ForwardingNetwork<CFANode, CF
   }
 
   @Override
+  public FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode) {
+    return delegate().functionEntryNode(pFunctionExitNode);
+  }
+
+  @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
     return delegate().functionExitNode(pFunctionEntryNode);
   }

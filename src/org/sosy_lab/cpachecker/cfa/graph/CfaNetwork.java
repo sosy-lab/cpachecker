@@ -100,6 +100,23 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
   CFANode successor(CFAEdge pEdge);
 
   /**
+   * Returns the corresponding function entry node for the specified function exit node in this
+   * {@link CfaNetwork}.
+   *
+   * @param pFunctionExitNode the function exit node to get the function entry node for
+   * @return the corresponding function entry node for the specified function exit node in this
+   *     {@link CfaNetwork}
+   * @throws NullPointerException if {@code pFunctionExitNode == null}
+   * @throws IllegalArgumentException if {@code pFunctionExitNode} is not an element of this {@link
+   *     CfaNetwork} (only when Java assertions are enabled, it's guaranteed that this check is
+   *     performed)
+   * @throws IllegalStateException if this {@link CfaNetwork} doesn't contain a corresponding
+   *     function entry node or there is no intra-function path from the function entry node to the
+   *     function exit node
+   */
+  FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode);
+
+  /**
    * Returns the corresponding function exit node for the specified function entry node in this
    * {@link CfaNetwork}, if such a function exit node exists.
    *

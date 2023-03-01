@@ -351,6 +351,11 @@ class CheckingCfaNetwork implements CfaNetwork {
   }
 
   @Override
+  public FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode) {
+    return delegate.functionEntryNode(checkContainsNode(pFunctionExitNode));
+  }
+
+  @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
     return delegate.functionExitNode(checkContainsNode(pFunctionEntryNode));
   }
