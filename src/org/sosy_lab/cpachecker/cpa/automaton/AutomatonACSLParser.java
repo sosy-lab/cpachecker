@@ -65,7 +65,7 @@ public class AutomatonACSLParser {
       String automatonName = "ACSLInvariantsAutomaton";
       String initialStateName = "VALID";
       ImmutableList.Builder<AutomatonTransition> transitions = ImmutableList.builder();
-      for (CFAEdge edge : cfa.withoutSummaryEdges().edges()) {
+      for (CFAEdge edge : cfa.edges()) {
         Collection<ACSLAnnotation> annotations = cfa.getEdgesToAnnotations().get(edge);
         if (!annotations.isEmpty()) {
           ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();

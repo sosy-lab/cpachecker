@@ -213,7 +213,7 @@ public class AssumptionToEdgeAllocatorTest {
 
   @Test
   public void testAllocateAssignmentsToEdge() throws InvalidConfigurationException {
-    for (CFAEdge edge : cfa.withoutSummaryEdges().edges()) {
+    for (CFAEdge edge : cfa.edges()) {
       testWithEdge(edge);
     }
   }

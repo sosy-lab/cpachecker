@@ -56,7 +56,7 @@ public final class CoverageData {
   public void putCFA(CFA pCFA) {
     // ------------ Existing lines ----------------
     // This part adds lines, which are only on edges, such as "return" or "goto"
-    pCFA.withoutSummaryEdges().edges().forEach(this::putExistingEdge);
+    pCFA.edges().forEach(this::putExistingEdge);
 
     // ------------ Existing functions -------------
     for (FunctionEntryNode entryNode : pCFA.entryNodes()) {

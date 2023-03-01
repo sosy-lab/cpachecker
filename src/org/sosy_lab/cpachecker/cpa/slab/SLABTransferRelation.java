@@ -71,6 +71,6 @@ public class SLABTransferRelation implements TransferRelation {
   }
 
   private static ImmutableSet<CFAEdge> makeTotalTransitionEdgeSet(CFA pCfa) {
-    return ImmutableSet.copyOf(pCfa.withoutSummaryEdges().edges());
+    return ImmutableSet.copyOf(pCfa.edges());
   }
 }

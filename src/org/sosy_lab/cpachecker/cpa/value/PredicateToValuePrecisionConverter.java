@@ -416,7 +416,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
         logger.logException(Level.SEVERE, e, "Failed to determine relevant edges");
       }
     }
-    return ImmutableSet.copyOf(cfa.withoutSummaryEdges().edges());
+    return ImmutableSet.copyOf(cfa.edges());
   }
 
   private Collection<Node> getRelevantGraphUsing(

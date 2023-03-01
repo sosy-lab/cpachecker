@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -157,7 +158,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     sliceEdgesNumber.setNextValue(relevantEdges.size());
     if (programEdgesNumber.getValueCount() == 0) {
-      programEdgesNumber.setNextValue(pCfa.edges().size());
+      programEdgesNumber.setNextValue(CFAUtils.allEdges(pCfa).size());
     }
 
     return slice;

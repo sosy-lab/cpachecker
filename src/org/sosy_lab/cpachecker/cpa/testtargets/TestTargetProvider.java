@@ -11,9 +11,9 @@ package org.sosy_lab.cpachecker.cpa.testtargets;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.time.Timer;
@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class TestTargetProvider implements Statistics {
 
@@ -69,7 +70,7 @@ public class TestTargetProvider implements Statistics {
 
   private Set<CFAEdge> extractEdgesByCriterion(
       final Predicate<CFAEdge> criterion, final TestTargetAdaption pAdaption, final CFA pCfa) {
-    Set<CFAEdge> edges = new LinkedHashSet<>(cfa.withFilteredEdges(criterion).edges());
+    Set<CFAEdge> edges = Sets.newLinkedHashSet(CFAUtils.allEdges(pCfa).filter(criterion));
 
     numNonOptimizedTargets = edges.size();
 

@@ -33,7 +33,7 @@ public class SingleBlockDecomposer implements CFADecomposer {
     CFANode startNode = cfa.getMainFunction();
     // we do not get error conditions
     CFANode lastNode = CFANode.newDummyCFANode();
-    Set<CFAEdge> edges = new LinkedHashSet<>(cfa.withoutSummaryEdges().edges());
+    Set<CFAEdge> edges = new LinkedHashSet<>(cfa.edges());
     Set<CFANode> nodes = new LinkedHashSet<>(cfa.nodes());
     nodes.add(lastNode);
     BlockNodeMetaData root =

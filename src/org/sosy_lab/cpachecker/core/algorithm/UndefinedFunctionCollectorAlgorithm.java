@@ -135,7 +135,7 @@ public class UndefinedFunctionCollectorAlgorithm
   }
 
   private void collectUndefinedFunctions() throws InterruptedException {
-    for (CFAEdge edge : cfa.withoutSummaryEdges().edges()) {
+    for (CFAEdge edge : cfa.edges()) {
       shutdownNotifier.shutdownIfNecessary();
       if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
         final AStatementEdge stmtEdge = (AStatementEdge) edge;

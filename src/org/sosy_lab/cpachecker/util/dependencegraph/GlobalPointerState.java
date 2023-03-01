@@ -60,7 +60,7 @@ abstract class GlobalPointerState {
     Set<MemoryLocation> addressableVariables = new HashSet<>();
     EdgeDefUseData.Extractor extractor = EdgeDefUseData.createExtractor(false);
 
-    for (CFAEdge edge : pCfa.edges()) {
+    for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
       addressableVariables.addAll(extractor.extract(edge).getDefs());
     }
 
@@ -203,7 +203,7 @@ abstract class GlobalPointerState {
     private static GlobalPointerState create(CFA pCfa, ShutdownNotifier pShutdownNotifier)
         throws CPAException, InterruptedException {
 
-      Collection<CFAEdge> edges = new ArrayList<>(pCfa.withoutSummaryEdges().edges());
+      Collection<CFAEdge> edges = new ArrayList<>(pCfa.edges());
       PointerState pointerState = PointerState.INITIAL_STATE;
       Map<MemoryLocation, LocationSet> pointsToMap = new HashMap<>();
 

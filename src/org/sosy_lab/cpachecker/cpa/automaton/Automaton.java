@@ -217,7 +217,7 @@ public class Automaton {
    * analysis of the given CFA.
    */
   public boolean isRelevantForCFA(CFA cfa) {
-    for (CFAEdge edge : cfa.withoutSummaryEdges().edges()) {
+    for (CFAEdge edge : cfa.edges()) {
       for (AutomatonTransition transition : initState.getTransitions()) {
         AutomatonExpressionArguments args =
             new AutomatonExpressionArguments(

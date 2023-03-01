@@ -412,7 +412,7 @@ public class TemplatePrecision implements Precision {
   }
 
   private ImmutableSet<Template> extractTemplates() {
-    return cfa.edges().stream()
+    return CFAUtils.allEdges(cfa).stream()
         .flatMap(edge -> extractTemplatesFromEdge(edge).stream())
         .filter(t -> t.size() >= 1)
         .map(Template::of)

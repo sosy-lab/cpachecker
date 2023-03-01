@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Represents an array that can be transformed by an array abstraction. */
@@ -215,7 +216,7 @@ final class TransformableArray {
 
   private static ImmutableSet<CDeclarationEdge> findArrayDeclarationEdges(CFA pCfa) {
 
-    return pCfa.edges().stream()
+    return CFAUtils.allEdges(pCfa).stream()
         .filter(edge -> edge instanceof CDeclarationEdge)
         .map(edge -> (CDeclarationEdge) edge)
         .filter(TransformableArray::isArrayDeclarationEdge)
@@ -251,7 +252,7 @@ final class TransformableArray {
         new LinkedHashSet<>(findArrayDeclarationEdges(pCfa));
     Set<CDeclarationEdge> relevantArrayDeclarationEdges = new LinkedHashSet<>();
 
-    for (CFAEdge edge : pCfa.edges()) {
+    for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
 
       Iterator<CDeclarationEdge> iterator = unproblematicArrayDeclarationEdges.iterator();
       while (iterator.hasNext()) {

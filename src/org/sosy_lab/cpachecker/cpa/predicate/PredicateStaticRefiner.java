@@ -347,7 +347,7 @@ public class PredicateStaticRefiner extends StaticRefiner
       throws SolverException, CPATransferException, InterruptedException {
     Set<AssumeEdge> result = new HashSet<>();
 
-    for (CFAEdge edge : cfa.withoutSummaryEdges().edges()) {
+    for (CFAEdge edge : cfa.edges()) {
       if ((edge instanceof AssumeEdge assume) && !isAssumeOnLoopVariable(assume)) {
         if (hasContradictingOperationInFlow(assume, directlyAffectingStatements)) {
           result.add(assume);
@@ -497,7 +497,7 @@ public class PredicateStaticRefiner extends StaticRefiner
 
   private void dumpAssumePredicate(Path target) {
     try (Writer w = IO.openOutputFile(target, Charset.defaultCharset())) {
-      for (CFAEdge e : cfa.withoutSummaryEdges().edges()) {
+      for (CFAEdge e : cfa.edges()) {
         if (e instanceof AssumeEdge) {
           Collection<AbstractionPredicate> preds = assumeEdgeToPredicates(false, (AssumeEdge) e);
           for (AbstractionPredicate p : preds) {

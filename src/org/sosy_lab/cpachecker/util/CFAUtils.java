@@ -240,6 +240,18 @@ public class CFAUtils {
     };
   }
 
+  /**
+   * Returns a {@link FluentIterable} that contains all edges of the specified CFA, including all
+   * summary edges.
+   *
+   * @return a {@link FluentIterable} that contains all edges of the specified CFA, including all
+   *     summary edges.
+   * @throws NullPointerException if {@code pCfa == null}
+   */
+  public static FluentIterable<CFAEdge> allEdges(CFA pCfa) {
+    return FluentIterable.from(pCfa.nodes()).transformAndConcat(CFAUtils::allLeavingEdges);
+  }
+
   @SuppressWarnings("unchecked")
   public static FluentIterable<FunctionCallEdge> enteringEdges(final FunctionEntryNode node) {
     return (FluentIterable<FunctionCallEdge>) (FluentIterable<?>) enteringEdges((CFANode) node);
