@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.graph;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.graph.EndpointPair;
 import com.google.common.graph.Traverser;
 import java.util.Iterator;
@@ -48,8 +49,11 @@ final class SingleFunctionCfaNetwork extends AbstractCfaNetwork {
 
       @Override
       public Iterator<CFANode> iterator() {
-        return Traverser.forGraph(SingleFunctionCfaNetwork.this)
-            .depthFirstPreOrder(functionEntryNode)
+        Iterable<CFANode> nodes =
+            Traverser.<CFANode>forGraph(node -> CFAUtils.successorsOf(node))
+                .depthFirstPreOrder(functionEntryNode);
+        return Iterables.filter(
+                nodes, node -> node.getFunction().equals(functionEntryNode.getFunction()))
             .iterator();
       }
     };

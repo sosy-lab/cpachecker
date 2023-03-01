@@ -16,7 +16,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.common.graph.AbstractNetwork;
 import com.google.common.graph.ElementOrder;
-import com.google.common.graph.Graphs;
 import com.google.common.graph.Traverser;
 import java.util.Iterator;
 import java.util.Optional;
@@ -148,24 +147,36 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode) {
-    Iterable<CFANode> functionNodes =
-        Traverser.forGraph(Graphs.transpose(withoutSuperEdges()))
-            .depthFirstPostOrder(pFunctionExitNode);
-    return FluentIterable.from(functionNodes)
-        .filter(FunctionEntryNode.class)
+    return FluentIterable.from(entryNodes())
+        .filter(entryNode -> entryNode.getFunction().equals(pFunctionExitNode.getFunction()))
         .first()
         .toJavaUtil()
         .orElseThrow(
             () ->
                 new IllegalStateException(
-                    "Cannot determine function entry node for function exit node: "
+                    "Function exit node doesn't have a corresponding function entry node: "
                         + pFunctionExitNode));
   }
 
   @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
+    // Try finding the function exit node using intra-function graph traversal to avoid iterating
+    // over all nodes.
     Iterable<CFANode> functionNodes =
         Traverser.forGraph(withoutSuperEdges()).depthFirstPostOrder(pFunctionEntryNode);
-    return FluentIterable.from(functionNodes).filter(FunctionExitNode.class).first().toJavaUtil();
+    Optional<FunctionExitNode> result =
+        FluentIterable.from(functionNodes).filter(FunctionExitNode.class).first().toJavaUtil();
+    if (result.isEmpty()) {
+      // We weren't able to find the function exit node using graph traversal, so we have to check
+      // all nodes. Note that the function entry node might not have a corresponding function entry
+      // node at all.
+      result =
+          FluentIterable.from(nodes())
+              .filter(FunctionExitNode.class)
+              .filter(exitNode -> exitNode.getFunction().equals(pFunctionEntryNode.getFunction()))
+              .first()
+              .toJavaUtil();
+    }
+    return result;
   }
 }

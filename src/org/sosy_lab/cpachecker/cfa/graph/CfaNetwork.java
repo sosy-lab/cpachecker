@@ -111,8 +111,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    *     CfaNetwork} (only when Java assertions are enabled, it's guaranteed that this check is
    *     performed)
    * @throws IllegalStateException if this {@link CfaNetwork} doesn't contain a corresponding
-   *     function entry node or there is no intra-function path from the function entry node to the
-   *     function exit node
+   *     function entry node
    */
   FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode);
 
