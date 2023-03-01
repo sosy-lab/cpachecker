@@ -16,8 +16,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Predicate;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -145,43 +143,5 @@ public abstract class ConsistentCfaNetwork extends AbstractCfaNetwork {
   @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
     return pFunctionEntryNode.getExitNode();
-  }
-
-  // on-the-fly filters
-
-  @Override
-  public CfaNetwork withFilteredFunctions(Predicate<AFunctionDeclaration> pRetainPredicate) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        new EntryExitConsistentCfaNetwork(super.withFilteredFunctions(pRetainPredicate)));
-  }
-
-  private static final class EntryExitConsistentCfaNetwork extends ForwardingCfaNetwork {
-
-    private final CfaNetwork delegate;
-
-    private EntryExitConsistentCfaNetwork(CfaNetwork pDelegate) {
-      delegate = pDelegate;
-    }
-
-    @Override
-    protected CfaNetwork delegate() {
-      return delegate;
-    }
-
-    @Override
-    public FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode) {
-      return pFunctionExitNode.getEntryNode();
-    }
-
-    @Override
-    public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
-      return pFunctionEntryNode.getExitNode();
-    }
-
-    @Override
-    public CfaNetwork withFilteredFunctions(Predicate<AFunctionDeclaration> pRetainPredicate) {
-      return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-          new EntryExitConsistentCfaNetwork(delegate.withFilteredFunctions(pRetainPredicate)));
-    }
   }
 }

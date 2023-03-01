@@ -142,7 +142,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    *     predicate evaluates to {@code true}
    */
   default CfaNetwork withFilteredFunctions(Predicate<AFunctionDeclaration> pRetainPredicate) {
-    return withFilteredNodes(node -> pRetainPredicate.test(node.getFunction()));
+    return FunctionFilteringCfaNetwork.of(this, pRetainPredicate);
   }
 
   /**
