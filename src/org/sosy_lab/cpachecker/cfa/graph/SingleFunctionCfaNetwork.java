@@ -14,11 +14,13 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.graph.EndpointPair;
 import com.google.common.graph.Traverser;
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -83,5 +85,15 @@ final class SingleFunctionCfaNetwork extends AbstractCfaNetwork {
   @Override
   public Set<FunctionEntryNode> entryNodes() {
     return ImmutableSet.of(functionEntryNode);
+  }
+
+  @Override
+  public FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode) {
+    return pFunctionExitNode.getEntryNode();
+  }
+
+  @Override
+  public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
+    return pFunctionEntryNode.getExitNode();
   }
 }

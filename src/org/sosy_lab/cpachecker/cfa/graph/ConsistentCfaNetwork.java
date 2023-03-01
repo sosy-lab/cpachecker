@@ -187,6 +187,11 @@ public final class ConsistentCfaNetwork extends AbstractCfaNetwork {
   }
 
   @Override
+  public FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode) {
+    return pFunctionExitNode.getEntryNode();
+  }
+
+  @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
     return pFunctionEntryNode.getExitNode();
   }
