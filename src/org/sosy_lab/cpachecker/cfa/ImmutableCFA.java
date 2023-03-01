@@ -16,14 +16,11 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.CheckingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ConsistentCfaNetwork;
@@ -31,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.graph.ForwardingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
@@ -64,7 +60,7 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
 
     network =
         CheckingCfaNetwork.wrapIfAssertionsEnabled(
-            new ImmutableCfaNetwork(allNodes, ImmutableSet.copyOf(functions.values())));
+            new DelegateCfaNetwork(allNodes, ImmutableSet.copyOf(functions.values())));
   }
 
   @Override
@@ -163,15 +159,15 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
 
     network =
         CheckingCfaNetwork.wrapIfAssertionsEnabled(
-            new ImmutableCfaNetwork(allNodes, ImmutableSet.copyOf(functions.values())));
+            new DelegateCfaNetwork(allNodes, ImmutableSet.copyOf(functions.values())));
   }
 
-  private static class ImmutableCfaNetwork extends ConsistentCfaNetwork {
+  private static class DelegateCfaNetwork extends ConsistentCfaNetwork {
 
     private final ImmutableSet<CFANode> nodes;
     private final ImmutableSet<FunctionEntryNode> entryNodes;
 
-    private ImmutableCfaNetwork(
+    private DelegateCfaNetwork(
         ImmutableSet<CFANode> pNodes, ImmutableSet<FunctionEntryNode> pEntryNodes) {
       nodes = pNodes;
       entryNodes = pEntryNodes;
@@ -185,32 +181,6 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
     @Override
     public Set<FunctionEntryNode> entryNodes() {
       return entryNodes;
-    }
-
-    @Override
-    public CfaNetwork withFilteredNodes(Predicate<CFANode> pRetainPredicate) {
-      return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-          new ImmutableCfaNetwork(
-              ImmutableSet.copyOf(Sets.filter(nodes, pRetainPredicate::test)),
-              ImmutableSet.copyOf(Sets.filter(entryNodes, pRetainPredicate::test))) {
-
-            @Override
-            public FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode) {
-              FunctionEntryNode functionEntryNode = pFunctionExitNode.getEntryNode();
-              if (!nodes.contains(functionEntryNode)) {
-                throw new IllegalStateException(
-                    "Function exit node doesn't have a corresponding function entry node: "
-                        + pFunctionExitNode);
-              }
-              return functionEntryNode;
-            }
-
-            @Override
-            public Optional<FunctionExitNode> functionExitNode(
-                FunctionEntryNode pFunctionEntryNode) {
-              return pFunctionEntryNode.getExitNode().filter(nodes::contains);
-            }
-          });
     }
   }
 }

@@ -24,10 +24,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * This class provides a skeletal implementation of {@link CfaNetwork} where the CFA represented by
- * the default implementation of the methods in {@link ConsistentCfaNetwork} always matches the CFA,
- * represented by its individual elements (e.g., {@link CFAEdge#getSuccessor()} and {@link
- * ConsistentCfaNetwork#successor(CFAEdge)} always return the same value), if summary edges are
- * ignored.
+ * the {@link ConsistentCfaNetwork} always matches the CFA, represented by its individual elements
+ * (e.g., {@link CFAEdge#getSuccessor()} and {@link ConsistentCfaNetwork#successor(CFAEdge)} always
+ * return the same value), if summary edges are ignored.
  *
  * <p>All changes to a CFA are reflected in a {@link ConsistentCfaNetwork}.
  *
