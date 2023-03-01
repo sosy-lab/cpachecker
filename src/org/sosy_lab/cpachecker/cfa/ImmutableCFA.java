@@ -64,6 +64,11 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
   }
 
   @Override
+  public CFA immutableCopy() {
+    return this;
+  }
+
+  @Override
   protected CfaNetwork delegate() {
     return network;
   }

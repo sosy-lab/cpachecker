@@ -72,6 +72,11 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
   }
 
   @Override
+  public CFA immutableCopy() {
+    return new ImmutableCFA(functions, allNodes, metadata);
+  }
+
+  @Override
   protected CfaNetwork delegate() {
     return network;
   }
