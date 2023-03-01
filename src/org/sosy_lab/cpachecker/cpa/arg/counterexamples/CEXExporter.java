@@ -67,7 +67,7 @@ public class CEXExporter {
 
   enum CounterexampleExportType {
     CBMC,
-    CONCRETE_EXECUTION;
+    CONCRETE_EXECUTION,
   }
 
   @Option(

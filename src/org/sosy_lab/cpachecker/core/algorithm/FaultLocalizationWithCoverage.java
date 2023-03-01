@@ -57,7 +57,7 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
   private enum AlgorithmType {
     TARANTULA,
     DSTAR,
-    OCHIAI;
+    OCHIAI,
   }
 
   @Option(

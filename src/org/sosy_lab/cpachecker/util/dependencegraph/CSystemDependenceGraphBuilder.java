@@ -177,7 +177,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
   private enum PointerStateComputationMethod {
     FLOW_SENSITIVE,
-    FLOW_INSENSITIVE;
+    FLOW_INSENSITIVE,
   }
 
   public CSystemDependenceGraphBuilder(

@@ -145,7 +145,6 @@ public interface CParser extends Parser {
   enum Dialect {
     C99,
     GNUC,
-    ;
   }
 
   @Options(prefix = "parser")

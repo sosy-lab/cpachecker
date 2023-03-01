@@ -59,7 +59,7 @@ public class Explainer extends NestingAlgorithm {
   private enum Metric {
     ADM,
     CFDM,
-    PG;
+    PG,
   }
 
   @Option(
