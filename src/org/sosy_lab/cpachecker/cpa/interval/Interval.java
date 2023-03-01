@@ -370,7 +370,7 @@ public final class Interval implements Serializable {
       saturatedMultiply(low, other.low),
       saturatedMultiply(low, other.high),
       saturatedMultiply(high, other.low),
-      saturatedMultiply(high, other.high)
+      saturatedMultiply(high, other.high),
     };
 
     return new Interval(Longs.min(values), Longs.max(values));

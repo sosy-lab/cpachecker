@@ -96,7 +96,7 @@ public class PredicateAbstractionManager {
     CARTESIAN_BY_WEAKENING,
     BOOLEAN,
     COMBINED,
-    ELIMINATION;
+    ELIMINATION,
   }
 
   private boolean warnedOfCartesianAbstraction = false;

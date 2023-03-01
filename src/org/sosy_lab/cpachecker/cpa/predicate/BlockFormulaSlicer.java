@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -369,18 +368,17 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   private boolean handleStatement(CStatementEdge edge, Collection<String> importantVars) {
     final AStatement statement = edge.getStatement();
 
-    // expression is an assignment operation, e.g. a = b;
     if (statement instanceof CAssignment) {
+      // expression is an assignment operation, e.g. a = b;
       return handleAssignment((CAssignment) statement, importantVars);
-    }
 
-    // call of external function, "scanf(...)" without assignment
-    // internal functioncalls are handled as FunctionCallEdges
-    else if (statement instanceof CFunctionCallStatement) {
+    } else if (statement instanceof CFunctionCallStatement) {
+      // call of external function, "scanf(...)" without assignment
+      // internal functioncalls are handled as FunctionCallEdges
       return true;
 
-      // "exp;" -> nothing to do?
     } else if (statement instanceof CExpressionStatement) {
+      // "exp;" -> nothing to do?
       return false;
 
     } else {
@@ -441,8 +439,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   private boolean handleFunctionReturn(CFunctionReturnEdge edge, Collection<String> importantVars) {
 
     // set result of function equal to variable on left side
-    CFunctionSummaryEdge fnkCall = edge.getSummaryEdge();
-    CFunctionCall call = fnkCall.getExpression();
+    CFunctionCall call = edge.getFunctionCall();
 
     // handle assignments like "y = f(x);"
     if (call instanceof CFunctionCallAssignmentStatement cAssignment) {

@@ -995,15 +995,15 @@ public final class LoopStructure implements Serializable {
     }
 
     // detect nodes in recursion
-    Set<CFANode> forward, backward, nodes;
     Collection<Loop> result = new ArrayList<>(recHeads.size());
     for (FunctionEntryNode recHead : recHeads) {
-      forward =
+      Set<CFANode> forward =
           CFATraversal.dfs()
               .ignoreEdgeType(CFAEdgeType.FunctionReturnEdge)
               .collectNodesReachableFrom(recHead);
-      backward = CFATraversal.dfs().backwards().collectNodesReachableFrom(recHead);
+      Set<CFANode> backward = CFATraversal.dfs().backwards().collectNodesReachableFrom(recHead);
 
+      Set<CFANode> nodes;
       if (forward.size() <= backward.size()) {
         nodes = Sets.intersection(forward, backward);
       } else {
@@ -1038,7 +1038,7 @@ public final class LoopStructure implements Serializable {
    * from the exit always lead to the entry. The smallest possible loop-free section contains a
    * single node, which is also automatically the entry and exit node of the loop-free section.
    */
-  private static interface LoopFreeSectionFinder {
+  private interface LoopFreeSectionFinder {
 
     /**
      * Returns the entry node of the loop-free section that the specified node belongs to.

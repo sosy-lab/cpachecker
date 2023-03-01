@@ -637,7 +637,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         // Ignore this edge, FunctionReturnEdge will be taken instead.
         return CONST_FALSE;
       } else if (edge.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge)) {
-        ast = Optional.of(((FunctionReturnEdge) edge).getSummaryEdge().getExpression());
+        ast = Optional.of(((FunctionReturnEdge) edge).getFunctionCall());
       } else {
         ast = edge.getRawAST();
       }
@@ -912,10 +912,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       Iterable<CFAEdge> leavingEdges = CFAUtils.leavingEdges(edge.getSuccessor());
       if ((edge instanceof FunctionCallEdge callEdge) && (callEdge.getSummaryEdge() != null)) {
         FunctionSummaryEdge summaryEdge = callEdge.getSummaryEdge();
-        AFunctionCall call = summaryEdge.getExpression();
+        AFunctionCall call = callEdge.getFunctionCall();
         if (call instanceof AFunctionCallAssignmentStatement) {
           Iterable<? extends CFAEdge> potentialFurtherMatches =
-              CFAUtils.enteringEdges(summaryEdge.getSuccessor())
+              CFAUtils.enteringEdges(callEdge.getReturnNode())
                   .filter(
                       e ->
                           (e instanceof AStatementEdge

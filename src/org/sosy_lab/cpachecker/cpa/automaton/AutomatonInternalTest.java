@@ -467,6 +467,7 @@ public class AutomatonInternalTest {
     }
   }
 
+  @FunctionalInterface
   private interface Matches {
     StringSubject andVariable(int var);
   }

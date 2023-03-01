@@ -21,6 +21,9 @@ import org.sosy_lab.java_smt.api.SolverException;
 public interface FaultLocalizerWithTraceFormula {
 
   Set<Fault> run(FormulaContext context, TraceFormula tf)
-      throws CPAException, InterruptedException, SolverException, VerifyException,
+      throws CPAException,
+          InterruptedException,
+          SolverException,
+          VerifyException,
           InvalidConfigurationException;
 }

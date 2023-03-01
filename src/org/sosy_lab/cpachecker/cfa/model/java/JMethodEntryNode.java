@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
-public class JMethodEntryNode extends FunctionEntryNode {
+public final class JMethodEntryNode extends FunctionEntryNode {
 
   private static final long serialVersionUID = 169431882600055272L;
 

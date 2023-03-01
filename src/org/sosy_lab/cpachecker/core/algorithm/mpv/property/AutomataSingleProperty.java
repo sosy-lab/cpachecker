@@ -61,11 +61,7 @@ public final class AutomataSingleProperty extends AbstractSingleProperty {
 
   @Override
   public boolean isTarget(AutomatonState pState) {
-    if (automata.contains(pState.getOwningAutomaton())) {
-      return true;
-    } else {
-      return false;
-    }
+    return automata.contains(pState.getOwningAutomaton());
   }
 
   @Override

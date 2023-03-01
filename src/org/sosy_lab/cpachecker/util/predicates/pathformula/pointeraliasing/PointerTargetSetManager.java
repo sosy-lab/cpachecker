@@ -469,7 +469,8 @@ class PointerTargetSetManager {
       return list1;
     }
 
-    PersistentList<T> smallerList, biggerList;
+    PersistentList<T> smallerList;
+    PersistentList<T> biggerList;
     if (size1 > size2) {
       smallerList = list2;
       biggerList = list1;

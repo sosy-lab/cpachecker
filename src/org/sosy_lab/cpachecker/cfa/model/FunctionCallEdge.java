@@ -19,8 +19,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public class FunctionCallEdge extends AbstractCFAEdge {
 
   private static final long serialVersionUID = -7848426105619928428L;
-  protected final AFunctionCall functionCall;
-  protected final FunctionSummaryEdge summaryEdge;
+  private final AFunctionCall functionCall;
+  private final FunctionSummaryEdge summaryEdge;
 
   protected FunctionCallEdge(
       String pRawStatement,
@@ -69,5 +69,10 @@ public class FunctionCallEdge extends AbstractCFAEdge {
   public FunctionEntryNode getSuccessor() {
     // the constructor enforces that the successor is always a FunctionEntryNode
     return (FunctionEntryNode) super.getSuccessor();
+  }
+
+  /** Returns the {@link CFANode} after the function return in the calling function. */
+  public CFANode getReturnNode() {
+    return summaryEdge.getSuccessor();
   }
 }

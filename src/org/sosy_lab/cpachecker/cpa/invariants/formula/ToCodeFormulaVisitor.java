@@ -52,7 +52,7 @@ public class ToCodeFormulaVisitor
     CNumericTypes.LONG_INT,
     CNumericTypes.UNSIGNED_LONG_INT,
     CNumericTypes.LONG_LONG_INT,
-    CNumericTypes.UNSIGNED_LONG_LONG_INT
+    CNumericTypes.UNSIGNED_LONG_LONG_INT,
   };
 
   /**

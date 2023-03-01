@@ -702,11 +702,11 @@ public abstract class AbstractExpressionValueVisitor
             return Value.UnknownValue.getInstance();
           }
       }
-    } catch (ArithmeticException ae) { // log warning and ignore expression
+    } catch (ArithmeticException e) { // log warning and ignore expression
       logger.logf(
           Level.WARNING,
           "expression causes arithmetic exception (%s): %s %s %s",
-          ae.getMessage(),
+          e.getMessage(),
           lNum.bigDecimalValue(),
           op.getOperator(),
           rNum.bigDecimalValue());
@@ -1553,6 +1553,9 @@ public abstract class AbstractExpressionValueVisitor
       case SIZEOF:
         BigInteger size = machineModel.getSizeof(innerType);
         return new NumericValue(size);
+
+      case ALIGNOF:
+        return new NumericValue(machineModel.getAlignof(innerType));
 
       default: // TODO support more operators
         return Value.UnknownValue.getInstance();

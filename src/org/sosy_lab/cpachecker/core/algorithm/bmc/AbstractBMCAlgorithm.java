@@ -1406,6 +1406,7 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
+  @FunctionalInterface
   private interface InvariantGeneratorHeadStart {
 
     void waitForInvariantGenerator() throws InterruptedException;

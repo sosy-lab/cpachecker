@@ -131,7 +131,10 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
 
   @Override
   public Set<Fault> run(FormulaContext context, TraceFormula tf)
-      throws CPAException, InterruptedException, SolverException, VerifyException,
+      throws CPAException,
+          InterruptedException,
+          SolverException,
+          VerifyException,
           InvalidConfigurationException {
     errorTrace = tf;
     maps =

@@ -95,6 +95,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.cpa.acsl.ACSLState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition.Scope;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
@@ -1760,6 +1761,20 @@ class WitnessFactory implements EdgeAppender {
   }
 
   private boolean exportInvariant(CFAEdge pEdge, Optional<Collection<ARGState>> pFromState) {
+    if (!witnessOptions.exportInvariantsForNonExploredStates() && !pFromState.isPresent()) {
+      return false;
+    }
+
+    return exportInvariant0(pEdge, pFromState)
+        && (!witnessOptions.exportJointWitnesses()
+            || (pFromState.isPresent()
+                && from(pFromState.orElseThrow())
+                    .transformAndConcat(argState -> AbstractStates.asIterable(argState))
+                    .filter(AutomatonState.class)
+                    .anyMatch(state -> !state.hasDefaultCandidateInvariants())));
+  }
+
+  private boolean exportInvariant0(CFAEdge pEdge, Optional<Collection<ARGState>> pFromState) {
     if (pFromState.isPresent()
         && pFromState.orElseThrow().stream()
             .map(AbstractStates.toState(PredicateAbstractState.class))

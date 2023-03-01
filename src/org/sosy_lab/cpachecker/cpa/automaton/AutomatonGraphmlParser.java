@@ -57,6 +57,7 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -139,6 +140,8 @@ public class AutomatonGraphmlParser {
   private static final String DISTANCE_TO_VIOLATION = "__DISTANCE_TO_VIOLATION";
 
   public static final String WITNESS_AUTOMATON_NAME = "WitnessAutomaton";
+
+  public static final UniqueIdGenerator idGen = new UniqueIdGenerator();
 
   @Option(
       secure = true,
@@ -224,6 +227,9 @@ public class AutomatonGraphmlParser {
               + " neccessary.This option is intended to be used with an ISA (c.f. option"
               + " witness.invariantsSpecificationAutomaton)")
   private boolean useInvariantsAsAssumptions = true;
+
+  @Option(secure = true, description = "extend name of each witness automaton with a unique id")
+  private boolean useUniqueName = false;
 
   private Scope scope;
   private final LogManager logger;
@@ -1036,6 +1042,9 @@ public class AutomatonGraphmlParser {
     if (nameAttribute != null) {
       automatonName += "_" + nameAttribute.getTextContent();
     }
+    if (useUniqueName) {
+      automatonName += "_" + idGen.getFreshId();
+    }
 
     Map<String, GraphMLState> states = new LinkedHashMap<>();
     Multimap<GraphMLState, GraphMLTransition> enteringTransitions = LinkedHashMultimap.create();
@@ -1812,6 +1821,10 @@ public class AutomatonGraphmlParser {
             .withAssumptions(pAssumptions)
             .withCandidateInvariants(pCandidateInvariants)
             .withActions(pActions);
+
+    if (!pTargetState.getInvariants().isEmpty()) {
+      builder.withNonDefaultCandidateInvariants();
+    }
     if (pLeadsToViolationNode) {
       return new TargetInformationCopyingAutomatonTransition(builder);
     }
@@ -2244,6 +2257,7 @@ public class AutomatonGraphmlParser {
     return message;
   }
 
+  @FunctionalInterface
   private interface InputHandler<T, E extends Throwable> {
 
     T handleInput(InputStream pInputStream) throws E, IOException, InterruptedException;

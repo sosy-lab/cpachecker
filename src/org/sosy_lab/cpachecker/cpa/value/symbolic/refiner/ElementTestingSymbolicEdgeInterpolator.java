@@ -192,7 +192,7 @@ public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInter
         throws InterruptedException, CPAException;
   }
 
-  private class ValuesOnlyReducer implements SymbolicStateReducer {
+  private final class ValuesOnlyReducer implements SymbolicStateReducer {
 
     @Override
     public ForgettingCompositeState reduce(
@@ -216,7 +216,7 @@ public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInter
     }
   }
 
-  private class ConstraintsOnlyReducer implements SymbolicStateReducer {
+  private final class ConstraintsOnlyReducer implements SymbolicStateReducer {
 
     @Override
     public ForgettingCompositeState reduce(
@@ -237,7 +237,7 @@ public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInter
     }
   }
 
-  private class ValuesFirstReducer implements SymbolicStateReducer {
+  private final class ValuesFirstReducer implements SymbolicStateReducer {
 
     private SymbolicStateReducer valueReducer = new ValuesOnlyReducer();
     private SymbolicStateReducer constraintsReducer = new ConstraintsOnlyReducer();
@@ -250,7 +250,7 @@ public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInter
     }
   }
 
-  private class ConstraintsFirstReducer implements SymbolicStateReducer {
+  private final class ConstraintsFirstReducer implements SymbolicStateReducer {
 
     private SymbolicStateReducer valueReducer = new ValuesOnlyReducer();
     private SymbolicStateReducer constraintsReducer = new ConstraintsOnlyReducer();
@@ -263,7 +263,7 @@ public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInter
     }
   }
 
-  private class AvoidConstraintsReducer implements SymbolicStateReducer {
+  private final class AvoidConstraintsReducer implements SymbolicStateReducer {
 
     private SymbolicStateReducer delegate;
 

@@ -70,7 +70,8 @@ public class SplitterTransferRelation extends SingleEdgeTransferRelation {
     if (split.divideSplitIndices(pCfaEdge)) {
       int numParts = split.divideIntoHowManyParts(pCfaEdge);
       if (numParts > 1) {
-        int start, end;
+        int start;
+        int end;
         ImmutableList.Builder<SplitInfoState> successors =
             ImmutableList.builderWithExpectedSize(numParts);
         SplitInfoState successor;
