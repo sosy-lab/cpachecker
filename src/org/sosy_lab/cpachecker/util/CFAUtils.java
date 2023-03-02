@@ -119,6 +119,10 @@ public class CFAUtils {
   /**
    * Return an {@link Iterable} that contains all entering edges of a given CFANode, including the
    * summary edge if the node has one.
+   *
+   * <p>WARNING: Summary edges are included, so the returned {@link FluentIterable} may contain
+   * parallel edges (i.e., multiple directed edges from some node {@code u} to some node {@code v}).
+   * These edges are equal, so a set would only contain one of the parallel edges.
    */
   public static FluentIterable<CFAEdge> allEnteringEdges(final CFANode node) {
     checkNotNull(node);
@@ -181,6 +185,10 @@ public class CFAUtils {
   /**
    * Return an {@link Iterable} that contains all leaving edges of a given CFANode, including the
    * summary edge if the node as one.
+   *
+   * <p>WARNING: Summary edges are included, so the returned {@link FluentIterable} may contain
+   * parallel edges (i.e., multiple directed edges from some node {@code u} to some node {@code v}).
+   * These edges are equal, so a set would only contain one of the parallel edges.
    */
   public static FluentIterable<CFAEdge> allLeavingEdges(final CFANode node) {
     checkNotNull(node);
@@ -243,6 +251,10 @@ public class CFAUtils {
   /**
    * Returns a {@link FluentIterable} that contains all edges of the specified CFA, including all
    * summary edges.
+   *
+   * <p>WARNING: Summary edges are included, so the returned {@link FluentIterable} may contain
+   * parallel edges (i.e., multiple directed edges from some node {@code u} to some node {@code v}).
+   * These edges are equal, so a set would only contain one of the parallel edges.
    *
    * @return a {@link FluentIterable} that contains all edges of the specified CFA, including all
    *     summary edges.
