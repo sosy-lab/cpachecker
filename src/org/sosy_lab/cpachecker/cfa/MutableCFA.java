@@ -18,7 +18,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
-import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
@@ -165,11 +164,6 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
 
   public void setLoopStructure(LoopStructure pLoopStructure) {
     metadata = metadata.withLoopStructure(pLoopStructure);
-  }
-
-  public ImmutableCFA makeImmutableCFA(Optional<VariableClassification> pVarClassification) {
-    return new ImmutableCFA(
-        functions, allNodes, metadata.withVariableClassification(pVarClassification.orElse(null)));
   }
 
   public void setVariableClassification(@Nullable VariableClassification pVariableClassification) {

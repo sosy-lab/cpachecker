@@ -329,7 +329,6 @@ public class LiveVariables {
   }
 
   public static LiveVariables create(
-      final Optional<VariableClassification> variableClassification,
       final List<Pair<ADeclaration, String>> globalsList,
       final MutableCFA pCFA,
       final LogManager logger,
@@ -339,7 +338,6 @@ public class LiveVariables {
           IllegalArgumentException,
           AssertionError,
           InterruptedException {
-    checkNotNull(variableClassification);
     checkNotNull(globalsList);
     checkNotNull(pCFA);
     checkNotNull(logger);
@@ -347,12 +345,9 @@ public class LiveVariables {
 
     // we cannot make any assumptions about c programs where we do not know
     // about the addressed variables
-    if (pCFA.getLanguage() == Language.C && !variableClassification.isPresent()) {
+    if (pCFA.getLanguage() == Language.C && !pCFA.getVarClassification().isPresent()) {
       return new AllVariablesAsLiveVariables(pCFA, globalsList);
     }
-
-    // we need a cfa with variableClassification, thus we create one now
-    CFA cfa = pCFA.makeImmutableCFA(variableClassification);
 
     // create configuration object, so that we know which analysis strategy should
     // be chosen later on
@@ -372,13 +367,7 @@ public class LiveVariables {
     }
 
     LiveVariables liveVarObject =
-        create0(
-            variableClassification.orElse(null),
-            globalsList,
-            logger,
-            shutdownNotifier,
-            cfa,
-            liveVarConfig);
+        create0(globalsList, logger, shutdownNotifier, pCFA, liveVarConfig);
 
     if (limitChecker != null) {
       limitChecker.cancel();
@@ -388,7 +377,6 @@ public class LiveVariables {
   }
 
   private static LiveVariables create0(
-      final VariableClassification variableClassification,
       final List<Pair<ADeclaration, String>> globalsList,
       final LogManager logger,
       final ShutdownNotifier pShutdownNotifier,
@@ -446,14 +434,14 @@ public class LiveVariables {
           Level.INFO,
           "Global live variables collection failed, fallback to function-wise analysis.");
       config.evaluationStrategy = EvaluationStrategy.FUNCTION_WISE;
-      return create0(variableClassification, globalsList, logger, pShutdownNotifier, cfa, config);
+      return create0(globalsList, logger, pShutdownNotifier, cfa, config);
     } else if (liveVariables == null) {
       return new AllVariablesAsLiveVariables(cfa, globalsList);
     }
 
     return new LiveVariables(
         liveVariables,
-        variableClassification,
+        cfa.getVarClassification().orElse(null),
         globalVariables,
         config.evaluationStrategy,
         cfa.getLanguage());
