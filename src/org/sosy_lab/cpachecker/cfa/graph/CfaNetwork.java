@@ -13,28 +13,29 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 /**
- * The graph representation of a CFA.
+ * The graph representation of a CFA, without any summary edges.
  *
- * <p>All connections between elements of a CFA (i.e., nodes and edges) are defined by a {@link
- * CfaNetwork}. Depending on the implementation, the CFA represented by a {@link CfaNetwork} may
- * differ from the CFA represented by its elements (e.g., {@link CFAEdge#getSuccessor()} and {@link
- * CfaNetwork#successor(CFAEdge)} may not return the same value). It's important to only use methods
- * provided by {@link CfaNetwork} if more than a single CFA node and/or edge is involved.
+ * <p>Ignoring all summary edges, all connections between elements of a CFA (i.e., its nodes and
+ * edges) are defined by a {@link CfaNetwork}. Depending on the implementation, the CFA represented
+ * by a {@link CfaNetwork} may differ from the CFA represented by its individual elements (e.g.,
+ * {@link CFAEdge#getSuccessor()} and {@link CfaNetwork#successor(CFAEdge)} may not return the same
+ * value). It's important to only use methods provided by {@link CfaNetwork}, if more than a single
+ * CFA node and/or edge is involved.
  *
  * <p>For performance reasons, some expensive checks are only performed if Java assertions are
  * enabled. Even though this is bad practice in general, this is also the case for some
  * preconditions. E.g., for some implementations, checking whether a CFA node or edge actually
  * belongs to a {@link CfaNetwork} can be quite expensive, so this isn't necessarily checked for all
- * method arguments if Java assertions are disabled.
+ * method arguments, if Java assertions are disabled.
  *
  * <p>All returned sets are unmodifiable views, so modification attempts throw an exception.
  * However, modifications to a {@link CfaNetwork} will be reflected in its returned set views. A
@@ -44,24 +45,15 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 public interface CfaNetwork extends Network<CFANode, CFAEdge> {
 
   /**
-   * Returns a new {@link CfaNetwork} that represents a single function.
+   * Returns an immutable copy of this {@link CfaNetwork}.
    *
-   * <p>The function is specified using the function entry node. The returned {@link CfaNetwork}
-   * only contains nodes that are part of the specified function. Only if both endpoints of an edge
-   * are part of a {@link CfaNetwork}, the edge is also part of the {@link CfaNetwork}.
+   * <p>Due to it's immutability, it's possible to use a more efficient internal representation,
+   * which can improve performance.
    *
-   * <p>All changes to the specified function are reflected in the returned {@link CfaNetwork}.
-   *
-   * <p>IMPORTANT: The specified function must not contain any parallel edges (i.e., edges that
-   * connect the same nodes in the same order) and never add them in the future (if the CFA is
-   * mutable). Be aware that this requirement is not enforced if Java assertions are disabled.
-   *
-   * @param pFunctionEntryNode the function's entry node
-   * @return a new {@link CfaNetwork} that represents the function specified by its function entry
-   *     node
+   * @return an immutable copy of this {@link CfaNetwork}.
    */
-  public static CfaNetwork forFunction(FunctionEntryNode pFunctionEntryNode) {
-    return SingleFunctionCfaNetwork.forFunction(pFunctionEntryNode);
+  default CfaNetwork immutableCopy() {
+    return ImmutableCfaNetwork.copyOf(this);
   }
 
   /**
@@ -97,27 +89,28 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
   CFANode successor(CFAEdge pEdge);
 
   /**
-   * Returns the function entry node for the specified function summary edge in this {@link
-   * CfaNetwork}.
+   * Returns the corresponding function entry node for the specified function exit node in this
+   * {@link CfaNetwork}.
    *
-   * @param pFunctionSummaryEdge the function summary edge to get the function entry node for
-   * @return the function entry node for the specified function summary edge in this {@link
-   *     CfaNetwork}
-   * @throws NullPointerException if {@code pFunctionSummaryEdge == null}
-   * @throws IllegalArgumentException if {@code pFunctionSummaryEdge} is not an element of this
-   *     {@link CfaNetwork} (only when Java assertions are enabled, it's guaranteed that this check
-   *     is performed)
-   * @throws IllegalStateException if there is no corresponding function entry node for the
-   *     specified function summary edge in this {@link CfaNetwork}
+   * @param pFunctionExitNode the function exit node to get the function entry node for
+   * @return the corresponding function entry node for the specified function exit node in this
+   *     {@link CfaNetwork}
+   * @throws NullPointerException if {@code pFunctionExitNode == null}
+   * @throws IllegalArgumentException if {@code pFunctionExitNode} is not an element of this {@link
+   *     CfaNetwork} (only when Java assertions are enabled, it's guaranteed that this check is
+   *     performed)
+   * @throws IllegalStateException if this {@link CfaNetwork} doesn't contain a corresponding
+   *     function entry node
    */
-  FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge);
+  FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode);
 
   /**
    * Returns the corresponding function exit node for the specified function entry node in this
-   * {@link CfaNetwork}.
+   * {@link CfaNetwork}, if such a function exit node exists.
    *
-   * <p>A possible reason for a function to having a corresponding function exit node is that the
-   * function never returns (e.g., always aborts, infinite loop, etc.).
+   * <p>A possible reason for a function entry node without a corresponding function exit node is
+   * that the function never returns (e.g., always aborts or always executes an obvious infinite
+   * loop).
    *
    * @param pFunctionEntryNode the function entry node to get the function exit node for
    * @return If there is a corresponding function exit node for the specified function entry node in
@@ -130,39 +123,27 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    */
   Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode);
 
-  /**
-   * Returns the function summary edge for the specified function call edge in this {@link
-   * CfaNetwork}.
-   *
-   * @param pFunctionCallEdge the function call edge to get the function summary edge for
-   * @return the function summary edge for the specified function call edge in this {@link
-   *     CfaNetwork}
-   * @throws NullPointerException if {@code pFunctionCallEdge == null}
-   * @throws IllegalArgumentException if {@code pFunctionCallEdge} is not an element of this {@link
-   *     CfaNetwork} (only when Java assertions are enabled, it's guaranteed that this check is
-   *     performed)
-   * @throws IllegalStateException if there is no corresponding function summary edge for the
-   *     specified function call edge in this {@link CfaNetwork}
-   */
-  FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge);
-
-  /**
-   * Returns the function summary edge for the specified function return edge in this {@link
-   * CfaNetwork}.
-   *
-   * @param pFunctionReturnEdge the function return edge to get the function summary edge for
-   * @return the function summary edge for the specified function return edge in this {@link
-   *     CfaNetwork}
-   * @throws NullPointerException if {@code pFunctionReturnEdge == null}
-   * @throws IllegalArgumentException if {@code pFunctionReturnEdge} is not an element of this
-   *     {@link CfaNetwork} (only when Java assertions are enabled, it's guaranteed that this check
-   *     is performed)
-   * @throws IllegalStateException if there is no corresponding function summary edge for the
-   *     specified function return edge in this {@link CfaNetwork}
-   */
-  FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge);
-
   // on-the-fly filters & transformers
+
+  /**
+   * Returns a view of this {@link CfaNetwork} that only contains functions for which the specified
+   * predicate evaluates to {@code true}.
+   *
+   * <p>Only if both endpoints of an edge are part of a {@link CfaNetwork}, the edge is also part of
+   * the {@link CfaNetwork}.
+   *
+   * <p>The returned {@link CfaNetwork} is a view, so it reflects all changes to this {@link
+   * CfaNetwork}. This {@link CfaNetwork} is not changed by this method.
+   *
+   * @param pRetainPredicate the predicate that specifies the functions that should be part of the
+   *     returned {@link CfaNetwork}
+   * @throws NullPointerException if {@code pRetainPredicate == null}
+   * @return a view of this {@link CfaNetwork} that only contains functions for which the specified
+   *     predicate evaluates to {@code true}
+   */
+  default CfaNetwork withFilteredFunctions(Predicate<AFunctionDeclaration> pRetainPredicate) {
+    return FunctionFilteringCfaNetwork.of(this, pRetainPredicate);
+  }
 
   /**
    * Returns a view of this {@link CfaNetwork} that only contains nodes for which the specified
@@ -171,10 +152,11 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    * <p>Only if both endpoints of an edge are part of a {@link CfaNetwork}, the edge is also part of
    * the {@link CfaNetwork}.
    *
-   * <p>Modifications of this {@link CfaNetwork} are reflected in the view.
+   * <p>The returned {@link CfaNetwork} is a view, so it reflects all changes to this {@link
+   * CfaNetwork}. This {@link CfaNetwork} is not changed by this method.
    *
-   * @param pRetainPredicate predicate that specifies the nodes that should be part of the returned
-   *     {@link CfaNetwork}
+   * @param pRetainPredicate the predicate that specifies the nodes that should be part of the
+   *     returned {@link CfaNetwork}
    * @throws NullPointerException if {@code pRetainPredicate == null}
    * @return a view of this {@link CfaNetwork} that only contains nodes for which the specified
    *     predicate evaluates to {@code true}
@@ -187,10 +169,11 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    * Returns a view of this {@link CfaNetwork} that only contains edges for which the specified
    * predicate evaluates to {@code true}.
    *
-   * <p>Modifications of this {@link CfaNetwork} are reflected in the view.
+   * <p>The returned {@link CfaNetwork} is a view, so it reflects all changes to this {@link
+   * CfaNetwork}. This {@link CfaNetwork} is not changed by this method.
    *
-   * @param pRetainPredicate predicate that specifies the edges that should be part of the returned
-   *     {@link CfaNetwork}
+   * @param pRetainPredicate the predicate that specifies the edges that should be part of the
+   *     returned {@link CfaNetwork}
    * @throws NullPointerException if {@code pRetainPredicate == null}
    * @return a view of this {@link CfaNetwork} that only contains edges for which the specified
    *     predicate evaluates to {@code true}
@@ -200,16 +183,18 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
   }
 
   /**
-   * Returns a view of this {@link CfaNetwork} in which all edges of the wrapped {@link CfaNetwork}
-   * are replaced on-the-fly with their corresponding transformed edges.
+   * Returns a view of this {@link CfaNetwork} in which all edges are replaced on-the-fly with their
+   * corresponding transformed edges.
    *
    * <p>The specified function returns the transformed edge for a given edge. The given edge and
-   * transformed edge must have the same endpoints. The function is applied every time an edge is
-   * accessed, so the function may be called multiple times for the same given edge.
+   * transformed edge must have the same endpoints and the transformed edge must not be a summary
+   * edge. The function is applied every time an edge is accessed, so the function may be called
+   * multiple times for the same given edge.
    *
-   * <p>Modifications of this {@link CfaNetwork} are reflected in the view.
+   * <p>The returned {@link CfaNetwork} is a view, so it reflects all changes to this {@link
+   * CfaNetwork}. This {@link CfaNetwork} is not changed by this method.
    *
-   * @param pEdgeTransformer function that returns the transformed edge for a given CFA edge
+   * @param pEdgeTransformer the function that returns the transformed edge for a given CFA edge
    * @throws NullPointerException if {@code pEdgeTransformer == null}
    * @return a view of this {@link CfaNetwork} in which all edges are replaced by their function
    *     result
@@ -219,21 +204,11 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
   }
 
   /**
-   * Returns a view of this {@link CfaNetwork} that doesn't contain any summary edges.
-   *
-   * <p>Modifications of this {@link CfaNetwork} are reflected in the view.
-   *
-   * @return a view of this {@link CfaNetwork} that doesn't contain any summary edges
-   */
-  default CfaNetwork withoutSummaryEdges() {
-    return withFilteredEdges(edge -> !(edge instanceof FunctionSummaryEdge));
-  }
-
-  /**
    * Returns a view of this {@link CfaNetwork} that doesn't contain any super-edges (i.e., function
    * call and return edges).
    *
-   * <p>Modifications of this {@link CfaNetwork} are reflected in the view.
+   * <p>The returned {@link CfaNetwork} is a view, so it reflects all changes to this {@link
+   * CfaNetwork}. This {@link CfaNetwork} is not changed by this method.
    *
    * @return a view of this {@link CfaNetwork} that doesn't contain any super-edges
    */

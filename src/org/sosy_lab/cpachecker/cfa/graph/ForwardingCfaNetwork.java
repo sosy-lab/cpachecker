@@ -12,11 +12,8 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.graph.ForwardingNetwork;
 
 /**
@@ -51,22 +48,12 @@ public abstract class ForwardingCfaNetwork extends ForwardingNetwork<CFANode, CF
   }
 
   @Override
-  public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
-    return delegate().functionEntryNode(pFunctionSummaryEdge);
+  public FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode) {
+    return delegate().functionEntryNode(pFunctionExitNode);
   }
 
   @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
     return delegate().functionExitNode(pFunctionEntryNode);
-  }
-
-  @Override
-  public FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
-    return delegate().functionSummaryEdge(pFunctionCallEdge);
-  }
-
-  @Override
-  public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
-    return delegate().functionSummaryEdge(pFunctionReturnEdge);
   }
 }

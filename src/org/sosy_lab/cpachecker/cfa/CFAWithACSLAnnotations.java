@@ -31,6 +31,12 @@ public class CFAWithACSLAnnotations extends ForwardingCfaNetwork implements CFA 
   }
 
   @Override
+  public CFA immutableCopy() {
+    throw new UnsupportedOperationException(
+        "Cannot create immutable copy of `CFAWithACSLAnnotations`!");
+  }
+
+  @Override
   protected CfaNetwork delegate() {
     return delegate;
   }

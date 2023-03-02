@@ -29,6 +29,14 @@ public interface CFA extends CfaNetwork {
     return getMetadata().getMachineModel();
   }
 
+  /**
+   * Returns an immutable {@link CFA} that represents the same CFA as this {@link CFA}.
+   *
+   * @return an immutable {@link CFA} that represents the same CFA as this {@link CFA}.
+   */
+  @Override
+  CFA immutableCopy();
+
   boolean isEmpty();
 
   int getNumberOfFunctions();
