@@ -945,7 +945,8 @@ class ASTConverter {
       return new CComplexCastExpression(loc, castType, operand, castType, true);
     }
 
-    if (e.getOperand() instanceof IASTFieldReference
+    if (options.simplifyPointerExpressions()
+        && e.getOperand() instanceof IASTFieldReference
         && ((IASTFieldReference) e.getOperand()).isPointerDereference()) {
       return createInitializedTemporaryVariable(
           loc, castType, new CCastExpression(loc, castType, operand));
