@@ -933,77 +933,56 @@ class CExpressionVisitorWithPointerAliasing
     CType destinationUnderlyingType = destinationPointerType.getType().getCanonicalType();
     long elementSizeInBytes = typeHandler.getSizeof(destinationUnderlyingType);
 
+    // Second parameter will be processed separately depending on the actual function
+
+    // Third parameter (size in bytes) processing
+
+    // cast to size type first
+
+    CType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
+
+    CExpression sizeInBytes = new CCastExpression(FileLocation.DUMMY, sizeType, paramSizeInBytes);
+
+    // we handle the possibility of having the last element partially copied
+    // by treating it as being fully copied, as this situation can arise
+    // in correct programs when structure padding is not copied
+    // therefore, we want the ceiling of (byte_operation_size / element_size)
+    // thus, we use (byte_operation_size + element_size - 1) / element_size
+    // for easy computation; it can technically overflow, but that would mean
+    // the array would take almost all memory that is addressable
+
+    CIntegerLiteralExpression elementSizeInBytesMinusOneLiteral =
+        CIntegerLiteralExpression.createDummyLiteral(elementSizeInBytes - 1, sizeType);
+    CExpression operationSizeByteCeiling =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            sizeType,
+            sizeType,
+            sizeInBytes,
+            elementSizeInBytesMinusOneLiteral,
+            BinaryOperator.PLUS);
+
+    CIntegerLiteralExpression elementSizeInBytesLiteral =
+        CIntegerLiteralExpression.createDummyLiteral(elementSizeInBytes, sizeType);
+    CExpression operationSizeInElements =
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            sizeType,
+            sizeType,
+            operationSizeByteCeiling,
+            elementSizeInBytesLiteral,
+            BinaryOperator.DIVIDE);
+
     // Handover to function-specific code
     final CExpression secondParameter = parameters.get(1);
 
     if (fnName.equals("memset")) {
-
-      // Third parameter (size) processing
-
-      // currently, we only support fixed sizes
-      if (!(paramSizeInBytes instanceof CIntegerLiteralExpression)) {
-        throw new UnrecognizedCodeException(
-            "Memory manipulation with non-literal sizes not implemented", e);
-      }
-
-      // we have the size to be set in bytes, but want to internally set the values to the actual
-      // elements
-      long operationSizeInBytes = ((CIntegerLiteralExpression) paramSizeInBytes).asLong();
-      long operationSizeInWholeElements = operationSizeInBytes / elementSizeInBytes;
-
-      long numBytesInWholeElements = operationSizeInWholeElements * elementSizeInBytes;
-
-      // setting a fraction of element bytes would complicate matters and is almost never used
-      if (operationSizeInBytes != numBytesInWholeElements) {
-        throw new UnrecognizedCodeException(
-            "Memory manipulation with fractional element set not implemented", e);
-      }
-
-      handleMemsetFunction(
-          e,
-          paramDestination,
-          destinationUnderlyingType,
-          operationSizeInWholeElements,
-          secondParameter);
+      handleMemsetFunction(e, paramDestination, operationSizeInElements, secondParameter);
     } else {
 
       // memcpy and memmove only differ in that memcpy is not well-defined
       // if destination and source overlap
       // TODO: should we somehow handle possible memcpy overlap here?
-
-      // TODO: handle fractional setting, at least by also doing copy of the last fractionally-set element
-
-      CType sizeInBytesType = paramSizeInBytes.getExpressionType().getCanonicalType();
-
-      // we handle the possibility of having the last element partially copied
-      // by treating it as being fully copied, as this situation can arise
-      // in correct programs when structure padding is not copied
-      // therefore, we want the ceiling of (byte_operation_size / element_size)
-      // thus, we use (byte_operation_size + element_size - 1) / element_size
-      // for easy computation; it can technically overflow, but that would mean
-      // the array would take almost all memory available
-
-      CIntegerLiteralExpression elementSizeInBytesMinusOneLiteral =
-          CIntegerLiteralExpression.createDummyLiteral(elementSizeInBytes - 1, sizeInBytesType);
-      CExpression operationSizeByteCeiling =
-          new CBinaryExpression(
-              FileLocation.DUMMY,
-              sizeInBytesType,
-              sizeInBytesType,
-              paramSizeInBytes,
-              elementSizeInBytesMinusOneLiteral,
-              BinaryOperator.PLUS);
-
-      CIntegerLiteralExpression elementSizeInBytesLiteral =
-          CIntegerLiteralExpression.createDummyLiteral(elementSizeInBytes, sizeInBytesType);
-      CExpression operationSizeInElements =
-          new CBinaryExpression(
-              FileLocation.DUMMY,
-              sizeInBytesType,
-              sizeInBytesType,
-              operationSizeByteCeiling,
-              elementSizeInBytesLiteral,
-              BinaryOperator.DIVIDE);
 
       handleMemmoveFunction(e, paramDestination, operationSizeInElements, secondParameter);
     }
@@ -1025,7 +1004,7 @@ class CExpressionVisitorWithPointerAliasing
       CExpression source)
       throws UnrecognizedCodeException {
 
-    // we remove the C++ style cast of destination to const void* or void* if necessary
+    // we remove the C++ style cast of source to const void* or void* if necessary
     // it is a no-op anyway apart from the effects on the typing system
 
     if (source instanceof CCastExpression sourceCast) {
@@ -1044,21 +1023,19 @@ class CExpressionVisitorWithPointerAliasing
           "Expected memory copy / move destination to be a left-hand side expression", e);
     }
 
-    CLeftHandSide destinationLeftHandSide = (CLeftHandSide) destination;
+    // the memcopy just indexes the destination and source with the same index
+
+    ArraySliceIndex sliceIndex = new ArraySliceIndex(sizeInElements);
+
+    ArraySliceExpression lhs = new ArraySliceExpression(destination).withIndex(sliceIndex);
+    ArraySliceExpression rhs = new ArraySliceExpression(source).withIndex(sliceIndex);
 
     try {
       AssignmentHandler assignmentHandler =
           new AssignmentHandler(
               conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
       BooleanFormula assignmentFormula =
-          assignmentHandler.handleSliceAssignment(
-              destinationLeftHandSide,
-              destinationLeftHandSide,
-              source,
-              sizeInElements,
-              false,
-              true,
-              true);
+          assignmentHandler.handleSliceAssignment(lhs, rhs, false, true, conv.bfmgr.makeTrue());
       constraints.addConstraint(assignmentFormula);
     } catch (InterruptedException exc) {
       throw CtoFormulaConverter.propagateInterruptedException(exc);
@@ -1067,44 +1044,41 @@ class CExpressionVisitorWithPointerAliasing
 
   private void handleMemsetFunction(
       final CFunctionCallExpression e,
-      CExpression destination,
-      CType destinationUnderlyingType,
-      long sizeInElements,
-      CExpression setValue)
+      final CExpression destination,
+      final CExpression sizeInElements,
+      final CExpression setValue)
       throws UnrecognizedCodeException {
 
-    // we iterate over the actual elements so that we can assign to each one
-    for (long elementIndex = 0; elementIndex < sizeInElements; ++elementIndex) {
+    ArraySliceIndex sliceIndex = new ArraySliceIndex(sizeInElements);
+    ArraySliceExpression slice = new ArraySliceExpression(destination).withIndex(sliceIndex);
 
-      CIntegerLiteralExpression indexLiteral =
-          CIntegerLiteralExpression.createDummyLiteral(
-              elementIndex, conv.machineModel.getPointerEquivalentSimpleType());
-
-      CArraySubscriptExpression destinationAtIndexExpression =
-          new CArraySubscriptExpression(
-              FileLocation.DUMMY, destinationUnderlyingType, destination, indexLiteral);
-
-      performMemsetAssignment(e, destinationAtIndexExpression, setValue);
-    }
+    performMemsetAssignment(e, slice, setValue);
   }
 
   private void performMemsetAssignment(
-      final CFunctionCallExpression e, final CLeftHandSide lvalue, final CExpression paramSetValue)
+      final CFunctionCallExpression e,
+      final ArraySliceExpression slice,
+      final CExpression setValue)
       throws UnrecognizedCodeException {
 
-    CType type = lvalue.getExpressionType().getCanonicalType();
+    CType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
+
+    CType type = slice.getExpressionType(sizeType);
 
     if (type instanceof CArrayType arrayType) {
-      // handle arrays inside memsetted element by memsetting all of their elements
-      if (!arrayType.hasKnownConstantSize()) {
+      // we handle arrays inside memsetted element by memsetting all of their elements
+      // this is done by adding a new index
+
+      CExpression length = arrayType.getLength();
+      if (length == null) {
         throw new UnrecognizedCodeException(
-            "Memset destination containing variable-length array not supported", e);
+            "Unexpected incomplete-array memset destination field", e);
       }
-      long length = ((CIntegerLiteralExpression) arrayType.getLength()).getValue().longValueExact();
 
-      CType underlyingType = arrayType.getType().getCanonicalType();
+      ArraySliceIndex arrayIndex = new ArraySliceIndex(length);
+      ArraySliceExpression newSlice = slice.withIndex(arrayIndex);
+      performMemsetAssignment(e, newSlice, setValue);
 
-      handleMemsetFunction(e, lvalue, underlyingType, length, paramSetValue);
       return;
     }
 
@@ -1114,11 +1088,8 @@ class CExpressionVisitorWithPointerAliasing
       // it should not matter that there will be multiple assignments for union fields
 
       for (CCompositeTypeMemberDeclaration member : compositeUnderlyingType.getMembers()) {
-        final CFieldReference leftHandExpression =
-            new CFieldReference(
-                FileLocation.DUMMY, member.getType(), member.getName(), lvalue, false);
-
-        performMemsetAssignment(e, leftHandExpression, paramSetValue);
+        ArraySliceExpression newSlice = slice.withFieldAccess(member);
+        performMemsetAssignment(e, newSlice, setValue);
       }
       return;
     }
@@ -1133,12 +1104,12 @@ class CExpressionVisitorWithPointerAliasing
       // but it is reasonable to assume that all-zeros will set it to zero
       // and all-ones will set it to the maximum value
 
-      if (!(paramSetValue instanceof CIntegerLiteralExpression)) {
+      if (!(setValue instanceof CIntegerLiteralExpression)) {
         throw new UnrecognizedCodeException(
             "Non-literal memset value not supported for bitfields", e);
       }
 
-      CIntegerLiteralExpression setLiteral = (CIntegerLiteralExpression) paramSetValue;
+      CIntegerLiteralExpression setLiteral = (CIntegerLiteralExpression) setValue;
       int setByte = setLiteral.getValue().intValue() & 0xFF;
       if (setByte != 0 && setByte != 0xFF) {
         throw new UnrecognizedCodeException(
@@ -1180,9 +1151,12 @@ class CExpressionVisitorWithPointerAliasing
 
     if (actualSetValue == null) {
       CExpression setValueUnsignedChar =
-          new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, paramSetValue);
+          new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, setValue);
       actualSetValue = createSetValueExpression(e, (CSimpleType) type, setValueUnsignedChar);
     }
+
+    // wrap the actualSetValue in ArraySliceExpression, there is no indexing of rhs
+    ArraySliceExpression rhs = new ArraySliceExpression(actualSetValue);
 
     // reinterpret instead of casting in assignment to properly handle memset of floats
     try {
@@ -1190,7 +1164,7 @@ class CExpressionVisitorWithPointerAliasing
           new AssignmentHandler(
               conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
       BooleanFormula assignmentFormula =
-          assignmentHandler.handleAssignment(lvalue, lvalue, actualSetValue, false, true);
+          assignmentHandler.handleSliceAssignment(slice, rhs, false, true, conv.bfmgr.makeTrue());
       constraints.addConstraint(assignmentFormula);
     } catch (InterruptedException exc) {
       throw CtoFormulaConverter.propagateInterruptedException(exc);

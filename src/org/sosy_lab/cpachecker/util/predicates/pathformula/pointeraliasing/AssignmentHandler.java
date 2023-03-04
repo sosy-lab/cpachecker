@@ -144,7 +144,8 @@ class AssignmentHandler {
       final @Nullable CRightHandSide rhs,
       final boolean useOldSSAIndicesIfAliased)
       throws UnrecognizedCodeException, InterruptedException {
-    return handleAssignment(lhs, lhsForChecking, lhsType, rhs, useOldSSAIndicesIfAliased, false);
+    return handleAssignment(
+        lhs, lhsForChecking, lhsType, rhs, useOldSSAIndicesIfAliased, false, null);
   }
   /**
    * Creates a formula to handle assignments.
@@ -167,7 +168,8 @@ class AssignmentHandler {
       final CType lhsType,
       final @Nullable CRightHandSide rhs,
       final boolean useOldSSAIndicesIfAliased,
-      final boolean reinterpretInsteadOfCasting)
+      final boolean reinterpretInsteadOfCasting,
+      final BooleanFormula conditionFormula)
       throws UnrecognizedCodeException, InterruptedException {
     if (!conv.isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
@@ -225,9 +227,6 @@ class AssignmentHandler {
     Set<MemoryRegion> updatedRegions =
         useOldSSAIndices || options.useArraysForHeap() ? null : new HashSet<>();
 
-    // always perform the assignment
-    final BooleanFormula condition = null;
-
     final BooleanFormula result =
         makeDestructiveAssignment(
             lhsType,
@@ -236,7 +235,7 @@ class AssignmentHandler {
             rhsExpression,
             useOldSSAIndices,
             updatedRegions,
-            condition);
+            conditionFormula);
 
     if (lhsLocation.isUnaliasedLocation() && lhs instanceof CFieldReference fieldReference) {
       CExpression fieldOwner = fieldReference.getFieldOwner();
@@ -251,7 +250,7 @@ class AssignmentHandler {
               useOldSSAIndices,
               updatedRegions,
               fieldReference,
-              condition);
+              conditionFormula);
         }
         if (fieldOwner instanceof CFieldReference owner) {
           CType ownersOwnerType = typeHandler.getSimplifiedType(owner.getFieldOwner());
@@ -265,7 +264,7 @@ class AssignmentHandler {
                 useOldSSAIndices,
                 updatedRegions,
                 owner,
-                condition);
+                conditionFormula);
           }
         }
       }
@@ -287,37 +286,64 @@ class AssignmentHandler {
     return result;
   }
 
+  class SliceIndexInfo {
+    CExpression size;
+    CExpression lhsIndex;
+    @Nullable CExpression rhsIndex;
+  }
+
   /**
-   * Creates a formula to handle assignments to a slice of an array. If {@code indexRightHandSide}
-   * is true, the right-hand side is assumed to be an array and elements from its slice are assigned
-   * to the left-hand side slice elements. Otherwise, the right-hand side expression is set to every
-   * element of left-hand side slice separately.
+   * Creates a formula to handle assignments to a slice of an array.
    *
-   * @param lhsArray The left hand side of an assignment, expected to be
-   * @param lhsForChecking The left hand side of an assignment to check.
-   * @param rhs Either {@code null} or the right hand side of the assignment.
+   * @param lhs The left hand side of an assignment
+   * @param rhs The right hand side of the assignment
    * @param useOldSSAIndicesIfAliased A flag indicating whether we can use old SSA indices for
    *     aliased locations (because the location was not used before)
    * @param reinterpretInsteadOfCasting A flag indicating whether we should reinterpret the
    *     right-hand side type, preserving the bit-vector representation, to the left-hand side type
    *     instead of casting it according to C rules
+   * @param conditionFormula The condition for assignment being actually done
    * @return A formula for the assignment.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
   BooleanFormula handleSliceAssignment(
-      final CLeftHandSide lhsArray,
-      final CLeftHandSide lhsArrayForChecking,
-      final CExpression rhsArray,
-      final CExpression sliceSize,
+      final ArraySliceExpression lhs,
+      final ArraySliceExpression rhs,
       final boolean useOldSSAIndicesIfAliased,
       final boolean reinterpretInsteadOfCasting,
-      final boolean indexRightHandSide)
+      final BooleanFormula conditionFormula)
       throws UnrecognizedCodeException, InterruptedException {
-    if (!conv.isRelevantLeftHandSide(lhsArrayForChecking)) {
-      // Optimization for unused variables and fields
-      return conv.bfmgr.makeTrue();
+
+    boolean resolveLhs = !lhs.isResolved();
+    boolean resolveRhs = !rhs.isResolved();
+
+    if (!resolveLhs && !resolveRhs) {
+      CLeftHandSide lhsResolved = (CLeftHandSide) lhs.getResolvedExpression();
+      CExpression rhsResolved = rhs.getResolvedExpression();
+
+      return handleAssignment(
+          lhsResolved,
+          lhsResolved,
+          typeHandler.getSimplifiedType(lhsResolved),
+          rhsResolved,
+          useOldSSAIndicesIfAliased,
+          reinterpretInsteadOfCasting,
+          conditionFormula);
     }
+
+    final CExpression baseExpression;
+    final ArraySliceIndex sliceIndex;
+    // prefer resolving left-hand side
+    if (resolveLhs) {
+      baseExpression = lhs.getBaseExpression();
+      sliceIndex = lhs.getFirstIndex();
+    } else {
+      baseExpression = rhs.getBaseExpression();
+      sliceIndex = rhs.getFirstIndex();
+    }
+
+    CExpression sliceSize = sliceIndex.getSize();
 
     // Overapproximate for long arrays
     long consideredArraySize = options.defaultArrayLength();
@@ -328,191 +354,80 @@ class AssignmentHandler {
         consideredArraySize = options.maxArrayLength();
       }
     }
-
     // get right-hand side underlying type
 
-    CType rhsUnderlyingType = typeHandler.getSimplifiedType(rhsArray);
-
-    if (indexRightHandSide) {
-      CType rhsType = CTypes.adjustFunctionOrArrayType(rhsUnderlyingType);
-
-      if (!(rhsType instanceof CPointerType)) {
-        throw new UnrecognizedCodeException(
-            "Expected slice-indexable right-hand side type to be a pointer (adjusted if necessary)",
-            edge);
-      }
-      rhsUnderlyingType = ((CPointerType) rhsType).getType().getCanonicalType();
-    }
-
-    CType lhsArrayType = CTypes.adjustFunctionOrArrayType(typeHandler.getSimplifiedType(lhsArray));
-
-    if (!(lhsArrayType instanceof CPointerType)) {
-      throw new UnrecognizedCodeException(
-          "Expected slice-indexable left-hand side type to be a pointer (adjusted if necessary)",
-          edge);
-    }
-    CType lhsUnderlyingType = ((CPointerType) lhsArrayType).getType().getCanonicalType();
-
-    // assign rhs to lhs
+    CType baseType = typeHandler.getSimplifiedType(baseExpression);
+    CPointerType basePointerType = (CPointerType) CTypes.adjustFunctionOrArrayType(baseType);
+    CType underlyingType = basePointerType.getType().getCanonicalType();
 
     BooleanFormula result = conv.bfmgr.makeTrue();
+    CSimpleType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
+
+    // prepare condition formula
+
+    // perform the assignment conditionally, only if the index is smaller than the actual size
+    CExpression sliceSizeCast = new CCastExpression(FileLocation.DUMMY, sizeType, sliceSize);
+
+    // create the less-than slice size formula manually to avoid intermediate step of casting
+    // the result of bit-vector comparison to int
+    final CExpressionVisitorWithPointerAliasing conditionVisitor = newExpressionVisitor();
+
+    final Expression sliceSizeExpression =
+        createRHSExpression(sliceSizeCast, sizeType, conditionVisitor, false);
+
+    Formula sliceSizeFormula = getValueFormula(sizeType, sliceSizeExpression).orElseThrow();
 
     for (long i = 0; i < consideredArraySize; ++i) {
 
-      // prepare the visitors and literal
-      final CExpressionVisitorWithPointerAliasing conditionVisitor = newExpressionVisitor();
-      final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
-      final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
+      Formula indexFormula = conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(sizeType), i);
 
-      final CSimpleType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
+      final BooleanFormula arrayIndexConditionFormula =
+          conv.fmgr.makeLessThan(indexFormula, sliceSizeFormula, sizeType.isSigned());
+
+      BooleanFormula wholeConditionFormula =
+          conv.bfmgr.and(conditionFormula, arrayIndexConditionFormula);
 
       CIntegerLiteralExpression indexLiteral =
           CIntegerLiteralExpression.createDummyLiteral(i, sizeType);
 
-      // perform the assignment conditionally, only if the index is smaller than the actual size
-      CExpression sliceSizeCast = new CCastExpression(FileLocation.DUMMY, sizeType, sliceSize);
-
-      // create the slice size expression
-      final Expression sliceSizeExpresion =
-          createRHSExpression(sliceSizeCast, sizeType, rhsVisitor, false);
-
-      Formula sliceSizeFormula = getValueFormula(sizeType, sliceSizeExpresion).orElseThrow();
-
-      // create the less-than formula manually to avoid intermediate step of casting
-      // the result of bit-vector comparison to int
-
-      Formula indexFormula = conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(sizeType), i);
-
-      final BooleanFormula conditionFormula =
-          conv.fmgr.makeLessThan(indexFormula, sliceSizeFormula, sizeType.isSigned());
-
-      // create rhs expression
-
-      CExpression rhsElement = rhsArray;
-      CType rhsType = typeHandler.getSimplifiedType(rhsArray);
-      if (indexRightHandSide) {
-        rhsElement =
-            new CArraySubscriptExpression(
-                FileLocation.DUMMY, rhsUnderlyingType, rhsArray, indexLiteral);
-        rhsType = typeHandler.getSimplifiedType(rhsElement);
-      }
-
-      final Expression rhsExpression;
-
-      if (conv.options.useHavocAbstraction()
-          && (!rhsElement.accept(new IsRelevantWithHavocAbstractionVisitor(conv)))) {
-        rhsExpression = Value.nondetValue();
-      } else {
-        // cast / reinterpret
-        rhsExpression =
-            createRHSExpression(rhsElement, rhsType, rhsVisitor, reinterpretInsteadOfCasting);
-      }
-
-      // LHS handling
-      CLeftHandSide lhsElement =
+      CExpression indexedExpression =
           new CArraySubscriptExpression(
-              FileLocation.DUMMY, lhsUnderlyingType, lhsArray, indexLiteral);
+              FileLocation.DUMMY, underlyingType, baseExpression, indexLiteral);
 
-      CType lhsType = typeHandler.getSimplifiedType(lhsElement);
+      ArraySliceExpression newLhs = lhs;
+      ArraySliceExpression newRhs = rhs;
 
-      final Expression lhsExpression = lhsElement.accept(lhsVisitor);
-      if (lhsExpression.isNondetValue()) {
-        // only because of CExpressionVisitorWithPointerAliasing.visit(CFieldReference)
-        conv.logger.logfOnce(
-            Level.WARNING,
-            "%s: Ignoring assignment to %s because bit fields are currently not fully supported",
-            edge.getFileLocation(),
-            lhsElement);
-        return conv.bfmgr.makeTrue();
-      }
-      final Location lhsLocation = lhsExpression.asLocation();
-      final boolean useOldSSAIndices = useOldSSAIndicesIfAliased && lhsLocation.isAliased();
+      if (resolveLhs) {
+        newLhs = lhs.resolveFirstIndex(indexedExpression);
 
-      // TODO: should we really add the conditionVisitor here?
-      pts.addEssentialFields(conditionVisitor.getInitializedFields());
-      pts.addEssentialFields(conditionVisitor.getUsedFields());
-      pts.addEssentialFields(rhsVisitor.getInitializedFields());
-      pts.addEssentialFields(rhsVisitor.getUsedFields());
-      pts.addEssentialFields(lhsVisitor.getInitializedFields());
-      pts.addEssentialFields(lhsVisitor.getUsedFields());
-      // the pattern matching possibly aliased locations
-      if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
-        DynamicMemoryHandler memoryHandler =
-            new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
-        memoryHandler.handleDeferredAllocationsInAssignment(
-            lhsElement,
-            rhsElement,
-            rhsExpression,
-            lhsType,
-            lhsVisitor.getLearnedPointerTypes(),
-            rhsVisitor.getLearnedPointerTypes());
-      }
+        // there is a possibility that there will be the same right-hand side index
+        if (resolveRhs) {
+          ArraySliceIndex rhsSliceIndex = rhs.getFirstIndex();
+          if (rhsSliceIndex.equals(sliceIndex)) {
+            // resolve with the same literal as lhs
+            CExpression rhsBaseExpression = rhs.getBaseExpression();
+            CExpression rhsIndexedExpression =
+                new CArraySubscriptExpression(
+                    FileLocation.DUMMY, underlyingType, rhsBaseExpression, indexLiteral);
 
-      // necessary only for update terms for new UF indices
-      Set<MemoryRegion> updatedRegions =
-          useOldSSAIndices || options.useArraysForHeap() ? null : new HashSet<>();
-
-      final BooleanFormula elementFormula =
-          makeDestructiveAssignment(
-              lhsType,
-              rhsType,
-              lhsLocation,
-              rhsExpression,
-              useOldSSAIndices,
-              updatedRegions,
-              conditionFormula);
-
-      if (lhsLocation.isUnaliasedLocation()
-          && lhsElement instanceof CFieldReference fieldReference) {
-        CExpression fieldOwner = fieldReference.getFieldOwner();
-        CType ownerType = typeHandler.getSimplifiedType(fieldOwner);
-        if (!fieldReference.isPointerDereference() && ownerType instanceof CCompositeType) {
-          if (((CCompositeType) ownerType).getKind() == ComplexTypeKind.UNION) {
-            addAssignmentsForOtherFieldsOfUnion(
-                lhsType,
-                (CCompositeType) ownerType,
-                rhsType,
-                rhsExpression,
-                useOldSSAIndices,
-                updatedRegions,
-                fieldReference,
-                conditionFormula);
-          }
-          if (fieldOwner instanceof CFieldReference owner) {
-            CType ownersOwnerType = typeHandler.getSimplifiedType(owner.getFieldOwner());
-            if (ownersOwnerType instanceof CCompositeType
-                && ((CCompositeType) ownersOwnerType).getKind() == ComplexTypeKind.UNION) {
-              addAssignmentsForOtherFieldsOfUnion(
-                  ownersOwnerType,
-                  (CCompositeType) ownersOwnerType,
-                  ownerType,
-                  createRHSExpression(owner, ownerType, rhsVisitor, false),
-                  useOldSSAIndices,
-                  updatedRegions,
-                  owner,
-                  conditionFormula);
-            }
+            newRhs = rhs.resolveFirstIndex(rhsIndexedExpression);
           }
         }
+
+      } else {
+        newRhs = rhs.resolveFirstIndex(indexedExpression);
       }
 
-      if (!useOldSSAIndices && !options.useArraysForHeap()) {
-        if (lhsLocation.isAliased()) {
-          final PointerTargetPattern pattern =
-              PointerTargetPattern.forLeftHandSide(lhsElement, typeHandler, edge, pts);
-          finishAssignmentsForUF(lhsType, lhsLocation.asAliased(), pattern, updatedRegions);
-        } else { // Unaliased lvalue
-          assert updatedRegions != null && updatedRegions.isEmpty();
-        }
-      }
-
-      for (final CompositeField field : rhsVisitor.getAddressedFields()) {
-        pts.addField(field);
-      }
-
-      result = conv.bfmgr.and(result, elementFormula);
+      // handle slice assignment with the index removed
+      BooleanFormula partResult =
+          handleSliceAssignment(
+              newLhs,
+              newRhs,
+              useOldSSAIndicesIfAliased,
+              reinterpretInsteadOfCasting,
+              wholeConditionFormula);
+      result = conv.bfmgr.and(result, partResult);
     }
-
     return result;
   }
 
@@ -588,7 +503,8 @@ class AssignmentHandler {
         typeHandler.getSimplifiedType(lhs),
         rhs,
         useOldSSAIndicesIfAliased,
-        reinterpretInsteadOfCasting);
+        reinterpretInsteadOfCasting,
+        null);
   }
 
   /**
