@@ -50,6 +50,19 @@ class SMTHeapWithArrays implements SMTHeap {
   }
 
   @Override
+  public <E extends Formula> BooleanFormula makeIdentityPointerAssignment(
+      final String targetName,
+      final FormulaType<E> pTargetType,
+      final int oldIndex,
+      final int newIndex) {
+    final ArrayFormula<?, E> oldFormula =
+        afmgr.makeArray(targetName, oldIndex, pointerType, pTargetType);
+    final ArrayFormula<?, E> newFormula =
+        afmgr.makeArray(targetName, newIndex, pointerType, pTargetType);
+    return formulaManager.makeEqual(newFormula, oldFormula);
+  }
+
+  @Override
   public <I extends Formula, E extends Formula> E makePointerDereference(
       String targetName, FormulaType<E> targetType, I address) {
     final FormulaType<I> addressType = formulaManager.getFormulaType(address);

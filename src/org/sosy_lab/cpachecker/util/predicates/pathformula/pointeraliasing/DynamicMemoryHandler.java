@@ -394,6 +394,7 @@ class DynamicMemoryHandler {
               Value.ofValue(
                   conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR), 0)),
               true,
+              null,
               null);
 
       constraints.addConstraint(initialization);

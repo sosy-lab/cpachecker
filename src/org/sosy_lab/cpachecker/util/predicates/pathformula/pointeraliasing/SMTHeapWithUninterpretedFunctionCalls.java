@@ -53,4 +53,12 @@ class SMTHeapWithUninterpretedFunctionCalls implements SMTHeap {
       String targetName, FormulaType<V> targetType, int ssaIndex, I address) {
     return ffmgr.declareAndCallUninterpretedFunction(targetName, ssaIndex, targetType, address);
   }
+
+  @Override
+  public <E extends Formula> BooleanFormula makeIdentityPointerAssignment(
+      String pTargetName, FormulaType<E> pTargetType, int pOldIndex, int pNewIndex) {
+    // TODO: implement identity pointer assignnent
+    throw new UnsupportedOperationException(
+        "Uninterpreted functions heap does not support identity pointer assignment yet");
+  }
 }

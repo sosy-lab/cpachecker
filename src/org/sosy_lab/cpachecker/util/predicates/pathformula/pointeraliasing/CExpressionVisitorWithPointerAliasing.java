@@ -933,30 +933,32 @@ class CExpressionVisitorWithPointerAliasing
     CType destinationUnderlyingType = destinationPointerType.getType().getCanonicalType();
     long elementSizeInBytes = typeHandler.getSizeof(destinationUnderlyingType);
 
-    // Third parameter (size) processing
-
-    // currently, we only support fixed sizes
-    if (!(paramSizeInBytes instanceof CIntegerLiteralExpression)) {
-      throw new UnrecognizedCodeException(
-          "Memory manipulation with non-literal sizes not implemented", e);
-    }
-
-    // we have the size to be set in bytes, but want to internally set the values to the actual elements
-    long operationSizeInBytes = ((CIntegerLiteralExpression) paramSizeInBytes).asLong();
-    long operationSizeInWholeElements = operationSizeInBytes / elementSizeInBytes;
-
-    long numBytesInWholeElements = operationSizeInWholeElements * elementSizeInBytes;
-
-    // setting a fraction of element bytes would complicate matters and is almost never used
-    if (operationSizeInBytes != numBytesInWholeElements) {
-      throw new UnrecognizedCodeException(
-          "Memory manipulation with fractional element set not implemented", e);
-    }
-
     // Handover to function-specific code
     final CExpression secondParameter = parameters.get(1);
 
     if (fnName.equals("memset")) {
+
+      // Third parameter (size) processing
+
+      // currently, we only support fixed sizes
+      if (!(paramSizeInBytes instanceof CIntegerLiteralExpression)) {
+        throw new UnrecognizedCodeException(
+            "Memory manipulation with non-literal sizes not implemented", e);
+      }
+
+      // we have the size to be set in bytes, but want to internally set the values to the actual
+      // elements
+      long operationSizeInBytes = ((CIntegerLiteralExpression) paramSizeInBytes).asLong();
+      long operationSizeInWholeElements = operationSizeInBytes / elementSizeInBytes;
+
+      long numBytesInWholeElements = operationSizeInWholeElements * elementSizeInBytes;
+
+      // setting a fraction of element bytes would complicate matters and is almost never used
+      if (operationSizeInBytes != numBytesInWholeElements) {
+        throw new UnrecognizedCodeException(
+            "Memory manipulation with fractional element set not implemented", e);
+      }
+
       handleMemsetFunction(
           e,
           paramDestination,
@@ -969,12 +971,41 @@ class CExpressionVisitorWithPointerAliasing
       // if destination and source overlap
       // TODO: should we somehow handle possible memcpy overlap here?
 
-      handleMemmoveFunction(
-          e,
-          paramDestination,
-          destinationUnderlyingType,
-          operationSizeInWholeElements,
-          secondParameter);
+      // TODO: handle fractional setting, at least by also doing copy of the last fractionally-set element
+
+      CType sizeInBytesType = paramSizeInBytes.getExpressionType().getCanonicalType();
+
+      // we handle the possibility of having the last element partially copied
+      // by treating it as being fully copied, as this situation can arise
+      // in correct programs when structure padding is not copied
+      // therefore, we want the ceiling of (byte_operation_size / element_size)
+      // thus, we use (byte_operation_size + element_size - 1) / element_size
+      // for easy computation; it can technically overflow, but that would mean
+      // the array would take almost all memory available
+
+      CIntegerLiteralExpression elementSizeInBytesMinusOneLiteral =
+          CIntegerLiteralExpression.createDummyLiteral(elementSizeInBytes - 1, sizeInBytesType);
+      CExpression operationSizeByteCeiling =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              sizeInBytesType,
+              sizeInBytesType,
+              paramSizeInBytes,
+              elementSizeInBytesMinusOneLiteral,
+              BinaryOperator.PLUS);
+
+      CIntegerLiteralExpression elementSizeInBytesLiteral =
+          CIntegerLiteralExpression.createDummyLiteral(elementSizeInBytes, sizeInBytesType);
+      CExpression operationSizeInElements =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              sizeInBytesType,
+              sizeInBytesType,
+              operationSizeByteCeiling,
+              elementSizeInBytesLiteral,
+              BinaryOperator.DIVIDE);
+
+      handleMemmoveFunction(e, paramDestination, operationSizeInElements, secondParameter);
     }
 
     // Result value creation
@@ -990,8 +1021,7 @@ class CExpressionVisitorWithPointerAliasing
   private void handleMemmoveFunction(
       @SuppressWarnings("unused") CFunctionCallExpression e,
       CExpression destination,
-      CType destinationUnderlyingType,
-      long sizeInElements,
+      CExpression sizeInElements,
       CExpression source)
       throws UnrecognizedCodeException {
 
@@ -1009,34 +1039,29 @@ class CExpressionVisitorWithPointerAliasing
       }
     }
 
-    // we iterate over the actual elements so that we can assign to each one
-    for (long elementIndex = 0; elementIndex < sizeInElements; ++elementIndex) {
+    if (!(destination instanceof CLeftHandSide)) {
+      throw new UnrecognizedCodeException(
+          "Expected memory copy / move destination to be a left-hand side expression", e);
+    }
 
-      CIntegerLiteralExpression indexLiteral =
-          CIntegerLiteralExpression.createDummyLiteral(
-              elementIndex, conv.machineModel.getPointerEquivalentSimpleType());
+    CLeftHandSide destinationLeftHandSide = (CLeftHandSide) destination;
 
-      CArraySubscriptExpression destinationAtIndex =
-          new CArraySubscriptExpression(
-              FileLocation.DUMMY, destinationUnderlyingType, destination, indexLiteral);
-
-      CArraySubscriptExpression sourceAtIndex =
-          new CArraySubscriptExpression(
-              FileLocation.DUMMY, destinationUnderlyingType, source, indexLiteral);
-
-      // it is possible to use AssignmentHandler on whole structures
-      // so we will do just that
-      try {
-        AssignmentHandler assignmentHandler =
-            new AssignmentHandler(
-                conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
-        BooleanFormula assignmentFormula =
-            assignmentHandler.handleAssignment(
-                destinationAtIndex, destinationAtIndex, sourceAtIndex, false);
-        constraints.addConstraint(assignmentFormula);
-      } catch (InterruptedException exc) {
-        throw CtoFormulaConverter.propagateInterruptedException(exc);
-      }
+    try {
+      AssignmentHandler assignmentHandler =
+          new AssignmentHandler(
+              conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
+      BooleanFormula assignmentFormula =
+          assignmentHandler.handleSliceAssignment(
+              destinationLeftHandSide,
+              destinationLeftHandSide,
+              source,
+              sizeInElements,
+              false,
+              true,
+              true);
+      constraints.addConstraint(assignmentFormula);
+    } catch (InterruptedException exc) {
+      throw CtoFormulaConverter.propagateInterruptedException(exc);
     }
   }
 

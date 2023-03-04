@@ -35,6 +35,25 @@ interface SMTHeap {
       final int newIndex,
       final I address,
       final E value);
+
+  /**
+   * Create a formula that represents an assignment from old SSA index to new SSA index without
+   * changing the value. Useful for creating conditional assignments.
+   *
+   * @param targetName The name of the pointer access symbol as returned by {@link
+   *     MemoryRegionManager#getPointerAccessName(MemoryRegion)}
+   * @param pTargetType The formula type of the value
+   * @param oldIndex The old SSA index for targetName
+   * @param newIndex The new SSA index for targetName
+   * @return A formula representing an assignment of the form {@code targetName@newIndex[address] =
+   *     value}
+   */
+  <E extends Formula> BooleanFormula makeIdentityPointerAssignment(
+      final String targetName,
+      final FormulaType<E> pTargetType,
+      final int oldIndex,
+      final int newIndex);
+
   /**
    * Make a formula that represents a pointer access.
    *

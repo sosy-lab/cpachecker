@@ -78,6 +78,22 @@ class SMTHeapWithByteArray implements SMTHeap {
   }
 
   @Override
+  public <E extends Formula> BooleanFormula makeIdentityPointerAssignment(
+      String targetName, FormulaType<E> pTargetType, int oldIndex, int newIndex) {
+    if (pTargetType.isFloatingPointType()) {
+      FloatingPointType floatTargetType = (FloatingPointType) pTargetType;
+      BitvectorType bvType = FormulaType.getBitvectorTypeWithSize(floatTargetType.getTotalSize());
+      return makeIdentityPointerAssignment(targetName, bvType, oldIndex, newIndex);
+
+    } else if (pTargetType.isBitvectorType()) {
+      return handleIdentityBitvectorAssignment(targetName, oldIndex, newIndex, pointerType);
+    } else {
+      throw new UnsupportedOperationException(
+          "ByteArray Heap encoding does not support " + pTargetType);
+    }
+  }
+
+  @Override
   public <I extends Formula, E extends Formula> E makePointerDereference(
       String targetName, FormulaType<E> targetType, I address) {
     if (targetType.isFloatingPointType()) {
@@ -194,6 +210,15 @@ class SMTHeapWithByteArray implements SMTHeap {
     return formulaManager.makeEqual(arrayFormula, oldFormula);
   }
 
+  private <I extends Formula> BooleanFormula handleIdentityBitvectorAssignment(
+      String targetName, int oldIndex, int newIndex, FormulaType<I> addressType) {
+    ArrayFormula<I, BitvectorFormula> oldFormula =
+        afmgr.makeArray(targetName, oldIndex, addressType, BYTE_TYPE);
+    final ArrayFormula<I, BitvectorFormula> newFormula =
+        afmgr.makeArray(targetName, newIndex, addressType, BYTE_TYPE);
+    return formulaManager.makeEqual(newFormula, oldFormula);
+  }
+
   private <I extends BitvectorFormula> ImmutableList<BitvectorFormula> splitBitvectorToBytes(
       I bitvector) {
     final int bitLength = bfmgr.getLength(bitvector);
@@ -204,4 +229,6 @@ class SMTHeapWithByteArray implements SMTHeap {
     }
     return (endianness == ByteOrder.BIG_ENDIAN) ? builder.build().reverse() : builder.build();
   }
+
+
 }
