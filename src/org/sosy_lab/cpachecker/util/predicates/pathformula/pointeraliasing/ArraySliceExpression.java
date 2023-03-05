@@ -17,7 +17,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 /**
  * A helper class for realization of assignments to array slices, used for indexing by quantified
@@ -32,19 +34,27 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 final class ArraySliceExpression {
   interface ArraySliceModifier {}
 
-  protected final class ArraySliceFieldAccessModifier implements ArraySliceModifier {
+  final class ArraySliceFieldAccessModifier implements ArraySliceModifier {
     final CCompositeTypeMemberDeclaration field;
 
     ArraySliceFieldAccessModifier(CCompositeTypeMemberDeclaration pField) {
       field = pField;
     }
+
+    CCompositeTypeMemberDeclaration getField() {
+      return field;
+    }
   }
 
-  protected final class ArraySliceSubscriptModifier implements ArraySliceModifier {
+  final class ArraySliceSubscriptModifier implements ArraySliceModifier {
     final ArraySliceIndex index;
 
     ArraySliceSubscriptModifier(ArraySliceIndex pIndex) {
       index = pIndex;
+    }
+
+    ArraySliceIndex getIndex() {
+      return index;
     }
   }
 
@@ -102,10 +112,10 @@ final class ArraySliceExpression {
 
   CType getExpressionType(CType sizeType) {
     // resolve the expression with dummy zero indices to get the type
-    CExpression dummyResolved = base;
+    CExpression resolved = base;
     for (ArraySliceModifier modifier : modifiers) {
       if (modifier instanceof ArraySliceFieldAccessModifier fieldAccess) {
-        dummyResolved =
+        resolved =
             new CFieldReference(
                 FileLocation.DUMMY,
                 fieldAccess.field.getType(),
@@ -116,12 +126,17 @@ final class ArraySliceExpression {
         // subscript
         CIntegerLiteralExpression indexLiteral =
             CIntegerLiteralExpression.createDummyLiteral(0, sizeType);
-        dummyResolved =
+
+        CPointerType resolvedPointerType =
+            (CPointerType) CTypes.adjustFunctionOrArrayType(resolved.getExpressionType());
+        CType underlyingType = resolvedPointerType.getType().getCanonicalType();
+
+        resolved =
             new CArraySubscriptExpression(
-                FileLocation.DUMMY, sizeType, dummyResolved, indexLiteral);
+                FileLocation.DUMMY, underlyingType, resolved, indexLiteral);
       }
     }
-    return dummyResolved.getExpressionType().getCanonicalType();
+    return resolved.getExpressionType().getCanonicalType();
   }
 
   ArraySliceIndex getFirstIndex() {
@@ -167,5 +182,9 @@ final class ArraySliceExpression {
             .add(new ArraySliceSubscriptModifier(field))
             .build();
     return new ArraySliceExpression(base, newModifiers);
+  }
+
+  ImmutableList<ArraySliceModifier> getModifiers() {
+    return modifiers;
   }
 }

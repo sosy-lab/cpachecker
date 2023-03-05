@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.Ints;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -58,6 +59,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceFieldAccessModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceSubscriptModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Kind;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
@@ -74,6 +78,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 
 /** Implements a handler for assignments. */
 class AssignmentHandler {
+  private int nextQuantifierVariableNumber = 0;
 
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView fmgr;
@@ -297,8 +302,6 @@ class AssignmentHandler {
    *
    * @param lhs The left hand side of an assignment
    * @param rhs The right hand side of the assignment
-   * @param useOldSSAIndicesIfAliased A flag indicating whether we can use old SSA indices for
-   *     aliased locations (because the location was not used before)
    * @param reinterpretInsteadOfCasting A flag indicating whether we should reinterpret the
    *     right-hand side type, preserving the bit-vector representation, to the left-hand side type
    *     instead of casting it according to C rules
@@ -310,7 +313,6 @@ class AssignmentHandler {
   BooleanFormula handleSliceAssignment(
       final ArraySliceExpression lhs,
       final ArraySliceExpression rhs,
-      final boolean useOldSSAIndicesIfAliased,
       final boolean reinterpretInsteadOfCasting,
       final BooleanFormula conditionFormula)
       throws UnrecognizedCodeException, InterruptedException {
@@ -327,9 +329,14 @@ class AssignmentHandler {
           lhsResolved,
           typeHandler.getSimplifiedType(lhsResolved),
           rhsResolved,
-          useOldSSAIndicesIfAliased,
+          false,
           reinterpretInsteadOfCasting,
           conditionFormula);
+    }
+
+    if (options.useQuantifiersOnSlices()) {
+      return handleSliceAssignmentWithQuantifiers(
+          lhs, rhs, reinterpretInsteadOfCasting, conditionFormula);
     }
 
     final CExpression baseExpression;
@@ -423,12 +430,213 @@ class AssignmentHandler {
           handleSliceAssignment(
               newLhs,
               newRhs,
-              useOldSSAIndicesIfAliased,
               reinterpretInsteadOfCasting,
               wholeConditionFormula);
       result = conv.bfmgr.and(result, partResult);
     }
     return result;
+  }
+
+  private BooleanFormula handleSliceModifiersWithQuantifiers(
+      final CType lhsBaseType,
+      final Expression lhsBaseExpression,
+      final List<ArraySliceModifier> lhsModifiers,
+      final CType rhsBaseType,
+      final Expression rhsBaseExpression,
+      final List<ArraySliceModifier> rhsModifiers,
+      final boolean reinterpretInsteadOfCasting,
+      final BooleanFormula conditionFormula)
+      throws UnrecognizedCodeException {
+
+    boolean resolveLhs = !lhsModifiers.isEmpty();
+    boolean resolveRhs = !rhsModifiers.isEmpty();
+
+    if (!resolveLhs && !resolveRhs) {
+      final Location lhsLocation = lhsBaseExpression.asLocation();
+      return makeDestructiveAssignment(
+          lhsBaseType, rhsBaseType, lhsLocation, rhsBaseExpression, false, null, conditionFormula);
+    }
+
+    CType newLhsBaseType = lhsBaseType;
+    CType newRhsBaseType = rhsBaseType;
+
+    Expression newLhsBaseExpression = lhsBaseExpression;
+    Expression newRhsBaseExpression = rhsBaseExpression;
+
+    List<ArraySliceModifier> newLhsModifiers = lhsModifiers;
+    List<ArraySliceModifier> newRhsModifiers = rhsModifiers;
+
+    CType baseType;
+    final Expression baseExpression;
+    final ArraySliceModifier modifier;
+    // prefer resolving left-hand side
+    if (resolveLhs) {
+      baseType = lhsBaseType;
+      baseExpression = lhsBaseExpression;
+      newLhsModifiers = new LinkedList<>(lhsModifiers);
+      modifier = newLhsModifiers.remove(0);
+    } else {
+      baseType = rhsBaseType;
+      baseExpression = rhsBaseExpression;
+      newRhsModifiers = new LinkedList<>(rhsModifiers);
+      modifier = newRhsModifiers.remove(0);
+    }
+
+    if (modifier instanceof ArraySliceFieldAccessModifier) {
+      // TODO: access the field
+      throw new UnsupportedOperationException(
+          "Slice field access with currently not supported yet");
+    }
+
+    ArraySliceSubscriptModifier subscriptModifier = (ArraySliceSubscriptModifier) modifier;
+
+    Formula baseAddress = baseExpression.asAliasedLocation().getAddress();
+
+    CPointerType basePointerType =
+        (CPointerType) CTypes.adjustFunctionOrArrayType(baseType.getCanonicalType());
+
+    final CType elementType = basePointerType.getType().getCanonicalType();
+    final Formula coeff =
+        conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
+
+    final Formula quantifierVariable =
+        fmgr.makeVariableWithoutSSAIndex(
+            conv.voidPointerFormulaType, "__quantifier_" + (nextQuantifierVariableNumber++));
+
+    // do not use fmgr.makeElementIndexConstraint as that cannot make a quantifier on both sides
+    CExpression sizeCExpression = subscriptModifier.getIndex().getSize();
+    final CType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
+    CCastExpression sizeCCast = new CCastExpression(
+        FileLocation.DUMMY, sizeType, sizeCExpression);
+
+    final CExpressionVisitorWithPointerAliasing sizeVisitor = newExpressionVisitor();
+    Expression sizeExpression = sizeCCast.accept(sizeVisitor);
+
+    Formula sizeFormula = sizeVisitor.asValueFormula(sizeExpression, sizeType);
+
+    BooleanFormula quantifierLessThanSize =
+        conv.fmgr.makeLessThan(quantifierVariable, sizeFormula, false);
+
+    final Formula adjustedAddress =
+        conv.fmgr.makePlus(baseAddress, conv.fmgr.makeMultiply(coeff, quantifierVariable));
+
+    AliasedLocation newBaseExpression = AliasedLocation.ofAddress(adjustedAddress);
+
+    if (resolveLhs) {
+      newLhsBaseType = elementType;
+      newLhsBaseExpression = newBaseExpression;
+    } else {
+      newRhsBaseType = elementType;
+      newRhsBaseExpression = newBaseExpression;
+    }
+
+    if (resolveLhs && resolveRhs) {
+      ArraySliceModifier rhsModifier = newRhsModifiers.get(0);
+      if (rhsModifier instanceof ArraySliceSubscriptModifier rhsSubscriptModifier) {
+        if (rhsSubscriptModifier.index.equals(subscriptModifier.index)) {
+          // also quantify right-hand side
+          CPointerType rhsBasePointerType =
+              (CPointerType) CTypes.adjustFunctionOrArrayType(rhsBaseType.getCanonicalType());
+          final CType rhsElementType = rhsBasePointerType.getType().getCanonicalType();
+
+          Formula rhsBaseAddress = rhsBaseExpression.asAliasedLocation().getAddress();
+          final Formula rhsAdjustedAddress =
+              conv.fmgr.makePlus(rhsBaseAddress, conv.fmgr.makeMultiply(coeff, quantifierVariable));
+
+          newRhsBaseType = rhsElementType;
+          newRhsBaseExpression = AliasedLocation.ofAddress(rhsAdjustedAddress);
+          newRhsModifiers = new LinkedList<>(rhsModifiers);
+          newRhsModifiers.remove(0);
+        }
+      }
+    }
+
+    // make sure that only the array elements lesser than size are assigned
+
+    BooleanFormula newConditionFormula = bfmgr.and(conditionFormula, quantifierLessThanSize);
+
+    BooleanFormula result =
+        handleSliceModifiersWithQuantifiers(
+            newLhsBaseType,
+            newLhsBaseExpression,
+            newLhsModifiers,
+            newRhsBaseType,
+            newRhsBaseExpression,
+            newRhsModifiers,
+            reinterpretInsteadOfCasting,
+            newConditionFormula);
+
+    // quantify result
+
+    return fmgr.getQuantifiedFormulaManager().forall(quantifierVariable, result);
+  }
+
+  BooleanFormula handleSliceAssignmentWithQuantifiers(
+      final ArraySliceExpression lhs,
+      final ArraySliceExpression rhs,
+      final boolean reinterpretInsteadOfCasting,
+      final BooleanFormula conditionFormula)
+      throws UnrecognizedCodeException {
+
+    // TODO: re-add relevant left side checking
+    // RHS handling
+    final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
+
+    // TODO: re-add special havoc abstraction handling
+    // create base RHS expression with RHS base type
+
+    CExpression rhsBase = rhs.getBaseExpression();
+    final Expression rhsBaseExpression =
+        createRHSExpression(
+            rhsBase, rhsBase.getExpressionType(), rhsVisitor, reinterpretInsteadOfCasting);
+
+    // TODO: add used fields to essential fields
+    pts.addEssentialFields(rhsVisitor.getInitializedFields());
+    pts.addEssentialFields(rhsVisitor.getUsedFields());
+
+
+
+    // LHS handling
+    final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
+    CExpression lhsBase = lhs.getBaseExpression();
+    final Expression lhsBaseExpression = lhsBase.accept(lhsVisitor);
+    if (lhsBaseExpression.isNondetValue()) {
+      // only because of CExpressionVisitorWithPointerAliasing.visit(CFieldReference)
+      conv.logger.logfOnce(
+          Level.WARNING,
+          "%s: Ignoring assignment to %s because bit fields are currently not fully supported",
+          edge.getFileLocation(),
+          lhs);
+      return conv.bfmgr.makeTrue();
+    }
+
+
+    for (final CompositeField field : rhsVisitor.getAddressedFields()) {
+      pts.addField(field);
+    }
+
+    pts.addEssentialFields(lhsVisitor.getInitializedFields());
+    pts.addEssentialFields(lhsVisitor.getUsedFields());
+    // the pattern matching possibly aliased locations
+
+    // TODO: re-add deferred allocations
+
+    // TODO: re-add union handling
+
+    // TODO: re-add UF handling
+    if (!options.useArraysForHeap()) {
+      throw new UnsupportedOperationException(
+          "Slice assignment with quantifiers currently not supported with uninterpreted functions");
+    }
+    return handleSliceModifiersWithQuantifiers(
+        lhsBase.getExpressionType().getCanonicalType(),
+        lhsBaseExpression,
+        lhs.getModifiers(),
+        rhsBase.getExpressionType().getCanonicalType(),
+        rhsBaseExpression,
+        rhs.getModifiers(),
+        reinterpretInsteadOfCasting,
+        conditionFormula);
   }
 
   private Expression createRHSExpression(

@@ -1035,7 +1035,7 @@ class CExpressionVisitorWithPointerAliasing
           new AssignmentHandler(
               conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
       BooleanFormula assignmentFormula =
-          assignmentHandler.handleSliceAssignment(lhs, rhs, false, true, conv.bfmgr.makeTrue());
+          assignmentHandler.handleSliceAssignment(lhs, rhs, true, conv.bfmgr.makeTrue());
       constraints.addConstraint(assignmentFormula);
     } catch (InterruptedException exc) {
       throw CtoFormulaConverter.propagateInterruptedException(exc);
@@ -1164,7 +1164,7 @@ class CExpressionVisitorWithPointerAliasing
           new AssignmentHandler(
               conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
       BooleanFormula assignmentFormula =
-          assignmentHandler.handleSliceAssignment(slice, rhs, false, true, conv.bfmgr.makeTrue());
+          assignmentHandler.handleSliceAssignment(slice, rhs, true, conv.bfmgr.makeTrue());
       constraints.addConstraint(assignmentFormula);
     } catch (InterruptedException exc) {
       throw CtoFormulaConverter.propagateInterruptedException(exc);
