@@ -469,7 +469,14 @@ class AssignmentHandler {
     CType baseType;
     final Expression baseExpression;
     final ArraySliceModifier modifier;
-    // prefer resolving left-hand side
+    // prefer resolving fields
+    // after that, prefer resolving left-hand side
+
+    if (!rhsModifiers.isEmpty() && (rhsModifiers.get(0) instanceof ArraySliceFieldAccessModifier)) {
+      // resolve rhs instead of lhs
+      resolveLhs = false;
+    }
+
     if (resolveLhs) {
       baseType = lhsBaseType;
       baseExpression = lhsBaseExpression;
@@ -482,10 +489,48 @@ class AssignmentHandler {
       modifier = newRhsModifiers.remove(0);
     }
 
-    if (modifier instanceof ArraySliceFieldAccessModifier) {
-      // TODO: access the field
-      throw new UnsupportedOperationException(
-          "Slice field access with currently not supported yet");
+    if (modifier instanceof ArraySliceFieldAccessModifier fieldModifier) {
+      // TODO: nonaliased locations
+      if (!(baseType instanceof CCompositeType)) {
+        throw new UnrecognizedCodeException("Field owner of a non-composite type", edge);
+      }
+      Formula baseAddress = baseExpression.asAliasedLocation().getAddress();
+
+      CCompositeTypeMemberDeclaration field = fieldModifier.getField();
+
+      final String fieldName = field.getName();
+      // TODO: add field name to used fields
+      final OptionalLong fieldOffset = typeHandler.getOffset((CCompositeType) baseType, fieldName);
+      if (!fieldOffset.isPresent()) {
+        // TODO This loses values of bit fields.
+        return bfmgr.makeTrue();
+      }
+      final Formula offset =
+          conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset.orElseThrow());
+      final Formula address = conv.fmgr.makePlus(baseAddress, offset);
+      // TODO: add equal base address constraint
+      final MemoryRegion region = regionMgr.makeMemoryRegion(baseType, field.getType(), fieldName);
+      AliasedLocation newBaseExpression = AliasedLocation.ofAddressWithRegion(address, region);
+
+      if (resolveLhs) {
+        newLhsBaseType = field.getType();
+        newLhsBaseExpression = newBaseExpression;
+      } else {
+        newRhsBaseType = field.getType();
+        newRhsBaseExpression = newBaseExpression;
+      }
+
+      // the condition formula remains the same
+
+      return handleSliceModifiersWithQuantifiers(
+          newLhsBaseType,
+          newLhsBaseExpression,
+          newLhsModifiers,
+          newRhsBaseType,
+          newRhsBaseExpression,
+          newRhsModifiers,
+          reinterpretInsteadOfCasting,
+          conditionFormula);
     }
 
     ArraySliceSubscriptModifier subscriptModifier = (ArraySliceSubscriptModifier) modifier;
