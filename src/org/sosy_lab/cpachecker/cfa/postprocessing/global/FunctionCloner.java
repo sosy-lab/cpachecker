@@ -705,7 +705,7 @@ class FunctionCloner implements CFAVisitor {
                 e.getName(),
                 changeQualifiedName(e.getQualifiedName()),
                 e.getType(),
-                (e.hasValue() ? e.getValue() : null));
+                e.getValue());
         enumType.setEnum(e.getEnum());
         l.add(enumType);
       }

@@ -2602,15 +2602,11 @@ class ASTConverter {
 
   private CEnumType convert(IASTEnumerationSpecifier d) {
     List<CEnumerator> list = new ArrayList<>(d.getEnumerators().length);
-    Long lastValue = -1L; // initialize with -1, so the first one gets value 0
+    long lastValue = -1L; // initialize with -1, so the first one gets value 0
     for (IASTEnumerationSpecifier.IASTEnumerator c : d.getEnumerators()) {
       CEnumerator newC = convert(c, lastValue);
       list.add(newC);
-      if (newC.hasValue()) {
-        lastValue = newC.getValue();
-      } else {
-        lastValue = null;
-      }
+      lastValue = newC.getValue();
     }
 
     String name = convert(d.getName());
@@ -2647,7 +2643,6 @@ class ASTConverter {
   private CSimpleType getEnumerationType(final CEnumType enumType) {
     LongSummaryStatistics enumStatistics =
         enumType.getEnumerators().stream()
-            .filter(CEnumerator::hasValue) // some values might not have been simplified
             .mapToLong(CEnumerator::getValue)
             .summaryStatistics();
 
@@ -2666,10 +2661,10 @@ class ASTConverter {
     return CNumericTypes.UNSIGNED_LONG_LONG_INT;
   }
 
-  private CEnumerator convert(IASTEnumerationSpecifier.IASTEnumerator e, Long lastValue) {
-    Long value = null;
+  private CEnumerator convert(IASTEnumerationSpecifier.IASTEnumerator e, long lastValue) {
+    long value;
 
-    if (e.getValue() == null && lastValue != null) {
+    if (e.getValue() == null) {
       value = lastValue + 1;
     } else {
       // TODO Because we fully evaluate the expression here and never add e.getValue() itself

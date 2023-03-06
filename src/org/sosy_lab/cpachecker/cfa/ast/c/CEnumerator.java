@@ -23,7 +23,7 @@ public final class CEnumerator extends AbstractSimpleDeclaration implements CSim
 
   private static final long serialVersionUID = -2526725372840523651L;
 
-  private final @Nullable Long value;
+  private final long value;
   private @Nullable CEnumType enumType;
   private final String qualifiedName;
 
@@ -32,7 +32,7 @@ public final class CEnumerator extends AbstractSimpleDeclaration implements CSim
       final String pName,
       final String pQualifiedName,
       final @Nullable CType pType,
-      final @Nullable Long pValue) {
+      final long pValue) {
     super(pFileLocation, pType, pName);
 
     checkNotNull(pName);
@@ -92,17 +92,12 @@ public final class CEnumerator extends AbstractSimpleDeclaration implements CSim
   }
 
   public long getValue() {
-    checkState(value != null, "Need to check hasValue() before calling getValue()");
     return value;
-  }
-
-  public boolean hasValue() {
-    return value != null;
   }
 
   @Override
   public String toASTString() {
-    return getQualifiedName().replace("::", "__") + (hasValue() ? " = " + value : "");
+    return getQualifiedName().replace("::", "__") + " = " + value;
   }
 
   @Override
