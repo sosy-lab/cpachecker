@@ -2642,9 +2642,7 @@ class ASTConverter {
    */
   private CSimpleType getEnumerationType(final CEnumType enumType) {
     LongSummaryStatistics enumStatistics =
-        enumType.getEnumerators().stream()
-            .mapToLong(CEnumerator::getValue)
-            .summaryStatistics();
+        enumType.getEnumerators().stream().mapToLong(CEnumerator::getValue).summaryStatistics();
 
     Preconditions.checkState(
         enumStatistics.getCount() > 0, "enumeration does not provide any values: %s", enumType);

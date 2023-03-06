@@ -708,12 +708,7 @@ class FunctionCloner implements CFAVisitor {
                 e.getValue()));
       }
       CEnumType enumType =
-          new CEnumType(
-              type.isConst(),
-              type.isVolatile(),
-              l,
-              type.getName(),
-              type.getOrigName());
+          new CEnumType(type.isConst(), type.isVolatile(), l, type.getName(), type.getOrigName());
       l.forEach(e -> e.setEnum(enumType));
       return enumType;
     }
