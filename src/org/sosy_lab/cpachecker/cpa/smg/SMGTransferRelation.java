@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -236,10 +235,7 @@ public class SMGTransferRelation
 
   @Override
   protected Collection<SMGState> handleFunctionReturnEdge(
-      CFunctionReturnEdge functionReturnEdge,
-      CFunctionSummaryEdge fnkCall,
-      CFunctionCall summaryExpr,
-      String callerFunctionName)
+      CFunctionReturnEdge functionReturnEdge, CFunctionCall summaryExpr, String callerFunctionName)
       throws CPATransferException {
     Collection<SMGState> successors = handleFunctionReturn(functionReturnEdge);
     if (options.isCheckForMemLeaksAtEveryFrameDrop()) {
@@ -260,8 +256,7 @@ public class SMGTransferRelation
   private List<SMGState> handleFunctionReturn(CFunctionReturnEdge functionReturnEdge)
       throws CPATransferException {
 
-    CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
-    CFunctionCall exprOnSummary = summaryEdge.getExpression();
+    CFunctionCall exprOnSummary = functionReturnEdge.getFunctionCall();
     SMGState newState = state.copyOf();
 
     assert Iterables.getLast(newState.getHeap().getStackFrames())
@@ -641,8 +636,8 @@ public class SMGTransferRelation
           if (newState.hasMemoryErrors() || !smgPredicateManager.isUnsat(predicateFormula)) {
             result.add(newState);
           }
-        } catch (SolverException pE) {
-          throw new CPATransferException("Solver Exception on predicate " + predicateFormula, pE);
+        } catch (SolverException e) {
+          throw new CPATransferException("Solver Exception on predicate " + predicateFormula, e);
         }
       } else if ((truthValue && !explicitValue.equals(SMGZeroValue.INSTANCE))
           || (!truthValue && explicitValue.equals(SMGZeroValue.INSTANCE))) {

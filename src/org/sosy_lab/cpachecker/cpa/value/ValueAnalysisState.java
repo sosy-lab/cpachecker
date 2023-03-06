@@ -207,8 +207,8 @@ public final class ValueAnalysisState
                 FileLocation.DUMMY, memLocType, pValue.asNumericValue().bigIntegerValue());
         try {
           typedValue = pValueVisitor.evaluate(valueAsExpression, memLocType);
-        } catch (UnrecognizedCodeException pE) {
-          throw new AssertionError(pE);
+        } catch (UnrecognizedCodeException e) {
+          throw new AssertionError(e);
         }
       }
       MemoryLocation currMemloc = entry.getKey();

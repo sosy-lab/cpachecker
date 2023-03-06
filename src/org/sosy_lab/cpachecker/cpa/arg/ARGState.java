@@ -135,9 +135,9 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     if (currentLocs != null && childLocs != null) {
       // first try to get a normal edge
       // consider only the actual analysis direction
-      Collection<CFAEdge> ingoingEdgesOfChild = Sets.newHashSet(childLocs.getIngoingEdges());
+      Collection<CFAEdge> incomingEdgesOfChild = Sets.newHashSet(childLocs.getIncomingEdges());
       for (CFAEdge edge : currentLocs.getOutgoingEdges()) {
-        if (ingoingEdgesOfChild.contains(edge)) {
+        if (incomingEdgesOfChild.contains(edge)) {
           return edge;
         }
       }

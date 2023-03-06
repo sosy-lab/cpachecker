@@ -226,18 +226,17 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
       throw new RefinementFailedException(Reason.InterpolationFailed, errorPath);
     }
 
-    // if doing lazy abstraction, use the node closest to the root node where new information is
-    // present
     if (doLazyAbstraction) {
+      // if doing lazy abstraction, use the node closest to the root node where new information is
+      // present
       PathIterator it = errorPath.pathIterator();
       for (int i = 0; i < interpolationOffset; i++) {
         it.advance();
       }
       return Pair.of(it.getAbstractState(), it.getIncomingEdge());
-    }
 
-    // otherwise, just use the successor of the root node
-    else {
+    } else {
+      // otherwise, just use the successor of the root node
       PathIterator firstElem = errorPath.pathIterator();
       firstElem.advance();
       return Pair.of(firstElem.getAbstractState(), firstElem.getOutgoingEdge());
@@ -314,17 +313,16 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
         // when returning from a function, ...
         if (typeOfOriginalEdge == CFAEdgeType.FunctionReturnEdge) {
           FunctionCallInfo functionCallInfo = functionCalls.pop();
-          // ... if call is relevant and return edge is now a blank edge, restore the original
-          // return edge
           if (functionCallInfo.isImportant()
               && abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.BlankEdge) {
+            // ... if call is relevant and return edge is now a blank edge, restore the original
+            // return edge
             abstractEdges.set(iterator.getIndex(), originalEdge);
-          }
 
-          // ... if call is irrelevant and return edge is not sliced, restore the call edge
-          else if (!functionCallInfo.isImportant()
+          } else if (!functionCallInfo.isImportant()
               && abstractEdges.get(iterator.getIndex()).getEdgeType()
                   == CFAEdgeType.FunctionReturnEdge) {
+            // ... if call is irrelevant and return edge is not sliced, restore the call edge
             abstractEdges.set(functionCallInfo.index(), functionCallInfo.edge());
             for (int j = iterator.getIndex(); j >= 0; j--) {
               if (functionCallInfo.edge() == abstractEdges.get(j)) {

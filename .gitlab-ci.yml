@@ -233,9 +233,9 @@ check-format-python:
   needs: []
   image: python
   before_script:
-    - pip install black
+    - pip install 'black[jupyter]<2024'
   script:
-    - black . --check --diff --include='contrib/.*\.py'
+    - black . --check --diff
   <<: *pip-cache
 
 flake8:

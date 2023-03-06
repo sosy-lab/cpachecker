@@ -2067,6 +2067,9 @@ cpa.predicate.abstraction.simplify = false
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, FORMULA]
 
+# Export abstraction formulas as (way more readable) expressions.
+cpa.predicate.abstractions.asExpressions = false
+
 # Export one abstraction formula for each abstraction state into a file?
 cpa.predicate.abstractions.export = true
 

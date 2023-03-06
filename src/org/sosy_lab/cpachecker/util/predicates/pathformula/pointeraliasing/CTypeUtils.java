@@ -29,7 +29,7 @@ class CTypeUtils {
 
   private static final CachingCanonizingCTypeVisitor typeVisitor =
       new CachingCanonizingCTypeVisitor(
-          /*ignoreConst=*/ true, /*ignoreVolatile=*/ true, /*ignoreSignedness=*/ false);
+          /* ignoreConst= */ true, /* ignoreVolatile= */ true, /* ignoreSignedness= */ false);
 
   /** Return the length of an array, honoring the options for maximum and default array length. */
   static int getArrayLength(CArrayType t, FormulaEncodingWithPointerAliasingOptions options) {

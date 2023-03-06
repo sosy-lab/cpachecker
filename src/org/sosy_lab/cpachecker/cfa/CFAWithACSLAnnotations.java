@@ -14,11 +14,13 @@ import java.util.Collection;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
+import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.ForwardingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
-public class CFAWithACSLAnnotations implements CFA {
+public class CFAWithACSLAnnotations extends ForwardingCfaNetwork implements CFA {
 
   private CFA delegate;
 
@@ -26,6 +28,17 @@ public class CFAWithACSLAnnotations implements CFA {
 
   public CFAWithACSLAnnotations(CFA pCFA) {
     delegate = pCFA;
+  }
+
+  @Override
+  public CFA immutableCopy() {
+    throw new UnsupportedOperationException(
+        "Cannot create immutable copy of `CFAWithACSLAnnotations`!");
+  }
+
+  @Override
+  protected CfaNetwork delegate() {
+    return delegate;
   }
 
   public Multimap<CFAEdge, ACSLAnnotation> getEdgesToAnnotations() {

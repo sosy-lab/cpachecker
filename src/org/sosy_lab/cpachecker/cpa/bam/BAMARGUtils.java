@@ -105,14 +105,14 @@ class BAMARGUtils {
     Map<ARGState, ARGState> stateToCopyElem = new HashMap<>();
     Set<ARGState> visited = new HashSet<>();
     Deque<ARGState> toVisit = new ArrayDeque<>();
-    ARGState current, copyState, copyStateInner;
 
     visited.add(pRoot);
     toVisit.add(pRoot);
 
     while (!toVisit.isEmpty()) {
-      current = toVisit.pop();
+      ARGState current = toVisit.pop();
 
+      ARGState copyState;
       if (stateToCopyElem.get(current) == null) {
         copyState = copyNode(current);
         stateToCopyElem.put(current, copyState);
@@ -120,6 +120,7 @@ class BAMARGUtils {
         copyState = stateToCopyElem.get(current);
       }
 
+      ARGState copyStateInner;
       for (ARGState c : current.getChildren()) {
         if (stateToCopyElem.get(c) == null) {
           copyStateInner = copyNode(c);

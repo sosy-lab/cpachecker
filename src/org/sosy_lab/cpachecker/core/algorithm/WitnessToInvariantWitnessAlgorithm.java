@@ -73,9 +73,9 @@ public class WitnessToInvariantWitnessAlgorithm implements Algorithm {
       WitnessInvariantsExtractor invariantsExtractor =
           new WitnessInvariantsExtractor(config, logger, cfa, shutdownNotifier, witness);
       invariants = invariantsExtractor.extractInvariantsFromReachedSet();
-    } catch (InvalidConfigurationException pE) {
+    } catch (InvalidConfigurationException e) {
       throw new CPAException(
-          "Invalid Configuration while analyzing witness:\n" + pE.getMessage(), pE);
+          "Invalid Configuration while analyzing witness:\n" + e.getMessage(), e);
     }
 
     Set<InvariantWitness> invariantWitnesses = new HashSet<>();

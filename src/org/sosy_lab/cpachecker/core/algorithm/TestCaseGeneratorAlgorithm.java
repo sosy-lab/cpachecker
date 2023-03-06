@@ -158,11 +158,10 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     }
 
     try {
-      boolean shouldReturnFalse, ignoreTargetState;
       while (pReached.hasWaitingState() && !testTargets.isEmpty()) {
         shutdownNotifier.shutdownIfNecessary();
-        shouldReturnFalse = false;
-        ignoreTargetState = false;
+        boolean shouldReturnFalse = false;
+        boolean ignoreTargetState = false;
 
         assert ARGUtils.checkARG(pReached);
         assert from(pReached).filter(AbstractStates::isTargetState).isEmpty();

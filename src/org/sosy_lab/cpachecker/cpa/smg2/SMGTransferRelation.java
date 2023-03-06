@@ -254,10 +254,7 @@ public class SMGTransferRelation
 
   @Override
   protected Collection<SMGState> handleFunctionReturnEdge(
-      CFunctionReturnEdge functionReturnEdge,
-      CFunctionSummaryEdge fnkCall,
-      CFunctionCall summaryExpr,
-      String callerFunctionName)
+      CFunctionReturnEdge functionReturnEdge, CFunctionCall summaryExpr, String callerFunctionName)
       throws CPATransferException {
 
     Collection<SMGState> successors = handleFunctionReturn(functionReturnEdge);
@@ -275,11 +272,11 @@ public class SMGTransferRelation
   private List<SMGState> handleFunctionReturn(CFunctionReturnEdge functionReturnEdge)
       throws CPATransferException {
     CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
-    CFunctionCall summaryExpr = summaryEdge.getExpression();
+    CFunctionCall summaryExpr = functionReturnEdge.getFunctionCall();
 
     Preconditions.checkArgument(
         state.getMemoryModel().getStackFrames().peek().getFunctionDefinition()
-            == summaryEdge.getFunctionEntry().getFunctionDefinition());
+            == functionReturnEdge.getFunctionEntry().getFunctionDefinition());
 
     if (summaryExpr instanceof CFunctionCallAssignmentStatement funcCallExpr) {
       CExpression leftValue = funcCallExpr.getLeftHandSide();

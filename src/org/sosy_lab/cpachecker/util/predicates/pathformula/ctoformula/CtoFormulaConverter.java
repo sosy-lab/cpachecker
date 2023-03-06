@@ -700,8 +700,8 @@ public class CtoFormulaConverter {
       // benefit: divide_by_constant works without UFs
       try {
         range = fmgr.simplify(range);
-      } catch (InterruptedException pE) {
-        throw propagateInterruptedException(pE);
+      } catch (InterruptedException e) {
+        throw propagateInterruptedException(e);
       }
       if (bfmgr.isTrue(range)) {
         return value;
@@ -1168,10 +1168,8 @@ public class CtoFormulaConverter {
       throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
     switch (edge.getEdgeType()) {
       case StatementEdge:
-        {
-          return makeStatement(
-              (CStatementEdge) edge, function, ssa, pts, constraints, errorConditions);
-        }
+        return makeStatement(
+            (CStatementEdge) edge, function, ssa, pts, constraints, errorConditions);
 
       case ReturnStatementEdge:
         {
@@ -1187,10 +1185,8 @@ public class CtoFormulaConverter {
         }
 
       case DeclarationEdge:
-        {
-          return makeDeclaration(
-              (CDeclarationEdge) edge, function, ssa, pts, constraints, errorConditions);
-        }
+        return makeDeclaration(
+            (CDeclarationEdge) edge, function, ssa, pts, constraints, errorConditions);
 
       case AssumeEdge:
         {
@@ -1207,15 +1203,11 @@ public class CtoFormulaConverter {
         }
 
       case BlankEdge:
-        {
-          return bfmgr.makeTrue();
-        }
+        return bfmgr.makeTrue();
 
       case FunctionCallEdge:
-        {
-          return makeFunctionCall(
-              (CFunctionCallEdge) edge, function, ssa, pts, constraints, errorConditions);
-        }
+        return makeFunctionCall(
+            (CFunctionCallEdge) edge, function, ssa, pts, constraints, errorConditions);
 
       case FunctionReturnEdge:
         {
@@ -1638,7 +1630,8 @@ public class CtoFormulaConverter {
       rhs = makeCastFromArrayToPointerIfNecessary((CExpression) rhs, lhsType);
     }
 
-    Formula l = null, r = null;
+    Formula l;
+    Formula r;
     if (direction == AnalysisDirection.BACKWARD) {
       l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
       r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);

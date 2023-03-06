@@ -594,7 +594,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      *   <li>Variable: required
      * </ul>
      */
-    ACTUAL_OUT;
+    ACTUAL_OUT,
   }
 
   /** Type for system dependence graph edges. */
@@ -640,7 +640,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      *
      * <p>Edges with this type should always be intra-procedural.
      */
-    SUMMARY_EDGE;
+    SUMMARY_EDGE,
   }
 
   /**
@@ -1561,7 +1561,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      *
      * <p>The traversal still continues for other edges and nodes that were not skipped.
      */
-    SKIP;
+    SKIP,
   }
 
   /**

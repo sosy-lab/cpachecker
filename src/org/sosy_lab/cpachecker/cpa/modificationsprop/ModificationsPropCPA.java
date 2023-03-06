@@ -156,15 +156,14 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
 
       // Backward analysis adding all predecessor nodes to find all nodes that may reach an error
       // location.
-      final Set<CFANode>
-          errorLocsOrig_reachable =
-              performPreprocessing
-                  ? computeElementsWithPathTo(errorLocsOrig, CFAUtils::allPredecessorsOf)
-                  : ImmutableSet.copyOf(cfaOrig.getAllNodes()),
-          errorLocsMod_new_reachable =
-              performPreprocessing
-                  ? computeElementsWithPathTo(errorLocsMod, CFAUtils::allPredecessorsOf)
-                  : ImmutableSet.copyOf(pCfa.getAllNodes());
+      final Set<CFANode> errorLocsOrig_reachable =
+          performPreprocessing
+              ? computeElementsWithPathTo(errorLocsOrig, CFAUtils::allPredecessorsOf)
+              : ImmutableSet.copyOf(cfaOrig.getAllNodes());
+      final Set<CFANode> errorLocsMod_new_reachable =
+          performPreprocessing
+              ? computeElementsWithPathTo(errorLocsMod, CFAUtils::allPredecessorsOf)
+              : ImmutableSet.copyOf(pCfa.getAllNodes());
 
       helper =
           new ModificationsPropHelper(
@@ -187,10 +186,10 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
               logger);
       transfer = new ModificationsPropTransferRelation(helper);
 
-    } catch (ParserException pE) {
-      throw new InvalidConfigurationException("Parser error for original program.", pE);
-    } catch (InterruptedException | IOException pE) {
-      throw new AssertionError(pE);
+    } catch (ParserException e) {
+      throw new InvalidConfigurationException("Parser error for original program.", e);
+    } catch (InterruptedException | IOException e) {
+      throw new AssertionError(e);
     }
   }
 

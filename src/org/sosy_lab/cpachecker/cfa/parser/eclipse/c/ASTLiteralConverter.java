@@ -441,7 +441,7 @@ class ASTLiteralConverter {
     BINARY,
     OCTAL,
     DECIMAL,
-    HEXADECIMAL;
+    HEXADECIMAL,
   }
 
   private enum Suffix {

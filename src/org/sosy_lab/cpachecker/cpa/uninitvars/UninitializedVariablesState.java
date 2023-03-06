@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.Pair;
 
+@SuppressWarnings("checkstyle:NoClone") // refactor
 public class UninitializedVariablesState implements AbstractQueryableState, Serializable {
 
   private static final long serialVersionUID = 5745797034946117366L;
@@ -32,7 +33,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
 
   enum ElementProperty {
     UNINITIALIZED_RETURN_VALUE,
-    UNINITIALIZED_VARIABLE_USED
+    UNINITIALIZED_VARIABLE_USED,
   }
 
   private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet

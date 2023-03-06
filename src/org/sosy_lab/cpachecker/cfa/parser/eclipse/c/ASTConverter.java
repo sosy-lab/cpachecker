@@ -945,7 +945,8 @@ class ASTConverter {
       return new CComplexCastExpression(loc, castType, operand, castType, true);
     }
 
-    if (e.getOperand() instanceof IASTFieldReference
+    if (options.simplifyPointerExpressions()
+        && e.getOperand() instanceof IASTFieldReference
         && ((IASTFieldReference) e.getOperand()).isPointerDereference()) {
       return createInitializedTemporaryVariable(
           loc, castType, new CCastExpression(loc, castType, operand));
@@ -1637,33 +1638,29 @@ class ASTConverter {
 
       final CType operandType = operand.getExpressionType();
 
-      // if there is a dereference on a field of a struct a temporary variable is needed
       if (operand instanceof CFieldReference) {
+        // if there is a dereference on a field of a struct a temporary variable is needed
         CIdExpression tmpVar = createInitializedTemporaryVariable(fileLoc, operandType, operand);
         return new CPointerExpression(fileLoc, type, tmpVar);
-      }
 
-      // in case of *(a[index])
-      else if (operand instanceof CArraySubscriptExpression) {
+      } else if (operand instanceof CArraySubscriptExpression) {
+        // in case of *(a[index])
         CIdExpression tmpVar = createInitializedTemporaryVariable(fileLoc, operandType, operand);
         return new CPointerExpression(fileLoc, type, tmpVar);
-      }
 
-      // in case of *& both can be left out
-      else if (operand instanceof CUnaryExpression
+      } else if (operand instanceof CUnaryExpression
           && ((CUnaryExpression) operand).getOperator() == UnaryOperator.AMPER) {
+        // in case of *& both can be left out
         return ((CUnaryExpression) operand).getOperand();
-      }
 
-      // in case of ** a temporary variable is needed
-      else if (operand instanceof CPointerExpression) {
+      } else if (operand instanceof CPointerExpression) {
+        // in case of ** a temporary variable is needed
         CIdExpression tmpVar = createInitializedTemporaryVariable(fileLoc, operandType, operand);
         return new CPointerExpression(fileLoc, type, tmpVar);
-      }
 
-      // in case of p.e. *(a+b) or *(a-b) or *(a ANY_OTHER_OPERATOR b) a temporary variable is
-      // needed
-      else if (operand instanceof CBinaryExpression) {
+      } else if (operand instanceof CBinaryExpression) {
+        // in case of p.e. *(a+b) or *(a-b) or *(a ANY_OTHER_OPERATOR b) a temporary variable is
+        // needed
         CIdExpression tmpVar = createInitializedTemporaryVariable(fileLoc, operandType, operand);
         return new CPointerExpression(fileLoc, type, tmpVar);
       }
@@ -2635,7 +2632,8 @@ class ASTConverter {
   }
 
   private static final ImmutableList<CSimpleType> ENUM_REPRESENTATION_CANDIDATE_TYPES =
-      ImmutableList.of( // list of types with incrementing size
+      // list of types with incrementing size
+      ImmutableList.of(
           CNumericTypes.SIGNED_INT, CNumericTypes.UNSIGNED_INT, CNumericTypes.SIGNED_LONG_LONG_INT);
 
   /**

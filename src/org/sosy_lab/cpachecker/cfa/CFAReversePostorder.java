@@ -114,7 +114,7 @@ public class CFAReversePostorder {
 
     int reversePostOrderId = 0;
     Iterable<CFANode> nodesInPostOrder =
-        Traverser.forGraph(CFAUtils::successorsOf).depthFirstPostOrder(pStartNode);
+        Traverser.<CFANode>forGraph(CFAUtils::successorsOf).depthFirstPostOrder(pStartNode);
 
     for (CFANode node : nodesInPostOrder) {
       node.setReversePostorderId(reversePostOrderId++);

@@ -298,8 +298,7 @@ public class BlockedCFAReducer implements BlockComputer {
 
         // Depending on the type of the edge...
         if (e instanceof CFunctionCallEdge callEdge) {
-          ReducedNode callReturnTarget =
-              functionNodes.getWrapper(callEdge.getSummaryEdge().getSuccessor());
+          ReducedNode callReturnTarget = functionNodes.getWrapper(callEdge.getReturnNode());
           FunctionEntryNode calledFunction = callEdge.getSuccessor();
 
           if (inliningStack.contains(calledFunction)) {
@@ -343,7 +342,8 @@ public class BlockedCFAReducer implements BlockComputer {
   @VisibleForTesting
   void applyReductionSequences(ReducedFunction pApplyTo) {
     // Summarize the given function if the summarization-threshold is not already reached.
-    boolean sequenceApplied, choiceApplied;
+    boolean sequenceApplied;
+    boolean choiceApplied;
     do {
       sequenceApplied = applySequenceRule(pApplyTo);
       choiceApplied = applyChoiceRule(pApplyTo);

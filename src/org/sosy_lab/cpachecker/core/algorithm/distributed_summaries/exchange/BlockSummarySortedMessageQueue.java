@@ -39,7 +39,7 @@ public class BlockSummarySortedMessageQueue extends ForwardingBlockingQueue<Bloc
           MessageType.ERROR,
           MessageType.ERROR_CONDITION,
           MessageType.ERROR_CONDITION_UNREACHABLE,
-          MessageType.BLOCK_POSTCONDITION
+          MessageType.BLOCK_POSTCONDITION,
         };
   }
 

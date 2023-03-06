@@ -106,7 +106,9 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
     Precision initPrec = pReachedSet.getPrecision(initialState);
     Lock lock = new ReentrantLock();
 
-    ExecutorService executor = null, readExecutor = null, checkExecutor = null;
+    ExecutorService executor = null;
+    ExecutorService readExecutor = null;
+    ExecutorService checkExecutor = null;
     logger.log(Level.INFO, "Create and start threads");
     try {
       if (numReadThreads == 0) {
