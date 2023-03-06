@@ -414,10 +414,10 @@ class GlobalScope extends AbstractScope {
 
       return renamedCompositeType;
 
-    } else if (oldType instanceof CEnumType) {
-      List<CEnumerator> list = new ArrayList<>(((CEnumType) oldType).getEnumerators().size());
+    } else if (oldType instanceof CEnumType oldEnumType) {
+      List<CEnumerator> list = new ArrayList<>(oldEnumType.getEnumerators().size());
 
-      for (CEnumerator c : ((CEnumType) oldType).getEnumerators()) {
+      for (CEnumerator c : oldEnumType.getEnumerators()) {
         CEnumerator newC =
             new CEnumerator(
                 c.getFileLocation(),
