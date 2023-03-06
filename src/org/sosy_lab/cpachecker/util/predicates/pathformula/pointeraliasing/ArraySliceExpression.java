@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.errorprone.annotations.Immutable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -144,7 +143,7 @@ final class ArraySliceExpression {
     }
     it.next();
 
-    Builder<ArraySliceModifier> builder = ImmutableList.<ArraySliceModifier>builder();
+    ImmutableList.Builder<ArraySliceModifier> builder = ImmutableList.<ArraySliceModifier>builder();
 
     boolean canResolve = true;
     while (it.hasNext()) {
