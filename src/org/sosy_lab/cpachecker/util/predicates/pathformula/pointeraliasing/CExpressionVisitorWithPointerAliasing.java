@@ -1008,7 +1008,7 @@ class CExpressionVisitorWithPointerAliasing
   }
 
   private void handleMemmoveFunction(
-      @SuppressWarnings("unused") CFunctionCallExpression e,
+      CFunctionCallExpression e,
       CExpression destination,
       CExpression sizeInElements,
       CExpression source)
