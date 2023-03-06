@@ -327,7 +327,7 @@ class AssignmentHandler {
           conditionFormula);
     }
 
-    if (options.useQuantifiersOnSlices()) {
+    if (options.useQuantifiersOnArrays()) {
       return handleSliceAssignmentWithQuantifiers(
           lhs, rhs, reinterpretInsteadOfCasting, conditionFormula);
     }

@@ -106,13 +106,6 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   @Option(
       secure = true,
       description =
-          "Use quantifiers when encoding heap array slices. "
-              + "This requires an SMT solver that is capable of quantifiers (e.g. Z3 or PRINCESS).")
-  private boolean useQuantifiersOnSlices = false;
-
-  @Option(
-      secure = true,
-      description =
           "When a string literal initializer is encountered, initialize the contents of the char"
               + " array with the contents of the string literal instead of just assigning a fresh"
               + " non-det address to it")
@@ -261,9 +254,5 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
 
   public boolean useByteArrayForHeap() {
     return useByteArrayForHeap;
-  }
-
-  public boolean useQuantifiersOnSlices() {
-    return useQuantifiersOnSlices;
   }
 }
