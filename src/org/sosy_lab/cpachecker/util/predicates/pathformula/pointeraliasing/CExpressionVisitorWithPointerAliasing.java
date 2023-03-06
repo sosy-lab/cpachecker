@@ -889,8 +889,8 @@ class CExpressionVisitorWithPointerAliasing
   }
 
   /** This method provides an approximation of the builtin functions memset, memcpy, memmove. */
-  private Value handleMemoryAssignmentFunction(final String fnName, final CFunctionCallExpression e)
-      throws UnrecognizedCodeException {
+  private Value handleMemoryAssignmentFunction(
+      final String functionName, final CFunctionCallExpression e) throws UnrecognizedCodeException {
 
     // all of the functions have exactly three parameters
     // the first and third parameter is the same for all functions
@@ -977,7 +977,7 @@ class CExpressionVisitorWithPointerAliasing
     // Handover to function-specific code
     final CExpression secondParameter = parameters.get(1);
 
-    if (fnName.equals("memset")) {
+    if (functionName.equals("memset")) {
       handleMemsetFunction(e, paramDestination, operationSizeInElements, secondParameter);
     } else {
 
