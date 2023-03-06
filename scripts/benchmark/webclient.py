@@ -435,6 +435,11 @@ class WebInterface:
         else:
             logging.info("Using %s version %s.", self._tool_name, self._revision)
 
+        # print the banner, if it exists
+        banner_message = self._request_banner_message()
+        if banner_message:
+            logging.info("Message from VerifierCloud: %s", banner_message)
+
         if HAS_SSECLIENT:
             self._result_downloader = SseResultDownloader(self, result_poll_interval)
         else:
@@ -503,6 +508,10 @@ class WebInterface:
         path = "tool/name"
         (tool_name, _) = self._request("GET", path)
         return tool_name.decode("UTF-8")
+
+    def _request_banner_message(self):
+        (message, _) = self._request("GET", "master/banner")
+        return message.decode("UTF-8")
 
     def tool_revision(self):
         return self._revision
