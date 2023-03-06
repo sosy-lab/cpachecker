@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.UnmodifiableIterator;
 import com.google.errorprone.annotations.Immutable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -140,19 +139,13 @@ final class ArraySliceExpression {
   ArraySliceExpression resolveFirstIndex(CExpression newBase) {
     checkNotNull(newBase);
 
-    // we will drop the first modifier and resolve all fields after it
-
-    UnmodifiableIterator<ArraySliceModifier> it = modifiers.iterator();
-
-    if (!it.hasNext()) {
-      throw new IllegalStateException("Cannot resolve first index as there is none");
-    }
-    it.next();
+    // we will drop the first (subscript) modifier and auto-resolve all field-access fields after
+    // it, retaining the next subscript modifier and fields after it
 
     ImmutableList.Builder<ArraySliceModifier> builder = ImmutableList.<ArraySliceModifier>builder();
 
     boolean canResolve = true;
-    // skip the first modifier which is being resolved
+    // skip the first modifier which is already resolved
     for (ArraySliceModifier modifier : Iterables.skip(modifiers, 1)) {
       if (canResolve && (modifier instanceof ArraySliceFieldAccessModifier fieldModifier)) {
         newBase =
