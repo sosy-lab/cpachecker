@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Verify.verify;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -300,7 +301,7 @@ class CExpressionVisitorWithPointerAliasing
     final Expression base = dereference(arrayExpression, arrayExpression.accept(this));
 
     // Now we should always have the aliased location of the first array element
-    checkState(base.isAliasedLocation());
+    checkArgument(base.isAliasedLocation());
 
     final CType elementType = typeHandler.getSimplifiedType(e);
     final CExpression subscript = e.getSubscriptExpression();
@@ -715,7 +716,7 @@ class CExpressionVisitorWithPointerAliasing
           // terminating 0 of a string.
           final int maxIndex = conv.options.maxPreciseStrFunctionSize();
           List<CExpression> parameters = e.getParameterExpressions();
-          checkState(parameters.size() == 1);
+          verify(parameters.size() == 1);
           CExpression parameter = parameters.get(0);
           final CType returnType = e.getExpressionType();
 
@@ -745,7 +746,7 @@ class CExpressionVisitorWithPointerAliasing
 
       if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
         List<CExpression> parameters = e.getParameterExpressions();
-        checkState(parameters.size() == 3);
+        verify(parameters.size() == 3);
         CExpression var1 = parameters.get(0);
         CExpression var2 = parameters.get(1);
         CExpression var3 = parameters.get(2);
@@ -794,7 +795,7 @@ class CExpressionVisitorWithPointerAliasing
   private Value handleCmpFunction(final String functionName, final CFunctionCallExpression e)
       throws UnrecognizedCodeException {
     final List<CExpression> parameters = e.getParameterExpressions();
-    checkState(parameters.size() == 2 || parameters.size() == 3);
+    verify(parameters.size() == 2 || parameters.size() == 3);
     final CExpression s1 = parameters.get(0);
     final CExpression s2 = parameters.get(1);
     final CSimpleType returnType = (CSimpleType) e.getExpressionType().getCanonicalType();
@@ -904,7 +905,7 @@ class CExpressionVisitorWithPointerAliasing
     // all of the functions have exactly three parameters
     // the first and third parameter is the same for all functions
     final List<CExpression> parameters = e.getParameterExpressions();
-    checkState(parameters.size() == 3);
+    verify(parameters.size() == 3);
     CExpression paramDestination = parameters.get(0);
     final CExpression paramSizeInBytes = parameters.get(2);
 
