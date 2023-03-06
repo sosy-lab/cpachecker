@@ -707,34 +707,39 @@ class CExpressionVisitorWithPointerAliasing
         constraints.addConstraint(checkNotNull(form));
       }
 
-      // check strlen up to specific index maxIndex and return nondet otherwise
-      if (BuiltinFunctions.matchesStrlen(functionName)) {
-        // This is not an off-by-one error, we can set maxIndex to the maximal size because of the
-        // terminating 0 of a string.
-        final int maxIndex = conv.options.maxPreciseStrFunctionSize();
-        List<CExpression> parameters = e.getParameterExpressions();
-        assert parameters.size() == 1;
-        CExpression parameter = parameters.get(0);
-        final CType returnType = e.getExpressionType();
+      try {
+        // check strlen up to specific index maxIndex and return nondet otherwise
+        if (BuiltinFunctions.matchesStrlen(functionName)) {
+          // This is not an off-by-one error, we can set maxIndex to the maximal size because of the
+          // terminating 0 of a string.
+          final int maxIndex = conv.options.maxPreciseStrFunctionSize();
+          List<CExpression> parameters = e.getParameterExpressions();
+          assert parameters.size() == 1;
+          CExpression parameter = parameters.get(0);
+          final CType returnType = e.getExpressionType();
 
-        Formula f = conv.makeNondet(functionName, returnType, ssa, constraints);
-        // for maxIndex=1, after the loop f has the form
-        // parameter[0]==0?0:(parameter[1]==0?1:nondet())
-        for (long i = maxIndex; i >= 0; i--) {
-          f = stringEndsAtIndexOrOtherwise(parameter, i, f, returnType);
+          Formula f = conv.makeNondet(functionName, returnType, ssa, constraints);
+          // for maxIndex=1, after the loop f has the form
+          // parameter[0]==0?0:(parameter[1]==0?1:nondet())
+          for (long i = maxIndex; i >= 0; i--) {
+            f = stringEndsAtIndexOrOtherwise(parameter, i, f, returnType);
+          }
+          return Value.ofValue(f);
+
+        } else if (functionName.equals("memcmp")
+            || functionName.equals("strcmp")
+            || functionName.equals("strncmp")) {
+          return handleCmpFunction(functionName, e);
         }
-        return Value.ofValue(f);
 
-      } else if (functionName.equals("memcmp")
-          || functionName.equals("strcmp")
-          || functionName.equals("strncmp")) {
-        return handleCmpFunction(functionName, e);
-      }
+        if (functionName.equals("memcpy")
+            || functionName.equals("memmove")
+            || functionName.equals("memset")) {
+          return handleMemoryAssignmentFunction(functionName, e);
+        }
 
-      if (functionName.equals("memcpy")
-          || functionName.equals("memmove")
-          || functionName.equals("memset")) {
-        return handleMemoryAssignmentFunction(functionName, e);
+      } catch (InterruptedException exc) {
+        throw CtoFormulaConverter.propagateInterruptedException(exc);
       }
 
       if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
@@ -888,9 +893,12 @@ class CExpressionVisitorWithPointerAliasing
     return Value.ofValue(result);
   }
 
-  /** This method provides an approximation of the builtin functions memset, memcpy, memmove. */
+  /**
+   * This method provides an approximation of the builtin functions memset, memcpy, memmove.
+   */
   private Value handleMemoryAssignmentFunction(
-      final String functionName, final CFunctionCallExpression e) throws UnrecognizedCodeException {
+      final String functionName, final CFunctionCallExpression e)
+      throws UnrecognizedCodeException, InterruptedException {
 
     // all of the functions have exactly three parameters
     // the first and third parameter is the same for all functions
@@ -980,7 +988,6 @@ class CExpressionVisitorWithPointerAliasing
     if (functionName.equals("memset")) {
       handleMemsetFunction(e, paramDestination, operationSizeInElements, secondParameter);
     } else {
-
       // memcpy and memmove only differ in that memcpy is not well-defined
       // if destination and source overlap
       // TODO: should we somehow handle possible memcpy overlap here?
@@ -1003,7 +1010,7 @@ class CExpressionVisitorWithPointerAliasing
       CExpression destination,
       CExpression sizeInElements,
       CExpression source)
-      throws UnrecognizedCodeException {
+      throws UnrecognizedCodeException, InterruptedException {
 
     // we remove the C++ style cast of source to const void* or void* if necessary
     // it is a no-op anyway apart from the effects on the typing system
@@ -1031,16 +1038,12 @@ class CExpressionVisitorWithPointerAliasing
     ArraySliceExpression lhs = new ArraySliceExpression(destination).withIndex(sliceIndex);
     ArraySliceExpression rhs = new ArraySliceExpression(source).withIndex(sliceIndex);
 
-    try {
       AssignmentHandler assignmentHandler =
           new AssignmentHandler(
               conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
       BooleanFormula assignmentFormula =
           assignmentHandler.handleSliceAssignment(lhs, rhs, true, conv.bfmgr.makeTrue());
       constraints.addConstraint(assignmentFormula);
-    } catch (InterruptedException exc) {
-      throw CtoFormulaConverter.propagateInterruptedException(exc);
-    }
   }
 
   private void handleMemsetFunction(
@@ -1048,7 +1051,7 @@ class CExpressionVisitorWithPointerAliasing
       final CExpression destination,
       final CExpression sizeInElements,
       final CExpression setValue)
-      throws UnrecognizedCodeException {
+      throws UnrecognizedCodeException, InterruptedException {
 
     ArraySliceIndexVariable sliceIndex = new ArraySliceIndexVariable(sizeInElements);
     ArraySliceExpression slice = new ArraySliceExpression(destination).withIndex(sliceIndex);
@@ -1057,10 +1060,8 @@ class CExpressionVisitorWithPointerAliasing
   }
 
   private void performMemsetAssignment(
-      final CFunctionCallExpression e,
-      final ArraySliceExpression slice,
-      final CExpression setValue)
-      throws UnrecognizedCodeException {
+      final CFunctionCallExpression e, final ArraySliceExpression slice, final CExpression setValue)
+      throws UnrecognizedCodeException, InterruptedException {
 
     CType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
 
@@ -1160,16 +1161,12 @@ class CExpressionVisitorWithPointerAliasing
     ArraySliceExpression rhs = new ArraySliceExpression(actualSetValue);
 
     // reinterpret instead of casting in assignment to properly handle memset of floats
-    try {
       AssignmentHandler assignmentHandler =
           new AssignmentHandler(
               conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
       BooleanFormula assignmentFormula =
           assignmentHandler.handleSliceAssignment(slice, rhs, true, conv.bfmgr.makeTrue());
       constraints.addConstraint(assignmentFormula);
-    } catch (InterruptedException exc) {
-      throw CtoFormulaConverter.propagateInterruptedException(exc);
-    }
   }
 
   private CExpression createSetValueExpression(
