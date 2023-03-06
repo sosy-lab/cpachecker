@@ -1192,16 +1192,12 @@ class CExpressionVisitorWithPointerAliasing
         // TODO: integer type with the same sizeof as float should be resolved by a reverse lookup
         // into the machine model
         // we use unsigned int in the meantime
-        underlyingIntegerType =
-            new CSimpleType(
-                false, false, CBasicType.INT, false, false, false, true, false, false, false);
+        underlyingIntegerType = CNumericTypes.UNSIGNED_INT;
       } else if (underlyingBasicType == CBasicType.DOUBLE) {
         // TODO: integer type with the same sizeof as float should be resolved by a reverse lookup
         // into the machine model
         // we use unsigned long long in the meantime
-        underlyingIntegerType =
-            new CSimpleType(
-                false, false, CBasicType.INT, false, false, false, true, false, false, true);
+        underlyingIntegerType = CNumericTypes.UNSIGNED_LONG_LONG_INT;
       } else {
         throw new UnrecognizedCodeException(
             "Memset does not support destination with the used floating-point underlying type", e);
