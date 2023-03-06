@@ -168,4 +168,9 @@ final class ArraySliceExpression {
   ImmutableList<ArraySliceModifier> getModifiers() {
     return modifiers;
   }
+
+  @Override
+  public String toString() {
+    return "ArraySliceExpression [base=" + base + ", modifiers=" + modifiers + "]";
+  }
 }

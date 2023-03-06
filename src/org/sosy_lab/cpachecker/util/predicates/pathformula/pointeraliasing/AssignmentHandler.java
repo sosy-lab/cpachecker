@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.Ints;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -291,12 +290,6 @@ class AssignmentHandler {
     return result;
   }
 
-  class SliceIndexInfo {
-    CExpression size;
-    CExpression lhsIndex;
-    @Nullable CExpression rhsIndex;
-  }
-
   /**
    * Creates a formula to handle assignments to a slice of an array.
    *
@@ -480,12 +473,12 @@ class AssignmentHandler {
     if (resolveLhs) {
       baseType = lhsBaseType;
       baseExpression = lhsBaseExpression;
-      newLhsModifiers = new LinkedList<>(lhsModifiers);
+      newLhsModifiers = new ArrayList<>(lhsModifiers);
       modifier = newLhsModifiers.remove(0);
     } else {
       baseType = rhsBaseType;
       baseExpression = rhsBaseExpression;
-      newRhsModifiers = new LinkedList<>(rhsModifiers);
+      newRhsModifiers = new ArrayList<>(rhsModifiers);
       modifier = newRhsModifiers.remove(0);
     }
 
@@ -546,7 +539,7 @@ class AssignmentHandler {
 
     final Formula quantifierVariable =
         fmgr.makeVariableWithoutSSAIndex(
-            conv.voidPointerFormulaType, "__quantifier_" + (nextQuantifierVariableNumber++));
+            conv.voidPointerFormulaType, "__quantifier_" + nextQuantifierVariableNumber++);
 
     // do not use fmgr.makeElementIndexConstraint as that cannot make a quantifier on both sides
     CExpression sizeCExpression = subscriptModifier.index().getSize();
@@ -590,7 +583,7 @@ class AssignmentHandler {
 
           newRhsBaseType = rhsElementType;
           newRhsBaseExpression = AliasedLocation.ofAddress(rhsAdjustedAddress);
-          newRhsModifiers = new LinkedList<>(rhsModifiers);
+          newRhsModifiers = new ArrayList<>(rhsModifiers);
           newRhsModifiers.remove(0);
         }
       }
