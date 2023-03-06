@@ -164,6 +164,7 @@ final class ArraySliceExpression {
                 false);
       } else {
         builder.add(modifier);
+        canResolve = false;
       }
     }
 
