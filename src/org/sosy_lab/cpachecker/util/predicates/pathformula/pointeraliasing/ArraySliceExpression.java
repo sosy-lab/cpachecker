@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.errorprone.annotations.Immutable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -34,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
  * {@code CExpression}. For example, {@code foo.a[i].b} results in the base {@code foo.a} and two
  * modifiers representing {@code [i]} and {@code .b} respectively.
  */
-@Immutable
 final class ArraySliceExpression {
 
   /**
@@ -166,12 +164,18 @@ final class ArraySliceExpression {
     return new ArraySliceExpression(newBase, builder.build());
   }
 
-  /** @return Whether the expression is resolved, i.e., there are no modifiers left. */
+  /**
+   * Returns whether the expression is resolved, i.e., there are no modifiers left.
+   *
+   * @return Whether the expression is resolved.
+   */
   boolean isResolved() {
     return modifiers.isEmpty();
   }
 
   /**
+   * Returns a resolved expression, throws if it is unresolved.
+   *
    * @return The fully resolved expression.
    * @throws IllegalStateException If the expression is unresolved due to some remaining modifiers.
    */
@@ -181,7 +185,11 @@ final class ArraySliceExpression {
     return base;
   }
 
-  /** @return The base expression, which may be still unresolved. */
+  /**
+   * Returns the base expression, which may be still unresolved.
+   *
+   * @return The base expression.
+   */
   CExpression getBaseExpression() {
     return base;
   }
@@ -234,7 +242,11 @@ final class ArraySliceExpression {
     return ((ArraySliceSubscriptModifier) modifiers.get(0)).index;
   }
 
-  /** @return All remaining modifiers. */
+  /**
+   * Returns all unresolved modifiers.
+   *
+   * @return All unresolved modifiers.
+   */
   ImmutableList<ArraySliceModifier> getModifiers() {
     return modifiers;
   }
