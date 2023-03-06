@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.errorprone.annotations.Immutable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -71,13 +74,13 @@ final class ArraySliceExpression {
    * @param pBase The base
    */
   ArraySliceExpression(CExpression pBase) {
-    base = pBase;
+    base = checkNotNull(pBase);
     modifiers = ImmutableList.of();
   }
 
   private ArraySliceExpression(CExpression pBase, ImmutableList<ArraySliceModifier> pModifiers) {
-    base = pBase;
-    modifiers = pModifiers;
+    base = checkNotNull(pBase);
+    modifiers = checkNotNull(pModifiers);
   }
 
   /**
@@ -87,6 +90,7 @@ final class ArraySliceExpression {
    * @return The modified {@code ArraySliceExpression}
    */
   ArraySliceExpression withFieldAccess(CCompositeTypeMemberDeclaration field) {
+    checkNotNull(field);
     if (modifiers.isEmpty()) {
       CExpression newBase =
           new CFieldReference(FileLocation.DUMMY, field.getType(), field.getName(), base, false);
@@ -111,6 +115,7 @@ final class ArraySliceExpression {
    * @return The modified {@code ArraySliceExpression}
    */
   ArraySliceExpression withIndex(ArraySliceIndexVariable index) {
+    checkNotNull(index);
     // cannot resolve immediately, add to modifiers
     ImmutableList<ArraySliceModifier> newModifiers =
         ImmutableList.<ArraySliceModifier>builder()
@@ -133,6 +138,7 @@ final class ArraySliceExpression {
    * @throws IllegalStateException If there were no modifiers.
    */
   ArraySliceExpression resolveFirstIndex(CExpression newBase) {
+    checkNotNull(newBase);
 
     // we will drop the first modifier and resolve all fields after it
 
@@ -146,8 +152,8 @@ final class ArraySliceExpression {
     ImmutableList.Builder<ArraySliceModifier> builder = ImmutableList.<ArraySliceModifier>builder();
 
     boolean canResolve = true;
-    while (it.hasNext()) {
-      ArraySliceModifier modifier = it.next();
+    // skip the first modifier which is being resolved
+    for (ArraySliceModifier modifier : Iterables.skip(modifiers, 1)) {
       if (canResolve && (modifier instanceof ArraySliceFieldAccessModifier fieldModifier)) {
         newBase =
             new CFieldReference(
@@ -196,6 +202,7 @@ final class ArraySliceExpression {
    * @return The canonical type of expression after it is resolved
    */
   CType getResolvedExpressionType(CType sizeType) {
+    checkNotNull(sizeType);
     // resolve the expression with dummy zero indices to get the type
     CExpression resolved = base;
     for (ArraySliceModifier modifier : modifiers) {
