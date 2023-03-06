@@ -32,31 +32,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
  * modifiers representing {@code [i]} and {@code .b} respectively.
  */
 final class ArraySliceExpression {
-  interface ArraySliceModifier {}
+  sealed interface ArraySliceModifier permits ArraySliceFieldAccessModifier, ArraySliceSubscriptModifier {}
 
-  final class ArraySliceFieldAccessModifier implements ArraySliceModifier {
-    final CCompositeTypeMemberDeclaration field;
+  record ArraySliceFieldAccessModifier(CCompositeTypeMemberDeclaration field)
+      implements ArraySliceModifier {}
 
-    ArraySliceFieldAccessModifier(CCompositeTypeMemberDeclaration pField) {
-      field = pField;
-    }
-
-    CCompositeTypeMemberDeclaration getField() {
-      return field;
-    }
-  }
-
-  final class ArraySliceSubscriptModifier implements ArraySliceModifier {
-    final ArraySliceIndex index;
-
-    ArraySliceSubscriptModifier(ArraySliceIndex pIndex) {
-      index = pIndex;
-    }
-
-    ArraySliceIndex getIndex() {
-      return index;
-    }
-  }
+  record ArraySliceSubscriptModifier(ArraySliceIndex index) implements ArraySliceModifier {}
 
   private final CExpression base;
   private final ImmutableList<ArraySliceModifier> modifiers;

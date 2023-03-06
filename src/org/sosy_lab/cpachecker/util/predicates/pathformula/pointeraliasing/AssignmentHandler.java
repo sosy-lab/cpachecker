@@ -496,7 +496,7 @@ class AssignmentHandler {
       }
       Formula baseAddress = baseExpression.asAliasedLocation().getAddress();
 
-      CCompositeTypeMemberDeclaration field = fieldModifier.getField();
+      CCompositeTypeMemberDeclaration field = fieldModifier.field();
 
       final String fieldName = field.getName();
       // TODO: add field name to used fields
@@ -549,7 +549,7 @@ class AssignmentHandler {
             conv.voidPointerFormulaType, "__quantifier_" + (nextQuantifierVariableNumber++));
 
     // do not use fmgr.makeElementIndexConstraint as that cannot make a quantifier on both sides
-    CExpression sizeCExpression = subscriptModifier.getIndex().getSize();
+    CExpression sizeCExpression = subscriptModifier.index().getSize();
     final CType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
     CCastExpression sizeCCast = new CCastExpression(
         FileLocation.DUMMY, sizeType, sizeCExpression);
@@ -578,7 +578,7 @@ class AssignmentHandler {
     if (resolveLhs && resolveRhs) {
       ArraySliceModifier rhsModifier = newRhsModifiers.get(0);
       if (rhsModifier instanceof ArraySliceSubscriptModifier rhsSubscriptModifier) {
-        if (rhsSubscriptModifier.index.equals(subscriptModifier.index)) {
+        if (rhsSubscriptModifier.index().equals(subscriptModifier.index())) {
           // also quantify right-hand side
           CPointerType rhsBasePointerType =
               (CPointerType) CTypes.adjustFunctionOrArrayType(rhsBaseType.getCanonicalType());
