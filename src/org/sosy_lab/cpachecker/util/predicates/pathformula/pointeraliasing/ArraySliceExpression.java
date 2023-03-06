@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -138,6 +139,7 @@ final class ArraySliceExpression {
    */
   ArraySliceExpression resolveFirstIndex(CExpression newBase) {
     checkNotNull(newBase);
+    checkState(!isResolved());
 
     // we will drop the first (subscript) modifier and auto-resolve all field-access fields after
     // it, retaining the next subscript modifier and fields after it
@@ -174,10 +176,7 @@ final class ArraySliceExpression {
    * @throws IllegalStateException If the expression is unresolved due to some remaining modifiers.
    */
   CExpression getResolvedExpression() {
-    if (!modifiers.isEmpty()) {
-      throw new IllegalStateException(
-          "Cannot get resolved expression as there are still some modifiers");
-    }
+    checkState(isResolved());
 
     return base;
   }
@@ -230,9 +229,7 @@ final class ArraySliceExpression {
    * @throws IllegalStateException If the expression is resolved
    */
   ArraySliceIndexVariable getFirstIndex() {
-    if (modifiers.isEmpty()) {
-      throw new IllegalStateException("Cannot get first index as there is none");
-    }
+    checkState(!isResolved());
 
     return ((ArraySliceSubscriptModifier) modifiers.get(0)).index;
   }
