@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceFieldAccessModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceIndex;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceSubscriptModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Kind;
@@ -343,7 +344,7 @@ class AssignmentHandler {
       sliceIndex = rhs.getFirstIndex();
     }
 
-    CExpression sliceSize = sliceIndex.getSize();
+    CExpression sliceSize = sliceIndex.size();
 
     // Overapproximate for long arrays
     long consideredArraySize = options.defaultArrayLength();
@@ -542,7 +543,7 @@ class AssignmentHandler {
             conv.voidPointerFormulaType, "__quantifier_" + nextQuantifierVariableNumber++);
 
     // do not use fmgr.makeElementIndexConstraint as that cannot make a quantifier on both sides
-    CExpression sizeCExpression = subscriptModifier.index().getSize();
+    CExpression sizeCExpression = subscriptModifier.index().size();
     final CType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
     CCastExpression sizeCCast = new CCastExpression(
         FileLocation.DUMMY, sizeType, sizeCExpression);

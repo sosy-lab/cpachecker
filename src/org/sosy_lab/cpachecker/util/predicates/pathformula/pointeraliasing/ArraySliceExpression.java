@@ -32,6 +32,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
  * modifiers representing {@code [i]} and {@code .b} respectively.
  */
 final class ArraySliceExpression {
+
+  /**
+   * A helper record for indexing by quantified variables, standing for an index {@code i} which can
+   * take values from {@code 0 <= i < size}. Indexing the left-hand side and right-hand side by the
+   * same index will result in them sharing the same quantifier (or quantifier replacement).
+   */
+  record ArraySliceIndex(CExpression size) {}
+
   sealed interface ArraySliceModifier permits ArraySliceFieldAccessModifier, ArraySliceSubscriptModifier {}
 
   record ArraySliceFieldAccessModifier(CCompositeTypeMemberDeclaration field)
