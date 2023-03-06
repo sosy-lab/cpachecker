@@ -888,7 +888,7 @@ class CExpressionVisitorWithPointerAliasing
     return Value.ofValue(result);
   }
 
-  /** This method provides an approximation of the builtin function memset. */
+  /** This method provides an approximation of the builtin functions memset, memcpy, memmove. */
   private Value handleMemoryAssignmentFunction(final String fnName, final CFunctionCallExpression e)
       throws UnrecognizedCodeException {
 
