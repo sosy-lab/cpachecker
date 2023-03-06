@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceFieldAccessModifier;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceIndex;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceIndexVariable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceSubscriptModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Kind;
@@ -334,7 +334,7 @@ class AssignmentHandler {
     }
 
     final CExpression baseExpression;
-    final ArraySliceIndex sliceIndex;
+    final ArraySliceIndexVariable sliceIndex;
     // prefer resolving left-hand side
     if (resolveLhs) {
       baseExpression = lhs.getBaseExpression();
@@ -403,7 +403,7 @@ class AssignmentHandler {
 
         // there is a possibility that there will be the same right-hand side index
         if (resolveRhs) {
-          ArraySliceIndex rhsSliceIndex = rhs.getFirstIndex();
+          ArraySliceIndexVariable rhsSliceIndex = rhs.getFirstIndex();
           if (rhsSliceIndex.equals(sliceIndex)) {
             // resolve with the same literal as lhs
             CExpression rhsBaseExpression = rhs.getBaseExpression();

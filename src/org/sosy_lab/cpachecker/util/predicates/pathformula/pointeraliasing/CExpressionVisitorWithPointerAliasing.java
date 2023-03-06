@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceIndex;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceIndexVariable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
@@ -1026,7 +1026,7 @@ class CExpressionVisitorWithPointerAliasing
 
     // the memcopy just indexes the destination and source with the same index
 
-    ArraySliceIndex sliceIndex = new ArraySliceIndex(sizeInElements);
+    ArraySliceIndexVariable sliceIndex = new ArraySliceIndexVariable(sizeInElements);
 
     ArraySliceExpression lhs = new ArraySliceExpression(destination).withIndex(sliceIndex);
     ArraySliceExpression rhs = new ArraySliceExpression(source).withIndex(sliceIndex);
@@ -1050,7 +1050,7 @@ class CExpressionVisitorWithPointerAliasing
       final CExpression setValue)
       throws UnrecognizedCodeException {
 
-    ArraySliceIndex sliceIndex = new ArraySliceIndex(sizeInElements);
+    ArraySliceIndexVariable sliceIndex = new ArraySliceIndexVariable(sizeInElements);
     ArraySliceExpression slice = new ArraySliceExpression(destination).withIndex(sliceIndex);
 
     performMemsetAssignment(e, slice, setValue);
@@ -1064,7 +1064,7 @@ class CExpressionVisitorWithPointerAliasing
 
     CType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
 
-    CType type = slice.getExpressionType(sizeType);
+    CType type = slice.getResolvedExpressionType(sizeType);
 
     if (type instanceof CArrayType arrayType) {
       // we handle arrays inside memsetted element by memsetting all of their elements
@@ -1076,7 +1076,7 @@ class CExpressionVisitorWithPointerAliasing
             "Unexpected incomplete-array memset destination field", e);
       }
 
-      ArraySliceIndex arrayIndex = new ArraySliceIndex(length);
+      ArraySliceIndexVariable arrayIndex = new ArraySliceIndexVariable(length);
       ArraySliceExpression newSlice = slice.withIndex(arrayIndex);
       performMemsetAssignment(e, newSlice, setValue);
 
