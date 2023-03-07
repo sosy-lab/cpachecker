@@ -16,7 +16,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 public final class CEnumerator extends AbstractSimpleDeclaration implements CSimpleDeclaration {
 
@@ -80,7 +80,7 @@ public final class CEnumerator extends AbstractSimpleDeclaration implements CSim
   }
 
   @Override
-  public CType getType() {
+  public CSimpleType getType() {
     return enumType.getCompatibleType();
   }
 
