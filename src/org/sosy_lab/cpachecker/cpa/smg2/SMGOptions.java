@@ -25,6 +25,16 @@ public class SMGOptions {
   @Option(
       secure = true,
       description =
+          "with this option enabled, memory addresses (pointers) are transformed into a numeric"
+              + " assumption upon casting the pointer to a number. This assumption can be returned"
+              + " to a proper pointer by casting it back. This enables numeric operations beyond"
+              + " pointer arithmetics, but loses precision for comparisons/assumptions, as the"
+              + " numeric assumption is static. May be unsound!")
+  private boolean castMemoryAddressesToNumeric = false;
+
+  @Option(
+      secure = true,
+      description =
           "with this option enabled, a check for unreachable memory occurs whenever a function"
               + " returns, and not only at the end of the main function")
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
@@ -282,6 +292,10 @@ public class SMGOptions {
 
   public boolean isEnableMallocFailure() {
     return enableMallocFailure;
+  }
+
+  public boolean isCastMemoryAddressesToNumeric() {
+    return castMemoryAddressesToNumeric;
   }
 
   public UnknownFunctionHandling getHandleUnknownFunctions() {

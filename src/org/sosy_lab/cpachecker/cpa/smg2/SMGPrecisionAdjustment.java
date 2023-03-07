@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -287,7 +287,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
             new SMGCPAAbstractionManager(
                     resultState, options.getListAbstractionMinimumLengthThreshhold())
                 .findAndAbstractLists();
-      } catch (SMG2Exception e) {
+      } catch (SMGException e) {
         // Do nothing. This should never happen anyway
       }
     }
