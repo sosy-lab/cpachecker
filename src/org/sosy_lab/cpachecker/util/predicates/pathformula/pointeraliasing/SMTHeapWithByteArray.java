@@ -88,6 +88,20 @@ class SMTHeapWithByteArray implements SMTHeap {
   }
 
   @Override
+  public <I extends Formula, E extends Formula> BooleanFormula makeQuantifiedPointerAssignment(
+      String pTargetName,
+      FormulaType<?> pTargetType,
+      int pOldIndex,
+      int pNewIndex,
+      I pAddress,
+      BooleanFormula pCondition,
+      E pValue) {
+    // TODO: implement
+    throw new UnsupportedOperationException(
+        "Quantified pointer assignment not implemented for byte-array heap yet");
+  }
+
+  @Override
   public <E extends Formula> BooleanFormula makeIdentityPointerAssignment(
       String targetName, FormulaType<E> pTargetType, int oldIndex, int newIndex) {
     // the identity assignment can be immediately handed over to the delegate

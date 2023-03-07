@@ -36,6 +36,15 @@ interface SMTHeap {
       final I address,
       final E value);
 
+  <I extends Formula, E extends Formula> BooleanFormula makeQuantifiedPointerAssignment(
+      final String targetName,
+      final FormulaType<?> pTargetType,
+      final int oldIndex,
+      final int newIndex,
+      final I address,
+      final BooleanFormula condition,
+      final E value);
+
   /**
    * Create a formula that represents an assignment from old SSA index to new SSA index without
    * changing the value. Useful for creating conditional assignments.

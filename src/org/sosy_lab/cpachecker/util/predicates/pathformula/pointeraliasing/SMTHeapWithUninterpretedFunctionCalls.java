@@ -43,6 +43,21 @@ class SMTHeapWithUninterpretedFunctionCalls implements SMTHeap {
   }
 
   @Override
+  public <I extends Formula, E extends Formula> BooleanFormula makeQuantifiedPointerAssignment(
+      String pTargetName,
+      FormulaType<?> pTargetType,
+      int pOldIndex,
+      int pNewIndex,
+      I pAddress,
+      BooleanFormula pCondition,
+      E pValue) {
+    // TODO: implement
+    throw new UnsupportedOperationException(
+        "Quantified pointer assignment not implemented for heap with uninterpreted function calls"
+            + " yet");
+  }
+
+  @Override
   public <I extends Formula, E extends Formula> E makePointerDereference(
       String targetName, FormulaType<E> targetType, I address) {
     return ffmgr.declareAndCallUF(targetName, targetType, address);
