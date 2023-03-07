@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -200,8 +199,6 @@ class GlobalScope extends AbstractScope {
     assert declaration instanceof CVariableDeclaration || declaration instanceof CEnumerator
         : "Tried to register a declaration which does not define a name in the standard namespace: "
             + declaration;
-    assert !(declaration.getType().getCanonicalType() instanceof CFunctionType)
-        : "Tried to register a variable with the type of a function: " + declaration;
 
     String name = declaration.getOrigName();
     assert name != null;
@@ -419,14 +416,18 @@ class GlobalScope extends AbstractScope {
 
       for (CEnumerator c : oldEnumType.getEnumerators()) {
         CEnumerator newC =
-            new CEnumerator(
-                c.getFileLocation(), c.getName(), c.getQualifiedName(), c.getType(), c.getValue());
+            new CEnumerator(c.getFileLocation(), c.getName(), c.getQualifiedName(), c.getValue());
         list.add(newC);
       }
 
       CEnumType renamedEnumType =
           new CEnumType(
-              oldType.isConst(), oldType.isVolatile(), list, newName, oldType.getOrigName());
+              oldType.isConst(),
+              oldType.isVolatile(),
+              oldEnumType.getCompatibleType(),
+              list,
+              newName,
+              oldType.getOrigName());
       for (CEnumerator enumValue : renamedEnumType.getEnumerators()) {
         enumValue.setEnum(renamedEnumType);
       }

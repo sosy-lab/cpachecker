@@ -1444,8 +1444,15 @@ class ASTConverter {
 
     CType type;
     // Use declaration type when possible to fix issues with anonymous composites, problem types
-    // etc.
-    if (declaration != null) {
+    // etc. There are two tricky cases here:
+    // (A) References to values of an anonymous enum like "enum { e }". Such types cannot be looked
+    //     up, and thus the CElaboratedType misses the reference to the enum type.
+    // (B) While converting an enum like "enum e { e1, e2 = e1 }" the CEnumType for e does not yet
+    //     exist while handling the expression "e1" for the value of e2, and we do not know the type
+    //     of e and e1 because these can depend on later values.
+    if (declaration != null
+        // We cannot use declaration in case (B).
+        && !(declaration instanceof CEnumerator enumerator && enumerator.getEnum() == null)) {
       type = declaration.getType();
     } else {
       type = typeConverter.convert(e.getExpressionType());
@@ -1455,13 +1462,13 @@ class ASTConverter {
         && type instanceof CElaboratedType elaboratedType
         && elaboratedType.getKind() == ComplexTypeKind.ENUM
         && elaboratedType.getRealType() == null) {
-
-      // This is a reference to a value of an anonymous enum ("enum { e }").
-      // Such types cannot be looked up, and thus the CElaboratedType misses
-      // the reference to the enum type.
+      // Case (A)
       CEnumType enumType = enumerator.getEnum();
-      // enumType is null if an enum value is referenced inside the enum declaration,
-      // e.g. like this: "enum { e1, e2 = e1 }"
+
+      // We want to fix the type, but can do so only if we are not also in case (B).
+      // In case of (A) + (B) the resulting type will be wrong, but this should not hurt because in
+      // case (B) we fully evaluate the constant expression and only put the resulting value into
+      // the AST, not the expression with the wrong type.
       if (enumType != null) {
         type =
             new CElaboratedType(
@@ -2619,10 +2626,10 @@ class ASTConverter {
     }
 
     CSimpleType integerType = getEnumerationType(list);
-    CEnumType enumType = new CEnumType(d.isConst(), d.isVolatile(), list, name, origName);
+    CEnumType enumType =
+        new CEnumType(d.isConst(), d.isVolatile(), integerType, list, name, origName);
     for (CEnumerator enumValue : enumType.getEnumerators()) {
       enumValue.setEnum(enumType);
-      enumValue.setType(integerType);
     }
     return enumType;
   }
@@ -2672,13 +2679,7 @@ class ASTConverter {
 
     String name = convert(e.getName());
     CEnumerator result =
-        new CEnumerator(
-            getLocation(e),
-            name,
-            scope.createScopedNameOf(name),
-            // dummy integer type, the correct one will be set directly afterwards
-            CNumericTypes.SIGNED_INT,
-            value);
+        new CEnumerator(getLocation(e), name, scope.createScopedNameOf(name), value);
     scope.registerDeclaration(result);
     return result;
   }
