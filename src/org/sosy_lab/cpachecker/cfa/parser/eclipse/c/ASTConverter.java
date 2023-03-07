@@ -2618,8 +2618,8 @@ class ASTConverter {
       name = "__anon_type_" + anonTypeCounter++;
     }
 
+    CSimpleType integerType = getEnumerationType(list);
     CEnumType enumType = new CEnumType(d.isConst(), d.isVolatile(), list, name, origName);
-    CSimpleType integerType = getEnumerationType(enumType);
     for (CEnumerator enumValue : enumType.getEnumerators()) {
       enumValue.setEnum(enumType);
       enumValue.setType(integerType);
@@ -2640,12 +2640,12 @@ class ASTConverter {
    * an unsigned integer type. The choice of type is implementation-defined, but shall be capable of
    * representing the values of all the members of the enumeration.
    */
-  private CSimpleType getEnumerationType(final CEnumType enumType) {
+  private CSimpleType getEnumerationType(final List<CEnumerator> enumerators) {
     LongSummaryStatistics enumStatistics =
-        enumType.getEnumerators().stream().mapToLong(CEnumerator::getValue).summaryStatistics();
+        enumerators.stream().mapToLong(CEnumerator::getValue).summaryStatistics();
 
     Preconditions.checkState(
-        enumStatistics.getCount() > 0, "enumeration does not provide any values: %s", enumType);
+        enumStatistics.getCount() > 0, "enumeration does not provide any values");
     final BigInteger minValue = BigInteger.valueOf(enumStatistics.getMin());
     final BigInteger maxValue = BigInteger.valueOf(enumStatistics.getMax());
     for (CSimpleType integerType : ENUM_REPRESENTATION_CANDIDATE_TYPES) {
