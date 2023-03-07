@@ -15,9 +15,8 @@ import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 public final class CEnumerator extends AbstractSimpleDeclaration implements CSimpleDeclaration {
 
@@ -31,9 +30,8 @@ public final class CEnumerator extends AbstractSimpleDeclaration implements CSim
       final FileLocation pFileLocation,
       final String pName,
       final String pQualifiedName,
-      final @Nullable CType pType,
       final long pValue) {
-    super(pFileLocation, pType, pName);
+    super(pFileLocation, pName);
 
     checkNotNull(pName);
     value = pValue;
@@ -77,18 +75,13 @@ public final class CEnumerator extends AbstractSimpleDeclaration implements CSim
   }
 
   @Override
-  public void setType(Type pType) {
-    super.setType(checkNotNull(pType));
-  }
-
-  @Override
   public String getQualifiedName() {
     return qualifiedName;
   }
 
   @Override
-  public CType getType() {
-    return (CType) super.getType();
+  public CSimpleType getType() {
+    return enumType.getCompatibleType();
   }
 
   public long getValue() {

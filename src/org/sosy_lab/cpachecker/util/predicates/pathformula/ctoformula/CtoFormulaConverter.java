@@ -807,8 +807,8 @@ public class CtoFormulaConverter {
     if (pType instanceof CPointerType) {
       return machineModel.getPointerEquivalentSimpleType();
     }
-    if (pType instanceof CEnumType) {
-      return ((CEnumType) pType).getEnumerators().get(0).getType();
+    if (pType instanceof CEnumType enumType) {
+      return enumType.getCompatibleType();
     }
     if (pType instanceof CElaboratedType
         && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM) {
