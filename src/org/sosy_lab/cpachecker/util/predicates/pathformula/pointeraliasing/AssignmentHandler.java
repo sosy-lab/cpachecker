@@ -240,7 +240,8 @@ class AssignmentHandler {
             rhsExpression,
             useOldSSAIndices,
             updatedRegions,
-            conditionFormula);
+            conditionFormula,
+            false);
 
     if (lhsLocation.isUnaliasedLocation() && lhs instanceof CFieldReference fieldReference) {
       CExpression fieldOwner = fieldReference.getFieldOwner();
@@ -444,7 +445,14 @@ class AssignmentHandler {
     if (!resolveLhs && !resolveRhs) {
       final Location lhsLocation = lhsBaseExpression.asLocation();
       return makeDestructiveAssignment(
-          lhsBaseType, rhsBaseType, lhsLocation, rhsBaseExpression, false, null, conditionFormula);
+          lhsBaseType,
+          rhsBaseType,
+          lhsLocation,
+          rhsBaseExpression,
+          false,
+          null,
+          conditionFormula,
+          true);
     }
 
     CType newLhsBaseType = lhsBaseType;
@@ -939,6 +947,7 @@ class AssignmentHandler {
    * @param updatedRegions Either {@code null} or a set of updated regions.
    * @param condition Either {@code null} or a condition which determines if the assignment is
    *     actually done. In case of {@code null}, the assignmment is always done.
+   * @param useQuantifiers If the quantifier assignment version should be used.
    * @return A formula for the assignment.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
@@ -949,7 +958,8 @@ class AssignmentHandler {
       final Expression rvalue,
       final boolean useOldSSAIndices,
       final @Nullable Set<MemoryRegion> updatedRegions,
-      final @Nullable BooleanFormula condition)
+      final @Nullable BooleanFormula condition,
+      boolean useQuantifiers)
       throws UnrecognizedCodeException {
     checkIsSimplified(lvalueType);
     checkIsSimplified(rvalueType);
@@ -965,7 +975,8 @@ class AssignmentHandler {
           rvalue,
           useOldSSAIndices,
           updatedRegions,
-          condition);
+          condition,
+          useQuantifiers);
 
     } else if (lvalueType instanceof CCompositeType lvalueCompositeType) {
       return makeDestructiveCompositeAssignment(
@@ -975,11 +986,19 @@ class AssignmentHandler {
           rvalue,
           useOldSSAIndices,
           updatedRegions,
-          condition);
+          condition,
+          useQuantifiers);
 
     } else { // Simple assignment
       return makeSimpleDestructiveAssignment(
-          lvalueType, rvalueType, lvalue, rvalue, useOldSSAIndices, updatedRegions, condition);
+          lvalueType,
+          rvalueType,
+          lvalue,
+          rvalue,
+          useOldSSAIndices,
+          updatedRegions,
+          condition,
+          useQuantifiers);
     }
   }
 
@@ -990,7 +1009,8 @@ class AssignmentHandler {
       final Expression rvalue,
       final boolean useOldSSAIndices,
       final Set<MemoryRegion> updatedRegions,
-      @Nullable BooleanFormula condition)
+      @Nullable BooleanFormula condition,
+      boolean useQuantifiers)
       throws UnrecognizedCodeException {
     checkArgument(lvalue.isAliased(), "Array elements are always aliased");
     final CType lvalueElementType = lvalueArrayType.getType();
@@ -1068,7 +1088,8 @@ class AssignmentHandler {
                   newRvalue,
                   useOldSSAIndices,
                   updatedRegions,
-                  condition));
+                  condition,
+                  useQuantifiers));
       offset += conv.getSizeof(lvalueArrayType.getType());
     }
     return result;
@@ -1081,7 +1102,8 @@ class AssignmentHandler {
       final Expression rvalue,
       final boolean useOldSSAIndices,
       final Set<MemoryRegion> updatedRegions,
-      @Nullable BooleanFormula condition)
+      @Nullable BooleanFormula condition,
+      boolean useQuantifiers)
       throws UnrecognizedCodeException {
     // There are two cases of assignment to a structure/union
     // - Initialization with a value (possibly nondet), useful for stack declarations and memset
@@ -1173,7 +1195,8 @@ class AssignmentHandler {
                     newRvalue,
                     useOldSSAIndices,
                     updatedRegions,
-                    condition));
+                    condition,
+                    useQuantifiers));
       }
     }
     return result;
@@ -1200,7 +1223,8 @@ class AssignmentHandler {
       Expression rvalue,
       final boolean useOldSSAIndices,
       final @Nullable Set<MemoryRegion> updatedRegions,
-      @Nullable BooleanFormula condition)
+      @Nullable BooleanFormula condition,
+      boolean useQuantifiers)
       throws UnrecognizedCodeException {
     // Arrays and functions are implicitly converted to pointers
     CType rvalueType = implicitCastToPointer(pRvalueType);
@@ -1290,9 +1314,17 @@ class AssignmentHandler {
       final Formula address = lvalue.asAliased().getAddress();
 
       if (rhs != null) {
-        result =
-            conv.ptsMgr.makePointerAssignment(
-                targetName, targetType, oldIndex, newIndex, address, rhs);
+        // use the special quantifier version of pointer assignment if requested
+
+        if (useQuantifiers) {
+          result =
+              conv.ptsMgr.makeQuantifiedPointerAssignment(
+                  targetName, targetType, oldIndex, newIndex, address, condition, rhs);
+        } else {
+          result =
+              conv.ptsMgr.makePointerAssignment(
+                  targetName, targetType, oldIndex, newIndex, address, rhs);
+        }
       } else {
         result = bfmgr.makeTrue();
       }
@@ -1300,7 +1332,7 @@ class AssignmentHandler {
       // if we need to make the assignment conditional, add the condition
       // either the condition holds and the assignment should be done,
       // or the condition does not hold and the previous value should be copied
-      if (condition != null) {
+      if (!useQuantifiers && condition != null) {
         BooleanFormula retainmentAssignment =
             conv.ptsMgr.makeIdentityPointerAssignment(targetName, targetType, oldIndex, newIndex);
         BooleanFormula makeNewAssignment = conv.bfmgr.and(condition, result);
@@ -1495,7 +1527,8 @@ class AssignmentHandler {
             newRhsExpression,
             useOldSSAIndices,
             updatedRegions,
-            condition));
+            condition,
+            false));
   }
 
   private void addAssignmentsForOtherFieldsOfUnionForLhsCompositeType(
@@ -1571,7 +1604,8 @@ class AssignmentHandler {
               newRhsExpression,
               useOldSSAIndices,
               updatedRegions,
-              condition));
+              condition,
+              false));
     }
   }
 

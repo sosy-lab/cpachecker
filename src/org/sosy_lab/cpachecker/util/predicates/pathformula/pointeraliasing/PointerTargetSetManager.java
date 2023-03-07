@@ -225,6 +225,18 @@ class PointerTargetSetManager {
     return heap.makeIdentityPointerAssignment(targetName, pTargetType, oldIndex, newIndex);
   }
 
+  public <I extends Formula, E extends Formula> BooleanFormula makeQuantifiedPointerAssignment(
+      String pTargetName,
+      FormulaType<?> pTargetType,
+      int pOldIndex,
+      int pNewIndex,
+      I pAddress,
+      BooleanFormula pCondition,
+      E pValue) {
+    return heap.makeQuantifiedPointerAssignment(
+        pTargetName, pTargetType, pOldIndex, pNewIndex, pAddress, pCondition, pValue);
+  }
+
   /**
    * Merges two {@link PointerTargetSet}s into one.
    *

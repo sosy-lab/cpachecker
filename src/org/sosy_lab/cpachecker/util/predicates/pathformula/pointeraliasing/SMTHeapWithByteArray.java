@@ -80,7 +80,7 @@ class SMTHeapWithByteArray implements SMTHeap {
       checkArgument(pointerType.equals(addressType));
 
       return handleBitvectorAssignment(
-          targetName, oldIndex, newIndex, address, addressType, (BitvectorFormula) value);
+          targetName, oldIndex, newIndex, address, addressType, null, (BitvectorFormula) value);
     } else {
       throw new UnsupportedOperationException(
           "ByteArray Heap encoding does not support " + pTargetType);
@@ -89,16 +89,42 @@ class SMTHeapWithByteArray implements SMTHeap {
 
   @Override
   public <I extends Formula, E extends Formula> BooleanFormula makeQuantifiedPointerAssignment(
-      String pTargetName,
+      String targetName,
       FormulaType<?> pTargetType,
-      int pOldIndex,
-      int pNewIndex,
-      I pAddress,
-      BooleanFormula pCondition,
-      E pValue) {
-    // TODO: implement
-    throw new UnsupportedOperationException(
-        "Quantified pointer assignment not implemented for byte-array heap yet");
+      int oldIndex,
+      int newIndex,
+      I address,
+      BooleanFormula condition,
+      E value) {
+    if (pTargetType.isFloatingPointType()) {
+      // convert floating point value to be set to bitvector and call ourselves recursively
+      FloatingPointType floatTargetType = (FloatingPointType) pTargetType;
+      BitvectorType bvType = FormulaType.getBitvectorTypeWithSize(floatTargetType.getTotalSize());
+      FloatingPointFormulaManagerView floatMgr = formulaManager.getFloatingPointFormulaManager();
+      BitvectorFormula bvValue = floatMgr.toIeeeBitvector((FloatingPointFormula) value);
+      return makeQuantifiedPointerAssignment(
+          targetName, bvType, oldIndex, newIndex, address, condition, bvValue);
+
+    } else if (pTargetType.isBitvectorType()) {
+      // handle in a tailored function
+      BitvectorType targetType = (BitvectorType) formulaManager.getFormulaType(value);
+      checkArgument(pTargetType.equals(targetType));
+
+      FormulaType<I> addressType = formulaManager.getFormulaType(address);
+      checkArgument(pointerType.equals(addressType));
+
+      return handleBitvectorAssignment(
+          targetName,
+          oldIndex,
+          newIndex,
+          address,
+          addressType,
+          condition,
+          (BitvectorFormula) value);
+    } else {
+      throw new UnsupportedOperationException(
+          "ByteArray Heap encoding does not support " + pTargetType);
+    }
   }
 
   @Override
@@ -230,6 +256,7 @@ class SMTHeapWithByteArray implements SMTHeap {
       int newIndex,
       I address,
       FormulaType<I> addressType,
+      @Nullable BooleanFormula condition,
       BitvectorFormula value) {
 
     // since each element is represented by a certain amount of bytes and there is no overlap, there
@@ -254,13 +281,18 @@ class SMTHeapWithByteArray implements SMTHeap {
     for (BitvectorFormula formula : bytes) {
       I addressWithOffset =
           formulaManager.makePlus(address, formulaManager.makeNumber(addressType, byteOffset++));
-      result =
-          formulaManager
-              .getBooleanFormulaManager()
-              .and(
-                  result,
-                  delegate.makePointerAssignment(
-                      targetName, BYTE_TYPE, oldIndex, newIndex, addressWithOffset, formula));
+
+      BooleanFormula assignmentFormula;
+      if (condition != null) {
+
+        assignmentFormula = delegate.makeQuantifiedPointerAssignment(
+            targetName, BYTE_TYPE, oldIndex, newIndex, addressWithOffset, condition, formula);
+      } else {
+        assignmentFormula = delegate.makePointerAssignment(
+            targetName, BYTE_TYPE, oldIndex, newIndex, addressWithOffset, formula);
+      }
+
+      result = formulaManager.getBooleanFormulaManager().and(result, assignmentFormula);
     }
 
     return result;
