@@ -1451,15 +1451,15 @@ class ASTConverter {
       type = typeConverter.convert(e.getExpressionType());
     }
 
-    if (declaration instanceof CEnumerator
-        && type instanceof CElaboratedType
-        && ((CElaboratedType) type).getKind() == ComplexTypeKind.ENUM
-        && ((CElaboratedType) type).getRealType() == null) {
+    if (declaration instanceof CEnumerator enumerator
+        && type instanceof CElaboratedType elaboratedType
+        && elaboratedType.getKind() == ComplexTypeKind.ENUM
+        && elaboratedType.getRealType() == null) {
 
       // This is a reference to a value of an anonymous enum ("enum { e }").
       // Such types cannot be looked up, and thus the CElaboratedType misses
       // the reference to the enum type.
-      CEnumType enumType = ((CEnumerator) declaration).getEnum();
+      CEnumType enumType = enumerator.getEnum();
       // enumType is null if an enum value is referenced inside the enum declaration,
       // e.g. like this: "enum { e1, e2 = e1 }"
       if (enumType != null) {
