@@ -51,7 +51,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
 
   private FaultReportWriter htmlWriter;
 
-  /** Maps a CFA edge to the index of faults in {@link #rankedList} associated with that edge. * */
+  /** Maps a CFA edge to the index of faults in {@link #rankedList} associated with that edge. */
   private Multimap<CFAEdge, Integer> mapEdgeToRankedFaultIndex;
 
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;

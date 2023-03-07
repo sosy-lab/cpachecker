@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -329,7 +329,7 @@ public class CFASecondPassBuilder {
   }
 
   private boolean checkParamSizes(
-      AFunctionCallExpression functionCallExpression, IAFunctionType functionType) {
+      AFunctionCallExpression functionCallExpression, AFunctionType functionType) {
     // get the parameter expression
     List<? extends AExpression> parameters = functionCallExpression.getParameterExpressions();
 
@@ -439,7 +439,7 @@ public class CFASecondPassBuilder {
 
       // remove function exit node if it has become unreachable
       FunctionEntryNode entryNode =
-          cfa.getAllFunctions().get(edge.getSuccessor().getFunction().getQualifiedName());
+          cfa.getFunctionHead(edge.getSuccessor().getFunction().getQualifiedName());
       Optional<FunctionExitNode> exitNode = entryNode.getExitNode();
       if (exitNode.isPresent() && exitNode.orElseThrow().getNumEnteringEdges() == 0) {
         entryNode.removeExitNode();

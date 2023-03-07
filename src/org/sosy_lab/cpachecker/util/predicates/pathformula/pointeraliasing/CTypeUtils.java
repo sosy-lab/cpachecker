@@ -29,7 +29,7 @@ class CTypeUtils {
 
   private static final CachingCanonizingCTypeVisitor typeVisitor =
       new CachingCanonizingCTypeVisitor(
-          /*ignoreConst=*/ true, /*ignoreVolatile=*/ true, /*ignoreSignedness=*/ false);
+          /* ignoreConst= */ true, /* ignoreVolatile= */ true, /* ignoreSignedness= */ false);
 
   /** Return the length of an array, honoring the options for maximum and default array length. */
   static int getArrayLength(CArrayType t, FormulaEncodingWithPointerAliasingOptions options) {
@@ -43,8 +43,7 @@ class CTypeUtils {
     checkIsSimplified(pType);
     if (pType instanceof CArrayType) {
       return true;
-    } else if (pType instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) pType;
+    } else if (pType instanceof CCompositeType compositeType) {
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite!";
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         if (containsArrayInComposite(memberDeclaration.getType())) {

@@ -84,8 +84,7 @@ public class BitVectorInfo implements TypeInfo {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof BitVectorInfo) {
-      BitVectorInfo other = (BitVectorInfo) pOther;
+    if (pOther instanceof BitVectorInfo other) {
       return size == other.size && signed == other.signed;
     }
     return false;

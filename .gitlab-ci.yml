@@ -12,7 +12,7 @@ variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: 0287f114a4fa2af2e4e743b9cbf86d179d89553a
+  REFASTER_REPO_REVISION: 16c07156f0dabdb1a9cb3c98206b7df680b0a4f3
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
   REFASTER_VERSION: 2.18.0
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
@@ -44,16 +44,6 @@ variables:
     when: always
     reports:
       junit: "output/configuration-checks/TESTS-TestSuites.xml"
-
-configuration-checks:jdk-11:
-  <<: *configuration-checks
-  dependencies:
-    - build-dependencies
-    - build:jdk-11
-  needs:
-    - build-dependencies
-    - build:jdk-11
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
 configuration-checks:jdk-17:
   <<: *configuration-checks
@@ -118,16 +108,6 @@ forbidden-apis:
 .python-unit-tests: &python-unit-tests
   <<: *binary_check
   script: "ant $ANT_PROPS_CHECKS python-unit-tests"
-
-python-unit-tests:jdk-11:
-  <<: *python-unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-11
-  needs:
-    - build-dependencies
-    - build:jdk-11
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
 python-unit-tests:jdk-17:
   <<: *python-unit-tests
@@ -253,9 +233,9 @@ check-format-python:
   needs: []
   image: python
   before_script:
-    - pip install black
+    - pip install 'black[jupyter]<2024'
   script:
-    - black . --check --diff --include='contrib/.*\.py'
+    - black . --check --diff
   <<: *pip-cache
 
 flake8:
@@ -303,12 +283,6 @@ deploy-docker:
 
 
 # No coverage is computed for CPAchecker
-unit-tests:jdk-11:
-  script: "ant $ANT_PROPS_CHECKS unit-tests"
-  artifacts:
-    reports:
-      junit: "output/junit/TESTS-TestSuites.xml"
-
 unit-tests:jdk-17:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
@@ -334,9 +308,23 @@ spotbugs:
     - build:jdk-17
 
 refaster:
-  # so far does not work with Java 17:
-  # https://github.com/google/error-prone/issues/3553
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
+  # https://github.com/google/error-prone/issues/3553 needs to be fixed for Java 17
+  allow_failure: true
+
+
+# Disable Java 11 jobs
+build-docker:test:jdk-11:
+  only: []
+
+build:jdk-11:
+  only: []
+
+build-project-ecj:jdk-11:
+  only: []
+
+unit-tests:jdk-11:
+  only: []
 
 
 # Disable some checks because they are not used for CPAchecker

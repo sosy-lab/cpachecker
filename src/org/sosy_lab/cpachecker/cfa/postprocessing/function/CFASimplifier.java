@@ -29,7 +29,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class CFASimplifier {
+public final class CFASimplifier {
+
+  private CFASimplifier() {}
 
   /**
    * This method takes a cfa as input and simplifies it, in the way, that Assume Edges which are not

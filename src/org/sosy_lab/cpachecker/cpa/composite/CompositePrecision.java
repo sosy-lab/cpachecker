@@ -128,8 +128,7 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
       Precision currentPrecision = get(i);
       Precision adjustedPrecision;
 
-      if (pOtherPrecision instanceof CompositePrecision) {
-        CompositePrecision precisionToAdjust = (CompositePrecision) pOtherPrecision;
+      if (pOtherPrecision instanceof CompositePrecision precisionToAdjust) {
         adjustedPrecision = precisionToAdjust.get(i);
       } else if (pOtherPrecision.getClass() == currentPrecision.getClass()) {
         adjustedPrecision = pOtherPrecision;

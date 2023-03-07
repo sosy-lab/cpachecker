@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  * reason we don't use {@link JExpressionStatement} for method invocations.
  */
 public final class JMethodInvocationStatement extends AFunctionCallStatement
-    implements JStatement, JMethodOrConstructorInvocation {
+    implements JMethodOrConstructorInvocation {
 
   private static final long serialVersionUID = 8432702267615877780L;
 

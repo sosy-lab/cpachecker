@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-public class ACSLLoopAnnotation implements ACSLAnnotation {
+public final class ACSLLoopAnnotation implements ACSLAnnotation {
 
   private final ACSLLoopInvariant lInvariant;
   private final ImmutableMap<List<Behavior>, ACSLLoopInvariant> additionalInvariants;

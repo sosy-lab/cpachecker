@@ -66,7 +66,7 @@ public final class CCompositeType implements CComplexType {
         checkArgument(
             !it.hasNext(), "incomplete member %s in non-last position of %s", member, this);
         checkArgument(
-            member.getType().getCanonicalType() instanceof CArrayType,
+            member.isFlexibleArrayMember(),
             "incomplete non-array member %s in last position of %s",
             member,
             this);
@@ -118,18 +118,13 @@ public final class CCompositeType implements CComplexType {
       CCompositeTypeMemberDeclaration member = it.next();
       if (!member.getType().hasKnownConstantSize()) {
         // special case: if this is a "flexible array member" as last member, then size is known
-        if (it.hasNext() || !isFlexibleArray(member.getType())) {
+        if (it.hasNext() || !member.isFlexibleArrayMember()) {
           return false;
         }
       }
     }
 
     return true;
-  }
-
-  private static boolean isFlexibleArray(CType type) {
-    type = type.getCanonicalType();
-    return type instanceof CArrayType && ((CArrayType) type).getLength() == null;
   }
 
   @Override
@@ -229,6 +224,15 @@ public final class CCompositeType implements CComplexType {
 
     public String getName() {
       return name;
+    }
+
+    /**
+     * Whether this is a flexible array member as defined by § 6.7.2.1 (18). Such members are only
+     * allowed as last members of a struct.
+     */
+    public boolean isFlexibleArrayMember() {
+      return type.getCanonicalType() instanceof CArrayType arrayType
+          && arrayType.getLength() == null;
     }
 
     public String toASTString() {

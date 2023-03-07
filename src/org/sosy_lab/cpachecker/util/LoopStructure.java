@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
@@ -22,12 +22,14 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -35,6 +37,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
@@ -261,8 +264,7 @@ public final class LoopStructure implements Serializable {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof Loop) {
-        Loop other = (Loop) pObj;
+      if (pObj instanceof Loop other) {
         return loopHeads.equals(other.loopHeads) && nodes.equals(other.nodes);
       }
       return false;
@@ -379,37 +381,35 @@ public final class LoopStructure implements Serializable {
    */
   @Nullable
   private static String obtainIncDecVariable(CFAEdge e) {
-    if (e instanceof CStatementEdge) {
-      CStatementEdge stmtEdge = (CStatementEdge) e;
-      if (stmtEdge.getStatement() instanceof CAssignment) {
-        CAssignment assign = (CAssignment) stmtEdge.getStatement();
+    if ((e instanceof CStatementEdge stmtEdge)
+        && (stmtEdge.getStatement() instanceof CAssignment)) {
+      CAssignment assign = (CAssignment) stmtEdge.getStatement();
 
-        if (assign.getLeftHandSide() instanceof CIdExpression) {
-          CIdExpression assignementToId = (CIdExpression) assign.getLeftHandSide();
-          String assignToVar = assignementToId.getDeclaration().getQualifiedName();
+      if (assign.getLeftHandSide() instanceof CIdExpression) {
+        CIdExpression assignementToId = (CIdExpression) assign.getLeftHandSide();
+        String assignToVar = assignementToId.getDeclaration().getQualifiedName();
 
-          if (assign.getRightHandSide() instanceof CBinaryExpression) {
-            CBinaryExpression binExpr = (CBinaryExpression) assign.getRightHandSide();
-            BinaryOperator op = binExpr.getOperator();
+        if (assign.getRightHandSide() instanceof CBinaryExpression) {
+          CBinaryExpression binExpr = (CBinaryExpression) assign.getRightHandSide();
+          BinaryOperator op = binExpr.getOperator();
 
-            if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {
+          if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {
 
-              if (binExpr.getOperand1() instanceof CLiteralExpression
-                  || binExpr.getOperand2() instanceof CLiteralExpression) {
-                CIdExpression operandId = null;
+            if (binExpr.getOperand1() instanceof CLiteralExpression
+                || binExpr.getOperand2() instanceof CLiteralExpression) {
+              CIdExpression operandId = null;
 
-                if (binExpr.getOperand1() instanceof CIdExpression) {
-                  operandId = (CIdExpression) binExpr.getOperand1();
-                }
-                if (binExpr.getOperand2() instanceof CIdExpression) {
-                  operandId = (CIdExpression) binExpr.getOperand2();
-                }
+              if (binExpr.getOperand1() instanceof CIdExpression) {
+                operandId = (CIdExpression) binExpr.getOperand1();
+              }
+              if (binExpr.getOperand2() instanceof CIdExpression) {
+                operandId = (CIdExpression) binExpr.getOperand2();
+              }
 
-                if (operandId != null) {
-                  String operandVar = operandId.getDeclaration().getQualifiedName();
-                  if (assignToVar.equals(operandVar)) {
-                    return assignToVar;
-                  }
+              if (operandId != null) {
+                String operandVar = operandId.getDeclaration().getQualifiedName();
+                if (assignToVar.equals(operandVar)) {
+                  return assignToVar;
                 }
               }
             }
@@ -447,7 +447,8 @@ public final class LoopStructure implements Serializable {
     ImmutableListMultimap.Builder<String, Loop> loops = ImmutableListMultimap.builder();
     for (String functionName : cfa.getAllFunctionNames()) {
       NavigableSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
-      loops.putAll(functionName, findLoops(nodes, cfa.getLanguage()));
+      Collection<Loop> functionLoops = findLoops(nodes, cfa.getLanguage());
+      loops.putAll(functionName, functionLoops);
     }
     return new LoopStructure(loops.build());
   }
@@ -456,11 +457,11 @@ public final class LoopStructure implements Serializable {
    * Find all loops inside a given set of CFA nodes. The nodes in the given set may not be connected
    * with any nodes outside of this set. This method tries to differentiate nested loops.
    *
-   * @param nodes The set of nodes to look for loops in.
+   * @param pNodes the set of nodes to look for loops in
    * @param language The source language.
    * @return A collection of found loops.
    */
-  private static Collection<Loop> findLoops(NavigableSet<CFANode> nodes, Language language)
+  private static Collection<Loop> findLoops(NavigableSet<CFANode> pNodes, Language language)
       throws ParserException {
 
     // Two optimizations:
@@ -470,8 +471,9 @@ public final class LoopStructure implements Serializable {
     // The latter can be a huge improvement for the main function, which may have thousands of nodes
     // in such an initial chain (global declarations).
     List<CFANode> initialChain = new ArrayList<>();
+    @Nullable CFANode nodeAfterInitialChain = null;
     {
-      CFANode functionExitNode = nodes.first(); // The function exit node is always the first
+      CFANode functionExitNode = pNodes.first(); // The function exit node is always the first
       if (functionExitNode instanceof FunctionExitNode) {
         CFANode startNode = ((FunctionExitNode) functionExitNode).getEntryNode();
         while (startNode.getNumLeavingEdges() == 1 && startNode.getNumEnteringEdges() <= 1) {
@@ -484,7 +486,7 @@ public final class LoopStructure implements Serializable {
         // of loop head nodes that does not contain what most users would consider
         // the most important loop head node of a function.
         if (!initialChain.isEmpty()) {
-          initialChain.remove(initialChain.size() - 1);
+          nodeAfterInitialChain = initialChain.remove(initialChain.size() - 1);
         }
 
         if (!hasBackWardsEdges(startNode)) {
@@ -493,7 +495,8 @@ public final class LoopStructure implements Serializable {
       }
     }
 
-    nodes = new TreeSet<>(nodes); // copy nodes because we change it, it is our working set
+    NavigableSet<CFANode> nodes =
+        new TreeSet<>(pNodes); // copy nodes because we change it, it is our working set
     nodes.removeAll(initialChain);
 
     // We need to store some information per pair of CFANodes.
@@ -518,9 +521,16 @@ public final class LoopStructure implements Serializable {
     final Edge[][] edges = new Edge[size][size];
 
     List<Loop> loops = new ArrayList<>();
+    // For performance reasons, we use loop-free sections instead of individual nodes for loop
+    // detection.
+    LoopFreeSectionFinder loopFreeSectionFinder =
+        new CachingLoopFreeSectionFinder(new BranchingLoopFreeSectionFinder(nodeAfterInitialChain));
 
     // FIRST step: initialize arrays
-    for (CFANode n : nodes) {
+    // We also summarize loop-free sections by adding an edge to `edges` between the entry and
+    // exit of a loop-free section, because it's faster than if we let `identifyLoops` do this.
+    for (Iterator<CFANode> nodeIterator = nodes.iterator(); nodeIterator.hasNext(); ) {
+      CFANode n = nodeIterator.next();
       int i = arrayIndexForNode.apply(n);
       assert nodesArray[i] == null
           : "reverse post-order id is not unique, "
@@ -533,14 +543,33 @@ public final class LoopStructure implements Serializable {
               + nodesArray[i];
       nodesArray[i] = n;
 
-      for (CFAEdge edge : leavingEdges(n)) {
-        CFANode succ = edge.getSuccessor();
-        int j = arrayIndexForNode.apply(succ);
-        edges[i][j] = new Edge();
+      CFANode sectionEntry = loopFreeSectionFinder.entryNode(n);
+      CFANode sectionExit = loopFreeSectionFinder.exitNode(n);
+      int sectionEntryIndex = arrayIndexForNode.apply(sectionEntry);
+      int sectionExitIndex = arrayIndexForNode.apply(sectionExit);
+      if (sectionEntryIndex != sectionExitIndex
+          && edges[sectionEntryIndex][sectionExitIndex] == null) {
+        // insert an edge for the loop-free section, if it doesn't already exist
+        edges[sectionEntryIndex][sectionExitIndex] = new Edge();
+      }
+      if (i != sectionEntryIndex && i != sectionExitIndex) {
+        // handle node that is between loop-free section entry and exit
+        edges[sectionEntryIndex][sectionExitIndex].add(n);
+        nodeIterator.remove();
+      }
 
-        if (i == j) {
-          // self-edge
-          handleLoop(succ, i, edges, loops);
+      if (i == sectionExitIndex) {
+        // We only care about out-edges of a loop-free section exit node as other out-edges are part
+        // of a loop-free section and skipped.
+        for (CFANode sectionSuccessor : CFAUtils.successorsOf(sectionExit)) {
+          int sectionSuccessorIndex = arrayIndexForNode.apply(sectionSuccessor);
+          edges[sectionExitIndex][sectionSuccessorIndex] = new Edge();
+
+          if (sectionExitIndex == sectionSuccessorIndex) {
+            assert i == sectionEntryIndex && sectionEntryIndex == sectionExitIndex;
+            // self-edge
+            handleLoop(n, i, edges, loops);
+          }
         }
       }
     }
@@ -593,48 +622,82 @@ public final class LoopStructure implements Serializable {
       }
     }
 
-    // THIRD step:
-    // check all pairs of loops if one is an inner loop of the other
-    // the check is symmetric, so we need to check only (i1, i2) with i1 < i2
-    NavigableSet<Integer> toRemove = new TreeSet<>();
+    // THIRD step: Check all loop pairs to discover inner-outer loop relations and merge loops
+    // together if necessary.
+    @Nullable Loop loopToRemove = null;
     do {
-      toRemove.clear();
-      for (int i1 = 0; i1 < loops.size(); i1++) {
-        Loop l1 = loops.get(i1);
+      if (loopToRemove != null) {
+        loops.remove(loopToRemove);
+        loopToRemove = null;
+      }
 
-        for (int i2 = i1 + 1; i2 < loops.size(); i2++) {
-          Loop l2 = loops.get(i2);
-
-          if (!l1.intersectsWith(l2)) {
-            // loops have nothing in common
-            continue;
+      // discover all inner-outer loop relations
+      do {
+        changed = false;
+        // the check is symmetric, so we need to only check (i1, i2) with i1 < i2
+        for (int i1 = 0; i1 < loops.size(); i1++) {
+          Loop l1 = loops.get(i1);
+          for (int i2 = i1 + 1; i2 < loops.size(); i2++) {
+            Loop l2 = loops.get(i2);
+            if (!l1.intersectsWith(l2)) {
+              // loops have nothing in common
+              continue;
+            }
+            if (l1.getLoopNodes().containsAll(l2.getLoopNodes())
+                || l2.getLoopNodes().containsAll(l1.getLoopNodes())) {
+              // inner-outer loop relation already known
+              continue;
+            }
+            if (l1.isOuterLoopOf(l2)) {
+              // `l2` is an inner loop of `l1`, add its nodes to `l1`
+              l1.addNodes(l2);
+              changed = true;
+            } else if (l2.isOuterLoopOf(l1)) {
+              // `l1` is an inner loop of `l2`, add its nodes to `l2`
+              l2.addNodes(l1);
+              changed = true;
+            }
           }
+        }
+      } while (changed);
 
-          if (l1.isOuterLoopOf(l2)) {
-
-            // l2 is an inner loop
-            // add it's nodes to l1
-            l1.addNodes(l2);
-
-          } else if (l2.isOuterLoopOf(l1)) {
-
-            // l1 is an inner loop
-            // add it's nodes to l2
-            l2.addNodes(l1);
-
-          } else {
-            // strange goto loop, merge the two together
-
-            l1.mergeWith(l2);
-            toRemove.add(i2);
+      // We want to first merge strange goto-loops that have the same loop heads, as this likely
+      // merges loops together that intuitively should be merged together.
+      for (int i1 = 0; i1 < loops.size() && loopToRemove == null; i1++) {
+        Loop l1 = loops.get(i1);
+        for (int i2 = i1 + 1; i2 < loops.size() && loopToRemove == null; i2++) {
+          Loop l2 = loops.get(i2);
+          if (l1.getLoopHeads().equals(l2.getLoopHeads())) {
+            if (!l1.intersectsWith(l2)) {
+              // loops have nothing in common
+              continue;
+            }
+            if (!l1.isOuterLoopOf(l2) && !l2.isOuterLoopOf(l1)) {
+              // strange goto-loop, merge the two together
+              l1.mergeWith(l2);
+              loopToRemove = l2;
+            }
           }
         }
       }
 
-      for (int i : toRemove.descendingSet()) { // need to iterate in reverse order!
-        loops.remove(i);
+      // merge loops if necessary, including loops with different loop heads
+      for (int i1 = 0; i1 < loops.size() && loopToRemove == null; i1++) {
+        Loop l1 = loops.get(i1);
+        for (int i2 = i1 + 1; i2 < loops.size() && loopToRemove == null; i2++) {
+          Loop l2 = loops.get(i2);
+          if (!l1.intersectsWith(l2)) {
+            // loops have nothing in common
+            continue;
+          }
+          if (!l1.isOuterLoopOf(l2) && !l2.isOuterLoopOf(l1)) {
+            // strange goto-loop, merge the two loops together
+            l1.mergeWith(l2);
+            loopToRemove = l2;
+          }
+        }
       }
-    } while (!toRemove.isEmpty());
+    } while (loopToRemove != null);
 
     return ImmutableList.copyOf(loops);
   }
@@ -824,8 +887,8 @@ public final class LoopStructure implements Serializable {
   }
 
   // find index of single predecessor of node i
-  // if there is no successor, -1 is returned
-  // if there are several successor, -2 is returned
+  // if there is no predecessor, -1 is returned
+  // if there are several predecessors, -2 is returned
   private static int findSingleIncomingEdgeOfNode(int i, Edge[][] edges) {
     final int size = edges.length;
 
@@ -932,15 +995,15 @@ public final class LoopStructure implements Serializable {
     }
 
     // detect nodes in recursion
-    Set<CFANode> forward, backward, nodes;
     Collection<Loop> result = new ArrayList<>(recHeads.size());
     for (FunctionEntryNode recHead : recHeads) {
-      forward =
+      Set<CFANode> forward =
           CFATraversal.dfs()
               .ignoreEdgeType(CFAEdgeType.FunctionReturnEdge)
               .collectNodesReachableFrom(recHead);
-      backward = CFATraversal.dfs().backwards().collectNodesReachableFrom(recHead);
+      Set<CFANode> backward = CFATraversal.dfs().backwards().collectNodesReachableFrom(recHead);
 
+      Set<CFANode> nodes;
       if (forward.size() <= backward.size()) {
         nodes = Sets.intersection(forward, backward);
       } else {
@@ -962,5 +1025,421 @@ public final class LoopStructure implements Serializable {
     }
 
     return result;
+  }
+
+  /**
+   * Implementations of this interface find loop-free sections in a CFA.
+   *
+   * <p>A loop-free section is defined by its entry and exit node and must not contain any loops,
+   * but can itself be inside a loop body. Edges from the exit node to the entry node of a loop-free
+   * section are not considered inside the loop-free section. The entry node must dominate all nodes
+   * in a loop-free section and the exit node must post-dominate all nodes in a loop-free section.
+   * This guarantees that all paths from the entry always lead to the exit and all backwards paths
+   * from the exit always lead to the entry. The smallest possible loop-free section contains a
+   * single node, which is also automatically the entry and exit node of the loop-free section.
+   */
+  private interface LoopFreeSectionFinder {
+
+    /**
+     * Returns the entry node of the loop-free section that the specified node belongs to.
+     *
+     * @param pNode the node to get the loop-free section entry node for
+     * @return the entry node of the loop-free section that the specified node belongs to according
+     *     to this loop-free section finder
+     * @throws NullPointerException if {@code pNode == null}
+     */
+    CFANode entryNode(CFANode pNode);
+
+    /**
+     * Returns the exit node of the loop-free section that the specified node belongs to.
+     *
+     * @param pNode the node to get the loop-free section exit node for
+     * @return the exit node of the loop-free section that the specified node belongs to according
+     *     to this loop-free section finder
+     * @throws NullPointerException if {@code pNode == null}
+     */
+    CFANode exitNode(CFANode pNode);
+  }
+
+  private static final class CachingLoopFreeSectionFinder implements LoopFreeSectionFinder {
+
+    private final LoopFreeSectionFinder delegate;
+    private final Map<CFANode, CFANode> entryNodeCache = new HashMap<>();
+    private final Map<CFANode, CFANode> exitNodeCache = new HashMap<>();
+
+    private CachingLoopFreeSectionFinder(LoopFreeSectionFinder pDelegate) {
+      delegate = pDelegate;
+    }
+
+    @CanIgnoreReturnValue
+    private CachingLoopFreeSectionFinder updateCache(CFANode pNode) {
+      CFANode entryNode = delegate.entryNode(pNode);
+      CFANode exitNode = delegate.exitNode(pNode);
+      for (CFANode node : CFATraversal.dfs().collectNodesReachableFromTo(entryNode, exitNode)) {
+        entryNodeCache.put(node, entryNode);
+        exitNodeCache.put(node, exitNode);
+      }
+      return this;
+    }
+
+    @Override
+    public CFANode entryNode(CFANode pNode) {
+      @Nullable CFANode entryNode = entryNodeCache.get(pNode);
+      return entryNode != null ? entryNode : updateCache(pNode).entryNodeCache.get(pNode);
+    }
+
+    @Override
+    public CFANode exitNode(CFANode pNode) {
+      @Nullable CFANode exitNode = exitNodeCache.get(pNode);
+      return exitNode != null ? exitNode : updateCache(pNode).exitNodeCache.get(pNode);
+    }
+  }
+
+  /**
+   * A {@link LoopFreeSectionFinder} that finds chains of nodes.
+   *
+   * <p>A chain of nodes can be represented by the following diagram:
+   *
+   * <pre>{@code
+   * (multiple in-edges) [entry] ---> [ ] --- ... ---> [ ] ---> [exit] (multiple out-edges)
+   * }</pre>
+   *
+   * <p>A chain that contains a single node can be represented by the following diagram:
+   *
+   * <pre>{@code
+   * (multiple in-edges) [entry == exit] (multiple out-edges)
+   * }</pre>
+   */
+  private static final class NodeChainLoopFreeSectionFinder implements LoopFreeSectionFinder {
+
+    private final @Nullable CFANode startNode;
+
+    /**
+     * Creates a new {@link NodeChainLoopFreeSectionFinder} instance.
+     *
+     * @param pStartNode If {@code pStartNode != null}, we ignore all its predecessors during CFA
+     *     traversal. This can be used to ignore linear chains of nodes at the function start.
+     */
+    private NodeChainLoopFreeSectionFinder(@Nullable CFANode pStartNode) {
+      startNode = pStartNode;
+    }
+
+    @Override
+    public CFANode entryNode(CFANode pNode) {
+      CFANode currentNode = pNode;
+
+      // the exit can have multiple out-edges, but only a single in-edge for a multi-node chain
+      if (currentNode.getNumEnteringEdges() != 1) {
+        return currentNode;
+      }
+
+      if (currentNode.equals(startNode)) {
+        return currentNode;
+      }
+
+      // nodes between chain entry and exit must have a single in-edge and a single out-edge
+      CFANode nextNode = currentNode.getEnteringEdge(0).getPredecessor();
+      while (nextNode.getNumEnteringEdges() == 1 && nextNode.getNumLeavingEdges() == 1) {
+        currentNode = nextNode;
+        if (nextNode.equals(startNode)) {
+          break;
+        }
+        nextNode = nextNode.getEnteringEdge(0).getPredecessor();
+      }
+
+      // the entry can have multiple in-edges, but only a single out-edge for a multi-node chain
+      return nextNode.getNumLeavingEdges() == 1 ? nextNode : currentNode;
+    }
+
+    @Override
+    public CFANode exitNode(CFANode pNode) {
+      CFANode currentNode = pNode;
+
+      // the entry can have multiple in-edges, but only a single out-edge for a multi-node chain
+      if (currentNode.getNumLeavingEdges() != 1) {
+        return currentNode;
+      }
+
+      // nodes between chain entry and exit must have a single in-edge and a single out-edge
+      CFANode nextNode = currentNode.getLeavingEdge(0).getSuccessor();
+      while (nextNode.getNumEnteringEdges() == 1 && nextNode.getNumLeavingEdges() == 1) {
+        currentNode = nextNode;
+        nextNode = nextNode.getLeavingEdge(0).getSuccessor();
+      }
+
+      // the exit can have multiple out-edges, but only a single in-edge for a multi-node chain
+      return nextNode.getNumEnteringEdges() == 1 ? nextNode : currentNode;
+    }
+  }
+
+  /**
+   * Finds loop-free sections that may contain (nested) branchings.
+   *
+   * <p>This approach only works for branchings if there is a clear correspondence between a
+   * branching point (multiple branches leaving a node) and a merging point (multiple branches
+   * entering a node). Other branchings where such clear correspondence is missing (with gotos for
+   * example there is no such correspondence) are not combined into loop-free sections by this
+   * approach.
+   *
+   * <p>This approach also works for nested branchings as long as all branchings have a clear
+   * correspondence between a branching point and a merging point. This approach also tries to
+   * combine as many nodes as possible, so the outermost branching that can be combined into a
+   * loop-free section is considered.
+   */
+  private static final class BranchingLoopFreeSectionFinder implements LoopFreeSectionFinder {
+
+    // TODO: use `CfaNetwork` and transposed `CfaNetwork` to basically halve the amount of code
+
+    private final @Nullable CFANode startNode;
+    private final NodeChainLoopFreeSectionFinder nodeChainFinder;
+
+    // Maps branch/merge nodes to their corresponding merge/branch nodes, so we can skip a
+    // branching. `Optional.empty()` means that there is no corresponding merge/branch node or the
+    // branching isn't loop-free.
+    private final Map<CFANode, Optional<CFANode>> branchNodeToMergeNode = new HashMap<>();
+    private final Map<CFANode, Optional<CFANode>> mergeNodeToBranchNode = new HashMap<>();
+
+    /**
+     * Creates a new {@link BranchingLoopFreeSectionFinder} instance.
+     *
+     * @param pStartNode If {@code pStartNode != null}, we ignore all its predecessors during CFA
+     *     traversal. This can be used to ignore linear chains of nodes at the function start.
+     */
+    private BranchingLoopFreeSectionFinder(@Nullable CFANode pStartNode) {
+      startNode = pStartNode;
+      nodeChainFinder = new NodeChainLoopFreeSectionFinder(pStartNode);
+    }
+
+    private CFANode branchFirstNode(CFANode pNode) {
+      CFANode firstNode = nodeChainFinder.entryNode(pNode);
+
+      boolean changed;
+      do {
+        changed = false;
+        int branchingFactor = firstNode.getNumEnteringEdges();
+        if (branchingFactor > 1) {
+          // `firstNode` is a merge node, so we try to skip the branching
+          @Nullable CFANode branchNode = branchNode(firstNode).orElse(null);
+          if (branchNode != null && branchNode.getNumLeavingEdges() == branchingFactor) {
+            // skip inner branching
+            firstNode = nodeChainFinder.entryNode(branchNode);
+            changed = true;
+          }
+        }
+      } while (changed);
+
+      return firstNode;
+    }
+
+    private CFANode branchLastNode(CFANode pNode) {
+      CFANode lastNode = nodeChainFinder.exitNode(pNode);
+
+      boolean changed;
+      do {
+        changed = false;
+        int branchingFactor = lastNode.getNumLeavingEdges();
+        if (branchingFactor > 1) {
+          // `lastNode` is a branch node, so we try to skip the branching
+          @Nullable CFANode mergeNode = mergeNode(lastNode).orElse(null);
+          if (mergeNode != null && mergeNode.getNumEnteringEdges() == branchingFactor) {
+            // skip inner branching
+            lastNode = nodeChainFinder.exitNode(mergeNode);
+            changed = true;
+          }
+        }
+      } while (changed);
+
+      return lastNode;
+    }
+
+    /**
+     * Returns the corresponding branch node for the specified merge node, if all branches are
+     * loop-free.
+     *
+     * @param pMergeNode the merge node to get the branch node for
+     * @return If all branches are loop-free, an optional containing the branch node for the
+     *     specified merge node is returned. Otherwise, if at least one of the branches is not
+     *     loop-free or we are unable to determine whether all branches are loop-free, an empty
+     *     optional is returned.
+     * @throws IllegalArgumentException if {@code pMergeNode} is not a merge node
+     * @throws NullPointerException if {@code pMergeNode == null}
+     */
+    private Optional<CFANode> branchNode(CFANode pMergeNode) {
+      int branchingFactor = pMergeNode.getNumEnteringEdges();
+      checkArgument(branchingFactor > 1, "Node is not a merge node: %s", pMergeNode);
+
+      if (mergeNodeToBranchNode.containsKey(pMergeNode)) {
+        // we already know the branch node for the merge node
+        return mergeNodeToBranchNode.get(pMergeNode);
+      }
+      mergeNodeToBranchNode.put(pMergeNode, Optional.empty());
+
+      // find branch nodes for branches
+      List<CFANode> branchNodeCandidates = new ArrayList<>(branchingFactor);
+      for (CFANode branchLastNode : CFAUtils.predecessorsOf(pMergeNode)) {
+        if (branchLastNode.getNumLeavingEdges() >= branchingFactor) {
+          // we are already at a branch node
+          branchNodeCandidates.add(branchLastNode);
+        } else {
+          CFANode branchFirstNode = branchFirstNode(branchLastNode);
+          if (branchFirstNode.getNumEnteringEdges() == 1) {
+            // the sole predecessor of the first branch node is the branch node candidate
+            CFANode branchNode = branchFirstNode.getEnteringEdge(0).getPredecessor();
+            if (branchNode.getNumLeavingEdges() >= branchingFactor) {
+              branchNodeCandidates.add(branchNode);
+            } else {
+              branchNodeCandidates.add(null);
+              break;
+            }
+          } else {
+            branchNodeCandidates.add(null);
+            break;
+          }
+        }
+      }
+
+      // check whether all branch node candidates are equal and not `null`
+      boolean acceptCandidates = true;
+      @Nullable CFANode prevBranchNodeCandidate = null;
+      for (CFANode branchNodeCandidate : branchNodeCandidates) {
+        if (branchNodeCandidate == null) {
+          acceptCandidates = false;
+          break;
+        }
+        if (prevBranchNodeCandidate != null
+            && !branchNodeCandidate.equals(prevBranchNodeCandidate)) {
+          acceptCandidates = false;
+          break;
+        }
+        prevBranchNodeCandidate = branchNodeCandidate;
+      }
+
+      Optional<CFANode> branchNode = Optional.empty();
+      if (acceptCandidates) {
+        branchNode = Optional.of(prevBranchNodeCandidate);
+        mergeNodeToBranchNode.put(pMergeNode, branchNode);
+      }
+      return branchNode;
+    }
+
+    /**
+     * Returns the corresponding merge node for the specified branch node, if all branches are
+     * loop-free.
+     *
+     * @param pBranchNode the branch node to get the merge node for
+     * @return If all branches are loop-free, an optional containing the merge node for the
+     *     specified branch node is returned. Otherwise, if at least one of the branches is not
+     *     loop-free or we are unable to determine whether they are all loop-free, an empty optional
+     *     is returned.
+     * @throws IllegalArgumentException if {@code pBranchNode} is not a branch node
+     * @throws NullPointerException if {@code pBranchNode == null}
+     */
+    private Optional<CFANode> mergeNode(CFANode pBranchNode) {
+      int branchingFactor = pBranchNode.getNumLeavingEdges();
+      checkArgument(branchingFactor > 1, "Node is not a branch node: %s", pBranchNode);
+
+      if (branchNodeToMergeNode.containsKey(pBranchNode)) {
+        // we already know the merge node for the branch node
+        return branchNodeToMergeNode.get(pBranchNode);
+      }
+      branchNodeToMergeNode.put(pBranchNode, Optional.empty());
+
+      // find merge nodes for branches
+      List<CFANode> mergeNodeCandidates = new ArrayList<>(branchingFactor);
+      for (CFANode branchFirstNode : CFAUtils.successorsOf(pBranchNode)) {
+        if (branchFirstNode.getNumEnteringEdges() >= branchingFactor) {
+          // we are already at a merge node
+          mergeNodeCandidates.add(branchFirstNode);
+        } else {
+          CFANode branchLastNode = branchLastNode(branchFirstNode);
+          if (branchLastNode.getNumLeavingEdges() == 1) {
+            // the sole successor of the last branch node is the merge node candidate
+            CFANode mergeNode = branchLastNode.getLeavingEdge(0).getSuccessor();
+            if (mergeNode.getNumEnteringEdges() >= branchingFactor) {
+              mergeNodeCandidates.add(mergeNode);
+            } else {
+              mergeNodeCandidates.add(null);
+              break;
+            }
+          } else {
+            mergeNodeCandidates.add(null);
+            break;
+          }
+        }
+      }
+
+      // check whether all merge node candidates are equal and not `null`
+      boolean acceptCandidates = true;
+      @Nullable CFANode prevMergeNodeCandidate = null;
+      for (CFANode mergeNodeCandidate : mergeNodeCandidates) {
+        if (mergeNodeCandidate == null) {
+          acceptCandidates = false;
+          break;
+        }
+        if (prevMergeNodeCandidate != null && !mergeNodeCandidate.equals(prevMergeNodeCandidate)) {
+          acceptCandidates = false;
+          break;
+        }
+        prevMergeNodeCandidate = mergeNodeCandidate;
+      }
+
+      Optional<CFANode> mergeNode = Optional.empty();
+      if (acceptCandidates) {
+        mergeNode = Optional.of(prevMergeNodeCandidate);
+        branchNodeToMergeNode.put(pBranchNode, mergeNode);
+      }
+      return mergeNode;
+    }
+
+    @Override
+    public CFANode entryNode(CFANode pNode) {
+      CFANode sectionEntry = branchFirstNode(pNode);
+
+      boolean changed;
+      do {
+        changed = false;
+        if (sectionEntry.getNumEnteringEdges() == 1) {
+          if (sectionEntry.equals(startNode)) {
+            return sectionEntry;
+          }
+          CFANode predecessor = sectionEntry.getEnteringEdge(0).getPredecessor();
+          int branchingFactor = predecessor.getNumLeavingEdges();
+          if (branchingFactor > 1) {
+            @Nullable CFANode mergeNode = mergeNode(predecessor).orElse(null);
+            if (mergeNode != null && mergeNode.getNumEnteringEdges() == branchingFactor) {
+              // go to outer branching
+              sectionEntry = branchFirstNode(predecessor);
+              changed = true;
+            }
+          }
+        }
+      } while (changed);
+
+      return sectionEntry;
+    }
+
+    @Override
+    public CFANode exitNode(CFANode pNode) {
+      CFANode sectionExit = branchLastNode(pNode);
+
+      boolean changed;
+      do {
+        changed = false;
+        if (sectionExit.getNumLeavingEdges() == 1) {
+          CFANode successor = sectionExit.getLeavingEdge(0).getSuccessor();
+          int branchingFactor = successor.getNumEnteringEdges();
+          if (branchingFactor > 1) {
+            @Nullable CFANode branchNode = branchNode(successor).orElse(null);
+            if (branchNode != null && branchNode.getNumLeavingEdges() == branchingFactor) {
+              // go to outer branching
+              sectionExit = branchLastNode(successor);
+              changed = true;
+            }
+          }
+        }
+      } while (changed);
+
+      return sectionExit;
+    }
   }
 }

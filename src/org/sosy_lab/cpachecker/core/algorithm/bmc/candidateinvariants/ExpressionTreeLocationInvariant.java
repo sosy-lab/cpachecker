@@ -106,8 +106,7 @@ public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvari
     if (this == pObj) {
       return true;
     }
-    if (pObj instanceof ExpressionTreeLocationInvariant) {
-      ExpressionTreeLocationInvariant other = (ExpressionTreeLocationInvariant) pObj;
+    if (pObj instanceof ExpressionTreeLocationInvariant other) {
       return groupId.equals(other.groupId)
           && location.equals(other.location)
           && expressionTree.equals(other.expressionTree)
@@ -148,8 +147,7 @@ public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvari
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof ManagerKey) {
-        ManagerKey other = (ManagerKey) pObj;
+      if (pObj instanceof ManagerKey other) {
         return formulaManagerView == other.formulaManagerView
             && pathFormulaManager == other.pathFormulaManager
             && Objects.equals(clearContext, other.clearContext);

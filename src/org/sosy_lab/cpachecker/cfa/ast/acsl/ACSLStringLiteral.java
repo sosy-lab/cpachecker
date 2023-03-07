@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public class ACSLStringLiteral implements ACSLTerm {
+public final class ACSLStringLiteral implements ACSLTerm {
 
   private final String literal;
 
@@ -23,8 +23,7 @@ public class ACSLStringLiteral implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLStringLiteral) {
-      ACSLStringLiteral other = (ACSLStringLiteral) o;
+    if (o instanceof ACSLStringLiteral other) {
       return literal.equals(other.literal);
     }
     return false;

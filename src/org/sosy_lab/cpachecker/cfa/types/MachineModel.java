@@ -933,29 +933,11 @@ public enum MachineModel {
         CCompositeTypeMemberDeclaration typeMember = iterator.next();
         CType type = typeMember.getType();
 
-        BigInteger fieldSizeInBits = BigInteger.valueOf(-1);
-        // If incomplete type at end of struct, just assume 0 for its size
-        // and compute its offset as usual, since it isn't affected.
-        //
-        // If incomplete and not the end of the struct, something is wrong
-        // and we return an empty Optional.
-        if (type.isIncomplete()) {
-          if (iterator.hasNext()) {
-            throw new AssertionError(
-                "unexpected incomplete type "
-                    + type
-                    + " for field "
-                    + pFieldName
-                    + " in "
-                    + pOwnerType);
-          } else {
-            // XXX: Should there be a check for CArrayType here
-            // as there was in handleSizeOfStruct or is it
-            // safe to say, that this case will not occur
-            // and if it does due to an error we already crash
-            // in the getPadding-step below?
-            fieldSizeInBits = BigInteger.ZERO;
-          }
+        final BigInteger fieldSizeInBits;
+        if (!iterator.hasNext() && typeMember.isFlexibleArrayMember()) {
+          // If incomplete type at end of struct, just assume 0 for its size
+          // and compute its offset as usual, since it isn't affected.
+          fieldSizeInBits = BigInteger.ZERO;
         } else {
           fieldSizeInBits = getSizeofInBits(type);
         }

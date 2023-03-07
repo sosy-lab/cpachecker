@@ -118,6 +118,11 @@ public class ARGStatistics implements Statistics {
 
   @Option(
       secure = true,
+      description = "when enabled also write invariant true to correctness-witness automata")
+  private boolean exportTrueInvariants = false;
+
+  @Option(
+      secure = true,
       name = "simplifiedARG.file",
       description =
           "export final ARG as .dot file, showing only loop heads and function entries/exits")
@@ -395,7 +400,9 @@ public class ARGStatistics implements Statistics {
           WitnessToOutputFormatsUtils.writeWitness(
               witnessFile,
               compressWitness,
-              pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
+              pAppendable ->
+                  WitnessToOutputFormatsUtils.writeToGraphMl(
+                      witness, exportTrueInvariants, pAppendable),
               logger);
         }
 
@@ -471,8 +478,8 @@ public class ARGStatistics implements Statistics {
         }
         final int baseId = -1; // id for the exported 'complete' automaton
         writeAutomaton(baseId, argToAutomatonSplitter.getAutomaton(rootState, true));
-      } catch (IOException io) {
-        logger.logUserException(Level.WARNING, io, "Could not write ARG to automata to file");
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to automata to file");
       }
       try {
         int counterId = 0; // id for each exported 'partial' automata, distinct from 'baseId'
@@ -481,8 +488,8 @@ public class ARGStatistics implements Statistics {
           writeAutomaton(counterId, automaton);
         }
         logger.log(Level.INFO, "Number of exported automata after splitting:", counterId);
-      } catch (IOException io) {
-        logger.logUserException(Level.WARNING, io, "Could not write ARG to automata to file");
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to automata to file");
       }
     }
   }

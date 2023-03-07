@@ -67,7 +67,7 @@ public class CEXExporter {
 
   enum CounterexampleExportType {
     CBMC,
-    CONCRETE_EXECUTION;
+    CONCRETE_EXECUTION,
   }
 
   @Option(
@@ -180,8 +180,8 @@ public class CEXExporter {
         faultExporter.export(
             ((FaultLocalizationInfo) counterexample).getRankedList(),
             errorPath.get(errorPath.size() - 1).getCFAEdge());
-      } catch (IOException pE) {
-        logger.logUserException(Level.WARNING, pE, "Could not export faults as JSON.");
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not export faults as JSON.");
       }
     }
 
@@ -235,18 +235,12 @@ public class CEXExporter {
       pathElements = targetPath.getStateSet();
 
       if (options.getSourceFile() != null) {
-        switch (codeStyle) {
-          case CONCRETE_EXECUTION:
-            pathProgram =
-                PathToConcreteProgramTranslator.translateSinglePath(
-                    targetPath, counterexample.getCFAPathWithAssignments());
-            break;
-          case CBMC:
-            pathProgram = PathToCTranslator.translateSinglePath(targetPath);
-            break;
-          default:
-            throw new AssertionError("Unhandled case statement: " + codeStyle);
-        }
+        pathProgram =
+            switch (codeStyle) {
+              case CONCRETE_EXECUTION -> PathToConcreteProgramTranslator.translateSinglePath(
+                  targetPath, counterexample.getCFAPathWithAssignments());
+              case CBMC -> PathToCTranslator.translateSinglePath(targetPath);
+            };
       }
 
     } else {

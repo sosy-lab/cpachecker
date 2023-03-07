@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonSetVariable;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 class AutomatonExpressionArguments {
 
@@ -73,7 +74,7 @@ class AutomatonExpressionArguments {
     if (pAbstractStates == null) {
       abstractStates = ImmutableList.of();
     } else {
-      abstractStates = pAbstractStates;
+      abstractStates = AbstractStates.asFlatIterable(pAbstractStates).toList();
     }
     cfaEdge = pCfaEdge;
     logger = pLogger;
@@ -248,9 +249,8 @@ class AutomatonExpressionArguments {
       } else {
         return getTransitionVariable(idName);
       }
-    } else if (pNode instanceof CArraySubscriptExpression) {
+    } else if (pNode instanceof CArraySubscriptExpression expr) {
       // Take value of automata set variables in CArraySubscriptExpression.
-      CArraySubscriptExpression expr = (CArraySubscriptExpression) pNode;
       String arrayExpr = expr.getArrayExpression().toASTString();
       String subscriptExpr = expr.getSubscriptExpression().toASTString();
       AutomatonVariable automatonVariable = getAutomatonVariable(arrayExpr);
@@ -268,8 +268,7 @@ class AutomatonExpressionArguments {
                   ((AutomatonSetVariable<?>) automatonVariable).contains(name) ? 1 : 0));
         }
       }
-    } else if (pNode instanceof CBinaryExpression) {
-      CBinaryExpression expr = (CBinaryExpression) pNode;
+    } else if (pNode instanceof CBinaryExpression expr) {
       CExpression op1 = (CExpression) findSubstitute(expr.getOperand1());
       CExpression op2 = (CExpression) findSubstitute(expr.getOperand2());
       if (op1 == null) {
@@ -292,9 +291,8 @@ class AutomatonExpressionArguments {
               expr.getOperator());
         }
       }
-    } else if (pNode instanceof CFieldReference) {
+    } else if (pNode instanceof CFieldReference expr) {
       // Execute operations for automata variables, which are encoded in field reference.
-      CFieldReference expr = (CFieldReference) pNode;
       String fieldOwner = expr.getFieldOwner().toASTString();
       String fieldName = expr.getFieldName();
       AutomatonVariable automatonVariable = getAutomatonVariable(fieldOwner);

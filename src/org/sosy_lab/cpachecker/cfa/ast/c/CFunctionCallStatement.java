@@ -11,9 +11,10 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public class CFunctionCallStatement extends AFunctionCallStatement
-    implements CStatement, CFunctionCall {
-
+public sealed class CFunctionCallStatement extends AFunctionCallStatement
+    implements CStatement, CFunctionCall
+    // FIXME: this is broken and should be removed
+    permits CThreadOperationStatement {
   private static final long serialVersionUID = 1103049666572120249L;
 
   public CFunctionCallStatement(FileLocation pFileLocation, CFunctionCallExpression pFunctionCall) {

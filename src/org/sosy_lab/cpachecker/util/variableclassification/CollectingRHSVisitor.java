@@ -145,8 +145,7 @@ final class CollectingRHSVisitor
   public VarFieldDependencies visit(CFunctionCallExpression e) {
     VarFieldDependencies result = VarFieldDependencies.emptyDependencies();
     CExpression functionNameExpression = e.getFunctionNameExpression();
-    if (functionNameExpression instanceof CIdExpression) {
-      CIdExpression idExpression = (CIdExpression) functionNameExpression;
+    if (functionNameExpression instanceof CIdExpression idExpression) {
       if (cfa.getAllFunctionNames().contains(idExpression.getName())) {
         result = functionNameExpression.accept(this);
       }

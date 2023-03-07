@@ -171,8 +171,7 @@ public class LiveVariablesTransferRelation
   }
 
   public LiveVariablesState getInitialState(CFANode pNode) {
-    if (pNode instanceof FunctionExitNode) {
-      FunctionExitNode eNode = (FunctionExitNode) pNode;
+    if (pNode instanceof FunctionExitNode eNode) {
       Optional<? extends AVariableDeclaration> returnVarName =
           eNode.getEntryNode().getReturnVariable();
 
@@ -207,8 +206,7 @@ public class LiveVariablesTransferRelation
     Set<Wrapper<ASimpleDeclaration>> allDecls = new HashSet<>();
     for (CFANode node : pCFA.getAllNodes()) {
 
-      if (node instanceof FunctionEntryNode) {
-        FunctionEntryNode entryNode = (FunctionEntryNode) node;
+      if (node instanceof FunctionEntryNode entryNode) {
         Optional<? extends AVariableDeclaration> returnVarName = entryNode.getReturnVariable();
         if (returnVarName.isPresent()) {
           allDecls.add(LIVE_DECL_EQUIVALENCE.wrap(returnVarName.get()));
@@ -226,8 +224,7 @@ public class LiveVariablesTransferRelation
         if (e instanceof ADeclarationEdge) {
           ASimpleDeclaration decl = ((ADeclarationEdge) e).getDeclaration();
           allDecls.add(LIVE_DECL_EQUIVALENCE.wrap(decl));
-          if (decl instanceof AFunctionDeclaration) {
-            AFunctionDeclaration funcDecl = (AFunctionDeclaration) decl;
+          if (decl instanceof AFunctionDeclaration funcDecl) {
             for (AParameterDeclaration param : funcDecl.getParameters()) {
               allDecls.add(LIVE_DECL_EQUIVALENCE.wrap(param));
             }
@@ -307,9 +304,8 @@ public class LiveVariablesTransferRelation
       handleAssignment((AAssignment) statement, out);
       return LiveVariablesState.ofUnique(out, this);
 
-    } else if (statement instanceof AFunctionCallStatement) {
+    } else if (statement instanceof AFunctionCallStatement funcStmt) {
 
-      AFunctionCallStatement funcStmt = (AFunctionCallStatement) statement;
       getVariablesUsedAsParameters(
           funcStmt.getFunctionCallExpression().getParameterExpressions(), out);
       return LiveVariablesState.ofUnique(out, this);
@@ -358,10 +354,7 @@ public class LiveVariablesTransferRelation
 
   @Override
   protected LiveVariablesState handleFunctionReturnEdge(
-      FunctionReturnEdge cfaEdge,
-      FunctionSummaryEdge fnkCall,
-      AFunctionCall summaryExpr,
-      String callerFunctionName)
+      FunctionReturnEdge cfaEdge, AFunctionCall summaryExpr, String callerFunctionName)
       throws CPATransferException {
     /* This analysis is (mostly) used during cfa creation, when no edges between
      * different functions exist, thus this function is mainly unused. However
@@ -395,8 +388,7 @@ public class LiveVariablesTransferRelation
     if (functionCall instanceof AFunctionCallAssignmentStatement) {
       handleAssignment((AAssignment) functionCall, data);
 
-    } else if (functionCall instanceof AFunctionCallStatement) {
-      AFunctionCallStatement funcStmt = (AFunctionCallStatement) functionCall;
+    } else if (functionCall instanceof AFunctionCallStatement funcStmt) {
       getVariablesUsedAsParameters(
           funcStmt.getFunctionCallExpression().getParameterExpressions(), data);
 
@@ -469,8 +461,7 @@ public class LiveVariablesTransferRelation
     if (assignment instanceof AExpressionAssignmentStatement) {
       handleExpression((AExpression) assignment.getRightHandSide(), newLiveVars);
 
-    } else if (assignment instanceof AFunctionCallAssignmentStatement) {
-      AFunctionCallAssignmentStatement funcStmt = (AFunctionCallAssignmentStatement) assignment;
+    } else if (assignment instanceof AFunctionCallAssignmentStatement funcStmt) {
       getVariablesUsedAsParameters(
           funcStmt.getFunctionCallExpression().getParameterExpressions(), newLiveVars);
 

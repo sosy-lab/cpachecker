@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -176,7 +177,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
   private enum PointerStateComputationMethod {
     FLOW_SENSITIVE,
-    FLOW_INSENSITIVE;
+    FLOW_INSENSITIVE,
   }
 
   public CSystemDependenceGraphBuilder(
@@ -416,9 +417,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
     CFunctionCall functionCall = pSummaryEdge.getExpression();
 
-    if (functionCall instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement statement = (CFunctionCallAssignmentStatement) functionCall;
-
+    if (functionCall instanceof CFunctionCallAssignmentStatement statement) {
       CLeftHandSide lhs = statement.getLeftHandSide();
       CFunctionCallExpression rhs = statement.getRightHandSide();
 
@@ -433,9 +432,8 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       return new CFunctionCallAssignmentStatement(
           statement.getFileLocation(), lhs, functionCallExpression);
 
-    } else if (functionCall instanceof CFunctionCallStatement) {
+    } else if (functionCall instanceof CFunctionCallStatement statement) {
 
-      CFunctionCallStatement statement = (CFunctionCallStatement) functionCall;
       CFunctionCallExpression expression = statement.getFunctionCallExpression();
 
       CFunctionCallExpression functionCallExpression =
@@ -455,8 +453,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   private Optional<MemoryLocation> getReturnVariable(CFunctionSummaryEdge pSummaryEdge) {
 
     CFunctionCallEdge callEdge = getCallEdge(pSummaryEdge);
-    Optional<CVariableDeclaration> returnVariable =
-        callEdge.getSummaryEdge().getFunctionEntry().getReturnVariable();
+    Optional<CVariableDeclaration> returnVariable = callEdge.getSuccessor().getReturnVariable();
 
     if (returnVariable.isPresent()) {
       return Optional.of(MemoryLocation.forDeclaration(returnVariable.orElseThrow()));
@@ -765,10 +762,8 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
       Optional<AFunctionDeclaration> procedure = Optional.of(entryNode.getFunction());
 
-      for (CFAEdge edge : CFAUtils.allEnteringEdges(entryNode)) {
-        if (edge instanceof CFunctionCallEdge) {
-
-          CFunctionCallEdge callEdge = (CFunctionCallEdge) edge;
+      for (FunctionCallEdge edge : CFAUtils.enteringEdges(entryNode)) {
+        if (edge instanceof CFunctionCallEdge callEdge) {
 
           builder
               .node(NodeType.ENTRY, procedure, Optional.empty(), Optional.empty())
@@ -776,17 +771,13 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               .on(NodeType.STATEMENT, procedure, Optional.of(callEdge), Optional.empty());
 
           CFunctionSummaryEdge summaryEdge = callEdge.getSummaryEdge();
-          Optional<AFunctionDeclaration> summaryEdgeProcedure =
-              Optional.of(summaryEdge.getPredecessor().getFunction());
+          Optional<AFunctionDeclaration> callerProcedure =
+              Optional.of(callEdge.getPredecessor().getFunction());
 
           builder
               .node(NodeType.STATEMENT, procedure, Optional.of(callEdge), Optional.empty())
               .depends(EdgeType.CALL_EDGE, Optional.empty())
-              .on(
-                  NodeType.STATEMENT,
-                  summaryEdgeProcedure,
-                  Optional.of(summaryEdge),
-                  Optional.empty());
+              .on(NodeType.STATEMENT, callerProcedure, Optional.of(summaryEdge), Optional.empty());
         }
       }
     }
@@ -798,43 +789,27 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         new Statistics() {
 
           private String getNodeCountDescription(SystemDependenceGraph.NodeType pNodeType) {
-            // TODO: use switch expression when project is on Java >= 14
-            switch (pNodeType) {
-              case ENTRY:
-                return "Number of entry nodes";
-              case STATEMENT:
-                return "Number of statement nodes";
-              case FORMAL_IN:
-                return "Number of formal-in nodes";
-              case FORMAL_OUT:
-                return "Number of formal-out nodes";
-              case ACTUAL_IN:
-                return "Number of actual-in nodes";
-              case ACTUAL_OUT:
-                return "Number of actual-out nodes";
-              default:
-                return "Number of " + pNodeType + " nodes";
-            }
+            return switch (pNodeType) {
+              case ENTRY -> "Number of entry nodes";
+              case STATEMENT -> "Number of statement nodes";
+              case FORMAL_IN -> "Number of formal-in nodes";
+              case FORMAL_OUT -> "Number of formal-out nodes";
+              case ACTUAL_IN -> "Number of actual-in nodes";
+              case ACTUAL_OUT -> "Number of actual-out nodes";
+              default -> "Number of " + pNodeType + " nodes";
+            };
           }
 
           private String getEdgeCountDescription(SystemDependenceGraph.EdgeType pEdgeType) {
-            // TODO: use switch expression when project is on Java >= 14
-            switch (pEdgeType) {
-              case FLOW_DEPENDENCY:
-                return "Number of flow dependencies";
-              case CONTROL_DEPENDENCY:
-                return "Number of control dependencies";
-              case DECLARATION_EDGE:
-                return "Number of declaration edges";
-              case CALL_EDGE:
-                return "Number of call edges";
-              case PARAMETER_EDGE:
-                return "Number of parameter edges";
-              case SUMMARY_EDGE:
-                return "Number of summary edges";
-              default:
-                return "Number of " + pEdgeType + " edges";
-            }
+            return switch (pEdgeType) {
+              case FLOW_DEPENDENCY -> "Number of flow dependencies";
+              case CONTROL_DEPENDENCY -> "Number of control dependencies";
+              case DECLARATION_EDGE -> "Number of declaration edges";
+              case CALL_EDGE -> "Number of call edges";
+              case PARAMETER_EDGE -> "Number of parameter edges";
+              case SUMMARY_EDGE -> "Number of summary edges";
+              default -> "Number of " + pEdgeType + " edges";
+            };
           }
 
           @Override

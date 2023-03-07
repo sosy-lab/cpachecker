@@ -18,7 +18,6 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
@@ -62,23 +61,15 @@ public class PathPairIterator
   public PathPairIterator(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
       BAMCPA pBamCpa,
-      PathEquation type)
-      throws InvalidConfigurationException {
+      PathEquation type) {
     super(pWrapper);
     bamCpa = pBamCpa;
 
-    switch (type) {
-      case ARGStateId:
-        idExtractor = ARGState::getStateId;
-        break;
-
-      case CFANodeId:
-        idExtractor = s -> AbstractStates.extractLocation(s).getNodeNumber();
-        break;
-
-      default:
-        throw new InvalidConfigurationException("Unexpexted type " + type);
-    }
+    idExtractor =
+        switch (type) {
+          case ARGStateId -> ARGState::getStateId;
+          case CFANodeId -> s -> AbstractStates.extractLocation(s).getNodeNumber();
+        };
     targetToPathIterator = new IdentityHashMap<>();
   }
 
@@ -92,9 +83,8 @@ public class PathPairIterator
 
   @Override
   protected Pair<ExtendedARGPath, ExtendedARGPath> getNext(Pair<UsageInfo, UsageInfo> pInput) {
-    UsageInfo firstUsage, secondUsage;
-    firstUsage = pInput.getFirst();
-    secondUsage = pInput.getSecond();
+    UsageInfo firstUsage = pInput.getFirst();
+    UsageInfo secondUsage = pInput.getSecond();
 
     if (firstPath == null) {
       // First time or it was unreachable last time
@@ -129,10 +119,8 @@ public class PathPairIterator
   @Override
   protected void finishIteration(
       Pair<ExtendedARGPath, ExtendedARGPath> pathPair, RefinementResult wrapperResult) {
-    ExtendedARGPath firstExtendedPath, secondExtendedPath;
-
-    firstExtendedPath = pathPair.getFirst();
-    secondExtendedPath = pathPair.getSecond();
+    ExtendedARGPath firstExtendedPath = pathPair.getFirst();
+    ExtendedARGPath secondExtendedPath = pathPair.getSecond();
 
     Object predicateInfo = wrapperResult.getInfo(PredicateRefinerAdapter.class);
     if (predicateInfo instanceof List) {

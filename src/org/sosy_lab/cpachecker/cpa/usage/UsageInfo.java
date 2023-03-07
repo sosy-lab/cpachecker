@@ -31,7 +31,7 @@ public final class UsageInfo implements Comparable<UsageInfo> {
 
   public enum Access {
     WRITE,
-    READ;
+    READ,
   }
 
   private static class UsageCore {

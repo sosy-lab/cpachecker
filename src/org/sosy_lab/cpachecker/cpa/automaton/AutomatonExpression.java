@@ -89,29 +89,26 @@ interface AutomatonExpression<T> {
       }
 
       for (AbstractState ae : pArgs.getAbstractStates()) {
-        if (ae instanceof AbstractQueryableState) {
-          AbstractQueryableState aqe = (AbstractQueryableState) ae;
-          if (aqe.getCPAName().equals(cpaName)) {
-            try {
-              Object result = aqe.evaluateProperty(modifiedQueryString);
-              return new ResultValue<>(result.toString());
-            } catch (InvalidQueryException e) {
-              pArgs
-                  .getLogger()
-                  .logException(
-                      Level.WARNING,
-                      e,
-                      "Automaton encountered an Exception during Query of the "
-                          + cpaName
-                          + " CPA on Edge "
-                          + pArgs.getCfaEdge().getDescription());
-              return new ResultValue<>(
-                  "Automaton encountered an Exception during Query of the "
-                      + cpaName
-                      + " CPA on Edge "
-                      + pArgs.getCfaEdge().getDescription(),
-                  "AutomatonExpression.CPAQuery");
-            }
+        if ((ae instanceof AbstractQueryableState aqe) && aqe.getCPAName().equals(cpaName)) {
+          try {
+            Object result = aqe.evaluateProperty(modifiedQueryString);
+            return new ResultValue<>(result.toString());
+          } catch (InvalidQueryException e) {
+            pArgs
+                .getLogger()
+                .logException(
+                    Level.WARNING,
+                    e,
+                    "Automaton encountered an Exception during Query of the "
+                        + cpaName
+                        + " CPA on Edge "
+                        + pArgs.getCfaEdge().getDescription());
+            return new ResultValue<>(
+                "Automaton encountered an Exception during Query of the "
+                    + cpaName
+                    + " CPA on Edge "
+                    + pArgs.getCfaEdge().getDescription(),
+                "AutomatonExpression.CPAQuery");
           }
         }
       }
@@ -131,8 +128,7 @@ interface AutomatonExpression<T> {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof CPAQuery) {
-        CPAQuery other = (CPAQuery) o;
+      if (o instanceof CPAQuery other) {
         return cpaName.equals(other.cpaName) && queryString.equals(other.queryString);
       }
       return false;

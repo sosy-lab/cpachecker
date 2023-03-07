@@ -278,7 +278,7 @@ public class SLARGState extends ARGState
   }
 
   @Override
-  public Iterable<CFAEdge> getIngoingEdges() {
+  public Iterable<CFAEdge> getIncomingEdges() {
     throw new UnsupportedOperationException();
   }
 }

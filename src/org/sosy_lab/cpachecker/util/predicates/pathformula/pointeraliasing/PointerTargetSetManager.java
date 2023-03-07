@@ -449,8 +449,7 @@ class PointerTargetSetManager {
      * <p>We check for UNION-type with special fieldnames.
      */
     private static boolean isAlreadyMergedCompositeType(final CType type) {
-      if (type instanceof CCompositeType) {
-        final CCompositeType compositeType = (CCompositeType) type;
+      if (type instanceof CCompositeType compositeType) {
         return compositeType.getKind() == ComplexTypeKind.UNION
             && !compositeType.getMembers().isEmpty()
             && compositeType.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0));
@@ -470,7 +469,8 @@ class PointerTargetSetManager {
       return list1;
     }
 
-    PersistentList<T> smallerList, biggerList;
+    PersistentList<T> smallerList;
+    PersistentList<T> biggerList;
     if (size1 > size2) {
       smallerList = list2;
       biggerList = list1;
@@ -695,8 +695,7 @@ class PointerTargetSetManager {
      */
     // assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type " + cType  + " for
     // base " + base;
-    if (cType instanceof CArrayType) {
-      final CArrayType arrayType = (CArrayType) cType;
+    if (cType instanceof CArrayType arrayType) {
       final int length = CTypeUtils.getArrayLength(arrayType, options);
       long offset = 0;
       for (int i = 0; i < length; ++i) {
@@ -713,8 +712,7 @@ class PointerTargetSetManager {
                 fields);
         offset += typeHandler.getSizeof(arrayType.getType());
       }
-    } else if (cType instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) cType;
+    } else if (cType instanceof CCompositeType compositeType) {
       assert compositeType.getKind() != ComplexTypeKind.ENUM
           : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {

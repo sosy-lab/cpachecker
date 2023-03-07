@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.ci;
 import static com.google.common.truth.Truth.assert_;
 
 import com.google.common.truth.Truth;
-import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -27,6 +26,7 @@ import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.TempFile;
+import org.sosy_lab.common.io.TempFile.DeleteOnCloseFile;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -213,34 +213,28 @@ public class AppliedCustomInstructionParserTest {
         new AppliedCustomInstructionParser(
             ShutdownNotifier.createDummy(), LogManager.createTestLogManager(), cfa);
 
-    Path p = TempFile.builder().prefix("test_acis").create();
-    try (Writer file = IO.openOutputFile(p, StandardCharsets.US_ASCII)) {
-      file.append("main\n");
-      CFANode node;
-      Deque<CFANode> toVisit = new ArrayDeque<>();
-      toVisit.add(cfa.getMainFunction());
-      while (!toVisit.isEmpty()) {
-        node = toVisit.pop();
+    try (DeleteOnCloseFile p = TempFile.builder().prefix("test_acis").createDeleteOnClose();
+        DeleteOnCloseFile signatureFile =
+            TempFile.builder().prefix("ci_spec").suffix(".txt").createDeleteOnClose()) {
 
-        for (CFANode succ : CFAUtils.allSuccessorsOf(node)) {
-          toVisit.add(succ);
-          if (node.getEdgeTo(succ).getEdgeType().equals(CFAEdgeType.StatementEdge)) {
-            file.append(node.getNodeNumber() + "\n");
+      try (Writer file = IO.openOutputFile(p.toPath(), StandardCharsets.US_ASCII)) {
+        file.append("main\n");
+        CFANode node;
+        Deque<CFANode> toVisit = new ArrayDeque<>();
+        toVisit.add(cfa.getMainFunction());
+        while (!toVisit.isEmpty()) {
+          node = toVisit.pop();
+
+          for (CFANode succ : CFAUtils.allSuccessorsOf(node)) {
+            toVisit.add(succ);
+            if (node.getEdgeTo(succ).getEdgeType().equals(CFAEdgeType.StatementEdge)) {
+              file.append(node.getNodeNumber() + "\n");
+            }
           }
         }
       }
-      file.flush();
-    }
 
-    Path signatureFile = TempFile.builder().prefix("ci_spec").suffix(".txt").create();
-    try {
-      testParse(p, signatureFile);
-    } finally {
-      try {
-        java.nio.file.Files.deleteIfExists(p);
-        java.nio.file.Files.deleteIfExists(signatureFile);
-      } catch (IOException e) {
-      }
+      testParse(p.toPath(), signatureFile.toPath());
     }
   }
 

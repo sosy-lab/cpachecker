@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkInfeasibleDummyState;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
 import com.google.common.collect.ImmutableSet;
@@ -31,7 +30,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.InfeasibleDummyState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -312,9 +310,6 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
          */
         if (!options.ignoreStateAssumptions() && lElement instanceof AbstractStateWithAssumptions) {
           element = strengthen(element, (AbstractStateWithAssumptions) lElement, edge);
-          if (element instanceof InfeasibleDummyState) {
-            return ImmutableSet.of(element);
-          }
         }
 
         if (options.strengthenWithFormulaReportingStates()
@@ -360,9 +355,10 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       }
       AbstractionFormula dummy = formulaManager.makeTrueAbstractionFormula(f);
       if (formulaManager.unsat(dummy, f)) {
-        // if automaton has conflict with edge, return a dummy-successor that can be used to further
-        // elaborate on it at a later stage
-        return mkInfeasibleDummyState(f, dummy, pElement.getAbstractionLocationsOnPath());
+        // The automaton has a conflict with the edge. The formula-manager has just proven that the
+        // abstraction formula at this point represents false.
+        return PredicateAbstractState.mkAbstractionState(
+            f, dummy, pElement.getAbstractionLocationsOnPath());
       }
     }
 

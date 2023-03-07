@@ -16,7 +16,9 @@ import org.sosy_lab.common.annotations.SuppressForbidden;
 
 /** Utilities for output while we do not yet have a logger */
 @SuppressForbidden("System.out in this class is ok")
-class Output {
+final class Output {
+
+  private Output() {}
 
   private static final PrintStream ERROR_OUTPUT = System.err;
 

@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -39,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -269,30 +269,16 @@ public class ExpressionToFormulaVisitor
       case EQUALS:
       case NOT_EQUALS:
         {
-          BooleanFormula result;
-          switch (op) {
-            case GREATER_THAN:
-              result = mgr.makeGreaterThan(f1, f2, signed);
-              break;
-            case GREATER_EQUAL:
-              result = mgr.makeGreaterOrEqual(f1, f2, signed);
-              break;
-            case LESS_THAN:
-              result = mgr.makeLessThan(f1, f2, signed);
-              break;
-            case LESS_EQUAL:
-              result = mgr.makeLessOrEqual(f1, f2, signed);
-              break;
-            case EQUALS:
-              result = handleEquals(exp, f1, f2);
-              break;
-            case NOT_EQUALS:
-              result = conv.bfmgr.not(mgr.makeEqual(f1, f2));
-              break;
-            default:
-              throw new AssertionError();
-          }
-
+          BooleanFormula result =
+              switch (op) {
+                case GREATER_THAN -> mgr.makeGreaterThan(f1, f2, signed);
+                case GREATER_EQUAL -> mgr.makeGreaterOrEqual(f1, f2, signed);
+                case LESS_THAN -> mgr.makeLessThan(f1, f2, signed);
+                case LESS_EQUAL -> mgr.makeLessOrEqual(f1, f2, signed);
+                case EQUALS -> handleEquals(exp, f1, f2);
+                case NOT_EQUALS -> conv.bfmgr.not(mgr.makeEqual(f1, f2));
+                default -> throw new AssertionError();
+              };
           // Here we directly use the returnFormulaType instead of the calculcationType
           // to avoid a useless cast.
           // However, this means that we may not call makeCast() below
@@ -319,7 +305,7 @@ public class ExpressionToFormulaVisitor
     CExpression e1 = exp.getOperand1();
     CExpression e2 = exp.getOperand2();
     if (e2.equals(CIntegerLiteralExpression.ZERO)
-        && e1 instanceof CBinaryExpression
+        && e1 instanceof CBinaryExpression or
         && ((CBinaryExpression) e1).getOperator() == BinaryOperator.BINARY_OR) {
       // This is code like "(a | b) == 0".
       // According to LDV, GCC sometimes produces this during weaving,
@@ -327,7 +313,6 @@ public class ExpressionToFormulaVisitor
       // TODO Maybe refactor AutomatonASTComparator into something generic
       // and use this to match such cases.
 
-      final CBinaryExpression or = (CBinaryExpression) e1;
       final Formula zero = f2;
       final Formula a =
           processOperand(or.getOperand1(), exp.getCalculationType(), exp.getExpressionType());
@@ -414,12 +399,7 @@ public class ExpressionToFormulaVisitor
     if (idExp.getDeclaration() instanceof CEnumerator) {
       CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
       CType t = idExp.getExpressionType();
-      if (enumerator.hasValue()) {
-        return mgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
-      } else {
-        // We don't know the value here, but we know it is constant.
-        return conv.makeConstant(enumerator.getName(), t);
-      }
+      return mgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
     }
 
     return conv.makeVariable(

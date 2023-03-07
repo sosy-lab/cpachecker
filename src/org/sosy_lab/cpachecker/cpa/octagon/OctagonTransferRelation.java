@@ -183,9 +183,7 @@ public class OctagonTransferRelation
       return handleBinaryBooleanExpression((CBinaryExpression) expression, truthAssumption, state);
 
       // Unary operation
-    } else if (expression instanceof CUnaryExpression) {
-      CUnaryExpression unaryExp = ((CUnaryExpression) expression);
-
+    } else if (expression instanceof CUnaryExpression unaryExp) {
       switch (unaryExp.getOperator()) {
           // do not change anything besides the expression, minus has no effect
           // on the == 0 equality check
@@ -890,18 +888,12 @@ public class OctagonTransferRelation
 
   @Override
   protected Set<OctagonState> handleFunctionReturnEdge(
-      CFunctionReturnEdge cfaEdge,
-      CFunctionSummaryEdge fnkCall,
-      CFunctionCall summaryExpr,
-      String callerFunctionName)
+      CFunctionReturnEdge cfaEdge, CFunctionCall exprOnSummary, String callerFunctionName)
       throws CPATransferException {
-    CFunctionCall exprOnSummary = fnkCall.getExpression();
-
     String calledFunctionName = cfaEdge.getPredecessor().getFunctionName();
 
     // expression is an assignment operation, e.g. a = g(b);
-    if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement binExp = ((CFunctionCallAssignmentStatement) exprOnSummary);
+    if (exprOnSummary instanceof CFunctionCallAssignmentStatement binExp) {
       CLeftHandSide op1 = binExp.getLeftHandSide();
       MemoryLocation assignedVarName = buildVarName(op1, callerFunctionName);
 
@@ -917,7 +909,7 @@ public class OctagonTransferRelation
           state.getVariableIndexFor(
               MemoryLocation.forLocalVariable(
                   calledFunctionName,
-                  fnkCall.getFunctionEntry().getReturnVariable().orElseThrow().getName()));
+                  cfaEdge.getFunctionEntry().getReturnVariable().orElseThrow().getName()));
 
       if (returnVarIndex == -1) {
         state = state.forget(assignedVarName);

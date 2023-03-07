@@ -299,7 +299,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                     evaluator, currentState, edge, logger, truthValue, options, booleans));
       }
     } else if (rightValue.isExplicitlyKnown()) {
-      Number rNum = rightValue.asNumericValue().bigInteger();
+      Number rNum = rightValue.asNumericValue().bigIntegerValue();
       if (BigInteger.ONE.equals(rNum)) {
         updatedStates =
             lVarInBinaryExp.accept(

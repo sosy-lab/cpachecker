@@ -164,16 +164,12 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     Set<ARGState> addPragma;
     try {
       statistic.collectPragmaPointsTimer.stop();
-      switch (getStrategy()) {
-        case COMBINATION:
-          addPragma = getAllTargetStates(result.getSecond());
-          break;
-        case SLICING:
-          addPragma = getAllTargetStatesNotFullyExplored(pReachedSet, result.getSecond());
-          break;
-        default: // CONDITION no effect
-          addPragma = null;
-      }
+      addPragma =
+          switch (getStrategy()) {
+            case COMBINATION -> getAllTargetStates(result.getSecond());
+            case SLICING -> getAllTargetStatesNotFullyExplored(pReachedSet, result.getSecond());
+            default -> null; // CONDITION no effect
+          };
     } finally {
       statistic.collectPragmaPointsTimer.stop();
     }
@@ -272,10 +268,9 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     Multimap<CFANode, CallstackStateEqualsWrapper> seen =
         HashMultimap.create(cfa.getAllNodes().size(), cfa.getNumberOfFunctions());
     Deque<Pair<CFANode, CallstackState>> toProcess = new ArrayDeque<>();
-    Pair<CFANode, CallstackState> current, explored;
 
     for (AbstractState state : pUnexploredStates) {
-      current =
+      Pair<CFANode, CallstackState> current =
           Pair.of(
               AbstractStates.extractLocation(state),
               AbstractStates.extractStateByType(state, CallstackState.class));
@@ -296,18 +291,18 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
           pUnexploredStates, pNodesOfInlinedProg);
     }
     CallstackTransferRelation csTr = callstackCpa.getTransferRelation();
-    Collection<? extends AbstractState> csSucc;
 
     while (!toProcess.isEmpty()) {
       shutdown.shutdownIfNecessary();
-      current = toProcess.pop();
+      Pair<CFANode, CallstackState> current = toProcess.pop();
 
       for (CFAEdge leaving : CFAUtils.leavingEdges(current.getFirst())) {
-        csSucc =
+        Collection<? extends AbstractState> csSucc =
             csTr.getAbstractSuccessorsForEdge(
                 current.getSecond(), SingletonPrecision.getInstance(), leaving);
         if (!csSucc.isEmpty()) {
-          explored = Pair.of(leaving.getSuccessor(), (CallstackState) csSucc.iterator().next());
+          Pair<CFANode, CallstackState> explored =
+              Pair.of(leaving.getSuccessor(), (CallstackState) csSucc.iterator().next());
           if (seen.put(
               explored.getFirst(), new CallstackStateEqualsWrapper(explored.getSecond()))) {
             toProcess.add(explored);

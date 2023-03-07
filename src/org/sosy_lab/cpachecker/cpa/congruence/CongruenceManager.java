@@ -122,7 +122,7 @@ public class CongruenceManager implements ABEManager<CongruenceState, TemplatePr
       UnmodifiableReachedSet states,
       AbstractState fullState)
       throws CPATransferException, InterruptedException {
-    return PrecisionAdjustmentResult.create(
+    return new PrecisionAdjustmentResult(
         performAbstraction(
             pIntermediateState.getNode(),
             pIntermediateState.getPathFormula(),
@@ -224,8 +224,8 @@ public class CongruenceManager implements ABEManager<CongruenceState, TemplatePr
               shutdownNotifier,
               cfa,
               AnalysisDirection.FORWARD);
-    } catch (InvalidConfigurationException pE) {
-      throw new UnsupportedOperationException("Could not construct path formula manager", pE);
+    } catch (InvalidConfigurationException e) {
+      throw new UnsupportedOperationException("Could not construct path formula manager", e);
     }
     return pFormulaManager.uninstantiate(
         toFormula(
@@ -252,18 +252,11 @@ public class CongruenceManager implements ABEManager<CongruenceState, TemplatePr
       Formula formula =
           templateToFormulaConversionManager.toFormula(
               pPathFormulaManager, pFormulaManager, template, ref);
-      Formula remainder;
-      switch (congruence) {
-        case ODD:
-          remainder = makeBv(pFormulaManager.getBitvectorFormulaManager(), formula, 1);
-          break;
-        case EVEN:
-          remainder = makeBv(pFormulaManager.getBitvectorFormulaManager(), formula, 0);
-          break;
-        default:
-          throw new AssertionError("Unexpected case");
-      }
-
+      Formula remainder =
+          switch (congruence) {
+            case ODD -> makeBv(pFormulaManager.getBitvectorFormulaManager(), formula, 1);
+            case EVEN -> makeBv(pFormulaManager.getBitvectorFormulaManager(), formula, 0);
+          };
       constraints.add(
           pFormulaManager.makeModularCongruence(formula, remainder, 2, !template.isUnsigned()));
     }

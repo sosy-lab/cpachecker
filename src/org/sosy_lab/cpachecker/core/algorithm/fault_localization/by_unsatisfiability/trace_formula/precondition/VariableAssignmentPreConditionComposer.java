@@ -58,7 +58,9 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
 
   @Override
   public PreCondition extractPreCondition(List<CFAEdge> pCounterexample)
-      throws SolverException, InterruptedException, CPATransferException,
+      throws SolverException,
+          InterruptedException,
+          CPATransferException,
           InvalidCounterexampleException {
     PreCondition nondets = createNondetPrecondition(pCounterexample);
     if (!includeInitialAssignment) {
@@ -139,7 +141,9 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
   }
 
   private PreCondition createNondetPrecondition(List<CFAEdge> pCounterexample)
-      throws SolverException, InterruptedException, CPATransferException,
+      throws SolverException,
+          InterruptedException,
+          CPATransferException,
           InvalidCounterexampleException {
     BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
     BooleanFormula precond = bmgr.makeTrue();
@@ -194,8 +198,7 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
     }
 
     // arrays have to have literals only
-    if (initializer instanceof CInitializerList) {
-      CInitializerList listInitializer = (CInitializerList) initializer;
+    if (initializer instanceof CInitializerList listInitializer) {
       List<CInitializer> waitlist = new ArrayList<>(listInitializer.getInitializers());
       while (!waitlist.isEmpty()) {
         CInitializer next = waitlist.remove(0);
@@ -203,19 +206,16 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
           waitlist.addAll(((CInitializerList) next).getInitializers());
           continue;
         }
-        if (next instanceof CInitializerExpression) {
-          CInitializerExpression expression = (CInitializerExpression) next;
-          if (!(expression.getExpression() instanceof CLiteralExpression)) {
-            return false;
-          }
+        if ((next instanceof CInitializerExpression expression)
+            && !(expression.getExpression() instanceof CLiteralExpression)) {
+          return false;
         }
       }
       return true;
     }
 
     // must only be initialized with literals
-    if (initializer instanceof CInitializerExpression) {
-      CInitializerExpression expression = (CInitializerExpression) initializer;
+    if (initializer instanceof CInitializerExpression expression) {
       return expression.getExpression() instanceof CLiteralExpression;
     }
     return false;

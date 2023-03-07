@@ -152,8 +152,7 @@ public class ReachingDefState
 
   @Override
   public boolean equals(Object pO) {
-    if (pO instanceof ReachingDefState) {
-      ReachingDefState other = (ReachingDefState) pO;
+    if (pO instanceof ReachingDefState other) {
       return Objects.equals(globalReachDefs, other.globalReachDefs)
           && Objects.equals(localReachDefs, other.localReachDefs);
     } else {
@@ -169,13 +168,12 @@ public class ReachingDefState
   private boolean isSubsetOf(
       Map<MemoryLocation, Set<DefinitionPoint>> subset,
       Map<MemoryLocation, Set<DefinitionPoint>> superset) {
-    Set<DefinitionPoint> setSub, setSuper;
     if (subset == superset) {
       return true;
     }
     for (Entry<MemoryLocation, Set<DefinitionPoint>> entry : subset.entrySet()) {
-      setSub = entry.getValue();
-      setSuper = superset.get(entry.getKey());
+      Set<DefinitionPoint> setSub = entry.getValue();
+      Set<DefinitionPoint> setSuper = superset.get(entry.getKey());
       if (setSub == setSuper) {
         continue;
       }

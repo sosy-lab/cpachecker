@@ -459,10 +459,8 @@ public abstract class PathTranslator {
       return functionName + lArgumentString + ";";
     }
 
-    CFunctionCall expressionOnSummaryEdge = summaryEdge.getExpression();
-    if (expressionOnSummaryEdge instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement assignExp =
-          (CFunctionCallAssignmentStatement) expressionOnSummaryEdge;
+    CFunctionCall expressionOnSummaryEdge = lFunctionCallEdge.getFunctionCall();
+    if (expressionOnSummaryEdge instanceof CFunctionCallAssignmentStatement assignExp) {
       String assignedVarName = assignExp.getLeftHandSide().toASTString();
       return assignedVarName + " = " + functionName + lArgumentString + ";";
 

@@ -260,9 +260,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
                     } else if (pExp instanceof CLiteralExpression) {
                       return ImmutableList.of();
 
-                    } else if (pExp instanceof CBinaryExpression) {
-                      CBinaryExpression binExp = (CBinaryExpression) pExp;
-
+                    } else if (pExp instanceof CBinaryExpression binExp) {
                       Collection<CLeftHandSide> firstRes = binExp.getOperand1().accept(this);
                       Collection<CLeftHandSide> sndRes = binExp.getOperand2().accept(this);
 
@@ -440,7 +438,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
         "Remove local variables and parameters of function from reaching definition.");
     ReachingDefState newState = pState.pop(pReturnEdge.getPredecessor().getFunctionName());
 
-    CFunctionCall callExpression = pReturnEdge.getSummaryEdge().getExpression();
+    CFunctionCall callExpression = pReturnEdge.getFunctionCall();
     CFunctionCallExpression functionCall = callExpression.getFunctionCallExpression();
 
     List<CExpression> outFunctionParams = functionCall.getParameterExpressions();

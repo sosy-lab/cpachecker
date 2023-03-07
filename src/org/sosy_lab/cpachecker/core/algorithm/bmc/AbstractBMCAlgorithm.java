@@ -553,8 +553,7 @@ abstract class AbstractBMCAlgorithm
       } else {
         sound = false;
 
-        if (candidate instanceof Obligation) {
-          Obligation obligation = (Obligation) candidate;
+        if (candidate instanceof Obligation obligation) {
           List<SymbolicCandiateInvariant> weakenings = obligation.getWeakenings();
           for (SymbolicCandiateInvariant weakening : weakenings) {
             inductionResult =
@@ -688,8 +687,7 @@ abstract class AbstractBMCAlgorithm
     }
     // Leave program formula on solver stack until error path is created
 
-    if (pReachedSet instanceof ReachedSet) {
-      ReachedSet reachedSet = (ReachedSet) pReachedSet;
+    if (pReachedSet instanceof ReachedSet reachedSet) {
       if (safe) {
         pCandidateInvariant.assumeTruth(reachedSet);
       } else if (pCandidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
@@ -1336,8 +1334,7 @@ abstract class AbstractBMCAlgorithm
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof Obligation) {
-        Obligation other = (Obligation) pOther;
+      if (pOther instanceof Obligation other) {
         if (causingObligation == null) {
           return other.causingObligation == null
               && causingCandidateInvariant.equals(other.causingCandidateInvariant)
@@ -1409,6 +1406,7 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
+  @FunctionalInterface
   private interface InvariantGeneratorHeadStart {
 
     void waitForInvariantGenerator() throws InterruptedException;

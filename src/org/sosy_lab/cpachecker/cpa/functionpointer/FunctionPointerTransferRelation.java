@@ -159,8 +159,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     if (cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
       CAssumeEdge a = (CAssumeEdge) cfaEdge;
       CExpression exp = a.getExpression();
-      if (exp instanceof CBinaryExpression) {
-        CBinaryExpression e = (CBinaryExpression) exp;
+      if (exp instanceof CBinaryExpression e) {
         BinaryOperator op = e.getOperator();
         if (op == BinaryOperator.EQUALS) {
           FunctionPointerState.Builder newState = oldState.createBuilder();
@@ -256,12 +255,10 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     CFunctionCallExpression funcCall = ((CFunctionCall) statement).getFunctionCallExpression();
     CExpression nameExp = funcCall.getFunctionNameExpression();
 
-    if (nameExp instanceof CIdExpression) {
-      CIdExpression idExp = (CIdExpression) nameExp;
-      if (idExp.getExpressionType() instanceof CFunctionType) {
-        // this is a regular function
-        return null;
-      }
+    if ((nameExp instanceof CIdExpression idExp)
+        && (idExp.getExpressionType() instanceof CFunctionType)) {
+      // this is a regular function
+      return null;
     }
 
     // functions may be called either as f() or as (*f)(),
@@ -338,16 +335,12 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
         // maybe two function pointers are compared.
       case AssumeEdge:
-        {
-          break;
-        }
+        break;
 
         // nothing to do.
       case BlankEdge:
       case CallToReturnEdge:
-        {
-          break;
-        }
+        break;
 
       default:
         throw new UnrecognizedCFAEdgeException(pCfaEdge);
@@ -463,7 +456,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     CFunctionSummaryEdge summaryEdge = pFunctionReturnEdge.getSummaryEdge();
     assert summaryEdge != null;
 
-    CFunctionCall funcCall = summaryEdge.getExpression();
+    CFunctionCall funcCall = pFunctionReturnEdge.getFunctionCall();
     if (funcCall instanceof CFunctionCallAssignmentStatement) {
       CExpression left = ((CFunctionCallAssignmentStatement) funcCall).getLeftHandSide();
       String varName = getLeftHandSide(left, summaryEdge);
@@ -503,8 +496,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
       // TODO: Support this statement.
 
-    } else if (lhsExpression instanceof CArraySubscriptExpression) {
-      CArraySubscriptExpression arrayExp = (CArraySubscriptExpression) lhsExpression;
+    } else if (lhsExpression instanceof CArraySubscriptExpression arrayExp) {
       if (arrayExp.getArrayExpression() instanceof CIdExpression
           && arrayExp.getSubscriptExpression() instanceof CIntegerLiteralExpression) {
         return arrayElementVariable(arrayExp);

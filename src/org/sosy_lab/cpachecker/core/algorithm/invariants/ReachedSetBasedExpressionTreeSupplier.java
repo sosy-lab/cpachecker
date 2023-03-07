@@ -55,8 +55,7 @@ public class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupp
 
       for (ExpressionTreeReportingState expressionTreeReportingState :
           AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
-        if (expressionTreeReportingState instanceof InvariantsState) {
-          InvariantsState invState = (InvariantsState) expressionTreeReportingState;
+        if (expressionTreeReportingState instanceof InvariantsState invState) {
           boolean skip = false;
           for (InvariantsState other : invStates) {
             if (invState.isLessOrEqual(other)) {

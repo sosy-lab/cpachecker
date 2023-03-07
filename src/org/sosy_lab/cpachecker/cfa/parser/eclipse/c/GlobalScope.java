@@ -20,6 +20,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -30,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -368,8 +368,7 @@ class GlobalScope extends AbstractScope {
 
     String newName = getFileSpecificTypeName(oldType.getName());
 
-    if (oldType instanceof CCompositeType) {
-      CCompositeType oldCompositeType = (CCompositeType) oldType;
+    if (oldType instanceof CCompositeType oldCompositeType) {
       CCompositeType renamedCompositeType =
           new CCompositeType(
               oldType.isConst(),
@@ -415,17 +414,13 @@ class GlobalScope extends AbstractScope {
 
       return renamedCompositeType;
 
-    } else if (oldType instanceof CEnumType) {
-      List<CEnumerator> list = new ArrayList<>(((CEnumType) oldType).getEnumerators().size());
+    } else if (oldType instanceof CEnumType oldEnumType) {
+      List<CEnumerator> list = new ArrayList<>(oldEnumType.getEnumerators().size());
 
-      for (CEnumerator c : ((CEnumType) oldType).getEnumerators()) {
+      for (CEnumerator c : oldEnumType.getEnumerators()) {
         CEnumerator newC =
             new CEnumerator(
-                c.getFileLocation(),
-                c.getName(),
-                c.getQualifiedName(),
-                c.getType(),
-                c.hasValue() ? c.getValue() : null);
+                c.getFileLocation(), c.getName(), c.getQualifiedName(), c.getType(), c.getValue());
         list.add(newC);
       }
 

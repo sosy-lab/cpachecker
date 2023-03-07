@@ -218,16 +218,12 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     Set<ARGState> addPragma;
     try {
       statistic.collectPragmaPointsTimer.start();
-      switch (constructionStrategy) {
-        case COMBINATION:
-          addPragma = getAllTargetStates(pReachedSet);
-          break;
-        case SLICING:
-          addPragma = getAllTargetStatesNotFullyExplored(pReachedSet);
-          break;
-        default: // CONDITION, CONDITION_PLUS_FOLD no effect
-          addPragma = null;
-      }
+      addPragma =
+          switch (constructionStrategy) {
+            case COMBINATION -> getAllTargetStates(pReachedSet);
+            case SLICING -> getAllTargetStatesNotFullyExplored(pReachedSet);
+            default -> null; // CONDITION, CONDITION_PLUS_FOLD no effect
+          };
     } finally {
       statistic.collectPragmaPointsTimer.stop();
     }
@@ -425,7 +421,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     if (pCpa instanceof ARGCPA && ((ARGCPA) pCpa).getWrappedCPAs().get(0) instanceof CompositeCPA) {
       CompositeCPA comCpa = (CompositeCPA) ((ARGCPA) pCpa).getWrappedCPAs().get(0);
 
-      boolean considersLocation = false, considersCallstack = false;
+      boolean considersLocation = false;
+      boolean considersCallstack = false;
       for (ConfigurableProgramAnalysis innerCPA : comCpa.getWrappedCPAs()) {
         if (innerCPA instanceof LocationCPA) {
           considersLocation = true;
@@ -447,7 +444,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   private boolean checkInitialState(final AbstractState initState) {
     if (usesParallelCompositionOfProgramAndCondition()) {
-      boolean considersAssumption = false, considersAssumptionGuider = false;
+      boolean considersAssumption = false;
+      boolean considersAssumptionGuider = false;
 
       for (AbstractState component : AbstractStates.asIterable(initState)) {
         if (component instanceof AutomatonState) {

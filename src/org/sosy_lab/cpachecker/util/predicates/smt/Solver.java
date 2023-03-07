@@ -565,6 +565,10 @@ public final class Solver implements AutoCloseable {
     return solvingContext.getVersion();
   }
 
+  public Solvers getInterpolatingSolver() {
+    return interpolatingContext.getSolverName();
+  }
+
   public String getInterpolatingVersion() {
     return interpolatingContext.getVersion();
   }
