@@ -138,9 +138,11 @@ class PointerTargetSetManager {
     regionMgr = pRegionMgr;
 
     if (pOptions.useByteArrayForHeap()) {
+      // TODO: add option to use byte-level heap but with uninterpreted functions
+      SMTHeap backingHeap = new SMTHeapWithArrays(pFormulaManager, pTypeHandler.getPointerType());
       heap =
           new SMTHeapWithByteArray(
-              pFormulaManager, pTypeHandler.getPointerType(), pConv.machineModel);
+              pFormulaManager, pTypeHandler.getPointerType(), pConv.machineModel, backingHeap);
     } else if (pOptions.useArraysForHeap()) {
       heap = new SMTHeapWithArrays(pFormulaManager, pTypeHandler.getPointerType());
     } else {
