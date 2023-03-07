@@ -82,9 +82,11 @@ final class ArraySliceExpression {
   }
 
   /**
-   * Return a new {@code ArraySliceExpression} with access of the specified field as the last modifier.
+   * Return a new {@code ArraySliceExpression} with access of the specified field as the last
+   * modifier.
    *
-   * @param field The structure member which should be accessed. It is the responsibilty of the calling code to ensure it can actually be accessed at that point.
+   * @param field The structure member which should be accessed. It is the responsibilty of the
+   *     calling code to ensure it can actually be accessed at that point.
    * @return The modified {@code ArraySliceExpression}
    */
   ArraySliceExpression withFieldAccess(CCompositeTypeMemberDeclaration field) {

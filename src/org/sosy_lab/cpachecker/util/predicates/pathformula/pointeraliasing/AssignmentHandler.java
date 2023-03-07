@@ -421,11 +421,7 @@ class AssignmentHandler {
 
       // handle slice assignment with the index removed
       BooleanFormula partResult =
-          handleSliceAssignment(
-              newLhs,
-              newRhs,
-              reinterpretInsteadOfCasting,
-              wholeConditionFormula);
+          handleSliceAssignment(newLhs, newRhs, reinterpretInsteadOfCasting, wholeConditionFormula);
       result = conv.bfmgr.and(result, partResult);
     }
     return result;
@@ -545,8 +541,7 @@ class AssignmentHandler {
     // do not use fmgr.makeElementIndexConstraint as that cannot make a quantifier on both sides
     CExpression sizeCExpression = subscriptModifier.index().size();
     final CType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
-    CCastExpression sizeCCast = new CCastExpression(
-        FileLocation.DUMMY, sizeType, sizeCExpression);
+    CCastExpression sizeCCast = new CCastExpression(FileLocation.DUMMY, sizeType, sizeCExpression);
 
     final CExpressionVisitorWithPointerAliasing sizeVisitor = newExpressionVisitor();
     Expression sizeExpression = sizeCCast.accept(sizeVisitor);
@@ -633,8 +628,6 @@ class AssignmentHandler {
     pts.addEssentialFields(rhsVisitor.getInitializedFields());
     pts.addEssentialFields(rhsVisitor.getUsedFields());
 
-
-
     // LHS handling
     final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
     CExpression lhsBase = lhs.getBaseExpression();
@@ -648,7 +641,6 @@ class AssignmentHandler {
           lhs);
       return conv.bfmgr.makeTrue();
     }
-
 
     for (final CompositeField field : rhsVisitor.getAddressedFields()) {
       pts.addField(field);
@@ -691,7 +683,7 @@ class AssignmentHandler {
 
     // cast if we are supposed to cast and it is necessary
     if (!reinterpretInsteadOfCasting && (r instanceof CExpression)) {
-        r = conv.convertLiteralToFloatIfNecessary((CExpression) r, pLhsType);
+      r = conv.convertLiteralToFloatIfNecessary((CExpression) r, pLhsType);
     }
     Expression rhsExpression = r.accept(pRhsVisitor);
     CType rhsType = r.getExpressionType();
@@ -1245,7 +1237,6 @@ class AssignmentHandler {
       } else {
         result = bfmgr.makeTrue();
       }
-
 
       // if we need to make the assignment conditional, add the condition
       // either the condition holds and the assignment should be done,

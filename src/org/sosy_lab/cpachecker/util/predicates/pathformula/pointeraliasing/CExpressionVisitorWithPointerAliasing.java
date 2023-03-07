@@ -895,9 +895,7 @@ class CExpressionVisitorWithPointerAliasing
     return Value.ofValue(result);
   }
 
-  /**
-   * This method provides an approximation of the builtin functions memset, memcpy, memmove.
-   */
+  /** This method provides an approximation of the builtin functions memset, memcpy, memmove. */
   private Value handleMemoryAssignmentFunction(
       final String functionName, final CFunctionCallExpression e)
       throws UnrecognizedCodeException, InterruptedException {
@@ -1040,12 +1038,12 @@ class CExpressionVisitorWithPointerAliasing
     ArraySliceExpression lhs = new ArraySliceExpression(destination).withIndex(sliceIndex);
     ArraySliceExpression rhs = new ArraySliceExpression(source).withIndex(sliceIndex);
 
-      AssignmentHandler assignmentHandler =
-          new AssignmentHandler(
-              conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
-      BooleanFormula assignmentFormula =
-          assignmentHandler.handleSliceAssignment(lhs, rhs, true, conv.bfmgr.makeTrue());
-      constraints.addConstraint(assignmentFormula);
+    AssignmentHandler assignmentHandler =
+        new AssignmentHandler(
+            conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
+    BooleanFormula assignmentFormula =
+        assignmentHandler.handleSliceAssignment(lhs, rhs, true, conv.bfmgr.makeTrue());
+    constraints.addConstraint(assignmentFormula);
   }
 
   private void handleMemsetFunction(
@@ -1163,12 +1161,12 @@ class CExpressionVisitorWithPointerAliasing
     ArraySliceExpression rhs = new ArraySliceExpression(actualSetValue);
 
     // reinterpret instead of casting in assignment to properly handle memset of floats
-      AssignmentHandler assignmentHandler =
-          new AssignmentHandler(
-              conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
-      BooleanFormula assignmentFormula =
-          assignmentHandler.handleSliceAssignment(slice, rhs, true, conv.bfmgr.makeTrue());
-      constraints.addConstraint(assignmentFormula);
+    AssignmentHandler assignmentHandler =
+        new AssignmentHandler(
+            conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
+    BooleanFormula assignmentFormula =
+        assignmentHandler.handleSliceAssignment(slice, rhs, true, conv.bfmgr.makeTrue());
+    constraints.addConstraint(assignmentFormula);
   }
 
   private CExpression createSetValueExpression(

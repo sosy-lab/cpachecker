@@ -80,12 +80,7 @@ class SMTHeapWithByteArray implements SMTHeap {
       checkArgument(pointerType.equals(addressType));
 
       return handleBitvectorAssignment(
-          targetName,
-          oldIndex,
-          newIndex,
-          address,
-          addressType,
-          (BitvectorFormula) value);
+          targetName, oldIndex, newIndex, address, addressType, (BitvectorFormula) value);
     } else {
       throw new UnsupportedOperationException(
           "ByteArray Heap encoding does not support " + pTargetType);
@@ -149,7 +144,8 @@ class SMTHeapWithByteArray implements SMTHeap {
       BitvectorType bvTargetType = (BitvectorType) targetType;
 
       @SuppressWarnings("unchecked")
-      V returnVal = (V) handleBitvectorDeref(targetName, ssaIndex, address, addressType, bvTargetType);
+      V returnVal =
+          (V) handleBitvectorDeref(targetName, ssaIndex, address, addressType, bvTargetType);
       return returnVal;
     } else {
       throw new UnsupportedOperationException(
@@ -271,6 +267,4 @@ class SMTHeapWithByteArray implements SMTHeap {
     }
     return (endianness == ByteOrder.BIG_ENDIAN) ? builder.build().reverse() : builder.build();
   }
-
-
 }
