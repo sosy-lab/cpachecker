@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;

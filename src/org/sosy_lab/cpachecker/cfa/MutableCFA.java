@@ -18,7 +18,6 @@ import java.util.Collections;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
-import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.CheckingCfaNetwork;
