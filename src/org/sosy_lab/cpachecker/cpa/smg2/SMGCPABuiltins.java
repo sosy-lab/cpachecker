@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -169,7 +169,7 @@ public class SMGCPABuiltins {
    * @return the result of the function call and the state for it. May be an error state!
    * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
    */
-  public List<ValueAndSMGState> handleFunctioncall(
+  public List<ValueAndSMGState> handleFunctionCall(
       CFunctionCallExpression pFunctionCall,
       String functionName,
       SMGState pSmgState,
@@ -313,7 +313,7 @@ public class SMGCPABuiltins {
     SMGState currentState = addressAndState.getState();
     if (addressAndState.getValue().isUnknown()) {
       // Critical error, should never happen
-      throw new SMG2Exception(
+      throw new SMGException(
           "Critical error in builtin function va_copy. The source does not reflect a valid value"
               + " when read.");
     }
@@ -323,7 +323,8 @@ public class SMGCPABuiltins {
             BigInteger.ZERO,
             sizeInBits,
             addressAndState.getValue(),
-            destIdArg.getExpressionType());
+            destIdArg.getExpressionType(),
+            pCfaEdge);
     return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
   }
 
@@ -333,7 +334,7 @@ public class SMGCPABuiltins {
   @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateVaArg(
       CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState)
-      throws SMG2Exception {
+      throws SMGException {
     // Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
     // The first argument is the va_list pointer CidExpression
     // CExpression srcArg = cFCExpression.getParameterExpressions().get(0);
@@ -344,7 +345,7 @@ public class SMGCPABuiltins {
     // Preconditions.checkArgument(srcArg instanceof CIdExpression);
     // CIdExpression srcIdArg = (CIdExpression) srcArg;
     // If the type is not compatible with the types saved in the array, behavior is undefined
-    throw new SMG2Exception(
+    throw new SMGException(
         "Feature va_arg() not finished because our parser does not like the function.");
 
     // return null;
@@ -356,7 +357,7 @@ public class SMGCPABuiltins {
    */
   @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateVaStart(
-      CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState)
+      CFunctionCallExpression cFCExpression, CFAEdge cfaEdge, SMGState pState)
       throws CPATransferException {
 
     SMGState currentState = pState;
@@ -394,7 +395,8 @@ public class SMGCPABuiltins {
     Value address = pointerAndState.getValue();
 
     List<SMGStateAndOptionalSMGObjectAndOffset> targets =
-        firstArg.accept(new SMGCPAAddressVisitor(evaluator, currentState, pCfaEdge, logger));
+        firstArg.accept(
+            new SMGCPAAddressVisitor(evaluator, currentState, cfaEdge, logger, options));
     Preconditions.checkArgument(targets.size() == 1);
     for (SMGStateAndOptionalSMGObjectAndOffset target : targets) {
       // We assume that there is only 1 valid returned target
@@ -407,7 +409,7 @@ public class SMGCPABuiltins {
 
       currentState =
           currentState.writeValueTo(
-              targetObj, offset, sizeInBitsPointer, address, firstArg.getExpressionType());
+              targetObj, offset, sizeInBitsPointer, address, firstArg.getExpressionType(), cfaEdge);
     }
 
     BigInteger offset = BigInteger.ZERO;
@@ -419,7 +421,8 @@ public class SMGCPABuiltins {
               offset,
               sizeInBitsVarArg,
               varArg,
-              SMGCPAExpressionEvaluator.getCanonicalType(secondArg));
+              SMGCPAExpressionEvaluator.getCanonicalType(secondArg),
+              cfaEdge);
       // Unlikely that someone throws an abstracted list into a var args
       Preconditions.checkArgument(writtenStates.size() == 1);
       currentState = writtenStates.get(0);
@@ -448,7 +451,7 @@ public class SMGCPABuiltins {
     for (CExpression param : cFCExpression.getParameterExpressions()) {
       if (param instanceof CPointerExpression) {
         SMGCPAValueVisitor valueVisitor =
-            new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger);
+            new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger, options);
         for (ValueAndSMGState valueAndState : param.accept(valueVisitor)) {
           // We only want error states
           currentState = valueAndState.getState();
@@ -464,7 +467,7 @@ public class SMGCPABuiltins {
    * @param calledFunctionName The name of the function to be called.
    * @param pState current {@link SMGState}.
    * @return a {@link List} of {@link ValueAndSMGState}s with either valid {@link Value}s and {@link
-   *     SMGState}s, or unknown Values and maybe error states. Depending on the the safety of the
+   *     SMGState}s, or unknown Values and maybe error states. Depending on the safety of the
    *     function/config.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
@@ -478,7 +481,6 @@ public class SMGCPABuiltins {
     switch (options.getHandleUnknownFunctions()) {
       case STRICT:
         if (!isSafeFunction(calledFunctionName)) {
-          // TODO: make this a error state
           throw new CPATransferException(
               String.format(
                   "Unknown function '%s' may be unsafe. See the"
@@ -488,12 +490,11 @@ public class SMGCPABuiltins {
         // fallthrough for safe functions
         // $FALL-THROUGH$
       case ASSUME_SAFE:
+      case ASSUME_EXTERNAL_ALLOCATED:
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
         return Collections3.transformedImmutableListCopy(
             checkedStates, state -> ValueAndSMGState.ofUnknownValue(state));
-      case ASSUME_EXTERNAL_ALLOCATED:
-        return Collections.singletonList(ValueAndSMGState.ofUnknownValue(pState));
       default:
         throw new UnsupportedOperationException(
             "Unhandled function in cpa.smg2.SMGCPABuiltins.handleUnknownFunction(): "
@@ -640,7 +641,7 @@ public class SMGCPABuiltins {
           functionName + " argument #" + pParameterNumber + " not found.", cfaEdge, functionCall);
     }
 
-    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
+    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger, options);
     return vv.evaluate(expr, SMGCPAExpressionEvaluator.getCanonicalType(functionCall));
   }
 
@@ -678,7 +679,7 @@ public class SMGCPABuiltins {
           continue;
         } else {
 
-          throw new SMG2Exception(
+          throw new SMGException(
               "An allocation function was called with a symbolic size. This is not supported"
                   + " currently by the SMG2 analysis. Try GuessSizeOfUnknownMemorySize.");
         }
@@ -690,7 +691,7 @@ public class SMGCPABuiltins {
 
       if (sizeInBits.compareTo(BigInteger.ZERO) == 0) {
         // C99 says that allocation functions with argument 0 can return a null-pointer (or a valid
-        // pointer that may not be accessed but can be freed)
+        // pointer that may not be dereferenced but can be freed)
         // This mapping always exists
         Value addressToZero = new NumericValue(0);
         resultBuilder.add(ValueAndSMGState.of(addressToZero, currentState));
@@ -890,7 +891,8 @@ public class SMGCPABuiltins {
                   bufferOffsetInBits,
                   sizeOfCharInBits.multiply(BigInteger.valueOf(count)),
                   charValue,
-                  CNumericTypes.CHAR)
+                  CNumericTypes.CHAR,
+                  cfaEdge)
               .get(0);
     } else {
       // Write each char on its own
@@ -902,7 +904,8 @@ public class SMGCPABuiltins {
                     bufferOffsetInBits.add(BigInteger.valueOf(c).multiply(sizeOfCharInBits)),
                     sizeOfCharInBits,
                     charValue,
-                    CNumericTypes.CHAR)
+                    CNumericTypes.CHAR,
+                    cfaEdge)
                 .get(0);
       }
     }
@@ -922,8 +925,8 @@ public class SMGCPABuiltins {
   // TODO all functions are external in C, do we even need this?
   @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateExternalAllocation(
-      CFunctionCallExpression pFunctionCall, SMGState pState) throws SMG2Exception {
-    throw new SMG2Exception("evaluateExternalAllocation in SMGBUILTINS");
+      CFunctionCallExpression pFunctionCall, SMGState pState) throws SMGException {
+    throw new SMGException("evaluateExternalAllocation in SMGBUILTINS");
     /*
     String functionName = pFunctionCall.getFunctionNameExpression().toASTString();
 
@@ -1168,14 +1171,14 @@ public class SMGCPABuiltins {
    * @return {@link ValueAndSMGState} with either the targetAddress pointer expression and the state
    *     in which the copy was successful, or a unknown value and maybe a error state if something
    *     went wrong, i.e. invalid/read/write.
-   * @throws SMG2Exception in case of critical errors when materilizing memory
+   * @throws SMGException in case of critical errors when materilizing memory
    */
   private List<ValueAndSMGState> evaluateMemcpy(
       SMGState pState,
       AddressExpression targetAddress,
       AddressExpression sourceAddress,
       Value numOfBytesValue)
-      throws SMG2Exception {
+      throws SMGException {
 
     Preconditions.checkArgument(numOfBytesValue instanceof NumericValue);
     long numOfBytes = numOfBytesValue.asNumericValue().bigIntegerValue().longValue();

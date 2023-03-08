@@ -100,7 +100,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.CfaToCExporter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
-import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
 /**
@@ -636,34 +635,27 @@ public class CFACreator {
     // the cfa should not be modified after this line.
 
     // Get information about variables, needed for some analysis.
-    final Optional<VariableClassification> varClassification;
     if (language == Language.C) {
       try {
         VariableClassificationBuilder builder = new VariableClassificationBuilder(config, logger);
-        varClassification = Optional.of(builder.build(cfa));
+        cfa.setVariableClassification(builder.build(cfa));
         builder.collectStatistics(stats.statisticsCollection);
       } catch (UnrecognizedCodeException e) {
         throw new CParserException(e);
       }
-    } else {
-      varClassification = Optional.empty();
     }
 
     // create the live variables if the variable classification is present
-    if (findLiveVariables && (varClassification.isPresent() || cfa.getLanguage() != Language.C)) {
+    if (findLiveVariables
+        && (cfa.getVarClassification().isPresent() || cfa.getLanguage() != Language.C)) {
       cfa.setLiveVariables(
           LiveVariables.create(
-              varClassification,
-              pParseResult.getGlobalDeclarations(),
-              cfa,
-              logger,
-              shutdownNotifier,
-              config));
+              pParseResult.getGlobalDeclarations(), cfa, logger, shutdownNotifier, config));
     }
 
     stats.processingTime.stop();
 
-    final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
+    final ImmutableCFA immutableCFA = cfa.immutableCopy();
 
     if (pParseResult instanceof ParseResultWithCommentLocations withCommentLocations) {
       commentPositions.addAll(withCommentLocations.getCommentLocations());

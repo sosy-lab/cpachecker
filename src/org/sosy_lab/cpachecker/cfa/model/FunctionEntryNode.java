@@ -112,12 +112,12 @@ public abstract non-sealed class FunctionEntryNode extends CFANode {
 
   @Override
   public final void addEnteringSummaryEdge(FunctionSummaryEdge pEdge) {
-    throw new AssertionError("function-entry nodes cannot have summary eges");
+    throw new AssertionError("function-entry nodes cannot have summary edges");
   }
 
   @Override
   public final void addLeavingSummaryEdge(FunctionSummaryEdge pEdge) {
-    throw new AssertionError("function-entry nodes cannot have summary eges");
+    throw new AssertionError("function-entry nodes cannot have summary edges");
   }
 
   @Override

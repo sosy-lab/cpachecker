@@ -121,7 +121,7 @@ public class SMG {
   }
 
   /**
-   * Creates a copy of the SMG an remove the given value.
+   * Creates a copy of the SMG and remove the given value.
    *
    * @param pValue - The object to be added.
    * @return A modified copy of the SMG.
@@ -129,6 +129,61 @@ public class SMG {
   public SMG copyAndRemoveValue(SMGValue pValue) {
     return new SMG(
         smgObjects, smgValues.removeAndCopy(pValue), hasValueEdges, pointsToEdges, sizeOfPointer);
+  }
+
+  /**
+   * Removes the {@link SMGPointsToEdge} associated with the entered {@link SMGValue} iff there is a
+   * {@link SMGPointsToEdge}, else does nothing.
+   *
+   * @param pValue the {@link SMGValue} for which the {@link SMGPointsToEdge} should be removed.
+   * @return a new {@link SMG} in which the mapping is removed.
+   */
+  public SMG copyAndRemovePointsToEdge(SMGValue pValue) {
+    if (!pointsToEdges.containsKey(pValue)) {
+      return this;
+    }
+    ImmutableMap.Builder<SMGValue, SMGPointsToEdge> builder = ImmutableMap.builder();
+    for (Entry<SMGValue, SMGPointsToEdge> entry : pointsToEdges.entrySet()) {
+      if (!entry.getKey().equals(pValue)) {
+        builder = builder.put(entry);
+      }
+    }
+    return new SMG(smgObjects, smgValues, hasValueEdges, builder.buildOrThrow(), sizeOfPointer);
+  }
+
+  /**
+   * Returns the number of {@link SMGHasValueEdge}s that have the {@link SMGValue} in them.
+   *
+   * @param pValue {@link SMGValue} to search usages for.
+   * @return number of usages of the pValue.
+   */
+  public int getNumberOfSMGValueUsages(SMGValue pValue) {
+    int found = 0;
+    for (PersistentSet<SMGHasValueEdge> hvEdges : hasValueEdges.values()) {
+      for (SMGHasValueEdge hve : hvEdges) {
+        if (hve.hasValue().equals(pValue)) {
+          found++;
+        }
+      }
+    }
+    return found;
+  }
+
+  /**
+   * Returns the number of (distinct) SMGValues that have a {@link SMGPointsToEdge} pointing towards
+   * the target {@link SMGObject}. Different nesting levels and offsets are counted separately.
+   *
+   * @param target {@link SMGObject} that the pointers point towards.
+   * @return num of distinct pointers towards target.
+   */
+  public int getNumberOfSMGPointsToEdgesTowards(SMGObject target) {
+    Set<SMGValue> pointerValues = new HashSet<>();
+    for (Entry<SMGValue, SMGPointsToEdge> entry : pointsToEdges.entrySet()) {
+      if (entry.getValue().pointsTo().equals(target)) {
+        pointerValues.add(entry.getKey());
+      }
+    }
+    return pointerValues.size();
   }
 
   public SMG copyAndRemoveValues(Collection<SMGValue> pUnreachableValues) {
@@ -1096,9 +1151,11 @@ public class SMG {
         .map(entry -> entry.getKey());
   }
 
-  public ImmutableSet<SMGObject> findAllAddressesForTargetObject(
-      SMGObject targetObject, Collection<SMGObject> heapObjects) {
-    ImmutableSet.Builder<SMGObject> ret = ImmutableSet.builder();
+  /*
+   * Checks if there are valid heap objects that point to the given target object and might be lists (== size and fitting nfo).
+   */
+  public boolean hasPotentialListObjectsWithPointersToObject(
+      SMGObject targetObject, BigInteger suspectedNfo, Collection<SMGObject> heapObjects) {
     for (Entry<SMGValue, SMGPointsToEdge> entry : pointsToEdges.entrySet()) {
       if (targetObject.equals(entry.getValue().pointsTo())) {
         SMGValue pointerValue = entry.getKey();
@@ -1108,13 +1165,20 @@ public class SMG {
           }
           for (SMGHasValueEdge hve : hasValueEdges.getOrDefault(heapObj, PersistentSet.of())) {
             if (hve.hasValue() == pointerValue) {
-              ret.add(heapObj);
+              if (heapObj.getSize().compareTo(targetObject.getSize()) == 0) {
+                if (hve.getOffset().compareTo(suspectedNfo) == 0) {
+                  return false;
+                }
+                // maybePreviousObj -> potentialRoot might be a back pointer, this is fine however
+                // as we
+                // will eliminate those by traversing along the NFOs
+              }
             }
           }
         }
       }
     }
-    return ret.build();
+    return true;
   }
 
   /**

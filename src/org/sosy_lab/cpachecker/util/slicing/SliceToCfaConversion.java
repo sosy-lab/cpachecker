@@ -204,7 +204,7 @@ final class SliceToCfaConversion {
 
     CFASimplifier.simplifyCFA(mutableSliceCfa);
 
-    return mutableSliceCfa.makeImmutableCFA(mutableSliceCfa.getVarClassification());
+    return mutableSliceCfa.immutableCopy();
   }
 
   /**
