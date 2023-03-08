@@ -127,11 +127,35 @@ final class ArraySliceExpression {
 
   /**
    * Return a new {@code ArraySliceExpression} where the first modifier (which is always an indexing
+   * modifier) is resolved by a concrete value of index {@code indexValue}.
+   *
+   * <p>This is done by dropping the first modifier and auto-resolving field modifiers that follow,
+   * so that there are, again, either no modifiers in the returned {@code ArraySliceExpression} or
+   * the first modifier is an {@code ArraySliceSubscriptModifier}.
+   *
+   * @param sizeType Machine pointer-equivalent size type
+   * @param indexValue The concrete value of the index which resolves the index variable
+   * @return The resolved {@code ArraySliceExpression}
+   * @throws IllegalStateException If there were no modifiers.
+   */
+  public ArraySliceExpression resolveFirstIndex(CType sizeType, long indexValue) {
+    checkState(!isResolved());
+
+    // just wrap base in a subscript with the index value
+    CExpression indexValueExpression =
+        CIntegerLiteralExpression.createDummyLiteral(indexValue, sizeType);
+    CExpression newBase =
+        new CArraySubscriptExpression(FileLocation.DUMMY, sizeType, base, indexValueExpression);
+    return resolveFirstIndex(newBase);
+  }
+
+  /**
+   * Return a new {@code ArraySliceExpression} where the first modifier (which is always an indexing
    * modifier) is resolved by the parameter {@code newBase}.
    *
    * <p>This is done by dropping the first modifier and auto-resolving field modifiers that follow,
    * so that there are, again, either no modifiers in the returned {@code ArraySliceExpression} or
-   * the first modifier is an {@code AraySliceSubscriptModifier}.
+   * the first modifier is an {@code ArraySliceSubscriptModifier}.
    *
    * @param newBase The new base to which the old base with first modifier was resolved
    * @return The resolved {@code ArraySliceExpression}

@@ -19,8 +19,10 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.Ints;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -305,49 +307,146 @@ class AssignmentHandler {
       final List<ArraySliceAssignment> assignments, final AssignmentOptions assignmentOptions)
       throws UnrecognizedCodeException, InterruptedException {
 
-    List<ArraySliceIndexVariable> indexVariables = new ArrayList<>();
-
-    // get all index variables
-    for (ArraySliceAssignment assignment : assignments) {
-      indexVariables.addAll(assignment.lhs().getUnresolvedIndexVariables());
-      indexVariables.addAll(assignment.rhs().getUnresolvedIndexVariables());
-    }
-
-    // instantiate all index variables
-
-    for (ArraySliceIndexVariable indexVariable : indexVariables) {
-      indexVariable.size();
-    }
-
     if (options.useQuantifiersOnArrays()) {
-      return handleSliceAssignmentsWithQuantifiers(assignments, assignmentOptions, indexVariables);
+      return handleSliceAssignmentsWithQuantifiers(assignments, assignmentOptions);
     } else {
       return handleSliceAssignmentsWithoutQuantifiers(
-          assignments, assignmentOptions, indexVariables);
+          assignments, assignmentOptions);
     }
   }
 
   private BooleanFormula handleSliceAssignmentsWithoutQuantifiers(
       final List<ArraySliceAssignment> assignments,
-      final AssignmentOptions assignmentOptions,
-      final List<ArraySliceIndexVariable> indexVariables)
+      final AssignmentOptions assignmentOptions)
       throws UnrecognizedCodeException, InterruptedException {
+
+    // unroll the variables for every assignment
 
     BooleanFormula result = null;
 
+
     for (ArraySliceAssignment assignment : assignments) {
-      BooleanFormula assignmentFormula =
-          handleSliceAssignment(
-              assignment.lhs,
-              assignment.rhs,
-              assignmentOptions.conversionType == AssignmentConversionType.REINTERPRET,
-              bfmgr.makeTrue());
-      result = nullableAnd(result, assignmentFormula);
+      // get all quantifier variables that are used by at least one side
+
+      HashSet<ArraySliceIndexVariable> quantifierVariableSet = new LinkedHashSet<>();
+      quantifierVariableSet.addAll(assignment.lhs.getUnresolvedIndexVariables());
+      quantifierVariableSet.addAll(assignment.rhs.getUnresolvedIndexVariables());
+      List<ArraySliceIndexVariable> quantifierVariables = new ArrayList<>(quantifierVariableSet);
+
+      result =
+          nullableAnd(
+              result,
+              unrollSliceAssignment(
+                  assignment,
+                  assignmentOptions,
+                  quantifierVariables,
+                  new HashMap<>(),
+                  null));
     }
+
+    return nullToTrue(result);
+  }
+
+  private BooleanFormula unrollSliceAssignment(
+      ArraySliceAssignment assignment,
+      AssignmentOptions assignmentOptions,
+      List<ArraySliceIndexVariable> quantifierVariables,
+      Map<ArraySliceIndexVariable, Long> unrolledVariables,
+      @Nullable BooleanFormula condition)
+      throws UnrecognizedCodeException, InterruptedException {
+
+    // the recursive unrolling is probably slow, but will serve well for now
+
+    CSimpleType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
+
+    if (quantifierVariables.isEmpty()) {
+      // already unrolled, resolve the indices in array slice expressions
+
+      ArraySliceExpression lhs = assignment.lhs;
+      while (!lhs.isResolved()) {
+        long unrolledIndex = unrolledVariables.get(lhs.getFirstIndex());
+        lhs = lhs.resolveFirstIndex(sizeType, unrolledIndex);
+      }
+
+      ArraySliceExpression rhs = assignment.rhs;
+      while (!rhs.isResolved()) {
+        long unrolledIndex = unrolledVariables.get(rhs.getFirstIndex());
+        rhs = rhs.resolveFirstIndex(sizeType, unrolledIndex);
+      }
+
+      CLeftHandSide lhsBase = (CLeftHandSide) lhs.getResolvedExpression();
+      CExpression rhsBase = rhs.getResolvedExpression();
+
+      // TODO: rewrite handleAssignment
+      return handleAssignment(
+          lhsBase,
+          lhsBase,
+          lhsBase.getExpressionType(),
+          rhsBase,
+          assignmentOptions.useOldSSAIndices,
+          assignmentOptions.conversionType == AssignmentConversionType.REINTERPRET,
+          nullToTrue(condition));
+    }
+
+    // for better speed, work with the last variable in quantifierVariables
+    // remove it from the list now and re-add it after recursion to avoid creating new lists
+
+    ArraySliceIndexVariable unrolledIndex =
+        quantifierVariables.remove(quantifierVariables.size() - 1);
+
+    CExpression sliceSize = unrolledIndex.size();
+
+    // overapproximate for long arrays
+    long consideredArraySize = options.defaultArrayLength();
+
+    if (sliceSize instanceof CIntegerLiteralExpression literalSliceSize) {
+      consideredArraySize = ((CIntegerLiteralExpression) sliceSize).getValue().longValueExact();
+      if (options.maxArrayLength() >= 0 && consideredArraySize > options.maxArrayLength()) {
+        consideredArraySize = options.maxArrayLength();
+      }
+    }
+
+    // TODO: unify the index handling with quantifier version
+    // we will perform the unrolled assignments conditionally, only if the index is smaller than the
+    // actual size
+    CExpression indexSizeCCast = new CCastExpression(FileLocation.DUMMY, sizeType, sliceSize);
+
+    final CExpressionVisitorWithPointerAliasing indexSizeVisitor = newExpressionVisitor();
+    Expression indexSizeExpression = indexSizeCCast.accept(indexSizeVisitor);
+    // TODO: add fields to UF from visitor
+
+    Formula indexSizeFormula = indexSizeVisitor.asValueFormula(indexSizeExpression, sizeType);
+
+    BooleanFormula result = null;
+
+    for (long i = 0; i < consideredArraySize; ++i) {
+
+      Formula indexFormula = conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(sizeType), i);
+
+      // the variable condition holds when the unsigned index is strictly less than size
+      BooleanFormula unrolledCondition =
+          nullableAnd(condition, fmgr.makeLessThan(indexFormula, indexSizeFormula, false));
+
+      // we do not need to remove the index from unrolledVariables after recursion as it will be
+      // overwritten before next use anyway
+      unrolledVariables.put(unrolledIndex, i);
+
+      // recursive unrolling
+      BooleanFormula recursionResult =
+          unrollSliceAssignment(
+              assignment,
+              assignmentOptions,
+              quantifierVariables,
+              unrolledVariables,
+              unrolledCondition);
+      result = nullableAnd(result, recursionResult);
+    }
+
     return nullToTrue(result);
   }
 
   private BooleanFormula nullableAnd(@Nullable BooleanFormula a, @Nullable BooleanFormula b) {
+    // TODO: this support function should be moved to some manager / utils
     if (a == null) {
       return b;
     }
@@ -358,6 +457,7 @@ class AssignmentHandler {
   }
 
   private BooleanFormula nullToTrue(@Nullable BooleanFormula a) {
+    // TODO: this support function should be moved to some manager / utils
     if (a == null) {
       return bfmgr.makeTrue();
     }
@@ -366,9 +466,16 @@ class AssignmentHandler {
 
   private BooleanFormula handleSliceAssignmentsWithQuantifiers(
       final List<ArraySliceAssignment> assignments,
-      final AssignmentOptions assignmentOptions,
-      List<ArraySliceIndexVariable> indexVariables)
-      throws UnrecognizedCodeException, InterruptedException {
+      final AssignmentOptions assignmentOptions)
+      throws UnrecognizedCodeException {
+
+    List<ArraySliceIndexVariable> indexVariables = new ArrayList<>();
+
+    // get all index variables
+    for (ArraySliceAssignment assignment : assignments) {
+      indexVariables.addAll(assignment.lhs().getUnresolvedIndexVariables());
+      indexVariables.addAll(assignment.rhs().getUnresolvedIndexVariables());
+    }
 
     // the quantified variables should be of the size_t type
     // the formula type for a void pointer and size_t is equivalent
@@ -378,7 +485,7 @@ class AssignmentHandler {
     // instantiate all index variables and create the condition for whether an element will be
     // assignment, depending on whether all quantified variable conditions hold for it
 
-    BooleanFormula conditionFormula = bfmgr.makeTrue();
+    BooleanFormula conditionFormula = null;
 
     // as we will be creating the quantifiers from this, use a LinkedHashMap to retain
     // predictable quantifier ordering
@@ -407,8 +514,10 @@ class AssignmentHandler {
       BooleanFormula quantifiedVariableCondition =
           fmgr.makeLessThan(quantifiedVariableFormula, indexSizeFormula, false);
 
-      conditionFormula = bfmgr.and(conditionFormula, quantifiedVariableCondition);
+      conditionFormula = nullableAnd(conditionFormula, quantifiedVariableCondition);
     }
+
+    conditionFormula = nullToTrue(conditionFormula);
 
     // construct the result as a conjunction of assignments
     // make sure that there is no unnecessary tautology polluting the formula
