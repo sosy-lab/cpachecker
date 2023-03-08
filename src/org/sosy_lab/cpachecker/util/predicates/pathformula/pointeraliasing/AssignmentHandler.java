@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.Ints;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -290,6 +291,291 @@ class AssignmentHandler {
       pts.addField(field);
     }
     return result;
+  }
+
+  record ArraySliceAssignment(ArraySliceExpression lhs, ArraySliceExpression rhs) {}
+
+  enum AssignmentConversionType {
+    NONE, CAST, REINTERPRET
+  }
+
+  record AssignmentOptions(boolean useOldSSAIndices, AssignmentConversionType conversionType) {}
+
+  BooleanFormula handleSliceAssignments(
+      final List<ArraySliceAssignment> assignments, final AssignmentOptions assignmentOptions)
+      throws UnrecognizedCodeException, InterruptedException {
+
+    List<ArraySliceIndexVariable> indexVariables = new ArrayList<>();
+
+    // get all index variables
+    for (ArraySliceAssignment assignment : assignments) {
+      indexVariables.addAll(assignment.lhs().getUnresolvedIndexVariables());
+      indexVariables.addAll(assignment.rhs().getUnresolvedIndexVariables());
+    }
+
+    // instantiate all index variables
+
+    for (ArraySliceIndexVariable indexVariable : indexVariables) {
+      indexVariable.size();
+    }
+
+    if (options.useQuantifiersOnArrays()) {
+      return handleSliceAssignmentsWithQuantifiers(assignments, assignmentOptions, indexVariables);
+    } else {
+      return handleSliceAssignmentsWithoutQuantifiers(
+          assignments, assignmentOptions, indexVariables);
+    }
+  }
+
+  private BooleanFormula handleSliceAssignmentsWithoutQuantifiers(
+      final List<ArraySliceAssignment> assignments,
+      final AssignmentOptions assignmentOptions,
+      final List<ArraySliceIndexVariable> indexVariables)
+      throws UnrecognizedCodeException, InterruptedException {
+
+    BooleanFormula result = null;
+
+    for (ArraySliceAssignment assignment : assignments) {
+      BooleanFormula assignmentFormula =
+          handleSliceAssignment(
+              assignment.lhs,
+              assignment.rhs,
+              assignmentOptions.conversionType == AssignmentConversionType.REINTERPRET,
+              bfmgr.makeTrue());
+      result = nullableAnd(result, assignmentFormula);
+    }
+    return nullToTrue(result);
+  }
+
+  private BooleanFormula nullableAnd(@Nullable BooleanFormula a, @Nullable BooleanFormula b) {
+    if (a == null) {
+      return b;
+    }
+    if (b == null) {
+      return a;
+    }
+    return bfmgr.and(a, b);
+  }
+
+  private BooleanFormula nullToTrue(@Nullable BooleanFormula a) {
+    if (a == null) {
+      return bfmgr.makeTrue();
+    }
+    return a;
+  }
+
+  private BooleanFormula handleSliceAssignmentsWithQuantifiers(
+      final List<ArraySliceAssignment> assignments,
+      final AssignmentOptions assignmentOptions,
+      List<ArraySliceIndexVariable> indexVariables)
+      throws UnrecognizedCodeException, InterruptedException {
+
+    // the quantified variables should be of the size_t type
+    // the formula type for a void pointer and size_t is equivalent
+    final CType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
+    FormulaType<?> sizeFormulaType = conv.voidPointerFormulaType;
+
+    // instantiate all index variables and create the condition for whether an element will be
+    // assignment, depending on whether all quantified variable conditions hold for it
+
+    BooleanFormula conditionFormula = bfmgr.makeTrue();
+
+    // as we will be creating the quantifiers from this, use a LinkedHashMap to retain
+    // predictable quantifier ordering
+    Map<ArraySliceIndexVariable, Formula> quantifiedVariableFormulaMap = new LinkedHashMap<>();
+
+    for (ArraySliceIndexVariable indexVariable : indexVariables) {
+
+      // TODO: better naming of quantifiedVariable
+      final Formula quantifiedVariableFormula =
+          fmgr.makeVariableWithoutSSAIndex(
+              sizeFormulaType, "__quantifier_" + nextQuantifierVariableNumber++);
+      quantifiedVariableFormulaMap.put(indexVariable, quantifiedVariableFormula);
+
+      // cast the index size expression to the size type to make sure there are no suprises
+      // comparing
+      CCastExpression indexSizeCCast =
+          new CCastExpression(FileLocation.DUMMY, sizeType, indexVariable.size());
+
+      final CExpressionVisitorWithPointerAliasing indexSizeVisitor = newExpressionVisitor();
+      Expression indexSizeExpression = indexSizeCCast.accept(indexSizeVisitor);
+      // TODO: add fields to UF from visitor
+
+      Formula indexSizeFormula = indexSizeVisitor.asValueFormula(indexSizeExpression, sizeType);
+
+      // the quantified variable condition holds when the unsigned index is strictly less than size
+      BooleanFormula quantifiedVariableCondition =
+          fmgr.makeLessThan(quantifiedVariableFormula, indexSizeFormula, false);
+
+      conditionFormula = bfmgr.and(conditionFormula, quantifiedVariableCondition);
+    }
+
+    // construct the result as a conjunction of assignments
+    // make sure that there is no unnecessary tautology polluting the formula
+    BooleanFormula assignmentSystem = null;
+
+    // now that we have everything quantified, we can perform the assignments
+    for (ArraySliceAssignment assignment : assignments) {
+
+      // TODO: add fields handling for UF
+      CExpressionVisitorWithPointerAliasing visitor =
+          new CExpressionVisitorWithPointerAliasing(
+              conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+      ExpressionAndCType lhsResolved =
+          resolveSliceExpression(
+              assignment.lhs,
+              quantifiedVariableFormulaMap,
+              visitor,
+              null,
+              AssignmentConversionType.NONE);
+      if (lhsResolved == null) {
+        // TODO: only used for ignoring assignments to bit-fields which should be handled properly
+        // do not perform this assignment, but others can be done
+        continue;
+      }
+
+      ExpressionAndCType rhsResolved =
+          resolveSliceExpression(
+              assignment.rhs,
+              quantifiedVariableFormulaMap,
+              visitor,
+              lhsResolved.type,
+              assignmentOptions.conversionType);
+
+      if (rhsResolved == null) {
+        // TODO: only used for ignoring assignments to bit-fields which should be handled properly
+        // do not perform this assignment, but others can be done
+        continue;
+      }
+
+      // TODO: change makeDestructiveAssignment signature to flow nicely
+      // TODO: add updatedRegions handling for UF
+      BooleanFormula assignmentResult =
+          makeDestructiveAssignment(
+              lhsResolved.type,
+              rhsResolved.type,
+              (Location) lhsResolved.expression,
+              rhsResolved.expression,
+              assignmentOptions.useOldSSAIndices,
+              null,
+              conditionFormula,
+              true);
+      assignmentSystem = nullableAnd(assignmentSystem, assignmentResult);
+    }
+
+    // add quantifiers around the assignment system
+    BooleanFormula quantifiedAssignmentSystem = nullToTrue(assignmentSystem);
+
+    for (Formula quantifiedVariableFormula : quantifiedVariableFormulaMap.values()) {
+      quantifiedAssignmentSystem =
+          fmgr.getQuantifiedFormulaManager()
+              .forall(quantifiedVariableFormula, quantifiedAssignmentSystem);
+    }
+
+    // we are done
+    return quantifiedAssignmentSystem;
+  }
+
+  private record ExpressionAndCType(Expression expression, CType type) {}
+
+  private @Nullable ExpressionAndCType resolveSliceExpression(
+      final ArraySliceExpression sliceExpression,
+      final Map<ArraySliceIndexVariable, Formula> quantifiedVariableFormulaMap,
+      CExpressionVisitorWithPointerAliasing visitor,
+      @Nullable CType conversionType,
+      AssignmentConversionType conversionChoice)
+      throws UnrecognizedCodeException {
+
+    // TODO: handle UF field marking properly in this method
+
+    CExpression baseCExpression = sliceExpression.getBaseExpression();
+    CType baseType = baseCExpression.getExpressionType();
+
+    // convert the base from C expression to SMT expression
+    Expression baseExpression = baseCExpression.accept(visitor);
+
+    ExpressionAndCType base = new ExpressionAndCType(baseExpression, baseType);
+
+    // we have unresolved modifiers, that means there is some quantified array access
+    // so the base must be an array and therefore represent an AliasedLocation
+
+    for (ArraySliceModifier modifier : sliceExpression.getModifiers()) {
+      if (modifier instanceof ArraySliceSubscriptModifier subscriptModifier) {
+        base = resolveSubscriptModifier(base, subscriptModifier, quantifiedVariableFormulaMap);
+      } else {
+        base = resolveFieldAccessModifier(base, (ArraySliceFieldAccessModifier) modifier);
+      }
+      if (base == null) {
+        // TODO: only used for ignoring assignments to bit-fields which should be handled properly
+        return null;
+      }
+    }
+
+    // the base is fully resolved now, we need to make the conversion
+    // TODO: convert
+    return base;
+  }
+
+  private ExpressionAndCType resolveSubscriptModifier(
+      ExpressionAndCType base,
+      ArraySliceSubscriptModifier modifier,
+      final Map<ArraySliceIndexVariable, Formula> quantifiedVariableFormulaMap) {
+
+    // find the quantified variable formula, the caller is responsible for ensuring that it is in
+    // the map
+
+    Formula quantifiedVariableFormula = quantifiedVariableFormulaMap.get(modifier.index());
+    checkNotNull(quantifiedVariableFormula);
+
+    // get the array element type
+    CPointerType basePointerType =
+        (CPointerType) CTypes.adjustFunctionOrArrayType(base.type.getCanonicalType());
+    final CType elementType = basePointerType.getType().getCanonicalType();
+
+    // perform pointer arithmetic, we have array[base] and want array[base + i]
+    // the quantified variable i must be multiplied by the sizeof the element type
+
+    Formula baseAddress = base.expression.asAliasedLocation().getAddress();
+    final Formula sizeofElement =
+        conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
+
+    final Formula adjustedAddress =
+        conv.fmgr.makePlus(baseAddress, conv.fmgr.makeMultiply(quantifiedVariableFormula, sizeofElement));
+
+    // return the resolved formula with adjusted address and array element type
+    return new ExpressionAndCType(AliasedLocation.ofAddress(adjustedAddress), elementType);
+  }
+
+  private @Nullable ExpressionAndCType resolveFieldAccessModifier(
+      ExpressionAndCType base, ArraySliceFieldAccessModifier modifier) {
+
+    // the base type must be a composite type to have fields
+    CCompositeType baseType = (CCompositeType) base.type;
+    final String fieldName = modifier.field().getName();
+    CType fieldType = modifier.field().getType();
+
+    // we will increase the base address by field offset
+
+    Formula baseAddress = base.expression.asAliasedLocation().getAddress();
+
+    final OptionalLong offset = typeHandler.getOffset(baseType, fieldName);
+    if (!offset.isPresent()) {
+      // TODO This loses values of bit fields.
+      return null;
+    }
+
+    final Formula offsetFormula =
+        conv.fmgr.makeNumber(conv.voidPointerFormulaType, offset.orElseThrow());
+    final Formula adjustedAdress = conv.fmgr.makePlus(baseAddress, offsetFormula);
+
+    // TODO: add equal base address constraint
+
+    // for field access, it is necessary to create a memory region for field access
+    final MemoryRegion region = regionMgr.makeMemoryRegion(baseType, modifier.field());
+    AliasedLocation resultLocation = AliasedLocation.ofAddressWithRegion(adjustedAdress, region);
+
+    // return the resolved formula with adjusted address and field type
+    return new ExpressionAndCType(resultLocation, fieldType);
   }
 
   /**

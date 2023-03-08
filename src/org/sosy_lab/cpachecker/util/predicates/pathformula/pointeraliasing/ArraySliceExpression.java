@@ -257,4 +257,14 @@ final class ArraySliceExpression {
   public String toString() {
     return "ArraySliceExpression [base=" + base + ", modifiers=" + modifiers + "]";
   }
+
+  ImmutableList<ArraySliceIndexVariable> getUnresolvedIndexVariables() {
+    ImmutableList.Builder<ArraySliceIndexVariable> builder = ImmutableList.builder();
+    for (ArraySliceModifier modifier : modifiers) {
+      if (modifier instanceof ArraySliceSubscriptModifier subscriptModifier) {
+        builder.add(subscriptModifier.index());
+      }
+    }
+    return builder.build();
+  }
 }

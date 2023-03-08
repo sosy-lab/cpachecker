@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraint
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceIndexVariable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.AssignmentOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
@@ -1060,12 +1061,12 @@ class CExpressionVisitorWithPointerAliasing
   }
 
   private void performMemsetAssignment(
-      final CFunctionCallExpression e, final ArraySliceExpression slice, final CExpression setValue)
+      final CFunctionCallExpression e, final ArraySliceExpression lhsSlice, final CExpression setValue)
       throws UnrecognizedCodeException, InterruptedException {
 
     CType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
 
-    CType type = slice.getResolvedExpressionType(sizeType);
+    CType type = lhsSlice.getResolvedExpressionType(sizeType);
 
     if (type instanceof CArrayType arrayType) {
       // we handle arrays inside memsetted element by memsetting all of their elements
@@ -1078,7 +1079,7 @@ class CExpressionVisitorWithPointerAliasing
       }
 
       ArraySliceIndexVariable arrayIndex = new ArraySliceIndexVariable(length);
-      ArraySliceExpression newSlice = slice.withIndex(arrayIndex);
+      ArraySliceExpression newSlice = lhsSlice.withIndex(arrayIndex);
       performMemsetAssignment(e, newSlice, setValue);
 
       return;
@@ -1090,7 +1091,7 @@ class CExpressionVisitorWithPointerAliasing
       // it should not matter that there will be multiple assignments for union fields
 
       for (CCompositeTypeMemberDeclaration member : compositeUnderlyingType.getMembers()) {
-        ArraySliceExpression newSlice = slice.withFieldAccess(member);
+        ArraySliceExpression newSlice = lhsSlice.withFieldAccess(member);
         performMemsetAssignment(e, newSlice, setValue);
       }
       return;
@@ -1158,14 +1159,26 @@ class CExpressionVisitorWithPointerAliasing
     }
 
     // wrap the actualSetValue in ArraySliceExpression, there is no indexing of rhs
-    ArraySliceExpression rhs = new ArraySliceExpression(actualSetValue);
+    ArraySliceExpression rhsSlice = new ArraySliceExpression(actualSetValue);
 
     // reinterpret instead of casting in assignment to properly handle memset of floats
     AssignmentHandler assignmentHandler =
         new AssignmentHandler(
             conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
+
+    // BooleanFormula assignmentFormula =
+    //    assignmentHandler.handleSliceAssignment(slice, rhs, true, conv.bfmgr.makeTrue());
+
+    // TODO: get slice expressions together
+    AssignmentHandler.AssignmentOptions assignmentOptions =
+        new AssignmentOptions(false, AssignmentHandler.AssignmentConversionType.REINTERPRET);
+    AssignmentHandler.ArraySliceAssignment sliceAssignment =
+        new AssignmentHandler.ArraySliceAssignment(lhsSlice, rhsSlice);
+
     BooleanFormula assignmentFormula =
-        assignmentHandler.handleSliceAssignment(slice, rhs, true, conv.bfmgr.makeTrue());
+        assignmentHandler.handleSliceAssignments(
+            ImmutableList.of(sliceAssignment), assignmentOptions);
+
     constraints.addConstraint(assignmentFormula);
   }
 
