@@ -315,7 +315,7 @@ public class ExpressionSimplificationVisitor
     final CType type = expr.getExpressionType();
 
     // enum constant
-    if (decl instanceof CEnumerator && ((CEnumerator) decl).hasValue()) {
+    if (decl instanceof CEnumerator) {
       final long v = ((CEnumerator) decl).getValue();
       return new CIntegerLiteralExpression(expr.getFileLocation(), type, BigInteger.valueOf(v));
     }

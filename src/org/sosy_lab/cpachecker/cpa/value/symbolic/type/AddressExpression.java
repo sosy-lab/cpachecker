@@ -24,7 +24,7 @@ public class AddressExpression extends SymbolicExpression {
 
   private static final long serialVersionUID = -1498889385306613159L;
 
-  // The address Value should map to somehow to the memory
+  // The address Value should map to memory
   private final Value addressValue;
   private final Type addressType;
 

@@ -399,12 +399,7 @@ public class ExpressionToFormulaVisitor
     if (idExp.getDeclaration() instanceof CEnumerator) {
       CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
       CType t = idExp.getExpressionType();
-      if (enumerator.hasValue()) {
-        return mgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
-      } else {
-        // We don't know the value here, but we know it is constant.
-        return conv.makeConstant(enumerator.getName(), t);
-      }
+      return mgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
     }
 
     return conv.makeVariable(
