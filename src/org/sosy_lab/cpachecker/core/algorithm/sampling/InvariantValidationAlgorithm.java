@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
@@ -97,6 +98,21 @@ public class InvariantValidationAlgorithm implements Algorithm {
 
   @Option(
       secure = true,
+      description =
+          "The file to which verification conditions are output."
+              + "Unused if option invariantValidation.outputVCs is disabled.")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path vcFile = Path.of("vcs.txt");
+
+  @Option(
+      secure = true,
+      description =
+          "Only output the necessary verification conditions, do not attempt validation."
+              + "This option is ignored when invariantValidation.useBMC is enabled.")
+  private boolean outputVCs = false;
+
+  @Option(
+      secure = true,
       description = "Whether to use a BMC-based approach for counterexample extraction.")
   private boolean useBMC = false;
 
@@ -110,6 +126,9 @@ public class InvariantValidationAlgorithm implements Algorithm {
 
   private final CParser parser;
   private final ParserTools parserTools;
+
+  // TODO: Hardcoded for now
+  private static final int BITVECTOR_SIZE = 32;
 
   public record PreconditionCounterexample(
       CandidateInvariant candidate, Collection<ValueAssignment> pre) {}
@@ -229,6 +248,29 @@ public class InvariantValidationAlgorithm implements Algorithm {
 
     // Assert that invariant holds
     BooleanFormula invariantHolds = candidate.getAssertion(pReachedSet, fmgr, pmgr);
+
+    if (outputVCs) {
+      StringBuilder output = new StringBuilder();
+      output.append("precondition:\n");
+      for (Formula variable : fmgr.extractVariables(preconditionFulfilled).values()) {
+        output.append("(declare-const %s (_ BitVec %s))\n".formatted(variable, BITVECTOR_SIZE));
+      }
+      output.append("(assert ");
+      output.append(preconditionFulfilled.toString().replaceAll("\\s+", " "));
+      output.append(")\n");
+
+      // TODO:
+      //  output += "ssaAfter: " + pathFormula.getSsa() + "\n";
+      //  output += "pathFormula: " + pathFormula.getFormula() + "\n";
+      //  output += "postCondition: " + programSafe;
+
+      try (Writer writer = IO.openOutputFile(vcFile, Charset.defaultCharset())) {
+        writer.write(output.toString());
+      } catch (IOException e) {
+        logger.log(Level.WARNING, "Export of Verification Conditions failed");
+      }
+      return;
+    }
 
     // Any models satisfying this formula are precondition counterexamples: !(P => I)
     BooleanFormula preconditionFormula =
