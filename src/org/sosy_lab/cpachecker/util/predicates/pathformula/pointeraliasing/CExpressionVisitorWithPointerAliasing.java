@@ -1062,8 +1062,7 @@ class CExpressionVisitorWithPointerAliasing
         new AssignmentHandler.ArraySliceAssignment(lhs, rhs);
 
     BooleanFormula assignmentFormula =
-        assignmentHandler.handleSliceAssignments(
-            ImmutableList.of(sliceAssignment), assignmentOptions);
+        assignmentHandler.handleSliceAssignment(sliceAssignment, assignmentOptions);
     constraints.addConstraint(assignmentFormula);
   }
 
@@ -1196,7 +1195,7 @@ class CExpressionVisitorWithPointerAliasing
         new AssignmentHandler.ArraySliceAssignment(lhsSlice, rhsSlice);
 
     BooleanFormula assignmentFormula =
-        assignmentHandler.handleSliceAssignments(
+        assignmentHandler.handleSimpleSliceAssignments(
             ImmutableList.of(sliceAssignment), assignmentOptions);
 
     constraints.addConstraint(assignmentFormula);

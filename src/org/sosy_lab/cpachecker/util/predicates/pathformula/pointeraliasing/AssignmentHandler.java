@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.implicitCastToPointer;
@@ -303,19 +304,70 @@ class AssignmentHandler {
 
   record AssignmentOptions(boolean useOldSSAIndices, AssignmentConversionType conversionType) {}
 
-  BooleanFormula handleSliceAssignments(
+  BooleanFormula handleSliceAssignment(
+      ArraySliceAssignment assignment, final AssignmentOptions assignmentOptions)
+      throws UnrecognizedCodeException, InterruptedException {
+    // resolve structures and arrays
+    // TODO: resolve unions
+    List<ArraySliceAssignment> simpleAssignments = new ArrayList<>();
+    generateSimpleSliceAssignments(assignment, simpleAssignments);
+    return handleSimpleSliceAssignments(simpleAssignments, assignmentOptions);
+  }
+
+  private void generateSimpleSliceAssignments(
+      ArraySliceAssignment assignment, List<ArraySliceAssignment> simpleAssignments) {
+
+    CSimpleType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
+
+    CType lhsType = assignment.lhs.getResolvedExpressionType(sizeType);
+    CType rhsType = assignment.rhs.getResolvedExpressionType(sizeType);
+
+    if (lhsType instanceof CCompositeType lhsCompositeType) {
+      // rhs should be of the same type
+      checkArgument(
+          lhsType.equals(rhsType),
+          "Assignment left-side composite type %s does not match right-side type %s",
+          lhsType,
+          rhsType);
+      // add an assignment for each member
+      for (CCompositeTypeMemberDeclaration member : lhsCompositeType.getMembers()) {
+        ArraySliceExpression memberLhs = assignment.lhs.withFieldAccess(member);
+        ArraySliceExpression memberRhs = assignment.rhs.withFieldAccess(member);
+        ArraySliceAssignment memberAssignment = new ArraySliceAssignment(memberLhs, memberRhs);
+        generateSimpleSliceAssignments(memberAssignment, simpleAssignments);
+      }
+    } else if (lhsType instanceof CArrayType lhsArrayType) {
+      // rhs should be of the same type
+      checkArgument(
+          lhsType.equals(rhsType),
+          "Assignment left-side array type %s does not match right-side type %s",
+          lhsType,
+          rhsType);
+      // add an assignment of every element of array using a quantified variable
+      ArraySliceIndexVariable indexVariable = new ArraySliceIndexVariable(lhsArrayType.getLength());
+      ArraySliceExpression elementLhs = assignment.lhs.withIndex(indexVariable);
+      ArraySliceExpression elementRhs = assignment.rhs.withIndex(indexVariable);
+      ArraySliceAssignment elementAssignment = new ArraySliceAssignment(elementLhs, elementRhs);
+      generateSimpleSliceAssignments(elementAssignment, simpleAssignments);
+    } else {
+      // already simple, just add the assignment to simple assignments
+      simpleAssignments.add(assignment);
+    }
+  }
+
+  BooleanFormula handleSimpleSliceAssignments(
       final List<ArraySliceAssignment> assignments, final AssignmentOptions assignmentOptions)
       throws UnrecognizedCodeException, InterruptedException {
 
     if (options.useQuantifiersOnArrays()) {
-      return handleSliceAssignmentsWithQuantifiers(assignments, assignmentOptions);
+      return handleSimpleSliceAssignmentsWithQuantifiers(assignments, assignmentOptions);
     } else {
-      return handleSliceAssignmentsWithoutQuantifiers(
+      return handleSimpleSliceAssignmentsWithoutQuantifiers(
           assignments, assignmentOptions);
     }
   }
 
-  private BooleanFormula handleSliceAssignmentsWithoutQuantifiers(
+  private BooleanFormula handleSimpleSliceAssignmentsWithoutQuantifiers(
       final List<ArraySliceAssignment> assignments,
       final AssignmentOptions assignmentOptions)
       throws UnrecognizedCodeException, InterruptedException {
@@ -324,10 +376,14 @@ class AssignmentHandler {
 
     BooleanFormula result = null;
 
+    CSimpleType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
 
     for (ArraySliceAssignment assignment : assignments) {
-      // get all quantifier variables that are used by at least one side
+      // both lhs and rhs should be simple
+      verify(CTypeUtils.isSimpleType(assignment.lhs.getResolvedExpressionType(sizeType)));
+      verify(CTypeUtils.isSimpleType(assignment.rhs.getResolvedExpressionType(sizeType)));
 
+      // get all quantifier variables that are used by at least one side
       HashSet<ArraySliceIndexVariable> quantifierVariableSet = new LinkedHashSet<>();
       quantifierVariableSet.addAll(assignment.lhs.getUnresolvedIndexVariables());
       quantifierVariableSet.addAll(assignment.rhs.getUnresolvedIndexVariables());
@@ -374,18 +430,21 @@ class AssignmentHandler {
         rhs = rhs.resolveFirstIndex(sizeType, unrolledIndex);
       }
 
-      CLeftHandSide lhsBase = (CLeftHandSide) lhs.getResolvedExpression();
+      CExpression lhsBase = lhs.getResolvedExpression();
       CExpression rhsBase = rhs.getResolvedExpression();
 
-      // TODO: rewrite handleAssignment
-      return handleAssignment(
-          lhsBase,
-          lhsBase,
-          lhsBase.getExpressionType(),
-          rhsBase,
-          assignmentOptions.useOldSSAIndices,
-          assignmentOptions.conversionType == AssignmentConversionType.REINTERPRET,
-          nullToTrue(condition));
+      // TODO: add fields for UF
+      final CExpressionVisitorWithPointerAliasing visitor = newExpressionVisitor();
+      Expression lhsExpression = lhsBase.accept(visitor);
+      Expression rhsExpression = rhsBase.accept(visitor);
+
+      ExpressionAndCType lhsVisited =
+          new ExpressionAndCType(lhsExpression, lhsBase.getExpressionType());
+      ExpressionAndCType rhsVisited =
+          new ExpressionAndCType(rhsExpression, lhsBase.getExpressionType());
+
+      return makeSliceAssignment(
+          lhsVisited, rhsVisited, assignmentOptions, nullToTrue(condition), false);
     }
 
     // for better speed, work with the last variable in quantifierVariables
@@ -470,7 +529,7 @@ class AssignmentHandler {
     return a;
   }
 
-  private BooleanFormula handleSliceAssignmentsWithQuantifiers(
+  private BooleanFormula handleSimpleSliceAssignmentsWithQuantifiers(
       final List<ArraySliceAssignment> assignments,
       final AssignmentOptions assignmentOptions)
       throws UnrecognizedCodeException {
@@ -538,6 +597,10 @@ class AssignmentHandler {
     // now that we have everything quantified, we can perform the assignments
     for (ArraySliceAssignment assignment : assignments) {
 
+      // both lhs and rhs should be simple
+      verify(CTypeUtils.isSimpleType(assignment.lhs.getResolvedExpressionType(sizeType)));
+      verify(CTypeUtils.isSimpleType(assignment.rhs.getResolvedExpressionType(sizeType)));
+
       // TODO: add fields handling for UF
       CExpressionVisitorWithPointerAliasing visitor =
           new CExpressionVisitorWithPointerAliasing(
@@ -559,48 +622,11 @@ class AssignmentHandler {
         continue;
       }
 
-      Expression convertedRhsExpression = rhsResolved.expression;
-
-      // convert if necessary and wanted
-      if (!lhsResolved.type.getCanonicalType().equals(rhsResolved.type.getCanonicalType())) {
-        Formula rhsFormula =
-            getValueFormula(rhsResolved.type, rhsResolved.expression).orElseThrow();
-        switch (assignmentOptions.conversionType) {
-          case CAST:
-          // cast rhs from rhs type to lhs type
-          Formula castRhsFormula =
-              conv.makeCast(rhsResolved.type, lhsResolved.type, rhsFormula, constraints, edge);
-          convertedRhsExpression = Value.ofValue(castRhsFormula);
-            break;
-          case REINTERPRET:
-            // reinterpret rhs from rhs type to lhs type
-            Formula reinterpretedRhsFormula =
-                conv.makeValueReinterpretation(rhsResolved.type, lhsResolved.type, rhsFormula);
-
-            // makeValueReinterpretation returns null if no reinterpretation happened
-            if (reinterpretedRhsFormula != null) {
-              convertedRhsExpression = Value.ofValue(reinterpretedRhsFormula);
-            }
-          break;
-          default:
-            assert (false);
-        }
-      }
-
-      // TODO: change makeDestructiveAssignment signature to flow nicely
       // TODO: add updatedRegions handling for UF
 
       // after cast/reinterpretation, lhs and rhs have the lhs type
       BooleanFormula assignmentResult =
-          makeDestructiveAssignment(
-              lhsResolved.type,
-              lhsResolved.type,
-              (Location) lhsResolved.expression,
-              convertedRhsExpression,
-              assignmentOptions.useOldSSAIndices,
-              null,
-              conditionFormula,
-              true);
+          makeSliceAssignment(lhsResolved, rhsResolved, assignmentOptions, conditionFormula, true);
       assignmentSystem = nullableAnd(assignmentSystem, assignmentResult);
     }
 
@@ -615,6 +641,59 @@ class AssignmentHandler {
 
     // we are done
     return quantifiedAssignmentSystem;
+  }
+
+  private BooleanFormula makeSliceAssignment(
+      ExpressionAndCType lhsResolved,
+      ExpressionAndCType rhsResolved,
+      AssignmentOptions assignmentOptions,
+      BooleanFormula conditionFormula,
+      boolean useQuantifiers)
+      throws UnrecognizedCodeException {
+    Expression convertedRhsExpression = convertRhsExpression(assignmentOptions.conversionType, lhsResolved, rhsResolved);
+
+    return makeSimpleDestructiveAssignment(
+        lhsResolved.type,
+        lhsResolved.type,
+        (Location) lhsResolved.expression,
+        convertedRhsExpression,
+        assignmentOptions.useOldSSAIndices && lhsResolved.expression.isAliasedLocation(),
+        null,
+        conditionFormula,
+        useQuantifiers);
+  }
+
+  private Expression convertRhsExpression(
+      AssignmentConversionType conversionType,
+      ExpressionAndCType lhsResolved,
+      ExpressionAndCType rhsResolved) throws UnrecognizedCodeException {
+
+    // convert only if necessary
+    if (!lhsResolved.type.getCanonicalType().equals(rhsResolved.type.getCanonicalType())) {
+      return rhsResolved.expression;
+    }
+    Formula rhsFormula =
+        getValueFormula(rhsResolved.type, rhsResolved.expression).orElseThrow();
+    switch (conversionType) {
+      case CAST:
+      // cast rhs from rhs type to lhs type
+        Formula castRhsFormula = conv.makeCast(rhsResolved.type, lhsResolved.type, rhsFormula, constraints, edge);
+      return Value.ofValue(castRhsFormula);
+      case REINTERPRET:
+        // reinterpret rhs from rhs type to lhs type
+        Formula reinterpretedRhsFormula =
+            conv.makeValueReinterpretation(rhsResolved.type, lhsResolved.type, rhsFormula);
+
+        // makeValueReinterpretation returns null if no reinterpretation happened
+        if (reinterpretedRhsFormula != null) {
+          return Value.ofValue(reinterpretedRhsFormula);
+        }
+      break;
+      default:
+        assert (false);
+    }
+    return rhsResolved.expression;
+
   }
 
   private record ExpressionAndCType(Expression expression, CType type) {}
