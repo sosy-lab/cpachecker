@@ -1283,11 +1283,7 @@ class AssignmentHandler {
 
         BooleanFormula retainmentAssignment = fmgr.assignment(newVariable, oldVariable);
 
-        BooleanFormula makeNewAssignment = conv.bfmgr.and(condition, result);
-        BooleanFormula retainOldAssignment =
-            conv.bfmgr.and(conv.bfmgr.not(condition), retainmentAssignment);
-
-        result = conv.bfmgr.or(makeNewAssignment, retainOldAssignment);
+        result = conv.bfmgr.ifThenElse(condition, result, retainmentAssignment);
       }
 
     } else { // Aliased LHS

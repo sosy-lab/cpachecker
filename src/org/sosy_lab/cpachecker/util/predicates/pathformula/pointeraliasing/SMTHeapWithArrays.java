@@ -75,7 +75,8 @@ class SMTHeapWithArrays implements SMTHeap {
     Formula oldRead = afmgr.select(oldFormula, address);
     Formula newRead = afmgr.select(newFormula, address);
 
-    // forall i . (c and a'[i] = v) or ((not c) and a'[i] = a[i])
+    // use ite instead of logical operators for better performance
+    // forall i . if (c) {a'[i] = v} else {a'[i] = a[i]}
     // the quantifier is constructed outside
     // i ... address
     // c ... condition
@@ -85,15 +86,14 @@ class SMTHeapWithArrays implements SMTHeap {
 
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
 
-    // c and a'[i] = v
+    // a'[i] = v
     BooleanFormula applyAssignmentFormula = formulaManager.assignment(newRead, value);
-    BooleanFormula applyAssignmentCase = bfmgr.and(condition, applyAssignmentFormula);
 
-    // (not c) and a'[i] = a[i]
+    // a'[i] = a[i]
     BooleanFormula retainAssignmentFormula = formulaManager.assignment(newRead, oldRead);
-    BooleanFormula retainAssignmentCase = bfmgr.and(bfmgr.not(condition), retainAssignmentFormula);
 
-    BooleanFormula result = bfmgr.or(applyAssignmentCase, retainAssignmentCase);
+    BooleanFormula result =
+        bfmgr.ifThenElse(condition, applyAssignmentFormula, retainAssignmentFormula);
 
     return result;
   }
