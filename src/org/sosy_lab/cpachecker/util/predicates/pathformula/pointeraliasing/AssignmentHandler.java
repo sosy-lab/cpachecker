@@ -414,17 +414,23 @@ class AssignmentHandler {
     Expression indexSizeExpression = indexSizeCCast.accept(indexSizeVisitor);
     // TODO: add fields to UF from visitor
 
-    Formula indexSizeFormula = indexSizeVisitor.asValueFormula(indexSizeExpression, sizeType);
+    Formula sizeFormula = indexSizeVisitor.asValueFormula(indexSizeExpression, sizeType);
 
     BooleanFormula result = null;
 
+    FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromCType(sizeType);
+    Formula zeroFormula = conv.fmgr.makeNumber(sizeFormulaType, 0);
+    boolean sizeTypeSigned = sizeType.getCanonicalType().isSigned();
+
     for (long i = 0; i < consideredArraySize; ++i) {
 
-      Formula indexFormula = conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(sizeType), i);
+      Formula indexFormula = conv.fmgr.makeNumber(sizeFormulaType, i);
 
-      // the variable condition holds when the unsigned index is strictly less than size
+      // the variable condition holds when 0 <= index < size
       BooleanFormula unrolledCondition =
-          nullableAnd(condition, fmgr.makeLessThan(indexFormula, indexSizeFormula, false));
+          bfmgr.and(
+              fmgr.makeLessOrEqual(zeroFormula, indexFormula, sizeTypeSigned),
+              fmgr.makeLessThan(indexFormula, sizeFormula, sizeTypeSigned));
 
       // we do not need to remove the index from unrolledVariables after recursion as it will be
       // overwritten before next use anyway
@@ -479,10 +485,11 @@ class AssignmentHandler {
 
     List<ArraySliceIndexVariable> indexVariables = new ArrayList<>(indexVariableSet);
 
-    // the quantified variables should be of the size_t type
-    // the formula type for a void pointer and size_t is equivalent
-    final CType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
-    FormulaType<?> sizeFormulaType = conv.voidPointerFormulaType;
+    // the quantified variables should be of the size type
+    final CSimpleType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
+    FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromCType(sizeType);
+    Formula zeroFormula = conv.fmgr.makeNumber(sizeFormulaType, 0);
+    boolean sizeTypeSigned = sizeType.getCanonicalType().isSigned();
 
     // instantiate all index variables and create the condition for whether an element will be
     // assignment, depending on whether all quantified variable conditions hold for it
@@ -510,11 +517,13 @@ class AssignmentHandler {
       Expression indexSizeExpression = indexSizeCCast.accept(indexSizeVisitor);
       // TODO: add fields to UF from visitor
 
-      Formula indexSizeFormula = indexSizeVisitor.asValueFormula(indexSizeExpression, sizeType);
+      Formula sizeFormula = indexSizeVisitor.asValueFormula(indexSizeExpression, sizeType);
 
-      // the quantified variable condition holds when the unsigned index is strictly less than size
+      // the quantified variable condition holds when 0 <= index < size
       BooleanFormula quantifiedVariableCondition =
-          fmgr.makeLessThan(quantifiedVariableFormula, indexSizeFormula, false);
+          bfmgr.and(
+              fmgr.makeLessOrEqual(zeroFormula, quantifiedVariableFormula, sizeTypeSigned),
+              fmgr.makeLessThan(quantifiedVariableFormula, sizeFormula, sizeTypeSigned));
 
       conditionFormula = nullableAnd(conditionFormula, quantifiedVariableCondition);
     }
