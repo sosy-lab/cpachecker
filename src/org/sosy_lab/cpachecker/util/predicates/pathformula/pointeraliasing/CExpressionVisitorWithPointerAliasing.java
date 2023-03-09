@@ -1042,8 +1042,14 @@ class CExpressionVisitorWithPointerAliasing
     AssignmentHandler assignmentHandler =
         new AssignmentHandler(
             conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
+    AssignmentHandler.AssignmentOptions assignmentOptions =
+        new AssignmentOptions(false, AssignmentHandler.AssignmentConversionType.NONE);
+    AssignmentHandler.ArraySliceAssignment sliceAssignment =
+        new AssignmentHandler.ArraySliceAssignment(lhs, rhs);
+
     BooleanFormula assignmentFormula =
-        assignmentHandler.handleSliceAssignment(lhs, rhs, true, conv.bfmgr.makeTrue());
+        assignmentHandler.handleSliceAssignments(
+            ImmutableList.of(sliceAssignment), assignmentOptions);
     constraints.addConstraint(assignmentFormula);
   }
 
