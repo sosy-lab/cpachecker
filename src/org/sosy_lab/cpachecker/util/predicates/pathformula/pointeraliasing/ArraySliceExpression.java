@@ -144,8 +144,13 @@ final class ArraySliceExpression {
     // just wrap base in a subscript with the index value
     CExpression indexValueExpression =
         CIntegerLiteralExpression.createDummyLiteral(indexValue, sizeType);
+    // the element type must be taken from the base type
+    CPointerType basePointerType =
+        (CPointerType)
+            CTypes.adjustFunctionOrArrayType(base.getExpressionType().getCanonicalType());
+    CType elementType = basePointerType.getType().getCanonicalType();
     CExpression newBase =
-        new CArraySubscriptExpression(FileLocation.DUMMY, sizeType, base, indexValueExpression);
+        new CArraySubscriptExpression(FileLocation.DUMMY, elementType, base, indexValueExpression);
     return resolveFirstIndex(newBase);
   }
 

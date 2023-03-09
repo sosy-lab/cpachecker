@@ -407,7 +407,7 @@ class AssignmentHandler {
 
     // TODO: unify the index handling with quantifier version
     // we will perform the unrolled assignments conditionally, only if the index is smaller than the
-    // actual size
+    // actual size  
     CExpression indexSizeCCast = new CCastExpression(FileLocation.DUMMY, sizeType, sliceSize);
 
     final CExpressionVisitorWithPointerAliasing indexSizeVisitor = newExpressionVisitor();
