@@ -951,8 +951,6 @@ class CExpressionVisitorWithPointerAliasing
 
     CType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
 
-    CExpression sizeInBytes = new CCastExpression(FileLocation.DUMMY, sizeType, paramSizeInBytes);
-
     // we handle the possibility of having the last element partially copied
     // by treating it as being fully copied, as this situation can arise
     // in correct programs when structure padding is not copied
@@ -961,27 +959,43 @@ class CExpressionVisitorWithPointerAliasing
     // for easy computation; it can technically overflow, but that would mean
     // the array would take almost all memory that is addressable
 
-    CIntegerLiteralExpression elementSizeInBytesMinusOneLiteral =
-        CIntegerLiteralExpression.createDummyLiteral(elementSizeInBytes - 1, sizeType);
-    CExpression operationSizeByteCeiling =
-        new CBinaryExpression(
-            FileLocation.DUMMY,
-            sizeType,
-            sizeType,
-            sizeInBytes,
-            elementSizeInBytesMinusOneLiteral,
-            BinaryOperator.PLUS);
+    final CExpression operationSizeInElements;
 
-    CIntegerLiteralExpression elementSizeInBytesLiteral =
-        CIntegerLiteralExpression.createDummyLiteral(elementSizeInBytes, sizeType);
-    CExpression operationSizeInElements =
-        new CBinaryExpression(
-            FileLocation.DUMMY,
-            sizeType,
-            sizeType,
-            operationSizeByteCeiling,
-            elementSizeInBytesLiteral,
-            BinaryOperator.DIVIDE);
+    if (paramSizeInBytes instanceof CIntegerLiteralExpression literalSizeInBytes) {
+      // compute the size in elements statically so that quantifier unrolling may be more precise
+
+      long sizeInBytes = literalSizeInBytes.asLong();
+      long operationSizeInElementsAsLong =
+          (sizeInBytes + elementSizeInBytes - 1) / elementSizeInBytes;
+      operationSizeInElements =
+          CIntegerLiteralExpression.createDummyLiteral(operationSizeInElementsAsLong, sizeType);
+    } else {
+      // create an expression to compute the size dynamically
+
+      CExpression sizeInBytes = new CCastExpression(FileLocation.DUMMY, sizeType, paramSizeInBytes);
+
+      CIntegerLiteralExpression elementSizeInBytesMinusOneLiteral =
+          CIntegerLiteralExpression.createDummyLiteral(elementSizeInBytes - 1, sizeType);
+      CExpression operationSizeByteCeiling =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              sizeType,
+              sizeType,
+              sizeInBytes,
+              elementSizeInBytesMinusOneLiteral,
+              BinaryOperator.PLUS);
+
+      CIntegerLiteralExpression elementSizeInBytesLiteral =
+          CIntegerLiteralExpression.createDummyLiteral(elementSizeInBytes, sizeType);
+      operationSizeInElements =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              sizeType,
+              sizeType,
+              operationSizeByteCeiling,
+              elementSizeInBytesLiteral,
+              BinaryOperator.DIVIDE);
+    }
 
     // Handover to function-specific code
     final CExpression secondParameter = parameters.get(1);
