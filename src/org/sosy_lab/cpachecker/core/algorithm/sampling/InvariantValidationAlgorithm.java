@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.sampling;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
@@ -93,8 +94,20 @@ public class InvariantValidationAlgorithm implements Algorithm {
   @FileOption(Type.OUTPUT_FILE)
   private Path postCexOutFile = Path.of("post_cex_samples.json");
 
-  @Option(secure = true, description = "The invariant to be validated.")
-  private String invariant;
+  @Option(
+      secure = true,
+      description =
+          "The invariant to be validated. Ignored if option invariantValidation.outputVCs"
+              + "is enabled, but must be given otherwise.")
+  private String invariant = null;
+
+  @Option(
+      secure = true,
+      description =
+          "The location at which the given invariant should be validated,"
+              + "given in the format 'line:column'."
+              + "If not specified, validation is attempted at every loop head.")
+  private String location = null;
 
   @Option(
       secure = true,
@@ -165,6 +178,8 @@ public class InvariantValidationAlgorithm implements Algorithm {
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
+    Preconditions.checkState(outputVCs || invariant != null);
+
     if (cfa.getAllLoopHeads().isEmpty()) {
       logger.log(
           Level.INFO, "No loop heads detected, nothing to do for invariant validation algorithm.");
@@ -177,7 +192,9 @@ public class InvariantValidationAlgorithm implements Algorithm {
 
     for (CFANode loopHead : cfa.getAllLoopHeads().orElseThrow()) {
       try {
-        if (useBMC) {
+        if (outputVCs) {
+          outputVerificationConditions(reachedSet, loopHead);
+        } else if (useBMC) {
           validateBMC(loopHead, preSamples, stepSamples, postSamples);
         } else {
           validateSMT(reachedSet, loopHead, preSamples, stepSamples, postSamples);
@@ -195,6 +212,91 @@ public class InvariantValidationAlgorithm implements Algorithm {
 
     // TODO: Add statistics
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
+  }
+
+  private void outputVerificationConditions(
+      ReachedSet pReachedSet,
+      CFANode pLocation)
+      throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
+    // Retrieve formula managers
+    PredicateCPA predicateCPA =
+        CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, InvariantValidationAlgorithm.class);
+    Solver solver = predicateCPA.getSolver();
+    FormulaManagerView fmgr = solver.getFormulaManager();
+    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+    PathFormulaManager pmgr = predicateCPA.getPathFormulaManager();
+
+    // Run algorithm to determine reachable states
+    algorithm.run(pReachedSet);
+
+    PathFormula pathFormula = pmgr.makeEmptyPathFormula();
+    Iterable<AbstractState> statesAtLocation =
+        AbstractStates.filterLocation(pReachedSet, pLocation);
+    for (AbstractState state : statesAtLocation) {
+      for (ARGState covered : ((ARGState) state).getCoveredByThis()) {
+        Collection<ARGState> parents = covered.getParents();
+        assert parents.size() == 1;
+        PredicateAbstractState predicateState =
+            AbstractStates.extractStateByType(
+                Iterables.getOnlyElement(parents), PredicateAbstractState.class);
+        pathFormula = predicateState.getPathFormula();
+      }
+    }
+
+    // Assert that target location is not reachable
+    CandidateInvariant targetReachable = TargetLocationCandidateInvariant.INSTANCE;
+    BooleanFormula programSafe = targetReachable.getAssertion(pReachedSet, fmgr, pmgr);
+
+    // Assert that precondition holds
+    BooleanFormula preconditionFulfilled = BMCHelper.createFormulaFor(statesAtLocation, bfmgr);
+
+    // Output necessary parts to build relevant formulas for different invariants
+    StringBuilder output = new StringBuilder();
+    output.append("{\"precondition\":\n\"");
+    for (Formula variable : fmgr.extractVariables(preconditionFulfilled).values()) {
+      output.append("(declare-const %s (_ BitVec %s))".formatted(variable, BITVECTOR_SIZE));
+    }
+    output.append("(assert ");
+    output.append(preconditionFulfilled.toString().replaceAll("\\s+", " "));
+    output.append(")\",\n");
+
+    output.append("\"inductiveness\":\n\"");
+    for (Formula variable : fmgr.extractVariables(pathFormula.getFormula()).values()) {
+      output.append("(declare-const %s (_ BitVec %s))".formatted(variable, BITVECTOR_SIZE));
+    }
+    output.append("(assert ");
+    output.append(pathFormula.getFormula().toString().replaceAll("\\s+", " "));
+    output.append(")\",\n");
+
+    output.append("\"postcondition\":\n\"");
+    for (Formula variable : fmgr.extractVariables(programSafe).values()) {
+      output.append("(declare-const %s (_ BitVec %s))".formatted(variable, BITVECTOR_SIZE));
+    }
+    output.append("(assert ");
+    output.append(bfmgr.not(programSafe).toString().replaceAll("\\s+", " "));
+    output.append(")\",\n");
+
+    StringJoiner sj = new StringJoiner(",\n");
+    output.append("\"ssaBefore\":\n{");
+    // TODO: How to get SSA before? -> Use highest indices appearing in preconditionFulfilled
+    for (String variable : pathFormula.getSsa().allVariables()) {
+      sj.add('"' + variable + '"' + ": " + pathFormula.getSsa().getIndex(variable));
+    }
+    output.append(sj);
+    output.append("},\n");
+
+    output.append("\"ssaAfter\":\n{");
+    for (String variable : pathFormula.getSsa().allVariables()) {
+      sj.add('"' + variable + '"' + ": " + pathFormula.getSsa().getIndex(variable));
+    }
+    output.append(sj);
+    output.append("}}");
+
+    try (Writer writer = IO.openOutputFile(vcFile, Charset.defaultCharset())) {
+      writer.write(output.toString());
+    } catch (IOException e) {
+      logger.log(Level.WARNING, "Export of Verification Conditions failed");
+    }
   }
 
   private void validateSMT(
@@ -248,29 +350,6 @@ public class InvariantValidationAlgorithm implements Algorithm {
 
     // Assert that invariant holds
     BooleanFormula invariantHolds = candidate.getAssertion(pReachedSet, fmgr, pmgr);
-
-    if (outputVCs) {
-      StringBuilder output = new StringBuilder();
-      output.append("precondition:\n");
-      for (Formula variable : fmgr.extractVariables(preconditionFulfilled).values()) {
-        output.append("(declare-const %s (_ BitVec %s))\n".formatted(variable, BITVECTOR_SIZE));
-      }
-      output.append("(assert ");
-      output.append(preconditionFulfilled.toString().replaceAll("\\s+", " "));
-      output.append(")\n");
-
-      // TODO:
-      //  output += "ssaAfter: " + pathFormula.getSsa() + "\n";
-      //  output += "pathFormula: " + pathFormula.getFormula() + "\n";
-      //  output += "postCondition: " + programSafe;
-
-      try (Writer writer = IO.openOutputFile(vcFile, Charset.defaultCharset())) {
-        writer.write(output.toString());
-      } catch (IOException e) {
-        logger.log(Level.WARNING, "Export of Verification Conditions failed");
-      }
-      return;
-    }
 
     // Any models satisfying this formula are precondition counterexamples: !(P => I)
     BooleanFormula preconditionFormula =
