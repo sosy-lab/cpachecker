@@ -1057,7 +1057,7 @@ class CExpressionVisitorWithPointerAliasing
         new AssignmentHandler(
             conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
     AssignmentHandler.AssignmentOptions assignmentOptions =
-        new AssignmentOptions(false, AssignmentHandler.AssignmentConversionType.NONE);
+        new AssignmentOptions(false, AssignmentHandler.AssignmentConversionType.REINTERPRET);
     AssignmentHandler.ArraySliceAssignment sliceAssignment =
         new AssignmentHandler.ArraySliceAssignment(lhs, rhs);
 

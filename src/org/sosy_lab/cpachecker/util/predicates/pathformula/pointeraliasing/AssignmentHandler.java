@@ -297,7 +297,8 @@ class AssignmentHandler {
   record ArraySliceAssignment(ArraySliceExpression lhs, ArraySliceExpression rhs) {}
 
   enum AssignmentConversionType {
-    NONE, CAST, REINTERPRET
+    CAST,
+    REINTERPRET
   }
 
   record AssignmentOptions(boolean useOldSSAIndices, AssignmentConversionType conversionType) {}
@@ -407,7 +408,7 @@ class AssignmentHandler {
 
     // TODO: unify the index handling with quantifier version
     // we will perform the unrolled assignments conditionally, only if the index is smaller than the
-    // actual size  
+    // actual size
     CExpression indexSizeCCast = new CCastExpression(FileLocation.DUMMY, sizeType, sliceSize);
 
     final CExpressionVisitorWithPointerAliasing indexSizeVisitor = newExpressionVisitor();
@@ -542,12 +543,7 @@ class AssignmentHandler {
           new CExpressionVisitorWithPointerAliasing(
               conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
       ExpressionAndCType lhsResolved =
-          resolveSliceExpression(
-              assignment.lhs,
-              quantifiedVariableFormulaMap,
-              visitor,
-              null,
-              AssignmentConversionType.NONE);
+          resolveSliceExpression(assignment.lhs, quantifiedVariableFormulaMap, visitor);
       if (lhsResolved == null) {
         // TODO: only used for ignoring assignments to bit-fields which should be handled properly
         // do not perform this assignment, but others can be done
@@ -555,12 +551,7 @@ class AssignmentHandler {
       }
 
       ExpressionAndCType rhsResolved =
-          resolveSliceExpression(
-              assignment.rhs,
-              quantifiedVariableFormulaMap,
-              visitor,
-              lhsResolved.type,
-              assignmentOptions.conversionType);
+          resolveSliceExpression(assignment.rhs, quantifiedVariableFormulaMap, visitor);
 
       if (rhsResolved == null) {
         // TODO: only used for ignoring assignments to bit-fields which should be handled properly
@@ -568,14 +559,44 @@ class AssignmentHandler {
         continue;
       }
 
+      Expression convertedRhsExpression = rhsResolved.expression;
+
+      // convert if necessary and wanted
+      if (!lhsResolved.type.getCanonicalType().equals(rhsResolved.type.getCanonicalType())) {
+        Formula rhsFormula =
+            getValueFormula(rhsResolved.type, rhsResolved.expression).orElseThrow();
+        switch (assignmentOptions.conversionType) {
+          case CAST:
+          // cast rhs from rhs type to lhs type
+          Formula castRhsFormula =
+              conv.makeCast(rhsResolved.type, lhsResolved.type, rhsFormula, constraints, edge);
+          convertedRhsExpression = Value.ofValue(castRhsFormula);
+            break;
+          case REINTERPRET:
+            // reinterpret rhs from rhs type to lhs type
+            Formula reinterpretedRhsFormula =
+                conv.makeValueReinterpretation(rhsResolved.type, lhsResolved.type, rhsFormula);
+
+            // makeValueReinterpretation returns null if no reinterpretation happened
+            if (reinterpretedRhsFormula != null) {
+              convertedRhsExpression = Value.ofValue(reinterpretedRhsFormula);
+            }
+          break;
+          default:
+            assert (false);
+        }
+      }
+
       // TODO: change makeDestructiveAssignment signature to flow nicely
       // TODO: add updatedRegions handling for UF
+
+      // after cast/reinterpretation, lhs and rhs have the lhs type
       BooleanFormula assignmentResult =
           makeDestructiveAssignment(
               lhsResolved.type,
-              rhsResolved.type,
+              lhsResolved.type,
               (Location) lhsResolved.expression,
-              rhsResolved.expression,
+              convertedRhsExpression,
               assignmentOptions.useOldSSAIndices,
               null,
               conditionFormula,
@@ -601,9 +622,7 @@ class AssignmentHandler {
   private @Nullable ExpressionAndCType resolveSliceExpression(
       final ArraySliceExpression sliceExpression,
       final Map<ArraySliceIndexVariable, Formula> quantifiedVariableFormulaMap,
-      CExpressionVisitorWithPointerAliasing visitor,
-      @Nullable CType conversionType,
-      AssignmentConversionType conversionChoice)
+      CExpressionVisitorWithPointerAliasing visitor)
       throws UnrecognizedCodeException {
 
     // TODO: handle UF field marking properly in this method
@@ -631,8 +650,6 @@ class AssignmentHandler {
       }
     }
 
-    // the base is fully resolved now, we need to make the conversion
-    // TODO: convert
     return base;
   }
 
