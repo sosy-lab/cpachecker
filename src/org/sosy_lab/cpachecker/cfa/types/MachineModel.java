@@ -330,7 +330,7 @@ public enum MachineModel {
    */
   public CSimpleType getPointerDiffType() {
     // On our platforms, intptr_t and ptrdiff_t are the same.
-    return intptr_t.getCanonicalType();
+    return intptr_t;
   }
 
   /**
