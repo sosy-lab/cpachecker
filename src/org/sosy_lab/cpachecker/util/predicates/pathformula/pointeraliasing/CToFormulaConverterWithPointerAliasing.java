@@ -948,7 +948,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                 arrayType.getType(),
                 new CIntegerLiteralExpression(
                     declaration.getFileLocation(),
-                    machineModel.getPointerDiffType(),
+                    machineModel.getSizeType(),
                     BigInteger.valueOf(actualLength)));
 
         declaration =
