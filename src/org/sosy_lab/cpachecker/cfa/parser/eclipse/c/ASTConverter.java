@@ -1465,10 +1465,7 @@ class ASTConverter {
       // Case (A)
       CEnumType enumType = enumerator.getEnum();
 
-      // We want to fix the type, but can do so only if we are not also in case (B).
-      // In case of (A) + (B) the resulting type will be wrong, but this should not hurt because in
-      // case (B) we fully evaluate the constant expression and only put the resulting value into
-      // the AST, not the expression with the wrong type.
+      // We want to fix the type, but can do so properly only if we are not also in case (B).
       if (enumType != null) {
         type =
             new CElaboratedType(
@@ -1478,6 +1475,10 @@ class ASTConverter {
                 enumType.getName(),
                 enumType.getOrigName(),
                 enumType);
+      } else {
+        // Case (A) + (B): The resulting type can be wrong, but at least this influences only the
+        // calculations of other enumerators of this enums, not any further calculations.
+        type = CNumericTypes.INT;
       }
     }
 
