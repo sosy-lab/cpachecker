@@ -306,7 +306,7 @@ class AssignmentHandler {
             (CLeftHandSide) lhsDummy,
             (CRightHandSide) rhsDummy,
             rhsExpression,
-            lhsDummy.getExpressionType().getCanonicalType(),
+            typeHandler.getSimplifiedType(lhsDummy),
             lhsLearnedPointerTypes,
             rhsLearnedPointerTypes);
       }
@@ -464,7 +464,7 @@ class AssignmentHandler {
         }
       }
 
-      parentType = currentMember.getType().getCanonicalType();
+      parentType = typeHandler.getSimplifiedType(currentMember);
     }
 
     // now that we have the alternative union accesses, we need to generate simple accesses
@@ -519,7 +519,7 @@ class AssignmentHandler {
       return typeHandler.getBitSizeof(headType);
     }
     return typeHandler.getBitSizeof(
-        tail.list().get(tail.list().size() - 1).getType().getCanonicalType());
+        typeHandler.getSimplifiedType(tail.list().get(tail.list().size() - 1)));
   }
 
   private long computeTailBitOffset(CType headType, ArraySliceTail tail) {
@@ -527,7 +527,7 @@ class AssignmentHandler {
     CType parentType = headType;
     for (CCompositeTypeMemberDeclaration field : tail.list()) {
       bitOffset += typeHandler.getBitOffset((CCompositeType) parentType, field);
-      parentType = field.getType().getCanonicalType();
+      parentType = typeHandler.getSimplifiedType(field);
     }
     return bitOffset;
   }
@@ -540,7 +540,7 @@ class AssignmentHandler {
     }
 
     CCompositeTypeMemberDeclaration lastAccess = trailing.list().get(trailing.list().size() - 1);
-    CType lastType = lastAccess.getType().getCanonicalType();
+    CType lastType = typeHandler.getSimplifiedType(lastAccess);
 
     if (lastType instanceof CCompositeType lastCompositeType) {
       // add an assignment for each member
@@ -617,7 +617,7 @@ class AssignmentHandler {
       CExpression lhsBase = lhs.getResolvedExpression();
       Expression lhsExpression = lhsBase.accept(visitor);
       ExpressionAndCType lhsVisited =
-          new ExpressionAndCType(lhsExpression, lhsBase.getExpressionType().getCanonicalType());
+          new ExpressionAndCType(lhsExpression, typeHandler.getSimplifiedType(lhsBase));
 
       ImmutableList.Builder<SpanExpressionAndCType> builder = ImmutableList.builder();
 
@@ -639,7 +639,7 @@ class AssignmentHandler {
                 rhs.span,
                 Optional.of(
                     new ExpressionAndCType(
-                        rhsExpression, rhsBase.getExpressionType().getCanonicalType()))));
+                        rhsExpression, typeHandler.getSimplifiedType(rhsBase)))));
       }
 
       return makeSliceAssignment(
@@ -995,8 +995,8 @@ class AssignmentHandler {
       ExpressionAndCType lhsResolved,
       ExpressionAndCType rhsResolved) throws UnrecognizedCodeException {
 
-    // convert only if necessary
-    if (lhsResolved.type.getCanonicalType().equals(rhsResolved.type.getCanonicalType())) {
+    // convert only if necessary, the types are already simplified
+    if (lhsResolved.type.equals(rhsResolved.type)) {
       return rhsResolved.expression;
     }
     Formula rhsFormula =
@@ -1032,7 +1032,7 @@ class AssignmentHandler {
     // TODO: handle UF field marking properly in this method
 
     CExpression baseCExpression = sliceExpression.getBaseExpression();
-    CType baseType = baseCExpression.getExpressionType().getCanonicalType();
+    CType baseType = typeHandler.getSimplifiedType(baseCExpression);
 
     // convert the base from C expression to SMT expression
     Expression baseExpression = baseCExpression.accept(visitor);
@@ -1069,9 +1069,8 @@ class AssignmentHandler {
     checkNotNull(quantifiedVariableFormula);
 
     // get the array element type
-    CPointerType basePointerType =
-        (CPointerType) CTypes.adjustFunctionOrArrayType(base.type.getCanonicalType());
-    final CType elementType = basePointerType.getType().getCanonicalType();
+    CPointerType basePointerType = (CPointerType) CTypes.adjustFunctionOrArrayType(base.type);
+    final CType elementType = typeHandler.simplifyType(basePointerType.getType());
 
     // perform pointer arithmetic, we have array[base] and want array[base + i]
     // the quantified variable i must be multiplied by the sizeof the element type
@@ -1093,7 +1092,7 @@ class AssignmentHandler {
     // the base type must be a composite type to have fields
     CCompositeType baseType = (CCompositeType) base.type;
     final String fieldName = modifier.field().getName();
-    CType fieldType = modifier.field().getType().getCanonicalType();
+    CType fieldType = typeHandler.getSimplifiedType(modifier.field());
 
     // we will increase the base address by field offset
 
