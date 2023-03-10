@@ -595,6 +595,7 @@ public class CtoFormulaConverter {
    */
   protected @Nullable Formula makeValueReinterpretation(
       final CType pFromType, final CType pToType, Formula formula) {
+    // This results in a signed type for pointers, but we only use its size, so this is irrelevant.
     CType fromType = handlePointerAndEnumAsInt(pFromType);
     CType toType = handlePointerAndEnumAsInt(pToType);
 
@@ -771,21 +772,14 @@ public class CtoFormulaConverter {
       fromType = new CPointerType(false, false, fromType);
     }
 
-    // TODO This is questionable because signed types are returned for pointers,
-    // should we really do sign extension here?
-    // Furthermore, this makes the check "fromType instanceof CPointerType" below redundant.
+    // This results in a signed type for pointers, which is what we need because GCC does sign
+    // extension when casting from a pointer to a larger integer:
+    // https://gcc.gnu.org/onlinedocs/gcc/Arrays-and-pointers-implementation.html
     fromType = handlePointerAndEnumAsInt(fromType);
     toType = handlePointerAndEnumAsInt(toType);
 
     if (isSimple(fromType) && isSimple(toType)) {
       return makeSimpleCast(fromType, toType, formula);
-    }
-
-    if (fromType instanceof CPointerType || toType instanceof CPointerType) {
-      // Ignore casts between Pointer and right sized types
-      if (getFormulaTypeFromCType(toType).equals(getFormulaTypeFromCType(fromType))) {
-        return formula;
-      }
     }
 
     if (getBitSizeof(fromType) == getBitSizeof(toType)) {
@@ -798,6 +792,10 @@ public class CtoFormulaConverter {
     }
   }
 
+  /**
+   * Resolve enums and pointers to correctly sized integer types. For pointers, a signed type is
+   * returned, so make sure this is what you actually need.
+   */
   private CType handlePointerAndEnumAsInt(CType pType) {
     if (pType instanceof CBitFieldType type) {
       CType innerType = type.getType();
@@ -808,7 +806,7 @@ public class CtoFormulaConverter {
       return new CBitFieldType(normalizedInnerType, type.getBitFieldSize());
     }
     if (pType instanceof CPointerType) {
-      return machineModel.getPointerSizedIntType();
+      return machineModel.getPointerSizedSignedIntType();
     }
     if (pType instanceof CEnumType enumType) {
       return enumType.getCompatibleType();

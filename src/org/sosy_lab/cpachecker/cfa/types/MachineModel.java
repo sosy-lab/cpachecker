@@ -289,13 +289,26 @@ public enum MachineModel {
    * This method returns an integer type with the same size as pointers.
    *
    * <p>The returned type happens to be signed, but this should not be interpreted in any way as a
-   * statement that pointers are signed.
+   * statement that pointers are signed, and callers should not rely on it. Use {@link
+   * #getPointerSizedSignedIntType()} if you do.
    *
    * <p>Note that often using one of the other methods such as {@link #getPointerAsIntType()} is
    * recommended.
    */
   public CSimpleType getPointerSizedIntType() {
     // On our platforms, intptr_t has the same size as pointers.
+    return intptr_t;
+  }
+
+  /**
+   * This method returns a signed integer type with the same size as pointers.
+   *
+   * <p>Of course, pointers are not really signed, but GCC does sign extension when casting from a
+   * pointer to an int (https://gcc.gnu.org/onlinedocs/gcc/Arrays-and-pointers-implementation.html),
+   * so the returned type can be conveniently used in such cast calculations.
+   */
+  public CSimpleType getPointerSizedSignedIntType() {
+    // On our platforms, intptr_t has the same size as pointers. And it is signed.
     return intptr_t;
   }
 
