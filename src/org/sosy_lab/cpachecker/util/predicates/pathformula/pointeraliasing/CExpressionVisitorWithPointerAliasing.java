@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -1059,7 +1060,7 @@ class CExpressionVisitorWithPointerAliasing
     AssignmentHandler.AssignmentOptions assignmentOptions =
         new AssignmentOptions(false, AssignmentHandler.AssignmentConversionType.REINTERPRET);
     AssignmentHandler.ArraySliceAssignment sliceAssignment =
-        new AssignmentHandler.ArraySliceAssignment(lhs, rhs);
+        new AssignmentHandler.ArraySliceAssignment(lhs, Optional.of(rhs));
 
     BooleanFormula assignmentFormula =
         assignmentHandler.handleSliceAssignment(sliceAssignment, assignmentOptions);
@@ -1196,7 +1197,7 @@ class CExpressionVisitorWithPointerAliasing
     ArraySliceExpression rhsSlice = new ArraySliceExpression(actualSetValue);
 
     AssignmentHandler.ArraySliceAssignment sliceAssignment =
-        new AssignmentHandler.ArraySliceAssignment(lhsSlice, rhsSlice);
+        new AssignmentHandler.ArraySliceAssignment(lhsSlice, Optional.of(rhsSlice));
 
     assignments.add(sliceAssignment);
   }

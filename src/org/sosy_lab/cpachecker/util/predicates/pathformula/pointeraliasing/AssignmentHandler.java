@@ -309,15 +309,15 @@ class AssignmentHandler {
   private record ArraySlicePartSpan(long lhsBitOffset, long rhsBitOffset, long bitSize) {}
 
   private record SpanExpressionAndCType(
-      Optional<ArraySlicePartSpan> span, Expression expression, CType type) {}
+      Optional<ArraySlicePartSpan> span, Optional<ExpressionAndCType> expressionAndCType) {}
 
   private record ArraySliceSpanExpression(
-      Optional<ArraySlicePartSpan> span, ArraySliceExpression expression) {}
+      Optional<ArraySlicePartSpan> span, Optional<ArraySliceExpression> expression) {}
 
   private record ArraySliceSpanAssignment(
       ArraySliceExpression lhs, ImmutableList<ArraySliceSpanExpression> rhsList) {}
 
-  record ArraySliceAssignment(ArraySliceExpression lhs, ArraySliceExpression rhs) {}
+  record ArraySliceAssignment(ArraySliceExpression lhs, Optional<ArraySliceExpression> rhs) {}
 
   enum AssignmentConversionType {
     CAST,
@@ -335,9 +335,33 @@ class AssignmentHandler {
   BooleanFormula handleSliceAssignments(
       List<ArraySliceAssignment> assignments, final AssignmentOptions assignmentOptions)
       throws UnrecognizedCodeException, InterruptedException {
+
+    CSimpleType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
+
+    // apply Havoc abstraction: if the rhs is not already nondeterministic, Havoc abstraction
+    // is turned on and rhs is not relevant, make it nondeterministic
+    List<ArraySliceAssignment> appliedHavocAssignments = new ArrayList<>();
+    for (ArraySliceAssignment assignment : assignments) {
+      if (assignment.rhs.isEmpty()) {
+        appliedHavocAssignments.add(assignment);
+        continue;
+      }
+      // the Havoc relevant visitor does not care about the value of subscripts, we can
+      // just convert to dummy resolved expression and test with it
+      CExpression dummyResolvedRhs = assignment.rhs.get().getDummyResolvedExpression(sizeType);
+      if (conv.options.useHavocAbstraction()
+        && (!dummyResolvedRhs.accept(new IsRelevantWithHavocAbstractionVisitor(conv)))) {
+        // make rhs nondeterministic
+        appliedHavocAssignments.add(new ArraySliceAssignment(assignment.lhs, Optional.empty()));
+        continue;
+      }
+      appliedHavocAssignments.add(assignment);
+    }
+
     // resolve structures and arrays
     List<ArraySliceAssignment> simpleAssignments = new ArrayList<>();
 
+    // preprocess each assignment, if it should be considered, generate simple slice assignments
     for (ArraySliceAssignment assignment : assignments) {
       generateSimpleSliceAssignments(assignment, simpleAssignments);
     }
@@ -352,33 +376,26 @@ class AssignmentHandler {
     CSimpleType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
 
     CType lhsType = assignment.lhs.getResolvedExpressionType(sizeType);
-    CType rhsType = assignment.rhs.getResolvedExpressionType(sizeType);
 
     if (lhsType instanceof CCompositeType lhsCompositeType) {
-      // rhs should be of the same type
-      checkArgument(
-          lhsType.equals(rhsType),
-          "Assignment left-side composite type %s does not match right-side type %s",
-          lhsType,
-          rhsType);
       // add an assignment for each member
       for (CCompositeTypeMemberDeclaration member : lhsCompositeType.getMembers()) {
-        ArraySliceExpression memberLhs = assignment.lhs.withFieldAccess(member);
-        ArraySliceExpression memberRhs = assignment.rhs.withFieldAccess(member);
+        final ArraySliceExpression memberLhs = assignment.lhs.withFieldAccess(member);
+        Optional<ArraySliceExpression> memberRhs = Optional.empty();
+        if (assignment.rhs.isPresent()) {
+          memberRhs = Optional.of(assignment.rhs.get().withFieldAccess(member));
+        }
         ArraySliceAssignment memberAssignment = new ArraySliceAssignment(memberLhs, memberRhs);
         generateSimpleSliceAssignments(memberAssignment, simpleAssignments);
       }
     } else if (lhsType instanceof CArrayType lhsArrayType) {
-      // rhs should be of the same type
-      checkArgument(
-          lhsType.equals(rhsType),
-          "Assignment left-side array type %s does not match right-side type %s",
-          lhsType,
-          rhsType);
       // add an assignment of every element of array using a quantified variable
       ArraySliceIndexVariable indexVariable = new ArraySliceIndexVariable(lhsArrayType.getLength());
       ArraySliceExpression elementLhs = assignment.lhs.withIndex(indexVariable);
-      ArraySliceExpression elementRhs = assignment.rhs.withIndex(indexVariable);
+      Optional<ArraySliceExpression> elementRhs = Optional.empty();
+      if (assignment.rhs.isPresent()) {
+        elementRhs = Optional.of(assignment.rhs.get().withIndex(indexVariable));
+      }
       ArraySliceAssignment elementAssignment = new ArraySliceAssignment(elementLhs, elementRhs);
       generateSimpleSliceAssignments(elementAssignment, simpleAssignments);
     } else {
@@ -601,7 +618,9 @@ class AssignmentHandler {
       HashSet<ArraySliceIndexVariable> quantifierVariableSet = new LinkedHashSet<>();
       quantifierVariableSet.addAll(assignment.lhs.getUnresolvedIndexVariables());
       for (ArraySliceSpanExpression rhs : assignment.rhsList) {
-        quantifierVariableSet.addAll(rhs.expression.getUnresolvedIndexVariables());
+        if (!rhs.expression.isEmpty()) {
+          quantifierVariableSet.addAll(rhs.expression.get().getUnresolvedIndexVariables());
+        }
       }
       List<ArraySliceIndexVariable> quantifierVariables = new ArrayList<>(quantifierVariableSet);
 
@@ -649,7 +668,12 @@ class AssignmentHandler {
       ImmutableList.Builder<SpanExpressionAndCType> builder = ImmutableList.builder();
 
       for (ArraySliceSpanExpression rhs : assignment.rhsList) {
-        ArraySliceExpression rhsSlice = rhs.expression;
+        if (rhs.expression.isEmpty()) {
+          builder.add(
+              new SpanExpressionAndCType(rhs.span, Optional.empty()));
+          continue;
+        }
+        ArraySliceExpression rhsSlice = rhs.expression.get();
         while (!rhsSlice.isResolved()) {
           long unrolledIndex = unrolledVariables.get(rhsSlice.getFirstIndex());
           rhsSlice = rhsSlice.resolveFirstIndex(sizeType, unrolledIndex);
@@ -657,7 +681,9 @@ class AssignmentHandler {
         CExpression rhsBase = rhsSlice.getResolvedExpression();
         Expression rhsExpression = rhsBase.accept(visitor);
         builder.add(
-            new SpanExpressionAndCType(rhs.span, rhsExpression, rhsBase.getExpressionType()));
+            new SpanExpressionAndCType(
+                rhs.span,
+                Optional.of(new ExpressionAndCType(rhsExpression, rhsBase.getExpressionType()))));
       }
 
       return makeSliceAssignment(
@@ -757,7 +783,9 @@ class AssignmentHandler {
     for (ArraySliceSpanAssignment assignment : assignments) {
       indexVariableSet.addAll(assignment.lhs().getUnresolvedIndexVariables());
       for (ArraySliceSpanExpression rhs : assignment.rhsList) {
-        indexVariableSet.addAll(rhs.expression.getUnresolvedIndexVariables());
+        if (rhs.expression.isPresent()) {
+          indexVariableSet.addAll(rhs.expression.get().getUnresolvedIndexVariables());
+        }
       }
     }
 
@@ -829,8 +857,12 @@ class AssignmentHandler {
 
       ImmutableList.Builder<SpanExpressionAndCType> builder = ImmutableList.builder();
       for (ArraySliceSpanExpression rhs : assignment.rhsList) {
+        if (rhs.expression.isEmpty()) {
+          builder.add(new SpanExpressionAndCType(rhs.span, Optional.empty()));
+          continue;
+        }
         ExpressionAndCType rhsResolved =
-            resolveSliceExpression(rhs.expression, quantifiedVariableFormulaMap, visitor);
+            resolveSliceExpression(rhs.expression.get(), quantifiedVariableFormulaMap, visitor);
 
         if (rhsResolved == null) {
           // TODO: only used for ignoring assignments to bit-fields which should be handled properly
@@ -838,7 +870,7 @@ class AssignmentHandler {
           continue;
         }
 
-        builder.add(new SpanExpressionAndCType(rhs.span, rhsResolved.expression, rhsResolved.type));
+        builder.add(new SpanExpressionAndCType(rhs.span, Optional.of(new ExpressionAndCType(rhsResolved.expression, rhsResolved.type))));
       }
 
       // TODO: add updatedRegions handling for UF
@@ -911,26 +943,40 @@ class AssignmentHandler {
     if (firstRhs.span.isEmpty()) {
       verify(rhsList.size() == 1);
       // normal assignment
-      // convert normally
-      rhsResult =
+      if (firstRhs.expressionAndCType.isPresent()) {
+        // convert normally
+        ExpressionAndCType rhsExpressionAndCType = firstRhs.expressionAndCType.get();
+        rhsResult =
           convertRhsExpression(
               assignmentOptions.conversionType,
               lhsResolved,
-              new ExpressionAndCType(firstRhs.expression, firstRhs.type));
+              new ExpressionAndCType(rhsExpressionAndCType.expression, rhsExpressionAndCType.type));
+      } else {
+        // nondet value
+        rhsResult = Value.nondetValue();
+      }
+
+
     } else {
       // TODO: float handling is somewhat wonky
       // put together the rhs expressions from spans
 
       long lhsBitSize = typeHandler.getBitSizeof(lhsResolved.type);
       Formula wholeRhsFormula = null;
+      boolean forceNondet = false;
       for (SpanExpressionAndCType rhs : rhsList) {
-        ExpressionAndCType rhsResolved = new ExpressionAndCType(rhs.expression, rhs.type);
+        if (rhs.expressionAndCType.isEmpty()) {
+          // we will force the whole value to be set to be nondet if even just one span expression is nondet
+          forceNondet = true;
+          break;
+        }
+        ExpressionAndCType rhsResolved = rhs.expressionAndCType.get();
         Formula convertedRhsFormula =
-            getValueFormula(rhs.type, rhsResolved.expression).orElseThrow();
+            getValueFormula(rhsResolved.type, rhsResolved.expression).orElseThrow();
         /// reinterpret to integer version of rhs type
         Formula reinterpretedRhsFormula =
             conv.makeValueReinterpretation(
-                rhs.type, getIntegerTypeReinterpretation(rhs.type), convertedRhsFormula);
+                rhsResolved.type, getIntegerTypeReinterpretation(rhsResolved.type), convertedRhsFormula);
         if (reinterpretedRhsFormula != null) {
           convertedRhsFormula = reinterpretedRhsFormula;
         }
@@ -962,14 +1008,19 @@ class AssignmentHandler {
         }
       }
 
-      // reinterpret to LHS type
-      Formula reinterpretedWholeRhsFormula =
-          conv.makeValueReinterpretation(
-              getIntegerTypeReinterpretation(lhsResolved.type), lhsResolved.type, wholeRhsFormula);
-      if (reinterpretedWholeRhsFormula != null) {
-        wholeRhsFormula = reinterpretedWholeRhsFormula;
+      if (forceNondet) {
+        // force RHS result to be nondeterministic
+        rhsResult = Value.nondetValue();
+      } else {
+        // reinterpret to LHS type
+        Formula reinterpretedWholeRhsFormula =
+            conv.makeValueReinterpretation(
+                getIntegerTypeReinterpretation(lhsResolved.type), lhsResolved.type, wholeRhsFormula);
+        if (reinterpretedWholeRhsFormula != null) {
+          wholeRhsFormula = reinterpretedWholeRhsFormula;
+        }
+        rhsResult = Value.ofValue(wholeRhsFormula);
       }
-      rhsResult = Value.ofValue(wholeRhsFormula);
     }
 
     return makeSimpleDestructiveAssignment(
