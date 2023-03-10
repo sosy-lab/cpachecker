@@ -37,6 +37,7 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -641,6 +642,10 @@ class AssignmentHandler {
                     new ExpressionAndCType(
                         rhsExpression, typeHandler.getSimplifiedType(rhsBase)))));
       }
+      boolean a = false;
+      if (!lhsVisited.expression().isAliasedLocation()) {
+        a = true;
+      }
 
       return makeSliceAssignment(
           lhsVisited, builder.build(), assignmentOptions, nullToTrue(condition), false);
@@ -887,6 +892,16 @@ class AssignmentHandler {
       boolean useQuantifiers)
       throws UnrecognizedCodeException {
 
+    if (lhsResolved.expression.isNondetValue()) {
+      // only because of CExpressionVisitorWithPointerAliasing.visit(CFieldReference)
+      conv.logger.logfOnce(
+          Level.WARNING,
+          "%s: Ignoring assignment to %s because bit fields are currently not fully supported",
+          edge.getFileLocation(),
+          lhsResolved.type);
+      return bfmgr.makeTrue();
+    }
+
     if (rhsList.isEmpty()) {
       // nothing to do
       return bfmgr.makeTrue();
@@ -926,6 +941,7 @@ class AssignmentHandler {
           forceNondet = true;
           break;
         }
+
         ExpressionAndCType rhsResolved = rhs.expressionAndCType.get();
         Formula convertedRhsFormula =
             getValueFormula(rhsResolved.type, rhsResolved.expression).orElseThrow();
