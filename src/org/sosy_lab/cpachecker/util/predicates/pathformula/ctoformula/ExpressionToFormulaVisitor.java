@@ -162,11 +162,10 @@ public class ExpressionToFormulaVisitor
     final boolean signed;
     if (calculationType instanceof CSimpleType) {
       signed = conv.machineModel.isSigned((CSimpleType) calculationType);
-    } else if (calculationType instanceof CPointerType) {
-      // Happens only for additions/subtractions (for which signedness is irrelevant) and
-      // comparisons. GCC implements pointer comparisons as unsigned.
-      signed = false;
     } else {
+      // For pointers: happens only for additions/subtractions (for which signedness is irrelevant)
+      // and comparisons. GCC implements pointer comparisons as unsigned.
+      // For other types like structs signedness should be irrelevant as well.
       signed = false;
     }
 
