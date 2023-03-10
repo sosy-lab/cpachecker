@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
@@ -215,12 +216,10 @@ final class TransformableArray {
   }
 
   private static ImmutableSet<CDeclarationEdge> findArrayDeclarationEdges(CFA pCfa) {
-
-    return CFAUtils.allEdges(pCfa).stream()
-        .filter(edge -> edge instanceof CDeclarationEdge)
-        .map(edge -> (CDeclarationEdge) edge)
+    return FluentIterable.from(pCfa.edges())
+        .filter(CDeclarationEdge.class)
         .filter(TransformableArray::isArrayDeclarationEdge)
-        .collect(ImmutableSet.toImmutableSet());
+        .toSet();
   }
 
   private static boolean isRelevantArrayAccessOfArray(
