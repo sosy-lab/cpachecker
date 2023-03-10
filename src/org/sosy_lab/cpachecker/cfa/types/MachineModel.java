@@ -216,7 +216,8 @@ public enum MachineModel {
 
   // a char is always a byte, but a byte doesn't have to be 8 bits
   private final int mSizeofCharInBits = 8;
-  private final CSimpleType ptrEquivalent;
+  private final CSimpleType intptr_t;
+  private final CSimpleType uintptr_t;
 
   MachineModel(
       int pSizeofShort,
@@ -268,20 +269,54 @@ public enum MachineModel {
     endianness = pEndianness;
 
     if (sizeofPtr == sizeofInt) {
-      ptrEquivalent = CNumericTypes.INT;
+      intptr_t = CNumericTypes.INT;
+      uintptr_t = CNumericTypes.UNSIGNED_INT;
     } else if (sizeofPtr == sizeofLongInt) {
-      ptrEquivalent = CNumericTypes.LONG_INT;
+      intptr_t = CNumericTypes.LONG_INT;
+      uintptr_t = CNumericTypes.UNSIGNED_LONG_INT;
     } else if (sizeofPtr == sizeofLongLongInt) {
-      ptrEquivalent = CNumericTypes.LONG_LONG_INT;
+      intptr_t = CNumericTypes.LONG_LONG_INT;
+      uintptr_t = CNumericTypes.UNSIGNED_LONG_LONG_INT;
     } else if (sizeofPtr == sizeofShort) {
-      ptrEquivalent = CNumericTypes.SHORT_INT;
+      intptr_t = CNumericTypes.SHORT_INT;
+      uintptr_t = CNumericTypes.UNSIGNED_SHORT_INT;
     } else {
       throw new AssertionError("No ptr-Equivalent found");
     }
   }
 
+  /**
+   * This method returns an integer type with the same size as pointers.
+   *
+   * <p>The returned type happens to be signed, but this should not be interpreted in any way as a
+   * statement that pointers are signed.
+   *
+   * <p>Note that often using one of the other methods such as {@link #getPointerAsIntType()} is
+   * recommended.
+   */
   public CSimpleType getPointerEquivalentSimpleType() {
-    return ptrEquivalent;
+    // On our platforms, intptr_t has the same size as pointers.
+    return intptr_t;
+  }
+
+  /**
+   * This method returns the <code>intptr_t</code> type, a signed integer type capable of
+   * representing all pointer values.
+   *
+   * <p>Note that this does not guarantee that its size is the same as the size of a pointer.
+   */
+  public CSimpleType getPointerAsIntType() {
+    return intptr_t;
+  }
+
+  /**
+   * This method returns the <code>uintptr_t</code> type, an unsigned integer type capable of
+   * representing all pointer values.
+   *
+   * <p>Note that this does not guarantee that its size is the same as the size of a pointer.
+   */
+  public CSimpleType getPointerAsUnsignedIntType() {
+    return uintptr_t;
   }
 
   /**
@@ -294,9 +329,26 @@ public enum MachineModel {
    * and its type (a signed integer type) is <code>ptrdiff_t</code> defined in the stddef.h-header.
    */
   public CSimpleType getPointerDiffType() {
-    // ptrEquivalent should not be unsigned, so canonical type is always signed
-    assert !ptrEquivalent.isUnsigned();
-    return ptrEquivalent.getCanonicalType();
+    // On our platforms, intptr_t and ptrdiff_t are the same.
+    return intptr_t.getCanonicalType();
+  }
+
+  /**
+   * This method returns the <code>size_t</code> type. This is an unsigned integer type capable of
+   * representing allocation sizes.
+   */
+  public CSimpleType getSizeType() {
+    // On our platforms, uintptr_t and size_t are the same.
+    return uintptr_t;
+  }
+
+  /**
+   * This method returns the <code>ssize_t</code> type. This is an signed integer type capable of
+   * representing allocation sizes and -1.
+   */
+  public CSimpleType getSignedSizeType() {
+    // On our platforms, intptr_t and ssize_t are the same.
+    return intptr_t;
   }
 
   /**
