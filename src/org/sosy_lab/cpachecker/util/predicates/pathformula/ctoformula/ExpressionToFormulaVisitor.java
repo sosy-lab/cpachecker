@@ -163,10 +163,9 @@ public class ExpressionToFormulaVisitor
     if (calculationType instanceof CSimpleType) {
       signed = conv.machineModel.isSigned((CSimpleType) calculationType);
     } else if (calculationType instanceof CPointerType) {
-      // pointers can also be signed if the machine model represents them using a signed type:
-      // TODO This doesn't really make sense, the machine model does not declare pointers as signed.
-      // Check why this was added and remove it.
-      signed = conv.machineModel.getPointerSizedIntType().getCanonicalType().isSigned();
+      // Happens only for additions/subtractions (for which signedness is irrelevant) and
+      // comparisons. GCC implements pointer comparisons as unsigned.
+      signed = false;
     } else {
       signed = false;
     }
