@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
@@ -86,11 +85,6 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
   }
 
   @Override
-  public boolean isEmpty() {
-    return functions.isEmpty();
-  }
-
-  @Override
   public int getNumberOfFunctions() {
     return functions.size();
   }
@@ -101,11 +95,6 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
   }
 
   @Override
-  public ImmutableCollection<FunctionEntryNode> getAllFunctionHeads() {
-    return functions.values();
-  }
-
-  @Override
   public FunctionEntryNode getFunctionHead(String name) {
     return functions.get(name);
   }
@@ -113,11 +102,6 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
   @Override
   public ImmutableSortedMap<String, FunctionEntryNode> getAllFunctions() {
     return functions;
-  }
-
-  @Override
-  public ImmutableSortedSet<CFANode> getAllNodes() {
-    return allNodes;
   }
 
   @Override

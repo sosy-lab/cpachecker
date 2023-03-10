@@ -11,9 +11,9 @@ package org.sosy_lab.cpachecker.cpa.testtargets;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.time.Timer;
@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -71,10 +70,7 @@ public class TestTargetProvider implements Statistics {
 
   private Set<CFAEdge> extractEdgesByCriterion(
       final Predicate<CFAEdge> criterion, final TestTargetAdaption pAdaption, final CFA pCfa) {
-    Set<CFAEdge> edges = new HashSet<>();
-    for (CFANode node : cfa.getAllNodes()) {
-      edges.addAll(CFAUtils.allLeavingEdges(node).filter(criterion).toSet());
-    }
+    Set<CFAEdge> edges = Sets.newLinkedHashSet(CFAUtils.allEdges(pCfa).filter(criterion));
 
     numNonOptimizedTargets = edges.size();
 

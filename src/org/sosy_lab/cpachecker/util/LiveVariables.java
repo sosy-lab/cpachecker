@@ -469,7 +469,7 @@ public class LiveVariables {
     // put all FunctionExitNodes into the waitlist
     final Collection<FunctionEntryNode> functionHeads =
         switch (evaluationStrategy) {
-          case FUNCTION_WISE -> pCfa.getAllFunctionHeads();
+          case FUNCTION_WISE -> pCfa.entryNodes();
           case GLOBAL -> Collections.singleton(pCfa.getMainFunction());
         };
     for (FunctionEntryNode node : functionHeads) {

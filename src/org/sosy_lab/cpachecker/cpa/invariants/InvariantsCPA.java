@@ -324,7 +324,7 @@ public class InvariantsCPA
     if (options.analyzeTargetPathsOnly && determineTargetLocations) {
       relevantLocations.addAll(targetLocations);
     } else {
-      relevantLocations.addAll(cfa.getAllNodes());
+      relevantLocations.addAll(cfa.nodes());
     }
 
     // Collect relevant edges and guess that information might be interesting

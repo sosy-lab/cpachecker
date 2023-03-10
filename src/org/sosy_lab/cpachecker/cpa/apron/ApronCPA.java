@@ -281,7 +281,7 @@ public final class ApronCPA implements ProofCheckerCPA, StatisticsProvider {
 
   private Map<Integer, CFANode> createMappingForCFANodes(CFA pCfa) {
     Map<Integer, CFANode> idToNodeMap = new HashMap<>();
-    for (CFANode n : pCfa.getAllNodes()) {
+    for (CFANode n : pCfa.nodes()) {
       idToNodeMap.put(n.getNodeNumber(), n);
     }
     return idToNodeMap;

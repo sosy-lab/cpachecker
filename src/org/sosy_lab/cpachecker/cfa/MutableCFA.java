@@ -14,7 +14,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.TreeMultimap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
@@ -124,11 +123,6 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
   }
 
   @Override
-  public boolean isEmpty() {
-    return functions.isEmpty();
-  }
-
-  @Override
   public int getNumberOfFunctions() {
     return functions.size();
   }
@@ -136,11 +130,6 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
   @Override
   public NavigableSet<String> getAllFunctionNames() {
     return Collections.unmodifiableNavigableSet(functions.navigableKeySet());
-  }
-
-  @Override
-  public Collection<FunctionEntryNode> getAllFunctionHeads() {
-    return Collections.unmodifiableCollection(functions.values());
   }
 
   @Override
@@ -155,11 +144,6 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
 
   public NavigableSet<CFANode> getFunctionNodes(String pName) {
     return Collections.unmodifiableNavigableSet(allNodes.get(pName));
-  }
-
-  @Override
-  public Collection<CFANode> getAllNodes() {
-    return Collections.unmodifiableCollection(allNodes.values());
   }
 
   public void setLoopStructure(LoopStructure pLoopStructure) {
