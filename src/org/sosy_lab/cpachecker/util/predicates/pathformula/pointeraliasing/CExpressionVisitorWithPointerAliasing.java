@@ -1076,11 +1076,26 @@ class CExpressionVisitorWithPointerAliasing
     ArraySliceIndexVariable sliceIndex = new ArraySliceIndexVariable(sizeInElements);
     ArraySliceExpression slice = new ArraySliceExpression(destination).withIndex(sliceIndex);
 
-    performMemsetAssignment(e, slice, setValue);
+    List<AssignmentHandler.ArraySliceAssignment> assignments = new ArrayList<>();
+    generateMemsetAssignments(e, slice, setValue, assignments);
+
+    // reinterpret instead of casting in assignment to properly handle memset of floats
+    AssignmentHandler assignmentHandler =
+        new AssignmentHandler(
+            conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
+    AssignmentHandler.AssignmentOptions assignmentOptions =
+        new AssignmentOptions(false, AssignmentHandler.AssignmentConversionType.REINTERPRET);
+    BooleanFormula assignmentFormula =
+        assignmentHandler.handleSliceAssignments(assignments, assignmentOptions);
+
+    constraints.addConstraint(assignmentFormula);
   }
 
-  private void performMemsetAssignment(
-      final CFunctionCallExpression e, final ArraySliceExpression lhsSlice, final CExpression setValue)
+  private void generateMemsetAssignments(
+      final CFunctionCallExpression e,
+      final ArraySliceExpression lhsSlice,
+      final CExpression setValue,
+      List<AssignmentHandler.ArraySliceAssignment> assignments)
       throws UnrecognizedCodeException, InterruptedException {
 
     CType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
@@ -1099,7 +1114,7 @@ class CExpressionVisitorWithPointerAliasing
 
       ArraySliceIndexVariable arrayIndex = new ArraySliceIndexVariable(length);
       ArraySliceExpression newSlice = lhsSlice.withIndex(arrayIndex);
-      performMemsetAssignment(e, newSlice, setValue);
+      generateMemsetAssignments(e, newSlice, setValue, assignments);
 
       return;
     }
@@ -1111,7 +1126,7 @@ class CExpressionVisitorWithPointerAliasing
 
       for (CCompositeTypeMemberDeclaration member : compositeUnderlyingType.getMembers()) {
         ArraySliceExpression newSlice = lhsSlice.withFieldAccess(member);
-        performMemsetAssignment(e, newSlice, setValue);
+        generateMemsetAssignments(e, newSlice, setValue, assignments);
       }
       return;
     }
@@ -1180,25 +1195,10 @@ class CExpressionVisitorWithPointerAliasing
     // wrap the actualSetValue in ArraySliceExpression, there is no indexing of rhs
     ArraySliceExpression rhsSlice = new ArraySliceExpression(actualSetValue);
 
-    // reinterpret instead of casting in assignment to properly handle memset of floats
-    AssignmentHandler assignmentHandler =
-        new AssignmentHandler(
-            conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
-
-    // BooleanFormula assignmentFormula =
-    //    assignmentHandler.handleSliceAssignment(slice, rhs, true, conv.bfmgr.makeTrue());
-
-    // TODO: get slice expressions together
-    AssignmentHandler.AssignmentOptions assignmentOptions =
-        new AssignmentOptions(false, AssignmentHandler.AssignmentConversionType.REINTERPRET);
     AssignmentHandler.ArraySliceAssignment sliceAssignment =
         new AssignmentHandler.ArraySliceAssignment(lhsSlice, rhsSlice);
 
-    BooleanFormula assignmentFormula =
-        assignmentHandler.handleSimpleSliceAssignments(
-            ImmutableList.of(sliceAssignment), assignmentOptions);
-
-    constraints.addConstraint(assignmentFormula);
+    assignments.add(sliceAssignment);
   }
 
   private CExpression createSetValueExpression(

@@ -12,7 +12,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Iterables;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -36,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 final class ArraySliceExpression {
 
   /**
-   * A helper record for indexing by quantified variables, standing for an index {@code i} which can
+   * A helper class for indexing by quantified variables, standing for an index {@code i} which can
    * take values from {@code 0 <= i < size}. Indexing the left-hand side and right-hand side by the
    * same index will result in them sharing the same quantifier (or quantifier replacement).
    *
@@ -44,8 +46,22 @@ final class ArraySliceExpression {
    * ArraySliceSubscriptModifier} should point to the same {@code ArraySliceIndex}. Otherwise, it
    * would mean {@code a[i] = b[j]} where {@code i} and {@code j} are different quantified
    * variables.
+   *
+   * <p>This is a class and not a record as records override equals to provide equality between
+   * objects with equal fields. Here, an instance of the index stands for a unique quantified
+   * variable.
    */
-  record ArraySliceIndexVariable(CExpression size) {}
+  static class ArraySliceIndexVariable {
+    private final CExpression size;
+
+    ArraySliceIndexVariable(CExpression pSize) {
+      size = pSize;
+    }
+
+    CExpression getSize() {
+      return size;
+    }
+  }
 
   /**
    * The base CExpression can be modified by multiple modifiers, which are either field access,
@@ -81,6 +97,10 @@ final class ArraySliceExpression {
     modifiers = checkNotNull(pModifiers);
   }
 
+  static ArraySliceExpression fromSplit(ArraySliceSplitExpression split) {
+    return split.head().withFieldAccesses(split.tail.list);
+  }
+
   /**
    * Return a new {@code ArraySliceExpression} with access of the specified field as the last
    * modifier.
@@ -105,6 +125,15 @@ final class ArraySliceExpression {
             .add(new ArraySliceFieldAccessModifier(field))
             .build();
     return new ArraySliceExpression(base, newModifiers);
+  }
+
+  ArraySliceExpression withFieldAccesses(ImmutableList<CCompositeTypeMemberDeclaration> fields) {
+    // TODO: make the list version basic
+    ArraySliceExpression result = this;
+    for (CCompositeTypeMemberDeclaration field : fields) {
+      result = result.withFieldAccess(field);
+    }
+    return result;
   }
 
   /**
@@ -225,15 +254,61 @@ final class ArraySliceExpression {
     return base;
   }
 
+  record ArraySliceTail(ImmutableList<CCompositeTypeMemberDeclaration> list) {}
+
+  record ArraySliceSplitExpression(ArraySliceExpression head, ArraySliceTail tail) {}
+
+  ArraySliceSplitExpression getSplit() {
+    Builder<CCompositeTypeMemberDeclaration> builder =
+        ImmutableList.<CCompositeTypeMemberDeclaration>builder();
+    if (isResolved()) {
+      // resolved, extract the trailing field accesses from the base expression
+      CExpression current = base;
+      while (current instanceof CFieldReference currentField) {
+        builder.add(
+            new CCompositeTypeMemberDeclaration(
+                currentField.getExpressionType(), currentField.getFieldName()));
+        current = currentField.getFieldOwner();
+      }
+      return new ArraySliceSplitExpression(
+          new ArraySliceExpression(base), new ArraySliceTail(builder.build()));
+    }
+    // not resolved, extract the trailing field accesses from modifiers
+    boolean previousWasField = false;
+    int index = 0;
+    int firstTrailingIndex = modifiers.size();
+    for (ArraySliceModifier modifier : modifiers) {
+      boolean isField = modifier instanceof ArraySliceFieldAccessModifier;
+
+      if (isField && !previousWasField) {
+        firstTrailingIndex = index;
+      }
+      previousWasField = isField;
+      ++index;
+    }
+    // the new modifiers will be in sublist from start inclusive to first trailing index exclusive
+    ImmutableList<ArraySliceModifier> newModifiers = modifiers.subList(0, firstTrailingIndex);
+
+    // the trailing field accesses will be in sublist from first trailing index inclusive to end of
+    // the list exclusive
+    ImmutableList<ArraySliceModifier> trailingList =
+        modifiers.subList(firstTrailingIndex, modifiers.size());
+    for (ArraySliceModifier trailing : trailingList) {
+      builder.add(((ArraySliceFieldAccessModifier) trailing).field);
+    }
+
+    return new ArraySliceSplitExpression(
+        new ArraySliceExpression(base, newModifiers), new ArraySliceTail(builder.build()));
+  }
+
   /**
-   * Returns the canonical type of fully resolved expression. Use {@code
-   * getBaseExpression().getExpressionType().getCanonicalType()} instead if you want the type of the
-   * base which may be still unresolved.
+   * Returns a dummy-resolved expression where each unresolved index is replaced with a zero
+   * literal.
    *
    * @param sizeType Machine pointer-equivalent size type
-   * @return The canonical type of expression after it is resolved
+   * @return Dummy-resolved expression.
    */
-  CType getResolvedExpressionType(CType sizeType) {
+  CExpression getDummyResolvedExpression(CType sizeType) {
     checkNotNull(sizeType);
     // resolve the expression with dummy zero indices to get the type
     CExpression resolved = base;
@@ -260,7 +335,19 @@ final class ArraySliceExpression {
                 FileLocation.DUMMY, underlyingType, resolved, indexLiteral);
       }
     }
-    return resolved.getExpressionType().getCanonicalType();
+    return resolved;
+  }
+
+  /**
+   * Returns the canonical type of fully resolved expression. Use {@code
+   * getBaseExpression().getExpressionType().getCanonicalType()} instead if you want the type of the
+   * base which may be still unresolved.
+   *
+   * @param sizeType Machine pointer-equivalent size type
+   * @return The canonical type of expression after it is resolved
+   */
+  CType getResolvedExpressionType(CType sizeType) {
+    return getDummyResolvedExpression(sizeType).getExpressionType().getCanonicalType();
   }
 
   /**
@@ -282,11 +369,6 @@ final class ArraySliceExpression {
     return modifiers;
   }
 
-  @Override
-  public String toString() {
-    return "ArraySliceExpression [base=" + base + ", modifiers=" + modifiers + "]";
-  }
-
   ImmutableList<ArraySliceIndexVariable> getUnresolvedIndexVariables() {
     ImmutableList.Builder<ArraySliceIndexVariable> builder = ImmutableList.builder();
     for (ArraySliceModifier modifier : modifiers) {
@@ -295,5 +377,30 @@ final class ArraySliceExpression {
       }
     }
     return builder.build();
+  }
+
+  @Override
+  public String toString() {
+    return "ArraySliceExpression [base=" + base + ", modifiers=" + modifiers + "]";
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(base, modifiers);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    ArraySliceExpression other = (ArraySliceExpression) obj;
+    return Objects.equals(base, other.base) && Objects.equals(modifiers, other.modifiers);
   }
 }
