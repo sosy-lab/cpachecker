@@ -300,7 +300,7 @@ class AssignmentHandler {
             (CLeftHandSide) lhsDummy,
             (CRightHandSide) rhsDummy,
             rhsExpression,
-            lhsDummy.getExpressionType(),
+            lhsDummy.getExpressionType().getCanonicalType(),
             lhsLearnedPointerTypes,
             rhsLearnedPointerTypes);
       }
@@ -533,7 +533,7 @@ class AssignmentHandler {
     }
 
     CCompositeTypeMemberDeclaration lastAccess = trailing.list().get(trailing.list().size() - 1);
-    CType lastType = lastAccess.getType();
+    CType lastType = lastAccess.getType().getCanonicalType();
 
     if (lastType instanceof CCompositeType lastCompositeType) {
       // add an assignment for each member
@@ -610,7 +610,7 @@ class AssignmentHandler {
       CExpression lhsBase = lhs.getResolvedExpression();
       Expression lhsExpression = lhsBase.accept(visitor);
       ExpressionAndCType lhsVisited =
-          new ExpressionAndCType(lhsExpression, lhsBase.getExpressionType());
+          new ExpressionAndCType(lhsExpression, lhsBase.getExpressionType().getCanonicalType());
 
       ImmutableList.Builder<SpanExpressionAndCType> builder = ImmutableList.builder();
 
@@ -630,7 +630,9 @@ class AssignmentHandler {
         builder.add(
             new SpanExpressionAndCType(
                 rhs.span,
-                Optional.of(new ExpressionAndCType(rhsExpression, rhsBase.getExpressionType()))));
+                Optional.of(
+                    new ExpressionAndCType(
+                        rhsExpression, rhsBase.getExpressionType().getCanonicalType()))));
       }
 
       return makeSliceAssignment(
@@ -1023,7 +1025,7 @@ class AssignmentHandler {
     // TODO: handle UF field marking properly in this method
 
     CExpression baseCExpression = sliceExpression.getBaseExpression();
-    CType baseType = baseCExpression.getExpressionType();
+    CType baseType = baseCExpression.getExpressionType().getCanonicalType();
 
     // convert the base from C expression to SMT expression
     Expression baseExpression = baseCExpression.accept(visitor);
@@ -1084,7 +1086,7 @@ class AssignmentHandler {
     // the base type must be a composite type to have fields
     CCompositeType baseType = (CCompositeType) base.type;
     final String fieldName = modifier.field().getName();
-    CType fieldType = modifier.field().getType();
+    CType fieldType = modifier.field().getType().getCanonicalType();
 
     // we will increase the base address by field offset
 
