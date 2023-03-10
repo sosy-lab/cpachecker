@@ -93,11 +93,40 @@ import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
+import org.sosy_lab.cpachecker.cpa.value.PredicateToValuePrecisionConverter;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import java.nio.file.Path;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
+import com.google.common.collect.HashMultimap;
+import java.nio.file.Files;
+import java.nio.charset.Charset;
+import java.io.IOException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import java.util.regex.Matcher;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+
+
+
 /**
  * Instances of this class are used to prove the safety of a program by applying an inductive
  * approach based on k-induction.
  */
+@Options(prefix = "kinduction")
 class KInductionProver implements AutoCloseable {
+
+  @Option(secure = true, description = "get an initial precision from file", name = "precision.file")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path initialPrecisionFile = null;
+
+  @Option(secure = true, description = "get an initial precision from a predicate precision file", name = "predicatePrecision.file")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path initialPredicatePrecisionFile = null;
 
   private final CFA cfa;
 
@@ -138,10 +167,17 @@ class KInductionProver implements AutoCloseable {
 
   private boolean invariantGenerationRunning = true;
 
+  private final PredicateToValuePrecisionConverter predToValPrec;
+  private final Configuration config;
+  private VariableTrackingPrecision precision;
+  private PredicateCPA stepCasePredicateCPA;
+  private boolean refineablePrecisionSet = false;
+
   /** Creates an instance of the KInductionProver. */
   public KInductionProver(
       CFA pCFA,
       LogManager pLogger,
+      Configuration pConfig,
       Algorithm pAlgorithm,
       ConfigurableProgramAnalysis pCPA,
       InvariantGenerator pInvariantGenerator,
@@ -149,9 +185,10 @@ class KInductionProver implements AutoCloseable {
       ReachedSetFactory pReachedSetFactory,
       ShutdownNotifier pShutdownNotifier,
       Set<CFANode> pLoopHeads,
-      boolean pUnsatCoreGeneration) {
+      boolean pUnsatCoreGeneration) throws InvalidConfigurationException {
     cfa = checkNotNull(pCFA);
     logger = checkNotNull(pLogger);
+    config = checkNotNull(pConfig);
     algorithm = checkNotNull(pAlgorithm);
     cpa = checkNotNull(pCPA);
     invariantGenerator = checkNotNull(pInvariantGenerator);
@@ -163,7 +200,8 @@ class KInductionProver implements AutoCloseable {
             algorithm, cpa, pLoopHeads, reachedSetFactory.create(cpa), this::ensureK);
 
     @SuppressWarnings("resource")
-    PredicateCPA stepCasePredicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
+    PredicateCPA cp = CPAs.retrieveCPA(cpa, PredicateCPA.class); //TODO: Clean up
+    stepCasePredicateCPA = cp;
     if (pUnsatCoreGeneration) {
       prover =
           new ProverEnvironmentWithFallback(
@@ -184,6 +222,10 @@ class KInductionProver implements AutoCloseable {
     expressionTreeSupplier = ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
 
     loopHeads = ImmutableSet.copyOf(pLoopHeads);
+
+    predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
+
+    precision = initializePrecision(config, cfa);
   }
 
   private InvariantSupplier getCurrentInvariantSupplier() throws InterruptedException {
@@ -889,4 +931,92 @@ class KInductionProver implements AutoCloseable {
       return TraversalProcess.CONTINUE;
     }
   }
+
+  private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa)
+      throws InvalidConfigurationException {
+    if (initialPrecisionFile == null && initialPredicatePrecisionFile == null) {
+      return VariableTrackingPrecision.createStaticPrecision(
+          pConfig, pCfa.getVarClassification(), stepCasePredicateCPA.getClass());
+    }
+
+    // Initialize precision
+    VariableTrackingPrecision initialPrecision =
+        VariableTrackingPrecision.createRefineablePrecision(
+            pConfig,
+            VariableTrackingPrecision.createStaticPrecision(
+                pConfig, pCfa.getVarClassification(), stepCasePredicateCPA.getClass()));
+
+    if (initialPredicatePrecisionFile != null) {
+
+      // convert the predicate precision to variable tracking precision and
+      // refine precision with increment from the newly gained variable tracking precision
+      // otherwise return empty precision if given predicate precision is empty
+
+      initialPrecision =
+          initialPrecision.withIncrement(
+              predToValPrec.convertPredPrecToVariableTrackingPrec(initialPredicatePrecisionFile));
+    }
+    if (initialPrecisionFile != null) {
+      // create precision with empty, refinable component precision
+      // refine the refinable component precision with increment from file
+      initialPrecision = initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
+    }
+
+    return initialPrecision;
+  }
+
+  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA pCfa) {
+    Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
+    List<String> contents = null;
+    try {
+      contents = Files.readAllLines(initialPrecisionFile, Charset.defaultCharset());
+    } catch (IOException e) {
+      logger.logUserException(
+          Level.WARNING, e, "Could not read precision from file named " + initialPrecisionFile);
+      return mapping;
+    }
+
+    Map<Integer, CFANode> idToCfaNode = CFAUtils.getMappingFromNodeIDsToCFANodes(pCfa);
+
+    CFANode location = getDefaultLocation(idToCfaNode);
+    for (String currentLine : contents) {
+      if (currentLine.trim().isEmpty()) {
+        continue;
+
+      } else if (currentLine.endsWith(":")) {
+        String scopeSelectors = currentLine.substring(0, currentLine.indexOf(":"));
+        Matcher matcher = CFAUtils.CFA_NODE_NAME_PATTERN.matcher(scopeSelectors);
+        if (matcher.matches()) {
+          location = idToCfaNode.get(Integer.parseInt(matcher.group(1)));
+        }
+
+      } else {
+        mapping.put(location, MemoryLocation.parseExtendedQualifiedName(currentLine));
+      }
+    }
+
+    return mapping;
+  }
+
+  private CFANode getDefaultLocation(Map<Integer, CFANode> idToCfaNode) {
+    return idToCfaNode.values().iterator().next();
+  }
+
+  public void injectRefinablePrecision() throws InvalidConfigurationException {
+
+    // replace the full precision with an empty, refinable precision
+    if (initialPrecisionFile == null
+        && initialPredicatePrecisionFile == null
+        && !refineablePrecisionSet) {
+      precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
+      refineablePrecisionSet = true;
+    }
+  }
+
+  //@Override
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
+    return precision;
+  }
+
+  
 }

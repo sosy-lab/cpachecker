@@ -1001,11 +1001,14 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
-  protected KInductionProver createInductionProver() {
+  protected KInductionProver createInductionProver(){
     assert induction;
-    return new KInductionProver(
+    KInductionProver prover = null;
+    try {
+    prover = new KInductionProver(
         cfa,
         logger,
+        config,
         stepCaseAlgorithm,
         stepCaseCPA,
         invariantGenerator,
@@ -1013,8 +1016,13 @@ abstract class AbstractBMCAlgorithm
         reachedSetFactory,
         shutdownNotifier,
         getLoopHeads(),
-        usePropertyDirection);
+        usePropertyDirection);}
+    catch(InvalidConfigurationException e) {
+      logger.logUserException(Level.SEVERE, e, "Invalid configuration");
+    }
+    return prover;
   }
+  
 
   /**
    * Gets the potential target locations.

@@ -3774,6 +3774,12 @@ java.typeHierarchyFile = "typeHierarchy.dot"
 # Specifies the java version of source code accepted
 java.version = JavaCore.VERSION_1_7
 
+# get an initial precision from file
+kinduction.precision.file = no default value
+
+# get an initial precision from a predicate precision file
+kinduction.predicatePrecision.file = no default value
+
 # Programming language of the input program. If not given explicitly,
 # auto-detection will occur
 # C, Java, or LLVM IR?
