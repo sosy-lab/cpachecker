@@ -319,7 +319,7 @@ final class ArraySliceExpression {
                 FileLocation.DUMMY,
                 fieldAccess.field.getType(),
                 fieldAccess.field.getName(),
-                base,
+                resolved,
                 false);
       } else {
         // subscript

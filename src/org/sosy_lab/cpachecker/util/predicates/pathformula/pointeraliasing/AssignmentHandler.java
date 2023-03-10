@@ -358,10 +358,52 @@ class AssignmentHandler {
       appliedHavocAssignments.add(assignment);
     }
 
-    // resolve structures and arrays
+    // apply the deferred memory handler: if there is a malloc with void* type, the allocation can
+    // be deferred until the assignment that uses the value; the allocation type can then be
+    // inferred from assignment lhs type
+    if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
+
+      DynamicMemoryHandler memoryHandler =
+          new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
+      // the memory handler does not care about the value of subscripts, we can use dummy
+      // resolutions, visit them, and get the learned pointer types
+
+      final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
+      final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
+
+      for (ArraySliceAssignment assignment : assignments) {
+        CExpression lhsDummy = assignment.lhs.getDummyResolvedExpression(sizeType);
+        // we do not need the lhs expression
+        lhsDummy.accept(lhsVisitor);
+        final CExpression rhsDummy;
+        final Expression rhsExpression;
+        if (assignment.rhs.isPresent()) {
+          // resolve normally
+          rhsDummy = assignment.rhs.get().getDummyResolvedExpression(sizeType);
+          rhsExpression = rhsDummy.accept(rhsVisitor);
+        } else {
+          // the dynamic memory handler expects null CExpression and nondet Expression on nondet rhs
+          rhsDummy = null;
+          rhsExpression = Value.nondetValue();
+        }
+
+        final Map<String, CType> lhsLearnedPointerTypes = lhsVisitor.getLearnedPointerTypes();
+        final Map<String, CType> rhsLearnedPointerTypes = lhsVisitor.getLearnedPointerTypes();
+
+        // we have everything we need, call memory handler
+        memoryHandler.handleDeferredAllocationsInAssignment(
+            (CLeftHandSide) lhsDummy,
+            (CRightHandSide) rhsDummy,
+            rhsExpression,
+            lhsDummy.getExpressionType(),
+            lhsLearnedPointerTypes,
+            rhsLearnedPointerTypes);
+      }
+    }
+
+    // generate simple slice assignments to resolve assignments to structures and arrays
     List<ArraySliceAssignment> simpleAssignments = new ArrayList<>();
 
-    // preprocess each assignment, if it should be considered, generate simple slice assignments
     for (ArraySliceAssignment assignment : assignments) {
       generateSimpleSliceAssignments(assignment, simpleAssignments);
     }
