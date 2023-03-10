@@ -2076,7 +2076,8 @@ public class SMGCPAValueVisitor
                 new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
                 (NumericValue) rightValue,
                 BinaryOperator.MULTIPLY,
-                evaluator.getMachineModel().getPointerEquivalentSimpleType());
+                // TODO This is just some random int type with same size, check if this is correct.
+                evaluator.getMachineModel().getPointerSizedIntType());
       } else {
         // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
         // then this is just the numeric value * 8 and then the operation.
@@ -2114,7 +2115,7 @@ public class SMGCPAValueVisitor
                 new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
                 (NumericValue) leftValue,
                 BinaryOperator.MULTIPLY,
-                evaluator.getMachineModel().getPointerEquivalentSimpleType());
+                evaluator.getMachineModel().getPointerSizedIntType());
       } else {
         // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
         // then this is just the numeric value * 8 and then the operation.
@@ -2196,7 +2197,7 @@ public class SMGCPAValueVisitor
                 (NumericValue) distanceInBits,
                 size,
                 BinaryOperator.DIVIDE,
-                evaluator.getMachineModel().getPointerEquivalentSimpleType());
+                evaluator.getMachineModel().getPointerSizedIntType());
 
         returnBuilder.add(ValueAndSMGState.of(distance, currentState));
         continue;

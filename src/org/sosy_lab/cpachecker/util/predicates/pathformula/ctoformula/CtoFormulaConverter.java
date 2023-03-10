@@ -771,6 +771,9 @@ public class CtoFormulaConverter {
       fromType = new CPointerType(false, false, fromType);
     }
 
+    // TODO This is questionable because signed types are returned for pointers,
+    // should we really do sign extension here?
+    // Furthermore, this makes the check "fromType instanceof CPointerType" below redundant.
     fromType = handlePointerAndEnumAsInt(fromType);
     toType = handlePointerAndEnumAsInt(toType);
 
@@ -805,7 +808,7 @@ public class CtoFormulaConverter {
       return new CBitFieldType(normalizedInnerType, type.getBitFieldSize());
     }
     if (pType instanceof CPointerType) {
-      return machineModel.getPointerEquivalentSimpleType();
+      return machineModel.getPointerSizedIntType();
     }
     if (pType instanceof CEnumType enumType) {
       return enumType.getCompatibleType();

@@ -2408,7 +2408,7 @@ class ASTConverter {
     CSimpleType newType;
     switch (mode) {
       case "word": // assume that pointers have word size, which is the case on our platforms
-        newType = machinemodel.getPointerEquivalentSimpleType();
+        newType = machinemodel.getPointerSizedIntType();
         break;
       case "byte":
       case "QI": // quarter integer

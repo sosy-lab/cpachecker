@@ -102,7 +102,7 @@ public class SMGCPAValueVisitorTest {
   private static final MachineModel MACHINE_MODEL = MachineModel.LINUX64;
   // Pointer size for the machine model in bits
   private static final int POINTER_SIZE_IN_BITS =
-      MACHINE_MODEL.getSizeof(MACHINE_MODEL.getPointerEquivalentSimpleType()) * 8;
+      MACHINE_MODEL.getSizeof(MACHINE_MODEL.getPointerSizedIntType()) * 8;
 
   // Note: padding is on per default, meaning that the types get padding to allign to their
   // "natural" memory offset. I.e. starting with a 2 byte type, then using a 4 byte type would

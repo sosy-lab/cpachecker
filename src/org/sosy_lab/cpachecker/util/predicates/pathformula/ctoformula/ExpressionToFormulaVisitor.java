@@ -166,7 +166,9 @@ public class ExpressionToFormulaVisitor
       signed = conv.machineModel.isSigned((CSimpleType) calculationType);
     } else if (calculationType instanceof CPointerType) {
       // pointers can also be signed if the machine model represents them using a signed type:
-      signed = conv.machineModel.getPointerEquivalentSimpleType().getCanonicalType().isSigned();
+      // TODO This doesn't really make sense, the machine model does not declare pointers as signed.
+      // Check why this was added and remove it.
+      signed = conv.machineModel.getPointerSizedIntType().getCanonicalType().isSigned();
     } else {
       signed = false;
     }

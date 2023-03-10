@@ -294,7 +294,7 @@ public enum MachineModel {
    * <p>Note that often using one of the other methods such as {@link #getPointerAsIntType()} is
    * recommended.
    */
-  public CSimpleType getPointerEquivalentSimpleType() {
+  public CSimpleType getPointerSizedIntType() {
     // On our platforms, intptr_t has the same size as pointers.
     return intptr_t;
   }

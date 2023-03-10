@@ -44,7 +44,9 @@ public class Types {
       CSimpleType fromType;
 
       if (pHoldingType instanceof CPointerType) {
-        toType = pMachineModel.getPointerEquivalentSimpleType();
+        // This is questionable, can a pointer really hold (signed) integer values?
+        // The whole method should probably just operate on CSimpleType.
+        toType = pMachineModel.getPointerSizedIntType();
       } else if (pHoldingType instanceof CSimpleType) {
         toType = (CSimpleType) pHoldingType;
       } else {
@@ -52,7 +54,7 @@ public class Types {
       }
 
       if (pInnerType instanceof CPointerType) {
-        fromType = pMachineModel.getPointerEquivalentSimpleType();
+        fromType = pMachineModel.getPointerSizedIntType();
       } else if (pInnerType instanceof CSimpleType) {
         fromType = (CSimpleType) pInnerType;
       } else {
