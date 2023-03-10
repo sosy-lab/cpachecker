@@ -209,7 +209,13 @@ class AssignmentHandler {
     return handleSliceAssignment(assignment, assignmentOptions);
   }
 
-  private record ExpressionAndCType(Expression expression, CType type) {}
+  private record ExpressionAndCType(Expression expression, CType type) {
+    private ExpressionAndCType(Expression expression, CType type) {
+      checkIsSimplified(type);
+      this.expression = expression;
+      this.type = type;
+    }
+  }
 
   private record ArraySlicePartSpan(long lhsBitOffset, long rhsBitOffset, long bitSize) {}
 
