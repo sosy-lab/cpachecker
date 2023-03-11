@@ -908,6 +908,7 @@ class AssignmentHandler {
     }
 
     final Expression rhsResult;
+    final CType rhsType;
 
     SpanExpressionAndCType firstRhs = rhsList.get(0);
 
@@ -917,17 +918,24 @@ class AssignmentHandler {
       if (firstRhs.expressionAndCType.isPresent()) {
         // convert normally
         ExpressionAndCType rhsExpressionAndCType = firstRhs.expressionAndCType.get();
-        rhsResult =
-          convertRhsExpression(
-              assignmentOptions.conversionType,
-              lhsResolved,
-              new ExpressionAndCType(rhsExpressionAndCType.expression, rhsExpressionAndCType.type));
+        // Convert arrays and functions to pointer
+        CType rhsPerhapsPointerType = implicitCastToPointer(rhsExpressionAndCType.type);
+        if (rhsPerhapsPointerType instanceof CPointerType) {
+          // do not convert RHS expression here, leave it to handleDestructiveAssignment
+          rhsResult = rhsExpressionAndCType.expression;
+          rhsType = rhsExpressionAndCType.type;
+        } else {
+          // convert RHS expression
+          rhsResult =
+              convertRhsExpression(
+                  assignmentOptions.conversionType, lhsResolved, rhsExpressionAndCType);
+          rhsType = lhsResolved.type;
+        }
       } else {
         // nondet value
         rhsResult = Value.nondetValue();
+        rhsType = lhsResolved.type;
       }
-
-
     } else {
       // TODO: float handling is somewhat wonky
       // put together the rhs expressions from spans
@@ -948,7 +956,9 @@ class AssignmentHandler {
         /// reinterpret to integer version of rhs type
         Formula reinterpretedRhsFormula =
             conv.makeValueReinterpretation(
-                rhsResolved.type, getIntegerTypeReinterpretation(rhsResolved.type), convertedRhsFormula);
+                rhsResolved.type,
+                getIntegerTypeReinterpretation(rhsResolved.type),
+                convertedRhsFormula);
         if (reinterpretedRhsFormula != null) {
           convertedRhsFormula = reinterpretedRhsFormula;
         }
@@ -980,6 +990,8 @@ class AssignmentHandler {
         }
       }
 
+      // the RHS type is now definitely the type of LHS
+      rhsType = lhsResolved.type;
       if (forceNondet) {
         // force RHS result to be nondeterministic
         rhsResult = Value.nondetValue();
@@ -997,7 +1009,7 @@ class AssignmentHandler {
 
     return makeSimpleDestructiveAssignment(
         lhsResolved.type,
-        lhsResolved.type,
+        rhsType,
         (Location) lhsResolved.expression,
         rhsResult,
         assignmentOptions.useOldSSAIndices && lhsResolved.expression.isAliasedLocation(),
