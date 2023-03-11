@@ -220,8 +220,8 @@ class AssignmentHandler {
     return handleSliceAssignment(assignment, assignmentOptions);
   }
 
-
-  private record ArraySlicePartSpan(long lhsBitOffset, long rhsBitOffset, long bitSize) {}
+  private record ArraySlicePartSpan(
+      CType originalLhsType, long lhsBitOffset, long rhsBitOffset, long bitSize) {}
 
   sealed interface ArraySliceRhs
       permits ArraySliceExpressionRhs, ArraySliceCallRhs, ArraySliceNondetRhs {
@@ -493,11 +493,6 @@ class AssignmentHandler {
     CType parentType = headType;
     for (int numAccesses = 0; numAccesses < tail.list().size(); ++numAccesses) {
 
-      boolean dummy = false;
-      if (!(parentType instanceof CCompositeType)) {
-        dummy = true;
-      }
-
       CCompositeTypeMemberDeclaration currentMember = tail.list().get(numAccesses);
       CCompositeType parentCompositeType = (CCompositeType) parentType;
 
@@ -532,7 +527,7 @@ class AssignmentHandler {
 
     List<ArraySliceTail> simpleAlternativeTails = new ArrayList<>();
     for (ArraySliceTail alternativeTail : alternativeUnionAccesses) {
-      generateSimpleTails(alternativeTail, simpleAlternativeTails);
+      generateSimpleTails(headType, alternativeTail, simpleAlternativeTails);
     }
 
     // now that we have the simple alternative union accesses, we should resolve their offsets
@@ -561,13 +556,20 @@ class AssignmentHandler {
       long copyBitOffsetFromOriginal = copyBitOffset - originalTailBitOffset;
       long copyBitOffsetFromAlternative = copyBitOffset - alternativeTailBitOffset;
 
-
       // assign the appropriate part of original rhs to alternative lhs
       ArraySliceExpression alternativeLhs = ArraySliceExpression.fromSplit(new ArraySliceSplitExpression(head, alternativeTail));
 
-      ArraySlicePartSpan span = new ArraySlicePartSpan(copyBitOffsetFromAlternative, copyBitOffsetFromOriginal, copyBitSize);
+      ArraySlicePartSpan span =
+          new ArraySlicePartSpan(
+              assignment.lhs.getResolvedExpressionType(sizeType),
+              copyBitOffsetFromAlternative,
+              copyBitOffsetFromOriginal,
+              copyBitSize);
       spanAssignmentMultimap.put(
-          alternativeLhs, new ArraySliceSpanRhs(Optional.of(span), assignment.rhs));
+          alternativeLhs,
+          new ArraySliceSpanRhs(
+              Optional.of(span),
+              assignment.rhs));
     }
 
     // we have added the needed span assignments to spanAssignmentMultimap
@@ -591,10 +593,14 @@ class AssignmentHandler {
     return bitOffset;
   }
 
-  private void generateSimpleTails(ArraySliceTail trailing, List<ArraySliceTail> simpleTrailing) {
+  private void generateSimpleTails(
+      CType headType, ArraySliceTail trailing, List<ArraySliceTail> simpleTrailing) {
     if (trailing.list().isEmpty()) {
-      // just add the trailing
-      simpleTrailing.add(trailing);
+      // just add the trailing if head type is simple
+      // TODO: handle arrays in simple tail generation
+      if (CTypeUtils.isSimpleType(headType)) {
+        simpleTrailing.add(trailing);
+      }
       return;
     }
 
@@ -609,11 +615,14 @@ class AssignmentHandler {
         builder.addAll(trailing.list());
         builder.add(member);
         // TODO: a simple tail here could be an array...
-        generateSimpleTails(new ArraySliceTail(builder.build()), simpleTrailing);
+        generateSimpleTails(headType, new ArraySliceTail(builder.build()), simpleTrailing);
       }
     } else {
-      // already simple, just add the assignment to simple assignments
-      simpleTrailing.add(trailing);
+      // just add the assignment to simple assignments if its type is simple
+      // TODO: handle arrays in simple tail generation
+      if (CTypeUtils.isSimpleType(lastType)) {
+        simpleTrailing.add(trailing);
+      }
     }
   }
 
@@ -991,7 +1000,7 @@ class AssignmentHandler {
           rhsType = det.type;
         } else {
           // convert RHS expression
-          rhsResult = convertRhsExpression(assignmentOptions.conversionType, lhsResolved, det);
+          rhsResult = convertRhsExpression(assignmentOptions.conversionType, lhsResolved.type, det);
           rhsType = lhsResolved.type;
         }
       } else if (firstRhs.actual instanceof ArraySliceResolvedNondet) {
@@ -1017,22 +1026,34 @@ class AssignmentHandler {
           break;
         }
 
-        ArraySliceResolvedDet rhsResolved = (ArraySliceResolvedDet) rhs.actual;
+        ArraySliceResolvedDet det = (ArraySliceResolvedDet) rhs.actual;
+
+        CType rhsPerhapsPointerType = implicitCastToPointer(det.type);
+        if (rhsPerhapsPointerType instanceof CPointerType) {
+          // TODO: handle pointer rhs type in union
+          forceNondet = true;
+          break;
+        }
+
+        ArraySlicePartSpan rhsSpan = rhs.span.get();
+        // convert RHS expression to original LHS type
+        Expression convertedRhs =
+            convertRhsExpression(assignmentOptions.conversionType, rhsSpan.originalLhsType, det);
+
         Formula convertedRhsFormula =
-            getValueFormula(rhsResolved.type, rhsResolved.expression).orElseThrow();
-        /// reinterpret to integer version of rhs type
+            getValueFormula(rhsSpan.originalLhsType, convertedRhs).orElseThrow();
+        // reinterpret to integer version of original lhs type
         Formula reinterpretedRhsFormula =
             conv.makeValueReinterpretation(
-                rhsResolved.type,
-                getIntegerTypeReinterpretation(rhsResolved.type),
+                rhsSpan.originalLhsType,
+                getIntegerTypeReinterpretation(rhsSpan.originalLhsType),
                 convertedRhsFormula);
         if (reinterpretedRhsFormula != null) {
           convertedRhsFormula = reinterpretedRhsFormula;
         }
 
-        // extract the interesting part from rhs, dimension to lhs type, shift left
-        // this will make the formula type integer version of lhs type
-        ArraySlicePartSpan rhsSpan = rhs.span.get();
+        // extract the interesting part and dimension to new lhs type, shift left
+        // this will make the formula type integer version of new lhs type
         Formula extractedFormula =
             fmgr.makeExtract(
                 convertedRhsFormula,
@@ -1088,26 +1109,25 @@ class AssignmentHandler {
   }
 
   private Expression convertRhsExpression(
-      AssignmentConversionType conversionType,
-      ArraySliceResolvedDet lhsResolved,
-      ArraySliceResolvedDet rhsResolved)
+      AssignmentConversionType conversionType, CType lhsType, ArraySliceResolvedDet rhsResolved)
       throws UnrecognizedCodeException {
 
     // convert only if necessary, the types are already simplified
-    if (lhsResolved.type.equals(rhsResolved.type)) {
+    if (lhsType.equals(rhsResolved.type)) {
       return rhsResolved.expression;
     }
     Formula rhsFormula =
         getValueFormula(rhsResolved.type, rhsResolved.expression).orElseThrow();
     switch (conversionType) {
       case CAST:
-      // cast rhs from rhs type to lhs type
-        Formula castRhsFormula = conv.makeCast(rhsResolved.type, lhsResolved.type, rhsFormula, constraints, edge);
+        // cast rhs from rhs type to lhs type
+        Formula castRhsFormula =
+            conv.makeCast(rhsResolved.type, lhsType, rhsFormula, constraints, edge);
       return Value.ofValue(castRhsFormula);
       case REINTERPRET:
         // reinterpret rhs from rhs type to lhs type
         Formula reinterpretedRhsFormula =
-            conv.makeValueReinterpretation(rhsResolved.type, lhsResolved.type, rhsFormula);
+            conv.makeValueReinterpretation(rhsResolved.type, lhsType, rhsFormula);
 
         // makeValueReinterpretation returns null if no reinterpretation happened
         if (reinterpretedRhsFormula != null) {
