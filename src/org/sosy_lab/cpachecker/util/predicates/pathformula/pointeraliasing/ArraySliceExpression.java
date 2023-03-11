@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
@@ -263,18 +262,27 @@ final class ArraySliceExpression {
 
   ArraySliceSplitExpression getSplit() {
     if (isResolved()) {
-      Builder<CCompositeTypeMemberDeclaration> builder =
-          ImmutableList.<CCompositeTypeMemberDeclaration>builder();
+
       // resolved, extract the trailing field accesses from the base expression
+      // the CExpression is bottom-up, i.e. the rightmost access is first in CExpression, therefore,
+      // the list of tail fields will be constructed reversed
+      List<CCompositeTypeMemberDeclaration> reversedTailFields = new ArrayList<>();
       CExpression current = base;
       while (current instanceof CFieldReference currentField) {
-        builder.add(
+        if (currentField.isPointerDereference()) {
+          // field dereference, we need to stop
+          break;
+        }
+        reversedTailFields.add(
             new CCompositeTypeMemberDeclaration(
                 currentField.getExpressionType(), currentField.getFieldName()));
         current = currentField.getFieldOwner();
       }
+      // reverse the reversed list of tail fields
+      ImmutableList<CCompositeTypeMemberDeclaration> tailFields =
+          ImmutableList.copyOf(Lists.reverse(reversedTailFields));
       return new ArraySliceSplitExpression(
-          new ArraySliceExpression(current), new ArraySliceTail(builder.build()));
+          new ArraySliceExpression(current), new ArraySliceTail(tailFields));
     }
     // not resolved, extract the trailing field accesses from modifiers
     // to prevent errors, we do this by adding field modifiers to the tail modifiers, then adding
@@ -292,7 +300,7 @@ final class ArraySliceExpression {
       }
     }
 
-    // reverse the lists once more
+    // reverse the reversed lists
 
     ImmutableList<ArraySliceModifier> headModifiers =
         ImmutableList.copyOf(Lists.reverse(reversedHeadModifiers));

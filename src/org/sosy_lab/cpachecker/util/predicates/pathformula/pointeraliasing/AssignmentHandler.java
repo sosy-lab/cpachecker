@@ -493,6 +493,11 @@ class AssignmentHandler {
     CType parentType = headType;
     for (int numAccesses = 0; numAccesses < tail.list().size(); ++numAccesses) {
 
+      boolean dummy = false;
+      if (!(parentType instanceof CCompositeType)) {
+        dummy = true;
+      }
+
       CCompositeTypeMemberDeclaration currentMember = tail.list().get(numAccesses);
       CCompositeType parentCompositeType = (CCompositeType) parentType;
 
