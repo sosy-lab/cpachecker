@@ -435,8 +435,7 @@ class AssignmentHandler {
           new ArraySliceSpanAssignment(
               assignment.lhs,
               ImmutableList.of(new ArraySliceSpanRhs(Optional.empty(), assignment.rhs))));
-      // TODO: re-enable alternative span assignments after they are fixed
-      // generateAlternativeSpanAssignments(assignment, alternativeAssignmentMultimap);
+      generateAlternativeSpanAssignments(assignment, alternativeAssignmentMultimap);
     }
 
     // remove all alternative assignments for fields that are normally assigned

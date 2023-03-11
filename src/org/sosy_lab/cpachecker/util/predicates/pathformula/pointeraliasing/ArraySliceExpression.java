@@ -14,6 +14,9 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -259,9 +262,9 @@ final class ArraySliceExpression {
   record ArraySliceSplitExpression(ArraySliceExpression head, ArraySliceTail tail) {}
 
   ArraySliceSplitExpression getSplit() {
-    Builder<CCompositeTypeMemberDeclaration> builder =
-        ImmutableList.<CCompositeTypeMemberDeclaration>builder();
     if (isResolved()) {
+      Builder<CCompositeTypeMemberDeclaration> builder =
+          ImmutableList.<CCompositeTypeMemberDeclaration>builder();
       // resolved, extract the trailing field accesses from the base expression
       CExpression current = base;
       while (current instanceof CFieldReference currentField) {
@@ -271,34 +274,33 @@ final class ArraySliceExpression {
         current = currentField.getFieldOwner();
       }
       return new ArraySliceSplitExpression(
-          new ArraySliceExpression(base), new ArraySliceTail(builder.build()));
+          new ArraySliceExpression(current), new ArraySliceTail(builder.build()));
     }
     // not resolved, extract the trailing field accesses from modifiers
-    boolean previousWasField = false;
-    int index = 0;
-    int firstTrailingIndex = modifiers.size();
-    for (ArraySliceModifier modifier : modifiers) {
-      boolean isField = modifier instanceof ArraySliceFieldAccessModifier;
-
-      if (isField && !previousWasField) {
-        firstTrailingIndex = index;
+    // to prevent errors, we do this by adding field modifiers to the tail modifiers, then adding
+    // the rest to head modifiers; since we iterate from the back, the resulting lists will be
+    // reversed
+    List<ArraySliceModifier> reversedHeadModifiers = new ArrayList<>();
+    List<CCompositeTypeMemberDeclaration> reversedTailFields = new ArrayList<>();
+    boolean addToTail = true;
+    for (ArraySliceModifier modifier : Lists.reverse(modifiers)) {
+      if (addToTail && (modifier instanceof ArraySliceFieldAccessModifier fieldModifier)) {
+        reversedTailFields.add(fieldModifier.field);
+      } else {
+        addToTail = false;
+        reversedHeadModifiers.add(modifier);
       }
-      previousWasField = isField;
-      ++index;
     }
-    // the new modifiers will be in sublist from start inclusive to first trailing index exclusive
-    ImmutableList<ArraySliceModifier> newModifiers = modifiers.subList(0, firstTrailingIndex);
 
-    // the trailing field accesses will be in sublist from first trailing index inclusive to end of
-    // the list exclusive
-    ImmutableList<ArraySliceModifier> trailingList =
-        modifiers.subList(firstTrailingIndex, modifiers.size());
-    for (ArraySliceModifier trailing : trailingList) {
-      builder.add(((ArraySliceFieldAccessModifier) trailing).field);
-    }
+    // reverse the lists once more
+
+    ImmutableList<ArraySliceModifier> headModifiers =
+        ImmutableList.copyOf(Lists.reverse(reversedHeadModifiers));
+    ImmutableList<CCompositeTypeMemberDeclaration> tailFields =
+        ImmutableList.copyOf(Lists.reverse(reversedTailFields));
 
     return new ArraySliceSplitExpression(
-        new ArraySliceExpression(base, newModifiers), new ArraySliceTail(builder.build()));
+        new ArraySliceExpression(base, headModifiers), new ArraySliceTail(tailFields));
   }
 
   /**
