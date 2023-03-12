@@ -929,6 +929,16 @@ class CExpressionVisitorWithPointerAliasing
       }
     }
 
+    // KLUDGE: remove the array-to-pointer conversion as the unary operator has wrong type
+    // note that this has to be done after the cast removal
+    // TODO: resolve wrong unary operator type for kludge removal
+    if (paramDestination instanceof CUnaryExpression unarydestination
+        && unarydestination.getOperator() == CUnaryExpression.UnaryOperator.AMPER
+        && unarydestination.getOperand().getExpressionType().getCanonicalType()
+            instanceof CArrayType) {
+      paramDestination = unarydestination.getOperand();
+    }
+
     // we need to know the element size
     // we ensure we have a pointer first and then take sizeof of the underlying type
 
@@ -1040,6 +1050,15 @@ class CExpressionVisitorWithPointerAliasing
           source = sourceCast.getOperand();
         }
       }
+    }
+
+    // KLUDGE: remove the array-to-pointer conversion as the unary operator has wrong type
+    // note that this has to be done after the cast removal
+    // TODO: resolve wrong unary operator type for kludge removal
+    if (source instanceof CUnaryExpression unarySource &&
+        unarySource.getOperator() == CUnaryExpression.UnaryOperator.AMPER
+          && unarySource.getOperand().getExpressionType().getCanonicalType() instanceof CArrayType) {
+      source = unarySource.getOperand();
     }
 
     if (!(destination instanceof CLeftHandSide)) {
