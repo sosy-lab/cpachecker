@@ -42,15 +42,21 @@ class SMTHeapWithArrays implements SMTHeap {
     FormulaType<E> targetType = formulaManager.getFormulaType(value);
     checkArgument(
         pTargetType.equals(targetType),
-        "Target type %s does not match value type %s",
+        "Target type %s does not match value type %s when assigning target %s address %s to value %s",
         pTargetType,
-        targetType);
+        targetType,
+        targetName,
+        address,
+        value);
     FormulaType<I> addressType = formulaManager.getFormulaType(address);
     checkArgument(
         pointerType.equals(addressType),
-        "Pointer type %s does not match address type %s",
+        "Pointer type %s does not match address type %s when assigning target %s address %s to value %s",
         pointerType,
-        addressType);
+        addressType,
+        targetName,
+        address,
+        value);
     final ArrayFormula<I, E> oldFormula =
         afmgr.makeArray(targetName, oldIndex, addressType, targetType);
     final ArrayFormula<I, E> arrayFormula =
