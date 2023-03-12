@@ -64,6 +64,11 @@ final class ArraySliceExpression {
     CExpression getSize() {
       return size;
     }
+
+    @Override
+    public String toString() {
+      return "ArraySliceIndexVariable [size=" + size + "]";
+    }
   }
 
   /**
