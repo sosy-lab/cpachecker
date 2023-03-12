@@ -764,7 +764,14 @@ class AssignmentHandler {
 
       ArraySliceExpression lhs = assignment.lhs;
       while (!lhs.isResolved()) {
-        long unrolledIndex = unrolledVariables.get(lhs.getFirstIndex());
+        ArraySliceIndexVariable firstLhsIndex = lhs.getFirstIndex();
+        Long unrolledIndex = unrolledVariables.get(firstLhsIndex);
+        // there were sometimes problems with index not found, so check for not null
+        checkNotNull(
+            unrolledIndex,
+            "Could not get value of unrolled index %s for lhs %s",
+            firstLhsIndex,
+            lhs);
         lhs = lhs.resolveFirstIndex(sizeType, unrolledIndex);
       }
       CExpression lhsBase = lhs.getResolvedExpression();
@@ -787,7 +794,15 @@ class AssignmentHandler {
           // resolve all indices
           ArraySliceExpression rhsSliceExpression = expressionRhs.expression;
           while (!rhsSliceExpression.isResolved()) {
-            long unrolledIndex = unrolledVariables.get(rhsSliceExpression.getFirstIndex());
+            ArraySliceIndexVariable firstIndex = rhsSliceExpression.getFirstIndex();
+            Long unrolledIndex = unrolledVariables.get(firstIndex);
+            // there were sometimes problems with index not found, so check for not null
+            checkNotNull(
+                unrolledIndex,
+                "Could not get value of unrolled index %s for lhs %s and rhs %s",
+                firstIndex,
+                lhs,
+                rhsSliceExpression);
             rhsSliceExpression = rhsSliceExpression.resolveFirstIndex(sizeType, unrolledIndex);
           }
           rhsResolved = rhsSliceExpression.getResolvedExpression();
