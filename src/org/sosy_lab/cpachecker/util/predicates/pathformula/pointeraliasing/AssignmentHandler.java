@@ -223,7 +223,7 @@ class AssignmentHandler {
   private record ArraySlicePartSpan(
       CType originalLhsType, long lhsBitOffset, long rhsBitOffset, long bitSize) {
     ArraySlicePartSpan(CType originalLhsType, long lhsBitOffset, long rhsBitOffset, long bitSize) {
-      checkNotNull(originalLhsType);
+      checkIsSimplified(originalLhsType);
       this.originalLhsType = originalLhsType;
       this.lhsBitOffset = lhsBitOffset;
       this.rhsBitOffset = rhsBitOffset;
@@ -629,7 +629,7 @@ class AssignmentHandler {
 
       ArraySlicePartSpan span =
           new ArraySlicePartSpan(
-              assignment.lhs.getResolvedExpressionType(sizeType),
+              typeHandler.simplifyType(assignment.lhs.getResolvedExpressionType(sizeType)),
               copyBitOffsetFromAlternative,
               copyBitOffsetFromOriginal,
               copyBitSize);
