@@ -932,11 +932,11 @@ class CExpressionVisitorWithPointerAliasing
     // KLUDGE: remove the array-to-pointer conversion as the unary operator has wrong type
     // note that this has to be done after the cast removal
     // TODO: resolve wrong unary operator type for kludge removal
-    if (paramDestination instanceof CUnaryExpression unarydestination
-        && unarydestination.getOperator() == CUnaryExpression.UnaryOperator.AMPER
-        && unarydestination.getOperand().getExpressionType().getCanonicalType()
+    if (paramDestination instanceof CUnaryExpression unaryDestination
+        && unaryDestination.getOperator() == CUnaryExpression.UnaryOperator.AMPER
+        && unaryDestination.getOperand().getExpressionType().getCanonicalType()
             instanceof CArrayType) {
-      paramDestination = unarydestination.getOperand();
+      paramDestination = unaryDestination.getOperand();
     }
 
     // we need to know the element size
@@ -953,6 +953,17 @@ class CExpressionVisitorWithPointerAliasing
 
     CType destinationUnderlyingType = destinationPointerType.getType().getCanonicalType();
     long elementSizeInBytes = typeHandler.getSizeof(destinationUnderlyingType);
+
+    // the unary address-of operator is not CLeftHandSide, but produces an lvalue
+    boolean isDestinationAddressOf =
+        (paramDestination instanceof CUnaryExpression unaryDestination)
+            && unaryDestination.getOperator() == CUnaryExpression.UnaryOperator.AMPER;
+    boolean isDestinationLvalue =
+        paramDestination instanceof CLeftHandSide || isDestinationAddressOf;
+
+    if (!isDestinationLvalue) {
+      throw new UnrecognizedCodeException("Memory copy / move destination must be an lvalue", e);
+    }
 
     // Second parameter will be processed separately depending on the actual function
 
@@ -1059,11 +1070,6 @@ class CExpressionVisitorWithPointerAliasing
         unarySource.getOperator() == CUnaryExpression.UnaryOperator.AMPER
           && unarySource.getOperand().getExpressionType().getCanonicalType() instanceof CArrayType) {
       source = unarySource.getOperand();
-    }
-
-    if (!(destination instanceof CLeftHandSide)) {
-      throw new UnrecognizedCodeException(
-          "Expected memory copy / move destination to be a left-hand side expression", e);
     }
 
     // the memcopy just indexes the destination and source with the same index
