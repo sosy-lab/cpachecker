@@ -433,9 +433,25 @@ class AssignmentHandler {
 
     CSimpleType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
 
-    CType lhsType = assignment.lhs.getResolvedExpressionType(sizeType);
+    CType lhsType = typeHandler.simplifyType(assignment.lhs.getResolvedExpressionType(sizeType));
 
     if (lhsType instanceof CCompositeType lhsCompositeType) {
+      @Nullable CRightHandSide dummyResolvedRhs = assignment.rhs.getDummyResolved(sizeType);
+      if (dummyResolvedRhs != null) {
+        // TODO: support assignments between different composite types
+        CType dummyResolvedRhsType =
+            typeHandler.simplifyType(dummyResolvedRhs.getExpressionType().getCanonicalType());
+        if (!lhsType.equals(dummyResolvedRhsType)) {
+          conv.logger.logfOnce(
+              Level.WARNING,
+              "%s: Ignoring assignment from composite lhs %s to different rhs %s",
+              edge.getFileLocation(),
+              lhsType,
+              dummyResolvedRhsType);
+          return;
+        }
+      }
+
       // add an assignment for each member
       for (CCompositeTypeMemberDeclaration member : lhsCompositeType.getMembers()) {
         final ArraySliceExpression memberLhs = assignment.lhs.withFieldAccess(member);

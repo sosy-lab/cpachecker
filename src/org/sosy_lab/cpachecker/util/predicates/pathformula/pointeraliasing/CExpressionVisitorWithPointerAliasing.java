@@ -929,6 +929,16 @@ class CExpressionVisitorWithPointerAliasing
       }
     }
 
+    // KLUDGE: remove the array-to-pointer conversion as the unary operator has wrong type
+    // note that this has to be done after the cast removal
+    // TODO: resolve wrong unary operator type for kludge removal
+    if (paramDestination instanceof CUnaryExpression unaryDestination
+        && unaryDestination.getOperator() == CUnaryExpression.UnaryOperator.AMPER
+        && unaryDestination.getOperand().getExpressionType().getCanonicalType()
+            instanceof CArrayType) {
+      paramDestination = unaryDestination.getOperand();
+    }
+
     // we need to know the element size
     // we ensure we have a pointer first and then take sizeof of the underlying type
 
@@ -943,10 +953,6 @@ class CExpressionVisitorWithPointerAliasing
 
     CType destinationUnderlyingType = destinationPointerType.getType().getCanonicalType();
     long elementSizeInBytes = typeHandler.getSizeof(destinationUnderlyingType);
-
-    if (!(paramDestination instanceof CLeftHandSide)) {
-      throw new UnrecognizedCodeException("Memory copy / move destination must be an lvalue", e);
-    }
 
     // Second parameter will be processed separately depending on the actual function
 
