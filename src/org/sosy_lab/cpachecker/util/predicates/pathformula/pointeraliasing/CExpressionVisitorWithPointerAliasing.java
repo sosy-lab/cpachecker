@@ -902,6 +902,10 @@ class CExpressionVisitorWithPointerAliasing
       final String functionName, final CFunctionCallExpression e)
       throws UnrecognizedCodeException, InterruptedException {
 
+    if (!conv.options.enableMemoryAssignmentFunctions()) {
+      throw new UnrecognizedCodeException("Handling of memory assignment functions is disabled", e);
+    }
+
     // all of the functions have exactly three parameters
     // the first and third parameter is the same for all functions
     final List<CExpression> parameters = e.getParameterExpressions();
@@ -1108,7 +1112,10 @@ class CExpressionVisitorWithPointerAliasing
         new AssignmentHandler(
             conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
     AssignmentHandler.AssignmentOptions assignmentOptions =
-        new AssignmentOptions(false, AssignmentHandler.AssignmentConversionType.REINTERPRET);
+        new AssignmentOptions(
+            false,
+            AssignmentHandler.AssignmentConversionType.REINTERPRET,
+            conv.options.forceQuantifiersInMemoryAssignmentFunctions());
     AssignmentHandler.ArraySliceAssignment sliceAssignment =
         new AssignmentHandler.ArraySliceAssignment(lhs, new ArraySliceExpressionRhs(rhs));
 
@@ -1135,7 +1142,10 @@ class CExpressionVisitorWithPointerAliasing
         new AssignmentHandler(
             conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
     AssignmentHandler.AssignmentOptions assignmentOptions =
-        new AssignmentOptions(false, AssignmentHandler.AssignmentConversionType.REINTERPRET);
+        new AssignmentOptions(
+            false,
+            AssignmentHandler.AssignmentConversionType.REINTERPRET,
+            conv.options.forceQuantifiersInMemoryAssignmentFunctions());
     BooleanFormula assignmentFormula =
         assignmentHandler.handleSliceAssignments(assignments, assignmentOptions);
 

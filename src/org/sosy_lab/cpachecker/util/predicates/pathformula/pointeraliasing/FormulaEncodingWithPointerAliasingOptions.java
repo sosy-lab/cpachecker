@@ -137,6 +137,27 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   @Option(secure = true, description = "Use an optimisation for constraint generation")
   private boolean useConstraintOptimization = true;
 
+  @Option(
+      secure = true,
+      description =
+          "Use the old version of assignment handling for normal assignments. "
+              + "Memory manipulation functions still will use the new version.")
+  private boolean useOldAssignment = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Enable functions memset, memcopy, memmove. "
+              + "If disabled, using these functions will result in an error.")
+  private boolean enableMemoryAssignmentFunctions = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Force functions memset, memcopy, memmove to use quantifiers "
+              + "even if they are not normally used.")
+  private boolean forceQuantifiersInMemoryAssignmentFunctions = false;
+
   public FormulaEncodingWithPointerAliasingOptions(Configuration config)
       throws InvalidConfigurationException {
     super(config);
@@ -255,4 +276,17 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   public boolean useByteArrayForHeap() {
     return useByteArrayForHeap;
   }
+
+  boolean useOldAssignment() {
+    return useOldAssignment;
+  }
+
+  boolean enableMemoryAssignmentFunctions() {
+    return enableMemoryAssignmentFunctions;
+  }
+
+  boolean forceQuantifiersInMemoryAssignmentFunctions() {
+    return forceQuantifiersInMemoryAssignmentFunctions;
+  }
+
 }
