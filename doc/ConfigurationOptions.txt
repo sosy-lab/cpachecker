@@ -2177,6 +2177,10 @@ cpa.predicate.direction = FORWARD
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
+# Enable functions memset, memcopy, memmove. If disabled, using these
+# functions will result in an error.
+cpa.predicate.enableMemoryAssignmentFunctions = true
+
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
 # specified theory is used to approximate bitvectors. This can be used for
 # solvers that do not support bitvectors, or for increased performance. If
@@ -2213,6 +2217,10 @@ cpa.predicate.encodeOverflowsWithUFs = false
 # variables. This will only work when all variables referenced by the dimacs
 # file are global and declared before this function is called.
 cpa.predicate.externModelFunctionName = "__VERIFIER_externModelSatisfied"
+
+# Force functions memset, memcopy, memmove to use quantifiers even if they
+# are not normally used.
+cpa.predicate.forceQuantifiersInMemoryAssignmentFunctions = false
 
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.smt2"
@@ -2689,6 +2697,10 @@ cpa.predicate.useMemoryRegions = false
 
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
+
+# Use the old version of assignment handling for normal assignments. Memory
+# manipulation functions still will use the new version.
+cpa.predicate.useOldAssignment = false
 
 # Insert tmp-variables for parameters at function-entries. The variables are
 # similar to return-variables at function-exit.
