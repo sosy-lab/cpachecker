@@ -360,7 +360,7 @@ final class ArraySliceExpression {
             CIntegerLiteralExpression.createDummyLiteral(0, sizeType);
 
         CPointerType resolvedPointerType =
-            (CPointerType) CTypes.adjustFunctionOrArrayType(resolved.getExpressionType());
+            (CPointerType) CTypes.adjustFunctionOrArrayType(resolved.getExpressionType().getCanonicalType());
         CType underlyingType = resolvedPointerType.getType().getCanonicalType();
 
         resolved =
