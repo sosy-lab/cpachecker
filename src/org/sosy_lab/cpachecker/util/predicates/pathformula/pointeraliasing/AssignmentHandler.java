@@ -221,7 +221,15 @@ class AssignmentHandler {
   }
 
   private record ArraySlicePartSpan(
-      CType originalLhsType, long lhsBitOffset, long rhsBitOffset, long bitSize) {}
+      CType originalLhsType, long lhsBitOffset, long rhsBitOffset, long bitSize) {
+    ArraySlicePartSpan(CType originalLhsType, long lhsBitOffset, long rhsBitOffset, long bitSize) {
+      checkNotNull(originalLhsType);
+      this.originalLhsType = originalLhsType;
+      this.lhsBitOffset = lhsBitOffset;
+      this.rhsBitOffset = rhsBitOffset;
+      this.bitSize = bitSize;
+    }
+  }
 
   sealed interface ArraySliceRhs
       permits ArraySliceExpressionRhs, ArraySliceCallRhs, ArraySliceNondetRhs {
@@ -229,16 +237,26 @@ class AssignmentHandler {
   }
 
   record ArraySliceExpressionRhs(ArraySliceExpression expression) implements ArraySliceRhs {
+    ArraySliceExpressionRhs(ArraySliceExpression expression) {
+      checkNotNull(expression);
+      this.expression = expression;
+    }
+
     @Override
-    public @Nullable CRightHandSide getDummyResolved(CType sizeType) {
+    public CRightHandSide getDummyResolved(CType sizeType) {
       // return dummy resolved
       return expression.getDummyResolvedExpression(sizeType);
     }
   }
 
   record ArraySliceCallRhs(CFunctionCallExpression call) implements ArraySliceRhs {
+    ArraySliceCallRhs(CFunctionCallExpression call) {
+      checkNotNull(call);
+      this.call = call;
+    }
+
     @Override
-    public @Nullable CRightHandSide getDummyResolved(CType sizeType) {
+    public CRightHandSide getDummyResolved(CType sizeType) {
       // there is no resolving to be done, just return the call
       return call;
     }
@@ -252,11 +270,24 @@ class AssignmentHandler {
     }
   }
 
-  private record ArraySliceSpanRhs(
-      Optional<ArraySlicePartSpan> span, ArraySliceRhs actual) {}
+  private record ArraySliceSpanRhs(Optional<ArraySlicePartSpan> span, ArraySliceRhs actual) {
+    ArraySliceSpanRhs(Optional<ArraySlicePartSpan> span, ArraySliceRhs actual) {
+      checkNotNull(span);
+      checkNotNull(actual);
+      this.span = span;
+      this.actual = actual;
+    }
+  }
 
   private record ArraySliceSpanAssignment(
-      ArraySliceExpression lhs, ImmutableList<ArraySliceSpanRhs> rhsList) {}
+      ArraySliceExpression lhs, ImmutableList<ArraySliceSpanRhs> rhsList) {
+    ArraySliceSpanAssignment(ArraySliceExpression lhs, ImmutableList<ArraySliceSpanRhs> rhsList) {
+      checkNotNull(lhs);
+      checkNotNull(rhsList);
+      this.lhs = lhs;
+      this.rhsList = rhsList;
+    }
+  }
 
   private sealed interface ArraySliceResolvedRhs
       permits ArraySliceResolvedDet, ArraySliceResolvedNondet {}
@@ -264,6 +295,7 @@ class AssignmentHandler {
   private record ArraySliceResolvedDet(Expression expression, CType type)
       implements ArraySliceResolvedRhs {
     private ArraySliceResolvedDet(Expression expression, CType type) {
+      checkNotNull(expression);
       checkIsSimplified(type);
       this.expression = expression;
       this.type = type;
@@ -273,16 +305,36 @@ class AssignmentHandler {
   private record ArraySliceResolvedNondet() implements ArraySliceResolvedRhs {}
 
   private record ArraySliceResolvedSpanRhs(
-      Optional<ArraySlicePartSpan> span, ArraySliceResolvedRhs actual) {}
+      Optional<ArraySlicePartSpan> span, ArraySliceResolvedRhs actual) {
+    ArraySliceResolvedSpanRhs(Optional<ArraySlicePartSpan> span, ArraySliceResolvedRhs actual) {
+      checkNotNull(span);
+      checkNotNull(actual);
+      this.span = span;
+      this.actual = actual;
+    }
+  }
 
-  record ArraySliceAssignment(ArraySliceExpression lhs, ArraySliceRhs rhs) {}
+  record ArraySliceAssignment(ArraySliceExpression lhs, ArraySliceRhs rhs) {
+    ArraySliceAssignment(ArraySliceExpression lhs, ArraySliceRhs rhs) {
+      checkNotNull(lhs);
+      checkNotNull(rhs);
+      this.lhs = lhs;
+      this.rhs = rhs;
+    }
+  }
 
   enum AssignmentConversionType {
     CAST,
     REINTERPRET
   }
 
-  record AssignmentOptions(boolean useOldSSAIndices, AssignmentConversionType conversionType) {}
+  record AssignmentOptions(boolean useOldSSAIndices, AssignmentConversionType conversionType) {
+    AssignmentOptions(boolean useOldSSAIndices, AssignmentConversionType conversionType) {
+      checkNotNull(conversionType);
+      this.useOldSSAIndices = useOldSSAIndices;
+      this.conversionType = conversionType;
+    }
+  }
 
   BooleanFormula handleSliceAssignment(
       ArraySliceAssignment assignment, final AssignmentOptions assignmentOptions)

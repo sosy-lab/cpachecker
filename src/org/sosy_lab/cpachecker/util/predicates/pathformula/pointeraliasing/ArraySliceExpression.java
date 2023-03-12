@@ -75,12 +75,22 @@ final class ArraySliceExpression {
 
   /** Represents performing a field access on a {@code CExpression}, i.e., {@code base.field}. */
   record ArraySliceFieldAccessModifier(CCompositeTypeMemberDeclaration field)
-      implements ArraySliceModifier {}
+      implements ArraySliceModifier {
+    ArraySliceFieldAccessModifier(CCompositeTypeMemberDeclaration field) {
+      checkNotNull(field);
+      this.field = field;
+    }
+  }
 
   /**
    * Represents performing a subscript operation on a {@code CExpression}, i.e., {@code base[i]}.
    */
-  record ArraySliceSubscriptModifier(ArraySliceIndexVariable index) implements ArraySliceModifier {}
+  record ArraySliceSubscriptModifier(ArraySliceIndexVariable index) implements ArraySliceModifier {
+    ArraySliceSubscriptModifier(ArraySliceIndexVariable index) {
+      checkNotNull(index);
+      this.index = index;
+    }
+  }
 
   private final CExpression base;
   private final ImmutableList<ArraySliceModifier> modifiers;
@@ -257,9 +267,21 @@ final class ArraySliceExpression {
     return base;
   }
 
-  record ArraySliceTail(ImmutableList<CCompositeTypeMemberDeclaration> list) {}
+  record ArraySliceTail(ImmutableList<CCompositeTypeMemberDeclaration> list) {
+    ArraySliceTail(ImmutableList<CCompositeTypeMemberDeclaration> list) {
+      checkNotNull(list);
+      this.list = list;
+    }
+  }
 
-  record ArraySliceSplitExpression(ArraySliceExpression head, ArraySliceTail tail) {}
+  record ArraySliceSplitExpression(ArraySliceExpression head, ArraySliceTail tail) {
+    ArraySliceSplitExpression(ArraySliceExpression head, ArraySliceTail tail) {
+      checkNotNull(head);
+      checkNotNull(tail);
+      this.head = head;
+      this.tail = tail;
+    }
+  }
 
   ArraySliceSplitExpression getSplit() {
     if (isResolved()) {
