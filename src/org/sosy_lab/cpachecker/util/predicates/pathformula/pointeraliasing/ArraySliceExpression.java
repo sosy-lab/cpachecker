@@ -57,6 +57,7 @@ final class ArraySliceExpression {
     private final CExpression size;
 
     ArraySliceIndexVariable(CExpression pSize) {
+      checkNotNull(pSize);
       size = pSize;
     }
 

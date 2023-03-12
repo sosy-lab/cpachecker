@@ -395,18 +395,31 @@ class AssignmentHandler {
         generateSimpleSliceAssignments(memberAssignment, simpleAssignments);
       }
     } else if (lhsType instanceof CArrayType lhsArrayType) {
-      // add an assignment of every element of array using a quantified variable
-      ArraySliceIndexVariable indexVariable = new ArraySliceIndexVariable(lhsArrayType.getLength());
-      ArraySliceExpression elementLhs = assignment.lhs.withIndex(indexVariable);
-      final ArraySliceRhs elementRhs;
-      if (isExpressionRhs) {
-        elementRhs = new ArraySliceExpressionRhs(((ArraySliceExpressionRhs)assignment.rhs).expression.withIndex(indexVariable));
+      @Nullable CExpression lhsArrayLength = lhsArrayType.getLength();
+      if (lhsArrayLength != null) {
+        // add an assignment of every element of array using a quantified variable
+        ArraySliceIndexVariable indexVariable =
+            new ArraySliceIndexVariable(lhsArrayType.getLength());
+        ArraySliceExpression elementLhs = assignment.lhs.withIndex(indexVariable);
+        final ArraySliceRhs elementRhs;
+        if (isExpressionRhs) {
+          elementRhs =
+              new ArraySliceExpressionRhs(
+                  ((ArraySliceExpressionRhs) assignment.rhs).expression.withIndex(indexVariable));
+        } else {
+          // all nondet rhs are the same
+          elementRhs = assignment.rhs;
+        }
+        ArraySliceAssignment elementAssignment = new ArraySliceAssignment(elementLhs, elementRhs);
+        generateSimpleSliceAssignments(elementAssignment, simpleAssignments);
       } else {
-        // all nondet rhs are the same
-        elementRhs = assignment.rhs;
+        // TODO: add slice flexible array member assignment, tracking the length from malloc
+        conv.logger.logfOnce(
+            Level.WARNING,
+            "%s: Ignoring slice assignment to flexible array member %s as they are not currently well-supported",
+            edge.getFileLocation(),
+            lhsArrayType);
       }
-      ArraySliceAssignment elementAssignment = new ArraySliceAssignment(elementLhs, elementRhs);
-      generateSimpleSliceAssignments(elementAssignment, simpleAssignments);
     } else {
       // already simple, just add the assignment to simple assignments
       simpleAssignments.add(assignment);
