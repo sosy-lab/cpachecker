@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -1192,6 +1193,17 @@ class AssignmentHandler {
             conv.makeCast(rhsResolved.type, lhsType, rhsFormula, constraints, edge);
       return Value.ofValue(castRhsFormula);
       case REINTERPRET:
+        if (lhsType instanceof CBitFieldType) {
+          // cannot reinterpret to bit-field type
+          conv.logger.logfOnce(
+              Level.WARNING,
+              "%s: Making assignment from %s to %s nondeterministic because reinterpretation to bitfield is not supported",
+              edge.getFileLocation(),
+              rhsResolved.type,
+              lhsType);
+          return Value.nondetValue();
+        }
+
         // reinterpret rhs from rhs type to lhs type
         Formula reinterpretedRhsFormula =
             conv.makeValueReinterpretation(rhsResolved.type, lhsType, rhsFormula);
@@ -1200,12 +1212,11 @@ class AssignmentHandler {
         if (reinterpretedRhsFormula != null) {
           return Value.ofValue(reinterpretedRhsFormula);
         }
-      break;
+        break;
       default:
         assert (false);
     }
     return rhsResolved.expression;
-
   }
 
   private @Nullable ArraySliceResolved resolveRhs(
