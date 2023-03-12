@@ -205,7 +205,7 @@ class AssignmentHandler {
         rhsSlice = null;
       }
     } else {
-      rhsSlice = new ArraySliceNondetRhs();
+      rhsSlice = new ArraySliceNondetRhs(lhsType);
     }
 
     ArraySliceAssignment assignment = new ArraySliceAssignment(lhsSlice, rhsSlice);
@@ -262,7 +262,12 @@ class AssignmentHandler {
     }
   }
 
-  record ArraySliceNondetRhs() implements ArraySliceRhs {
+  record ArraySliceNondetRhs(CType type) implements ArraySliceRhs {
+    ArraySliceNondetRhs(CType type) {
+      checkNotNull(type);
+      this.type = type;
+    }
+
     @Override
     public @Nullable CRightHandSide getDummyResolved(CType sizeType) {
       // there is no right-hand side, return null
@@ -289,12 +294,9 @@ class AssignmentHandler {
     }
   }
 
-  private sealed interface ArraySliceResolvedRhs
-      permits ArraySliceResolvedDet, ArraySliceResolvedNondet {}
+  private record ArraySliceResolved(Expression expression, CType type) {
 
-  private record ArraySliceResolvedDet(Expression expression, CType type)
-      implements ArraySliceResolvedRhs {
-    private ArraySliceResolvedDet(Expression expression, CType type) {
+    private ArraySliceResolved(Expression expression, CType type) {
       checkNotNull(expression);
       checkIsSimplified(type);
       this.expression = expression;
@@ -302,11 +304,9 @@ class AssignmentHandler {
     }
   }
 
-  private record ArraySliceResolvedNondet() implements ArraySliceResolvedRhs {}
-
-  private record ArraySliceResolvedSpanRhs(
-      Optional<ArraySlicePartSpan> span, ArraySliceResolvedRhs actual) {
-    ArraySliceResolvedSpanRhs(Optional<ArraySlicePartSpan> span, ArraySliceResolvedRhs actual) {
+  private record ArraySliceSpanResolved(
+      Optional<ArraySlicePartSpan> span, ArraySliceResolved actual) {
+    ArraySliceSpanResolved(Optional<ArraySlicePartSpan> span, ArraySliceResolved actual) {
       checkNotNull(span);
       checkNotNull(actual);
       this.span = span;
@@ -362,7 +362,10 @@ class AssignmentHandler {
           appliedHavocAssignments.add(assignment);
         } else {
           // make rhs nondeterministic
-          appliedHavocAssignments.add(new ArraySliceAssignment(assignment.lhs, new ArraySliceNondetRhs()));
+          appliedHavocAssignments.add(
+              new ArraySliceAssignment(
+                  assignment.lhs,
+                  new ArraySliceNondetRhs(assignment.lhs.getResolvedExpressionType(sizeType))));
         }
           continue;
       }
@@ -749,15 +752,17 @@ class AssignmentHandler {
       }
       CExpression lhsBase = lhs.getResolvedExpression();
       Expression lhsExpression = lhsBase.accept(visitor);
-      ArraySliceResolvedDet lhsVisited =
-          new ArraySliceResolvedDet(lhsExpression, typeHandler.getSimplifiedType(lhsBase));
+      ArraySliceResolved lhsVisited =
+          new ArraySliceResolved(lhsExpression, typeHandler.getSimplifiedType(lhsBase));
 
-      ImmutableList.Builder<ArraySliceResolvedSpanRhs> builder = ImmutableList.builder();
+      ImmutableList.Builder<ArraySliceSpanResolved> builder = ImmutableList.builder();
 
       for (ArraySliceSpanRhs rhs : assignment.rhsList) {
         final CRightHandSide rhsResolved;
-        if (rhs.actual instanceof ArraySliceNondetRhs) {
-          builder.add(new ArraySliceResolvedSpanRhs(rhs.span, new ArraySliceResolvedNondet()));
+        if (rhs.actual instanceof ArraySliceNondetRhs nondetRhs) {
+          builder.add(
+              new ArraySliceSpanResolved(
+                  rhs.span, new ArraySliceResolved(Value.nondetValue(), nondetRhs.type)));
           continue;
         } else if (rhs.actual instanceof ArraySliceCallRhs callRhs) {
           rhsResolved = callRhs.call;
@@ -776,14 +781,9 @@ class AssignmentHandler {
 
         Expression rhsExpression = rhsResolved.accept(visitor);
         builder.add(
-            new ArraySliceResolvedSpanRhs(
+            new ArraySliceSpanResolved(
                 rhs.span,
-                new ArraySliceResolvedDet(
-                    rhsExpression, typeHandler.getSimplifiedType(rhsResolved))));
-      }
-      boolean a = false;
-      if (!lhsVisited.expression().isAliasedLocation()) {
-        a = true;
+                new ArraySliceResolved(rhsExpression, typeHandler.getSimplifiedType(rhsResolved))));
       }
 
       return makeSliceAssignment(
@@ -953,7 +953,7 @@ class AssignmentHandler {
       CExpressionVisitorWithPointerAliasing visitor =
           new CExpressionVisitorWithPointerAliasing(
               conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
-      ArraySliceResolvedDet lhsResolved =
+      ArraySliceResolved lhsResolved =
           resolveSliceExpression(assignment.lhs, quantifiedVariableFormulaMap, visitor);
       if (lhsResolved == null) {
         // TODO: only used for ignoring assignments to bit-fields which should be handled properly
@@ -961,9 +961,9 @@ class AssignmentHandler {
         continue;
       }
 
-      ImmutableList.Builder<ArraySliceResolvedSpanRhs> builder = ImmutableList.builder();
+      ImmutableList.Builder<ArraySliceSpanResolved> builder = ImmutableList.builder();
       for (ArraySliceSpanRhs rhs : assignment.rhsList) {
-        ArraySliceResolvedRhs rhsResolved =
+        ArraySliceResolved rhsResolved =
             resolveRhs(rhs.actual, quantifiedVariableFormulaMap, visitor);
 
         if (rhsResolved == null) {
@@ -972,7 +972,7 @@ class AssignmentHandler {
           continue;
         }
 
-        builder.add(new ArraySliceResolvedSpanRhs(rhs.span, rhsResolved));
+        builder.add(new ArraySliceSpanResolved(rhs.span, rhsResolved));
       }
 
       // TODO: add updatedRegions handling for UF
@@ -1026,8 +1026,8 @@ class AssignmentHandler {
   }
 
   private BooleanFormula makeSliceAssignment(
-      ArraySliceResolvedDet lhsResolved,
-      ImmutableList<ArraySliceResolvedSpanRhs> rhsList,
+      ArraySliceResolved lhsResolved,
+      ImmutableList<ArraySliceSpanResolved> rhsList,
       AssignmentOptions assignmentOptions,
       BooleanFormula conditionFormula,
       boolean useQuantifiers)
@@ -1051,32 +1051,25 @@ class AssignmentHandler {
     final Expression rhsResult;
     final CType rhsType;
 
-    ArraySliceResolvedSpanRhs firstRhs = rhsList.get(0);
+    ArraySliceSpanResolved firstRhs = rhsList.get(0);
 
     if (firstRhs.span.isEmpty()) {
       verify(rhsList.size() == 1);
       // normal assignment
-      if (firstRhs.actual instanceof ArraySliceResolvedDet det) {
-        // convert normally
-        CType rhsPerhapsPointerType = implicitCastToPointer(det.type);
-        if (rhsPerhapsPointerType instanceof CPointerType) {
-          // do not convert RHS expression here, leave it to handleDestructiveAssignment
-          rhsResult = det.expression;
-          rhsType = det.type;
-        } else {
-          // convert RHS expression
-          rhsResult = convertRhsExpression(assignmentOptions.conversionType, lhsResolved.type, det);
-          rhsType = lhsResolved.type;
-        }
-      } else if (firstRhs.actual instanceof ArraySliceResolvedNondet) {
-        // nondet value
-        rhsResult = Value.nondetValue();
-        rhsType = lhsResolved.type;
+      // convert normally
+      CType rhsPerhapsPointerType = implicitCastToPointer(firstRhs.actual.type);
+      if (rhsPerhapsPointerType instanceof CPointerType) {
+        // do not convert RHS expression here, leave it to handleDestructiveAssignment
+        rhsResult = firstRhs.actual.expression;
+        rhsType = firstRhs.actual.type;
       } else {
-        assert (false);
-        rhsResult = null;
-        rhsType = null;
+        // convert RHS expression
+        rhsResult =
+            convertRhsExpression(
+                assignmentOptions.conversionType, lhsResolved.type, firstRhs.actual);
+        rhsType = lhsResolved.type;
       }
+
     } else {
       // TODO: float handling is somewhat wonky
       // put together the rhs expressions from spans
@@ -1084,18 +1077,12 @@ class AssignmentHandler {
       long lhsBitSize = typeHandler.getBitSizeof(lhsResolved.type);
       Formula wholeRhsFormula = null;
       boolean forceNondet = false;
-      for (ArraySliceResolvedSpanRhs rhs : rhsList) {
-        if (firstRhs.actual instanceof ArraySliceResolvedNondet) {
-          // we will force the whole value to be set to be nondet if even just one span expression is nondet
-          forceNondet = true;
-          break;
-        }
+      for (ArraySliceSpanResolved rhs : rhsList) {
 
-        ArraySliceResolvedDet det = (ArraySliceResolvedDet) rhs.actual;
-
-        CType rhsPerhapsPointerType = implicitCastToPointer(det.type);
+        CType rhsPerhapsPointerType = implicitCastToPointer(rhs.actual.type);
         if (rhsPerhapsPointerType instanceof CPointerType) {
           // TODO: handle pointer rhs type in union
+          // force span lhs nondet for now
           forceNondet = true;
           break;
         }
@@ -1103,10 +1090,18 @@ class AssignmentHandler {
         ArraySlicePartSpan rhsSpan = rhs.span.get();
         // convert RHS expression to original LHS type
         Expression convertedRhs =
-            convertRhsExpression(assignmentOptions.conversionType, rhsSpan.originalLhsType, det);
+            convertRhsExpression(
+                assignmentOptions.conversionType, rhsSpan.originalLhsType, rhs.actual);
+        Optional<Formula> optionalConvertedRhsFormula =
+            getValueFormula(rhsSpan.originalLhsType, convertedRhs);
+        if (optionalConvertedRhsFormula.isEmpty()) {
+          // no RHS formula due to nondet expression
+          // force span lhs nondet
+          forceNondet = true;
+          break;
+        }
 
-        Formula convertedRhsFormula =
-            getValueFormula(rhsSpan.originalLhsType, convertedRhs).orElseThrow();
+        Formula convertedRhsFormula = getValueFormula(rhsSpan.originalLhsType, convertedRhs).get();
         // reinterpret to integer version of original lhs type
         Formula reinterpretedRhsFormula =
             conv.makeValueReinterpretation(
@@ -1174,11 +1169,18 @@ class AssignmentHandler {
   }
 
   private Expression convertRhsExpression(
-      AssignmentConversionType conversionType, CType lhsType, ArraySliceResolvedDet rhsResolved)
+      AssignmentConversionType conversionType, CType lhsType, ArraySliceResolved rhsResolved)
       throws UnrecognizedCodeException {
 
     // convert only if necessary, the types are already simplified
     if (lhsType.equals(rhsResolved.type)) {
+      return rhsResolved.expression;
+    }
+
+    Optional<Formula> optionalRhsFormula =
+        getValueFormula(rhsResolved.type, rhsResolved.expression);
+    if (optionalRhsFormula.isEmpty()) {
+      // nondeterministic RHS expression has no formula, do not convert
       return rhsResolved.expression;
     }
     Formula rhsFormula =
@@ -1206,25 +1208,25 @@ class AssignmentHandler {
 
   }
 
-  private @Nullable ArraySliceResolvedRhs resolveRhs(
+  private @Nullable ArraySliceResolved resolveRhs(
       final ArraySliceRhs rhs,
       final Map<ArraySliceIndexVariable, Formula> quantifiedVariableFormulaMap,
       CExpressionVisitorWithPointerAliasing visitor)
       throws UnrecognizedCodeException {
 
-    if (rhs instanceof ArraySliceNondetRhs) {
-      return new ArraySliceResolvedNondet();
+    if (rhs instanceof ArraySliceNondetRhs nondetRhs) {
+      return new ArraySliceResolved(Value.nondetValue(), nondetRhs.type);
     }
     if (rhs instanceof ArraySliceCallRhs callRhs) {
       Expression rhsExpression = callRhs.call.accept(visitor);
-      return new ArraySliceResolvedDet(rhsExpression, typeHandler.getSimplifiedType(callRhs.call));
+      return new ArraySliceResolved(rhsExpression, typeHandler.getSimplifiedType(callRhs.call));
     }
 
     return resolveSliceExpression(
         ((ArraySliceExpressionRhs) rhs).expression, quantifiedVariableFormulaMap, visitor);
   }
 
-  private @Nullable ArraySliceResolvedDet resolveSliceExpression(
+  private @Nullable ArraySliceResolved resolveSliceExpression(
       final ArraySliceExpression sliceExpression,
       final Map<ArraySliceIndexVariable, Formula> quantifiedVariableFormulaMap,
       CExpressionVisitorWithPointerAliasing visitor)
@@ -1238,7 +1240,7 @@ class AssignmentHandler {
     // convert the base from C expression to SMT expression
     Expression baseExpression = baseCExpression.accept(visitor);
 
-    ArraySliceResolvedDet base = new ArraySliceResolvedDet(baseExpression, baseType);
+    ArraySliceResolved base = new ArraySliceResolved(baseExpression, baseType);
 
     // we have unresolved modifiers, that means there is some quantified array access
     // so the base must be an array and therefore represent an AliasedLocation
@@ -1258,8 +1260,8 @@ class AssignmentHandler {
     return base;
   }
 
-  private ArraySliceResolvedDet resolveSubscriptModifier(
-      ArraySliceResolvedDet base,
+  private ArraySliceResolved resolveSubscriptModifier(
+      ArraySliceResolved base,
       ArraySliceSubscriptModifier modifier,
       final Map<ArraySliceIndexVariable, Formula> quantifiedVariableFormulaMap) {
 
@@ -1284,11 +1286,11 @@ class AssignmentHandler {
         conv.fmgr.makePlus(baseAddress, conv.fmgr.makeMultiply(quantifiedVariableFormula, sizeofElement));
 
     // return the resolved formula with adjusted address and array element type
-    return new ArraySliceResolvedDet(AliasedLocation.ofAddress(adjustedAddress), elementType);
+    return new ArraySliceResolved(AliasedLocation.ofAddress(adjustedAddress), elementType);
   }
 
-  private @Nullable ArraySliceResolvedDet resolveFieldAccessModifier(
-      ArraySliceResolvedDet base, ArraySliceFieldAccessModifier modifier) {
+  private @Nullable ArraySliceResolved resolveFieldAccessModifier(
+      ArraySliceResolved base, ArraySliceFieldAccessModifier modifier) {
 
     // the base type must be a composite type to have fields
     CCompositeType baseType = (CCompositeType) base.type;
@@ -1316,7 +1318,7 @@ class AssignmentHandler {
     AliasedLocation resultLocation = AliasedLocation.ofAddressWithRegion(adjustedAdress, region);
 
     // return the resolved formula with adjusted address and field type
-    return new ArraySliceResolvedDet(resultLocation, fieldType);
+    return new ArraySliceResolved(resultLocation, fieldType);
   }
 
 
