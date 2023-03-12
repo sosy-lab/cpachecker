@@ -929,15 +929,7 @@ class CExpressionVisitorWithPointerAliasing
       }
     }
 
-    // KLUDGE: remove the array-to-pointer conversion as the unary operator has wrong type
-    // note that this has to be done after the cast removal
-    // TODO: resolve wrong unary operator type for kludge removal
-    if (paramDestination instanceof CUnaryExpression unaryDestination
-        && unaryDestination.getOperator() == CUnaryExpression.UnaryOperator.AMPER
-        && unaryDestination.getOperand().getExpressionType().getCanonicalType()
-            instanceof CArrayType) {
-      paramDestination = unaryDestination.getOperand();
-    }
+    paramDestination = performMemoryFunctionKludges(paramDestination);
 
     // we need to know the element size
     // we ensure we have a pointer first and then take sizeof of the underlying type
@@ -1031,6 +1023,57 @@ class CExpressionVisitorWithPointerAliasing
     return Value.ofValue(destinationFormula);
   }
 
+  private CExpression performMemoryFunctionKludges(CExpression pointerParameterExpression) {
+
+    // KLUDGE: remove the array-to-pointer conversion as the unary operator has wrong type
+    // note that this has to be done after the cast removal
+    // TODO: resolve wrong unary operator type for kludge removal
+    if (pointerParameterExpression instanceof CUnaryExpression unaryDestination
+        && unaryDestination.getOperator() == CUnaryExpression.UnaryOperator.AMPER
+        && unaryDestination.getOperand().getExpressionType().getCanonicalType()
+            instanceof CArrayType) {
+      pointerParameterExpression = unaryDestination.getOperand();
+    }
+
+    CType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
+
+    // KLUDGE: multidimensional arrays
+
+    if (pointerParameterExpression instanceof CIdExpression idExpression) {
+      CType idType = idExpression.getExpressionType().getCanonicalType();
+      boolean multidimensionalKludge = false;
+      while (idType instanceof CArrayType arrayType
+          && arrayType.getType() instanceof CArrayType underlyingArrayType) {
+        multidimensionalKludge = true;
+        CExpression arrayTypeLength = arrayType.getLength();
+        CExpression underlyingTypeLength = underlyingArrayType.getLength();
+        if (arrayTypeLength instanceof CIntegerLiteralExpression literalArrayLength
+            && underlyingTypeLength instanceof CIntegerLiteralExpression literalUnderlyingLength) {
+          long multipliedLength = literalArrayLength.asLong() * literalUnderlyingLength.asLong();
+          idType =
+              new CArrayType(
+                  arrayType.isConst(),
+                  arrayType.isVolatile(),
+                  underlyingArrayType.getType(),
+                  CIntegerLiteralExpression.createDummyLiteral(multipliedLength, sizeType));
+        } else {
+          idType =
+              new CArrayType(
+                  arrayType.isConst(), arrayType.isVolatile(), underlyingArrayType.getType(), null);
+        }
+      }
+      if (multidimensionalKludge) {
+        // just a kludge, take the declaration from previous
+        return new CIdExpression(
+            idExpression.getFileLocation(),
+            idType,
+            idExpression.getName(),
+            idExpression.getDeclaration());
+      }
+    }
+    return pointerParameterExpression;
+  }
+
   private void handleMemmoveFunction(
       CFunctionCallExpression e,
       CExpression destination,
@@ -1052,14 +1095,7 @@ class CExpressionVisitorWithPointerAliasing
       }
     }
 
-    // KLUDGE: remove the array-to-pointer conversion as the unary operator has wrong type
-    // note that this has to be done after the cast removal
-    // TODO: resolve wrong unary operator type for kludge removal
-    if (source instanceof CUnaryExpression unarySource &&
-        unarySource.getOperator() == CUnaryExpression.UnaryOperator.AMPER
-          && unarySource.getOperand().getExpressionType().getCanonicalType() instanceof CArrayType) {
-      source = unarySource.getOperand();
-    }
+    source = performMemoryFunctionKludges(source);
 
     // the memcopy just indexes the destination and source with the same index
 
