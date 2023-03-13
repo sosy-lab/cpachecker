@@ -3775,10 +3775,31 @@ java.typeHierarchyFile = "typeHierarchy.dot"
 java.version = JavaCore.VERSION_1_7
 
 # get an initial precision from file
-kinduction.precision.file = no default value
+kinduction.precisionFile = no default value
 
 # get an initial precision from a predicate precision file
-kinduction.predicatePrecision.file = no default value
+kinduction.predicatePrecisionFile = no default value
+
+# Overall timelimit for computing initial value precision from given
+# predicate precision(use seconds or specify a unit; 0 for infinite)
+kinduction.reuse.precision.predicate.adaptionLimit = 0ns
+
+# also consider other binary operators then ==, !== when considering control
+# dependencies while adapting predicate precision
+kinduction.reuse.precision.predicate.includeControlNonEquiv = false
+
+# comma-separated list of files with property specifications that should be
+# considered when determining the relevant edges for predicate precision
+# adaption
+kinduction.reuse.precision.predicate.relevantProperties = []
+
+# which strategy to use to convert predicate to value precision
+kinduction.reuse.precision.predicate.strategy = CONVERT_ONLY
+  enum:     [CONVERT_ONLY, CONVERT_AND_ADD_FLOW_BACKWARD,
+             CONVERT_AND_ADD_FLOW_BIDIRECTED]
+
+# also consider control dependencies during adaption of predicate precision
+kinduction.reuse.precision.predicate.useControl = false
 
 # Programming language of the input program. If not given explicitly,
 # auto-detection will occur
