@@ -2607,7 +2607,7 @@ public abstract class AbstractExpressionValueVisitor
     if (pValue instanceof SymbolicValue
         && (pTargetType instanceof JSimpleType || pTargetType instanceof CSimpleType)) {
 
-      return factory.cast((SymbolicValue) pValue, pTargetType, pMachineModel);
+      return factory.cast((SymbolicValue) pValue, pTargetType);
     }
 
     // If the value is not symbolic, just return it.
