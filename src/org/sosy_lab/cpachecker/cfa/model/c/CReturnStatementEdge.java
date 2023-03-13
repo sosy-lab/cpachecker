@@ -37,7 +37,7 @@ public final class CReturnStatementEdge extends AReturnStatementEdge implements 
   }
 
   @Override
-  public Optional<CExpression> getExpression() {
+  public CExpression getExpression() {
     return getReturnStatement().getReturnValue();
   }
 

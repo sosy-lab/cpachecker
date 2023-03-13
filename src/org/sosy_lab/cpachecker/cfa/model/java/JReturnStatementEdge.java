@@ -37,7 +37,7 @@ public final class JReturnStatementEdge extends AReturnStatementEdge {
   }
 
   @Override
-  public Optional<JExpression> getExpression() {
+  public JExpression getExpression() {
     return getReturnStatement().getReturnValue();
   }
 

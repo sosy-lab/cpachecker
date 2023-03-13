@@ -506,8 +506,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         if (succ instanceof FunctionExitNode
             && succ.getFunction().getOrigName().equals(functionName)) {
           String description = edge.getDescription();
-          assert description.equals("default return")
-                 || description.equals("return");
+          assert description.equals("default return") || description.equals("return");
           return CONST_TRUE;
         }
       }

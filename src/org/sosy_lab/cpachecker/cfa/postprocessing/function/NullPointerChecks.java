@@ -17,7 +17,6 @@ import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -151,10 +150,8 @@ public class NullPointerChecks {
       throws CParserException {
     ContainsPointerVisitor visitor = new ContainsPointerVisitor();
     if (edge instanceof CReturnStatementEdge) {
-      Optional<CExpression> returnExp = ((CReturnStatementEdge) edge).getExpression();
-      if (returnExp.isPresent()) {
-        returnExp.orElseThrow().accept(visitor);
-      }
+      CExpression returnExp = ((CReturnStatementEdge) edge).getExpression();
+      returnExp.accept(visitor);
     } else if (edge instanceof CStatementEdge) {
       CStatement stmt = ((CStatementEdge) edge).getStatement();
       if (stmt instanceof CFunctionCallStatement) {

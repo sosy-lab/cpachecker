@@ -207,7 +207,7 @@ public class SMGTransferRelation
     SMGObject tmpFieldMemory = smgState.getHeap().getFunctionReturnObject();
     if (tmpFieldMemory != null) {
       // value 0 is the default return value in C
-      CExpression returnExp = returnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO);
+      CExpression returnExp = returnEdge.getExpression();
       CType expType = TypeUtils.getRealExpressionType(returnExp);
       Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
       if (returnAssignment.isPresent()) {

@@ -82,8 +82,7 @@ public class GlobalAccessChecker {
       case DeclarationEdge:
         return hasGlobalAccess(((CDeclarationEdge) edge).getDeclaration());
       case ReturnStatementEdge:
-        return ((CReturnStatementEdge) edge).getExpression().isPresent()
-            && hasGlobalAccess(((CReturnStatementEdge) edge).getExpression().orElseThrow());
+        return hasGlobalAccess(((CReturnStatementEdge) edge).getExpression());
       case FunctionCallEdge:
         return hasGlobalAccess(((CFunctionCallEdge) edge).getFunctionCall());
       case FunctionReturnEdge:
@@ -180,9 +179,9 @@ public class GlobalAccessChecker {
       }
 
     } else if (ast instanceof CReturnStatement) {
-      Optional<CExpression> returnExp = ((CReturnStatement) ast).getReturnValue();
+      CExpression returnExp = ((CReturnStatement) ast).getReturnValue();
       Optional<CAssignment> returnAssignment = ((CReturnStatement) ast).asAssignment();
-      return (returnExp.isPresent() && hasGlobalAccess(returnExp.orElseThrow()))
+      return hasGlobalAccess(returnExp)
           || (returnAssignment.isPresent() && hasGlobalAccess(returnAssignment.orElseThrow()));
 
     } else if (ast instanceof CDesignator) {

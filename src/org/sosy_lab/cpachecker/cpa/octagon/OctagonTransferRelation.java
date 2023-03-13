@@ -1099,12 +1099,6 @@ public class OctagonTransferRelation
   protected Set<OctagonState> handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
       throws CPATransferException {
 
-    // this is for functions without return value, which just have returns
-    // in them to end the function
-    if (!cfaEdge.getExpression().isPresent()) {
-      return Collections.singleton(state);
-    }
-
     MemoryLocation tempVarName =
         MemoryLocation.forLocalVariable(
             cfaEdge.getPredecessor().getFunctionName(),
@@ -1120,7 +1114,7 @@ public class OctagonTransferRelation
     COctagonCoefficientVisitor coeffVisitor =
         new COctagonCoefficientVisitor(state, cfaEdge.getPredecessor().getFunctionName());
     Set<Pair<IOctagonCoefficients, OctagonState>> coeffsList =
-        cfaEdge.getExpression().orElseThrow().accept(coeffVisitor);
+        cfaEdge.getExpression().accept(coeffVisitor);
 
     for (Pair<IOctagonCoefficients, OctagonState> pairs : coeffsList) {
       possibleStates.add(pairs.getSecond().makeAssignment(tempVarName, pairs.getFirst()));

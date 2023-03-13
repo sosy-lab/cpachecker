@@ -302,10 +302,7 @@ public class ConstraintManager {
 
   public static Constraint getConstraint(AReturnStatementEdge aRetEdge) {
 
-    AExpression expression =
-        aRetEdge.getExpression().isPresent()
-            ? aRetEdge.getExpression().get()
-            : CIntegerLiteralExpression.ZERO; // this is the default in C
+    AExpression expression = aRetEdge.getExpression();
 
     String varName = "FRET_" + aRetEdge.getSuccessor().getFunctionName();
 

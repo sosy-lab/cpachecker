@@ -193,9 +193,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
         break;
       case ReturnStatementEdge:
         CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
-        if (returnEdge.getExpression().isPresent()) {
-          returnEdge.getExpression().orElseThrow().accept(finder);
-        }
+        returnEdge.getExpression().accept(finder);
         break;
       case FunctionReturnEdge:
       case CallToReturnEdge:

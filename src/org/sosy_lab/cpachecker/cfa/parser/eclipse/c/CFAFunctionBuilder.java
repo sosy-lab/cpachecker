@@ -905,22 +905,16 @@ class CFAFunctionBuilder extends ASTVisitor {
     CReturnStatement returnstmt = astCreator.convert(returnStatement);
     prevNode = handleAllSideEffects(prevNode, fileloc, returnStatement.getRawSignature(), true);
 
-    if (!returnstmt.getReturnValue().isPresent()) {
-      BlankEdge edge = new BlankEdge(
-        returnStatement.getRawSignature(), fileloc, prevNode, functionExitNode, "return");
-        addToCFA(edge);
-        CFANode nextNode = newCFANode();
-        locStack.push(nextNode);
-        return;
+    if (returnstmt == null) {
+      BlankEdge edge = new BlankEdge("", fileloc, prevNode, functionExitNode, "return");
+      addToCFA(edge);
+    } else {
+      returnstmt.getReturnValue().accept(checkBinding);
+      CReturnStatementEdge edge =
+          new CReturnStatementEdge(
+              returnStatement.getRawSignature(), returnstmt, fileloc, prevNode, functionExitNode);
+      addToCFA(edge);
     }
-
-    if (returnstmt.getReturnValue().isPresent()) {
-      returnstmt.getReturnValue().orElseThrow().accept(checkBinding);
-    }
-    CReturnStatementEdge edge =
-        new CReturnStatementEdge(
-            returnStatement.getRawSignature(), returnstmt, fileloc, prevNode, functionExitNode);
-    addToCFA(edge);
 
     CFANode nextNode = newCFANode();
     locStack.push(nextNode);

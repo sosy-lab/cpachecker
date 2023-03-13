@@ -259,16 +259,12 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
   private PointerState handleReturnStatementEdge(PointerState pState, CReturnStatementEdge pCfaEdge)
       throws UnrecognizedCodeException {
-    if (!pCfaEdge.getExpression().isPresent()) {
-      return pState;
-    }
     Optional<MemoryLocation> returnVariable =
         getFunctionReturnVariable(pCfaEdge.getSuccessor().getEntryNode());
     if (!returnVariable.isPresent()) {
       return pState;
     }
-    return handleAssignment(
-        pState, returnVariable.orElseThrow(), pCfaEdge.getExpression().orElseThrow());
+    return handleAssignment(pState, returnVariable.orElseThrow(), pCfaEdge.getExpression());
   }
 
   private Optional<MemoryLocation> getFunctionReturnVariable(FunctionEntryNode pFunctionEntryNode) {

@@ -565,14 +565,8 @@ public final class EdgeDefUseData {
 
     @Override
     public Void visit(CReturnStatement pNode) {
-
-      Optional<CExpression> optExpression = pNode.getReturnValue();
-
-      if (optExpression.isPresent()) {
-        return optExpression.orElseThrow().accept(this);
-      } else {
-        return null;
-      }
+      CExpression optExpression = pNode.getReturnValue();
+      return optExpression.accept(this);
     }
   }
 

@@ -445,10 +445,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
   private InvariantsState handleReturnStatement(
       InvariantsState pElement, CReturnStatementEdge pEdge) throws UnrecognizedCodeException {
-    // If the return edge has no statement, no return value is passed: "return;"
-    if (!pEdge.getExpression().isPresent()) {
-      return pElement;
-    }
+
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
     Optional<CAssignment> assignment = pEdge.asAssignment();
     if (assignment.isPresent()) {
@@ -468,8 +465,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       MemoryLocation varName = variableNameExtractor.getMemoryLocation(leftHandSide);
       return pElement.assign(varName, returnedState);
     }
-    NumeralFormula<CompoundInterval> returnedState =
-        pEdge.getExpression().orElseThrow().accept(etfv);
+    NumeralFormula<CompoundInterval> returnedState = pEdge.getExpression().accept(etfv);
     MemoryLocation returnValueName =
         MemoryLocation.forDeclaration(
             pEdge.getSuccessor().getEntryNode().getReturnVariable().get());

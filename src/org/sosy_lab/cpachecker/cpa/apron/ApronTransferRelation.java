@@ -868,12 +868,6 @@ public class ApronTransferRelation
   protected Set<ApronState> handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
       throws CPATransferException {
 
-    // this is for functions without return value, which just have returns
-    // in them to end the function
-    if (!cfaEdge.getExpression().isPresent()) {
-      return Collections.singleton(state);
-    }
-
     MemoryLocation tempVarName =
         MemoryLocation.forLocalVariable(
             cfaEdge.getPredecessor().getFunctionName(),
@@ -886,8 +880,7 @@ public class ApronTransferRelation
     }
 
     Set<ApronState> possibleStates = new HashSet<>();
-    Set<Texpr0Node> coeffsList =
-        cfaEdge.getExpression().orElseThrow().accept(new CApronExpressionVisitor());
+    Set<Texpr0Node> coeffsList = cfaEdge.getExpression().accept(new CApronExpressionVisitor());
 
     if (coeffsList.isEmpty()) {
       return Collections.singleton(state);

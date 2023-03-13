@@ -260,8 +260,7 @@ public class ProofSlicer {
         return;
       case ReturnStatementEdge:
         CReturnStatementEdge retStm = ((CReturnStatementEdge) edge);
-        if (retStm.getExpression().isPresent()
-            && !retStm.getSuccessor().getEntryNode().getReturnVariable().isPresent()) {
+        if (!retStm.getSuccessor().getEntryNode().getReturnVariable().isPresent()) {
           throw new AssertionError("Return statement but no return variable available");
         }
 
@@ -269,11 +268,8 @@ public class ProofSlicer {
           String varName =
               retStm.getSuccessor().getEntryNode().getReturnVariable().get().getQualifiedName();
           addAllExceptVar(varName, succVars, updatedVars);
+          CFAUtils.getVariableNamesOfExpression(retStm.getExpression()).copyInto(updatedVars);
 
-          if (retStm.getExpression().isPresent()) {
-            CFAUtils.getVariableNamesOfExpression(retStm.getExpression().orElseThrow())
-                .copyInto(updatedVars);
-          }
         } else {
           updatedVars.addAll(succVars);
         }

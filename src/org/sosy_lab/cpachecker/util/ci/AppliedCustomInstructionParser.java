@@ -23,7 +23,6 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -376,10 +375,8 @@ public class AppliedCustomInstructionParser {
         }
       }
     } else if (pLeavingEdge instanceof CReturnStatementEdge) {
-      Optional<CExpression> edgeExp = ((CReturnStatementEdge) pLeavingEdge).getExpression();
-      if (edgeExp.isPresent()) {
-        return CFAUtils.getVariableNamesOfExpression(edgeExp.orElseThrow()).toSet();
-      }
+      CExpression edgeExp = ((CReturnStatementEdge) pLeavingEdge).getExpression();
+      return CFAUtils.getVariableNamesOfExpression(edgeExp).toSet();
     } else if (pLeavingEdge instanceof CAssumeEdge) {
       return CFAUtils.getVariableNamesOfExpression(((CAssumeEdge) pLeavingEdge).getExpression())
           .toSet();
@@ -497,10 +494,7 @@ public class AppliedCustomInstructionParser {
         }
         break;
       case ReturnStatementEdge:
-        if (((CReturnStatementEdge) pLeave).getExpression().isPresent()) {
-          return ((CReturnStatementEdge) pLeave).getExpression().orElseThrow().accept(visitor);
-        }
-        break;
+        return ((CReturnStatementEdge) pLeave).getExpression().accept(visitor);
       case FunctionCallEdge:
         for (CExpression exp : ((CFunctionCallEdge) pLeave).getArguments()) {
           if (exp.accept(visitor)) {

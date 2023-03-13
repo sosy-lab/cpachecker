@@ -20,10 +20,10 @@ public abstract class AbstractReturnStatement extends AbstractAstNode implements
 
   protected AbstractReturnStatement(
       final FileLocation pFileLocation,
-      final Optional<? extends AExpression> pExpression,
+      final AExpression pExpression,
       final Optional<? extends AAssignment> pAssignment) {
     super(pFileLocation);
-    expression = pExpression.orElse(null);
+    expression = pExpression;
     assignment = pAssignment.orElse(null);
   }
 
@@ -33,8 +33,8 @@ public abstract class AbstractReturnStatement extends AbstractAstNode implements
   }
 
   @Override
-  public Optional<? extends AExpression> getReturnValue() {
-    return Optional.ofNullable(expression);
+  public AExpression getReturnValue() {
+    return expression;
   }
 
   @Override

@@ -123,11 +123,9 @@ public class MemoryAccessExtractor {
         break;
       case ReturnStatementEdge:
         AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) edge;
-        if (returnStatementEdge.getExpression().isPresent()) {
-          AExpression returnExpression = returnStatementEdge.getExpression().get();
-          readLocationBuilder.addAll(
-              getInvolvedVariableTypes(returnExpression, returnStatementEdge));
-        }
+        AExpression returnExpression = returnStatementEdge.getExpression();
+        readLocationBuilder.addAll(getInvolvedVariableTypes(returnExpression, returnStatementEdge));
+
         break;
       case StatementEdge:
         AStatementEdge statementEdge = (AStatementEdge) edge;

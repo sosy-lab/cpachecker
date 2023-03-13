@@ -566,19 +566,18 @@ public class ARGToCTranslator {
       // if this is a function call edge we need to inline it
       currentBlock = processFunctionCall(edge, currentBlock);
     } else if (edge instanceof CReturnStatementEdge returnEdge) {
-      if (returnEdge.getExpression() != null && returnEdge.getExpression().isPresent()) {
 
-        String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
-        String returnVar;
+      String retval = returnEdge.getExpression().toQualifiedASTString();
+      String returnVar;
 
-        if (childElement.isCovered()) {
-          returnVar = " __return_" + getCovering(childElement).getStateId();
-        } else {
-          returnVar = " __return_" + childElement.getStateId();
-          addGlobalReturnValueDecl(returnEdge, childElement.getStateId());
-        }
-        currentBlock.addStatement(new SimpleStatement(edge, returnVar + " = " + retval + ";"));
+      if (childElement.isCovered()) {
+        returnVar = " __return_" + getCovering(childElement).getStateId();
+      } else {
+        returnVar = " __return_" + childElement.getStateId();
+        addGlobalReturnValueDecl(returnEdge, childElement.getStateId());
       }
+
+      currentBlock.addStatement(new SimpleStatement(edge, returnVar + " = " + retval + ";"));
     } else if (edge instanceof CFunctionReturnEdge returnEdge) {
       // assumes that ReturnStateEdge is followed by FunctionReturnEdge
       currentBlock =
@@ -597,7 +596,7 @@ public class ARGToCTranslator {
           assert (innerEdges.get(innerEdges.size() - 1) == innerEdge);
           CReturnStatementEdge returnEdge = (CReturnStatementEdge) innerEdge;
 
-          String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
+          String retval = returnEdge.getExpression().toQualifiedASTString();
           String returnVar;
 
           if (childElement.isCovered()) {

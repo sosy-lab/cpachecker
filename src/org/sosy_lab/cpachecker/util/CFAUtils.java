@@ -816,7 +816,7 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> visit(AReturnStatement pNode) {
-      return Optionals.asSet(pNode.getReturnValue());
+      return ImmutableList.of(pNode.getReturnValue());
     }
 
     @Override

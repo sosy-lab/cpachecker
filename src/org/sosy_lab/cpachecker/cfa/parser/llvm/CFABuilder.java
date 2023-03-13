@@ -919,16 +919,13 @@ public class CFABuilder {
   private List<CAstNode> handleReturn(
       final Value pItem, final String pFuncName, final Path pFileName) throws LLVMException {
     Value returnVal = pItem.getReturnValue();
-    Optional<CExpression> maybeExpression;
     Optional<CAssignment> maybeAssignment;
     if (returnVal == null) {
-      maybeExpression = Optional.empty();
-      maybeAssignment = Optional.empty();
+      return ImmutableList.of();
 
     } else {
       CType expectedType = typeConverter.getCType(returnVal.typeOf());
       CExpression returnExp = getExpression(returnVal, expectedType, pFileName);
-      maybeExpression = Optional.of(returnExp);
 
       CSimpleDeclaration returnVarDecl =
           getReturnVar(pFuncName, returnExp.getExpressionType(), returnExp.getFileLocation());
@@ -939,10 +936,9 @@ public class CFABuilder {
           new CExpressionAssignmentStatement(
               getLocation(returnVal, pFileName), returnVar, returnExp);
       maybeAssignment = Optional.of(returnVarAssignment);
+      return ImmutableList.of(
+          new CReturnStatement(getLocation(pItem, pFileName), returnExp, maybeAssignment));
     }
-
-    return ImmutableList.of(
-        new CReturnStatement(getLocation(pItem, pFileName), maybeExpression, maybeAssignment));
   }
 
   private String getQualifiedName(String pVarName, String pFuncName) {

@@ -157,31 +157,26 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
   protected RTTState handleReturnStatementEdge(JReturnStatementEdge cfaEdge)
       throws UnrecognizedCodeException {
 
-    if (cfaEdge.getExpression().isPresent()) {
-      JExpression expression = cfaEdge.getExpression().orElseThrow();
+    JExpression expression = cfaEdge.getExpression();
 
-      RTTState newState = RTTState.copyOf(state);
-      // In Case Of Class Instance Creation, return unique Object
-      final String value;
-      if (cfaEdge.getReturnStatement() instanceof JObjectReferenceReturn) {
-        value = state.getClassObjectScope();
-      } else {
-        value = getExpressionValue(state, expression, functionName, cfaEdge);
-      }
-
-      final String assignedVar =
-          nameProvider.getScopedVariableName(
-              TEMP_VAR_NAME, functionName, state.getClassObjectScope(), state);
-      if (value == null) {
-        newState.forget(assignedVar);
-      } else {
-        newState.assignObject(assignedVar, value);
-      }
-      return newState;
-
+    RTTState newState = RTTState.copyOf(state);
+    // In Case Of Class Instance Creation, return unique Object
+    final String value;
+    if (cfaEdge.getReturnStatement() instanceof JObjectReferenceReturn) {
+      value = state.getClassObjectScope();
     } else {
-      return state;
+      value = getExpressionValue(state, expression, functionName, cfaEdge);
     }
+
+    final String assignedVar =
+        nameProvider.getScopedVariableName(
+            TEMP_VAR_NAME, functionName, state.getClassObjectScope(), state);
+    if (value == null) {
+      newState.forget(assignedVar);
+    } else {
+      newState.assignObject(assignedVar, value);
+    }
+    return newState;
   }
 
   @Override
@@ -366,7 +361,6 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
       String uniqueObject =
           returnEdge
               .getExpression()
-              .orElseThrow()
               .accept(new FunctionExitValueVisitor(returnEdge, newState, calledFunctionName));
       newState.assignThisAndNewObjectScope(uniqueObject);
 

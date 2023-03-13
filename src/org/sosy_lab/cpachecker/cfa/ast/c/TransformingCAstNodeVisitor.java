@@ -516,15 +516,10 @@ public interface TransformingCAstNodeVisitor<X extends Exception>
 
     boolean changed = false;
 
-    Optional<CExpression> oldOptionalReturnValue = pCReturnStatement.getReturnValue();
-    Optional<CExpression> newOptionalReturnValue = Optional.empty();
-    if (oldOptionalReturnValue.isPresent()) {
-      CExpression oldReturnValue = oldOptionalReturnValue.orElseThrow();
-      CExpression newReturnValue = (CExpression) oldReturnValue.accept(this);
-      newOptionalReturnValue = Optional.of(newReturnValue);
-      if (oldReturnValue != newReturnValue) {
-        changed = true;
-      }
+    CExpression oldReturnValue = pCReturnStatement.getReturnValue();
+    CExpression newReturnValue = (CExpression) oldReturnValue.accept(this);
+    if (oldReturnValue != newReturnValue) {
+      changed = true;
     }
 
     Optional<CAssignment> oldOptionalAssignment = pCReturnStatement.asAssignment();
@@ -540,7 +535,7 @@ public interface TransformingCAstNodeVisitor<X extends Exception>
 
     if (changed) {
       return new CReturnStatement(
-          pCReturnStatement.getFileLocation(), newOptionalReturnValue, newOptionalAssignment);
+          pCReturnStatement.getFileLocation(), newReturnValue, newOptionalAssignment);
     } else {
       return pCReturnStatement;
     }

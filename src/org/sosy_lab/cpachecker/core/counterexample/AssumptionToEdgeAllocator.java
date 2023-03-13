@@ -211,9 +211,9 @@ public class AssumptionToEdgeAllocator {
 
   private String handleReturnStatementComment(
       AReturnStatementEdge pCfaEdge, ConcreteState pConcreteState) {
-    Optional<? extends AExpression> returnExpression = pCfaEdge.getExpression();
-    if (returnExpression.isPresent() && returnExpression.get() instanceof CExpression) {
-      CExpression returnExp = (CExpression) returnExpression.get();
+    AExpression returnExpression = pCfaEdge.getExpression();
+    if (returnExpression instanceof CExpression) {
+      CExpression returnExp = (CExpression) returnExpression;
 
       if (returnExp instanceof CLiteralExpression) {
         /*boring expression*/

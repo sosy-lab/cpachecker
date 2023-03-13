@@ -571,8 +571,10 @@ class ASTConverter {
   public JReturnStatement convert(final ReturnStatement s) {
 
     JExpression expr = convertExpressionWithoutSideEffects(s.getExpression());
-
-    return new JReturnStatement(getFileLocation(s), Optional.ofNullable(expr));
+    if (expr == null) {
+      return null;
+    }
+    return new JReturnStatement(getFileLocation(s), expr);
   }
 
   /**

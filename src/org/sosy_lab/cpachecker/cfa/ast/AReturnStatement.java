@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 public interface AReturnStatement extends AAstNode {
 
   /** The return value, if present (i.e., the "exp" in "return exp;"). */
-  Optional<? extends AExpression> getReturnValue();
+  AExpression getReturnValue();
 
   /**
    * If this statement has a return value, this method creates a representation of this statement in

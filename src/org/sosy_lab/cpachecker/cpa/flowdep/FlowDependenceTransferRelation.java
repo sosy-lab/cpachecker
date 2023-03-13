@@ -804,13 +804,8 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
 
     @Override
     public Set<MemoryLocation> visit(CReturnStatement pNode) throws CPATransferException {
-      Optional<CExpression> ret = pNode.getReturnValue();
-
-      if (ret.isPresent()) {
-        return ret.orElseThrow().accept(this);
-      } else {
-        return ImmutableSet.of();
-      }
+      CExpression ret = pNode.getReturnValue();
+      return ret.accept(this);
     }
   }
 }

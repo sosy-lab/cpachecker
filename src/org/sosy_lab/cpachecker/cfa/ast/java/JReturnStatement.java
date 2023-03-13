@@ -27,7 +27,7 @@ public sealed class JReturnStatement extends AbstractReturnStatement implements 
 
   private static final long serialVersionUID = -7073556363348785665L;
 
-  public JReturnStatement(FileLocation pFileLocation, Optional<JExpression> pExpression) {
+  public JReturnStatement(FileLocation pFileLocation, JExpression pExpression) {
     // TODO We absolutely need a correct assignment here that assigns pExpression to a special
     // variable with the return type of the function.
     super(pFileLocation, pExpression, Optional.empty());
@@ -35,8 +35,8 @@ public sealed class JReturnStatement extends AbstractReturnStatement implements 
 
   @SuppressWarnings("unchecked") // safe because Optional is covariant
   @Override
-  public Optional<JExpression> getReturnValue() {
-    return (Optional<JExpression>) super.getReturnValue();
+  public JExpression getReturnValue() {
+    return (JExpression) super.getReturnValue();
   }
 
   @Override

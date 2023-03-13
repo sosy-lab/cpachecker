@@ -146,15 +146,13 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
 
   private static NondeterminismNonAbstractionState handleReturnStatement(
       NondeterminismNonAbstractionState pState, AReturnStatementEdge pEdge) {
-    if (!pEdge.getExpression().isPresent()) {
-      return pState;
-    }
+
     Optional<? extends AVariableDeclaration> retVar =
         pEdge.getSuccessor().getEntryNode().getReturnVariable();
     if (!retVar.isPresent()) {
       return pState;
     }
-    return handleAssignment(pState, retVar.get().getQualifiedName(), pEdge.getExpression().get());
+    return handleAssignment(pState, retVar.get().getQualifiedName(), pEdge.getExpression());
   }
 
   private static NondeterminismNonAbstractionState handleAssignment(

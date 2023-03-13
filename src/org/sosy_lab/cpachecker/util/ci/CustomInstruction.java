@@ -737,23 +737,9 @@ public class CustomInstruction {
       final CReturnStatementEdge aciEdge,
       final Map<String, String> ciVarToAciVar)
       throws AppliedCustomInstructionParsingFailedException {
-
-    if (ciEdge.getExpression().isPresent() && aciEdge.getExpression().isPresent()) {
-      ciEdge
-          .getExpression()
-          .orElseThrow()
-          .accept(
-              new StructureComparisonVisitor(aciEdge.getExpression().orElseThrow(), ciVarToAciVar));
-
-    } else if ((!ciEdge.getExpression().isPresent() && aciEdge.getExpression().isPresent())
-        || (ciEdge.getExpression().isPresent() && !aciEdge.getExpression().isPresent())) {
-      throw new AppliedCustomInstructionParsingFailedException(
-          "The expression of the CReturnStatementEdge of ci "
-              + ciEdge
-              + " and aci "
-              + aciEdge
-              + " is present in one of them, but not in the otherone.");
-    }
+    ciEdge
+        .getExpression()
+        .accept(new StructureComparisonVisitor(aciEdge.getExpression(), ciVarToAciVar));
   }
 
   private void compareFunctionCallEdge(

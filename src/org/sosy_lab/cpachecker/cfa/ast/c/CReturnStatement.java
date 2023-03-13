@@ -18,7 +18,7 @@ public final class CReturnStatement extends AbstractReturnStatement implements C
 
   public CReturnStatement(
       final FileLocation pFileLocation,
-      final Optional<CExpression> pExpression,
+      final CExpression pExpression,
       final Optional<CAssignment> pAssignment) {
     super(pFileLocation, pExpression, pAssignment);
   }
@@ -30,8 +30,8 @@ public final class CReturnStatement extends AbstractReturnStatement implements C
 
   @SuppressWarnings("unchecked") // safe because Optional is covariant
   @Override
-  public Optional<CExpression> getReturnValue() {
-    return (Optional<CExpression>) super.getReturnValue();
+  public CExpression getReturnValue() {
+    return (CExpression) super.getReturnValue();
   }
 
   @Override

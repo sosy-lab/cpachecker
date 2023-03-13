@@ -109,10 +109,7 @@ public class SimpleIntProviderFactory {
         break;
       case ReturnStatementEdge:
         CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
-
-        if (returnEdge.getExpression().isPresent()) {
-          count += countExpressions(returnEdge.getExpression().orElseThrow(), counter);
-        }
+        count += countExpressions(returnEdge.getExpression(), counter);
         break;
 
       default:

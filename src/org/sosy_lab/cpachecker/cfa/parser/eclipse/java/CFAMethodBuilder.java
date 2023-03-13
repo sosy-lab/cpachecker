@@ -2472,6 +2472,14 @@ class CFAMethodBuilder extends ASTVisitor {
       astCreator.resetConditionalExpression();
     }
 
+    if (cfJReturnStatement == null) {
+      BlankEdge edge =
+          new BlankEdge(returnStatement.toString(), fileloc, prevNode, functionExitNode, "return");
+      addToCFA(edge);
+      locStack.push(nextNode);
+      return SKIP_CHILDREN;
+    }
+
     JReturnStatementEdge edge =
         new JReturnStatementEdge(
             returnStatement.toString(), cfJReturnStatement, fileloc, prevNode, functionExitNode);

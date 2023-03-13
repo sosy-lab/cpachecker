@@ -1767,6 +1767,7 @@ class ASTConverter {
         ((FunctionScope) scope).getReturnVariable();
 
     final Optional<CAssignment> returnAssignment;
+    // non-void function
     if (returnVariableDeclaration.isPresent()) {
       CIdExpression lhs = new CIdExpression(loc, returnVariableDeclaration.orElseThrow());
       CExpression rhs = null;
@@ -1787,7 +1788,7 @@ class ASTConverter {
         returnAssignment = Optional.empty();
       }
 
-    } else {
+    } else { // void function
       if (returnExp.isPresent()) {
         logger.log(
             Level.WARNING,
@@ -1798,8 +1799,11 @@ class ASTConverter {
       }
       returnAssignment = Optional.empty();
     }
-
-    return new CReturnStatement(loc, returnExp, returnAssignment);
+    if (returnExp.isPresent()) {
+      return new CReturnStatement(loc, returnExp.orElseThrow(), returnAssignment);
+    } else {
+      return null;
+    }
   }
 
   private record Declarator(CType type, IASTInitializer initializer, String name) {}

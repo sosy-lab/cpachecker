@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -112,15 +111,12 @@ public class LocalTransferRelation
       throws HandleCodeException {
     // TODO is it necessary to clone every time?
     // Guess, it is possible to return the same state (we add only in cloned states)
-    Optional<CExpression> returnExpression = cfaEdge.getExpression();
+    CExpression returnExpression = cfaEdge.getExpression();
     LocalState newState = state.copy();
-    if (returnExpression.isPresent()) {
+    int potentialDereference = findDereference(returnExpression.getExpressionType());
+    ReturnIdentifier id = ReturnIdentifier.getInstance(0);
+    assign(newState, id, potentialDereference, returnExpression);
 
-      int potentialDereference =
-          findDereference(returnExpression.orElseThrow().getExpressionType());
-      ReturnIdentifier id = ReturnIdentifier.getInstance(0);
-      assign(newState, id, potentialDereference, returnExpression.orElseThrow());
-    }
     return newState;
   }
 

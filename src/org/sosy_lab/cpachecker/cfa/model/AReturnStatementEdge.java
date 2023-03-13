@@ -40,7 +40,7 @@ public class AReturnStatementEdge extends AbstractCFAEdge {
     return returnStatement;
   }
 
-  public Optional<? extends AExpression> getExpression() {
+  public AExpression getExpression() {
     return returnStatement.getReturnValue();
   }
 

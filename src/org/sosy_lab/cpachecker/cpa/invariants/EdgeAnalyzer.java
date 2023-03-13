@@ -152,26 +152,24 @@ class EdgeAnalyzer {
       case ReturnStatementEdge:
         {
           AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) pCfaEdge;
-          if (returnStatementEdge.getExpression().isPresent()) {
-            AExpression returnExpression = returnStatementEdge.getExpression().get();
-            Map<MemoryLocation, CType> result = new HashMap<>();
-            Optional<? extends AAssignment> returnAssignment = returnStatementEdge.asAssignment();
-            if (returnAssignment.isPresent()) {
-              result.putAll(getInvolvedVariableTypes(returnAssignment.get(), pCfaEdge));
-            } else {
-              Optional<? extends AVariableDeclaration> retVar =
-                  returnStatementEdge.getSuccessor().getEntryNode().getReturnVariable();
-              if (retVar.isPresent()) {
-                CExpression idExpression =
-                    new CIdExpression(
-                        returnStatementEdge.getFileLocation(), (CSimpleDeclaration) retVar.get());
-                result.putAll(getInvolvedVariableTypes(idExpression, pCfaEdge));
-              }
+
+          AExpression returnExpression = returnStatementEdge.getExpression();
+          Map<MemoryLocation, CType> result = new HashMap<>();
+          Optional<? extends AAssignment> returnAssignment = returnStatementEdge.asAssignment();
+          if (returnAssignment.isPresent()) {
+            result.putAll(getInvolvedVariableTypes(returnAssignment.get(), pCfaEdge));
+          } else {
+            Optional<? extends AVariableDeclaration> retVar =
+                returnStatementEdge.getSuccessor().getEntryNode().getReturnVariable();
+            if (retVar.isPresent()) {
+              CExpression idExpression =
+                  new CIdExpression(
+                      returnStatementEdge.getFileLocation(), (CSimpleDeclaration) retVar.get());
+              result.putAll(getInvolvedVariableTypes(idExpression, pCfaEdge));
             }
-            result.putAll(getInvolvedVariableTypes(returnExpression, pCfaEdge));
-            return result;
           }
-          return ImmutableMap.of();
+          result.putAll(getInvolvedVariableTypes(returnExpression, pCfaEdge));
+          return result;
         }
       case StatementEdge:
         {

@@ -100,7 +100,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         // this is the return-statement of a function
         // set a local variable tracking the return statement's initialization status
         if (isExpressionUninitialized(
-            successor, ((CReturnStatementEdge) cfaEdge).getExpression().orElse(null), cfaEdge)) {
+            successor, ((CReturnStatementEdge) cfaEdge).getExpression(), cfaEdge)) {
           setUninitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
         } else {
           setInitialized(successor, "CPAchecker_UninitVars_FunctionReturn");

@@ -427,40 +427,36 @@ public class BDDTransferRelation
   protected BDDState handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
       throws UnsupportedCodeException {
     BDDState newState = state;
-    String returnVar = "";
+    String returnVar =
+        ((CIdExpression) cfaEdge.asAssignment().orElseThrow().getLeftHandSide())
+            .getDeclaration()
+            .getQualifiedName();
+    final Partition partition = varClass.getPartitionForEdge(cfaEdge);
+    final CType functionReturnType =
+        ((CFunctionDeclaration) cfaEdge.getSuccessor().getEntryNode().getFunctionDefinition())
+            .getType()
+            .getReturnType();
 
-    if (cfaEdge.getExpression().isPresent()) {
-      returnVar =
-          ((CIdExpression) cfaEdge.asAssignment().orElseThrow().getLeftHandSide())
-              .getDeclaration()
-              .getQualifiedName();
-      final Partition partition = varClass.getPartitionForEdge(cfaEdge);
-      final CType functionReturnType =
-          ((CFunctionDeclaration) cfaEdge.getSuccessor().getEntryNode().getFunctionDefinition())
-              .getType()
-              .getReturnType();
+    // make region for RIGHT SIDE, this is the 'x' from 'return (x);
+    final Region[] regRHS =
+        bvComputer.evaluateVectorExpression(
+            partition,
+            cfaEdge.getExpression(),
+            functionReturnType,
+            cfaEdge.getSuccessor(),
+            precision);
 
-      // make region for RIGHT SIDE, this is the 'x' from 'return (x);
-      final Region[] regRHS =
-          bvComputer.evaluateVectorExpression(
-              partition,
-              cfaEdge.getExpression().orElseThrow(),
-              functionReturnType,
-              cfaEdge.getSuccessor(),
-              precision);
-
-      // make variable (predicate) for returnStatement,
-      // delete variable, if it was used before, this is done with an existential operator
-      final Region[] retvar =
-          predmgr.createPredicate(
-              returnVar,
-              functionReturnType,
-              cfaEdge.getSuccessor(),
-              bvComputer.getBitsize(partition, functionReturnType),
-              precision);
-      newState = newState.forget(retvar);
-      newState = newState.addAssignment(retvar, regRHS);
-    }
+    // make variable (predicate) for returnStatement,
+    // delete variable, if it was used before, this is done with an existential operator
+    final Region[] retvar =
+        predmgr.createPredicate(
+            returnVar,
+            functionReturnType,
+            cfaEdge.getSuccessor(),
+            bvComputer.getBitsize(partition, functionReturnType),
+            precision);
+    newState = newState.forget(retvar);
+    newState = newState.addAssignment(retvar, regRHS);
 
     // delete variables from returning function,
     // we do not need them after this location, because the next edge is the functionReturnEdge.

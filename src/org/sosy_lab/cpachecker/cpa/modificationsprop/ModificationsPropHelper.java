@@ -365,7 +365,7 @@ public class ModificationsPropHelper {
             }
           }
         } else if (pEdge instanceof CReturnStatementEdge) { // ReturnStatementEdge
-          CExpression exp = ((CReturnStatementEdge) pEdge).getExpression().orElse(null);
+          CExpression exp = ((CReturnStatementEdge) pEdge).getExpression();
           if (exp != null) {
             usedVars = exp.accept(visitor);
           } else {

@@ -599,13 +599,8 @@ final class TransformableArray {
     @Override
     public Boolean visit(CReturnStatement pNode) {
 
-      Optional<CExpression> optExpression = pNode.getReturnValue();
-
-      if (optExpression.isPresent()) {
-        return optExpression.orElseThrow().accept(this);
-      } else {
-        return false;
-      }
+      CExpression optExpression = pNode.getReturnValue();
+      return optExpression.accept(this);
     }
   }
 }
