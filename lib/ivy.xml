@@ -81,7 +81,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- JFlex Scanner generator
              Used for generating automaton and FQL scanners. -->
-        <dependency org="de.jflex" name="jflex" rev="1.9.0" conf="build->default"
+        <dependency org="de.jflex" name="jflex" rev="1.9.1" conf="build->default"
                     transitive="false"/>
 
         <!-- CUP LALR Parser Generator for Java
