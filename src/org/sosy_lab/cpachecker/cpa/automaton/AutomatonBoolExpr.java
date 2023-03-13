@@ -504,9 +504,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       } else if (edge instanceof BlankEdge) {
         CFANode succ = edge.getSuccessor();
         if (succ instanceof FunctionExitNode
-            && succ.getNumLeavingEdges() == 0
             && succ.getFunction().getOrigName().equals(functionName)) {
-          assert "default return".equals(edge.getDescription());
+          String description = edge.getDescription();
+          assert description.equals("default return")
+                 || description.equals("return");
           return CONST_TRUE;
         }
       }

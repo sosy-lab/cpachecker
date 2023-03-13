@@ -7,7 +7,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-void assert(int cond) { if (!cond) { ERROR: return; } }
+extern void __VERIFIER_error() __attribute__ ((__noreturn__));
+void assert(int cond) { if (!cond) { ERROR: __VERIFIER_error(); } }
 
 int main() {
   int x = 5;
