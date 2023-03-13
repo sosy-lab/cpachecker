@@ -1463,6 +1463,7 @@ class AssignmentHandler {
       }
       if (base == null) {
         // TODO: only used for ignoring assignments to bit-fields which should be handled properly
+        // TODO: also used for ignoring non-aliased locations which should be handled properly
         return null;
       }
     }
@@ -1488,6 +1489,17 @@ class AssignmentHandler {
     // perform pointer arithmetic, we have array[base] and want array[base + i]
     // the quantified variable i must be multiplied by the sizeof the element type
 
+    if (!base.expression.isAliasedLocation()) {
+      // TODO: resolve for nonaliased location
+      conv.logger.logfOnce(
+          Level.WARNING,
+          "%s: Ignoring resolution of subscript modifier for non-aliased expression %s with type %s",
+          edge.getFileLocation(),
+          base.expression,
+          base.type);
+      return null;
+    }
+
     Formula baseAddress = base.expression.asAliasedLocation().getAddress();
     final Formula sizeofElement =
         conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
@@ -1506,6 +1518,17 @@ class AssignmentHandler {
     CCompositeType baseType = (CCompositeType) base.type;
     final String fieldName = modifier.field().getName();
     CType fieldType = typeHandler.getSimplifiedType(modifier.field());
+
+    if (!base.expression.isAliasedLocation()) {
+      // TODO: resolve for nonaliased location
+      conv.logger.logfOnce(
+          Level.WARNING,
+          "%s: Ignoring resolution of subscript modifier for non-aliased expression %s with type %s",
+          edge.getFileLocation(),
+          base.expression,
+          base.type);
+      return null;
+    }
 
     // we will increase the base address by field offset
 
