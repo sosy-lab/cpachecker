@@ -190,7 +190,7 @@ final class SliceToCfaConversion {
     NavigableMap<String, FunctionEntryNode> functionEntryNodes = new TreeMap<>();
     TreeMultimap<String, CFANode> allNodes = TreeMultimap.create();
 
-    for (CFANode node : pCfa.getAllNodes()) {
+    for (CFANode node : pCfa.nodes()) {
 
       String functionName = node.getFunction().getQualifiedName();
       allNodes.put(functionName, node);
@@ -204,7 +204,7 @@ final class SliceToCfaConversion {
 
     CFASimplifier.simplifyCFA(mutableSliceCfa);
 
-    return mutableSliceCfa.makeImmutableCFA(mutableSliceCfa.getVarClassification());
+    return mutableSliceCfa.immutableCopy();
   }
 
   /**
@@ -246,8 +246,7 @@ final class SliceToCfaConversion {
     irrelevantNodes.forEach(graph::removeNode);
 
     ImmutableMap<AFunctionDeclaration, FunctionEntryNode> functionToEntryNodeMap =
-        Maps.uniqueIndex(
-            pSlice.getOriginalCfa().getAllFunctionHeads(), FunctionEntryNode::getFunction);
+        Maps.uniqueIndex(pSlice.getOriginalCfa().entryNodes(), FunctionEntryNode::getFunction);
 
     // if the program slice is empty, return a CFA containing an empty main function
     if (relevantEdges.isEmpty()) {

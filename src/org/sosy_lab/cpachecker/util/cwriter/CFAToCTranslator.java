@@ -111,7 +111,7 @@ public class CFAToCTranslator {
     // the final C program may contain `abort()` statements, so we need a suitable declaration
     globalDefinitionsList.add("extern void abort();");
 
-    for (FunctionEntryNode func : pCfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode func : pCfa.entryNodes()) {
       translate((CFunctionEntryNode) func);
     }
 

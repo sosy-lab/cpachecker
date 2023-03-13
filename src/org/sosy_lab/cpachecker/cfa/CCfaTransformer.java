@@ -598,7 +598,7 @@ public final class CCfaTransformer {
 
       MutableCFA newMutableCfa = createUnconnectedFunctionCfa(pOriginalCfa);
 
-      newMutableCfa.getAllFunctionHeads().forEach(CFAReversePostorder::assignIds);
+      newMutableCfa.entryNodes().forEach(CFAReversePostorder::assignIds);
 
       if (pOriginalCfa.getLoopStructure().isPresent()) {
         try {
@@ -617,15 +617,13 @@ public final class CCfaTransformer {
         }
       }
 
-      Optional<VariableClassification> variableClassification;
       if (pOriginalCfa.getVarClassification().isPresent()) {
-        variableClassification =
+        Optional<VariableClassification> variableClassification =
             createVariableClassification(pConfiguration, pLogger, newMutableCfa);
-      } else {
-        variableClassification = Optional.empty();
+        newMutableCfa.setVariableClassification(variableClassification.orElse(null));
       }
 
-      return newMutableCfa.makeImmutableCFA(variableClassification);
+      return newMutableCfa.immutableCopy();
     }
 
     private static final class SummaryPlaceholderEdge extends BlankEdge {

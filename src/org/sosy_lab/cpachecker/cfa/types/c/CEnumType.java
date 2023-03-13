@@ -22,6 +22,7 @@ public final class CEnumType implements CComplexType {
 
   private static final long serialVersionUID = -986078271714119880L;
 
+  private final CSimpleType compatibleType;
   private final ImmutableList<CEnumerator> enumerators;
   private final String name;
   private final String origName;
@@ -32,11 +33,13 @@ public final class CEnumType implements CComplexType {
   public CEnumType(
       final boolean pConst,
       final boolean pVolatile,
+      final CSimpleType pCompatibleType,
       final List<CEnumerator> pEnumerators,
       final String pName,
       final String pOrigName) {
     isConst = pConst;
     isVolatile = pVolatile;
+    compatibleType = checkNotNull(pCompatibleType);
     enumerators = ImmutableList.copyOf(pEnumerators);
     name = pName.intern();
     origName = pOrigName.intern();
@@ -60,6 +63,15 @@ public final class CEnumType implements CComplexType {
   @Override
   public boolean hasKnownConstantSize() {
     return true;
+  }
+
+  /**
+   * Returns the integer type with which this enum is compatible (C11 § 6.7.2.2 (4)). Note that the
+   * returned type depends only on the enumerators, it does not reflect the const and volatile
+   * modifiers of this enum type.
+   */
+  public CSimpleType getCompatibleType() {
+    return compatibleType;
   }
 
   public ImmutableList<CEnumerator> getEnumerators() {
@@ -179,6 +191,11 @@ public final class CEnumType implements CComplexType {
       return this;
     }
     return new CEnumType(
-        isConst || pForceConst, isVolatile || pForceVolatile, enumerators, name, origName);
+        isConst || pForceConst,
+        isVolatile || pForceVolatile,
+        compatibleType,
+        enumerators,
+        name,
+        origName);
   }
 }

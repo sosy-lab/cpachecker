@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
@@ -29,19 +28,21 @@ public interface CFA extends CfaNetwork {
     return getMetadata().getMachineModel();
   }
 
-  boolean isEmpty();
+  /**
+   * Returns an immutable {@link CFA} that represents the same CFA as this {@link CFA}.
+   *
+   * @return an immutable {@link CFA} that represents the same CFA as this {@link CFA}.
+   */
+  @Override
+  CFA immutableCopy();
 
   int getNumberOfFunctions();
 
   NavigableSet<String> getAllFunctionNames();
 
-  Collection<FunctionEntryNode> getAllFunctionHeads();
-
   FunctionEntryNode getFunctionHead(String name);
 
   NavigableMap<String, FunctionEntryNode> getAllFunctions();
-
-  Collection<CFANode> getAllNodes();
 
   default FunctionEntryNode getMainFunction() {
     return getMetadata().getMainFunctionEntry();

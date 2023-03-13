@@ -35,7 +35,7 @@ public class SyntacticBlockStructureBuilder {
   private void computeSetsForStatementBlocks() {
     Set<SyntacticBlock> toRemove = new HashSet<>();
     for (StatementBlock block : FluentIterable.from(blocks).filter(StatementBlock.class)) {
-      if (!block.computeSets(cfa.getAllNodes())) {
+      if (!block.computeSets(cfa.nodes())) {
         toRemove.add(block);
       }
     }

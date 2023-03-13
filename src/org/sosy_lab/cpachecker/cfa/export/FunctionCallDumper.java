@@ -65,7 +65,7 @@ public final class FunctionCallDumper {
 
     // get all function calls
     final CFAFunctionCallFinder finder = new CFAFunctionCallFinder(pCfa);
-    for (final FunctionEntryNode entryNode : pCfa.getAllFunctionHeads()) {
+    for (final FunctionEntryNode entryNode : pCfa.entryNodes()) {
       CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(entryNode, finder);
     }
 

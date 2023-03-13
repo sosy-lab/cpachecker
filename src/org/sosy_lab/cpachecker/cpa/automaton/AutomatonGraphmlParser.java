@@ -76,7 +76,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
@@ -1888,14 +1887,12 @@ public class AutomatonGraphmlParser {
     if (optimizeISA) {
       List<CFAEdge> stateChangingEdges = new ArrayList<>();
       List<CFAEdge> nonStateChangingEdges = new ArrayList<>();
-      for (CFANode node : cfa.getAllNodes()) {
-        for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-          if (EnumSet.of(CFAEdgeType.BlankEdge, CFAEdgeType.AssumeEdge)
-              .contains(edge.getEdgeType())) {
-            nonStateChangingEdges.add(edge);
-          } else {
-            stateChangingEdges.add(edge);
-          }
+      for (CFAEdge edge : cfa.edges()) {
+        if (EnumSet.of(CFAEdgeType.BlankEdge, CFAEdgeType.AssumeEdge)
+            .contains(edge.getEdgeType())) {
+          nonStateChangingEdges.add(edge);
+        } else {
+          stateChangingEdges.add(edge);
         }
       }
       AutomatonBoolExpr changingTransition =

@@ -652,7 +652,7 @@ public class ReportGenerator {
 
     Set<FileLocation> allLocations =
         FluentIterable.of(cfa.getMainFunction()) // We want this as first element
-            .append(cfa.getAllFunctionHeads())
+            .append(cfa.entryNodes())
             .transform(FunctionEntryNode::getFileLocation)
             .filter(FileLocation::isRealLocation)
             .toSet();

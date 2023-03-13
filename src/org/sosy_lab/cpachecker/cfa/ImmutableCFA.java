@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
@@ -19,7 +19,9 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.CheckingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ConsistentCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ForwardingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -55,7 +57,14 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
     FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
     checkArgument(mainFunctionEntry.equals(functions.get(mainFunctionEntry.getFunctionName())));
 
-    network = ConsistentCfaNetwork.of(allNodes, functions.values());
+    network =
+        CheckingCfaNetwork.wrapIfAssertionsEnabled(
+            new DelegateCfaNetwork(allNodes, ImmutableSet.copyOf(functions.values())));
+  }
+
+  @Override
+  public ImmutableCFA immutableCopy() {
+    return this;
   }
 
   @Override
@@ -64,8 +73,15 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
   }
 
   @Override
-  public boolean isEmpty() {
-    return functions.isEmpty();
+  public ImmutableSortedSet<CFANode> nodes() {
+    // we can directly return `allNodes`, no need to use the delegate `CfaNetwork`
+    return allNodes;
+  }
+
+  @Override
+  public ImmutableSet<FunctionEntryNode> entryNodes() {
+    // we are sure that the delegate `CfaNetwork` always returns an `ImmutableSet`
+    return (ImmutableSet<FunctionEntryNode>) network.entryNodes();
   }
 
   @Override
@@ -79,11 +95,6 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
   }
 
   @Override
-  public ImmutableCollection<FunctionEntryNode> getAllFunctionHeads() {
-    return functions.values();
-  }
-
-  @Override
   public FunctionEntryNode getFunctionHead(String name) {
     return functions.get(name);
   }
@@ -91,11 +102,6 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
   @Override
   public ImmutableSortedMap<String, FunctionEntryNode> getAllFunctions() {
     return functions;
-  }
-
-  @Override
-  public ImmutableSortedSet<CFANode> getAllNodes() {
-    return allNodes;
   }
 
   @Override
@@ -140,6 +146,30 @@ class ImmutableCFA extends ForwardingCfaNetwork implements CFA, Serializable {
       edge.getPredecessor().addLeavingEdge(edge);
     }
 
-    network = ConsistentCfaNetwork.of(allNodes, functions.values());
+    network =
+        CheckingCfaNetwork.wrapIfAssertionsEnabled(
+            new DelegateCfaNetwork(allNodes, ImmutableSet.copyOf(functions.values())));
+  }
+
+  private static class DelegateCfaNetwork extends ConsistentCfaNetwork {
+
+    private final ImmutableSet<CFANode> nodes;
+    private final ImmutableSet<FunctionEntryNode> entryNodes;
+
+    private DelegateCfaNetwork(
+        ImmutableSet<CFANode> pNodes, ImmutableSet<FunctionEntryNode> pEntryNodes) {
+      nodes = pNodes;
+      entryNodes = pEntryNodes;
+    }
+
+    @Override
+    public Set<CFANode> nodes() {
+      return nodes;
+    }
+
+    @Override
+    public Set<FunctionEntryNode> entryNodes() {
+      return entryNodes;
+    }
   }
 }

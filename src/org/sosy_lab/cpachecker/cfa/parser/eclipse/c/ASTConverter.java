@@ -1444,24 +1444,28 @@ class ASTConverter {
 
     CType type;
     // Use declaration type when possible to fix issues with anonymous composites, problem types
-    // etc.
-    if (declaration != null) {
+    // etc. There are two tricky cases here:
+    // (A) References to values of an anonymous enum like "enum { e }". Such types cannot be looked
+    //     up, and thus the CElaboratedType misses the reference to the enum type.
+    // (B) While converting an enum like "enum e { e1, e2 = e1 }" the CEnumType for e does not yet
+    //     exist while handling the expression "e1" for the value of e2, and we do not know the type
+    //     of e and e1 because these can depend on later values.
+    if (declaration != null
+        // We cannot use declaration in case (B).
+        && !(declaration instanceof CEnumerator enumerator && enumerator.getEnum() == null)) {
       type = declaration.getType();
     } else {
       type = typeConverter.convert(e.getExpressionType());
     }
 
-    if (declaration instanceof CEnumerator
-        && type instanceof CElaboratedType
-        && ((CElaboratedType) type).getKind() == ComplexTypeKind.ENUM
-        && ((CElaboratedType) type).getRealType() == null) {
+    if (declaration instanceof CEnumerator enumerator
+        && type instanceof CElaboratedType elaboratedType
+        && elaboratedType.getKind() == ComplexTypeKind.ENUM
+        && elaboratedType.getRealType() == null) {
+      // Case (A)
+      CEnumType enumType = enumerator.getEnum();
 
-      // This is a reference to a value of an anonymous enum ("enum { e }").
-      // Such types cannot be looked up, and thus the CElaboratedType misses
-      // the reference to the enum type.
-      CEnumType enumType = ((CEnumerator) declaration).getEnum();
-      // enumType is null if an enum value is referenced inside the enum declaration,
-      // e.g. like this: "enum { e1, e2 = e1 }"
+      // We want to fix the type, but can do so properly only if we are not also in case (B).
       if (enumType != null) {
         type =
             new CElaboratedType(
@@ -1471,6 +1475,10 @@ class ASTConverter {
                 enumType.getName(),
                 enumType.getOrigName(),
                 enumType);
+      } else {
+        // Case (A) + (B): The resulting type can be wrong, but at least this influences only the
+        // calculations of other enumerators of this enums, not any further calculations.
+        type = CNumericTypes.INT;
       }
     }
 
@@ -2401,7 +2409,7 @@ class ASTConverter {
     CSimpleType newType;
     switch (mode) {
       case "word": // assume that pointers have word size, which is the case on our platforms
-        newType = machinemodel.getPointerEquivalentSimpleType();
+        newType = machinemodel.getPointerSizedIntType();
         break;
       case "byte":
       case "QI": // quarter integer
@@ -2602,15 +2610,11 @@ class ASTConverter {
 
   private CEnumType convert(IASTEnumerationSpecifier d) {
     List<CEnumerator> list = new ArrayList<>(d.getEnumerators().length);
-    Long lastValue = -1L; // initialize with -1, so the first one gets value 0
+    long lastValue = -1L; // initialize with -1, so the first one gets value 0
     for (IASTEnumerationSpecifier.IASTEnumerator c : d.getEnumerators()) {
       CEnumerator newC = convert(c, lastValue);
       list.add(newC);
-      if (newC.hasValue()) {
-        lastValue = newC.getValue();
-      } else {
-        lastValue = null;
-      }
+      lastValue = newC.getValue();
     }
 
     String name = convert(d.getName());
@@ -2622,11 +2626,11 @@ class ASTConverter {
       name = "__anon_type_" + anonTypeCounter++;
     }
 
-    CEnumType enumType = new CEnumType(d.isConst(), d.isVolatile(), list, name, origName);
-    CSimpleType integerType = getEnumerationType(enumType);
+    CSimpleType integerType = getEnumerationType(list);
+    CEnumType enumType =
+        new CEnumType(d.isConst(), d.isVolatile(), integerType, list, name, origName);
     for (CEnumerator enumValue : enumType.getEnumerators()) {
       enumValue.setEnum(enumType);
-      enumValue.setType(integerType);
     }
     return enumType;
   }
@@ -2644,15 +2648,12 @@ class ASTConverter {
    * an unsigned integer type. The choice of type is implementation-defined, but shall be capable of
    * representing the values of all the members of the enumeration.
    */
-  private CSimpleType getEnumerationType(final CEnumType enumType) {
+  private CSimpleType getEnumerationType(final List<CEnumerator> enumerators) {
     LongSummaryStatistics enumStatistics =
-        enumType.getEnumerators().stream()
-            .filter(CEnumerator::hasValue) // some values might not have been simplified
-            .mapToLong(CEnumerator::getValue)
-            .summaryStatistics();
+        enumerators.stream().mapToLong(CEnumerator::getValue).summaryStatistics();
 
     Preconditions.checkState(
-        enumStatistics.getCount() > 0, "enumeration does not provide any values: %s", enumType);
+        enumStatistics.getCount() > 0, "enumeration does not provide any values");
     final BigInteger minValue = BigInteger.valueOf(enumStatistics.getMin());
     final BigInteger maxValue = BigInteger.valueOf(enumStatistics.getMax());
     for (CSimpleType integerType : ENUM_REPRESENTATION_CANDIDATE_TYPES) {
@@ -2666,10 +2667,10 @@ class ASTConverter {
     return CNumericTypes.UNSIGNED_LONG_LONG_INT;
   }
 
-  private CEnumerator convert(IASTEnumerationSpecifier.IASTEnumerator e, Long lastValue) {
-    Long value = null;
+  private CEnumerator convert(IASTEnumerationSpecifier.IASTEnumerator e, long lastValue) {
+    long value;
 
-    if (e.getValue() == null && lastValue != null) {
+    if (e.getValue() == null) {
       value = lastValue + 1;
     } else {
       // TODO Because we fully evaluate the expression here and never add e.getValue() itself
@@ -2679,13 +2680,7 @@ class ASTConverter {
 
     String name = convert(e.getName());
     CEnumerator result =
-        new CEnumerator(
-            getLocation(e),
-            name,
-            scope.createScopedNameOf(name),
-            // dummy integer type, the correct one will be set directly afterwards
-            CNumericTypes.SIGNED_INT,
-            value);
+        new CEnumerator(getLocation(e), name, scope.createScopedNameOf(name), value);
     scope.registerDeclaration(result);
     return result;
   }

@@ -10,14 +10,12 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
-import java.util.Collection;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ForwardingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 public class CFAWithACSLAnnotations extends ForwardingCfaNetwork implements CFA {
@@ -31,17 +29,18 @@ public class CFAWithACSLAnnotations extends ForwardingCfaNetwork implements CFA 
   }
 
   @Override
+  public CFA immutableCopy() {
+    throw new UnsupportedOperationException(
+        "Cannot create immutable copy of `CFAWithACSLAnnotations`!");
+  }
+
+  @Override
   protected CfaNetwork delegate() {
     return delegate;
   }
 
   public Multimap<CFAEdge, ACSLAnnotation> getEdgesToAnnotations() {
     return edgesToAnnotations;
-  }
-
-  @Override
-  public boolean isEmpty() {
-    return delegate.isEmpty();
   }
 
   @Override
@@ -55,11 +54,6 @@ public class CFAWithACSLAnnotations extends ForwardingCfaNetwork implements CFA 
   }
 
   @Override
-  public Collection<FunctionEntryNode> getAllFunctionHeads() {
-    return delegate.getAllFunctionHeads();
-  }
-
-  @Override
   public FunctionEntryNode getFunctionHead(String name) {
     return delegate.getFunctionHead(name);
   }
@@ -67,11 +61,6 @@ public class CFAWithACSLAnnotations extends ForwardingCfaNetwork implements CFA 
   @Override
   public NavigableMap<String, FunctionEntryNode> getAllFunctions() {
     return delegate.getAllFunctions();
-  }
-
-  @Override
-  public Collection<CFANode> getAllNodes() {
-    return delegate.getAllNodes();
   }
 
   @Override

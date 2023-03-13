@@ -934,18 +934,18 @@ public final class LoopStructure implements Serializable {
     FunctionEntryNode initialLocation = cfa.getMainFunction();
 
     Map<String, FunctionEntryNode> funNameToEntry =
-        Maps.newHashMapWithExpectedSize(cfa.getAllFunctionHeads().size());
-    for (FunctionEntryNode funNode : cfa.getAllFunctionHeads()) {
+        Maps.newHashMapWithExpectedSize(cfa.entryNodes().size());
+    for (FunctionEntryNode funNode : cfa.entryNodes()) {
       funNameToEntry.put(funNode.getFunctionName(), funNode);
     }
 
     // build call graph
     Map<FunctionEntryNode, ARGState> callGraph =
-        Maps.newHashMapWithExpectedSize(cfa.getAllFunctionHeads().size());
+        Maps.newHashMapWithExpectedSize(cfa.entryNodes().size());
     FunctionEntryNode callee;
     ARGState successor;
 
-    for (FunctionEntryNode funNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode funNode : cfa.entryNodes()) {
       if (!callGraph.containsKey(funNode)) {
         callGraph.put(funNode, new ARGState(null, null));
       }

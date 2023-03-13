@@ -14,13 +14,13 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.TreeMultimap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
-import java.util.Optional;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.CheckingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ConsistentCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ForwardingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -66,7 +66,12 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
 
     metadata = pCfaMetadata;
 
-    network = ConsistentCfaNetwork.of(allNodes.values(), functions.values());
+    network = CheckingCfaNetwork.wrapIfAssertionsEnabled(new DelegateCfaNetwork());
+  }
+
+  @Override
+  public ImmutableCFA immutableCopy() {
+    return new ImmutableCFA(functions, allNodes, metadata);
   }
 
   @Override
@@ -118,11 +123,6 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
   }
 
   @Override
-  public boolean isEmpty() {
-    return functions.isEmpty();
-  }
-
-  @Override
   public int getNumberOfFunctions() {
     return functions.size();
   }
@@ -130,11 +130,6 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
   @Override
   public NavigableSet<String> getAllFunctionNames() {
     return Collections.unmodifiableNavigableSet(functions.navigableKeySet());
-  }
-
-  @Override
-  public Collection<FunctionEntryNode> getAllFunctionHeads() {
-    return Collections.unmodifiableCollection(functions.values());
   }
 
   @Override
@@ -151,18 +146,8 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
     return Collections.unmodifiableNavigableSet(allNodes.get(pName));
   }
 
-  @Override
-  public Collection<CFANode> getAllNodes() {
-    return Collections.unmodifiableCollection(allNodes.values());
-  }
-
   public void setLoopStructure(LoopStructure pLoopStructure) {
     metadata = metadata.withLoopStructure(pLoopStructure);
-  }
-
-  public ImmutableCFA makeImmutableCFA(Optional<VariableClassification> pVarClassification) {
-    return new ImmutableCFA(
-        functions, allNodes, metadata.withVariableClassification(pVarClassification.orElse(null)));
   }
 
   public void setVariableClassification(@Nullable VariableClassification pVariableClassification) {
@@ -186,5 +171,18 @@ public class MutableCFA extends ForwardingCfaNetwork implements CFA {
    */
   public void setMetadata(CfaMetadata pCfaMetadata) {
     metadata = checkNotNull(pCfaMetadata);
+  }
+
+  private final class DelegateCfaNetwork extends ConsistentCfaNetwork {
+
+    @Override
+    public Set<CFANode> nodes() {
+      return duplicateFreeNodeCollectionToSet(allNodes.values());
+    }
+
+    @Override
+    public Set<FunctionEntryNode> entryNodes() {
+      return duplicateFreeNodeCollectionToSet(functions.values());
+    }
   }
 }
