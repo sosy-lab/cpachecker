@@ -243,10 +243,8 @@ public final class ErrorPathShrinker {
   }
 
   private void handleReturnStatementEdge(AReturnStatementEdge returnEdge) {
-    if (returnEdge.asAssignment().isPresent()) {
-      AAssignment assignment = returnEdge.asAssignment().get();
-      handleAssignmentToVariable(assignment.getLeftHandSide(), assignment.getRightHandSide());
-    }
+    AAssignment assignment = returnEdge.asAssignment();
+    handleAssignmentToVariable(assignment.getLeftHandSide(), assignment.getRightHandSide());
   }
 
   /** This method makes a recursive call of handlePath(). */

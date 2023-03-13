@@ -143,23 +143,14 @@ public class CtoWpConverter extends CtoFormulaConverter {
   }
 
   private BooleanFormula makePreconditionForReturn(
-      final Optional<CAssignment> pAssgn,
+      final CAssignment pAssgn,
       final CReturnStatementEdge pEdge,
       final BooleanFormula pPostcond,
       final String pFunction)
       throws UnrecognizedCodeException {
 
-    if (!pAssgn.isPresent()) {
-      // void return, i.e. no substitution needed
-      return pPostcond;
-    } else {
-      return makePreconditionForAssignement(
-          pAssgn.orElseThrow().getLeftHandSide(),
-          pAssgn.orElseThrow().getRightHandSide(),
-          pEdge,
-          pPostcond,
-          pFunction);
-    }
+    return makePreconditionForAssignement(
+        pAssgn.getLeftHandSide(), pAssgn.getRightHandSide(), pEdge, pPostcond, pFunction);
   }
 
   private BooleanFormula makePreconditionForAssumption(

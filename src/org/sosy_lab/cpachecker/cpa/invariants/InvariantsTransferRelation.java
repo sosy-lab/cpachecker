@@ -447,29 +447,23 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       InvariantsState pElement, CReturnStatementEdge pEdge) throws UnrecognizedCodeException {
 
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
-    Optional<CAssignment> assignment = pEdge.asAssignment();
-    if (assignment.isPresent()) {
-      CAssignment cAssignment = assignment.orElseThrow();
-      NumeralFormula<CompoundInterval> returnedState = cAssignment.getRightHandSide().accept(etfv);
-      MemoryLocationExtractor variableNameExtractor =
-          new MemoryLocationExtractor(
-              compoundIntervalManagerFactory, machineModel, pEdge, pElement.getEnvironment());
-      CLeftHandSide leftHandSide = cAssignment.getLeftHandSide();
-      if (leftHandSide instanceof CArraySubscriptExpression arraySubscriptExpression) {
-        MemoryLocation array =
-            variableNameExtractor.getMemoryLocation(arraySubscriptExpression.getArrayExpression());
-        NumeralFormula<CompoundInterval> subscript =
-            arraySubscriptExpression.getSubscriptExpression().accept(etfv);
-        return pElement.assignArray(array, subscript, returnedState);
-      }
-      MemoryLocation varName = variableNameExtractor.getMemoryLocation(leftHandSide);
-      return pElement.assign(varName, returnedState);
+    CAssignment assignment = pEdge.asAssignment();
+
+    CAssignment cAssignment = assignment;
+    NumeralFormula<CompoundInterval> returnedState = cAssignment.getRightHandSide().accept(etfv);
+    MemoryLocationExtractor variableNameExtractor =
+        new MemoryLocationExtractor(
+            compoundIntervalManagerFactory, machineModel, pEdge, pElement.getEnvironment());
+    CLeftHandSide leftHandSide = cAssignment.getLeftHandSide();
+    if (leftHandSide instanceof CArraySubscriptExpression arraySubscriptExpression) {
+      MemoryLocation array =
+          variableNameExtractor.getMemoryLocation(arraySubscriptExpression.getArrayExpression());
+      NumeralFormula<CompoundInterval> subscript =
+          arraySubscriptExpression.getSubscriptExpression().accept(etfv);
+      return pElement.assignArray(array, subscript, returnedState);
     }
-    NumeralFormula<CompoundInterval> returnedState = pEdge.getExpression().accept(etfv);
-    MemoryLocation returnValueName =
-        MemoryLocation.forDeclaration(
-            pEdge.getSuccessor().getEntryNode().getReturnVariable().get());
-    return pElement.assign(returnValueName, returnedState);
+    MemoryLocation varName = variableNameExtractor.getMemoryLocation(leftHandSide);
+    return pElement.assign(varName, returnedState);
   }
 
   private InvariantsState handleFunctionReturn(

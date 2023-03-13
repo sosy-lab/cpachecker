@@ -919,7 +919,6 @@ public class CFABuilder {
   private List<CAstNode> handleReturn(
       final Value pItem, final String pFuncName, final Path pFileName) throws LLVMException {
     Value returnVal = pItem.getReturnValue();
-    Optional<CAssignment> maybeAssignment;
     if (returnVal == null) {
       return ImmutableList.of();
 
@@ -935,9 +934,8 @@ public class CFABuilder {
       CAssignment returnVarAssignment =
           new CExpressionAssignmentStatement(
               getLocation(returnVal, pFileName), returnVar, returnExp);
-      maybeAssignment = Optional.of(returnVarAssignment);
       return ImmutableList.of(
-          new CReturnStatement(getLocation(pItem, pFileName), returnExp, maybeAssignment));
+          new CReturnStatement(getLocation(pItem, pFileName), returnExp, returnVarAssignment));
     }
   }
 

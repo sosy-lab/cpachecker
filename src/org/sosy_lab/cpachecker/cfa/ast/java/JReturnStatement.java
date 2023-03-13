@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -30,7 +29,7 @@ public sealed class JReturnStatement extends AbstractReturnStatement implements 
   public JReturnStatement(FileLocation pFileLocation, JExpression pExpression) {
     // TODO We absolutely need a correct assignment here that assigns pExpression to a special
     // variable with the return type of the function.
-    super(pFileLocation, pExpression, Optional.empty());
+    super(pFileLocation, pExpression, null);
   }
 
   @SuppressWarnings("unchecked") // safe because Optional is covariant
@@ -41,8 +40,8 @@ public sealed class JReturnStatement extends AbstractReturnStatement implements 
 
   @Override
   @SuppressWarnings("unchecked") // safe because Optional is covariant
-  public Optional<JAssignment> asAssignment() {
-    return (Optional<JAssignment>) super.asAssignment();
+  public JAssignment asAssignment() {
+    return (JAssignment) super.asAssignment();
   }
 
   @Override

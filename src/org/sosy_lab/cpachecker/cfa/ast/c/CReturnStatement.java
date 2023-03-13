@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -19,7 +18,7 @@ public final class CReturnStatement extends AbstractReturnStatement implements C
   public CReturnStatement(
       final FileLocation pFileLocation,
       final CExpression pExpression,
-      final Optional<CAssignment> pAssignment) {
+      final CAssignment pAssignment) {
     super(pFileLocation, pExpression, pAssignment);
   }
 
@@ -36,8 +35,8 @@ public final class CReturnStatement extends AbstractReturnStatement implements C
 
   @Override
   @SuppressWarnings("unchecked") // safe because Optional is covariant
-  public Optional<CAssignment> asAssignment() {
-    return (Optional<CAssignment>) super.asAssignment();
+  public CAssignment asAssignment() {
+    return (CAssignment) super.asAssignment();
   }
 
   @Override

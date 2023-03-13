@@ -221,10 +221,8 @@ public class SMGTransferRelation
       // value 0 is the default return value in C
       CExpression returnExp = returnEdge.getExpression();
       CType retType = SMGCPAExpressionEvaluator.getCanonicalType(returnExp);
-      Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
-      if (returnAssignment.isPresent()) {
-        retType = returnAssignment.orElseThrow().getLeftHandSide().getExpressionType();
-      }
+      CAssignment returnAssignment = returnEdge.asAssignment();
+      retType = returnAssignment.getLeftHandSide().getExpressionType();
 
       SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, returnEdge, logger, options);
       for (ValueAndSMGState returnValueAndState : vv.evaluate(returnExp, retType)) {

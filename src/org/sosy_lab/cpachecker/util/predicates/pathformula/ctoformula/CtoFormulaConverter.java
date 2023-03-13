@@ -1545,7 +1545,7 @@ public class CtoFormulaConverter {
   }
 
   protected BooleanFormula makeReturn(
-      final Optional<CAssignment> assignment,
+      final CAssignment assignment,
       final CReturnStatementEdge edge,
       final String function,
       final SSAMapBuilder ssa,
@@ -1553,21 +1553,16 @@ public class CtoFormulaConverter {
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
-    if (!assignment.isPresent()) {
-      // this is a return from a void function, do nothing
-      return bfmgr.makeTrue();
-    } else {
 
-      return makeAssignment(
-          assignment.orElseThrow().getLeftHandSide(),
-          assignment.orElseThrow().getRightHandSide(),
-          edge,
-          function,
-          ssa,
-          pts,
-          constraints,
-          errorConditions);
-    }
+    return makeAssignment(
+        assignment.getLeftHandSide(),
+        assignment.getRightHandSide(),
+        edge,
+        function,
+        ssa,
+        pts,
+        constraints,
+        errorConditions);
   }
 
   /**

@@ -253,9 +253,7 @@ public class UseDefRelation {
 
       case ReturnStatementEdge:
         AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) edge;
-        if (returnStatementEdge.asAssignment().isPresent()) {
-          handleAssignments(returnStatementEdge.asAssignment().get(), edge, state);
-        }
+        handleAssignments(returnStatementEdge.asAssignment(), edge, state);
 
         break;
 

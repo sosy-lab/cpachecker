@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Optional;
 
 /**
  * A {@link CAstNodeVisitor} that is used to create modified copies of abstract syntax tree (AST)
@@ -522,20 +521,15 @@ public interface TransformingCAstNodeVisitor<X extends Exception>
       changed = true;
     }
 
-    Optional<CAssignment> oldOptionalAssignment = pCReturnStatement.asAssignment();
-    Optional<CAssignment> newOptionalAssignment = Optional.empty();
-    if (oldOptionalAssignment.isPresent()) {
-      CAssignment oldAssignment = oldOptionalAssignment.orElseThrow();
-      CAssignment newAssignment = (CAssignment) oldAssignment.accept(this);
-      newOptionalAssignment = Optional.of(newAssignment);
-      if (oldAssignment != newAssignment) {
-        changed = true;
-      }
+    CAssignment oldAssignment = pCReturnStatement.asAssignment();
+    CAssignment newAssignment = (CAssignment) oldAssignment.accept(this);
+    if (oldAssignment != newAssignment) {
+      changed = true;
     }
 
     if (changed) {
       return new CReturnStatement(
-          pCReturnStatement.getFileLocation(), newReturnValue, newOptionalAssignment);
+          pCReturnStatement.getFileLocation(), newReturnValue, newAssignment);
     } else {
       return pCReturnStatement;
     }

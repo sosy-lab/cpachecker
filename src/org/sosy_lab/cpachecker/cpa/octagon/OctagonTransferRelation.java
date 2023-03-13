@@ -1102,7 +1102,7 @@ public class OctagonTransferRelation
     MemoryLocation tempVarName =
         MemoryLocation.forLocalVariable(
             cfaEdge.getPredecessor().getFunctionName(),
-            ((CIdExpression) cfaEdge.asAssignment().orElseThrow().getLeftHandSide()).getName());
+            ((CIdExpression) cfaEdge.asAssignment().getLeftHandSide()).getName());
 
     // main function has no __cpa_temp_result_var as the result of the main function
     // is not important for us, we skip here

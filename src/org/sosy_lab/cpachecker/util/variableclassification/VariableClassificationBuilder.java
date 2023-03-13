@@ -538,9 +538,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
           // this is the 'x' from 'return (x);
           // adding a new temporary FUNCTION_RETURN_VARIABLE, that is not global (-> false)
           CReturnStatementEdge returnStatement = (CReturnStatementEdge) edge;
-          if (returnStatement.asAssignment().isPresent()) {
-            handleAssignment(edge, returnStatement.asAssignment().orElseThrow(), cfa);
-          }
+          handleAssignment(edge, returnStatement.asAssignment(), cfa);
           break;
         }
 

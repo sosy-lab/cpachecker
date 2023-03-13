@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.util.Objects;
-import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 public abstract class AbstractReturnStatement extends AbstractAstNode implements AReturnStatement {
@@ -21,10 +20,10 @@ public abstract class AbstractReturnStatement extends AbstractAstNode implements
   protected AbstractReturnStatement(
       final FileLocation pFileLocation,
       final AExpression pExpression,
-      final Optional<? extends AAssignment> pAssignment) {
+      final AAssignment pAssignment) {
     super(pFileLocation);
     expression = pExpression;
-    assignment = pAssignment.orElse(null);
+    assignment = pAssignment;
   }
 
   @Override
@@ -38,8 +37,8 @@ public abstract class AbstractReturnStatement extends AbstractAstNode implements
   }
 
   @Override
-  public Optional<? extends AAssignment> asAssignment() {
-    return Optional.ofNullable(assignment);
+  public AAssignment asAssignment() {
+    return assignment;
   }
 
   @Override

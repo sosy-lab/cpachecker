@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.threading;
 
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -180,10 +179,8 @@ public class GlobalAccessChecker {
 
     } else if (ast instanceof CReturnStatement) {
       CExpression returnExp = ((CReturnStatement) ast).getReturnValue();
-      Optional<CAssignment> returnAssignment = ((CReturnStatement) ast).asAssignment();
-      return hasGlobalAccess(returnExp)
-          || (returnAssignment.isPresent() && hasGlobalAccess(returnAssignment.orElseThrow()));
-
+      CAssignment returnAssignment = ((CReturnStatement) ast).asAssignment();
+      return hasGlobalAccess(returnExp) || hasGlobalAccess(returnAssignment);
     } else if (ast instanceof CDesignator) {
 
       if (ast instanceof CArrayDesignator) {

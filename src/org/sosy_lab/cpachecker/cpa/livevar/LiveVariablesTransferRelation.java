@@ -318,12 +318,8 @@ public class LiveVariablesTransferRelation
   @Override
   protected LiveVariablesState handleReturnStatementEdge(AReturnStatementEdge cfaEdge)
       throws CPATransferException {
-    // this is an empty return statement (return;)
-    if (!cfaEdge.asAssignment().isPresent()) {
-      return state;
-    }
     BitSet data = state.getDataCopy();
-    handleAssignment(cfaEdge.asAssignment().get(), data);
+    handleAssignment(cfaEdge.asAssignment(), data);
     return LiveVariablesState.ofUnique(data, this);
   }
 

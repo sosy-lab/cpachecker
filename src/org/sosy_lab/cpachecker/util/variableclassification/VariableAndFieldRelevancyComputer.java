@@ -567,21 +567,15 @@ final class VariableAndFieldRelevancyComputer {
           // this is the 'x' from 'return (x);
           // adding a new temporary FUNCTION_RETURN_VARIABLE, that is not global (-> false)
           final CReturnStatementEdge ret = (CReturnStatementEdge) edge;
-          if (ret.asAssignment().isPresent()) {
-            final Pair<VariableOrField, VarFieldDependencies> r =
-                ret.asAssignment()
-                    .orElseThrow()
-                    .getLeftHandSide()
-                    .accept(CollectingLHSVisitor.create(pCfa));
-            result =
-                result.withDependencies(
-                    r.getSecond()
-                        .withDependencies(
-                            ret.asAssignment()
-                                .orElseThrow()
-                                .getRightHandSide()
-                                .accept(CollectingRHSVisitor.create(pCfa, r.getFirst()))));
-          }
+          final Pair<VariableOrField, VarFieldDependencies> r =
+              ret.asAssignment().getLeftHandSide().accept(CollectingLHSVisitor.create(pCfa));
+          result =
+              result.withDependencies(
+                  r.getSecond()
+                      .withDependencies(
+                          ret.asAssignment()
+                              .getRightHandSide()
+                              .accept(CollectingRHSVisitor.create(pCfa, r.getFirst()))));
           break;
         }
 

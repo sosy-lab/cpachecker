@@ -223,28 +223,19 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
       ReachingDefState pReachDefState,
       PointerState pPointerState)
       throws CPATransferException {
-    Optional<CAssignment> asAssignment = pCfaEdge.asAssignment();
+    CAssignment asAssignment = pCfaEdge.asAssignment();
 
-    if (asAssignment.isPresent()) {
-      CAssignment returnAssignment = asAssignment.orElseThrow();
-      CRightHandSide rhs = returnAssignment.getRightHandSide();
-      Set<MemoryLocation> defs = getDef(returnAssignment.getLeftHandSide(), pPointerState);
+    CAssignment returnAssignment = asAssignment;
+    CRightHandSide rhs = returnAssignment.getRightHandSide();
+    Set<MemoryLocation> defs = getDef(returnAssignment.getLeftHandSide(), pPointerState);
 
-      FlowDependenceState nextState = pNextState;
-      for (MemoryLocation d : defs) {
-        nextState =
-            handleOperation(
-                pCfaEdge,
-                Optional.of(d),
-                getUsedVars(rhs, pPointerState),
-                nextState,
-                pReachDefState);
-      }
-      return nextState;
-
-    } else {
-      return pNextState;
+    FlowDependenceState nextState = pNextState;
+    for (MemoryLocation d : defs) {
+      nextState =
+          handleOperation(
+              pCfaEdge, Optional.of(d), getUsedVars(rhs, pPointerState), nextState, pReachDefState);
     }
+    return nextState;
   }
 
   private Set<MemoryLocation> getDef(CLeftHandSide pLeftHandSide, PointerState pPointerState)

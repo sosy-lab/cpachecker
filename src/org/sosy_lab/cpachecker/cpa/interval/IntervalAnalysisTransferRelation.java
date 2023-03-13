@@ -169,15 +169,12 @@ public class IntervalAnalysisTransferRelation
     IntervalAnalysisState newState = state.dropFrame(functionName);
 
     // assign the value of the function return to a new variable
-    if (returnEdge.asAssignment().isPresent()) {
-      CAssignment ass = returnEdge.asAssignment().orElseThrow();
-      newState =
-          newState.addInterval(
-              ((CIdExpression) ass.getLeftHandSide()).getDeclaration().getQualifiedName(),
-              evaluateInterval(state, ass.getRightHandSide(), returnEdge),
-              threshold);
-    }
-
+    CAssignment ass = returnEdge.asAssignment();
+    newState =
+        newState.addInterval(
+            ((CIdExpression) ass.getLeftHandSide()).getDeclaration().getQualifiedName(),
+            evaluateInterval(state, ass.getRightHandSide(), returnEdge),
+            threshold);
     return soleSuccessor(newState);
   }
 

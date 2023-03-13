@@ -423,13 +423,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
    */
   private boolean handleReturnStatement(
       CReturnStatementEdge edge, Collection<String> importantVars) {
-
-    if (!edge.asAssignment().isPresent()) {
-      return false;
-
-    } else {
-      return handleAssignment(edge.asAssignment().orElseThrow(), importantVars);
-    }
+    return handleAssignment(edge.asAssignment(), importantVars);
   }
 
   /**

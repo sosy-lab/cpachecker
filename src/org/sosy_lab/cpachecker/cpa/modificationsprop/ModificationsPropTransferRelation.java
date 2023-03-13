@@ -191,17 +191,11 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                           + " different statements.");
                   final ImmutableSet<String> returnChangedVars;
                   try {
-                    if (retMo.getReturnStatement() == null
-                        || retOr.getReturnStatement() == null
-                        || (retMo.getReturnStatement().equals(retOr.getReturnStatement())
-                            && retMo.getReturnStatement().asAssignment().isEmpty())) {
-                      returnChangedVars = changedVars;
-                    } else if (retMo.getReturnStatement().equals(retOr.getReturnStatement())
+                    if (retMo.getReturnStatement().equals(retOr.getReturnStatement())
                         && Collections.disjoint(
                             retMo
                                 .getReturnStatement()
                                 .asAssignment()
-                                .orElseThrow()
                                 .getRightHandSide()
                                 .accept(helper.getVisitor()),
                             changedVars)) {
@@ -210,7 +204,6 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                           retMo
                               .getReturnStatement()
                               .asAssignment()
-                              .orElseThrow()
                               .getLeftHandSide()
                               .accept(helper.getVisitor());
                       // remove return lhs, because return value is equal \o/
@@ -225,23 +218,17 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                           new ImmutableSet.Builder<String>()
                               .addAll(changedVars)
                               .addAll(
-                                  retMo.getReturnStatement().asAssignment().isPresent()
-                                      ? retMo
-                                          .getReturnStatement()
-                                          .asAssignment()
-                                          .orElseThrow()
-                                          .getLeftHandSide()
-                                          .accept(helper.getVisitor())
-                                      : ImmutableSet.of())
+                                  retMo
+                                      .getReturnStatement()
+                                      .asAssignment()
+                                      .getLeftHandSide()
+                                      .accept(helper.getVisitor()))
                               .addAll(
-                                  retOr.getReturnStatement().asAssignment().isPresent()
-                                      ? retOr
-                                          .getReturnStatement()
-                                          .asAssignment()
-                                          .orElseThrow()
-                                          .getLeftHandSide()
-                                          .accept(helper.getVisitor())
-                                      : ImmutableSet.of())
+                                  retOr
+                                      .getReturnStatement()
+                                      .asAssignment()
+                                      .getLeftHandSide()
+                                      .accept(helper.getVisitor()))
                               .build();
                     }
                     return ImmutableSet.of(

@@ -1782,8 +1782,7 @@ class ASTConverter {
     if (returnExp.isPresent()) {
       CIdExpression lhs = new CIdExpression(loc, returnVariableDeclaration.orElseThrow());
       CExpression rhs = returnExp.orElseThrow();
-      Optional<CAssignment> returnAssignment =
-          Optional.of(new CExpressionAssignmentStatement(loc, lhs, rhs));
+      CAssignment returnAssignment = new CExpressionAssignmentStatement(loc, lhs, rhs);
       return new CReturnStatement(loc, returnExp.orElseThrow(), returnAssignment);
     }
 
@@ -1796,10 +1795,10 @@ class ASTConverter {
     if (defaultValue instanceof CInitializerExpression) {
       CIdExpression lhs = new CIdExpression(loc, returnVariableDeclaration.orElseThrow());
       CExpression rhs = ((CInitializerExpression) defaultValue).getExpression();
-      Optional<CAssignment> returnAssignment =
-          Optional.of(new CExpressionAssignmentStatement(loc, lhs, rhs));
+      CAssignment returnAssignment = new CExpressionAssignmentStatement(loc, lhs, rhs);
       return new CReturnStatement(loc, rhs, returnAssignment);
     }
+
     return null;
   }
 

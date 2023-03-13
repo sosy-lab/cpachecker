@@ -209,10 +209,8 @@ public class SMGTransferRelation
       // value 0 is the default return value in C
       CExpression returnExp = returnEdge.getExpression();
       CType expType = TypeUtils.getRealExpressionType(returnExp);
-      Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
-      if (returnAssignment.isPresent()) {
-        expType = returnAssignment.orElseThrow().getLeftHandSide().getExpressionType();
-      }
+      CAssignment returnAssignment = returnEdge.asAssignment();
+      expType = returnAssignment.getLeftHandSide().getExpressionType();
       successors = assignFieldToState(smgState, returnEdge, tmpFieldMemory, 0, expType, returnExp);
     } else {
       successors = ImmutableList.of(smgState);

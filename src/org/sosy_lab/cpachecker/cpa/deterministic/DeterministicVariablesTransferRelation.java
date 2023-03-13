@@ -140,12 +140,7 @@ public class DeterministicVariablesTransferRelation
   @Override
   protected DeterministicVariablesState handleReturnStatementEdge(
       final AReturnStatementEdge cfaEdge) throws CPATransferException {
-    // for an empty return statement return the current state
-    if (!cfaEdge.asAssignment().isPresent()) {
-      return state;
-    }
-
-    return handleAssignments(cfaEdge.asAssignment().get());
+    return handleAssignments(cfaEdge.asAssignment());
   }
 
   @Override

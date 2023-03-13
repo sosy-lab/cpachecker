@@ -499,10 +499,8 @@ class FunctionCloner implements CFAVisitor {
       CExpression returnExp = ((CReturnStatement) ast).getReturnValue();
       returnExp = cloneAst(returnExp);
 
-      Optional<CAssignment> returnAssignment = ((CReturnStatement) ast).asAssignment();
-      if (returnAssignment.isPresent()) {
-        returnAssignment = Optional.of(cloneAst(returnAssignment.orElseThrow()));
-      }
+      CAssignment returnAssignment = ((CReturnStatement) ast).asAssignment();
+      returnAssignment = cloneAst(returnAssignment);
       return new CReturnStatement(loc, returnExp, returnAssignment);
 
     } else if (ast instanceof CDesignator) {

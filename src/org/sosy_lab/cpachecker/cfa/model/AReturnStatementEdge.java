@@ -45,7 +45,7 @@ public class AReturnStatementEdge extends AbstractCFAEdge {
   }
 
   /** See {@link AReturnStatement#asAssignment()}. */
-  public Optional<? extends AAssignment> asAssignment() {
+  public AAssignment asAssignment() {
     return returnStatement.asAssignment();
   }
 

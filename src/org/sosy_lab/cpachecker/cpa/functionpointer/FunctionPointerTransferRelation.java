@@ -440,14 +440,10 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private void handleReturnStatement(
-      FunctionPointerState.Builder pNewState,
-      Optional<CAssignment> returnStatement,
-      CFAEdge pCfaEdge)
+      FunctionPointerState.Builder pNewState, CAssignment returnStatement, CFAEdge pCfaEdge)
       throws UnrecognizedCodeException {
 
-    if (returnStatement.isPresent()) {
-      handleAssignment(pNewState, returnStatement.orElseThrow(), pCfaEdge);
-    }
+    handleAssignment(pNewState, returnStatement, pCfaEdge);
   }
 
   private void handleFunctionReturn(

@@ -428,7 +428,7 @@ public class BDDTransferRelation
       throws UnsupportedCodeException {
     BDDState newState = state;
     String returnVar =
-        ((CIdExpression) cfaEdge.asAssignment().orElseThrow().getLeftHandSide())
+        ((CIdExpression) cfaEdge.asAssignment().getLeftHandSide())
             .getDeclaration()
             .getQualifiedName();
     final Partition partition = varClass.getPartitionForEdge(cfaEdge);
