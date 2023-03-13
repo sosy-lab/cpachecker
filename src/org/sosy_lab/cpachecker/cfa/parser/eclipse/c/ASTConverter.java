@@ -1761,34 +1761,13 @@ class ASTConverter {
 
   public CReturnStatement convert(final IASTReturnStatement s) {
     final FileLocation loc = getLocation(s);
-    final Optional<CExpression> returnExp =
-        Optional.ofNullable(convertExpressionWithoutSideEffects(s.getReturnValue()));
     final Optional<CVariableDeclaration> returnVariableDeclaration =
         ((FunctionScope) scope).getReturnVariable();
+    final Optional<CExpression> returnExp =
+        Optional.ofNullable(convertExpressionWithoutSideEffects(s.getReturnValue()));
 
-    final Optional<CAssignment> returnAssignment;
-    // non-void function
-    if (returnVariableDeclaration.isPresent()) {
-      CIdExpression lhs = new CIdExpression(loc, returnVariableDeclaration.orElseThrow());
-      CExpression rhs = null;
-      if (returnExp.isPresent()) {
-        rhs = returnExp.orElseThrow();
-      } else {
-        logger.log(
-            Level.WARNING, loc + ":", "Return statement without expression in non-void function.");
-        CInitializer defaultValue =
-            CDefaults.forType(returnVariableDeclaration.orElseThrow().getType(), loc);
-        if (defaultValue instanceof CInitializerExpression) {
-          rhs = ((CInitializerExpression) defaultValue).getExpression();
-        }
-      }
-      if (rhs != null) {
-        returnAssignment = Optional.of(new CExpressionAssignmentStatement(loc, lhs, rhs));
-      } else {
-        returnAssignment = Optional.empty();
-      }
-
-    } else { // void function
+    // void function
+    if (!returnVariableDeclaration.isPresent()) {
       if (returnExp.isPresent()) {
         logger.log(
             Level.WARNING,
@@ -1797,13 +1776,31 @@ class ASTConverter {
             returnExp.orElseThrow(),
             "in void function.");
       }
-      returnAssignment = Optional.empty();
-    }
-    if (returnExp.isPresent()) {
-      return new CReturnStatement(loc, returnExp.orElseThrow(), returnAssignment);
-    } else {
       return null;
     }
+    // non void function with return expression
+    if (returnExp.isPresent()) {
+      CIdExpression lhs = new CIdExpression(loc, returnVariableDeclaration.orElseThrow());
+      CExpression rhs = returnExp.orElseThrow();
+      Optional<CAssignment> returnAssignment =
+          Optional.of(new CExpressionAssignmentStatement(loc, lhs, rhs));
+      return new CReturnStatement(loc, returnExp.orElseThrow(), returnAssignment);
+    }
+
+    // non void function without return expression
+    logger.log(
+        Level.WARNING, loc + ":", "Return statement without expression in non-void function.");
+    CInitializer defaultValue =
+        CDefaults.forType(returnVariableDeclaration.orElseThrow().getType(), loc);
+    // return default value
+    if (defaultValue instanceof CInitializerExpression) {
+      CIdExpression lhs = new CIdExpression(loc, returnVariableDeclaration.orElseThrow());
+      CExpression rhs = ((CInitializerExpression) defaultValue).getExpression();
+      Optional<CAssignment> returnAssignment =
+          Optional.of(new CExpressionAssignmentStatement(loc, lhs, rhs));
+      return new CReturnStatement(loc, rhs, returnAssignment);
+    }
+    return null;
   }
 
   private record Declarator(CType type, IASTInitializer initializer, String name) {}
