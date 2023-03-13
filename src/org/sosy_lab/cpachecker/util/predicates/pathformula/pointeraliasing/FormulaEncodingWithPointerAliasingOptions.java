@@ -158,6 +158,13 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
               + "even if they are not normally used.")
   private boolean forceQuantifiersInMemoryAssignmentFunctions = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Prevent functions memset, memcopy, memmove from stopping verification "
+              + "if there is unrecognized code. Instead, they will just be skipped (unsound).")
+  private boolean ignoreUnrecognizedCodeInMemoryAssignmentFunctions = false;
+
   public FormulaEncodingWithPointerAliasingOptions(Configuration config)
       throws InvalidConfigurationException {
     super(config);
@@ -289,4 +296,7 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
     return forceQuantifiersInMemoryAssignmentFunctions;
   }
 
+  boolean ignoreUnrecognizedCodeInMemoryAssignmentFunctions() {
+    return ignoreUnrecognizedCodeInMemoryAssignmentFunctions;
+  }
 }

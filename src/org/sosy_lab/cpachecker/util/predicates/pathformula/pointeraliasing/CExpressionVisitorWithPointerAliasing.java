@@ -901,7 +901,6 @@ class CExpressionVisitorWithPointerAliasing
   private Value handleMemoryAssignmentFunction(
       final String functionName, final CFunctionCallExpression e)
       throws UnrecognizedCodeException, InterruptedException {
-
     if (!conv.options.enableMemoryAssignmentFunctions()) {
       throw new UnrecognizedCodeException("Handling of memory assignment functions is disabled", e);
     }
@@ -912,6 +911,8 @@ class CExpressionVisitorWithPointerAliasing
     verify(parameters.size() == 3);
     CExpression paramDestination = parameters.get(0);
     final CExpression paramSizeInBytes = parameters.get(2);
+
+    try {
 
     // First parameter (destination) processing
     // TODO: make sure that the destination is flagged not to be ignored
@@ -1015,6 +1016,17 @@ class CExpressionVisitorWithPointerAliasing
       // TODO: should we somehow handle possible memcpy overlap here?
 
       handleMemmoveFunction(e, paramDestination, operationSizeInElements, secondParameter);
+    }
+    } catch (UnrecognizedCodeException uce) {
+      if (conv.options.ignoreUnrecognizedCodeInMemoryAssignmentFunctions()) {
+        conv.logger.logfOnce(
+            Level.WARNING,
+            "Ignoring function %s with unrecognized code: %s",
+            functionName,
+            uce.getMessage());
+      } else {
+        throw uce;
+      }
     }
 
     // Result value creation
