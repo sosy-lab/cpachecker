@@ -1169,10 +1169,18 @@ class AssignmentHandler {
 
       // TODO: add updatedRegions handling for UF
 
+      // if there are no quantifiers, do not force the heap to use the quantified version of
+      // assignment
+      boolean isReallyQuantified = !quantifiedVariableFormulaMap.isEmpty();
+
       // after cast/reinterpretation, lhs and rhs have the lhs type
       BooleanFormula assignmentResult =
           makeSliceAssignment(
-              lhsResolved, builder.build(), assignmentOptions, conditionFormula, true);
+              lhsResolved,
+              builder.build(),
+              assignmentOptions,
+              conditionFormula,
+              isReallyQuantified);
       assignmentSystem = nullableAnd(assignmentSystem, assignmentResult);
     }
 
