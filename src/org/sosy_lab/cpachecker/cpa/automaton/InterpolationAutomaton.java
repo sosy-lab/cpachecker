@@ -18,6 +18,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -83,8 +84,7 @@ public class InterpolationAutomaton {
     ImmutableList<AutomatonInternalState> internalStates =
         listAndSurroundingElements(
             initState.buildInternalState(),
-            Collections3.transformedImmutableListCopy(
-                itpStates, ItpAutomatonState::buildInternalState),
+            Lists.transform(itpStates, ItpAutomatonState::buildInternalState),
             finalState.buildInternalState());
     return new Automaton(
         automatonName, ImmutableMap.of(), internalStates, initState.getStateName());
