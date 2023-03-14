@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.base.Verify.verify;
+import static org.sosy_lab.common.collect.Collections3.listAndSurroundingElements;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -80,13 +81,11 @@ public class InterpolationAutomaton {
 
   public Automaton createAutomaton() throws InvalidAutomatonException {
     ImmutableList<AutomatonInternalState> internalStates =
-        ImmutableList.<AutomatonInternalState>builderWithExpectedSize(itpStates.size() + 3)
-            .add(initState.buildInternalState())
-            .addAll(
-                Collections3.transformedImmutableListCopy(
-                    itpStates, ItpAutomatonState::buildInternalState))
-            .add(finalState.buildInternalState())
-            .build();
+        listAndSurroundingElements(
+            initState.buildInternalState(),
+            Collections3.transformedImmutableListCopy(
+                itpStates, ItpAutomatonState::buildInternalState),
+            finalState.buildInternalState());
     return new Automaton(
         automatonName, ImmutableMap.of(), internalStates, initState.getStateName());
   }

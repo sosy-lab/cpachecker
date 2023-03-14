@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.testcase;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
@@ -57,10 +58,7 @@ public class TestVector {
   }
 
   private ImmutableList<TestValue> getExtendedValues(final TestValue pValue) {
-    return ImmutableList.<TestValue>builderWithExpectedSize(inputValues.size() + 1)
-        .addAll(inputValues)
-        .add(pValue)
-        .build();
+    return listAndElement(inputValues, pValue);
   }
 
   public TestVector addInputValue(AFunctionDeclaration pFunction, ExpressionTestValue pValue) {

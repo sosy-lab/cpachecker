@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
@@ -1844,7 +1845,7 @@ class WitnessFactory implements EdgeAppender {
       for (CFAEdge enteringEdge : CFAUtils.enteringEdges(currentNode).filter(epsilonEdge)) {
         CFANode predecessor = enteringEdge.getPredecessor();
         if (visited.add(predecessor)) {
-          waitlist.push(ImmutableList.<CFANode>builder().addAll(current).add(predecessor).build());
+          waitlist.push(listAndElement(current, predecessor));
           // isFirst = false;
         }
       }

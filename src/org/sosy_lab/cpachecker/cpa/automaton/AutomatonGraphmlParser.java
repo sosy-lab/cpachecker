@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
@@ -1812,10 +1814,7 @@ public class AutomatonGraphmlParser {
         new AutomatonTransition.Builder(pTriggers, pTargetState.getId())
             .withAssertions(
                 pLeadsToViolationNode
-                    ? ImmutableList.<AutomatonBoolExpr>builder()
-                        .addAll(pAssertions)
-                        .add(createViolationAssertion())
-                        .build()
+                    ? listAndElement(pAssertions, createViolationAssertion())
                     : pAssertions)
             .withAssumptions(pAssumptions)
             .withCandidateInvariants(pCandidateInvariants)

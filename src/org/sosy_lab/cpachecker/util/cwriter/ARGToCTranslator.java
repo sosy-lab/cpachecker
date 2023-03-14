@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.cwriter;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -1068,11 +1069,7 @@ public class ARGToCTranslator {
       }
 
       return new DeclarationInfo(
-          builder.buildOrThrow(),
-          ImmutableList.<ImmutableMap<CDeclaration, String>>builder()
-              .addAll(calleeFunDecInfos)
-              .add(currentFuncDecInfo)
-              .build());
+          builder.buildOrThrow(), listAndElement(calleeFunDecInfos, currentFuncDecInfo));
     }
 
     public DeclarationInfo fromFunctionReturn() {
