@@ -28,6 +28,7 @@ RUN unzip -q /CPAchecker*-unix.zip -d / && mv /CPAchecker*-unix /cpachecker
 FROM ubuntu:20.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+  clang-9 \
   gcc \
   libgmp10 \
   libgomp1 \
