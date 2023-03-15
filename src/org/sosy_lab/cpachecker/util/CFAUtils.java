@@ -12,6 +12,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.elementAndList;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -568,8 +570,7 @@ public class CFAUtils {
         for (CFAEdge leavingEdge : leavingBlankEdges) {
           CFANode successor = leavingEdge.getSuccessor();
           if (!currentPath.contains(successor)) {
-            List<CFANode> newPath =
-                ImmutableList.<CFANode>builder().addAll(currentPath).add(successor).build();
+            List<CFANode> newPath = listAndElement(currentPath, successor);
             waitlist.offer(newPath);
           }
         }
@@ -589,8 +590,7 @@ public class CFAUtils {
         for (CFAEdge enteringEdge : enteringBlankEdges) {
           CFANode predecessor = enteringEdge.getPredecessor();
           if (!currentPath.contains(predecessor)) {
-            List<CFANode> newPath =
-                ImmutableList.<CFANode>builder().add(predecessor).addAll(currentPath).build();
+            List<CFANode> newPath = elementAndList(predecessor, currentPath);
             waitlist.offer(newPath);
           }
         }
