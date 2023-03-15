@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -231,7 +232,9 @@ public final class CFASimplifier {
   private static CFANode findEndOfBlankEdgeChain(CFANode current) {
     Set<CFANode> visitedNodes = new HashSet<>();
 
-    while (current.getNumLeavingEdges() == 1 && current.getLeavingEdge(0) instanceof BlankEdge) {
+    while (current.getNumLeavingEdges() == 1
+        && current.getLeavingEdge(0) instanceof BlankEdge
+        && !(current instanceof CFALabelNode)) {
       // if there are multiple entering edges, the end of the blank edge chain is reached
       if (current.getNumEnteringEdges() > 1) {
         break;
