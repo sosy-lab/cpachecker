@@ -131,7 +131,9 @@ public class SampleUtils {
         builder.put(memoryLocation, valueState.getValueAndTypeFor(memoryLocation));
       }
     }
-    return builder.buildOrThrow();
+    Map<MemoryLocation, ValueAndType> result = builder.buildOrThrow();
+    assert result.size() == relevantVariables.size();
+    return result;
   }
 
   public static AbstractState makeInitialStateFromSample(
