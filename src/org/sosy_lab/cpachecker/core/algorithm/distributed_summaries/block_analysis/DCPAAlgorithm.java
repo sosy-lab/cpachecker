@@ -218,8 +218,8 @@ public class DCPAAlgorithm {
         condition ->
             reachedSet.forEach(
                 abstractState ->
-                    (Objects.requireNonNull(
-                            AbstractStates.extractStateByType(abstractState, BlockState.class)))
+                    Objects.requireNonNull(
+                            AbstractStates.extractStateByType(abstractState, BlockState.class))
                         .setErrorCondition(errorCondition)));
 
     BlockAnalysisIntermediateResult result =

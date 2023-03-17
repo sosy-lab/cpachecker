@@ -75,7 +75,7 @@ public class BlockGraph {
     List<List<BlockNodeMetaData>> waitList = new ArrayList<>();
     Multimap<BlockNodeMetaData, BlockNodeMetaData> loopPredecessors = ArrayListMultimap.create();
     for (BlockNodeMetaData blockNodeMetaData : pStart.get(pCFA.getMainFunction())) {
-      ArrayList<BlockNodeMetaData> entry = new ArrayList<>();
+      List<BlockNodeMetaData> entry = new ArrayList<>();
       entry.add(blockNodeMetaData);
       waitList.add(entry);
     }
@@ -88,7 +88,7 @@ public class BlockGraph {
           loopPredecessors.put(blockNodeMetaData, last);
           continue;
         }
-        ArrayList<BlockNodeMetaData> entry = new ArrayList<>(current);
+        List<BlockNodeMetaData> entry = new ArrayList<>(current);
         entry.add(blockNodeMetaData);
         waitList.add(entry);
       }
