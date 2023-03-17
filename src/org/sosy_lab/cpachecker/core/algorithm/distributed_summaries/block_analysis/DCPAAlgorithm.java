@@ -315,8 +315,6 @@ public class DCPAAlgorithm {
                     boolean isTop = false;
                     if (abstractState.isAbstractionState()) {
                       isTop = abstractState.getAbstractionFormula().isTrue();
-                    } else {
-                      System.exit(1);
                     }
                     return !hasSentFirstMessages || !isTop;
                   })

@@ -12,7 +12,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.base.Function;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
@@ -52,12 +52,12 @@ public class DeserializePredicatePrecisionOperator implements DeserializePrecisi
     }
     Object extractedPrecision = precision.orElseThrow();
     if (extractedPrecision instanceof Map<?, ?> precisionMap) {
-      ImmutableMultimap.Builder<LocationInstance, AbstractionPredicate> locationInstances =
-          ImmutableMultimap.builder();
-      ImmutableMultimap.Builder<CFANode, AbstractionPredicate> localPredicates =
-          ImmutableMultimap.builder();
-      ImmutableMultimap.Builder<String, AbstractionPredicate> functionPredicates =
-          ImmutableMultimap.builder();
+      ImmutableListMultimap.Builder<LocationInstance, AbstractionPredicate> locationInstances =
+          ImmutableListMultimap.builder();
+      ImmutableListMultimap.Builder<CFANode, AbstractionPredicate> localPredicates =
+          ImmutableListMultimap.builder();
+      ImmutableListMultimap.Builder<String, AbstractionPredicate> functionPredicates =
+          ImmutableListMultimap.builder();
 
       Map<?, ?> locationInstanceMap = (Map<?, ?>) precisionMap.get("locationInstances");
       locationInstanceMap.forEach(
