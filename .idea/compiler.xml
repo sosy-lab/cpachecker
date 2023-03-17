@@ -23,6 +23,11 @@ SPDX-License-Identifier: Apache-2.0
       <entry name="!?*.kt" />
       <entry name="!?*.clj" />
     </wildcardResourcePatterns>
+    <annotationProcessing>
+      <profile default="true" name="Default" enabled="false">
+        <processorPath useClasspath="true" />
+      </profile>
+    </annotationProcessing>
   </component>
   <component name="EclipseCompilerSettings">
     <option name="ECJ_TOOL_PATH" value="$PROJECT_DIR$/lib/java/build/ecj.jar" />
