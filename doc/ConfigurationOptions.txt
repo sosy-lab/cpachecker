@@ -4445,7 +4445,7 @@ report.export = true
 report.file = "Report.html"
 
 # output file for visualizing message exchange
-reportFile = "block_analysis/block_analysis.json"
+reportFiles = "block_analysis/block_analysis"
 
 # set path to file which contains the condition
 residualprogram.assumptionFile = no default value
