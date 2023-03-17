@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Function;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
@@ -17,14 +19,13 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPABackward;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
+import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 
 public class DistributedBlockCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -33,7 +34,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   private final ProceedOperator proceedOperator;
 
   private final ConfigurableProgramAnalysis blockCPA;
-  private final BlockSummaryMessage topMessage;
+  private final Function<CFANode, BlockState> blockStateSupplier;
 
   public DistributedBlockCPA(
       ConfigurableProgramAnalysis pBlockCPA, BlockNode pNode, AnalysisDirection pDirection) {
@@ -46,15 +47,8 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
     serializeOperator = new SerializeBlockStateOperator();
     deserializeOperator = new DeserializeBlockStateOperator(pNode, pDirection);
     proceedOperator = new ProceedBlockStateOperator(pNode, pDirection);
-    topMessage =
-        BlockSummaryMessage.newBlockPostCondition(
-            pNode.getId(),
-            pDirection == AnalysisDirection.FORWARD
-                ? pNode.getStartNode().getNodeNumber()
-                : pNode.getLastNode().getNodeNumber(),
-            BlockSummaryMessagePayload.empty(),
-            false,
-            true);
+    blockStateSupplier =
+        node -> new BlockState(node, pNode, pDirection, BlockStateType.INITIAL, Optional.empty());
   }
 
   @Override
@@ -85,6 +79,6 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return deserializeOperator.deserialize(topMessage);
+    return blockStateSupplier.apply(node);
   }
 }

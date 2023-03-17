@@ -114,7 +114,8 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
     switch (message.getType()) {
       case ERROR_CONDITION -> {
         ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
-        if (message.getBlockId().equals(block.getId())) {
+        if (((BlockSummaryErrorConditionMessage) message).isFirst()
+            && message.getBlockId().equals(block.getId())) {
           answers.addAll(dcpaAlgorithm.reportUnreachableBlockEnd());
         }
         return answers
@@ -126,12 +127,10 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       case BLOCK_POSTCONDITION -> {
         return dcpaAlgorithm.runAnalysisForMessage((BlockSummaryPostConditionMessage) message);
       }
-        // fall through
       case ERROR, FOUND_RESULT -> {
         shutdown = true;
         return ImmutableSet.of(BlockSummaryMessage.newStatisticsMessage(getBlockId(), getStats()));
       }
-        // fall through
       case ERROR_CONDITION_UNREACHABLE, STATISTICS -> {
         return ImmutableSet.of();
       }

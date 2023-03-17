@@ -82,7 +82,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
     // never needs precision
     dcpa =
         DistributedConfigurableProgramAnalysis.distribute(
-            parts.cpa(), pNode, AnalysisDirection.FORWARD);
+            parts.cpa(), pNode, pCfa, AnalysisDirection.FORWARD);
     topState =
         Objects.requireNonNull(parts.cpa())
             .getInitialState(root.getLastNode(), StateSpacePartition.getDefaultPartition());
@@ -132,7 +132,6 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
                   root.getId(),
                   root.getLastNode().getNodeNumber(),
                   dcpa.getSerializeOperator().serialize(topState),
-                  true,
                   true)));
       super.run();
     } catch (InterruptedException pE) {

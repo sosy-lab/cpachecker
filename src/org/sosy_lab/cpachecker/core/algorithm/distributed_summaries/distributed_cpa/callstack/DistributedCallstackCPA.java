@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack;
 
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -16,6 +18,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 
@@ -28,12 +32,27 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   private final ProceedOperator proceed;
 
   private final CallstackCPA callstackCPA;
+  private final CFA cfa;
 
-  public DistributedCallstackCPA(CallstackCPA pCallstackCPA, BlockNode pNode) {
+  public DistributedCallstackCPA(CallstackCPA pCallstackCPA, CFA pCFA, BlockNode pNode) {
     callstackCPA = pCallstackCPA;
+    cfa = pCFA;
     proceed = new AlwaysProceed();
     serialize = new SerializeCallstackStateOperator();
     deserialize = new DeserializeCallstackStateOperator(pCallstackCPA, pNode);
+  }
+
+  @Override
+  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
+    return getCPA().getInitialState(cfa.getAllFunctions().get(node.getFunctionName()), partition);
+  }
+
+  @Override
+  public Precision getInitialPrecision(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
+    return getCPA()
+        .getInitialPrecision(cfa.getAllFunctions().get(node.getFunctionName()), partition);
   }
 
   @Override

@@ -14,6 +14,7 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
@@ -48,14 +49,17 @@ public class DCPAHandler {
    */
   @CanIgnoreReturnValue
   public Optional<DistributedConfigurableProgramAnalysis> registerDCPA(
-      ConfigurableProgramAnalysis pCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
+      ConfigurableProgramAnalysis pCPA,
+      BlockNode pBlockNode,
+      AnalysisDirection pDirection,
+      CFA pCFA) {
     checkArgument(
         !(pCPA instanceof CompositeCPA), "Cannot register DCPA for type " + "%s", pCPA.getClass());
     if (pCPA instanceof PredicateCPA) {
       return Optional.ofNullable(registerDCPA((PredicateCPA) pCPA, pBlockNode, pDirection));
     }
     if (pCPA instanceof CallstackCPA) {
-      return Optional.ofNullable(registerDCPA((CallstackCPA) pCPA, pBlockNode));
+      return Optional.ofNullable(registerDCPA((CallstackCPA) pCPA, pBlockNode, pCFA));
     }
     if (pCPA instanceof FunctionPointerCPA) {
       return Optional.ofNullable(registerDCPA((FunctionPointerCPA) pCPA, pBlockNode));
@@ -89,9 +93,9 @@ public class DCPAHandler {
   }
 
   private DistributedConfigurableProgramAnalysis registerDCPA(
-      CallstackCPA pCallstackCPA, BlockNode pBlockNode) {
+      CallstackCPA pCallstackCPA, BlockNode pBlockNode, CFA pCFA) {
     return analyses.put(
-        pCallstackCPA.getClass(), new DistributedCallstackCPA(pCallstackCPA, pBlockNode));
+        pCallstackCPA.getClass(), new DistributedCallstackCPA(pCallstackCPA, pCFA, pBlockNode));
   }
 
   private DistributedConfigurableProgramAnalysis registerDCPA(

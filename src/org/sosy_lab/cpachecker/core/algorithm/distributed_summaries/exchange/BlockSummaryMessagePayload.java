@@ -25,7 +25,6 @@ import org.sosy_lab.common.JSON;
 public class BlockSummaryMessagePayload extends ForwardingMap<String, Object> {
 
   // distributed analysis
-  public static final String FULL_PATH = "full";
   public static final String FIRST = "first";
   public static final String RESULT = "result";
   public static final String EXCEPTION = "exception";

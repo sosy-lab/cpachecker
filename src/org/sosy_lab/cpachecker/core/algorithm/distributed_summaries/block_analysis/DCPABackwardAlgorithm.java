@@ -87,7 +87,8 @@ public class DCPABackwardAlgorithm {
 
     block = pBlock;
     dcpa =
-        DistributedConfigurableProgramAnalysis.distribute(cpa, pBlock, AnalysisDirection.BACKWARD);
+        DistributedConfigurableProgramAnalysis.distribute(
+            cpa, pBlock, pCFA, AnalysisDirection.BACKWARD);
     logger = pLogger;
     forwardAnalysis = pForwardAnalysis;
     abstractionStates = new LinkedHashMap<>();
@@ -194,7 +195,6 @@ public class DCPABackwardAlgorithm {
             block.getId(),
             block.getAbstractionNode().getNodeNumber(),
             getDCPA().getSerializeOperator().serialize(pBackwardAnalysis),
-            false,
             true);
     return forwardAnalysis.getDCPA().getDeserializeOperator().deserialize(forwardMessage);
   }
@@ -209,7 +209,7 @@ public class DCPABackwardAlgorithm {
                     forwardAnalysis
                         .getDCPA()
                         .getSerializePrecisionOperator()
-                        .serializePrecision(forwardAnalysis.getLastPrecision()),
+                        .serializePrecision(forwardAnalysis.getPrecisionAtBlockEnd()),
                     false));
   }
 

@@ -16,8 +16,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 public class BlockSummaryPostConditionMessage extends BlockSummaryMessage {
-
-  private final boolean fullPath;
   private final boolean reachable;
 
   BlockSummaryPostConditionMessage(
@@ -26,12 +24,7 @@ public class BlockSummaryPostConditionMessage extends BlockSummaryMessage {
       BlockSummaryMessagePayload pPayload,
       Instant pInstant) {
     super(MessageType.BLOCK_POSTCONDITION, pUniqueBlockId, pTargetNodeNumber, pPayload, pInstant);
-    fullPath = extractFlag(BlockSummaryMessagePayload.FULL_PATH, false);
     reachable = extractFlag(BlockSummaryMessagePayload.REACHABLE, true);
-  }
-
-  public boolean representsFullPath() {
-    return fullPath;
   }
 
   public SSAMap getSSAMap() {

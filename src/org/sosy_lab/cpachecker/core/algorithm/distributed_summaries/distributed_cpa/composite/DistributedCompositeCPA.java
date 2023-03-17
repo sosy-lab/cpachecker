@@ -103,11 +103,11 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
       throws InterruptedException {
     Preconditions.checkNotNull(node);
     ImmutableList.Builder<AbstractState> initialStates = ImmutableList.builder();
-    for (ConfigurableProgramAnalysis sp : compositeCPA.getWrappedCPAs()) {
-      if (analyses.containsKey(sp.getClass())) {
-        initialStates.add(analyses.get(sp.getClass()).getInitialState(node, partition));
+    for (ConfigurableProgramAnalysis cpa : compositeCPA.getWrappedCPAs()) {
+      if (analyses.containsKey(cpa.getClass())) {
+        initialStates.add(analyses.get(cpa.getClass()).getInitialState(node, partition));
       } else {
-        initialStates.add(sp.getInitialState(node, partition));
+        initialStates.add(cpa.getInitialState(node, partition));
       }
     }
     return new CompositeState(initialStates.build());

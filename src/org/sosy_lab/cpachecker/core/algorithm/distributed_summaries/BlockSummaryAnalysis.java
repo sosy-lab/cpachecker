@@ -136,19 +136,15 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   }
 
   private CFADecomposer getDecomposer() throws InvalidConfigurationException {
-    switch (decompositionType) {
-      case BLOCK_OPERATOR:
-        return new LinearDecomposition(configuration, shutdownManager.getNotifier());
-      case GIVEN_SIZE:
-        return new MergeDecomposition(
-            new LinearDecomposition(configuration, shutdownManager.getNotifier()),
-            configuration,
-            shutdownManager.getNotifier());
-      case SINGLE_BLOCK:
-        return new SingleBlockDecomposition(shutdownManager.getNotifier());
-      default:
-        throw new AssertionError("Unknown DecompositionType: " + decompositionType);
-    }
+    return switch (decompositionType) {
+      case BLOCK_OPERATOR -> new LinearDecomposition(configuration, shutdownManager.getNotifier());
+      case GIVEN_SIZE -> new MergeDecomposition(
+          new LinearDecomposition(configuration, shutdownManager.getNotifier()),
+          configuration,
+          shutdownManager.getNotifier());
+      case SINGLE_BLOCK -> new SingleBlockDecomposition(shutdownManager.getNotifier());
+      default -> throw new AssertionError("Unknown DecompositionType: " + decompositionType);
+    };
   }
 
   @Override
