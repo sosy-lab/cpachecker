@@ -19,8 +19,10 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.NoPrecisionSerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.util.CPAs;
 
@@ -79,6 +81,13 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    */
   default boolean doesOperateOn(Class<? extends AbstractState> pClass) {
     return getAbstractStateClass().isAssignableFrom(pClass);
+  }
+
+  default BlockSummaryMessagePayload serialize(AbstractState pAbstractState, Precision pPrecision) {
+    return BlockSummaryMessagePayload.builder()
+        .addAllEntries(getSerializeOperator().serialize(pAbstractState))
+        .addAllEntries(getSerializePrecisionOperator().serializePrecision(pPrecision))
+        .buildPayload();
   }
 
   static DistributedConfigurableProgramAnalysis distribute(

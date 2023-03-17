@@ -171,17 +171,6 @@ public class DCPAAlgorithm {
       return processing;
     }
     assert processing.isEmpty() : "Proceed is not possible with unprocessed messages";
-    /*
-    BlockSummaryMessage previousMessage = states.get(pReceived.getUniqueBlockId());
-    if (previousMessage != null) {
-      AbstractState abstractState = dcpa.getDeserializeOperator().deserialize(previousMessage);
-      if (abstractState != null) {
-        AbstractState previous = new ARGState(abstractState, null);
-        if (cpa.getAbstractDomain().isLessOrEqual(previous, deserialized)) {
-          return BlockSummaryMessageProcessing.stop();
-        }
-      }
-    }*/
     states.put(pReceived.getBlockId(), pReceived);
     if (states.size() != block.getPredecessors().size()) {
       return ImmutableSet.of();
@@ -189,8 +178,47 @@ public class DCPAAlgorithm {
     return runAnalysisUnderCondition(Optional.empty());
   }
 
+  /**
+   * Runs the CPA under an error condition, i.e., if the current block contains a block-end edge,
+   * the error condition will be attached to that edge. In case this makes the path formula
+   * infeasible, we compute an abstraction. If no error condition is present, we run the CPA.
+   *
+   * @param errorCondition an abstract state representing an error condition
+   * @return Important messages for other blocks.
+   * @throws CPAException thrown if CPA runs into an error
+   * @throws InterruptedException thrown if thread is interrupted unexpectedly
+   */
   public Collection<BlockSummaryMessage> runAnalysisUnderCondition(
       Optional<AbstractState> errorCondition) throws CPAException, InterruptedException {
+    // merge all states into the reached set
+    prepareReachedSet();
+
+    // set error condition to all starting states if present
+    errorCondition.ifPresent(
+        condition ->
+            reachedSet.forEach(
+                abstractState ->
+                    (Objects.requireNonNull(
+                            AbstractStates.extractStateByType(abstractState, BlockState.class)))
+                        .setErrorCondition(errorCondition)));
+
+    BlockAnalysisIntermediateResult result =
+        DCPAAlgorithms.findReachableTargetStatesInBlock(
+            algorithm, reachedSet, block, AnalysisDirection.FORWARD);
+    result =
+        result.refine(
+            abstractionStates.values(), dcpa.getAbstractDomain(), dcpa.getAbstractStateClass());
+    return processIntermediateResult(result);
+  }
+
+  /**
+   * Prepare the reached set for next analysis by merging all received BPC messages into
+   * a non-empty set of start states.
+   * @throws CPAException thrown in merge or stop operation runs into an error
+   * @throws InterruptedException thrown if thread is interrupted unexpectedly.
+   */
+  private void prepareReachedSet() throws CPAException, InterruptedException {
+    // simulate merge and stop for all states ending up at block#getStartNode
     reachedSet.clear();
     for (BlockSummaryMessage message : states.values()) {
       if (message == null) {
@@ -200,6 +228,7 @@ public class DCPAAlgorithm {
       if (reachedSet.isEmpty()) {
         reachedSet.add(value, initialPrecision);
       } else {
+        // CPA algorithm
         for (AbstractState abstractState : reachedSet) {
           AbstractState merged =
               cpa.getMergeOperator().merge(value, abstractState, initialPrecision);
@@ -208,26 +237,16 @@ public class DCPAAlgorithm {
             reachedSet.remove(abstractState);
           }
         }
+        if (!cpa.getStopOperator()
+            .stop(value, reachedSet.getReached(block.getStartNode()), initialPrecision)) {
+          reachedSet.add(value, initialPrecision);
+        }
       }
     }
 
     if (reachedSet.isEmpty()) {
       reachedSet.add(startState, initialPrecision);
     }
-
-    for (AbstractState abstractState : reachedSet) {
-      // safe since distributed analyses cannot work without block cpa
-      Objects.requireNonNull(AbstractStates.extractStateByType(abstractState, BlockState.class))
-          .setErrorCondition(errorCondition);
-    }
-
-    BlockAnalysisIntermediateResult result =
-        DCPAAlgorithms.findReachableTargetStatesInBlock(
-            algorithm, reachedSet, block, AnalysisDirection.FORWARD);
-    result =
-        result.refine(
-            abstractionStates.values(), dcpa.getAbstractDomain(), dcpa.getAbstractStateClass());
-    return processIntermediateResult(result);
   }
 
   private Collection<BlockSummaryMessage> processIntermediateResult(
@@ -269,8 +288,7 @@ public class DCPAAlgorithm {
           FluentIterable.from(result.getBlockEnds())
               .transform(
                   state ->
-                      DCPAAlgorithms.chainSerialization(
-                          dcpa, reachedSet.getPrecision(state), state))
+                      dcpa.serialize(state, reachedSet.getPrecision(state)))
               .transform(
                   p ->
                       BlockSummaryMessage.newBlockPostCondition(

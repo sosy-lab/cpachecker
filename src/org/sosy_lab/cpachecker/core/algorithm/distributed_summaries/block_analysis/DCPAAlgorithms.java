@@ -23,14 +23,12 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockEndUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver.StatusPrecise;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver.StatusPropertyChecked;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver.StatusSoundness;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -43,22 +41,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class DCPAAlgorithms {
 
   record BlockAndLocation(String blockID, int nodeNumber) {}
-
-  public static BlockSummaryMessagePayload chainSerialization(
-      DistributedConfigurableProgramAnalysis pDistributedConfigurableProgramAnalysis,
-      Precision pPrecision,
-      AbstractState pAbstractState) {
-    return BlockSummaryMessagePayload.builder()
-        .addAllEntries(
-            pDistributedConfigurableProgramAnalysis
-                .getSerializeOperator()
-                .serialize(pAbstractState))
-        .addAllEntries(
-            pDistributedConfigurableProgramAnalysis
-                .getSerializePrecisionOperator()
-                .serializePrecision(pPrecision))
-        .buildPayload();
-  }
 
   static Optional<CFANode> abstractStateToLocation(AbstractState state) {
     LocationState locState = AbstractStates.extractStateByType(state, LocationState.class);
