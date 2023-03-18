@@ -3937,8 +3937,19 @@ invariantStore.witness = "invariantwitness.yaml"
 # The directory where the invariants are stored.
 invariantValidation.invDir = "invariants"
 
-# The invariant to be validated.
+# The invariant to be validated. Ignored if option
+# invariantValidation.outputVCsis enabled, but must be given otherwise.
 invariantValidation.invariant = no default value
+
+# The location at which the given invariant should be validated,given in the
+# format 'line:column'.If not specified, validation is attempted at every
+# loop head.
+invariantValidation.location = no default value
+
+# Only output the necessary verification conditions, do not attempt
+# validation.This option is ignored when invariantValidation.useBMC is
+# enabled.
+invariantValidation.outputVCs = false
 
 # The file to which postcondition counterexamples shall be written.
 invariantValidation.postCexOutFile = "post_cex_samples.json"
@@ -3948,6 +3959,13 @@ invariantValidation.preCexOutFile = "pre_cex_samples.json"
 
 # The file to which step case counterexamples shall be written.
 invariantValidation.stepCexOutFile = "step_cex_samples.json"
+
+# Whether to use a BMC-based approach for counterexample extraction.
+invariantValidation.useBMC = false
+
+# The file to which verification conditions are output.Unused if option
+# invariantValidation.outputVCs is disabled.
+invariantValidation.vcFile = "vcs.txt"
 
 # Specify the class code path to search for java class or interface
 # definitions
@@ -4535,11 +4553,27 @@ sampling.strategy.constrainedUniform.lowerBound = 0
 # The maximum value for each variable in the sample.
 sampling.strategy.constrainedUniform.upperBound = 10
 
+# Whether intermediate samples (at locations different from the given initial
+# sample) should be collected
+sampling.unrolling.collectIntermediateSamples = true
+
+# The configuration file to use for unrolling negative samples.
+samplingAlgorithm.backwardUnrollingConfig = no default value
+
+# Whether negative samples should be collected.
+samplingAlgorithm.collectNegativeSamples = true
+
+# Whether positive samples should be collected.
+samplingAlgorithm.collectPositiveSamples = true
+
+# The configuration file to use for unrolling positive samples.
+samplingAlgorithm.forwardUnrollingConfig = no default value
+
 # The configuration file to use for building the backward ARG.
-samplingAlgorithm.initial.backward.config = no default value
+samplingAlgorithm.initialBackwardConfig = no default value
 
 # The configuration file to use for building the forward ARG.
-samplingAlgorithm.initial.forward.config = no default value
+samplingAlgorithm.initialForwardConfig = no default value
 
 # The number of initial samples to collect before unrolling.
 samplingAlgorithm.numInitialSamples = 5
@@ -4550,6 +4584,9 @@ samplingAlgorithm.outFile = "samples.json"
 # The strategy to use for initial sample generation.
 samplingAlgorithm.strategy = SMT_RANDOM
   enum:     [CONSTRAINED_UNIFORM, SMT_RANDOM]
+
+# Whether test-based sampling should be used
+samplingAlgorithm.useTestBasedSampling = false
 
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"
