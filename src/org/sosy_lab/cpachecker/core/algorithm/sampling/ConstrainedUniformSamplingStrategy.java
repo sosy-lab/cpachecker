@@ -35,7 +35,7 @@ public class ConstrainedUniformSamplingStrategy implements SamplingStrategy {
   @Option(secure = true, description = "The maximum value for each variable in the sample.")
   private int upperBound = 10;
 
-  private Random random = new Random();
+  private Random random = new Random(141592653);
 
   public ConstrainedUniformSamplingStrategy(Configuration pConfig)
       throws InvalidConfigurationException {

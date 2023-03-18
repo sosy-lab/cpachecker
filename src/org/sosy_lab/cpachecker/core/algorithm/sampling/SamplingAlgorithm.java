@@ -237,7 +237,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
           builder.put(loopHead, formulas);
         }
       }
-      formulasForPositiveSamples = builder.build();
+      formulasForPositiveSamples = builder.buildOrThrow();
     }
 
     // Prepare generation of initial negative samples using predicate-based sampling
@@ -268,7 +268,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
           builder.put(loopHead, formulas);
         }
       }
-      formulasForNegativeSamples = builder.build();
+      formulasForNegativeSamples = builder.buildOrThrow();
     }
 
     // Continuously collect samples until shutdown is requested
