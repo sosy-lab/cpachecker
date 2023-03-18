@@ -214,9 +214,7 @@ public class InvariantValidationAlgorithm implements Algorithm {
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  private void outputVerificationConditions(
-      ReachedSet pReachedSet,
-      CFANode pLocation)
+  private void outputVerificationConditions(ReachedSet pReachedSet, CFANode pLocation)
       throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
     // Retrieve formula managers
     PredicateCPA predicateCPA =
