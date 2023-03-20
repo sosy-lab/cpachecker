@@ -363,7 +363,15 @@ class AssignmentHandler {
       rhsSlice = new ArraySliceNondetRhs(lhsType);
     }
 
-    ArraySliceAssignment assignment = new ArraySliceAssignment(lhsSlice, rhsSlice);
+    Optional<CType> lhsFinalType = Optional.empty();
+
+    if (!typeHandler.getSimplifiedType(lhs).equals(lhsType)) {
+      // this should only happen in case lhs is array and should point at rhs
+      // therefore, it requires reinterpretation to pointer at the end
+      lhsFinalType = Optional.of(lhsType);
+    }
+
+    ArraySliceAssignment assignment = new ArraySliceAssignment(lhsSlice, lhsFinalType, rhsSlice);
 
     AssignmentOptions assignmentOptions =
         new AssignmentOptions(
@@ -372,6 +380,7 @@ class AssignmentHandler {
                 ? AssignmentConversionType.REINTERPRET
                 : AssignmentConversionType.CAST,
             false);
+
 
     return handleSliceAssignment(assignment, assignmentOptions);
   }
@@ -441,11 +450,18 @@ class AssignmentHandler {
   }
 
   private record ArraySliceSpanAssignment(
-      ArraySliceExpression lhs, ImmutableList<ArraySliceSpanRhs> rhsList) {
-    ArraySliceSpanAssignment(ArraySliceExpression lhs, ImmutableList<ArraySliceSpanRhs> rhsList) {
+      ArraySliceExpression lhs,
+      Optional<CType> lhsFinalType,
+      ImmutableList<ArraySliceSpanRhs> rhsList) {
+    ArraySliceSpanAssignment(
+        ArraySliceExpression lhs,
+        Optional<CType> lhsFinalType,
+        ImmutableList<ArraySliceSpanRhs> rhsList) {
       checkNotNull(lhs);
+      checkNotNull(lhsFinalType);
       checkNotNull(rhsList);
       this.lhs = lhs;
+      this.lhsFinalType = lhsFinalType;
       this.rhsList = rhsList;
     }
   }
@@ -470,11 +486,16 @@ class AssignmentHandler {
     }
   }
 
-  record ArraySliceAssignment(ArraySliceExpression lhs, ArraySliceRhs rhs) {
-    ArraySliceAssignment(ArraySliceExpression lhs, ArraySliceRhs rhs) {
+  record ArraySliceAssignment(
+      ArraySliceExpression lhs, Optional<CType> lhsFinalType, ArraySliceRhs rhs) {
+    ArraySliceAssignment(
+        ArraySliceExpression lhs, Optional<CType> lhsFinalType, ArraySliceRhs rhs) {
       checkNotNull(lhs);
+      checkNotNull(lhsFinalType);
       checkNotNull(rhs);
+
       this.lhs = lhs;
+      this.lhsFinalType = lhsFinalType;
       this.rhs = rhs;
     }
   }
@@ -526,6 +547,7 @@ class AssignmentHandler {
           appliedHavocAssignments.add(
               new ArraySliceAssignment(
                   assignment.lhs,
+                  assignment.lhsFinalType,
                   new ArraySliceNondetRhs(assignment.lhs.getResolvedExpressionType(sizeType))));
         }
           continue;
@@ -574,7 +596,13 @@ class AssignmentHandler {
     List<ArraySliceAssignment> simpleAssignments = new ArrayList<>();
 
     for (ArraySliceAssignment assignment : assignments) {
-      generateSimpleSliceAssignments(assignment, simpleAssignments);
+      if (assignment.lhsFinalType.isPresent()) {
+        // the assignment final type should be already simple
+        assert (CTypeUtils.isSimpleType(assignment.lhsFinalType.get()));
+        simpleAssignments.add(assignment);
+      } else {
+        generateSimpleSliceAssignments(assignment, simpleAssignments);
+      }
     }
     // hand over
     return handleSimpleSliceAssignments(simpleAssignments, assignmentOptions);
@@ -623,7 +651,8 @@ class AssignmentHandler {
           // all nondet rhs are the same
           memberRhs = assignment.rhs;
         }
-        ArraySliceAssignment memberAssignment = new ArraySliceAssignment(memberLhs, memberRhs);
+        ArraySliceAssignment memberAssignment =
+            new ArraySliceAssignment(memberLhs, Optional.empty(), memberRhs);
         generateSimpleSliceAssignments(memberAssignment, simpleAssignments);
       }
     } else if (lhsType instanceof CArrayType lhsArrayType) {
@@ -642,7 +671,8 @@ class AssignmentHandler {
           // all nondet rhs are the same
           elementRhs = assignment.rhs;
         }
-        ArraySliceAssignment elementAssignment = new ArraySliceAssignment(elementLhs, elementRhs);
+        ArraySliceAssignment elementAssignment =
+            new ArraySliceAssignment(elementLhs, Optional.empty(), elementRhs);
         generateSimpleSliceAssignments(elementAssignment, simpleAssignments);
       } else {
         // TODO: add slice flexible array member assignment, tracking the length from malloc
@@ -679,8 +709,11 @@ class AssignmentHandler {
       spanAssignments.add(
           new ArraySliceSpanAssignment(
               assignment.lhs,
+              assignment.lhsFinalType,
               ImmutableList.of(new ArraySliceSpanRhs(Optional.empty(), assignment.rhs))));
-      generateAlternativeSpanAssignments(assignment, alternativeAssignmentMultimap);
+      if (assignment.lhsFinalType.isEmpty()) {
+        generateAlternativeSpanAssignments(assignment, alternativeAssignmentMultimap);
+      }
     }
 
     // remove all alternative assignments for fields that are normally assigned
@@ -689,7 +722,8 @@ class AssignmentHandler {
 
     for (Entry<ArraySliceExpression, ArraySliceSpanRhs> entry :
         alternativeAssignmentMultimap.entries()) {
-      if (assignments.contains(new ArraySliceAssignment(entry.getKey(), entry.getValue().actual))) {
+      if (assignments.contains(
+          new ArraySliceAssignment(entry.getKey(), Optional.empty(), entry.getValue().actual))) {
         alternativeAssignmentsToRemove.add(entry);
       }
     }
@@ -705,7 +739,7 @@ class AssignmentHandler {
       // the caller has fulfilled the same representation condition
       ImmutableList.Builder<ArraySliceSpanRhs> builder = ImmutableList.builder();
       builder.addAll(entry.getValue());
-      spanAssignments.add(new ArraySliceSpanAssignment(lhs, builder.build()));
+      spanAssignments.add(new ArraySliceSpanAssignment(lhs, Optional.empty(), builder.build()));
     }
 
     // hand off the span assignments
@@ -936,8 +970,8 @@ class AssignmentHandler {
       }
       CExpression lhsBase = lhs.getResolvedExpression();
       Expression lhsExpression = lhsBase.accept(visitor);
-      ArraySliceResolved lhsVisited =
-          new ArraySliceResolved(lhsExpression, typeHandler.getSimplifiedType(lhsBase));
+      CType lhsFinalType = assignment.lhsFinalType.orElse(typeHandler.getSimplifiedType(lhsBase));
+      ArraySliceResolved lhsVisited = new ArraySliceResolved(lhsExpression, lhsFinalType);
 
       ImmutableList.Builder<ArraySliceSpanResolved> builder = ImmutableList.builder();
 
@@ -1149,7 +1183,8 @@ class AssignmentHandler {
           new CExpressionVisitorWithPointerAliasing(
               conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
       ArraySliceResolved lhsResolved =
-          resolveSliceExpression(assignment.lhs, quantifiedVariableFormulaMap, visitor);
+          resolveSliceExpression(
+              assignment.lhs, Optional.empty(), quantifiedVariableFormulaMap, visitor);
       if (lhsResolved == null) {
         // TODO: only used for ignoring assignments to bit-fields which should be handled properly
         // do not perform this assignment, but others can be done
@@ -1436,11 +1471,15 @@ class AssignmentHandler {
     }
 
     return resolveSliceExpression(
-        ((ArraySliceExpressionRhs) rhs).expression, quantifiedVariableFormulaMap, visitor);
+        ((ArraySliceExpressionRhs) rhs).expression,
+        Optional.empty(),
+        quantifiedVariableFormulaMap,
+        visitor);
   }
 
   private @Nullable ArraySliceResolved resolveSliceExpression(
       final ArraySliceExpression sliceExpression,
+      final Optional<CType> finalType,
       final Map<ArraySliceIndexVariable, Formula> quantifiedVariableFormulaMap,
       CExpressionVisitorWithPointerAliasing visitor)
       throws UnrecognizedCodeException {
@@ -1469,6 +1508,11 @@ class AssignmentHandler {
         // TODO: also used for ignoring non-aliased locations which should be handled properly
         return null;
       }
+    }
+
+    if (finalType.isPresent()) {
+      // retype to final type
+      base = new ArraySliceResolved(base.expression, finalType.get());
     }
 
     return base;
