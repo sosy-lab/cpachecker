@@ -1042,6 +1042,9 @@ class AssignmentHandler {
       result = nullableAnd(result, recursionResult);
     }
 
+    // re-add variable to quantified variable list
+    quantifierVariables.add(unrolledIndex);
+
     return nullToTrue(result);
   }
 
