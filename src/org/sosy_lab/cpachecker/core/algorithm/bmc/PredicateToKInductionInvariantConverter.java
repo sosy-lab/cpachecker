@@ -12,7 +12,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
@@ -53,6 +52,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -72,8 +73,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.BackwardsVisitor;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.Node;
-import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraphBuilder;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.BackwardsVisitOnceVisitor;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -86,9 +85,10 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @Options(prefix = "kinduction.reuse.precision.predicate")
-public class PredicateToKInductionInvariantConverter implements Statistics {
+public class PredicateToKInductionInvariantConverter implements Statistics, AutoCloseable {
 
   public enum PredicateConverterStrategy {
     CONVERT_ONLY,
@@ -106,7 +106,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics {
   @Option(
       secure = true,
       name = "strategy",
-      description = "which strategy to use to convert predicate to value precision")
+      description = "which strategy to use to convert predicate precision to k-induction invariant")
   private PredicateConverterStrategy converterStrategy = PredicateConverterStrategy.CONVERT_ONLY;
 
   @Option(
@@ -135,7 +135,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics {
   @Option(
       secure = true,
       description =
-          "Overall timelimit for computing initial value precision from given predicate precision"
+          "Overall timelimit for computing initial k-induction invariant from given predicate precision"
               + "(use seconds or specify a unit; 0 for infinite)")
   @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
   private TimeSpan adaptionLimit = TimeSpan.ofNanos(0);
@@ -157,7 +157,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics {
     config.inject(this);
   }
 
-  public Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
+  public Set<CandidateInvariant> convertPredPrecToKInductionInvariant(
       final Path pPredPrecFile) throws InvalidConfigurationException {
     ResourceLimitChecker limitChecker = null;
     ShutdownNotifier conversionShutdownNotifier;
@@ -172,7 +172,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics {
       conversionShutdownNotifier = shutdownNotifier;
     }
 
-    Multimap<CFANode, MemoryLocation> result = null;
+    Set<CandidateInvariant> result = null;
 
     conversionTime.start();
     try (Solver solver = Solver.create(config, logger, conversionShutdownNotifier)) {
@@ -188,16 +188,17 @@ public class PredicateToKInductionInvariantConverter implements Statistics {
       conversionShutdownNotifier.shutdownIfNecessary();
 
       if (!predPrec.isEmpty()) {
-        logger.log(Level.INFO, "Derive value precision from given predicate precision");
-        result = convertPredPrecToVariableTrackingPrec(predPrec, formulaManager, dummyNode);
+        logger.log(Level.INFO, "Derive k-induction invariant from given predicate precision");
+        result = convertPredPrecToKInductionInvariant(predPrec, formulaManager, dummyNode);
 
         conversionShutdownNotifier.shutdownIfNecessary();
 
+        /*
         if (converterStrategy != PredicateConverterStrategy.CONVERT_ONLY) {
           try {
             logger.log(
                 Level.FINE,
-                "Enhance value precision converted from predicate precision with additional"
+                "Enhance k-induction invariant converted from predicate precision with additional"
                     + " relevant variables");
             // TODO disable option dependencegraph.controldeps.considerPointees?
             Configuration depGraphConfig =
@@ -283,6 +284,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics {
             logger.logException(Level.WARNING, e, "Failed to add additional relevant variables");
           }
         }
+        */
       } else {
         logger.log(
             Level.WARNING,
@@ -299,10 +301,10 @@ public class PredicateToKInductionInvariantConverter implements Statistics {
     }
 
     if (result == null) {
-      return ImmutableListMultimap.of();
+      return ImmutableSet.of();
     }
     numVarsAddedToPrecision += result.size();
-    return ImmutableListMultimap.copyOf(result);
+    return ImmutableSet.copyOf(result);
   }
 
   private PredicatePrecision parsePredPrecFile(
@@ -326,26 +328,55 @@ public class PredicateToKInductionInvariantConverter implements Statistics {
     }
   }
 
-  private Multimap<CFANode, MemoryLocation> convertPredPrecToVariableTrackingPrec(
+  private Set<CandidateInvariant> convertPredPrecToKInductionInvariant(
       final PredicatePrecision pPredPrec,
       final FormulaManagerView pFMgr,
       final CFANode pDummyNode) {
-    Collection<AbstractionPredicate> predicates = new HashSet<>();
+    Collection<AbstractionPredicate> globalPreds = new HashSet<>();
+    globalPreds.addAll(pPredPrec.getGlobalPredicates());
+    SetMultimap<CFANode, AbstractionPredicate> localPreds = HashMultimap.create();
+    SetMultimap<String, AbstractionPredicate> functionPreds = HashMultimap.create();
 
-    predicates.addAll(pPredPrec.getLocalPredicates().values());
-    predicates.addAll(pPredPrec.getGlobalPredicates());
-    predicates.addAll(pPredPrec.getFunctionPredicates().values());
-
-    SetMultimap<CFANode, MemoryLocation> trackedVariables = HashMultimap.create();
-
+    SetMultimap<CFANode, BooleanFormula> trackedVariables = HashMultimap.create();
+    
+    localPreds.putAll(pPredPrec.getLocalPredicates());
+    //TODO: Function strings convert to node
+    functionPreds.putAll(pPredPrec.getFunctionPredicates()); 
+    
     // Get the variables from the predicate precision
-    for (AbstractionPredicate pred : predicates) {
-      for (String var : pFMgr.extractVariables(pred.getSymbolicAtom()).keySet()) {
-        trackedVariables.put(pDummyNode, MemoryLocation.parseExtendedQualifiedName(var));
+    for (AbstractionPredicate pred : globalPreds) {
+      for(CFANode node : cfa.getAllNodes()) {
+        trackedVariables.put(node, pred.getSymbolicAtom());
       }
     }
-
-    return trackedVariables;
+    for (CFANode node : localPreds.keySet()) {
+      for (AbstractionPredicate pred : localPreds.get(node)) {
+        
+        trackedVariables.put(node, pred.getSymbolicAtom()); //TODO: Combine all booleanFormulas per node
+      }
+    }
+    for (String funcName : functionPreds.keySet()) {
+      for (CFANode node : cfa.getAllNodes()) {
+        if(node.getFunctionName().equals(funcName)){
+          for (AbstractionPredicate pred : functionPreds.get(funcName)) {
+            trackedVariables.put(node, pred.getSymbolicAtom());
+          }
+        }
+      }
+    }
+    
+    Set<CandidateInvariant> candidates = new HashSet<>();
+    
+    for(CFANode node : trackedVariables.keySet()) {
+      BooleanFormula completeFormula = pFMgr.getBooleanFormulaManager().makeTrue();
+      for (BooleanFormula formula :  trackedVariables.get(node)) {
+       completeFormula = pFMgr.makeAnd(completeFormula, formula);
+      }     
+      completeFormula = pFMgr.makeNot(completeFormula);
+      SingleLocationFormulaInvariant invariant = SingleLocationFormulaInvariant.makeLocationInvariant(node, completeFormula, pFMgr);
+      candidates.add(invariant);
+    }
+    return candidates;
   }
 
   private Collection<CFAEdge> determineEdgesRelevantForProperty(
@@ -466,7 +497,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics {
 
   @Override
   public String getName() {
-    return "Predicate Precision Adapter";
+    return "Predicate Precision Adapter for K-Induction Invariants";
   }
 
   private static void registerRelevantVar(
@@ -575,5 +606,10 @@ public class PredicateToKInductionInvariantConverter implements Statistics {
       }
       return Optional.empty();
     }
+  }
+  
+  @Override
+  public void close(){
+    
   }
 }
