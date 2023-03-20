@@ -491,7 +491,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       throws InvalidConfigurationException, CPAException, InterruptedException {
 
     final Set<CandidateInvariant> candidates = new LinkedHashSet<>();
-
+    
     Iterables.addAll(
         candidates,
         pOptions.guessCandidatesFromCFA.create(

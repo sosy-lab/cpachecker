@@ -141,7 +141,7 @@ abstract class AbstractBMCAlgorithm
     return AbstractStates.extractStateByType(state, ReachabilityState.class)
         != ReachabilityState.IRRELEVANT_TO_TARGET;
   }
-
+  
   @Option(
       secure = true,
       description =
@@ -385,7 +385,6 @@ abstract class AbstractBMCAlgorithm
       reachedSet.clearWaitlist();
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
-
     AlgorithmStatus status;
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {

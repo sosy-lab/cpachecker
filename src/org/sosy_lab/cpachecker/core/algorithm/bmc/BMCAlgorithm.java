@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -59,6 +60,10 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 @Options
 public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
+  
+  @Option(secure = true, description = "get an initial precision from a predicate precision file", name = "bmc.predicatePrecisionFile")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path initialPredicatePrecisionFile = null;
 
   @Option(
       name = "bmc.checkTargetStates",
@@ -137,8 +142,20 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Override
   protected CandidateGenerator getCandidateInvariants() {
-    if (getTargetLocations().isEmpty() || !cfa.getAllLoopHeads().isPresent()) {
+    
+    if (getTargetLocations().isEmpty() || !cfa.getAllLoopHeads().isPresent() || initialPredicatePrecisionFile == null) {
       return CandidateGenerator.EMPTY_GENERATOR;
+    } else if(initialPredicatePrecisionFile != null) {
+      try(PredicateToKInductionInvariantConverter predToKIndInv = new PredicateToKInductionInvariantConverter(config, logger, shutdownNotifier, cfa)){
+        Set<CandidateInvariant> maybeCandidates = predToKIndInv.convertPredPrecToKInductionInvariant(initialPredicatePrecisionFile);
+        StaticCandidateProvider candidateGenerator = new StaticCandidateProvider(maybeCandidates);
+        return candidateGenerator;
+      }
+      catch (InvalidConfigurationException e) {
+        logger.log(Level.SEVERE, e);
+      }
+      return CandidateGenerator.EMPTY_GENERATOR;
+      
     } else {
       return new StaticCandidateProvider(
           Collections.singleton(TargetLocationCandidateInvariant.INSTANCE));

@@ -942,15 +942,16 @@ class KInductionProver implements AutoCloseable {
             VariableTrackingPrecision.createStaticPrecision(
                 pConfig, pCfa.getVarClassification(), stepCasePredicateCPA.getClass()));
 
-    if (initialPredicatePrecisionFile != null) {
+    /*if (initialPredicatePrecisionFile != null) {
       // convert the predicate precision to variable tracking precision and
       // refine precision with increment from the newly gained variable tracking precision
       // otherwise return empty precision if given predicate precision is empty
 
       initialPrecision =
           initialPrecision.withIncrement(
-              predToKIndInv.convertPredPrecToVariableTrackingPrec(initialPredicatePrecisionFile));
+              predToKIndInv.convertPredPrecToKInductionInvariant(initialPredicatePrecisionFile));
     }
+    */
     if (initialPrecisionFile != null) {
       // create precision with empty, refinable component precision
       // refine the refinable component precision with increment from file
@@ -1006,11 +1007,6 @@ class KInductionProver implements AutoCloseable {
       precision = VariableTrackingPrecision.createRefineablePrecision(config, (VariableTrackingPrecision) precision);
       refineablePrecisionSet = true;
     }
-  }
-
-  //@Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return precision;
   }
 
   
