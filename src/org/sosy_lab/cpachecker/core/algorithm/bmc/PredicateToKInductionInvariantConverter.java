@@ -189,7 +189,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
 
       if (!predPrec.isEmpty()) {
         logger.log(Level.INFO, "Derive k-induction invariant from given predicate precision");
-        result = convertPredPrecToKInductionInvariant(predPrec, formulaManager, dummyNode);
+        result = convertPredPrecToKInductionInvariant(predPrec, formulaManager);
 
         conversionShutdownNotifier.shutdownIfNecessary();
 
@@ -330,36 +330,37 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
 
   private Set<CandidateInvariant> convertPredPrecToKInductionInvariant(
       final PredicatePrecision pPredPrec,
-      final FormulaManagerView pFMgr,
-      final CFANode pDummyNode) {
-    Collection<AbstractionPredicate> globalPreds = new HashSet<>();
-    globalPreds.addAll(pPredPrec.getGlobalPredicates());
-    SetMultimap<CFANode, AbstractionPredicate> localPreds = HashMultimap.create();
-    SetMultimap<String, AbstractionPredicate> functionPreds = HashMultimap.create();
+      final FormulaManagerView pFMgr) {
+    
+    // Get all different predicate precisions
+    Collection<AbstractionPredicate> globalPreds = new HashSet<>(pPredPrec.getGlobalPredicates());
+    SetMultimap<CFANode, AbstractionPredicate> localPreds = HashMultimap.create(pPredPrec.getLocalPredicates());
+    SetMultimap<String, AbstractionPredicate> functionPreds = HashMultimap.create(pPredPrec.getFunctionPredicates());
 
-    SetMultimap<CFANode, BooleanFormula> trackedVariables = HashMultimap.create();
+    SetMultimap<CFANode, BooleanFormula> allPreds = HashMultimap.create();
     
-    localPreds.putAll(pPredPrec.getLocalPredicates());
-    //TODO: Function strings convert to node
-    functionPreds.putAll(pPredPrec.getFunctionPredicates()); 
-    
-    // Get the variables from the predicate precision
+    // Get all predicate precisions in the same set
     for (AbstractionPredicate pred : globalPreds) {
-      for(CFANode node : cfa.getAllNodes()) {
-        trackedVariables.put(node, pred.getSymbolicAtom());
+      if(cfa.getAllLoopHeads().isPresent()) {
+        for(CFANode node : cfa.getAllLoopHeads().get()) {
+          allPreds.put(node, pred.getSymbolicAtom());
+        }
       }
     }
     for (CFANode node : localPreds.keySet()) {
-      for (AbstractionPredicate pred : localPreds.get(node)) {
-        
-        trackedVariables.put(node, pred.getSymbolicAtom()); //TODO: Combine all booleanFormulas per node
+      if(node.isLoopStart()) {
+        for (AbstractionPredicate pred : localPreds.get(node)) {
+          allPreds.put(node, pred.getSymbolicAtom());
+        }
       }
     }
     for (String funcName : functionPreds.keySet()) {
-      for (CFANode node : cfa.getAllNodes()) {
-        if(node.getFunctionName().equals(funcName)){
-          for (AbstractionPredicate pred : functionPreds.get(funcName)) {
-            trackedVariables.put(node, pred.getSymbolicAtom());
+      if(cfa.getAllLoopHeads().isPresent()) {
+        for(CFANode node : cfa.getAllLoopHeads().get()) {
+          if(node.getFunctionName().equals(funcName)){
+            for (AbstractionPredicate pred : functionPreds.get(funcName)) {
+              allPreds.put(node, pred.getSymbolicAtom());
+            }
           }
         }
       }
@@ -367,16 +368,19 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     
     Set<CandidateInvariant> candidates = new HashSet<>();
     
-    for(CFANode node : trackedVariables.keySet()) {
+    // Combine all boolean formulas per node and make invariant
+    for(CFANode node : allPreds.keySet()) {
       BooleanFormula completeFormula = pFMgr.getBooleanFormulaManager().makeTrue();
-      for (BooleanFormula formula :  trackedVariables.get(node)) {
+      for (BooleanFormula formula :  allPreds.get(node)) {
        completeFormula = pFMgr.makeAnd(completeFormula, formula);
       }     
-      completeFormula = pFMgr.makeNot(completeFormula);
+      //completeFormula = pFMgr.makeNot(completeFormula);
       SingleLocationFormulaInvariant invariant = SingleLocationFormulaInvariant.makeLocationInvariant(node, completeFormula, pFMgr);
       candidates.add(invariant);
     }
+    
     return candidates;
+    
   }
 
   private Collection<CFAEdge> determineEdgesRelevantForProperty(
