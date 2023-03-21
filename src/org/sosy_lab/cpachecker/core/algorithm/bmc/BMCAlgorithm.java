@@ -148,8 +148,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     } else if(initialPredicatePrecisionFile != null) {
       try(PredicateToKInductionInvariantConverter predToKIndInv = new PredicateToKInductionInvariantConverter(config, logger, shutdownNotifier, cfa)){
         Set<CandidateInvariant> maybeCandidates = predToKIndInv.convertPredPrecToKInductionInvariant(initialPredicatePrecisionFile);
-        StaticCandidateProvider candidateGenerator = new StaticCandidateProvider(maybeCandidates);
-        return candidateGenerator;
+        return new StaticCandidateProvider(maybeCandidates);
       }
       catch (InvalidConfigurationException e) {
         logger.log(Level.SEVERE, e);

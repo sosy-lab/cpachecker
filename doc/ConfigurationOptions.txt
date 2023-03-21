@@ -722,6 +722,9 @@ bmc.invariantGeneratorHeadStartStrategy = NONE
 # Export auxiliary invariants used for induction.
 bmc.invariantsExport = no default value
 
+# get an initial precision from a predicate precision file
+bmc.predicatePrecisionFile = no default value
+
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false
 
@@ -3774,13 +3777,7 @@ java.typeHierarchyFile = "typeHierarchy.dot"
 # Specifies the java version of source code accepted
 java.version = JavaCore.VERSION_1_7
 
-# get an initial precision from file
-kinduction.precisionFile = no default value
-
-# get an initial precision from a predicate precision file
-kinduction.predicatePrecisionFile = no default value
-
-# Overall timelimit for computing initial value precision from given
+# Overall timelimit for computing initial k-induction invariant from given
 # predicate precision(use seconds or specify a unit; 0 for infinite)
 kinduction.reuse.precision.predicate.adaptionLimit = 0ns
 
@@ -3793,7 +3790,8 @@ kinduction.reuse.precision.predicate.includeControlNonEquiv = false
 # adaption
 kinduction.reuse.precision.predicate.relevantProperties = []
 
-# which strategy to use to convert predicate to value precision
+# which strategy to use to convert predicate precision to k-induction
+# invariant
 kinduction.reuse.precision.predicate.strategy = CONVERT_ONLY
   enum:     [CONVERT_ONLY, CONVERT_AND_ADD_FLOW_BACKWARD,
              CONVERT_AND_ADD_FLOW_BIDIRECTED]

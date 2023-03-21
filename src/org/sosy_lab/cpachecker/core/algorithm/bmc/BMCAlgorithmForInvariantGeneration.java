@@ -89,7 +89,7 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
   }
 
   @Override
-  protected CandidateGenerator getCandidateInvariants() {
+  protected CandidateGenerator getCandidateInvariants() { 
     return candidateGenerator;
   }
 

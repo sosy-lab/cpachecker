@@ -385,6 +385,7 @@ abstract class AbstractBMCAlgorithm
       reachedSet.clearWaitlist();
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
+    
     AlgorithmStatus status;
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
@@ -1000,14 +1001,11 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
-  protected KInductionProver createInductionProver(){
+  protected KInductionProver createInductionProver() {
     assert induction;
-    KInductionProver prover = null;
-    try {
-    prover = new KInductionProver(
+    return new KInductionProver(
         cfa,
         logger,
-        config,
         stepCaseAlgorithm,
         stepCaseCPA,
         invariantGenerator,
@@ -1015,11 +1013,7 @@ abstract class AbstractBMCAlgorithm
         reachedSetFactory,
         shutdownNotifier,
         getLoopHeads(),
-        usePropertyDirection);}
-    catch(InvalidConfigurationException e) {
-      logger.logUserException(Level.SEVERE, e, "Invalid configuration");
-    }
-    return prover;
+        usePropertyDirection);
   }
   
 
