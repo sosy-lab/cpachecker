@@ -362,7 +362,7 @@ class AssignmentHandler {
       rhsSlice = new ArraySliceNondetRhs();
     }
 
-    ArraySliceAssignment assignment = new ArraySliceAssignment(lhsSlice, lhsType, rhsSlice);
+    ArraySliceAssignment assignment = new ArraySliceAssignment(lhsSlice, rhsSlice);
 
     AssignmentOptions assignmentOptions =
         new AssignmentOptions(
@@ -370,7 +370,8 @@ class AssignmentHandler {
             reinterpretInsteadOfCasting
                 ? AssignmentConversionType.REINTERPRET
                 : AssignmentConversionType.CAST,
-            false);
+            false,
+            !lhsType.equals(typeHandler.getSimplifiedType(lhs)));
 
 
     return handleSliceAssignment(assignment, assignmentOptions);
@@ -419,14 +420,11 @@ class AssignmentHandler {
     }
   }
 
-  private record ArraySliceSpanRhs(
-      ArraySlicePartSpan span, CType assignmentType, ArraySliceRhs actual) {
-    ArraySliceSpanRhs(ArraySlicePartSpan span, CType assignmentType, ArraySliceRhs actual) {
+  private record ArraySliceSpanRhs(ArraySlicePartSpan span, ArraySliceRhs actual) {
+    ArraySliceSpanRhs(ArraySlicePartSpan span, ArraySliceRhs actual) {
       checkNotNull(span);
-      checkNotNull(assignmentType);
       checkNotNull(actual);
       this.span = span;
-      this.assignmentType = assignmentType;
       this.actual = actual;
     }
   }
@@ -460,17 +458,11 @@ class AssignmentHandler {
     }
   }
 
-  record ArraySliceAssignment(
-      ArraySliceExpression lhs, CType assignmentType, ArraySliceRhs rhs) {
-    ArraySliceAssignment(
-        ArraySliceExpression lhs, CType assignmentType, ArraySliceRhs rhs) {
+  record ArraySliceAssignment(ArraySliceExpression lhs, ArraySliceRhs rhs) {
+    ArraySliceAssignment(ArraySliceExpression lhs, ArraySliceRhs rhs) {
       checkNotNull(lhs);
-      checkNotNull(assignmentType);
-      checkIsSimplified(assignmentType);
       checkNotNull(rhs);
-
       this.lhs = lhs;
-      this.assignmentType = assignmentType;
       this.rhs = rhs;
     }
   }
@@ -481,15 +473,20 @@ class AssignmentHandler {
   }
 
   record AssignmentOptions(
-      boolean useOldSSAIndices, AssignmentConversionType conversionType, boolean forceQuantifiers) {
+      boolean useOldSSAIndices,
+      AssignmentConversionType conversionType,
+      boolean forceQuantifiers,
+      boolean forcePointerAssignment) {
     AssignmentOptions(
         boolean useOldSSAIndices,
         AssignmentConversionType conversionType,
-        boolean forceQuantifiers) {
+        boolean forceQuantifiers,
+        boolean forcePointerAssignment) {
       checkNotNull(conversionType);
       this.useOldSSAIndices = useOldSSAIndices;
       this.conversionType = conversionType;
       this.forceQuantifiers = forceQuantifiers;
+      this.forcePointerAssignment = forcePointerAssignment;
     }
   }
 
@@ -522,7 +519,6 @@ class AssignmentHandler {
           appliedHavocAssignments.add(
               new ArraySliceAssignment(
                   assignment.lhs,
-                  assignment.assignmentType,
                   new ArraySliceNondetRhs()));
         }
           continue;
@@ -571,20 +567,27 @@ class AssignmentHandler {
     List<ArraySliceSpanAssignment> simpleAssignments = new ArrayList<>();
 
     for (ArraySliceAssignment assignment : assignments) {
-      CType lhsActualType = typeHandler.simplifyType(assignment.lhs.getResolvedExpressionType(sizeType));
-      long lhsBitSize = typeHandler.getBitSizeof(lhsActualType);
+      final CType rhsType;
+      if (assignment.rhs instanceof ArraySliceExpressionRhs expressionRhs) {
+        rhsType = expressionRhs.expression.getResolvedExpressionType(sizeType);
+      } else if (assignment.rhs instanceof ArraySliceCallRhs callRhs) {
+        rhsType = callRhs.call.getExpressionType().getCanonicalType();
+      } else if (assignment.rhs instanceof ArraySliceNondetRhs nondetRhs) {
+        // get lhs type
+        rhsType = assignment.lhs.getResolvedExpressionType(sizeType);
+      } else {
+        assert (false);
+        rhsType = null;
+      }
+      CType rhsSimplifiedType = typeHandler.simplifyType(rhsType);
+      long rhsBitSize = typeHandler.getBitSizeof(rhsSimplifiedType);
 
       ArraySliceSpanAssignment spanAssignment =
           new ArraySliceSpanAssignment(
               assignment.lhs,
-              new ArraySliceSpanRhs(
-                  new ArraySlicePartSpan(0, 0, lhsBitSize),
-                  assignment.assignmentType,
-                  assignment.rhs));
-      if (!assignment.assignmentType.equals(lhsActualType)) {
-        // assignment type is different from actual LHS type
-        // assignment type should be already simple
-        assert (CTypeUtils.isSimpleType(assignment.assignmentType));
+              new ArraySliceSpanRhs(new ArraySlicePartSpan(0, 0, rhsBitSize), assignment.rhs));
+      if (assignmentOptions.forcePointerAssignment) {
+        // actual assignment type should be pointer, which is already simple
         simpleAssignments.add(spanAssignment);
       } else {
         // convert to progenitor
@@ -637,9 +640,7 @@ class AssignmentHandler {
 
     // now construct the new assignment with lhs being the progenitor and span modified accordingly
     return new ArraySliceSpanAssignment(
-        progenitor,
-        new ArraySliceSpanRhs(
-            spanFromProgenitor, assignment.rhs.assignmentType, assignment.rhs.actual));
+        progenitor, new ArraySliceSpanRhs(spanFromProgenitor, assignment.rhs.actual));
   }
 
   private void generateSimpleSliceAssignments(
@@ -710,8 +711,7 @@ class AssignmentHandler {
             assert (false);
             }
 
-          ArraySliceSpanRhs memberRhs =
-              new ArraySliceSpanRhs(memberSpan, lhsMember.getType(), rhsMemberRhs);
+          ArraySliceSpanRhs memberRhs = new ArraySliceSpanRhs(memberSpan, rhsMemberRhs);
 
           memberAssignment = new ArraySliceSpanAssignment(lhsMemberSlice, memberRhs);
 
@@ -731,9 +731,7 @@ class AssignmentHandler {
                   intersectionMemberReferencedLhsBitOffset,
                   intersectionRhsBitOffset,
                   intersectionBitSize);
-          ArraySliceSpanRhs memberRhs =
-              new ArraySliceSpanRhs(
-                  memberSpan, assignment.rhs.assignmentType, assignment.rhs.actual);
+          ArraySliceSpanRhs memberRhs = new ArraySliceSpanRhs(memberSpan, assignment.rhs.actual);
 
           memberAssignment = new ArraySliceSpanAssignment(lhsMemberSlice, memberRhs);
           }
@@ -810,8 +808,7 @@ class AssignmentHandler {
       // full span
       ArraySlicePartSpan elementSpan =
           new ArraySlicePartSpan(0, 0, typeHandler.getBitSizeof(elementType));
-      ArraySliceSpanRhs elementSpanRhs =
-          new ArraySliceSpanRhs(elementSpan, elementType, elementRhs);
+      ArraySliceSpanRhs elementSpanRhs = new ArraySliceSpanRhs(elementSpan, elementRhs);
       ArraySliceSpanAssignment elementAssignment =
           new ArraySliceSpanAssignment(elementLhs, elementSpanRhs);
       generateSimpleSliceAssignments(elementAssignment, simpleAssignments);
@@ -916,20 +913,21 @@ class AssignmentHandler {
       Expression lhsExpression = lhsBase.accept(visitor);
       CType lhsFinalType = typeHandler.getSimplifiedType(lhsBase);
 
+      if (assignmentOptions.forcePointerAssignment) {
+        // if the force pointer assignment option is used, lhs must be an array
+        // interpret it as a pointer instead
+        lhsFinalType = CTypes.adjustFunctionOrArrayType((lhsFinalType));
+      }
+
       ImmutableList.Builder<ArraySliceSpanResolved> builder = ImmutableList.builder();
 
       for (ArraySliceSpanRhs rhs : rhsCollection) {
-        // TODO: resolve better
-
-        if (rhs.assignmentType instanceof CPointerType && lhsFinalType instanceof CArrayType) {
-          lhsFinalType = rhs.assignmentType;
-        }
 
         final CRightHandSide rhsResolved;
         if (rhs.actual instanceof ArraySliceNondetRhs nondetRhs) {
           builder.add(
               new ArraySliceSpanResolved(
-                  rhs.span, new ArraySliceResolved(Value.nondetValue(), rhs.assignmentType)));
+                  rhs.span, new ArraySliceResolved(Value.nondetValue(), lhsFinalType)));
           continue;
         } else if (rhs.actual instanceof ArraySliceCallRhs callRhs) {
           rhsResolved = callRhs.call;
@@ -1254,15 +1252,6 @@ class AssignmentHandler {
     boolean forceNondet = false;
     for (ArraySliceSpanResolved rhs : rhsList) {
 
-      CType rhsPerhapsPointerType = implicitCastToPointer(rhs.actual.type);
-      if (rhsPerhapsPointerType instanceof CPointerType) {
-        // TODO: handle pointer rhs type in union
-        // force span lhs nondet for now
-        forceNondet = true;
-        break;
-      }
-
-      ArraySlicePartSpan rhsSpan = rhs.span;
       // convert RHS expression to original LHS type
       Expression convertedRhs =
           convertRhsExpression(assignmentOptions.conversionType, lhsResolved.type, rhs.actual);
@@ -1275,40 +1264,50 @@ class AssignmentHandler {
         break;
       }
 
-      Formula convertedRhsFormula = getValueFormula(lhsResolved.type, convertedRhs).get();
-      // reinterpret to integer version of original lhs type
-      Formula reinterpretedRhsFormula =
-          conv.makeValueReinterpretation(
-              lhsResolved.type,
-              getIntegerTypeReinterpretation(lhsResolved.type),
-              convertedRhsFormula);
-      if (reinterpretedRhsFormula != null) {
-        convertedRhsFormula = reinterpretedRhsFormula;
-      }
+      Formula convertedRhsFormula = optionalConvertedRhsFormula.get();
 
-      // extract the interesting part and dimension to new lhs type, shift left
-      // this will make the formula type integer version of new lhs type
-      Formula extractedFormula =
-          fmgr.makeExtract(
-              convertedRhsFormula,
-              (int) (rhsSpan.rhsBitOffset + rhsSpan.bitSize - 1),
-              (int) rhsSpan.rhsBitOffset);
-
-      long numExtendBits = lhsBitSize - rhsSpan.bitSize;
-
-      Formula extendedFormula = fmgr.makeExtend(extractedFormula, (int) numExtendBits, false);
-
-      Formula shiftedFormula =
-          fmgr.makeShiftLeft(
-              extendedFormula,
-              fmgr.makeNumber(
-                  FormulaType.getBitvectorTypeWithSize((int) lhsBitSize), rhsSpan.lhsBitOffset));
-
-      // bit-or with other parts
-      if (wholeRhsFormula != null) {
-        wholeRhsFormula = fmgr.makeOr(wholeRhsFormula, shiftedFormula);
+      if (rhs.span.lhsBitOffset == 0
+          && rhs.span.rhsBitOffset == 0
+          && rhs.span.bitSize == lhsBitSize) {
+        // handle full assignments without complications
+        wholeRhsFormula = convertedRhsFormula;
       } else {
-        wholeRhsFormula = shiftedFormula;
+        // perform partial assignment
+
+        // reinterpret to integer version of original lhs type
+        Formula reinterpretedRhsFormula =
+            conv.makeValueReinterpretation(
+                lhsResolved.type,
+                getIntegerTypeReinterpretation(lhsResolved.type),
+                convertedRhsFormula);
+        if (reinterpretedRhsFormula != null) {
+          convertedRhsFormula = reinterpretedRhsFormula;
+        }
+
+        // extract the interesting part and dimension to new lhs type, shift left
+        // this will make the formula type integer version of new lhs type
+        Formula extractedFormula =
+            fmgr.makeExtract(
+                convertedRhsFormula,
+                (int) (rhs.span.rhsBitOffset + rhs.span.bitSize - 1),
+                (int) rhs.span.rhsBitOffset);
+
+        long numExtendBits = lhsBitSize - rhs.span.bitSize;
+
+        Formula extendedFormula = fmgr.makeExtend(extractedFormula, (int) numExtendBits, false);
+
+        Formula shiftedFormula =
+            fmgr.makeShiftLeft(
+                extendedFormula,
+                fmgr.makeNumber(
+                    FormulaType.getBitvectorTypeWithSize((int) lhsBitSize), rhs.span.lhsBitOffset));
+
+        // bit-or with other parts
+        if (wholeRhsFormula != null) {
+          wholeRhsFormula = fmgr.makeOr(wholeRhsFormula, shiftedFormula);
+        } else {
+          wholeRhsFormula = shiftedFormula;
+        }
       }
     }
 

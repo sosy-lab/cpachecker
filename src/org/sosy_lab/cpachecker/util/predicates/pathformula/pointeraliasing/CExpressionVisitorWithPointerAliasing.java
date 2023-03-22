@@ -1127,13 +1127,12 @@ class CExpressionVisitorWithPointerAliasing
         new AssignmentOptions(
             false,
             AssignmentHandler.AssignmentConversionType.REINTERPRET,
-            conv.options.forceQuantifiersInMemoryAssignmentFunctions());
+            conv.options.forceQuantifiersInMemoryAssignmentFunctions(),
+            false);
 
-    CType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
     AssignmentHandler.ArraySliceAssignment sliceAssignment =
         new AssignmentHandler.ArraySliceAssignment(
             lhs,
-            typeHandler.simplifyType(lhs.getResolvedExpressionType(sizeType)),
             new ArraySliceExpressionRhs(rhs));
 
     BooleanFormula assignmentFormula =
@@ -1162,7 +1161,8 @@ class CExpressionVisitorWithPointerAliasing
         new AssignmentOptions(
             false,
             AssignmentHandler.AssignmentConversionType.REINTERPRET,
-            conv.options.forceQuantifiersInMemoryAssignmentFunctions());
+            conv.options.forceQuantifiersInMemoryAssignmentFunctions(),
+            false);
     BooleanFormula assignmentFormula =
         assignmentHandler.handleSliceAssignments(assignments, assignmentOptions);
 
@@ -1276,7 +1276,6 @@ class CExpressionVisitorWithPointerAliasing
     AssignmentHandler.ArraySliceAssignment sliceAssignment =
         new AssignmentHandler.ArraySliceAssignment(
             lhsSlice,
-            typeHandler.simplifyType(lhsSlice.getResolvedExpressionType(sizeType)),
             new ArraySliceExpressionRhs(rhsSlice));
 
     assignments.add(sliceAssignment);
