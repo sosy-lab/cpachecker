@@ -72,7 +72,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevant
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceFieldAccessModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceIndexVariable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceSplitExpression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceSubscriptModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceTail;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Kind;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
@@ -585,11 +587,59 @@ class AssignmentHandler {
         assert (CTypeUtils.isSimpleType(assignment.assignmentType));
         simpleAssignments.add(spanAssignment);
       } else {
-        generateSimpleSliceAssignments(spanAssignment, simpleAssignments);
+        // convert to progenitor
+        ArraySliceSpanAssignment progenitorAssignment =
+            convertSliceAssignmentLhsToProgenitor(spanAssignment);
+
+        generateSimpleSliceAssignments(progenitorAssignment, simpleAssignments);
       }
     }
     // hand over
     return handleSimpleSliceAssignments(simpleAssignments, assignmentOptions);
+  }
+
+  private ArraySliceSpanAssignment convertSliceAssignmentLhsToProgenitor(
+      ArraySliceSpanAssignment assignment) {
+
+    CSimpleType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
+
+    // split the lhs into a base part followed by field accesses
+    // e.g. with (*x).a.b.c.d, split into (*x) and .a.b.c.d
+    // the base part is the progenitor from which we will be assigning to span
+
+    final ArraySliceSplitExpression splitLhs = assignment.lhs.getSplit();
+    final ArraySliceExpression progenitor = splitLhs.head();
+    final CType progenitorType = progenitor.getResolvedExpressionType(sizeType);
+    final ArraySliceTail tail = splitLhs.tail();
+
+    // compute the full offset from progenitor
+
+    CType parentType = progenitorType;
+
+    long bitOffsetFromProgenitor = 0;
+
+    for (CCompositeTypeMemberDeclaration currentFieldAccess : tail.list()) {
+      // field access, parent must be composite
+      CCompositeType parentCompositeType = (CCompositeType) parentType;
+
+      // add current field access to bit offset from progenitor
+      bitOffsetFromProgenitor += typeHandler.getBitOffset(parentCompositeType, currentFieldAccess);
+
+      parentType = typeHandler.getSimplifiedType(currentFieldAccess);
+    }
+
+    ArraySlicePartSpan originalSpan = assignment.rhs.span;
+    ArraySlicePartSpan spanFromProgenitor = new ArraySlicePartSpan(
+        bitOffsetFromProgenitor + originalSpan.lhsBitOffset,
+        originalSpan.rhsBitOffset,
+        originalSpan.bitSize
+        );
+
+    // now construct the new assignment with lhs being the progenitor and span modified accordingly
+    return new ArraySliceSpanAssignment(
+        progenitor,
+        new ArraySliceSpanRhs(
+            spanFromProgenitor, assignment.rhs.assignmentType, assignment.rhs.actual));
   }
 
   private void generateSimpleSliceAssignments(
