@@ -567,25 +567,36 @@ class AssignmentHandler {
     List<ArraySliceSpanAssignment> simpleAssignments = new ArrayList<>();
 
     for (ArraySliceAssignment assignment : assignments) {
-      final CType rhsType;
-      if (assignment.rhs instanceof ArraySliceExpressionRhs expressionRhs) {
-        rhsType = expressionRhs.expression.getResolvedExpressionType(sizeType);
-      } else if (assignment.rhs instanceof ArraySliceCallRhs callRhs) {
-        rhsType = callRhs.call.getExpressionType().getCanonicalType();
-      } else if (assignment.rhs instanceof ArraySliceNondetRhs nondetRhs) {
-        // get lhs type
-        rhsType = assignment.lhs.getResolvedExpressionType(sizeType);
+
+      // to initialize the span size, we need to know the type after potential casting
+      // this is usually the type of lhs, but if pointer assignment is being forced,
+      // we need to take it from rhs
+      final CType assignmentNonsimplifiedType;
+      if (assignmentOptions.forcePointerAssignment) {
+        // pointer assignment is being forced, lhs does not have correct type
+        // get assignment type from rhs
+        if (assignment.rhs instanceof ArraySliceExpressionRhs expressionRhs) {
+          assignmentNonsimplifiedType = expressionRhs.expression.getResolvedExpressionType(sizeType);
+        } else if (assignment.rhs instanceof ArraySliceCallRhs callRhs) {
+          assignmentNonsimplifiedType = callRhs.call.getExpressionType().getCanonicalType();
+        } else if (assignment.rhs instanceof ArraySliceNondetRhs nondetRhs) {
+          // get lhs type
+          assignmentNonsimplifiedType = assignment.lhs.getResolvedExpressionType(sizeType);
+        } else {
+          assert (false);
+          assignmentNonsimplifiedType = null;
+        }
       } else {
-        assert (false);
-        rhsType = null;
+        // get assignment type from rhs
+        assignmentNonsimplifiedType = assignment.lhs.getResolvedExpressionType(sizeType);
       }
-      CType rhsSimplifiedType = typeHandler.simplifyType(rhsType);
-      long rhsBitSize = typeHandler.getBitSizeof(rhsSimplifiedType);
+      final CType assignmentType = typeHandler.simplifyType(assignmentNonsimplifiedType);
+      long assignmentBitSize = typeHandler.getBitSizeof(assignmentType);
 
       ArraySliceSpanAssignment spanAssignment =
           new ArraySliceSpanAssignment(
               assignment.lhs,
-              new ArraySliceSpanRhs(new ArraySlicePartSpan(0, 0, rhsBitSize), assignment.rhs));
+              new ArraySliceSpanRhs(new ArraySlicePartSpan(0, 0, assignmentBitSize), assignment.rhs));
       if (assignmentOptions.forcePointerAssignment) {
         // actual assignment type should be pointer, which is already simple
         simpleAssignments.add(spanAssignment);
@@ -1242,14 +1253,13 @@ class AssignmentHandler {
     final Expression rhsResult;
     final CType rhsType;
 
-    ArraySliceSpanResolved firstRhs = rhsList.get(0);
-
     // TODO: float handling is somewhat wonky
     // put together the rhs expressions from spans
 
     long lhsBitSize = typeHandler.getBitSizeof(lhsResolved.type);
     Formula wholeRhsFormula = null;
     boolean forceNondet = false;
+    boolean suppressReinterpretation = false;
     for (ArraySliceSpanResolved rhs : rhsList) {
 
       // convert RHS expression to original LHS type
@@ -1271,6 +1281,8 @@ class AssignmentHandler {
           && rhs.span.bitSize == lhsBitSize) {
         // handle full assignments without complications
         wholeRhsFormula = convertedRhsFormula;
+        suppressReinterpretation = true;
+        break;
       } else {
         // perform partial assignment
 
@@ -1316,13 +1328,15 @@ class AssignmentHandler {
     if (forceNondet) {
       // force RHS result to be nondeterministic
       rhsResult = Value.nondetValue();
-    } else {
-      // reinterpret to LHS type
-      Formula reinterpretedWholeRhsFormula =
-          conv.makeValueReinterpretation(
-              getIntegerTypeReinterpretation(lhsResolved.type), lhsResolved.type, wholeRhsFormula);
-      if (reinterpretedWholeRhsFormula != null) {
-        wholeRhsFormula = reinterpretedWholeRhsFormula;
+    }else {
+      if (!suppressReinterpretation) {
+        // reinterpret to LHS type
+        Formula reinterpretedWholeRhsFormula =
+            conv.makeValueReinterpretation(
+                getIntegerTypeReinterpretation(lhsResolved.type), lhsResolved.type, wholeRhsFormula);
+        if (reinterpretedWholeRhsFormula != null) {
+          wholeRhsFormula = reinterpretedWholeRhsFormula;
+        }
       }
       rhsResult = Value.ofValue(wholeRhsFormula);
     }
