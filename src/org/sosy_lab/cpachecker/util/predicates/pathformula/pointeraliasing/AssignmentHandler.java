@@ -850,7 +850,8 @@ class AssignmentHandler {
       ArraySliceSpanRhs elementSpanRhs = new ArraySliceSpanRhs(elementSpan, elementRhs);
       // target type is now element type
       ArraySliceSpanAssignment elementAssignment =
-          new ArraySliceSpanAssignment(new ArraySliceSpanLhs(elementLhs, lhsType), elementSpanRhs);
+          new ArraySliceSpanAssignment(
+              new ArraySliceSpanLhs(elementLhs, elementType), elementSpanRhs);
       generateSimpleSliceAssignments(elementAssignment, simpleAssignments);
 
     } else {
