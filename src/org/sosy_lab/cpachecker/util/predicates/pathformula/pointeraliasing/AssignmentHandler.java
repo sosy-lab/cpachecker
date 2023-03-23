@@ -1289,6 +1289,7 @@ class AssignmentHandler {
     // TODO: float handling is somewhat wonky
     // put together the rhs expressions from spans
 
+    long targetBitSize = typeHandler.getBitSizeof(targetType);
     long lhsBitSize = typeHandler.getBitSizeof(lhsResolved.type);
     Formula wholeRhsFormula = null;
     boolean forceNondet = false;
@@ -1301,7 +1302,8 @@ class AssignmentHandler {
 
       if (rhs.span.lhsBitOffset == 0
           && rhs.span.rhsBitOffset == 0
-          && rhs.span.bitSize == lhsBitSize) {
+          && rhs.span.bitSize == lhsBitSize
+          && lhsBitSize == targetBitSize) {
         // handle full assignments without complications
         // reinterpret from targetType to lhsResolved.type
         convertedRhs =
