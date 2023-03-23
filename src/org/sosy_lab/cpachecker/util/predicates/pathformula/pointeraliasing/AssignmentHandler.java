@@ -991,11 +991,12 @@ class AssignmentHandler {
           continue;
         }
 
+        // lhs must be simple, so not an array, therefore, rhs array type must be converted to pointer
+        CType rhsType = CTypes.adjustFunctionOrArrayType(typeHandler.getSimplifiedType(rhsResolved));
+
         Expression rhsExpression = rhsResolved.accept(visitor);
         builder.add(
-            new ArraySliceSpanResolved(
-                rhs.span,
-                new ArraySliceResolved(rhsExpression, typeHandler.getSimplifiedType(rhsResolved))));
+            new ArraySliceSpanResolved(rhs.span, new ArraySliceResolved(rhsExpression, rhsType)));
       }
 
       ArraySliceResolved lhsVisited = new ArraySliceResolved(lhsExpression, lhsFinalType);
