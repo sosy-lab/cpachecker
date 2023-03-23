@@ -1439,12 +1439,16 @@ class AssignmentHandler {
       // force RHS result to be nondeterministic
       rhsResult = Value.nondetValue();
     } else {
-      // reinterpret to LHS type
-      Formula reinterpretedWholeRhsFormula =
-          conv.makeValueReinterpretation(
-              getIntegerTypeReinterpretation(lhsResolved.type), lhsResolved.type, wholeRhsFormula);
-      if (reinterpretedWholeRhsFormula != null) {
-        wholeRhsFormula = reinterpretedWholeRhsFormula;
+      if (!suppressReinterpretation) {
+        // reinterpret to LHS type
+        Formula reinterpretedWholeRhsFormula =
+            conv.makeValueReinterpretation(
+                getIntegerTypeReinterpretation(lhsResolved.type),
+                lhsResolved.type,
+                wholeRhsFormula);
+        if (reinterpretedWholeRhsFormula != null) {
+          wholeRhsFormula = reinterpretedWholeRhsFormula;
+        }
       }
       rhsResult = Value.ofValue(wholeRhsFormula);
     }
