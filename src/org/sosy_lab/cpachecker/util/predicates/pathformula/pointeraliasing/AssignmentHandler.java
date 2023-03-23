@@ -21,6 +21,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
+import com.google.common.collect.TreeRangeSet;
 import com.google.common.primitives.Ints;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1287,6 +1289,9 @@ class AssignmentHandler {
     final CType wholeType;
 
     // TODO: float handling is somewhat wonky
+
+    RangeSet<Long> lhsRangeSet = TreeRangeSet.create();
+
     // put together the rhs expressions from spans
 
     long targetBitSize = typeHandler.getBitSizeof(targetType);
@@ -1364,22 +1369,82 @@ class AssignmentHandler {
       } else {
         wholeRhsFormula = shiftedFormula;
       }
+      // add to lhs range set
+      long lhsOffset = rhs.span.lhsBitOffset;
+      long lhsAfterEnd = rhs.span.lhsBitOffset + rhs.span.bitSize;
+      lhsRangeSet.add(Range.closedOpen(lhsOffset, lhsAfterEnd));
     }
 
     // the whole type is now definitely the type of LHS
     wholeType = lhsResolved.type;
+    if (!forceNondet) {
+      if (!suppressReinterpretation) {
+        RangeSet<Long> retainedRangeSet =
+            lhsRangeSet.complement().subRangeSet(Range.closedOpen((long) 0, lhsBitSize));
+        if (!retainedRangeSet.isEmpty()) {
+          // there are some retained bits
+          Optional<Formula> optionalPreviousLhsFormula =
+              getValueFormula(lhsResolved.type, lhsResolved.expression);
+          if (optionalPreviousLhsFormula.isPresent()) {
+            Formula previousLhsFormula = optionalPreviousLhsFormula.get();
+            Formula reinterpretedPreviousLhsFormula =
+                conv.makeValueReinterpretation(
+                    lhsResolved.type,
+                    getIntegerTypeReinterpretation(lhsResolved.type),
+                    previousLhsFormula);
+            if (reinterpretedPreviousLhsFormula != null) {
+              previousLhsFormula = reinterpretedPreviousLhsFormula;
+            }
+            // bit-or retained bits
+            for (Range<Long> retainedRange : retainedRangeSet.asRanges()) {
+              if (!retainedRange.isEmpty()) {
+                long retainedBitOffset = retainedRange.lowerEndpoint();
+                long retainedBitSize =
+                    retainedRange.upperEndpoint() - retainedRange.lowerEndpoint();
+                Formula extractedFormula =
+                    fmgr.makeExtract(
+                        previousLhsFormula,
+                        (int) (retainedRange.upperEndpoint() - 1),
+                        (int) (retainedRange.lowerEndpoint().longValue()));
+
+                long numExtendBits = lhsBitSize - retainedBitSize;
+
+                Formula extendedFormula =
+                    fmgr.makeExtend(extractedFormula, (int) numExtendBits, false);
+
+                Formula shiftedFormula =
+                    fmgr.makeShiftLeft(
+                        extendedFormula,
+                        fmgr.makeNumber(
+                            FormulaType.getBitvectorTypeWithSize((int) lhsBitSize),
+                            retainedBitOffset));
+                // bit-or with other parts
+                if (wholeRhsFormula != null) {
+                  wholeRhsFormula = fmgr.makeOr(wholeRhsFormula, shiftedFormula);
+                } else {
+                  wholeRhsFormula = shiftedFormula;
+                }
+              }
+            }
+
+          } else {
+            forceNondet = true;
+          }
+        }
+
+      }
+    }
+
     if (forceNondet) {
       // force RHS result to be nondeterministic
       rhsResult = Value.nondetValue();
-    }else {
-      if (!suppressReinterpretation) {
-        // reinterpret to LHS type
-        Formula reinterpretedWholeRhsFormula =
-            conv.makeValueReinterpretation(
-                getIntegerTypeReinterpretation(lhsResolved.type), lhsResolved.type, wholeRhsFormula);
-        if (reinterpretedWholeRhsFormula != null) {
-          wholeRhsFormula = reinterpretedWholeRhsFormula;
-        }
+    } else {
+      // reinterpret to LHS type
+      Formula reinterpretedWholeRhsFormula =
+          conv.makeValueReinterpretation(
+              getIntegerTypeReinterpretation(lhsResolved.type), lhsResolved.type, wholeRhsFormula);
+      if (reinterpretedWholeRhsFormula != null) {
+        wholeRhsFormula = reinterpretedWholeRhsFormula;
       }
       rhsResult = Value.ofValue(wholeRhsFormula);
     }
