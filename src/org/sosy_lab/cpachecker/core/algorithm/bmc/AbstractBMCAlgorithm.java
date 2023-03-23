@@ -142,6 +142,10 @@ abstract class AbstractBMCAlgorithm
         != ReachabilityState.IRRELEVANT_TO_TARGET;
   }
   
+  @Option(secure = true, description = "get an initial precision from a predicate precision file", name = "predicatePrecisionFile")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path initialPredicatePrecisionFile = null;
+  
   @Option(
       secure = true,
       description =
@@ -230,6 +234,8 @@ abstract class AbstractBMCAlgorithm
 
   private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
       new CopyOnWriteArrayList<>();
+  
+  private @Nullable Set<CandidateInvariant> predicatePrecisionCandidates;
 
   protected AbstractBMCAlgorithm(
       Algorithm pAlgorithm,
@@ -356,6 +362,14 @@ abstract class AbstractBMCAlgorithm
     abstractionStrategy = new PredicateAbstractionStrategy(cfa.getVarClassification());
     assignmentToPathAllocator =
         new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, pCFA.getMachineModel());
+    
+    if(initialPredicatePrecisionFile != null) {
+      @SuppressWarnings("resource")
+      PredicateToKInductionInvariantConverter predToKIndInv = new PredicateToKInductionInvariantConverter(config, logger, shutdownNotifier, cfa);
+      predicatePrecisionCandidates = predToKIndInv.convertPredPrecToKInductionInvariant(initialPredicatePrecisionFile);
+    } else {
+      predicatePrecisionCandidates = null;
+    }
   }
 
   static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
@@ -417,7 +431,11 @@ abstract class AbstractBMCAlgorithm
           TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
-
+        
+        //suggest candidates from predicate precision file
+        if(predicatePrecisionCandidates != null) {
+            candidateGenerator.suggestCandidates(predicatePrecisionCandidates);
+        }
         // Perform a bounded model check on each candidate invariant
         Iterator<CandidateInvariant> candidateInvariantIterator = candidateGenerator.iterator();
         while (candidateInvariantIterator.hasNext()) {

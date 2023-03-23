@@ -374,7 +374,6 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
       for (BooleanFormula formula :  allPreds.get(node)) {
        completeFormula = pFMgr.makeAnd(completeFormula, formula);
       }     
-      //completeFormula = pFMgr.makeNot(completeFormula);
       SingleLocationFormulaInvariant invariant = SingleLocationFormulaInvariant.makeLocationInvariant(node, completeFormula, pFMgr);
       candidates.add(invariant);
     }
