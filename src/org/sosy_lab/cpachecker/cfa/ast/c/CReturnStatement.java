@@ -27,14 +27,12 @@ public final class CReturnStatement extends AbstractReturnStatement implements C
     return pV.visit(this);
   }
 
-  @SuppressWarnings("unchecked") // safe because Optional is covariant
   @Override
   public CExpression getReturnValue() {
     return (CExpression) super.getReturnValue();
   }
 
   @Override
-  @SuppressWarnings("unchecked") // safe because Optional is covariant
   public CAssignment asAssignment() {
     return (CAssignment) super.asAssignment();
   }

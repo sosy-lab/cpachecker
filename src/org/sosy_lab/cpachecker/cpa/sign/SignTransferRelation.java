@@ -68,7 +68,7 @@ public class SignTransferRelation
   protected SignState handleReturnStatementEdge(CReturnStatementEdge pCfaEdge)
       throws CPATransferException {
 
-    CExpression expression = pCfaEdge.getExpression(); // 0 is the default in C
+    CExpression expression = pCfaEdge.getExpression();
     String assignedVar = getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName);
     return handleAssignmentToVariable(state, assignedVar, expression, pCfaEdge);
   }

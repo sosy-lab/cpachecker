@@ -32,14 +32,12 @@ public sealed class JReturnStatement extends AbstractReturnStatement implements 
     super(pFileLocation, pExpression, null);
   }
 
-  @SuppressWarnings("unchecked") // safe because Optional is covariant
   @Override
   public JExpression getReturnValue() {
     return (JExpression) super.getReturnValue();
   }
 
   @Override
-  @SuppressWarnings("unchecked") // safe because Optional is covariant
   public JAssignment asAssignment() {
     return (JAssignment) super.asAssignment();
   }

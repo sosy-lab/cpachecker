@@ -8,12 +8,19 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-/** Representation of a "return" statement, must including a return value. */
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+
+/** Representation of a "return" statement, must include a return value. */
 public interface AReturnStatement extends AAstNode {
 
-  /** The return value */
+  /** The return value(i.e., the "exp" in "return exp;"). */
   AExpression getReturnValue();
 
-  /** The variable which the return value is assigned to */
+  /**
+   * This method creates a representation of this statement in
+   * form of an assignment of the return value to a special variable (i.e., something like
+   * "__retval__ = exp;"). This special variable is the same as the one returned by {@link
+   * FunctionEntryNode#getReturnVariable()}.
+   */
   AAssignment asAssignment();
 }
