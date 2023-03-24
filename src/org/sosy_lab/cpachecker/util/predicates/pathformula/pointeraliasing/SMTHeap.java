@@ -8,12 +8,15 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import java.util.List;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 /** Interface abstraction for smt heap accesses. */
 interface SMTHeap {
+
+  record SMTAddressValue<I extends Formula, E extends Formula>(I address, E value) {}
 
   /**
    * Create a formula that represents an assignment to a value via a pointer.
@@ -23,9 +26,9 @@ interface SMTHeap {
    * @param pTargetType The formula type of the value
    * @param oldIndex The old SSA index for targetName
    * @param newIndex The new SSA index for targetName
-   * @param address The address where the value should be written
-   * @param value The value to write
-   * @return A formula representing an assignment of the form {@code targetName@newIndex[address] =
+   * @param assignments The assignments, each one combining the address where the value should be
+   *     written and the value to write
+   * @return A formula representing assignments of the form {@code targetName@newIndex[address] =
    *     value}
    */
   <I extends Formula, E extends Formula> BooleanFormula makePointerAssignment(
@@ -33,8 +36,7 @@ interface SMTHeap {
       final FormulaType<?> pTargetType,
       final int oldIndex,
       final int newIndex,
-      final I address,
-      final E value);
+      final List<SMTAddressValue<I, E>> assignments);
 
   <I extends Formula, E extends Formula> BooleanFormula makeQuantifiedPointerAssignment(
       final String targetName,

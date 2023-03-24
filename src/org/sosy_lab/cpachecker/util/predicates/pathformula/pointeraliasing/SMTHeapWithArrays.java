@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.List;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -37,9 +38,14 @@ class SMTHeapWithArrays implements SMTHeap {
       FormulaType<?> pTargetType,
       int oldIndex,
       int newIndex,
-      I address,
-      E value) {
-    FormulaType<E> targetType = formulaManager.getFormulaType(value);
+      final List<SMTAddressValue<I, E>> assignments) {
+    // as we do not have the type of I, initialize formulas within assignments
+    ArrayFormula<I, E> oldFormula = null;
+    ArrayFormula<I, E> arrayFormula = null;
+    for (SMTAddressValue<I, E> assignment : assignments) {
+      I address = assignment.address();
+      E value = assignment.value();
+      FormulaType<E> targetType = formulaManager.getFormulaType(value);
     checkArgument(
         pTargetType.equals(targetType),
         "Target type %s does not match value type %s when assigning target %s address %s to value %s",
@@ -57,11 +63,17 @@ class SMTHeapWithArrays implements SMTHeap {
         targetName,
         address,
         value);
-    final ArrayFormula<I, E> oldFormula =
-        afmgr.makeArray(targetName, oldIndex, addressType, targetType);
-    final ArrayFormula<I, E> arrayFormula =
-        afmgr.makeArray(targetName, newIndex, addressType, targetType);
-    return formulaManager.makeEqual(arrayFormula, afmgr.store(oldFormula, address, value));
+      if (oldFormula == null) {
+        oldFormula = afmgr.makeArray(targetName, oldIndex, addressType, targetType);
+        arrayFormula = afmgr.makeArray(targetName, newIndex, addressType, targetType);
+      }
+      oldFormula = afmgr.store(oldFormula, address, value);
+    }
+    if (oldFormula == null) {
+      // no assignments, make an identity pointer assignment
+      return makeIdentityPointerAssignment(targetName, pTargetType, oldIndex, newIndex);
+    }
+    return formulaManager.makeEqual(arrayFormula, oldFormula);
   }
 
   @Override

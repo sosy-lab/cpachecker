@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.List;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -33,13 +34,26 @@ class SMTHeapWithUninterpretedFunctionCalls implements SMTHeap {
       FormulaType<?> pTargetType,
       int oldIndex,
       int newIndex,
-      I address,
-      E value) {
-    FormulaType<E> targetType = formulaManager.getFormulaType(value);
-    checkArgument(pTargetType.equals(targetType));
-    final Formula lhs =
-        ffmgr.declareAndCallUninterpretedFunction(targetName, newIndex, targetType, address);
-    return formulaManager.assignment(lhs, value);
+      List<SMTAddressValue<I, E>> assignments) {
+    BooleanFormula result = null;
+    for (SMTAddressValue<I, E> assignment : assignments) {
+      I address = assignment.address();
+      E value = assignment.value();
+      FormulaType<E> targetType = formulaManager.getFormulaType(value);
+      checkArgument(pTargetType.equals(targetType));
+      final Formula lhs =
+          ffmgr.declareAndCallUninterpretedFunction(targetName, newIndex, targetType, address);
+      final BooleanFormula assignmentFormula = formulaManager.assignment(lhs, value);
+      if (result != null) {
+        result = formulaManager.getBooleanFormulaManager().or(result, assignmentFormula);
+      } else {
+        result = assignmentFormula;
+      }
+    }
+    if (result != null) {
+      return result;
+    }
+    return makeIdentityPointerAssignment(targetName, pTargetType, oldIndex, newIndex);
   }
 
   @Override
@@ -76,4 +90,5 @@ class SMTHeapWithUninterpretedFunctionCalls implements SMTHeap {
     throw new UnsupportedOperationException(
         "Uninterpreted functions heap does not support identity pointer assignment yet");
   }
+
 }

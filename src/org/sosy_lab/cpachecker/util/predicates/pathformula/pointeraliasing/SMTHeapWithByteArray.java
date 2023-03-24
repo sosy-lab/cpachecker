@@ -12,6 +12,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.List;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
@@ -61,17 +63,31 @@ class SMTHeapWithByteArray implements SMTHeap {
       FormulaType<?> pTargetType,
       int oldIndex,
       int newIndex,
-      I address,
-      E value) {
+      final List<SMTAddressValue<I, E>> assignments) {
     if (pTargetType.isFloatingPointType()) {
-      // convert floating point value to be set to bitvector and call ourselves recursively
+      // convert floating point values to be set to bitvector and call ourselves recursively
       FloatingPointType floatTargetType = (FloatingPointType) pTargetType;
       BitvectorType bvType = FormulaType.getBitvectorTypeWithSize(floatTargetType.getTotalSize());
       FloatingPointFormulaManagerView floatMgr = formulaManager.getFloatingPointFormulaManager();
-      BitvectorFormula bvValue = floatMgr.toIeeeBitvector((FloatingPointFormula) value);
-      return makePointerAssignment(targetName, bvType, oldIndex, newIndex, address, bvValue);
+      List<SMTAddressValue<I, BitvectorFormula>> bvAssignments = new ArrayList<>();
+      for (SMTAddressValue<I, E> assignment : assignments) {
+        BitvectorFormula bvValue =
+            floatMgr.toIeeeBitvector((FloatingPointFormula) assignment.value());
+        bvAssignments.add(new SMTAddressValue<>(assignment.address(), bvValue));
+      }
+      return makePointerAssignment(targetName, bvType, oldIndex, newIndex, bvAssignments);
 
     } else if (pTargetType.isBitvectorType()) {
+      // support only one assignment for simplicity, multiple assignments are only used
+      // when this heap calls underlying heaps
+      if (assignments.size() != 1) {
+        throw new UnsupportedOperationException(
+            String.format(
+                "Expected exactly one pointer assignment, but %s supplied!", assignments.size()));
+      }
+      I address = assignments.get(0).address();
+      E value = assignments.get(0).value();
+
       // handle in a tailored function
       BitvectorType targetType = (BitvectorType) formulaManager.getFormulaType(value);
       checkArgument(pTargetType.equals(targetType));
@@ -276,26 +292,24 @@ class SMTHeapWithByteArray implements SMTHeap {
     }
 
     // store the value in delegate byte-by-byte
-    BooleanFormula result = formulaManager.getBooleanFormulaManager().makeTrue();
+    // make just one delegate assignment so that we do not need to use multiple SSA indices
+    ImmutableList.Builder<SMTAddressValue<I, BitvectorFormula>> builder = ImmutableList.builder();
     int byteOffset = 0;
-    for (BitvectorFormula formula : bytes) {
+    for (BitvectorFormula byteValue : bytes) {
       I addressWithOffset =
           formulaManager.makePlus(address, formulaManager.makeNumber(addressType, byteOffset++));
-
-      BooleanFormula assignmentFormula;
-      if (condition != null) {
-
-        assignmentFormula = delegate.makeQuantifiedPointerAssignment(
-            targetName, BYTE_TYPE, oldIndex, newIndex, addressWithOffset, condition, formula);
-      } else {
-        assignmentFormula = delegate.makePointerAssignment(
-            targetName, BYTE_TYPE, oldIndex, newIndex, addressWithOffset, formula);
-      }
-
-      result = formulaManager.getBooleanFormulaManager().and(result, assignmentFormula);
+      builder.add(new SMTAddressValue<>(addressWithOffset, byteValue));
     }
 
-    return result;
+    if (condition != null) {
+      // TODO: support quantified assignments with byte heap
+      throw new UnsupportedOperationException(
+          String.format("Byte heap does not support quantified assignments!"));
+    }
+    BooleanFormula assignmentFormula =
+        delegate.makePointerAssignment(targetName, BYTE_TYPE, oldIndex, newIndex, builder.build());
+
+    return assignmentFormula;
   }
 
   private <I extends BitvectorFormula> ImmutableList<BitvectorFormula> splitBitvectorToBytes(

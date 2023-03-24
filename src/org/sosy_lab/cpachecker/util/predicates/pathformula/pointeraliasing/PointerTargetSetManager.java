@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SMTHeap.SMTAddressValue;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -191,8 +192,9 @@ class PointerTargetSetManager {
    * @param oldIndex The old SSA index for targetName
    * @param newIndex The new SSA index for targetName
    * @param address The address where the value should be written
-   * @param value The value to write
-   * @return A formula representing an assignment of the form {@code targetName@newIndex[address] =
+   * @param assignments The assignments, each one combining the address where the value should be
+   *     written and the value to write
+   * @return A formula representing assignments of the form {@code targetName@newIndex[address] =
    *     value}
    */
   <I extends Formula, E extends Formula> BooleanFormula makePointerAssignment(
@@ -200,9 +202,8 @@ class PointerTargetSetManager {
       final FormulaType<?> pTargetType,
       final int oldIndex,
       final int newIndex,
-      final I address,
-      final E value) {
-    return heap.makePointerAssignment(targetName, pTargetType, oldIndex, newIndex, address, value);
+      final List<SMTAddressValue<I, E>> assignments) {
+    return heap.makePointerAssignment(targetName, pTargetType, oldIndex, newIndex, assignments);
   }
 
   /**

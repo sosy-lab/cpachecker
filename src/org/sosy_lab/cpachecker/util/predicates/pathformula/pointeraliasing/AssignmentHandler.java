@@ -2305,7 +2305,11 @@ class AssignmentHandler {
         } else {
           result =
               conv.ptsMgr.makePointerAssignment(
-                  targetName, targetType, oldIndex, newIndex, address, rhs);
+                  targetName,
+                  targetType,
+                  oldIndex,
+                  newIndex,
+                  ImmutableList.of(new SMTHeap.SMTAddressValue<>(address, rhs)));
         }
       } else {
         result = bfmgr.makeTrue();
