@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -166,6 +167,12 @@ public class SampleUnrollingAlgorithm {
         if (collectIntermediateSamples || successorLocation.equals(initialSample.getLocation())) {
           Map<MemoryLocation, ValueAndType> successorValues =
               SampleUtils.getValuesAndTypesFromAbstractState(successor, relevantVariables);
+          if (successorValues.size() != relevantVariables.size()) {
+            logger.log(Level.WARNING, "Sample is missing values of some relevant variables.");
+            // TODO: When encountering nondeterminism inside loop, pick any value and insert in
+            //       ValueAnalysisState
+            throw new UnsupportedCodeException("Nondeterminism in loop", null);
+          }
           successorSample = new Sample(successorValues, successorLocation, sample, sampleClass);
           sampleChanged =
               !successorValues.equals(sample.getVariableValues())

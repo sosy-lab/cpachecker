@@ -132,7 +132,6 @@ public class SampleUtils {
       }
     }
     Map<MemoryLocation, ValueAndType> result = builder.buildOrThrow();
-    assert result.size() == relevantVariables.size();
     return result;
   }
 
