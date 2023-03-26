@@ -17,10 +17,9 @@ public interface AReturnStatement extends AAstNode {
   AExpression getReturnValue();
 
   /**
-   * This method creates a representation of this statement in
-   * form of an assignment of the return value to a special variable (i.e., something like
-   * "__retval__ = exp;"). This special variable is the same as the one returned by {@link
-   * FunctionEntryNode#getReturnVariable()}.
+   * This method creates a representation of this statement in form of an assignment of the return
+   * value to a special variable (i.e., something like "__retval__ = exp;"). This special variable
+   * is the same as the one returned by {@link FunctionEntryNode#getReturnVariable()}.
    */
   AAssignment asAssignment();
 }
