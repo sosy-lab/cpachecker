@@ -1,19 +1,17 @@
 package org.sosy_lab.cpachecker.core.algorithm.microbenchmarking;
 
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -22,19 +20,10 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Tickers;
 import org.sosy_lab.common.time.Tickers.TickerWithUnit;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 @Options(prefix = "microBenchmark")
 public class MicroBenchmarking implements Algorithm {
@@ -56,8 +45,6 @@ public class MicroBenchmarking implements Algorithm {
 
   private final Algorithm child;
   private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
-  private final Specification specification;
 
   @Option(
     secure = true,
@@ -95,85 +82,55 @@ public class MicroBenchmarking implements Algorithm {
 
     this.child = child;
     this.logger = pLogger;
-    this.shutdownNotifier = pShutdownNotifier;
-    this.specification = pSpecification;
   }
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
-    try {
       logger.logf(Level.INFO, "Starting micro benchmarking");
       TickerWithUnit ticker = Tickers.getCurrentThreadCputime();
 
       Map<String, List<ConfigProgramExecutions>> benchmarkTimes = new HashMap<>();
 
-      Iterator<Path> propertyFilesIterator = propertyFiles.iterator();
-      int index = 0;
-      while (propertyFilesIterator.hasNext()) { // Allow for running benchmark applications on
-                                                // multiple algorithms
-        Path singleConfigFilePath = propertyFilesIterator.next();
-        List<ConfigProgramExecutions> runTimes = new ArrayList<>();
-        for (Path singleProgramFilePath : programFiles) { // Run a single algorithm against one or
-                                                          // more program files
+      int[][] firstMatrix = generateRandomMatrix();
+      int[][] secondMatrix = generateRandomMatrix();
+      int m = firstMatrix.length;
+      int n = secondMatrix[0].length;
+      int[][] C = new int[m][n];
 
-          ConfigurationBuilder configurationBuilder = Configuration.builder();
-          configurationBuilder.loadFromFile(singleConfigFilePath);
-          Configuration configuration = configurationBuilder.build();
-          CFACreator cfaCreator = new CFACreator(configuration, logger, shutdownNotifier);
+      List<BenchmarkExecutionRun> runTimes = new ArrayList<>();
+      for (int exec = 0; exec < numExecutions; exec++) {
 
-          CFA cfa =
-              cfaCreator.parseFileAndCreateCFA(ImmutableList.of(singleProgramFilePath.toString()));
+        long startTime = ticker.read();
 
-          ReachedSetFactory reachedSetFactory = new ReachedSetFactory(configuration, logger);
-          CPABuilder cpaBuilder =
-              new CPABuilder(configuration, logger, shutdownNotifier, reachedSetFactory);
-          final ConfigurableProgramAnalysis cpa =
-              cpaBuilder.buildCPAs(cfa, specification, AggregatedReachedSets.empty());
-
-          CoreComponentsFactory factory =
-              new CoreComponentsFactory(
-                  configuration, logger, shutdownNotifier, AggregatedReachedSets.empty());
-          Algorithm algorithm = factory.createAlgorithm(cpa, cfa, specification);
-          ReachedSet reached =
-              reachedSetFactory.createAndInitialize(
-                  cpa, cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
-
-          List<BenchmarkExecutionRun> list =
-              runProgramAnalysis(ticker, algorithm, reached, reachedSetFactory, cpa, cfa);
-          // This list contains the time each run took to complete
-
-          ConfigProgramExecutions obj = new ConfigProgramExecutions();
-          obj.configFileName = singleConfigFilePath.toString();
-          obj.programFileName = singleProgramFilePath.toString();
-          obj.runTimes = list;
-          double averageRunTime = calculateAverage(obj);
-          obj.averageRunTime = averageRunTime;
-          double variance = calculateVariance(obj, averageRunTime);
-          obj.variance = variance;
-          double standardDeviation = Math.sqrt(variance);
-          obj.standardDeviation = standardDeviation;
-          runTimes.add(obj);
-
-          String programFileName =
-              singleProgramFilePath.toString();
-          logger.logf(
-              Level.FINE,
-              "Finished running micro benchmark analysis for program file %s",
-              programFileName);
-
+        for (int i = 0; i < m; i++) {
+          for (int j = 0; j < n; j++) {
+              for (int k = 0; k < secondMatrix.length; k++) {
+                  C[i][j] += firstMatrix[i][k] * secondMatrix[k][j];
+              }
+          }
         }
 
-        String configFileName =
-            singleConfigFilePath.toString();
-        logger.logf(
-            Level.FINE,
-            "Finished running micro benchmark analysis for config file %s",
-            configFileName);
+        long endTime = ticker.read();
+        long timeDiff = endTime - startTime;
 
-        benchmarkTimes.put(singleConfigFilePath.toString() + "-" + index, runTimes);
-        index++;
+        BenchmarkExecutionRun run = new BenchmarkExecutionRun();
+        run.duration = timeDiff;
+        runTimes.add(run);
+
       }
+
+      ConfigProgramExecutions obj = new ConfigProgramExecutions();
+      obj.configFileName = "";
+      obj.programFileName = "matrix-multiplication";
+      obj.runTimes = runTimes;
+      double averageRunTime = calculateAverage(obj);
+      obj.averageRunTime = averageRunTime;
+      double variance = calculateVariance(obj, averageRunTime);
+      obj.variance = variance;
+      double standardDeviation = Math.sqrt(variance);
+      obj.standardDeviation = standardDeviation;
+      benchmarkTimes.put("matrix-multiplicatioN", List.of(obj));
 
       if (this.outputFile != null) {
         try (Writer writer = IO.openOutputFile(this.outputFile, Charset.defaultCharset())) {
@@ -212,49 +169,22 @@ public class MicroBenchmarking implements Algorithm {
           logger.logUserException(Level.WARNING, ex, "Could not write CFA to dot file");
         }
       }
-    } catch (InvalidConfigurationException | IOException | ParserException e) {
-      logger.logUserException(Level.SEVERE, e, "Failed to create benchmark algorithms!");
-    }
 
 
     return child.run(pReachedSet);
   }
 
-  private List<BenchmarkExecutionRun> runProgramAnalysis(
-      TickerWithUnit ticker,
-      Algorithm algorithm,
-      ReachedSet reached,
-      ReachedSetFactory reachedSetFactory,
-      ConfigurableProgramAnalysis cpa,
-      CFA cfa)
-      throws InterruptedException, CPAException {
+  private int[][] generateRandomMatrix() {
+    int[][] matrix = new int[20][20];
+    Random random = new Random();
 
-    List<BenchmarkExecutionRun> list = new ArrayList<>();
-    for (int i = 0; i < numExecutions; i++) {
-
-      long startTime = ticker.read();
-
-      algorithm.run(reached);
-
-      long endTime = ticker.read();
-      long timeDiff = endTime - startTime;
-
-      if (i < (numExecutions - 1)) {
-        reached =
-            reachedSetFactory.createAndInitialize(
-                cpa, cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+    for (int i = 0; i < 20; i++) {
+      for (int j = 0; j < 20; j++) {
+        matrix[i][j] = random.nextInt();
       }
-
-
-      // Ignore the first two runs because of initialisation outliers
-      if (i >= 2) {
-        BenchmarkExecutionRun run = new BenchmarkExecutionRun();
-        run.duration = timeDiff;
-        list.add(run);
-      }
-      logger.logf(Level.FINEST, "Finished run #%s", i);
     }
-    return list;
+
+    return matrix;
   }
 
   private double calculateAverage(ConfigProgramExecutions cpe) {
