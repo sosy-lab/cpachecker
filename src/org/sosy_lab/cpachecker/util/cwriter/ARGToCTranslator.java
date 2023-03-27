@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -78,7 +77,7 @@ import org.sosy_lab.cpachecker.util.cwriter.Statement.SimpleStatement;
 
 public class ARGToCTranslator {
   private static final String ASSERTFAIL = "__assert_fail";
-  private static final String DEFAULTRETURN = "default return";
+  private static final String RETURN = "return";
   private static final String TMPVARPREFIX = "__tmp_";
 
   private static final AbstractState BOTTOM = new AbstractState() {};
@@ -613,11 +612,6 @@ public class ARGToCTranslator {
         edgeStatementCodes.append("\n");
       }
       currentBlock.addStatement(new SimpleStatement(edge, edgeStatementCodes.toString()));
-    } else if (mustHandleDefaultReturn(edge)) {
-      processDefaultReturn(
-          (CFunctionDeclaration)
-              ((FunctionExitNode) edge.getSuccessor()).getEntryNode().getFunctionDefinition(),
-          childElement.getStateId());
     } else {
       String statement = processSimpleEdge(edge);
       if (!statement.isEmpty()) {
@@ -654,11 +648,6 @@ public class ARGToCTranslator {
     }
   }
 
-  private boolean mustHandleDefaultReturn(final CFAEdge pEdge) {
-    return pEdge.getSuccessor() instanceof FunctionExitNode
-        && pEdge.getDescription().equals(DEFAULTRETURN);
-  }
-
   private ARGState getCovering(final ARGState pCovered) {
     Set<ARGState> seen = new HashSet<>();
     ARGState current = pCovered;
@@ -693,18 +682,6 @@ public class ARGToCTranslator {
     }
   }
 
-  private void processDefaultReturn(final CFunctionDeclaration pFunDecl, int pElementId) {
-    CType returnType = pFunDecl.getType().getReturnType();
-    if (!(returnType instanceof CVoidType)) {
-      String varName = "__return_" + pElementId;
-      if (returnType instanceof CArrayType) {
-        globalDefinitionsList.add(((CArrayType) returnType).toQualifiedASTString(varName) + ";");
-      } else {
-        globalDefinitionsList.add(returnType.toASTString(varName) + ";");
-      }
-    }
-  }
-
   private String processSimpleEdge(CFAEdge pCFAEdge) throws CPAException {
     if (pCFAEdge == null) {
       return "";
@@ -712,7 +689,9 @@ public class ARGToCTranslator {
 
     switch (pCFAEdge.getEdgeType()) {
       case BlankEdge:
-        // nothing to do
+        if (pCFAEdge.getDescription().equals(RETURN)) {
+          return "return;";
+        }
         break;
 
       case AssumeEdge:

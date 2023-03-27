@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.util.cwriter.Statement.SimpleStatement;
 
 public class CFAToCTranslator {
 
+  private static final String RETURN = "return";
   // Use original, unqualified names for variables
   private static final boolean NAMES_QUALIFIED = false;
 
@@ -448,6 +449,10 @@ public class CFAToCTranslator {
 
     switch (pCFAEdge.getEdgeType()) {
       case BlankEdge:
+        if (pCFAEdge.getDescription().equals(RETURN)) {
+          return "return;";
+        }
+        break;
       case AssumeEdge:
         // nothing to do
         break;
