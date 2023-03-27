@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -72,6 +73,7 @@ class CParserWithPreprocessor implements CParser {
   }
 
   @Override
+  @Nullable
   public CAstNode parseSingleStatement(String pCode, Scope pScope)
       throws CParserException, InterruptedException {
     return realParser.parseSingleStatement(pCode, pScope);

@@ -33,6 +33,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -84,6 +85,7 @@ public class CParserUtils {
 
   private static final String CPACHECKER_TMP_PREFIX = "__CPAchecker_TMP";
 
+  @Nullable
   public static CStatement parseSingleStatement(String pSource, CParser parser, Scope scope)
       throws InvalidAutomatonException, InterruptedException {
     return parse(addFunctionDeclaration(pSource), parser, scope);
@@ -153,10 +155,14 @@ public class CParserUtils {
    * @param scope the scope to use
    * @return The AST.
    */
+  @Nullable
   private static CStatement parse(String code, CParser parser, Scope scope)
       throws InvalidAutomatonException, InterruptedException {
     try {
       CAstNode statement = parser.parseSingleStatement(code, scope);
+      if (statement == null) {
+        return null;
+      }
       if (!(statement instanceof CStatement)) {
         throw new InvalidAutomatonException("Not a valid statement: " + statement.toASTString());
       }

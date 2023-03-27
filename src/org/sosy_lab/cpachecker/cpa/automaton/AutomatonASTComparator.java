@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -65,8 +66,12 @@ class AutomatonASTComparator {
 
   static ASTMatcher generatePatternAST(String pPattern, CParser parser, Scope scope)
       throws InvalidAutomatonException, NoException, InterruptedException {
-    return CParserUtils.parseSingleStatement(replaceJokersInPattern(pPattern), parser, scope)
-        .accept(ASTMatcherGenerator.INSTANCE);
+    CStatement patternAST =
+        CParserUtils.parseSingleStatement(replaceJokersInPattern(pPattern), parser, scope);
+    if (patternAST == null) {
+      throw new InvalidAutomatonException("Pattern does not generate AST: " + pPattern);
+    }
+    return patternAST.accept(ASTMatcherGenerator.INSTANCE);
   }
 
   @VisibleForTesting

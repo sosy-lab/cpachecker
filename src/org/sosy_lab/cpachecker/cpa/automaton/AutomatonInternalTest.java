@@ -402,6 +402,9 @@ public class AutomatonInternalTest {
       } catch (InvalidAutomatonException e) {
         throw new RuntimeException("Cannot parse source code for test", e);
       }
+      if (sourceAST == null) {
+        throw new InvalidAutomatonException("Source code does not generate AST: " + sourceAST);
+      }
       matcher = AutomatonASTComparator.generatePatternAST(pattern, parser, CProgramScope.empty());
 
       return matcher.matches(sourceAST, args);

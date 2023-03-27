@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.parser.IToken;
 import org.eclipse.cdt.core.parser.OffsetLimitReachedException;
 import org.eclipse.cdt.internal.core.parser.scanner.ILexerLog;
@@ -233,6 +234,7 @@ public class CParserWithLocationMapper implements CParser {
   }
 
   @Override
+  @Nullable
   public CAstNode parseSingleStatement(String pCode, Scope pScope)
       throws CParserException, InterruptedException {
     return realParser.parseSingleStatement(pCode, pScope);

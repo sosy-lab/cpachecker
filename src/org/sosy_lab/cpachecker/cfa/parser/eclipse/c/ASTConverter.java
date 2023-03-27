@@ -1716,6 +1716,7 @@ class ASTConverter {
     return createInitializedTemporaryVariable(fileLoc, type, initializer);
   }
 
+  @Nullable
   public CAstNode convert(final IASTStatement s) {
 
     if (s instanceof IASTExpressionStatement) {
@@ -1759,6 +1760,7 @@ class ASTConverter {
     }
   }
 
+  @Nullable
   public CReturnStatement convert(final IASTReturnStatement s) {
     final FileLocation loc = getLocation(s);
     final Optional<CVariableDeclaration> returnVariableDeclaration =
