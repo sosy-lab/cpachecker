@@ -73,8 +73,14 @@ public class SampleUtils {
         // TODO: Can this really not be an unqualified variable?
         continue;
       }
-      String function = Splitter.on("::").splitToList(qualifiedVar).get(0);
+      List<String> functionAndName = Splitter.on("::").splitToList(qualifiedVar);
+      assert functionAndName.size() == 2;
+      String function = functionAndName.get(0);
       if (!function.equals(pLocation.getFunctionName())) {
+        continue;
+      }
+      String variableName = functionAndName.get(1);
+      if (variableName.contains("__CPAchecker_TMP")) {
         continue;
       }
       Integer index = Integer.valueOf(parts.get(1));
