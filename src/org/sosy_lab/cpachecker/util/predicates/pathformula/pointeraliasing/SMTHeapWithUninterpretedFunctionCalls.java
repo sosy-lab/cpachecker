@@ -85,10 +85,9 @@ class SMTHeapWithUninterpretedFunctionCalls implements SMTHeap {
 
   @Override
   public <E extends Formula> BooleanFormula makeIdentityPointerAssignment(
-      String pTargetName, FormulaType<E> pTargetType, int pOldIndex, int pNewIndex) {
-    // TODO: implement identity pointer assignnent
-    throw new UnsupportedOperationException(
-        "Uninterpreted functions heap does not support identity pointer assignment yet");
+      String targetName, FormulaType<E> targetType, int oldIndex, int nwIndex) {
+    // the retainment assignments will be performed afterwards by AssignmentHandler
+    return formulaManager.getBooleanFormulaManager().makeTrue();
   }
 
 }

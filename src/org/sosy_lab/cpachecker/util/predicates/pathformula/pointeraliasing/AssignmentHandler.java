@@ -484,17 +484,17 @@ class AssignmentHandler {
   }
 
   record AssignmentOptions(
-      boolean useOldSSAIndices,
+      boolean useOldSSAIndicesIfAliased,
       AssignmentConversionType conversionType,
       boolean forceQuantifiers,
       boolean forcePointerAssignment) {
     AssignmentOptions(
-        boolean useOldSSAIndices,
+        boolean useOldSSAIndicesIfAliased,
         AssignmentConversionType conversionType,
         boolean forceQuantifiers,
         boolean forcePointerAssignment) {
       checkNotNull(conversionType);
-      this.useOldSSAIndices = useOldSSAIndices;
+      this.useOldSSAIndicesIfAliased = useOldSSAIndicesIfAliased;
       this.conversionType = conversionType;
       this.forceQuantifiers = forceQuantifiers;
       this.forcePointerAssignment = forcePointerAssignment;
@@ -934,8 +934,7 @@ class AssignmentHandler {
 
     if (quantifierVariables.isEmpty()) {
       // already unrolled, resolve the indices in array slice expressions
-      // TODO: add fields for UF
-      final CExpressionVisitorWithPointerAliasing visitor = newExpressionVisitor();
+      final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
 
       ArraySliceExpression lhsSliceExpression = lhs.actual;
       while (!lhsSliceExpression.isResolved()) {
@@ -950,7 +949,7 @@ class AssignmentHandler {
         lhsSliceExpression = lhsSliceExpression.resolveFirstIndex(sizeType, unrolledIndex);
       }
       CExpression lhsBase = lhsSliceExpression.getResolvedExpression();
-      Expression lhsExpression = lhsBase.accept(visitor);
+      Expression lhsExpression = lhsBase.accept(lhsVisitor);
       CType lhsFinalType = typeHandler.getSimplifiedType(lhsBase);
 
       if (assignmentOptions.forcePointerAssignment) {
@@ -961,6 +960,7 @@ class AssignmentHandler {
 
       ImmutableList.Builder<ArraySliceSpanResolved> builder = ImmutableList.builder();
 
+      final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
       for (ArraySliceSpanRhs rhs : rhsCollection) {
 
         final CRightHandSide rhsResolved;
@@ -995,20 +995,49 @@ class AssignmentHandler {
         // lhs must be simple, so not an array, therefore, rhs array type must be converted to pointer
         CType rhsType = CTypes.adjustFunctionOrArrayType(typeHandler.getSimplifiedType(rhsResolved));
 
-        Expression rhsExpression = rhsResolved.accept(visitor);
+        Expression rhsExpression = rhsResolved.accept(rhsVisitor);
         builder.add(
             new ArraySliceSpanResolved(rhs.span, new ArraySliceResolved(rhsExpression, rhsType)));
+
       }
 
-      ArraySliceResolved lhsVisited = new ArraySliceResolved(lhsExpression, lhsFinalType);
+      // add initialized and used fields of both lhs and rhs to pointer-target set as essential
+      pts.addEssentialFields(lhsVisitor.getInitializedFields());
+      pts.addEssentialFields(lhsVisitor.getUsedFields());
+      pts.addEssentialFields(rhsVisitor.getInitializedFields());
+      pts.addEssentialFields(rhsVisitor.getUsedFields());
 
-      return makeSliceAssignment(
-          lhsVisited,
-          lhs.targetType,
-          builder.build(),
-          assignmentOptions,
-          nullToTrue(condition),
-          false);
+      // compute pointer-target set pattern if necessary for UFs finishing
+      // UFs must be finished only if all three of the following conditions are met:
+      // 1. UF heap is used
+      // 2. lhs is in aliased location (unaliased location is assigned as a whole)
+      // 3. using old SSA indices is not selected
+      final PointerTargetPattern pattern =
+          !options.useArraysForHeap()
+                  && lhsExpression.isAliasedLocation()
+                  && !assignmentOptions.useOldSSAIndicesIfAliased()
+              ? PointerTargetPattern.forLeftHandSide(
+                  (CLeftHandSide) lhsBase, typeHandler, edge, pts)
+              : null;
+
+      // make the actual assignment
+      ArraySliceResolved lhsVisited = new ArraySliceResolved(lhsExpression, lhsFinalType);
+      BooleanFormula result =
+          makeSliceAssignment(
+              lhsVisited,
+              lhs.targetType,
+              builder.build(),
+              assignmentOptions,
+              nullToTrue(condition),
+              false,
+              pattern);
+
+      // add addressed fields of rhs to pointer-target set
+      for (final CompositeField field : rhsVisitor.getAddressedFields()) {
+        pts.addField(field);
+      }
+
+      return result;
     }
 
     // for better speed, work with the last variable in quantifierVariables
@@ -1119,7 +1148,7 @@ class AssignmentHandler {
   private BooleanFormula handleSimpleSliceAssignmentsWithQuantifiers(
       final Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap,
       final AssignmentOptions assignmentOptions)
-      throws UnrecognizedCodeException {
+      throws UnrecognizedCodeException, InterruptedException {
 
     // get all index variables
     List<ArraySliceIndexVariable> indexVariables = resolveAllIndexVariables(assignmentMultimap);
@@ -1206,11 +1235,16 @@ class AssignmentHandler {
 
       // TODO: add updatedRegions handling for UF
 
-      // if there are no quantifiers, do not force the heap to use the quantified version of
-      // assignment
-      boolean isReallyQuantified = !quantifiedVariableFormulaMap.isEmpty();
+      // if there are no quantifiers, do not force array heap to use the quantified assignment
+      // force UF heap to use the quantified assignment version, as it would not retain other
+      // assignments otherwise
+      // we do not want to use the technique of finishing assignments if we can use quantifiers
+      // as quantified retainment is the most precise
+      boolean isReallyQuantified =
+          !options.useArraysForHeap() || !quantifiedVariableFormulaMap.isEmpty();
 
       // after cast/reinterpretation, lhs and rhs have the lhs type
+      // do not provide a pointer-target set pattern as we do not want to finish assignments
       BooleanFormula assignmentResult =
           makeSliceAssignment(
               lhsResolved,
@@ -1218,7 +1252,8 @@ class AssignmentHandler {
               builder.build(),
               assignmentOptions,
               conditionFormula,
-              isReallyQuantified);
+              isReallyQuantified,
+              null);
       assignmentSystem = nullableAnd(assignmentSystem, assignmentResult);
     }
 
@@ -1269,8 +1304,9 @@ class AssignmentHandler {
       ImmutableList<ArraySliceSpanResolved> rhsList,
       AssignmentOptions assignmentOptions,
       BooleanFormula conditionFormula,
-      boolean useQuantifiers)
-      throws UnrecognizedCodeException {
+      boolean useQuantifiers,
+      PointerTargetPattern pattern)
+      throws UnrecognizedCodeException, InterruptedException {
 
     if (lhsResolved.expression.isNondetValue()) {
       // only because of CExpressionVisitorWithPointerAliasing.visit(CFieldReference)
@@ -1457,15 +1493,37 @@ class AssignmentHandler {
 
     // TODO: currently cannot be simple due to function calls
 
-    return makeDestructiveAssignment(
-        lhsResolved.type,
-        wholeType,
-        (Location) lhsResolved.expression,
-        rhsResult,
-        assignmentOptions.useOldSSAIndices && lhsResolved.expression.isAliasedLocation(),
-        null,
-        conditionFormula,
-        useQuantifiers);
+    // perform assignment and, if using UF encoding, finish the assignments afterwards
+
+    final Location lhsLocation = lhsResolved.expression.asLocation();
+    final boolean useOldSSAIndices =
+        assignmentOptions.useOldSSAIndicesIfAliased && lhsLocation.isAliased();
+
+    // for UF heap, we need to get the updated regions from assignment
+    Set<MemoryRegion> updatedRegions =
+        useOldSSAIndices || options.useArraysForHeap() ? null : new HashSet<>();
+
+    // perform the actual destructive assignment
+    BooleanFormula result =
+        makeDestructiveAssignment(
+            lhsResolved.type,
+            wholeType,
+            lhsLocation,
+            rhsResult,
+            assignmentOptions.useOldSSAIndicesIfAliased
+                && lhsResolved.expression.isAliasedLocation(),
+            updatedRegions,
+            conditionFormula,
+            useQuantifiers);
+
+    if (pattern != null) {
+      // we are using UF heap, we may need to finish the assignments
+      // otherwise, the heap with new SSA index would only contain
+      // the new assignment and not retain any other assignments
+      finishAssignmentsForUF(lhsResolved.type, lhsLocation.asAliased(), pattern, updatedRegions);
+    }
+
+    return result;
   }
 
   private Expression convertRhsExpression(
