@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
@@ -214,7 +213,6 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  @Nullable
   public CAstNode parseSingleStatement(String pCode, Scope scope)
       throws CParserException, InterruptedException {
 
@@ -226,7 +224,11 @@ class EclipseCParser implements CParser {
     }
 
     try {
-      return converter.convert(statements[0]);
+      CAstNode node = converter.convert(statements[0]);
+      if (node == null) {
+        throw new CParserException("No statement in function body: " + pCode);
+      }
+      return node;
     } catch (CFAGenerationRuntimeException e) {
       throw new CParserException(e);
     }
@@ -252,6 +254,9 @@ class EclipseCParser implements CParser {
           throw new CParserException(e);
         }
       }
+    }
+    if (nodeList.size() < 1) {
+      throw new CParserException("No statement found in function body: " + pCode);
     }
 
     return nodeList;

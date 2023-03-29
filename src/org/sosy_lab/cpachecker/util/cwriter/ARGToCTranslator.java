@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -648,6 +649,11 @@ public class ARGToCTranslator {
     }
   }
 
+  private boolean shouldHandleBlankReturn(final CFAEdge pEdge) {
+    return pEdge.getSuccessor() instanceof FunctionExitNode
+        && pEdge.getDescription().equals(RETURN);
+  }
+
   private ARGState getCovering(final ARGState pCovered) {
     Set<ARGState> seen = new HashSet<>();
     ARGState current = pCovered;
@@ -689,7 +695,7 @@ public class ARGToCTranslator {
 
     switch (pCFAEdge.getEdgeType()) {
       case BlankEdge:
-        if (pCFAEdge.getDescription().equals(RETURN)) {
+        if (shouldHandleBlankReturn(pCFAEdge)) {
           return "return;";
         }
         break;
