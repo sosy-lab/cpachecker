@@ -722,8 +722,18 @@ bmc.invariantGeneratorHeadStartStrategy = NONE
 # Export auxiliary invariants used for induction.
 bmc.invariantsExport = no default value
 
+# Overall timelimit for computing initial k-induction invariant from given
+# predicate precision(use seconds or specify a unit; 0 for infinite)
+bmc.kinduction.adaptionLimit = 0ns
+
 # get an initial precision from a predicate precision file
-bmc.predicatePrecisionFile = no default value
+bmc.kinduction.predicatePrecisionFile = no default value
+
+# which strategy to use to convert predicate precision to k-induction
+# invariant
+bmc.kinduction.strategy = ALL
+  enum:     [ALL, GLOBAL, FUNCTION, LOCAL, GLOBAL_AND_FUNCTION, GLOBAL_AND_LOCAL,
+             FUNCTION_AND_LOCAL]
 
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false
@@ -3776,28 +3786,6 @@ java.typeHierarchyFile = "typeHierarchy.dot"
 
 # Specifies the java version of source code accepted
 java.version = JavaCore.VERSION_1_7
-
-# Overall timelimit for computing initial k-induction invariant from given
-# predicate precision(use seconds or specify a unit; 0 for infinite)
-kinduction.reuse.precision.predicate.adaptionLimit = 0ns
-
-# also consider other binary operators then ==, !== when considering control
-# dependencies while adapting predicate precision
-kinduction.reuse.precision.predicate.includeControlNonEquiv = false
-
-# comma-separated list of files with property specifications that should be
-# considered when determining the relevant edges for predicate precision
-# adaption
-kinduction.reuse.precision.predicate.relevantProperties = []
-
-# which strategy to use to convert predicate precision to k-induction
-# invariant
-kinduction.reuse.precision.predicate.strategy = CONVERT_ONLY
-  enum:     [CONVERT_ONLY, CONVERT_AND_ADD_FLOW_BACKWARD,
-             CONVERT_AND_ADD_FLOW_BIDIRECTED]
-
-# also consider control dependencies during adaption of predicate precision
-kinduction.reuse.precision.predicate.useControl = false
 
 # Programming language of the input program. If not given explicitly,
 # auto-detection will occur

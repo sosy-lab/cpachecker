@@ -142,7 +142,7 @@ abstract class AbstractBMCAlgorithm
         != ReachabilityState.IRRELEVANT_TO_TARGET;
   }
   
-  @Option(secure = true, description = "get an initial precision from a predicate precision file", name = "predicatePrecisionFile")
+  @Option(secure = true, description = "get an initial precision from a predicate precision file", name = "kinduction.predicatePrecisionFile")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
   
