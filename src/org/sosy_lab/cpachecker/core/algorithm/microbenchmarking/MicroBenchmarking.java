@@ -30,6 +30,7 @@ public class MicroBenchmarking implements Algorithm {
 
   private static class BenchmarkExecutionRun {
     long duration;
+    int[][] resultMatrix;
   }
 
   private static class ConfigProgramExecutions {
@@ -92,14 +93,16 @@ public class MicroBenchmarking implements Algorithm {
 
       Map<String, List<ConfigProgramExecutions>> benchmarkTimes = new HashMap<>();
 
-      int[][] firstMatrix = generateRandomMatrix();
-      int[][] secondMatrix = generateRandomMatrix();
-      int m = firstMatrix.length;
-      int n = secondMatrix[0].length;
-      int[][] C = new int[m][n];
+
 
       List<BenchmarkExecutionRun> runTimes = new ArrayList<>();
       for (int exec = 0; exec < numExecutions; exec++) {
+
+        int[][] firstMatrix = generateRandomMatrix();
+        int[][] secondMatrix = generateRandomMatrix();
+        int m = firstMatrix.length;
+        int n = firstMatrix[0].length;
+        int[][] C = new int[m][n];
 
         long startTime = ticker.read();
 
@@ -116,6 +119,7 @@ public class MicroBenchmarking implements Algorithm {
 
         BenchmarkExecutionRun run = new BenchmarkExecutionRun();
         run.duration = timeDiff;
+        run.resultMatrix = C;
         runTimes.add(run);
 
       }
@@ -175,11 +179,11 @@ public class MicroBenchmarking implements Algorithm {
   }
 
   private int[][] generateRandomMatrix() {
-    int[][] matrix = new int[20][20];
+    int[][] matrix = new int[50][50];
     Random random = new Random();
 
-    for (int i = 0; i < 20; i++) {
-      for (int j = 0; j < 20; j++) {
+    for (int i = 0; i < 50; i++) {
+      for (int j = 0; j < 50; j++) {
         matrix[i][j] = random.nextInt();
       }
     }
