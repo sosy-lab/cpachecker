@@ -96,14 +96,16 @@ public class MicroBenchmarking implements Algorithm {
 
       Map<String, List<ConfigProgramExecutions>> benchmarkTimes = new HashMap<>();
 
-      int[][] firstMatrix = generateRandomMatrix();
-      int[][] secondMatrix = generateRandomMatrix();
-      int m = firstMatrix.length;
-      int n = firstMatrix[0].length;
-      int[][] C = new int[m][n];
+
 
       List<BenchmarkExecutionRun> runTimes = new ArrayList<>();
       for (int exec = 0; exec < numExecutions; exec++) {
+
+        int[][] firstMatrix = generateRandomMatrix();
+        int[][] secondMatrix = generateRandomMatrix();
+        int m = firstMatrix.length;
+        int n = firstMatrix[0].length;
+        int[][] C = new int[m][n];
 
         long startTime = ticker.read();
 
