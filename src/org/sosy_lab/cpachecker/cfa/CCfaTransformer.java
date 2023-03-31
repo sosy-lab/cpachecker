@@ -174,8 +174,11 @@ public final class CCfaTransformer {
 
       // FIXME: don't rely on FunctionEntryNode#getExitNode
       // all connections between CFANodes/CFAEdges should be easily modifiable via CfaMutableNetwork
-      CFANode oldExitNode = pOldNode.getExitNode();
-      FunctionExitNode newExitNode = (FunctionExitNode) toNew(oldExitNode);
+      @Nullable FunctionExitNode newExitNode =
+          pOldNode
+              .getExitNode()
+              .map(oldExitNode -> (FunctionExitNode) toNew(oldExitNode))
+              .orElse(null);
 
       Optional<CVariableDeclaration> oldReturnVariable = pOldNode.getReturnVariable();
       Optional<CVariableDeclaration> newReturnVariable;
@@ -194,7 +197,9 @@ public final class CCfaTransformer {
               newFunctionDeclaration(pOldNode),
               newExitNode,
               newReturnVariable);
-      newExitNode.setEntryNode(newEntryNode);
+      if (newExitNode != null) {
+        newExitNode.setEntryNode(newEntryNode);
+      }
 
       return newEntryNode;
     }
@@ -473,8 +478,7 @@ public final class CCfaTransformer {
           oldEdgeToNewEdge.put(pOldEdge, newEdge);
         }
 
-        if (newEdge instanceof CFunctionSummaryEdge) {
-          CFunctionSummaryEdge cfaSummaryEdge = (CFunctionSummaryEdge) newEdge;
+        if (newEdge instanceof CFunctionSummaryEdge cfaSummaryEdge) {
           newNodeU.addLeavingSummaryEdge(cfaSummaryEdge);
           newNodeV.addEnteringSummaryEdge(cfaSummaryEdge);
         } else {
@@ -583,20 +587,18 @@ public final class CCfaTransformer {
         }
       }
 
-      return new MutableCFA(
-          pOriginalCfa.getMachineModel(),
-          newFunctions,
-          newNodes,
-          (FunctionEntryNode) oldNodeToNewNode.get(oldMainEntryNode),
-          pOriginalCfa.getFileNames(),
-          pOriginalCfa.getLanguage());
+      CfaMetadata newCfaMetadata =
+          pOriginalCfa
+              .getMetadata()
+              .withMainFunctionEntry((FunctionEntryNode) oldNodeToNewNode.get(oldMainEntryNode));
+      return new MutableCFA(newFunctions, newNodes, newCfaMetadata);
     }
 
     private CFA createCfa(Configuration pConfiguration, LogManager pLogger, CFA pOriginalCfa) {
 
       MutableCFA newMutableCfa = createUnconnectedFunctionCfa(pOriginalCfa);
 
-      newMutableCfa.getAllFunctionHeads().forEach(CFAReversePostorder::assignIds);
+      newMutableCfa.entryNodes().forEach(CFAReversePostorder::assignIds);
 
       if (pOriginalCfa.getLoopStructure().isPresent()) {
         try {
@@ -615,15 +617,13 @@ public final class CCfaTransformer {
         }
       }
 
-      Optional<VariableClassification> variableClassification;
       if (pOriginalCfa.getVarClassification().isPresent()) {
-        variableClassification =
+        Optional<VariableClassification> variableClassification =
             createVariableClassification(pConfiguration, pLogger, newMutableCfa);
-      } else {
-        variableClassification = Optional.empty();
+        newMutableCfa.setVariableClassification(variableClassification.orElse(null));
       }
 
-      return newMutableCfa.makeImmutableCFA(variableClassification);
+      return newMutableCfa.immutableCopy();
     }
 
     private static final class SummaryPlaceholderEdge extends BlankEdge {

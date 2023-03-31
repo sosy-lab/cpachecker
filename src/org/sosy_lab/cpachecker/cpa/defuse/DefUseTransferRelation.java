@@ -25,9 +25,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class DefUseTransferRelation extends SingleEdgeTransferRelation {
   private DefUseState handleExpression(
       DefUseState defUseState, CStatement expression, CFAEdge cfaEdge) {
-    if (expression instanceof CAssignment) {
-      CAssignment assignExpression = (CAssignment) expression;
-
+    if (expression instanceof CAssignment assignExpression) {
       String lParam = assignExpression.getLeftHandSide().toASTString();
       // String lParam2 = binaryExpression.getOperand2 ().getRawSignature ();
 

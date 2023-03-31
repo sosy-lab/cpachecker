@@ -62,8 +62,7 @@ public class CExpressionInvariantExporter {
 
   @Option(
       secure = true,
-      description =
-          "Attempt to simplify the invariant before " + "exporting [may be very expensive].")
+      description = "Attempt to simplify the invariant before exporting [may be very expensive].")
   private boolean simplify = false;
 
   @Option(secure = true, description = "If enabled only export invariants for specified lines.")
@@ -214,8 +213,7 @@ public class CExpressionInvariantExporter {
       Set<Integer> requestedLines = parseRequestedLines();
       Map<Pair<String, Integer>, BooleanFormula> invariantsPerLine =
           extractInvariants(pReachedSet, requestedLines, withoutPrefix);
-      String fileName = "", line;
-      int counter;
+      String fileName = "";
       Pair<String, Integer> invariantKey;
       for (Path sourceFile : sourceFiles) {
         if (!withoutPrefix) {
@@ -225,8 +223,9 @@ public class CExpressionInvariantExporter {
                 IO.openOutputFile(
                     prefix.getPath(sourceFile.getFileName()), Charset.defaultCharset());
             BufferedReader reader = Files.newBufferedReader(sourceFile)) {
-          counter = 1;
+          int counter = 1;
           output.append("extern void __VERIFIER_assume(int expression);");
+          String line;
           while ((line = reader.readLine()) != null) {
             invariantKey = Pair.of(fileName, counter++);
             if (invariantsPerLine.containsKey(invariantKey)) {
@@ -268,13 +267,12 @@ public class CExpressionInvariantExporter {
     Set<Integer> requestedLines = new HashSet<>();
 
     // read line numbers from input
-    int posRangeSeparator, max;
     for (String line :
         Splitter.on(',').trimResults().omitEmptyStrings().split(exportInvariantsForLines)) {
       try {
-        posRangeSeparator = line.indexOf('-');
+        int posRangeSeparator = line.indexOf('-');
         if (0 < posRangeSeparator) {
-          max = Integer.parseInt(line.substring(posRangeSeparator + 1));
+          int max = Integer.parseInt(line.substring(posRangeSeparator + 1));
           for (int i = Integer.parseInt(line.substring(0, posRangeSeparator)); i <= max; i++) {
             requestedLines.add(i);
           }
@@ -357,6 +355,6 @@ public class CExpressionInvariantExporter {
     if (simplify) {
       pInvariant = simplifyInvariant(pInvariant);
     }
-    return formulaToCExpressionConverter.formulaToCExpression(pInvariant).replaceAll("\n", " ");
+    return formulaToCExpressionConverter.formulaToCExpression(pInvariant).replace('\n', ' ');
   }
 }

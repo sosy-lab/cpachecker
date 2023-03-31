@@ -56,8 +56,8 @@ public abstract class Statement {
     try {
       w = StatementWriter.getWriter(sb, TranslatorConfig.getDefault());
       accept(w);
-    } catch (IOException pE) {
-      throw new AssertionError("IOException should not be possible for StringBuilder", pE);
+    } catch (IOException e) {
+      throw new AssertionError("IOException should not be possible for StringBuilder", e);
     }
     return sb.toString();
   }

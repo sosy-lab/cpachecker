@@ -14,11 +14,11 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 @SuppressWarnings("EqualsGetClass")
 // FIXME: This class is broken, because comparing a CThreadOperationStatement with an
 // CFunctionCallStatement is not symmetric
-public class CThreadOperationStatement extends CFunctionCallStatement {
+public sealed class CThreadOperationStatement extends CFunctionCallStatement {
 
   private static final long serialVersionUID = -7543988390816591658L;
 
-  public static class CThreadCreateStatement extends CThreadOperationStatement {
+  public static final class CThreadCreateStatement extends CThreadOperationStatement {
 
     private static final long serialVersionUID = -1211707394397959801L;
 
@@ -31,7 +31,7 @@ public class CThreadOperationStatement extends CFunctionCallStatement {
     }
   }
 
-  public static class CThreadJoinStatement extends CThreadOperationStatement {
+  public static final class CThreadJoinStatement extends CThreadOperationStatement {
 
     private static final long serialVersionUID = -2328781305617198230L;
 

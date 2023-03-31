@@ -554,7 +554,9 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
    */
   private boolean findInvariantPartOfPathFormulaWithWeakening(
       final CFANode pLocation, final PathFormula pBlockFormula, ShutdownNotifier pInvariantShutdown)
-      throws SolverException, InterruptedException, CPATransferException,
+      throws SolverException,
+          InterruptedException,
+          CPATransferException,
           InvalidConfigurationException {
     assert semiCNFConverter != null;
 
@@ -932,7 +934,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                             logger.logUserException(
                                 Level.WARNING,
                                 e,
-                                "Invariant could not be" + " retrieved from InvariantGenerator");
+                                "Invariant could not be retrieved from InvariantGenerator");
                             return fmgr.getBooleanFormulaManager().makeTrue();
                           }
                         })

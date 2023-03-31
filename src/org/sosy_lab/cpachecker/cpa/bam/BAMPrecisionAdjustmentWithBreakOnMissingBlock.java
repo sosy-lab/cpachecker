@@ -51,7 +51,7 @@ class BAMPrecisionAdjustmentWithBreakOnMissingBlock extends BAMPrecisionAdjustme
 
     if (pElement instanceof MissingBlockAbstractionState) {
       final Action action = breakOnMissingBlock ? Action.BREAK : Action.CONTINUE;
-      return Optional.of(PrecisionAdjustmentResult.create(pElement, pPrecision, action));
+      return Optional.of(new PrecisionAdjustmentResult(pElement, pPrecision, action));
     }
 
     return super.prec(pElement, pPrecision, pElements, projection, fullState);

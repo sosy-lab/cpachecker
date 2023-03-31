@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NestingAlgorithm;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -52,7 +51,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 
 @Options(prefix = "faultLocalization.by_distance")
@@ -61,7 +59,7 @@ public class Explainer extends NestingAlgorithm {
   private enum Metric {
     ADM,
     CFDM,
-    PG;
+    PG,
   }
 
   @Option(
@@ -109,22 +107,22 @@ public class Explainer extends NestingAlgorithm {
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
 
     ForwardingReachedSet reached = (ForwardingReachedSet) reachedSet;
-    Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> secondAlg = null;
+    NestedAnalysis secondAlg;
     ReachedSet currentReached;
 
     try {
       ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
       secondAlg = createAlgorithm(firstStepConfig, cfa, shutdownManager, reached);
-      cpa = CPAs.retrieveCPAOrFail(secondAlg.getSecond(), PredicateCPA.class, Explainer.class);
-    } catch (IOException pE) {
-      throw new AssertionError(pE);
-    } catch (InvalidConfigurationException pE) {
-      throw new CPAException("First Step Configuration File is invalid", pE);
+      cpa = CPAs.retrieveCPAOrFail(secondAlg.cpa(), PredicateCPA.class, Explainer.class);
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    } catch (InvalidConfigurationException e) {
+      throw new CPAException("First Step Configuration File is invalid", e);
     }
 
-    currentReached = secondAlg.getThird();
+    currentReached = secondAlg.reached();
 
-    Algorithm firstStepAlgorithm = secondAlg.getFirst();
+    Algorithm firstStepAlgorithm = secondAlg.algorithm();
     assert firstStepAlgorithm != null;
     // currentReached
     AlgorithmStatus status;
@@ -261,7 +259,7 @@ public class Explainer extends NestingAlgorithm {
     pathGeneration.generateClosestSuccessfulExecution(targetPath, ceInfo);
   }
 
-  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
+  private NestedAnalysis createAlgorithm(
       Path singleConfigFileName,
       CFA pCfa,
       ShutdownManager singleShutdownManager,

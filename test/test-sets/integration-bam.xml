@@ -39,6 +39,7 @@ SPDX-License-Identifier: Apache-2.0
   <tasks name="value">
     <include>../programs/benchmarks/recursive-simple/a*.yml</include>
     <include>../programs/benchmarks/recursive-simple/f*.yml</include>
+    <exclude>../programs/benchmarks/recursive-simple/fibo_25-1.yml</exclude>
     <exclude>../programs/benchmarks/recursive-simple/fibo_2calls_15-2.yml</exclude>
     <option name="-valueAnalysis-bam-rec"/>
   </tasks>

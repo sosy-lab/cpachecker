@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 @Options(prefix = "counterexample")
@@ -56,7 +57,7 @@ public class CounterexampleCheckAlgorithm
   enum CounterexampleCheckerType {
     CBMC,
     CPACHECKER,
-    CONCRETE_EXECUTION;
+    CONCRETE_EXECUTION,
   }
 
   private final Algorithm algorithm;
@@ -88,6 +89,14 @@ public class CounterexampleCheckAlgorithm
               + "do not form a tree!")
   private boolean ambigiousARG = false;
 
+  @Option(
+      secure = true,
+      name = "skipCounterexampleForUnsupportedCode",
+      description =
+          "If true, the counterexample checker will not assume a counterexample as infeasible"
+              + " because of unsupported code. But will try different paths anyway.")
+  private boolean skipCounterexampleForUnsupportedCode = false;
+
   public CounterexampleCheckAlgorithm(
       Algorithm algorithm,
       ConfigurableProgramAnalysis pCpa,
@@ -105,15 +114,13 @@ public class CounterexampleCheckAlgorithm
       throw new InvalidConfigurationException("ARG CPA needed for counterexample check");
     }
 
-    switch (checkerType) {
-      case CBMC:
-        checker = new CBMCChecker(config, logger, cfa);
-        break;
-      case CPACHECKER:
-        AssumptionToEdgeAllocator assumptionToEdgeAllocator =
-            AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
-        checker =
-            new CounterexampleCPAchecker(
+    checker =
+        switch (checkerType) {
+          case CBMC -> new CBMCChecker(config, logger, cfa);
+          case CPACHECKER -> {
+            AssumptionToEdgeAllocator assumptionToEdgeAllocator =
+                AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
+            yield new CounterexampleCPAchecker(
                 config,
                 pSpecification,
                 logger,
@@ -122,13 +129,9 @@ public class CounterexampleCheckAlgorithm
                 s ->
                     ARGUtils.tryGetOrCreateCounterexampleInformation(
                         s, pCpa, assumptionToEdgeAllocator));
-        break;
-      case CONCRETE_EXECUTION:
-        checker = new ConcretePathExecutionChecker(config, logger, cfa);
-        break;
-      default:
-        throw new AssertionError("Unhandled case statement: " + checkerType);
-    }
+          }
+          case CONCRETE_EXECUTION -> new ConcretePathExecutionChecker(config, logger, cfa);
+        };
   }
 
   @Override
@@ -194,6 +197,16 @@ public class CounterexampleCheckAlgorithm
     final boolean feasibility;
     try {
       feasibility = checkErrorPaths(checker, errorState, reached);
+    } catch (UnsupportedCodeException e) {
+      if (skipCounterexampleForUnsupportedCode) {
+        logger.logUserException(
+            Level.WARNING, e, "Counterexample could not be verified due to unsupported features.");
+        return true;
+      }
+      logger.logUserException(
+          Level.WARNING, e, "Counterexample found, but feasibility could not be verified");
+      return false;
+
     } catch (CPAException e) {
       logger.logUserException(
           Level.WARNING, e, "Counterexample found, but feasibility could not be verified");

@@ -181,11 +181,11 @@ public class AutomaticCPAFactory implements CPAFactory {
 
     } catch (InstantiationException e) {
       throw new UnsupportedOperationException(
-          "Cannot automatically create CPAs " + "that are declared abstract!");
+          "Cannot automatically create CPAs that are declared abstract!");
 
     } catch (IllegalAccessException e) {
       throw new UnsupportedOperationException(
-          "Cannot automatically create CPAs " + "without an accessible constructor!");
+          "Cannot automatically create CPAs without an accessible constructor!");
     }
   }
 
@@ -235,7 +235,7 @@ public class AutomaticCPAFactory implements CPAFactory {
   public CPAFactory setChildren(List<ConfigurableProgramAnalysis> pChildren)
       throws UnsupportedOperationException {
     throw new UnsupportedOperationException(
-        "Cannot automatically create CPAs " + "with multiple children CPAs!");
+        "Cannot automatically create CPAs with multiple children CPAs!");
   }
 
   /**

@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -78,7 +79,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -671,8 +671,8 @@ public abstract class AbstractExpressionValueVisitor
           }
         case INT128:
           {
-            BigInteger lVal = lNum.bigInteger();
-            BigInteger rVal = rNum.bigInteger();
+            BigInteger lVal = lNum.bigIntegerValue();
+            BigInteger rVal = rNum.bigIntegerValue();
             BigInteger result = arithmeticOperation(lVal, rVal, op, logger);
             return new NumericValue(result);
           }
@@ -702,11 +702,11 @@ public abstract class AbstractExpressionValueVisitor
             return Value.UnknownValue.getInstance();
           }
       }
-    } catch (ArithmeticException ae) { // log warning and ignore expression
+    } catch (ArithmeticException e) { // log warning and ignore expression
       logger.logf(
           Level.WARNING,
           "expression causes arithmetic exception (%s): %s %s %s",
-          ae.getMessage(),
+          e.getMessage(),
           lNum.bigDecimalValue(),
           op.getOperator(),
           rNum.bigDecimalValue());
@@ -753,14 +753,8 @@ public abstract class AbstractExpressionValueVisitor
               machineModel.getSizeof(canonicalType) * machineModel.getSizeofCharInBits();
           if ((!machineModel.isSigned(canonicalType) && sizeInBits == SIZE_OF_JAVA_LONG)
               || sizeInBits > SIZE_OF_JAVA_LONG) {
-            BigInteger leftBigInt =
-                l.getNumber() instanceof BigInteger
-                    ? (BigInteger) l.getNumber()
-                    : BigInteger.valueOf(l.longValue());
-            BigInteger rightBigInt =
-                r.getNumber() instanceof BigInteger
-                    ? (BigInteger) r.getNumber()
-                    : BigInteger.valueOf(r.longValue());
+            BigInteger leftBigInt = l.bigIntegerValue();
+            BigInteger rightBigInt = r.bigIntegerValue();
             cmp = leftBigInt.compareTo(rightBigInt);
             break;
           }
@@ -1560,6 +1554,9 @@ public abstract class AbstractExpressionValueVisitor
         BigInteger size = machineModel.getSizeof(innerType);
         return new NumericValue(size);
 
+      case ALIGNOF:
+        return new NumericValue(machineModel.getAlignof(innerType));
+
       default: // TODO support more operators
         return Value.UnknownValue.getInstance();
     }
@@ -1569,12 +1566,8 @@ public abstract class AbstractExpressionValueVisitor
   public Value visit(CIdExpression idExp) throws UnrecognizedCodeException {
     if (idExp.getDeclaration() instanceof CEnumerator) {
       CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
-      if (enumerator.hasValue()) {
-        // TODO rewrite CEnumerator to handle abstract type Value and not just Long
-        return new NumericValue(enumerator.getValue());
-      } else {
-        return Value.UnknownValue.getInstance();
-      }
+      // TODO rewrite CEnumerator to handle abstract type Value and not just Long
+      return new NumericValue(enumerator.getValue());
     }
 
     return evaluateCIdExpression(idExp);
@@ -1930,31 +1923,16 @@ public abstract class AbstractExpressionValueVisitor
       case LESS_THAN:
       case LESS_EQUAL:
         {
-          final boolean result;
-          switch (pBinaryOperator) {
-            case EQUALS:
-              result = (lVal == rVal);
-              break;
-            case NOT_EQUALS:
-              result = (lVal != rVal);
-              break;
-            case GREATER_THAN:
-              result = (lVal > rVal);
-              break;
-            case GREATER_EQUAL:
-              result = (lVal >= rVal);
-              break;
-            case LESS_THAN:
-              result = (lVal < rVal);
-              break;
-            case LESS_EQUAL:
-              result = (lVal <= rVal);
-              break;
-
-            default:
-              throw new AssertionError("Unhandled operation " + pBinaryOperator);
-          }
-
+          final boolean result =
+              switch (pBinaryOperator) {
+                case EQUALS -> (lVal == rVal);
+                case NOT_EQUALS -> (lVal != rVal);
+                case GREATER_THAN -> (lVal > rVal);
+                case GREATER_EQUAL -> (lVal >= rVal);
+                case LESS_THAN -> (lVal < rVal);
+                case LESS_EQUAL -> (lVal <= rVal);
+                default -> throw new AssertionError("Unhandled operation " + pBinaryOperator);
+              };
           return BooleanValue.valueOf(result);
         }
       default:
@@ -2025,32 +2003,19 @@ public abstract class AbstractExpressionValueVisitor
       case LESS_THAN:
       case LESS_EQUAL:
         {
-          final boolean result;
-          switch (pBinaryOperator) {
-            case EQUALS:
-              result = (lVal == rVal);
-              break;
-            case NOT_EQUALS:
-              result = (lVal != rVal);
-              break;
-            case GREATER_THAN:
-              result = (lVal > rVal);
-              break;
-            case GREATER_EQUAL:
-              result = (lVal >= rVal);
-              break;
-            case LESS_THAN:
-              result = (lVal < rVal);
-              break;
-            case LESS_EQUAL:
-              result = (lVal <= rVal);
-              break;
-
-            default:
-              throw new AssertionError(
-                  "Unsupported binary operation " + pBinaryOperator + " on floating point values");
-          }
-
+          final boolean result =
+              switch (pBinaryOperator) {
+                case EQUALS -> (lVal == rVal);
+                case NOT_EQUALS -> (lVal != rVal);
+                case GREATER_THAN -> (lVal > rVal);
+                case GREATER_EQUAL -> (lVal >= rVal);
+                case LESS_THAN -> (lVal < rVal);
+                case LESS_EQUAL -> (lVal <= rVal);
+                default -> throw new AssertionError(
+                    "Unsupported binary operation "
+                        + pBinaryOperator
+                        + " on floating point values");
+              };
           // return 1 if expression holds, 0 otherwise
           return BooleanValue.valueOf(result);
         }
@@ -2459,7 +2424,7 @@ public abstract class AbstractExpressionValueVisitor
       final FileLocation fileLocation) {
 
     if (!value.isExplicitlyKnown()) {
-      return castIfSymbolic(value, targetType, Optional.of(machineModel));
+      return castIfSymbolic(value, targetType);
     }
 
     // For now can only cast numeric value's
@@ -2472,8 +2437,7 @@ public abstract class AbstractExpressionValueVisitor
 
     CType type = targetType.getCanonicalType();
     final int size;
-    if (type instanceof CSimpleType) {
-      final CSimpleType st = (CSimpleType) type;
+    if (type instanceof CSimpleType st) {
       size = machineModel.getSizeofInBits(st);
     } else if (type instanceof CBitFieldType) {
       size = ((CBitFieldType) type).getBitFieldSize();
@@ -2517,14 +2481,7 @@ public abstract class AbstractExpressionValueVisitor
             return UnknownValue.getInstance();
           }
 
-          final BigInteger valueToCastAsInt;
-          if (numericValue.getNumber() instanceof BigInteger) {
-            valueToCastAsInt = numericValue.bigInteger();
-          } else if (numericValue.getNumber() instanceof BigDecimal) {
-            valueToCastAsInt = numericValue.bigDecimalValue().toBigInteger();
-          } else {
-            valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
-          }
+          final BigInteger valueToCastAsInt = numericValue.bigIntegerValue();
           final boolean targetIsSigned = machineModel.isSigned(st);
 
           final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
@@ -2643,14 +2600,13 @@ public abstract class AbstractExpressionValueVisitor
     return i1.compareTo(i2) < 0;
   }
 
-  private static Value castIfSymbolic(
-      Value pValue, Type pTargetType, Optional<MachineModel> pMachineModel) {
+  private static Value castIfSymbolic(Value pValue, Type pTargetType) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
     if (pValue instanceof SymbolicValue
         && (pTargetType instanceof JSimpleType || pTargetType instanceof CSimpleType)) {
 
-      return factory.cast((SymbolicValue) pValue, pTargetType, pMachineModel);
+      return factory.cast((SymbolicValue) pValue, pTargetType);
     }
 
     // If the value is not symbolic, just return it.
@@ -2680,7 +2636,7 @@ public abstract class AbstractExpressionValueVisitor
       final FileLocation fileLocation) {
 
     if (!value.isExplicitlyKnown()) {
-      return castIfSymbolic(value, targetType, Optional.empty());
+      return castIfSymbolic(value, targetType);
     }
 
     // Other than symbolic values, we can only cast numeric values, for now.
@@ -2692,9 +2648,7 @@ public abstract class AbstractExpressionValueVisitor
 
     NumericValue numericValue = (NumericValue) value;
 
-    if (targetType instanceof JSimpleType) {
-      final JSimpleType st = (JSimpleType) targetType;
-
+    if (targetType instanceof JSimpleType st) {
       if (isIntegerType(sourceType)) {
         long longValue = numericValue.longValue();
 

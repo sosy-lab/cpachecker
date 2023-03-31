@@ -65,7 +65,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   @Option(
       secure = true,
       description =
-          "which prefix of an actual counterexample trace should be used" + " for interpolation",
+          "which prefix of an actual counterexample trace should be used for interpolation",
       toUppercase = true)
   private List<PrefixPreference> prefixPreference =
       ImmutableList.of(PrefixPreference.DOMAIN_MIN, PrefixPreference.LENGTH_MIN);
@@ -235,7 +235,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   }
 
   /** This utility method checks if the given path is feasible. */
-  private boolean isFeasible(ARGPath slicedErrorPathPrefix)
+  protected boolean isFeasible(ARGPath slicedErrorPathPrefix)
       throws CPAException, InterruptedException {
     return checker.isFeasible(slicedErrorPathPrefix);
   }
@@ -245,7 +245,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * feasible, i.e., because slicing is not fully precise in presence of, e.g., structs or arrays,
    * the original error path (prefix) that was given as input is returned.
    */
-  private ARGPath sliceErrorPath(final ARGPath pErrorPathPrefix)
+  protected ARGPath sliceErrorPath(final ARGPath pErrorPathPrefix)
       throws CPAException, InterruptedException {
 
     if (!isPathSlicingPossible(pErrorPathPrefix)) {
@@ -291,9 +291,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
 
       if (originalEdge != null) {
         CFAEdgeType typeOfOriginalEdge = originalEdge.getEdgeType();
-        /*************************************/
-        /** assure that call stack is valid * */
-        /*************************************/
+        // assure that call stack is valid
         // when entering into a function, remember if call is relevant or not
         if (typeOfOriginalEdge == CFAEdgeType.FunctionCallEdge) {
           boolean isAbstractEdgeFunctionCall =
@@ -305,17 +303,16 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
         // when returning from a function, ...
         if (typeOfOriginalEdge == CFAEdgeType.FunctionReturnEdge) {
           Pair<FunctionCallEdge, Boolean> functionCallInfo = functionCalls.pop();
-          // ... if call is relevant and return edge is now a blank edge, restore the original
-          // return edge
           if (functionCallInfo.getSecond()
               && abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.BlankEdge) {
+            // ... if call is relevant and return edge is now a blank edge, restore the original
+            // return edge
             abstractEdges.set(iterator.getIndex(), originalEdge);
-          }
 
-          // ... if call is irrelevant and return edge is not sliced, restore the call edge
-          else if (!functionCallInfo.getSecond()
+          } else if (!functionCallInfo.getSecond()
               && abstractEdges.get(iterator.getIndex()).getEdgeType()
                   == CFAEdgeType.FunctionReturnEdge) {
+            // ... if call is irrelevant and return edge is not sliced, restore the call edge
             for (int j = iterator.getIndex(); j >= 0; j--) {
               if (functionCallInfo.getFirst() == abstractEdges.get(j)) {
                 abstractEdges.set(j, functionCallInfo.getFirst());
@@ -400,7 +397,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * @param pErrorPathPrefix the error path prefix to be sliced
    * @return true, if slicing is possible, else, false
    */
-  private boolean isPathSlicingPossible(final ARGPath pErrorPathPrefix) {
+  protected boolean isPathSlicingPossible(final ARGPath pErrorPathPrefix) {
     return pathSlicing
         && isRefinementSelectionEnabled()
         && pErrorPathPrefix.getFirstState().getParents().isEmpty();

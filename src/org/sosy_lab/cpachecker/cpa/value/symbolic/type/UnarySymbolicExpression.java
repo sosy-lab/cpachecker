@@ -68,7 +68,7 @@ public abstract class UnarySymbolicExpression extends SymbolicExpression {
 
   @Override
   public final int hashCode() {
-    return super.hashCode() + Objects.hash(getClass(), operand, type);
+    return super.hashCode() + Objects.hash(getClass().getCanonicalName(), operand, type);
   }
 
   @Override

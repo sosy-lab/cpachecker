@@ -175,12 +175,12 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       NumericValue numericValue = pValueAndType.getValue().asNumericValue();
 
       if (basicReadType.equals(CBasicType.FLOAT)) {
-        int bits = numericValue.bigInteger().intValue();
+        int bits = numericValue.bigIntegerValue().intValue();
         float floatValue = Float.intBitsToFloat(bits);
 
         return new NumericValue(floatValue);
       } else if (basicReadType.equals(CBasicType.DOUBLE)) {
-        long bits = numericValue.bigInteger().longValue();
+        long bits = numericValue.bigIntegerValue().longValue();
         double doubleValue = Double.longBitsToDouble(bits);
 
         return new NumericValue(doubleValue);

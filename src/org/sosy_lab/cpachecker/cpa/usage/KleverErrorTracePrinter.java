@@ -129,13 +129,11 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   protected void printUnsafe(SingleIdentifier pId, Pair<UsageInfo, UsageInfo> pTmpPair) {
     UsageInfo firstUsage = pTmpPair.getFirst();
     UsageInfo secondUsage = pTmpPair.getSecond();
-    List<CFAEdge> firstPath, secondPath;
-
-    firstPath = getPath(firstUsage);
+    List<CFAEdge> firstPath = getPath(firstUsage);
     if (firstPath == null) {
       return;
     }
-    secondPath = getPath(secondUsage);
+    List<CFAEdge> secondPath = getPath(secondUsage);
     if (secondPath == null) {
       return;
     }
@@ -272,8 +270,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       builder.addDataElementChild(result, KeyDef.FUNCTIONEXIT, out.getFunctionName());
     }
 
-    if (pEdge instanceof AssumeEdge) {
-      AssumeEdge a = (AssumeEdge) pEdge;
+    if (pEdge instanceof AssumeEdge a) {
       AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
       builder.addDataElementChild(result, KeyDef.CONTROLCASE, assumeCase.toString());
     }
@@ -308,8 +305,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
   private CThreadCreateStatement getThreadCreateStatementIfExists(CFAEdge pEdge) {
     if (pEdge instanceof CFunctionCallEdge) {
-      CFunctionSummaryEdge sEdge = ((CFunctionCallEdge) pEdge).getSummaryEdge();
-      CFunctionCall fCall = sEdge.getExpression();
+      CFunctionCall fCall = ((CFunctionCallEdge) pEdge).getFunctionCall();
       if (fCall instanceof CThreadCreateStatement) {
         return (CThreadCreateStatement) fCall;
       }

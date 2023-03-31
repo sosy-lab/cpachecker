@@ -355,8 +355,7 @@ public class ReportGenerator {
     dotBuilder.writeMergedNodesList(writer);
 
     if (counterExample != null) {
-      if (counterExample instanceof FaultLocalizationInfo) {
-        FaultLocalizationInfo flInfo = (FaultLocalizationInfo) counterExample;
+      if (counterExample instanceof FaultLocalizationInfo flInfo) {
         flInfo.prepare();
         writer.write(",\n\"errorPath\":");
         counterExample.toJSON(writer);
@@ -653,7 +652,7 @@ public class ReportGenerator {
 
     Set<FileLocation> allLocations =
         FluentIterable.of(cfa.getMainFunction()) // We want this as first element
-            .append(cfa.getAllFunctionHeads())
+            .append(cfa.entryNodes())
             .transform(FunctionEntryNode::getFileLocation)
             .filter(FileLocation::isRealLocation)
             .toSet();

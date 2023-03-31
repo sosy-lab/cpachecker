@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -66,7 +67,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -80,7 +80,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
 
   @Option(
       description =
-          "Only check live variables for overflow," + " as compiler can remove dead variables.",
+          "Only check live variables for overflow, as compiler can remove dead variables.",
       secure = true)
   private boolean useLiveness = true;
 
@@ -294,8 +294,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
   }
 
   private boolean isBinaryExpressionThatMayOverflow(CExpression pExp) {
-    if (pExp instanceof CBinaryExpression) {
-      CBinaryExpression binexp = (CBinaryExpression) pExp;
+    if (pExp instanceof CBinaryExpression binexp) {
       CExpression op1 = binexp.getOperand1();
       CExpression op2 = binexp.getOperand2();
       if (op1.getExpressionType() instanceof CPointerType

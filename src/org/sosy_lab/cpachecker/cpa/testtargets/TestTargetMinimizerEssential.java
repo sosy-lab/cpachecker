@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -104,8 +105,10 @@ public class TestTargetMinimizerEssential {
       }
     }
     // complete dummy graph has been created
-    return Pair.of(
-        origCFANodeToCopyMap.get(pEntryNode), origCFANodeToCopyMap.get(pEntryNode.getExitNode()));
+
+    @Nullable CFANode exitNodeCopy =
+        pEntryNode.getExitNode().map(exitNode -> origCFANodeToCopyMap.get(exitNode)).orElse(null);
+    return Pair.of(origCFANodeToCopyMap.get(pEntryNode), exitNodeCopy);
   }
 
   private boolean isSelfLoop(final CFAEdge pEdge) {
@@ -261,7 +264,8 @@ public class TestTargetMinimizerEssential {
         toRemove, CFAUtils.leavingEdges(succ), copiedEdgeToTestTargetsMap, pTestTargets);
   }
 
-  private void applyRule1( // remove edges from copied graph according to first rule
+  /** Remove edges from copied graph according to first rule. */
+  private void applyRule1(
       final Set<CFAEdge> pTestTargets,
       final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
       final Pair<CFANode, CFANode> pCopiedFunctionEntryExit) {
@@ -405,7 +409,8 @@ public class TestTargetMinimizerEssential {
     }
   }
 
-  private void applyRule4( // remove edges from dummy graph according to fourth rule
+  /** Remove edges from dummy graph according to fourth rule. */
+  private void applyRule4(
       final Set<CFAEdge> pTestTargets,
       final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
       final CFANode copiedFunctionEntry) {

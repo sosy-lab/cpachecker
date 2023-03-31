@@ -24,11 +24,11 @@ public class ConstraintsStatistics implements Statistics {
 
   public final StatTimer trivialRemovalTime = new StatTimer("Time for trivial constraint removal");
   public final StatTimer outdatedRemovalTime =
-      new StatTimer("Time for outdated constraint " + "removal");
+      new StatTimer("Time for outdated constraint removal");
   public final StatInt removedTrivial =
-      new StatInt(StatKind.SUM, "Number of removed trivial " + "constraints");
+      new StatInt(StatKind.SUM, "Number of removed trivial constraints");
   public final StatInt removedOutdated =
-      new StatInt(StatKind.SUM, "Number of removed outdated " + "constraints");
+      new StatInt(StatKind.SUM, "Number of removed outdated constraints");
 
   public final StatTimer timeForSolving =
       new StatTimer(StatKind.SUM, "Time for solving constraints");

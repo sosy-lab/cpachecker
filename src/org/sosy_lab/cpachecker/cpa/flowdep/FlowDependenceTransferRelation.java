@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -71,11 +72,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -461,8 +460,8 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
       throws CPATransferException {
 
     FlowDependenceState nextState = pNewState;
-    CFunctionSummaryEdge summaryEdge = pReturnEdge.getSummaryEdge();
-    CFunctionCallExpression functionCall = summaryEdge.getExpression().getFunctionCallExpression();
+    CFunctionCallExpression functionCall =
+        pReturnEdge.getFunctionCall().getFunctionCallExpression();
 
     List<CExpression> outFunctionParams = functionCall.getParameterExpressions();
     List<CParameterDeclaration> inFunctionParams = functionCall.getDeclaration().getParameters();
@@ -504,10 +503,10 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
     }
 
     Optional<CVariableDeclaration> maybeReturnVar =
-        summaryEdge.getFunctionEntry().getReturnVariable();
+        pReturnEdge.getFunctionEntry().getReturnVariable();
     if (maybeReturnVar.isPresent()) {
       Set<MemoryLocation> possibleDefs = null;
-      CFunctionCall call = summaryEdge.getExpression();
+      CFunctionCall call = pReturnEdge.getFunctionCall();
       if (call instanceof CFunctionCallAssignmentStatement) {
         possibleDefs =
             getDef(((CFunctionCallAssignmentStatement) call).getLeftHandSide(), pPointerState);
@@ -544,8 +543,8 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
       computedReachDefStates =
           delegate.getAbstractSuccessorsForEdge(pOldState, pPrecision, pCfaEdge);
 
-    } catch (InterruptedException pE) {
-      throw new CPATransferException("Exception in reaching definitions transfer", pE);
+    } catch (InterruptedException e) {
+      throw new CPATransferException("Exception in reaching definitions transfer", e);
     }
 
     if (computedReachDefStates.isEmpty()) {

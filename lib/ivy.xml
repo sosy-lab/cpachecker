@@ -45,7 +45,7 @@ SPDX-License-Identifier: Apache-2.0
         <!-- When adding/changing/removing a runtime dependency, make sure to also update java-runtime-licenses.txt! -->
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.3000-529-g6152d88"
+        <dependency org="org.sosy_lab" name="common" rev="0.3000-568-gb81232a9"
                     conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
@@ -81,7 +81,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- JFlex Scanner generator
              Used for generating automaton and FQL scanners. -->
-        <dependency org="de.jflex" name="jflex" rev="1.8.2" conf="build->default"
+        <dependency org="de.jflex" name="jflex" rev="1.9.1" conf="build->default"
                     transitive="false"/>
 
         <!-- CUP LALR Parser Generator for Java
@@ -102,8 +102,8 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="4.8.1" conf="test->default"/>
-        <dependency org="org.mockito" name="mockito-errorprone" rev="4.8.1" conf="build->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="5.2.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-errorprone" rev="5.2.0" conf="build->default"/>
 
         <!-- Antlr
              Parser generator. -->
@@ -136,8 +136,8 @@ SPDX-License-Identifier: Apache-2.0
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
         <!-- Synchronize version with REFASTER_VERSION in ../.gitlab-ci.yml! -->
-        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.15.0" conf="build->default" />
-        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.15.0" conf="build->default; contrib->sources" />
+        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.18.0" conf="build->default" />
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.18.0" conf="build->default; contrib->sources" />
 
         <!-- Policeman's Forbidden API Checker
              Useful for detecting uses of unwanted API -->
@@ -145,11 +145,11 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
-        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.22" conf="build->default"/>
+        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.25" conf="build->default"/>
 
         <!-- google-java-format
              A source-code formatter for Java -->
-        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.15.0" conf="format-source->default"/>
+        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.16.0" conf="format-source->default"/>
 
         <!-- SpotBugs -->
         <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="4.7.3" conf="spotbugs->default"/>
@@ -158,8 +158,8 @@ SPDX-License-Identifier: Apache-2.0
         <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
 
         <!-- Checkstyle -->
-        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.42.0" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="10.4" conf="checkstyle->default"/>
+        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.44.1" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="10.9.3" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
@@ -195,7 +195,7 @@ SPDX-License-Identifier: Apache-2.0
         </dependency>
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
-        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.15.0"/>
+        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.18.0"/>
 
     </dependencies>
 </ivy-module>

@@ -12,9 +12,9 @@ variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: 0287f114a4fa2af2e4e743b9cbf86d179d89553a
+  REFASTER_REPO_REVISION: 31cd8ffc4966957e156665dbba76679ade5bb5c9
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.15.0
+  REFASTER_VERSION: 2.18.0
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
   npm_config_cache: "${CI_PROJECT_DIR}/.cache/npm"
   npm_config_prefer_offline: "true"
@@ -45,16 +45,6 @@ variables:
     reports:
       junit: "output/configuration-checks/TESTS-TestSuites.xml"
 
-configuration-checks:jdk-11:
-  <<: *configuration-checks
-  dependencies:
-    - build-dependencies
-    - build:jdk-11
-  needs:
-    - build-dependencies
-    - build:jdk-11
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
-
 configuration-checks:jdk-17:
   <<: *configuration-checks
   dependencies:
@@ -65,6 +55,16 @@ configuration-checks:jdk-17:
     - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
+configuration-checks:jdk-19:
+  <<: *configuration-checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-19
+  needs:
+    - build-dependencies
+    - build:jdk-19
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-19
+
 
 configuration-documentation:
   <<: *binary_check
@@ -74,10 +74,10 @@ configuration-documentation:
     - "diff doc/ConfigurationOptions.txt.old doc/ConfigurationOptions.txt"
   dependencies:
     - build-dependencies
-    - build:jdk-11
+    - build:jdk-17
   needs:
     - build-dependencies
-    - build:jdk-11
+    - build:jdk-17
 
 
 configuration-plot:
@@ -99,25 +99,15 @@ forbidden-apis:
   script: "ant $ANT_PROPS_CHECKS forbiddenapis"
   dependencies:
     - build-dependencies
-    - build:jdk-11
+    - build:jdk-17
   needs:
     - build-dependencies
-    - build:jdk-11
+    - build:jdk-17
 
 
 .python-unit-tests: &python-unit-tests
   <<: *binary_check
   script: "ant $ANT_PROPS_CHECKS python-unit-tests"
-
-python-unit-tests:jdk-11:
-  <<: *python-unit-tests
-  dependencies:
-    - build-dependencies
-    - build:jdk-11
-  needs:
-    - build-dependencies
-    - build:jdk-11
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
 python-unit-tests:jdk-17:
   <<: *python-unit-tests
@@ -128,6 +118,16 @@ python-unit-tests:jdk-17:
     - build-dependencies
     - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
+
+python-unit-tests:jdk-19:
+  <<: *python-unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-19
+  needs:
+    - build-dependencies
+    - build:jdk-19
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-19
 
 
 javascript-build:
@@ -195,7 +195,7 @@ build-docker:release:
   extends: .build-docker
   variables:
     DOCKERFILE: build/Dockerfile.release
-    IMAGE: ":2.1.1"
+    IMAGE: ":2.2"
     EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest"
 
 
@@ -203,10 +203,10 @@ javascript-e2e-tests:
   stage: checks
   dependencies:
     - build-dependencies
-    - build:jdk-11
+    - build:jdk-17
   needs:
     - build-dependencies
-    - build:jdk-11
+    - build:jdk-17
   image: ${CI_REGISTRY_IMAGE}/test:java-node
   before_script:
       # generate example report
@@ -233,9 +233,9 @@ check-format-python:
   needs: []
   image: python
   before_script:
-    - pip install black
+    - pip install 'black[jupyter]<2024'
   script:
-    - black . --check --diff --include='contrib/.*\.py'
+    - black . --check --diff
   <<: *pip-cache
 
 flake8:
@@ -244,7 +244,7 @@ flake8:
   needs: []
   image: python:3.8
   before_script:
-    - "pip install flake8 flake8-awesome"
+    - "pip install 'flake8<6' flake8-awesome"
   script:
     - flake8
   <<: *pip-cache
@@ -254,10 +254,10 @@ build-tar:
   stage: checks
   dependencies:
     - build-dependencies
-    - build:jdk-11
+    - build:jdk-17
   needs:
     - build-dependencies
-    - build:jdk-11
+    - build:jdk-17
   script: "ant $ANT_PROPS_CHECKS dist-unix -Dnamet=cpachecker"
   artifacts:
     paths:
@@ -283,17 +283,48 @@ deploy-docker:
 
 
 # No coverage is computed for CPAchecker
-unit-tests:jdk-11:
-  script: "ant $ANT_PROPS_CHECKS unit-tests"
-  artifacts:
-    reports:
-      junit: "output/junit/TESTS-TestSuites.xml"
-
 unit-tests:jdk-17:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
     reports:
       junit: "output/junit/TESTS-TestSuites.xml"
+
+unit-tests:jdk-19:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+  artifacts:
+    reports:
+      junit: "output/junit/TESTS-TestSuites.xml"
+
+
+# Override Java version for some jobs
+image: ${CI_REGISTRY_IMAGE}/test:jdk-17
+
+spotbugs:
+  dependencies:
+    - build-dependencies
+    - build:jdk-17
+  needs:
+    - build-dependencies
+    - build:jdk-17
+
+refaster:
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
+  # https://github.com/google/error-prone/issues/3553 needs to be fixed for Java 17
+  allow_failure: true
+
+
+# Disable Java 11 jobs
+build-docker:test:jdk-11:
+  only: []
+
+build:jdk-11:
+  only: []
+
+build-project-ecj:jdk-11:
+  only: []
+
+unit-tests:jdk-11:
+  only: []
 
 
 # Disable some checks because they are not used for CPAchecker

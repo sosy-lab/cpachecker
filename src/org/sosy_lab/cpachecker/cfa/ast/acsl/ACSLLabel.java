@@ -8,4 +8,4 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public interface ACSLLabel {}
+public sealed interface ACSLLabel permits ACSLDefaultLabel, CLabel {}

@@ -74,7 +74,7 @@ public final class DOTBuilder2 {
     jsoner = new CFAJSONBuilder();
     dotter = new DOTViewBuilder(cfa);
     CFAVisitor vis = new NodeCollectingCFAVisitor(new CompositeCFAVisitor(jsoner, dotter));
-    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode entryNode : cfa.entryNodes()) {
       CFATraversal.dfs().ignoreFunctionCalls().traverse(entryNode, vis);
     }
     dotter.postProcessing();
@@ -82,7 +82,7 @@ public final class DOTBuilder2 {
 
   /** output the CFA as DOT files */
   public void writeGraphs(Path outdir) throws IOException {
-    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode entryNode : cfa.entryNodes()) {
       dotter.writeFunctionFile(entryNode.getFunctionName(), outdir);
     }
   }

@@ -30,7 +30,7 @@ public class CFloatImpl extends CFloat {
       ImmutableList.copyOf(
           new String[] {
             "-0.0", "-0", "-1", "0", "0.0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
-            "nan", "-nan", "inf", "-inf"
+            "nan", "-nan", "inf", "-inf",
           });
 
   /** The wrapper contains the exponent and significant (mantissa) of the {@link CFloat} instance */

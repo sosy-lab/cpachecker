@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.dca;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Verify.verify;
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.FluentIterable;
@@ -29,7 +27,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -148,11 +145,6 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
           "Skip the analysis (including the refinement) entirely, "
               + "so that the ARG is left unmodified. This is used for debugging purposes.")
   private boolean skipAnalysis = false;
-
-  @Option(
-      secure = true,
-      description = "If set to true, all infeasible dummy states will be kept in the ARG.")
-  private boolean keepInfeasibleStates = false;
 
   @Option(
       secure = true,
@@ -340,34 +332,6 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
     reached = pReached;
 
     logger.logf(Level.INFO, "Current iteration: %d", curRefinementIteration);
-
-    // The following states were already proven to be unsat when the reached-set was built.
-    // They can be safely removed from the ARG. This also includes all parents states that are both
-    // a target state and do not have more than one child-element.
-    ImmutableList<ARGState> infeasibleDummyStates =
-        from(pReached)
-            .filter(
-                x ->
-                    AbstractStates.extractStateByType(x, PredicateAbstractState.class)
-                        instanceof PredicateAbstractState.InfeasibleDummyState)
-            .filter(ARGState.class)
-            .toList();
-
-    if (!keepInfeasibleStates) {
-      logger.logf(
-          Level.INFO,
-          "Found %d unsat predicates while building the ARG. Removing them from it.",
-          infeasibleDummyStates.size());
-      for (ARGState state : infeasibleDummyStates) {
-        removeInfeasibleStatesFromARG(state);
-      }
-    } else {
-      logger.logf(
-          Level.INFO,
-          "Not removing any infeasible predicate dummy states. There are in total %d of such"
-              + " states",
-          infeasibleDummyStates.size());
-    }
 
     shutdownNotifier.shutdownIfNecessary();
     Set<StronglyConnectedComponent> SCCs =
@@ -577,16 +541,6 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
       ARGPath path = ARGUtils.getShortestPathTo(stateWithoutChildren);
       logger.logf(Level.INFO, "Path to last node: %s\n", lazyPrintNodes(path));
 
-      if (path.asStatesList().stream().anyMatch(infeasibleDummyStates::contains)) {
-        verify(keepInfeasibleStates);
-        logger.logf(
-            Level.INFO,
-            "Path contains a predicate dummy state that has already been proven "
-                + "infeasible. Not performing a refinement due to the option "
-                + " 'keepInfeasibleStates' being set.");
-        continue;
-      }
-
       List<PathFormula> pathFormulaList =
           SlicingAbstractionsUtils.getFormulasForPath(
               pathFormulaManager,
@@ -627,32 +581,6 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
     logger.log(Level.INFO, "Finished checking the simple paths for targetstates.");
 
     return false;
-  }
-
-  private void removeInfeasibleStatesFromARG(ARGState pState) {
-    verify(pState.getChildren().isEmpty());
-    Set<ARGState> states = new HashSet<>();
-    collectStatesToRemove(pState, states);
-    logger.logf(
-        Level.FINE,
-        "Removing %d trailing state(s) that have ended in an infeasible state",
-        states.size());
-    states.forEach(ARGState::removeFromARG);
-    reached.removeAll(states);
-  }
-
-  private void collectStatesToRemove(ARGState pState, Collection<ARGState> pStatesToRemove) {
-    Collection<ARGState> parents = pState.getParents();
-    verify(!parents.isEmpty());
-
-    pStatesToRemove.add(pState);
-
-    parents.stream()
-        // do not add parent-states to the removal list that have more than one child
-        .filter(x -> x.getChildren().size() == 1)
-        // if the state is a nontarget-state, there is no need to remove it from the reached-set
-        .filter(AbstractStates::isTargetState)
-        .forEach(x -> collectStatesToRemove(x, pStatesToRemove));
   }
 
   private boolean refineFinitePrefixes(ARGPath pPath, List<PathFormula> pPathFormulaList)

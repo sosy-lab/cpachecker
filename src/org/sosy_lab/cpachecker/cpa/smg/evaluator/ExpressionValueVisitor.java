@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -38,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -385,9 +385,8 @@ class ExpressionValueVisitor
               return singletonList(SMGValueAndState.of(newState, val));
 
             case MINUS:
-              if (lVal instanceof SMGKnownAddressValue && rVal instanceof SMGKnownAddressValue) {
-                SMGKnownAddressValue lValAddress = (SMGKnownAddressValue) lVal;
-                SMGKnownAddressValue rValAddress = (SMGKnownAddressValue) rVal;
+              if (lVal instanceof SMGKnownAddressValue lValAddress
+                  && rVal instanceof SMGKnownAddressValue rValAddress) {
                 if (lValAddress.getObject().equals(rValAddress.getObject())) {
                   CType lVarType = lVarInBinaryExp.getExpressionType().getCanonicalType();
                   final CType type;

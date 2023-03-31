@@ -87,7 +87,8 @@ public class PolicyIterationStatistics implements Statistics {
   private static class UpdateStats<T> {
     final T maxObject;
     final T minObject;
-    final int max, min;
+    final int max;
+    final int min;
     final double avg;
 
     UpdateStats(int pMax, int pMin, double pAvg, T pMaxObject, T pMinObject) {

@@ -165,14 +165,14 @@ public class FiducciaMattheysesAlgorithm {
     Map<Integer, Long> gain = new HashMap<>();
     Map<Integer, Boolean> lock = new HashMap<>();
 
-    /* Initialize all the stuff */
+    // Initialize all the stuff
     initDataStructures(v1, v1Buckets, gain, lock);
     initDataStructures(v2, v2Buckets, gain, lock);
     cutSizes.add(graph.getNumEdgesBetween(v1, v2));
     int iterationWithSmallestCutSize = 0;
     long smallestCutSize = cutSizes.getFirst();
 
-    /* Start algorithm */
+    // Start algorithm
     for (int i = 1; i < v1.size() + v2.size(); i++) {
       Optional<Pair<Long, TreeMap<Long, Deque<Integer>>>> gainAndBuckets =
           tryPickBestGain(v1Buckets, v2Buckets);
@@ -185,7 +185,7 @@ public class FiducciaMattheysesAlgorithm {
 
       updateNeighbors(node, v1Buckets, v2Buckets, gain, lock);
 
-      /* update log */
+      // update log
       long newCutSize = cutSizes.getLast() - g;
       assert (newCutSize >= 0);
 
@@ -197,7 +197,7 @@ public class FiducciaMattheysesAlgorithm {
       cutSizes.addLast(newCutSize);
     }
 
-    /* move nodes until best cut size reached */
+    // move nodes until best cut size reached
     int i = 1;
     for (int node : moved) {
       if (i > iterationWithSmallestCutSize) {

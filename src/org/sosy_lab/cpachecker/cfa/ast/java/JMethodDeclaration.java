@@ -35,7 +35,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  *       [ throws TypeName { , TypeName } ] ( Block | ; )
  * }</pre>
  */
-public class JMethodDeclaration extends AFunctionDeclaration implements JDeclaration {
+public sealed class JMethodDeclaration extends AFunctionDeclaration implements JDeclaration
+    permits JConstructorDeclaration {
 
   // TODO refactor to be either abstract or final
 

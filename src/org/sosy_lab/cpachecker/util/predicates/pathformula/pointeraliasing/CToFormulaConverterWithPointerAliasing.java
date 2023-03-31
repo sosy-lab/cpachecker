@@ -420,11 +420,40 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     Formula size;
     if (decayedType.isIncomplete()) {
       size = null;
-    } else if (decayedType instanceof CArrayType
-        && !((CArrayType) decayedType).getLengthAsInt().isPresent()) {
-      CArrayType arrayType = (CArrayType) decayedType;
+    } else {
+      size = getSizeExpression(decayedType, edge, function, ssa, pts, constraints, errorConditions);
+    }
+
+    if (CTypeUtils.containsArray(type, originalDeclaration)) {
+      pts.addNextBaseAddressConstraints(
+          declaration.getQualifiedName(), type, size, false, constraints);
+      pts.addBase(declaration.getQualifiedName(), type);
+
+    } else if (isAddressedVariable(declaration) || !CTypeUtils.isSimpleType(decayedType)) {
+      pts.addNextBaseAddressConstraints(
+          declaration.getQualifiedName(), type, size, false, constraints);
+      if (options.useConstraintOptimization()) {
+        pts.prepareBase(declaration.getQualifiedName(), type);
+      } else {
+        pts.addBase(declaration.getQualifiedName(), type);
+      }
+    }
+  }
+
+  private Formula getSizeExpression(
+      final CType type,
+      final CFAEdge edge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCodeException {
+    if (type instanceof CArrayType arrayType) {
       Formula elementSize =
-          fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(arrayType.getType()));
+          getSizeExpression(
+              arrayType.getType(), edge, function, ssa, pts, constraints, errorConditions);
+
       Formula elementCount =
           buildTerm(arrayType.getLength(), edge, function, ssa, pts, constraints, errorConditions);
       elementCount =
@@ -434,19 +463,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
               elementCount,
               constraints,
               edge);
-      size = fmgr.makeMultiply(elementSize, elementCount);
-    } else {
-      size = fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(decayedType));
-    }
 
-    if (CTypeUtils.containsArray(type, originalDeclaration)) {
-      pts.addBase(declaration.getQualifiedName(), type, size, constraints);
-    } else if (isAddressedVariable(declaration) || !CTypeUtils.isSimpleType(decayedType)) {
-      if (options.useConstraintOptimization()) {
-        pts.prepareBase(declaration.getQualifiedName(), type, size, constraints);
-      } else {
-        pts.addBase(declaration.getQualifiedName(), type, size, constraints);
-      }
+      return fmgr.makeMultiply(elementSize, elementCount);
+
+    } else {
+      return fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(type));
     }
   }
 
@@ -472,8 +493,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     assert !CTypeUtils.containsArrayOutsideFunctionParameter(baseType)
         : "Array access can't be encoded as a variable";
 
-    if (baseType instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) baseType;
+    if (baseType instanceof CCompositeType compositeType) {
       assert compositeType.getKind() != ComplexTypeKind.ENUM
           : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
@@ -609,8 +629,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
 
     checkIsSimplified(type);
-    if (type instanceof CArrayType) {
-      final CArrayType arrayType = (CArrayType) type;
+    if (type instanceof CArrayType arrayType) {
       final CType elementType = checkIsSimplified(arrayType.getType());
       final OptionalInt length = arrayType.getLengthAsInt();
       if (length.isPresent()) {
@@ -626,8 +645,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           expandAssignmentList(elementType, newLhs, alreadyAssigned, defaultAssignments);
         }
       }
-    } else if (type instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) type;
+    } else if (type instanceof CCompositeType compositeType) {
       if (compositeType.getKind() == ComplexTypeKind.UNION) {
         // If it is a union, we must make sure that the first member is initialized,
         // but only if none of the members appear in alreadyAssigned.
@@ -911,19 +929,13 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final CInitializer initializer = declaration.getInitializer();
 
     // Fixing unsized array declarations
-    if (declarationType instanceof CArrayType
-        && ((CArrayType) declarationType).getLength() == null) {
+    if (declarationType instanceof CArrayType arrayType && arrayType.getLength() == null) {
       final Integer actualLength;
-      if (initializer instanceof CInitializerList) {
-        actualLength = ((CInitializerList) initializer).getInitializers().size();
-      } else if (initializer instanceof CInitializerExpression
-          && ((CInitializerExpression) initializer).getExpression()
-              instanceof CStringLiteralExpression) {
-        actualLength =
-            ((CStringLiteralExpression) ((CInitializerExpression) initializer).getExpression())
-                    .getContentString()
-                    .length()
-                + 1;
+      if (initializer instanceof CInitializerList initList) {
+        actualLength = initList.getInitializers().size();
+      } else if (initializer instanceof CInitializerExpression initExp
+          && initExp.getExpression() instanceof CStringLiteralExpression initStringLiteral) {
+        actualLength = initStringLiteral.getContentString().length() + 1;
       } else {
         actualLength = null;
       }
@@ -933,10 +945,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
             new CArrayType(
                 declarationType.isConst(),
                 declarationType.isVolatile(),
-                ((CArrayType) declarationType).getType(),
+                arrayType.getType(),
                 new CIntegerLiteralExpression(
                     declaration.getFileLocation(),
-                    machineModel.getPointerDiffType(),
+                    machineModel.getSizeType(),
                     BigInteger.valueOf(actualLength)));
 
         declaration =
@@ -1149,10 +1161,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final BooleanFormula result =
         super.makeExitFunction(summaryEdge, calledFunction, ssa, pts, constraints, errorConditions);
 
-    DynamicMemoryHandler memoryHandler =
-        new DynamicMemoryHandler(
-            this, summaryEdge, ssa, pts, constraints, errorConditions, regionMgr);
-    memoryHandler.handleDeferredAllocationInFunctionExit(calledFunction);
+    if (options.revealAllocationTypeFromLHS() || options.deferUntypedAllocations()) {
+      DynamicMemoryHandler memoryHandler =
+          new DynamicMemoryHandler(
+              this, summaryEdge, ssa, pts, constraints, errorConditions, regionMgr);
+      memoryHandler.handleDeferredAllocationInFunctionExit(calledFunction);
+    }
 
     return result;
   }
@@ -1332,13 +1346,13 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   /** {@inheritDoc} */
   @Override
-  protected int getSizeof(CType pType) {
+  protected long getSizeof(CType pType) {
     return super.getSizeof(pType);
   }
 
   /** {@inheritDoc} */
   @Override
-  protected int getBitSizeof(CType pType) {
+  protected long getBitSizeof(CType pType) {
     return super.getBitSizeof(pType);
   }
 

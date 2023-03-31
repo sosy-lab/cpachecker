@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.graph.EndpointPair;
@@ -19,15 +20,15 @@ import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
 
 public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge> {
 
+  private final MutableNetwork<CFANode, CFAEdge> delegate;
+
   private CfaMutableNetwork(MutableNetwork<CFANode, CFAEdge> pDelegate) {
-    super(pDelegate);
+    delegate = checkNotNull(pDelegate);
   }
 
   /**
@@ -51,16 +52,11 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
     MutableNetwork<CFANode, CFAEdge> mutableNetwork =
         NetworkBuilder.directed().allowsSelfLoops(true).build();
 
-    for (CFANode cfaNode : pCfa.getAllNodes()) {
+    for (CFANode cfaNode : pCfa.nodes()) {
       mutableNetwork.addNode(cfaNode);
-      if (cfaNode instanceof FunctionEntryNode) {
-        // unreachable FunctionExitNodes are not in the set returned by getAllNodes
-        FunctionExitNode functionExitNode = ((FunctionEntryNode) cfaNode).getExitNode();
-        mutableNetwork.addNode(functionExitNode);
-      }
     }
 
-    for (CFANode predecessor : pCfa.getAllNodes()) {
+    for (CFANode predecessor : pCfa.nodes()) {
       for (CFAEdge cfaEdge : CFAUtils.allLeavingEdges(predecessor)) {
         CFANode successor = cfaEdge.getSuccessor();
         boolean edgeAdded = mutableNetwork.addEdge(predecessor, successor, cfaEdge);
@@ -69,6 +65,11 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
     }
 
     return new CfaMutableNetwork(mutableNetwork);
+  }
+
+  @Override
+  protected MutableNetwork<CFANode, CFAEdge> delegate() {
+    return delegate;
   }
 
   /**

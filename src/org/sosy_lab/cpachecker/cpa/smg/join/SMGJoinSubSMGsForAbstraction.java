@@ -63,8 +63,7 @@ public final class SMGJoinSubSMGsForAbstraction {
     SMGEdgeHasValue prevObj2hve = null;
     SMGEdgeHasValue nextObj2hve = null;
 
-    if (pListCandidate instanceof SMGDoublyLinkedListCandidate) {
-      SMGDoublyLinkedListCandidate dllc = (SMGDoublyLinkedListCandidate) pListCandidate;
+    if (pListCandidate instanceof SMGDoublyLinkedListCandidate dllc) {
       nfo = dllc.getShape().getNfo();
       pfo = dllc.getShape().getPfo();
       hfo = dllc.getShape().getHfo();

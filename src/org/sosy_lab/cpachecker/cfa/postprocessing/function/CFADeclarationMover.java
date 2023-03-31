@@ -48,7 +48,7 @@ public class CFADeclarationMover {
   }
 
   public void moveDeclarationsToFunctionStart(MutableCFA cfa) {
-    Collection<FunctionEntryNode> startNodes = cfa.getAllFunctionHeads();
+    Collection<FunctionEntryNode> startNodes = cfa.entryNodes();
     for (FunctionEntryNode node : startNodes) {
       handleDeclarationsInFunction(node, cfa);
     }

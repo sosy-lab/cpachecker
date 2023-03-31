@@ -276,10 +276,7 @@ public final class CTypes {
       return false;
     }
 
-    if (pTypeA instanceof CPointerType && pTypeB instanceof CPointerType) {
-      CPointerType pointerA = ((CPointerType) pTypeA);
-      CPointerType pointerB = ((CPointerType) pTypeB);
-
+    if (pTypeA instanceof CPointerType pointerA && pTypeB instanceof CPointerType pointerB) {
       // Cf. C-Standard §6.7.6.1 (2), compatible pointers shall point to compatible types.
       return areTypesCompatible(pointerA.getType(), pointerB.getType());
     }
@@ -298,35 +295,28 @@ public final class CTypes {
       return pTypeA.getCanonicalType().equals(basicSignedInt.getCanonicalType());
     }
 
-    if (pTypeA instanceof CArrayType && pTypeB instanceof CArrayType) {
-      CArrayType arrayA = (CArrayType) pTypeA;
-      CArrayType arrayB = (CArrayType) pTypeB;
-
+    if ((pTypeA instanceof CArrayType arrayA && pTypeB instanceof CArrayType arrayB)
+        && areTypesCompatible(arrayA.getType(), arrayB.getType())) {
       // Cf. C-Standard §6.7.6.2 (6).
-      if (areTypesCompatible(arrayA.getType(), arrayB.getType())) {
-        OptionalInt lengthA = arrayA.getLengthAsInt();
-        OptionalInt lengthB = arrayB.getLengthAsInt();
+      OptionalInt lengthA = arrayA.getLengthAsInt();
+      OptionalInt lengthB = arrayB.getLengthAsInt();
 
-        if (lengthA.isPresent() && lengthB.isPresent()) {
-          if (lengthA.orElseThrow() == lengthB.orElseThrow()) {
-            return true;
-          }
-        } else {
-          // In this case we only get defined behavior,
-          // if the size specifiers of both array types
-          // evaluate to the same value.
-          // According to the standard they are compatible
-          // nonetheless.
+      if (lengthA.isPresent() && lengthB.isPresent()) {
+        if (lengthA.orElseThrow() == lengthB.orElseThrow()) {
           return true;
         }
+      } else {
+        // In this case we only get defined behavior,
+        // if the size specifiers of both array types
+        // evaluate to the same value.
+        // According to the standard they are compatible
+        // nonetheless.
+        return true;
       }
     }
 
     // Cf. C-Standard 6.7.6.3 (15)
-    if (pTypeA instanceof CFunctionType && pTypeB instanceof CFunctionType) {
-      CFunctionType functionA = (CFunctionType) pTypeA;
-      CFunctionType functionB = (CFunctionType) pTypeB;
-
+    if (pTypeA instanceof CFunctionType functionA && pTypeB instanceof CFunctionType functionB) {
       if (!areTypesCompatible(functionA.getReturnType(), functionB.getReturnType())) {
         return false;
       }
@@ -456,7 +446,12 @@ public final class CTypes {
     @Override
     public CEnumType visit(CEnumType t) {
       return new CEnumType(
-          constValue, t.isVolatile(), t.getEnumerators(), t.getName(), t.getOrigName());
+          constValue,
+          t.isVolatile(),
+          t.getCompatibleType(),
+          t.getEnumerators(),
+          t.getName(),
+          t.getOrigName());
     }
 
     @Override
@@ -539,7 +534,12 @@ public final class CTypes {
     @Override
     public CEnumType visit(CEnumType t) {
       return new CEnumType(
-          t.isConst(), volatileValue, t.getEnumerators(), t.getName(), t.getOrigName());
+          t.isConst(),
+          volatileValue,
+          t.getCompatibleType(),
+          t.getEnumerators(),
+          t.getName(),
+          t.getOrigName());
     }
 
     @Override

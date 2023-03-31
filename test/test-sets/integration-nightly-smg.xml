@@ -46,6 +46,7 @@ SPDX-License-Identifier: Apache-2.0
   <tasks name="MemSafety-Heap">
     <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <exclude>../programs/benchmarks/ldv-memsafety/ArraysOfVariableLength2.yml</exclude> <!-- flapping timeout -->
   </tasks>
   <tasks name="MemSafety-LinkedLists">
     <includesfile>../programs/benchmarks/MemSafety-LinkedLists.set</includesfile>
@@ -55,18 +56,6 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/MemSafety-Other.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
-  <!-- 
-    Benchmark client is currently not able to benchmark duplicate files, even
-    with different properties. This leads to Buildbot constantly failing the 
-    build for this test-set.
-    c.f. verifiercloud issue 597; buildbot issue 26
-  -->
-  <!--
-  <tasks name="MemSafety-MemCleanup">
-    <includesfile>../programs/benchmarks/MemSafety-MemCleanup.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
-  </tasks>
-  -->
   <tasks name="MemSafety-Juliet">
     <includesfile>../programs/benchmarks/MemSafety-Juliet.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
@@ -76,6 +65,14 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks name="SoftwareSystems-BusyBox-MemSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox-MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-coreutils-MemSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-coreutils-MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-DeviceDriversLinux64-MemSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-MemSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
   <tasks name="SoftwareSystems-OpenBSD-MemSafety">

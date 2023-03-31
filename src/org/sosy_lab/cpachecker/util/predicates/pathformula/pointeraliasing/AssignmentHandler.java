@@ -17,6 +17,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.primitives.Ints;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -198,8 +199,7 @@ class AssignmentHandler {
         makeDestructiveAssignment(
             lhsType, rhsType, lhsLocation, rhsExpression, useOldSSAIndices, updatedRegions);
 
-    if (lhsLocation.isUnaliasedLocation() && lhs instanceof CFieldReference) {
-      CFieldReference fieldReference = (CFieldReference) lhs;
+    if (lhsLocation.isUnaliasedLocation() && lhs instanceof CFieldReference fieldReference) {
       CExpression fieldOwner = fieldReference.getFieldOwner();
       CType ownerType = typeHandler.getSimplifiedType(fieldOwner);
       if (!fieldReference.isPointerDereference() && ownerType instanceof CCompositeType) {
@@ -213,8 +213,7 @@ class AssignmentHandler {
               updatedRegions,
               fieldReference);
         }
-        if (fieldOwner instanceof CFieldReference) {
-          CFieldReference owner = (CFieldReference) fieldOwner;
+        if (fieldOwner instanceof CFieldReference owner) {
           CType ownersOwnerType = typeHandler.getSimplifiedType(owner.getFieldOwner());
           if (ownersOwnerType instanceof CCompositeType
               && ((CCompositeType) ownersOwnerType).getKind() == ComplexTypeKind.UNION) {
@@ -341,7 +340,7 @@ class AssignmentHandler {
       throws UnrecognizedCodeException, InterruptedException {
 
     assert !pAssignments.isEmpty()
-        : "Cannot handle initialization assignments without an " + "assignment right hand side.";
+        : "Cannot handle initialization assignments without an assignment right hand side.";
 
     final CType lhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getLeftHandSide());
     final CType rhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getRightHandSide());
@@ -487,8 +486,7 @@ class AssignmentHandler {
       return makeDestructiveArrayAssignment(
           (CArrayType) lvalueType, rvalueType, lvalue, rvalue, useOldSSAIndices, updatedRegions);
 
-    } else if (lvalueType instanceof CCompositeType) {
-      final CCompositeType lvalueCompositeType = (CCompositeType) lvalueType;
+    } else if (lvalueType instanceof CCompositeType lvalueCompositeType) {
       return makeDestructiveCompositeAssignment(
           lvalueCompositeType, rvalueType, lvalue, rvalue, useOldSSAIndices, updatedRegions);
 
@@ -555,7 +553,7 @@ class AssignmentHandler {
     }
 
     BooleanFormula result = bfmgr.makeTrue();
-    int offset = 0;
+    long offset = 0;
     for (int i = 0; i < length; ++i) {
       final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
       final AliasedLocation newLvalue =
@@ -892,13 +890,13 @@ class AssignmentHandler {
       // struct
       if (((CCompositeType) rhsType).getKind() == ComplexTypeKind.STRUCT) {
         CExpressionVisitorWithPointerAliasing expVisitor = newExpressionVisitor();
-        int offset = 0;
-        int targetSize = typeHandler.getBitSizeof(newLhsType);
+        long offset = 0;
+        int targetSize = Ints.checkedCast(typeHandler.getBitSizeof(newLhsType));
         Formula rhsFormula = null;
 
         for (CCompositeTypeMemberDeclaration innerMember :
             ((CCompositeType) rhsType).getMembers()) {
-          int innerMemberSize = typeHandler.getBitSizeof(innerMember.getType());
+          int innerMemberSize = Ints.checkedCast(typeHandler.getBitSizeof(innerMember.getType()));
 
           CExpression innerMemberFieldReference =
               new CFieldReference(
@@ -984,19 +982,21 @@ class AssignmentHandler {
     final CCompositeType memberType = newLhsType;
     // newLhs is a CFieldReference to member:
     final CExpression memberCFieldReference = newLhs;
-    final int rhsSize = typeHandler.getBitSizeof(rhsType);
+    final int rhsSize = Ints.checkedCast(typeHandler.getBitSizeof(rhsType));
 
     // for each innerMember of member we need to add a (destructive!) constraint like:
     // union.member.innerMember := treatAsMemberTypeAndExtractInnerMemberValue(rhsExpression);
     for (CCompositeTypeMemberDeclaration innerMember : memberType.getMembers()) {
-      int fieldOffset = (int) typeHandler.getBitOffset(memberType, innerMember);
+      int fieldOffset = Ints.checkedCast(typeHandler.getBitOffset(memberType, innerMember));
       if (fieldOffset >= rhsSize) {
         // nothing to fill anymore
         break;
       }
       // don't try later to extract a too big chunk of bits
       int fieldSize =
-          Math.min(typeHandler.getBitSizeof(innerMember.getType()), rhsSize - fieldOffset);
+          Math.min(
+              Ints.checkedCast(typeHandler.getBitSizeof(innerMember.getType())),
+              rhsSize - fieldOffset);
       assert fieldSize > 0;
       int startIndex = fieldOffset;
       int endIndex = fieldOffset + fieldSize - 1;
@@ -1066,7 +1066,7 @@ class AssignmentHandler {
     assert !options.useArraysForHeap();
 
     checkIsSimplified(lvalueType);
-    final int size = conv.getSizeof(lvalueType);
+    final long size = conv.getSizeof(lvalueType);
 
     if (options.useQuantifiersOnArrays()) {
       addRetentionConstraintsWithQuantifiers(
@@ -1087,7 +1087,7 @@ class AssignmentHandler {
       final CType lvalueType,
       final PointerTargetPattern pattern,
       final Formula startAddress,
-      final int size,
+      final long size,
       final Set<MemoryRegion> regions) {
 
     for (final MemoryRegion region : regions) {
@@ -1132,7 +1132,7 @@ class AssignmentHandler {
       CType lvalueType,
       final PointerTargetPattern pattern,
       final Formula startAddress,
-      final int size,
+      final long size,
       final Set<MemoryRegion> regionsToRetain)
       throws InterruptedException {
 
@@ -1239,7 +1239,7 @@ class AssignmentHandler {
       final PointerTargetPattern pattern,
       final MemoryRegion firstElementRegion,
       final Formula startAddress,
-      final int size,
+      final long size,
       final Set<MemoryRegion> regions)
       throws InterruptedException {
     for (final PointerTarget target : pts.getMatchingTargets(firstElementRegion, pattern)) {
@@ -1263,7 +1263,7 @@ class AssignmentHandler {
    * written memory region. For every heap cell we add a conditional constraint to retain it.
    */
   private void addInexactRetentionConstraints(
-      final Formula startAddress, final int size, final Set<MemoryRegion> regions)
+      final Formula startAddress, final long size, final Set<MemoryRegion> regions)
       throws InterruptedException {
     makeRetentionConstraints(
         regions,

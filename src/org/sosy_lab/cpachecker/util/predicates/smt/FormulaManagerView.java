@@ -53,7 +53,6 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceIntegerWithBitvectorTheory.ReplaceIntegerEncodingOptions;
@@ -286,31 +285,24 @@ public class FormulaManagerView {
     }
     BitvectorFormulaManager rawBvmgr;
     try {
-      switch (encodeBitvectorAs) {
-        case BITVECTOR:
-          rawBvmgr = manager.getBitvectorFormulaManager();
-          break;
-        case INTEGER:
-          rawBvmgr =
-              new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
-                  wrappingHandler,
-                  manager.getBooleanFormulaManager(),
-                  manager.getIntegerFormulaManager(),
-                  manager.getUFManager(),
-                  config);
-          break;
-        case RATIONAL:
-          rawBvmgr =
-              new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
-                  wrappingHandler,
-                  manager.getBooleanFormulaManager(),
-                  manager.getRationalFormulaManager(),
-                  manager.getUFManager(),
-                  config);
-          break;
-        default:
-          throw new AssertionError("unexpected encoding for bitvectors: " + encodeBitvectorAs);
-      }
+      rawBvmgr =
+          switch (encodeBitvectorAs) {
+            case BITVECTOR -> manager.getBitvectorFormulaManager();
+            case INTEGER -> new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+                wrappingHandler,
+                manager.getBooleanFormulaManager(),
+                manager.getIntegerFormulaManager(),
+                manager.getUFManager(),
+                config);
+            case RATIONAL -> new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+                wrappingHandler,
+                manager.getBooleanFormulaManager(),
+                manager.getRationalFormulaManager(),
+                manager.getUFManager(),
+                config);
+            default -> throw new AssertionError(
+                "unexpected encoding for bitvectors: " + encodeBitvectorAs);
+          };
     } catch (UnsupportedOperationException e) {
       throw new InvalidConfigurationException(
           "The chosen SMT solver does not support the theory of "
@@ -336,29 +328,22 @@ public class FormulaManagerView {
     }
     FloatingPointFormulaManager rawFpmgr;
     try {
-      switch (encodeFloatAs) {
-        case FLOAT:
-          rawFpmgr = manager.getFloatingPointFormulaManager();
-          break;
-        case INTEGER:
-          rawFpmgr =
-              new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-                  wrappingHandler,
-                  manager.getIntegerFormulaManager(),
-                  manager.getUFManager(),
-                  manager.getBooleanFormulaManager());
-          break;
-        case RATIONAL:
-          rawFpmgr =
-              new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-                  wrappingHandler,
-                  manager.getRationalFormulaManager(),
-                  manager.getUFManager(),
-                  manager.getBooleanFormulaManager());
-          break;
-        default:
-          throw new AssertionError("unexpected encoding for floating points: " + encodeFloatAs);
-      }
+      rawFpmgr =
+          switch (encodeFloatAs) {
+            case FLOAT -> manager.getFloatingPointFormulaManager();
+            case INTEGER -> new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
+                wrappingHandler,
+                manager.getIntegerFormulaManager(),
+                manager.getUFManager(),
+                manager.getBooleanFormulaManager());
+            case RATIONAL -> new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
+                wrappingHandler,
+                manager.getRationalFormulaManager(),
+                manager.getUFManager(),
+                manager.getBooleanFormulaManager());
+            default -> throw new AssertionError(
+                "unexpected encoding for floating points: " + encodeFloatAs);
+          };
     } catch (UnsupportedOperationException e) {
       throw new InvalidConfigurationException(
           "The chosen SMT solver does not support the theory of "
@@ -381,21 +366,17 @@ public class FormulaManagerView {
     }
     IntegerFormulaManager rawImgr;
     try {
-      switch (encodeIntegerAs) {
-        case INTEGER:
-          rawImgr = manager.getIntegerFormulaManager();
-          break;
-        case BITVECTOR:
-          rawImgr =
-              new ReplaceIntegerWithBitvectorTheory(
-                  wrappingHandler,
-                  manager.getBitvectorFormulaManager(),
-                  manager.getBooleanFormulaManager(),
-                  pIntegerOptions);
-          break;
-        default:
-          throw new AssertionError("unexpected encoding for plain integers: " + encodeIntegerAs);
-      }
+      rawImgr =
+          switch (encodeIntegerAs) {
+            case INTEGER -> manager.getIntegerFormulaManager();
+            case BITVECTOR -> new ReplaceIntegerWithBitvectorTheory(
+                wrappingHandler,
+                manager.getBitvectorFormulaManager(),
+                manager.getBooleanFormulaManager(),
+                pIntegerOptions);
+            default -> throw new AssertionError(
+                "unexpected encoding for plain integers: " + encodeIntegerAs);
+          };
     } catch (UnsupportedOperationException e) {
       throw new InvalidConfigurationException(
           "The chosen SMT solver does not support the theory of "
@@ -981,7 +962,7 @@ public class FormulaManagerView {
    * @return A BooleanFormula representing a constraint about term.
    */
   public <T extends Formula> BooleanFormula makeElementIndexConstraint(
-      T term, T start, int length, boolean signed) {
+      T term, T start, long length, boolean signed) {
     FormulaType<T> type = getFormulaType(start);
     T end = makePlus(start, makeNumber(type, length));
     return booleanFormulaManager.and(
@@ -1819,22 +1800,24 @@ public class FormulaManagerView {
         .exists(ImmutableList.copyOf(irrelevantVariables.values()), pF);
   }
 
+  public record IfThenElseParts<T>(BooleanFormula condition, T thenBranch, T elseBranch) {}
+
   /**
    * Split boolean or non-boolean if-then-else formula into three parts: if, then, else. Return an
    * empty optional for input which does not have if-then-else as an input element.
    */
-  public <T extends Formula> Optional<Triple<BooleanFormula, T, T>> splitIfThenElse(final T pF) {
+  public <T extends Formula> Optional<IfThenElseParts<T>> splitIfThenElse(final T pF) {
     return visit(
         pF,
-        new DefaultFormulaVisitor<Optional<Triple<BooleanFormula, T, T>>>() {
+        new DefaultFormulaVisitor<Optional<IfThenElseParts<T>>>() {
 
           @Override
-          protected Optional<Triple<BooleanFormula, T, T>> visitDefault(Formula f) {
+          protected Optional<IfThenElseParts<T>> visitDefault(Formula f) {
             return Optional.empty();
           }
 
           @Override
-          public Optional<Triple<BooleanFormula, T, T>> visitFunction(
+          public Optional<IfThenElseParts<T>> visitFunction(
               Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
             if (functionDeclaration.getKind() == FunctionDeclarationKind.ITE) {
               assert args.size() == 3;
@@ -1843,7 +1826,8 @@ public class FormulaManagerView {
               Formula elseBranch = args.get(2);
               FormulaType<T> targetType = getFormulaType(pF);
               return Optional.of(
-                  Triple.of(cond, wrap(targetType, thenBranch), wrap(targetType, elseBranch)));
+                  new IfThenElseParts<>(
+                      cond, wrap(targetType, thenBranch), wrap(targetType, elseBranch)));
             }
             return Optional.empty();
           }

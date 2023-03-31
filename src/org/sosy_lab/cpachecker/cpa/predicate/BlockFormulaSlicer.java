@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -316,58 +315,33 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
 
   /** This function only forwards to the correct type of edge. */
   private boolean handleEdge(CFAEdge edge, Collection<String> importantVars) {
-
-    final boolean result;
     // check the type of the edge
-    switch (edge.getEdgeType()) {
-
-        // int a;
-      case DeclarationEdge:
-        result = handleDeclaration((CDeclarationEdge) edge, importantVars);
-        break;
-
-        // if (a == b) {...}
-      case AssumeEdge:
-        result = handleAssumption((CAssumeEdge) edge, importantVars);
-        break;
-
-        // a = b + c;
-      case StatementEdge:
-        result = handleStatement((CStatementEdge) edge, importantVars);
-        break;
-
-        // return (x);
-      case ReturnStatementEdge:
-        result = handleReturnStatement((CReturnStatementEdge) edge, importantVars);
-        break;
-
-        // assignment from y = f(x);
-      case FunctionReturnEdge:
-        result = handleFunctionReturn((CFunctionReturnEdge) edge, importantVars);
-        break;
-
-        // call from y = f(x);
-      case FunctionCallEdge:
-        result = handleFunctionCall((CFunctionCallEdge) edge, importantVars);
-        break;
-
-      case BlankEdge:
-        result = IS_BLANK_EDGE_IMPORTANT;
-        break;
-
-      default:
-        throw new AssertionError("unhandled edge: " + edge.getRawStatement());
-    }
-
+    final boolean result =
+        switch (edge.getEdgeType()) {
+            // int a;
+          case DeclarationEdge -> handleDeclaration((CDeclarationEdge) edge, importantVars);
+            // if (a == b) {...}
+          case AssumeEdge -> handleAssumption((CAssumeEdge) edge, importantVars);
+            // a = b + c;
+          case StatementEdge -> handleStatement((CStatementEdge) edge, importantVars);
+            // return (x);
+          case ReturnStatementEdge -> handleReturnStatement(
+              (CReturnStatementEdge) edge, importantVars);
+            // assignment from y = f(x);
+          case FunctionReturnEdge -> handleFunctionReturn(
+              (CFunctionReturnEdge) edge, importantVars);
+            // call from y = f(x);
+          case FunctionCallEdge -> handleFunctionCall((CFunctionCallEdge) edge, importantVars);
+          case BlankEdge -> IS_BLANK_EDGE_IMPORTANT;
+          default -> throw new AssertionError("unhandled edge: " + edge.getRawStatement());
+        };
     return result;
   }
 
   private boolean handleDeclaration(CDeclarationEdge edge, Collection<String> importantVars) {
     final CDeclaration decl = edge.getDeclaration();
 
-    if (decl instanceof CVariableDeclaration) {
-      final CVariableDeclaration vdecl = (CVariableDeclaration) decl;
-
+    if (decl instanceof CVariableDeclaration vdecl) {
       if (importantVars.remove(vdecl.getQualifiedName())) {
         final CInitializer initializer = vdecl.getInitializer();
         if (initializer instanceof CInitializerExpression) {
@@ -394,18 +368,17 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   private boolean handleStatement(CStatementEdge edge, Collection<String> importantVars) {
     final AStatement statement = edge.getStatement();
 
-    // expression is an assignment operation, e.g. a = b;
     if (statement instanceof CAssignment) {
+      // expression is an assignment operation, e.g. a = b;
       return handleAssignment((CAssignment) statement, importantVars);
-    }
 
-    // call of external function, "scanf(...)" without assignment
-    // internal functioncalls are handled as FunctionCallEdges
-    else if (statement instanceof CFunctionCallStatement) {
+    } else if (statement instanceof CFunctionCallStatement) {
+      // call of external function, "scanf(...)" without assignment
+      // internal functioncalls are handled as FunctionCallEdges
       return true;
 
-      // "exp;" -> nothing to do?
     } else if (statement instanceof CExpressionStatement) {
+      // "exp;" -> nothing to do?
       return false;
 
     } else {
@@ -466,12 +439,10 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   private boolean handleFunctionReturn(CFunctionReturnEdge edge, Collection<String> importantVars) {
 
     // set result of function equal to variable on left side
-    CFunctionSummaryEdge fnkCall = edge.getSummaryEdge();
-    CFunctionCall call = fnkCall.getExpression();
+    CFunctionCall call = edge.getFunctionCall();
 
     // handle assignments like "y = f(x);"
-    if (call instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) call;
+    if (call instanceof CFunctionCallAssignmentStatement cAssignment) {
       CExpression lhs = cAssignment.getLeftHandSide();
       if (lhs instanceof CIdExpression) {
         if (importantVars.remove(((CIdExpression) lhs).getDeclaration().getQualifiedName())) {

@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -127,7 +128,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         {
           final String calledFunction = predFunction;
           final String callerFunction = succFunction;
-          final CFANode callNode = succ.getEnteringSummaryEdge().getPredecessor();
+          final CFANode callNode = ((FunctionReturnEdge) pEdge).getCallNode();
           final CallstackState returnElement;
 
           assert calledFunction.equals(e.getCurrentFunction())
@@ -278,7 +279,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
   protected boolean hasVoidRecursion(
       final CallstackState element, final FunctionCallEdge pCallEdge) {
-    if (pCallEdge.getSummaryEdge().getExpression() instanceof AFunctionCallStatement) {
+    if (pCallEdge.getFunctionCall() instanceof AFunctionCallStatement) {
       return true;
     }
 
