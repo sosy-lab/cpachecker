@@ -52,6 +52,9 @@ public class MicroBenchmarking implements Algorithm {
       description = "Number of iterations for each algorithm/program combination. Defaults to 10.")
   private int numExecutions = 22;
 
+  @Option(secure = true, description = "Size of rows and columns for micro benchmarking matrix")
+  private int sizeMatrixRowCol = 50;
+
   @Option(
     secure = true,
     required = true,
@@ -93,16 +96,14 @@ public class MicroBenchmarking implements Algorithm {
 
       Map<String, List<ConfigProgramExecutions>> benchmarkTimes = new HashMap<>();
 
-
+      int[][] firstMatrix = generateRandomMatrix();
+      int[][] secondMatrix = generateRandomMatrix();
+      int m = firstMatrix.length;
+      int n = firstMatrix[0].length;
+      int[][] C = new int[m][n];
 
       List<BenchmarkExecutionRun> runTimes = new ArrayList<>();
       for (int exec = 0; exec < numExecutions; exec++) {
-
-        int[][] firstMatrix = generateRandomMatrix();
-        int[][] secondMatrix = generateRandomMatrix();
-        int m = firstMatrix.length;
-        int n = firstMatrix[0].length;
-        int[][] C = new int[m][n];
 
         long startTime = ticker.read();
 
@@ -179,11 +180,11 @@ public class MicroBenchmarking implements Algorithm {
   }
 
   private int[][] generateRandomMatrix() {
-    int[][] matrix = new int[50][50];
+    int[][] matrix = new int[sizeMatrixRowCol][sizeMatrixRowCol];
     Random random = new Random();
 
-    for (int i = 0; i < 50; i++) {
-      for (int j = 0; j < 50; j++) {
+    for (int i = 0; i < sizeMatrixRowCol; i++) {
+      for (int j = 0; j < sizeMatrixRowCol; j++) {
         matrix[i][j] = random.nextInt();
       }
     }
