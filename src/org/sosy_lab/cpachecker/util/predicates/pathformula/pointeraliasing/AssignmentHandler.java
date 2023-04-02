@@ -384,7 +384,7 @@ class AssignmentHandler {
 
   sealed interface ArraySliceRhs
       permits ArraySliceExpressionRhs, ArraySliceCallRhs, ArraySliceNondetRhs {
-    @Nullable CRightHandSide getDummyResolved(CType sizeType);
+    CType getType(CType targetType, CType sizeType);
   }
 
   record ArraySliceExpressionRhs(ArraySliceExpression expression) implements ArraySliceRhs {
@@ -394,9 +394,9 @@ class AssignmentHandler {
     }
 
     @Override
-    public CRightHandSide getDummyResolved(CType sizeType) {
-      // return dummy resolved
-      return expression.getDummyResolvedExpression(sizeType);
+    public CType getType(CType targetType, CType sizeType) {
+      // TODO Auto-generated method stub
+      return expression.getResolvedExpressionType(sizeType);
     }
   }
 
@@ -407,19 +407,16 @@ class AssignmentHandler {
     }
 
     @Override
-    public CRightHandSide getDummyResolved(CType sizeType) {
-      // there is no resolving to be done, just return the call
-      return call;
+    public CType getType(CType targetType, CType sizeType) {
+      return call.getExpressionType();
     }
+
   }
 
   record ArraySliceNondetRhs() implements ArraySliceRhs {
-    ArraySliceNondetRhs() {}
-
     @Override
-    public @Nullable CRightHandSide getDummyResolved(CType sizeType) {
-      // there is no right-hand side, return null
-      return null;
+    public CType getType(CType targetType, CType sizeType) {
+      return targetType;
     }
   }
 
@@ -510,60 +507,26 @@ class AssignmentHandler {
     List<ArraySliceAssignment> appliedHavocAssignments = new ArrayList<>();
     if (conv.options.useHavocAbstraction()) {
       for (ArraySliceAssignment assignment : assignments) {
-        // the Havoc relevant visitor does not care about the value of subscripts, we can
-        // just convert to dummy resolved expression and test with it
-        @Nullable CRightHandSide dummyResolvedRhs = assignment.rhs.getDummyResolved(sizeType);
-
-        if (dummyResolvedRhs == null || dummyResolvedRhs.accept(new IsRelevantWithHavocAbstractionVisitor(conv))) {
-          // either already nondeterministic or relevant, retain
-          appliedHavocAssignments.add(assignment);
-        } else {
-          // make rhs nondeterministic
-          appliedHavocAssignments.add(
-              new ArraySliceAssignment(
-                  assignment.lhs,
-                  new ArraySliceNondetRhs()));
+        ArraySliceAssignment appliedHavocAssignment = assignment;
+        // function call rhs are always relevant
+        // nondet rhs can be always retained
+        // only expression rhs have to be tested
+        if (assignment.rhs instanceof ArraySliceExpressionRhs expressionRhs) {
+          // the Havoc relevant visitor does not care about subscripts and fields,
+          // we can just test for relevancy of the base
+          if (expressionRhs
+              .expression
+              .getBaseExpression()
+              .accept(new IsRelevantWithHavocAbstractionVisitor(conv))) {
+            // make nondet
+            appliedHavocAssignment =
+                new ArraySliceAssignment(assignment.lhs, new ArraySliceNondetRhs());
+          }
         }
-          continue;
+        appliedHavocAssignments.add(appliedHavocAssignment);
       }
     } else {
       appliedHavocAssignments.addAll(assignments);
-    }
-
-    // apply the deferred memory handler: if there is a malloc with void* type, the allocation can
-    // be deferred until the assignment that uses the value; the allocation type can then be
-    // inferred from assignment lhs type
-    if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
-
-      DynamicMemoryHandler memoryHandler =
-          new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
-
-
-
-      for (ArraySliceAssignment assignment : assignments) {
-        // the memory handler does not care about the value of subscripts, we can use dummy
-        // resolutions, visit them, and get the learned pointer types
-        final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
-        final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
-        // we do not need the lhs expression, but need the visitor that has visited it
-        CExpression dummyResolvedLhs = assignment.lhs.getDummyResolvedExpression(sizeType);
-        dummyResolvedLhs.accept(lhsVisitor);
-        final @Nullable CRightHandSide dummyResolvedRhs = assignment.rhs.getDummyResolved(sizeType);
-        // the dynamic memory handler expects null CExpression and nondet Expression on nondet rhs
-        final Expression rhsExpression = dummyResolvedRhs != null ? dummyResolvedRhs.accept(rhsVisitor) : Value.nondetValue();
-
-        final Map<String, CType> lhsLearnedPointerTypes = lhsVisitor.getLearnedPointerTypes();
-        final Map<String, CType> rhsLearnedPointerTypes = lhsVisitor.getLearnedPointerTypes();
-
-        // we have everything we need, call memory handler
-        memoryHandler.handleDeferredAllocationsInAssignment(
-            (CLeftHandSide) dummyResolvedLhs,
-            dummyResolvedRhs,
-            rhsExpression,
-            typeHandler.getSimplifiedType(dummyResolvedLhs),
-            lhsLearnedPointerTypes,
-            rhsLearnedPointerTypes);
-      }
     }
 
     // generate simple slice assignments to resolve assignments to structures and arrays
@@ -670,6 +633,7 @@ class AssignmentHandler {
     CType lhsType =
         typeHandler.simplifyType(assignment.lhs.actual.getResolvedExpressionType(sizeType));
 
+
     boolean rhsIsExpression = assignment.rhs.actual instanceof ArraySliceExpressionRhs;
     boolean rhsIsNondet = assignment.rhs.actual instanceof ArraySliceNondetRhs;
 
@@ -707,8 +671,10 @@ class AssignmentHandler {
 
         if (originalSpan.lhsBitOffset == originalSpan.rhsBitOffset
             && ((rhsIsExpression
-                    && typeHandler
-                        .getSimplifiedType(assignment.rhs.actual.getDummyResolved(sizeType))
+                    && assignment
+                        .rhs
+                        .actual
+                        .getType(assignment.lhs.targetType, sizeType)
                         .equals(lhsType))
                 || rhsIsNondet)) {
 
@@ -781,12 +747,10 @@ class AssignmentHandler {
       }
 
       if (rhsIsExpression) {
-        CType rhsType =
-            typeHandler.getSimplifiedType(assignment.rhs.actual.getDummyResolved(sizeType));
+        CType rhsType = assignment.rhs.actual.getType(assignment.lhs.targetType, sizeType);
         if (!lhsType.equals(rhsType)) {
-          // we currently do not assign to array types from different types as that would ideally
-          // require spans
-          // to support quantification, which would be problematic
+          // we currently do not assign to array types from different types as that would
+          // require spans to support quantification, which would be problematic
           // it should be only required for cases of unions containing arrays
           conv.logger.logfOnce(
               Level.WARNING,
@@ -858,14 +822,23 @@ class AssignmentHandler {
 
     // no union handling here now
 
+    boolean canUseQuantifiers = true;
+
     Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap = LinkedHashMultimap.create();
     for (ArraySliceSpanAssignment assignment : assignments) {
       assignmentMultimap.put(assignment.lhs, assignment.rhs);
+      if (assignment.rhs.actual instanceof ArraySliceCallRhs) {
+        // call rhs precludes using quantifiers, as the call cannot be handled
+        // in dynamic memory handler
+        // this overrides even forcing quantifiers in assignment options
+        canUseQuantifiers = false;
+      }
     }
 
     // hand off the span assignments
 
-    if (options.useQuantifiersOnArrays() || assignmentOptions.forceQuantifiers) {
+    if (canUseQuantifiers
+        && (options.useQuantifiersOnArrays() || assignmentOptions.forceQuantifiers)) {
       return handleSimpleSliceAssignmentsWithQuantifiers(assignmentMultimap, assignmentOptions);
     } else {
       return handleSimpleSliceAssignmentsWithoutQuantifiers(assignmentMultimap, assignmentOptions);
@@ -952,18 +925,34 @@ class AssignmentHandler {
 
       ImmutableList.Builder<ArraySliceSpanResolved> builder = ImmutableList.builder();
 
-      final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
-      for (ArraySliceSpanRhs rhs : rhsCollection) {
+      // only resolve each rhs CExpression once
+      List<ArraySliceRhs> rhsSlices = new ArrayList<>();
 
-        final CRightHandSide rhsResolved;
-        if (rhs.actual instanceof ArraySliceNondetRhs nondetRhs) {
-          builder.add(
-              new ArraySliceSpanResolved(
-                  rhs.span, new ArraySliceResolved(Value.nondetValue(), lhsFinalType)));
-          continue;
-        } else if (rhs.actual instanceof ArraySliceCallRhs callRhs) {
-          rhsResolved = callRhs.call;
-        } else if (rhs.actual instanceof ArraySliceExpressionRhs expressionRhs) {
+      for (ArraySliceSpanRhs rhs : rhsCollection) {
+        rhsSlices.add(rhs.actual);
+      }
+
+      Map<ArraySliceRhs, ArraySliceResolved> rhsResolutionMap = new HashMap<>();
+
+      // add initialized and used fields of lhs to pointer-target set as essential
+      pts.addEssentialFields(lhsVisitor.getInitializedFields());
+      pts.addEssentialFields(lhsVisitor.getUsedFields());
+
+      List<CompositeField> rhsAddressedFields = new ArrayList<>();
+
+      for (ArraySliceRhs rhs : rhsSlices) {
+        final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
+
+        final @Nullable CRightHandSide rhsBase;
+        final ArraySliceResolved rhsResolved;
+        if (rhs instanceof ArraySliceNondetRhs nondetRhs) {
+          rhsResolved = new ArraySliceResolved(Value.nondetValue(), lhsFinalType);
+          rhsBase = null;
+        } else if (rhs instanceof ArraySliceCallRhs callRhs) {
+          rhsBase = callRhs.call;
+          Expression rhsExpression = callRhs.call.accept(rhsVisitor);
+          rhsResolved = new ArraySliceResolved(rhsExpression, lhsFinalType);
+        } else if (rhs instanceof ArraySliceExpressionRhs expressionRhs) {
           // resolve all indices
           ArraySliceExpression rhsSliceExpression = expressionRhs.expression;
           while (!rhsSliceExpression.isResolved()) {
@@ -978,26 +967,54 @@ class AssignmentHandler {
                 rhsSliceExpression);
             rhsSliceExpression = rhsSliceExpression.resolveFirstIndex(sizeType, unrolledIndex);
           }
-          rhsResolved = rhsSliceExpression.getResolvedExpression();
+          // lhs must be simple, so not an array, therefore, rhs array type must be converted to
+          // pointer
+          rhsBase = rhsSliceExpression.getResolvedExpression();
+          CType rhsType = CTypes.adjustFunctionOrArrayType(typeHandler.getSimplifiedType(rhsBase));
+          Expression rhsExpression = rhsBase.accept(rhsVisitor);
+          rhsResolved = new ArraySliceResolved(rhsExpression, rhsType);
         } else {
           assert (false);
-          continue;
+          rhsBase = null;
+          rhsResolved = null;
+        }
+        // add initialized and used fields of rhs to pointer-target set as essential
+        pts.addEssentialFields(rhsVisitor.getInitializedFields());
+        pts.addEssentialFields(rhsVisitor.getUsedFields());
+
+        // apply the deferred memory handler: if there is a malloc with void* type, the allocation
+        // can
+        // be deferred until the assignment that uses the value; the allocation type can then be
+        // inferred from assignment lhs type
+        if (rhsBase != null
+            && rhsResolved != null
+            && (conv.options.revealAllocationTypeFromLHS()
+                || conv.options.deferUntypedAllocations())) {
+
+          // we have everything we need, call memory handler
+          DynamicMemoryHandler memoryHandler =
+              new DynamicMemoryHandler(
+                  conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
+          memoryHandler.handleDeferredAllocationsInAssignment(
+              (CLeftHandSide) lhsBase,
+              rhsBase,
+              rhsResolved.expression(),
+              lhsFinalType,
+              lhsVisitor.getLearnedPointerTypes(),
+              rhsVisitor.getLearnedPointerTypes());
         }
 
-        // lhs must be simple, so not an array, therefore, rhs array type must be converted to pointer
-        CType rhsType = CTypes.adjustFunctionOrArrayType(typeHandler.getSimplifiedType(rhsResolved));
+        rhsAddressedFields.addAll(rhsVisitor.getAddressedFields());
 
-        Expression rhsExpression = rhsResolved.accept(rhsVisitor);
-        builder.add(
-            new ArraySliceSpanResolved(rhs.span, new ArraySliceResolved(rhsExpression, rhsType)));
-
+        // put into resolution map
+        rhsResolutionMap.put(rhs, rhsResolved);
       }
 
-      // add initialized and used fields of both lhs and rhs to pointer-target set as essential
-      pts.addEssentialFields(lhsVisitor.getInitializedFields());
-      pts.addEssentialFields(lhsVisitor.getUsedFields());
-      pts.addEssentialFields(rhsVisitor.getInitializedFields());
-      pts.addEssentialFields(rhsVisitor.getUsedFields());
+      for (ArraySliceSpanRhs rhs : rhsCollection) {
+        ArraySliceResolved rhsResolved = rhsResolutionMap.get(rhs.actual);
+        assert (rhsResolved != null);
+        builder.add(new ArraySliceSpanResolved(rhs.span, rhsResolved));
+      }
 
       // compute pointer-target set pattern if necessary for UFs finishing
       // UFs must be finished only if all three of the following conditions are met:
@@ -1025,7 +1042,7 @@ class AssignmentHandler {
               pattern);
 
       // add addressed fields of rhs to pointer-target set
-      for (final CompositeField field : rhsVisitor.getAddressedFields()) {
+      for (final CompositeField field : rhsAddressedFields) {
         pts.addField(field);
       }
 
