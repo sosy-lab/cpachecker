@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevant
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceFieldAccessModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceIndexVariable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceResolved;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceSplitExpression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceSubscriptModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceTail;
@@ -449,15 +450,6 @@ class AssignmentHandler {
     }
   }
 
-  private record ArraySliceResolved(Expression expression, CType type) {
-
-    private ArraySliceResolved(Expression expression, CType type) {
-      checkNotNull(expression);
-      checkIsSimplified(type);
-      this.expression = expression;
-      this.type = type;
-    }
-  }
 
   private record ArraySliceSpanResolved(
       ArraySlicePartSpan span, ArraySliceResolved actual) {
@@ -1222,7 +1214,7 @@ class AssignmentHandler {
       ImmutableList.Builder<ArraySliceSpanResolved> builder = ImmutableList.builder();
       for (ArraySliceSpanRhs rhs : entry.getValue()) {
         ArraySliceResolved rhsResolved =
-            resolveRhs(rhs.actual, lhsResolved.type, quantifiedVariableFormulaMap, visitor);
+            resolveRhs(rhs.actual, lhsResolved.type(), quantifiedVariableFormulaMap, visitor);
 
         if (rhsResolved == null) {
           // TODO: only used for ignoring assignments to bit-fields which should be handled properly
@@ -1308,13 +1300,13 @@ class AssignmentHandler {
       PointerTargetPattern pattern)
       throws UnrecognizedCodeException, InterruptedException {
 
-    if (lhsResolved.expression.isNondetValue()) {
+    if (lhsResolved.expression().isNondetValue()) {
       // only because of CExpressionVisitorWithPointerAliasing.visit(CFieldReference)
       conv.logger.logfOnce(
           Level.WARNING,
           "%s: Ignoring assignment to %s because bit fields are currently not fully supported",
           edge.getFileLocation(),
-          lhsResolved.type);
+          lhsResolved.type());
       return bfmgr.makeTrue();
     }
 
@@ -1333,7 +1325,7 @@ class AssignmentHandler {
     // put together the rhs expressions from spans
 
     long targetBitSize = typeHandler.getBitSizeof(targetType);
-    long lhsBitSize = typeHandler.getBitSizeof(lhsResolved.type);
+    long lhsBitSize = typeHandler.getBitSizeof(lhsResolved.type());
     Formula wholeRhsFormula = null;
     boolean forceNondet = false;
     boolean suppressReinterpretation = false;
@@ -1352,7 +1344,7 @@ class AssignmentHandler {
         convertedRhs =
             convertRhsExpression(
                 AssignmentConversionType.REINTERPRET,
-                lhsResolved.type,
+                lhsResolved.type(),
                 new ArraySliceResolved(convertedRhs, targetType));
         suppressReinterpretation = true;
       }
@@ -1414,7 +1406,7 @@ class AssignmentHandler {
     }
 
     // the whole type is now definitely the type of LHS
-    wholeType = lhsResolved.type;
+    wholeType = lhsResolved.type();
     if (!forceNondet) {
       if (!suppressReinterpretation) {
         RangeSet<Long> retainedRangeSet =
@@ -1422,13 +1414,13 @@ class AssignmentHandler {
         if (!retainedRangeSet.isEmpty()) {
           // there are some retained bits
           Optional<Formula> optionalPreviousLhsFormula =
-              getValueFormula(lhsResolved.type, lhsResolved.expression);
+              getValueFormula(lhsResolved.type(), lhsResolved.expression());
           if (optionalPreviousLhsFormula.isPresent()) {
             Formula previousLhsFormula = optionalPreviousLhsFormula.get();
             Formula reinterpretedPreviousLhsFormula =
                 conv.makeValueReinterpretation(
-                    lhsResolved.type,
-                    getIntegerTypeReinterpretation(lhsResolved.type),
+                    lhsResolved.type(),
+                    getIntegerTypeReinterpretation(lhsResolved.type()),
                     previousLhsFormula);
             if (reinterpretedPreviousLhsFormula != null) {
               previousLhsFormula = reinterpretedPreviousLhsFormula;
@@ -1481,8 +1473,8 @@ class AssignmentHandler {
         // reinterpret to LHS type
         Formula reinterpretedWholeRhsFormula =
             conv.makeValueReinterpretation(
-                getIntegerTypeReinterpretation(lhsResolved.type),
-                lhsResolved.type,
+                getIntegerTypeReinterpretation(lhsResolved.type()),
+                lhsResolved.type(),
                 wholeRhsFormula);
         if (reinterpretedWholeRhsFormula != null) {
           wholeRhsFormula = reinterpretedWholeRhsFormula;
@@ -1495,7 +1487,7 @@ class AssignmentHandler {
 
     // perform assignment and, if using UF encoding, finish the assignments afterwards
 
-    final Location lhsLocation = lhsResolved.expression.asLocation();
+    final Location lhsLocation = lhsResolved.expression().asLocation();
     final boolean useOldSSAIndices =
         assignmentOptions.useOldSSAIndicesIfAliased && lhsLocation.isAliased();
 
@@ -1506,12 +1498,12 @@ class AssignmentHandler {
     // perform the actual destructive assignment
     BooleanFormula result =
         makeDestructiveAssignment(
-            lhsResolved.type,
+            lhsResolved.type(),
             wholeType,
             lhsLocation,
             rhsResult,
             assignmentOptions.useOldSSAIndicesIfAliased
-                && lhsResolved.expression.isAliasedLocation(),
+                && lhsResolved.expression().isAliasedLocation(),
             updatedRegions,
             conditionFormula,
             useQuantifiers);
@@ -1520,7 +1512,7 @@ class AssignmentHandler {
       // we are using UF heap, we may need to finish the assignments
       // otherwise, the heap with new SSA index would only contain
       // the new assignment and not retain any other assignments
-      finishAssignmentsForUF(lhsResolved.type, lhsLocation.asAliased(), pattern, updatedRegions);
+      finishAssignmentsForUF(lhsResolved.type(), lhsLocation.asAliased(), pattern, updatedRegions);
     }
 
     return result;
@@ -1531,23 +1523,23 @@ class AssignmentHandler {
       throws UnrecognizedCodeException {
 
     // convert only if necessary, the types are already simplified
-    if (lhsType.equals(rhsResolved.type)) {
-      return rhsResolved.expression;
+    if (lhsType.equals(rhsResolved.type())) {
+      return rhsResolved.expression();
     }
 
     Optional<Formula> optionalRhsFormula =
-        getValueFormula(rhsResolved.type, rhsResolved.expression);
+        getValueFormula(rhsResolved.type(), rhsResolved.expression());
     if (optionalRhsFormula.isEmpty()) {
       // nondeterministic RHS expression has no formula, do not convert
-      return rhsResolved.expression;
+      return rhsResolved.expression();
     }
     Formula rhsFormula =
-        getValueFormula(rhsResolved.type, rhsResolved.expression).orElseThrow();
+        getValueFormula(rhsResolved.type(), rhsResolved.expression()).orElseThrow();
     switch (conversionType) {
       case CAST:
         // cast rhs from rhs type to lhs type
         Formula castRhsFormula =
-            conv.makeCast(rhsResolved.type, lhsType, rhsFormula, constraints, edge);
+            conv.makeCast(rhsResolved.type(), lhsType, rhsFormula, constraints, edge);
       return Value.ofValue(castRhsFormula);
       case REINTERPRET:
         if (lhsType instanceof CBitFieldType) {
@@ -1556,14 +1548,14 @@ class AssignmentHandler {
               Level.WARNING,
               "%s: Making assignment from %s to %s nondeterministic because reinterpretation to bitfield is not supported",
               edge.getFileLocation(),
-              rhsResolved.type,
+              rhsResolved.type(),
               lhsType);
           return Value.nondetValue();
         }
 
         // reinterpret rhs from rhs type to lhs type
         Formula reinterpretedRhsFormula =
-            conv.makeValueReinterpretation(rhsResolved.type, lhsType, rhsFormula);
+            conv.makeValueReinterpretation(rhsResolved.type(), lhsType, rhsFormula);
 
         // makeValueReinterpretation returns null if no reinterpretation happened
         if (reinterpretedRhsFormula != null) {
@@ -1573,7 +1565,7 @@ class AssignmentHandler {
       default:
         assert (false);
     }
-    return rhsResolved.expression;
+    return rhsResolved.expression();
   }
 
   private @Nullable ArraySliceResolved resolveRhs(
@@ -1633,7 +1625,7 @@ class AssignmentHandler {
 
     if (finalType.isPresent()) {
       // retype to final type
-      base = new ArraySliceResolved(base.expression, finalType.get());
+      base = new ArraySliceResolved(base.expression(), finalType.get());
     }
 
     return base;
@@ -1651,24 +1643,24 @@ class AssignmentHandler {
     checkNotNull(quantifiedVariableFormula);
 
     // get the array element type
-    CPointerType basePointerType = (CPointerType) CTypes.adjustFunctionOrArrayType(base.type);
+    CPointerType basePointerType = (CPointerType) CTypes.adjustFunctionOrArrayType(base.type());
     final CType elementType = typeHandler.simplifyType(basePointerType.getType());
 
     // perform pointer arithmetic, we have array[base] and want array[base + i]
     // the quantified variable i must be multiplied by the sizeof the element type
 
-    if (!base.expression.isAliasedLocation()) {
+    if (!base.expression().isAliasedLocation()) {
       // TODO: resolve for nonaliased location
       conv.logger.logfOnce(
           Level.WARNING,
           "%s: Ignoring resolution of subscript modifier for non-aliased expression %s with type %s",
           edge.getFileLocation(),
-          base.expression,
-          base.type);
+          base.expression(),
+          base.type());
       return null;
     }
 
-    Formula baseAddress = base.expression.asAliasedLocation().getAddress();
+    Formula baseAddress = base.expression().asAliasedLocation().getAddress();
     final Formula sizeofElement =
         conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
 
@@ -1683,24 +1675,24 @@ class AssignmentHandler {
       ArraySliceResolved base, ArraySliceFieldAccessModifier modifier) {
 
     // the base type must be a composite type to have fields
-    CCompositeType baseType = (CCompositeType) base.type;
+    CCompositeType baseType = (CCompositeType) base.type();
     final String fieldName = modifier.field().getName();
     CType fieldType = typeHandler.getSimplifiedType(modifier.field());
 
-    if (!base.expression.isAliasedLocation()) {
+    if (!base.expression().isAliasedLocation()) {
       // TODO: resolve for nonaliased location
       conv.logger.logfOnce(
           Level.WARNING,
           "%s: Ignoring resolution of subscript modifier for non-aliased expression %s with type %s",
           edge.getFileLocation(),
-          base.expression,
-          base.type);
+          base.expression(),
+          base.type());
       return null;
     }
 
     // we will increase the base address by field offset
 
-    Formula baseAddress = base.expression.asAliasedLocation().getAddress();
+    Formula baseAddress = base.expression().asAliasedLocation().getAddress();
 
     final OptionalLong offset = typeHandler.getOffset(baseType, fieldName);
     if (!offset.isPresent()) {

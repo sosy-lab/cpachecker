@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -38,6 +39,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
  * modifiers representing {@code [i]} and {@code .b} respectively.
  */
 final class ArraySliceExpression {
+
+  record ArraySliceResolved(Expression expression, CType type) {
+
+    ArraySliceResolved(Expression expression, CType type) {
+      checkNotNull(expression);
+      checkIsSimplified(type);
+      this.expression = expression;
+      this.type = type;
+    }
+  }
 
   /**
    * A helper class for indexing by quantified variables, standing for an index {@code i} which can
