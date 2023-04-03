@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.sampling;
 
 import com.google.common.base.Functions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.HashMap;
@@ -26,6 +27,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.sampling.Sample.SampleClass;
@@ -207,7 +209,9 @@ public class SampleUnrollingAlgorithm {
 
   private boolean isStateInLoop(AbstractState pState, Loop pLoop) {
     CFANode location = getLocationForState(pState);
-    return pLoop.getLoopNodes().contains(location);
+    FluentIterable<CFANode> afterLoop =
+        FluentIterable.from(pLoop.getOutgoingEdges()).transform(CFAEdge::getSuccessor);
+    return !afterLoop.contains(location);
   }
 
   private static class SampleTreeNode {
