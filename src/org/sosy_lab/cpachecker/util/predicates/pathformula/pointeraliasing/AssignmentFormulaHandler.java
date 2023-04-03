@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -123,10 +122,7 @@ public class AssignmentFormulaHandler {
       PointerTargetPattern pattern)
       throws UnrecognizedCodeException, InterruptedException {
 
-    // all types here must be simple or pointers
     CType lhsType = lhsResolved.type();
-    assert lhsType instanceof CSimpleType || lhsType instanceof CPointerType;
-    assert targetType instanceof CSimpleType || targetType instanceof CPointerType;
 
     if (lhsResolved.expression().isNondetValue()) {
       // only because of CExpressionVisitorWithPointerAliasing.visit(CFieldReference)
@@ -158,10 +154,6 @@ public class AssignmentFormulaHandler {
     boolean forceNondet = false;
     boolean suppressReinterpretation = false;
     for (ArraySliceSpanResolved rhs : rhsList) {
-
-      CType rhsType = rhs.actual().type();
-      // all types here must be simple or pointers
-      assert rhsType instanceof CSimpleType || rhsType instanceof CPointerType;
 
       // convert RHS expression to target type
       Expression convertedRhs =
