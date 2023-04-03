@@ -568,6 +568,7 @@ class ASTConverter {
    * @param s JDT ReturnStatement to be transformed.
    * @return AST JReturnstatement representing given parameter s
    */
+  @Nullable
   public JReturnStatement convert(final ReturnStatement s) {
 
     JExpression expr = convertExpressionWithoutSideEffects(s.getExpression());

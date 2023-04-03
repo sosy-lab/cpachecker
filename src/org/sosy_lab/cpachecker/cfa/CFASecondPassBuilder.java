@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
@@ -182,6 +184,12 @@ public class CFASecondPassBuilder {
     FileLocation fileLocation = edge.getFileLocation();
     FunctionEntryNode fDefNode = cfa.getFunctionHead(functionName);
     Optional<FunctionExitNode> fExitNode = fDefNode.getExitNode();
+
+    // check if the non void called function have return expresssion
+    if (!checkReturnExpr(functionCall)) {
+      throw new CParserException(
+          "Non void funtion " + functionName + " do not have return expression");
+    }
 
     // get the parameter expression
     // check if the number of function parameters are right
@@ -326,6 +334,47 @@ public class CFASecondPassBuilder {
       exitNode.addLeavingEdge(returnEdge);
       successorNode.addEnteringEdge(returnEdge);
     }
+  }
+
+  private boolean checkReturnExpr(AFunctionCall functionCall) {
+
+    // only check for C
+    if (language != Language.C) {
+      return true;
+    }
+
+    // the return value is not assigned to any variable
+    if (!(functionCall instanceof AFunctionCallAssignmentStatement)) {
+      return true;
+    }
+
+    String functionName = functionCall.getFunctionCallExpression().getDeclaration().getName();
+    FunctionEntryNode fDefNode = cfa.getFunctionHead(functionName);
+    Optional<FunctionExitNode> fExitNodeOption = fDefNode.getExitNode();
+    Optional<? extends AVariableDeclaration> returnVar = fDefNode.getReturnVariable();
+
+    // void function
+    if (returnVar.isEmpty()) {
+      return true;
+    }
+
+    // function do not exit
+    if (fExitNodeOption.isEmpty()) {
+      return true;
+    }
+    FunctionExitNode fExitNode = fExitNodeOption.get();
+    for (int i = 0; i < fExitNode.getNumEnteringEdges(); i++) {
+      CFAEdge enteringEdge = fExitNode.getEnteringEdge(i);
+      if (!(enteringEdge instanceof CReturnStatementEdge)) {
+        continue;
+      }
+
+      if (((CReturnStatementEdge) enteringEdge).getReturnStatement().isDefaultReturnExpr()) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   private boolean checkParamSizes(

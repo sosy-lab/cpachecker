@@ -1789,17 +1789,19 @@ class ASTConverter {
     }
 
     // non void function without return expression
-    String funcName = ((FunctionScope) scope).getCurrentFunctionName();
-    if (!funcName.equals("main")) {
+    CType returnType = returnVariableDeclaration.orElseThrow().getType();
+    // return default value only when return type is int
+    if (!returnType.equals(CNumericTypes.INT)) {
       throw parseContext.parseError("Return statement without expression in non-void function.", s);
     }
 
-    // return default value for main function
     CInitializer defaultValue = CDefaults.forType(CNumericTypes.INT, loc);
     CIdExpression lhs = new CIdExpression(loc, returnVariableDeclaration.orElseThrow());
     CExpression rhs = ((CInitializerExpression) defaultValue).getExpression();
     CAssignment returnAssignment = new CExpressionAssignmentStatement(loc, lhs, rhs);
-    return new CReturnStatement(loc, rhs, returnAssignment);
+    CReturnStatement returnstmt = new CReturnStatement(loc, rhs, returnAssignment);
+    returnstmt.useDefault();
+    return returnstmt;
   }
 
   private record Declarator(CType type, IASTInitializer initializer, String name) {}
