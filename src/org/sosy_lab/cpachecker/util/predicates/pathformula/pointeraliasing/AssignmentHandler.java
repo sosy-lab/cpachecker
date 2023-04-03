@@ -951,7 +951,8 @@ class AssignmentHandler {
         } else if (rhs instanceof ArraySliceCallRhs callRhs) {
           rhsBase = callRhs.call;
           Expression rhsExpression = callRhs.call.accept(rhsVisitor);
-          rhsResolved = new ArraySliceResolved(rhsExpression, lhs.targetType);
+          rhsResolved =
+              new ArraySliceResolved(rhsExpression, typeHandler.getSimplifiedType(callRhs.call));
         } else if (rhs instanceof ArraySliceExpressionRhs expressionRhs) {
           // resolve all indices
           ArraySliceExpression rhsSliceExpression = expressionRhs.expression;
