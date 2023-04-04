@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -230,7 +231,12 @@ public class InvariantValidationAlgorithm implements Algorithm {
     PathFormula pathFormula = pmgr.makeEmptyPathFormula();
     Iterable<AbstractState> statesAtLocation =
         AbstractStates.filterLocation(pReachedSet, pLocation);
+    assert Iterables.size(statesAtLocation) == 1;
+    SSAMap ssaBefore = SSAMap.emptySSAMap();
     for (AbstractState state : statesAtLocation) {
+      PredicateAbstractState predState = AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+      ssaBefore = predState.getPathFormula().getSsa();
+
       for (ARGState covered : ((ARGState) state).getCoveredByThis()) {
         Collection<ARGState> parents = covered.getParents();
         assert parents.size() == 1;
@@ -276,13 +282,13 @@ public class InvariantValidationAlgorithm implements Algorithm {
 
     StringJoiner sj = new StringJoiner(",\n");
     output.append("\"ssaBefore\":\n{");
-    // TODO: How to get SSA before? -> Use highest indices appearing in preconditionFulfilled
-    for (String variable : pathFormula.getSsa().allVariables()) {
-      sj.add('"' + variable + '"' + ": " + pathFormula.getSsa().getIndex(variable));
+    for (String variable : ssaBefore.allVariables()) {
+      sj.add('"' + variable + '"' + ": " + ssaBefore.getIndex(variable));
     }
     output.append(sj);
     output.append("},\n");
 
+    sj = new StringJoiner(",\n");
     output.append("\"ssaAfter\":\n{");
     for (String variable : pathFormula.getSsa().allVariables()) {
       sj.add('"' + variable + '"' + ": " + pathFormula.getSsa().getIndex(variable));
