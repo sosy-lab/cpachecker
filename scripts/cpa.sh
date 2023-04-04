@@ -162,6 +162,7 @@ exec "$JAVA" \
     -Xss${JAVA_STACK_SIZE} \
     -Xmx${JAVA_HEAP_SIZE} \
     $JAVA_ASSERTIONS \
+    -Djava.compiler=NONE
     org.sosy_lab.cpachecker.cmdline.CPAMain \
     "${OPTIONS[@]}" \
     $CPACHECKER_ARGUMENTS
