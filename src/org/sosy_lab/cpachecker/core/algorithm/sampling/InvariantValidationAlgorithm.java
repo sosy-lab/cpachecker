@@ -256,26 +256,28 @@ public class InvariantValidationAlgorithm implements Algorithm {
 
     // Output necessary parts to build relevant formulas for different invariants
     StringBuilder output = new StringBuilder();
-    output.append("{\"precondition\":\n\"");
-    for (Formula variable : fmgr.extractVariables(preconditionFulfilled).values()) {
+
+    output.append("{\"constant-declarations\":\n\"");
+    Set<Formula> variables = new HashSet<>();
+    variables.addAll(fmgr.extractVariables(preconditionFulfilled).values());
+    variables.addAll(fmgr.extractVariables(pathFormula.getFormula()).values());
+    variables.addAll(fmgr.extractVariables(programSafe).values());
+    for (Formula variable : variables) {
       output.append("(declare-const %s (_ BitVec %s))".formatted(variable, BITVECTOR_SIZE));
     }
+    output.append("\",\n");
+
+    output.append("\"precondition\":\n\"");
     output.append("(assert ");
     output.append(preconditionFulfilled.toString().replaceAll("\\s+", " "));
     output.append(")\",\n");
 
     output.append("\"inductiveness\":\n\"");
-    for (Formula variable : fmgr.extractVariables(pathFormula.getFormula()).values()) {
-      output.append("(declare-const %s (_ BitVec %s))".formatted(variable, BITVECTOR_SIZE));
-    }
     output.append("(assert ");
     output.append(pathFormula.getFormula().toString().replaceAll("\\s+", " "));
     output.append(")\",\n");
 
     output.append("\"postcondition\":\n\"");
-    for (Formula variable : fmgr.extractVariables(programSafe).values()) {
-      output.append("(declare-const %s (_ BitVec %s))".formatted(variable, BITVECTOR_SIZE));
-    }
     output.append("(assert ");
     output.append(bfmgr.not(programSafe).toString().replaceAll("\\s+", " "));
     output.append(")\",\n");
