@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
 import java.util.Map;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
@@ -17,7 +16,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class SerializeCompositeStateOperator implements SerializeOperator {
 
@@ -40,8 +38,7 @@ public class SerializeCompositeStateOperator implements SerializeOperator {
       stats.getSerializationCount().inc();
       stats.getSerializationTime().start();
       BlockSummaryMessagePayload.Builder payload = BlockSummaryMessagePayload.builder();
-      CompositeState compositeState =
-          Objects.requireNonNull(AbstractStates.extractStateByType(pState, CompositeState.class));
+      CompositeState compositeState = ((CompositeState) pState);
       for (AbstractState wrappedState : compositeState.getWrappedStates()) {
         for (DistributedConfigurableProgramAnalysis value : registered.values()) {
           if (value.doesOperateOn(wrappedState.getClass())) {

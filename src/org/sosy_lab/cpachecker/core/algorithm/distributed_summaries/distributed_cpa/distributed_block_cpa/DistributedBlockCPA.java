@@ -77,6 +77,11 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   }
 
   @Override
+  public boolean isTop(AbstractState pAbstractState) {
+    return true;
+  }
+
+  @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return blockStateSupplier.apply(node);

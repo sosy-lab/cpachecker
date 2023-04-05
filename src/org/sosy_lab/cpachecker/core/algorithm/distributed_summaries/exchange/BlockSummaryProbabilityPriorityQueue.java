@@ -8,21 +8,19 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ForwardingBlockingQueue;
-import java.util.Optional;
+import java.util.ArrayList;import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
 
-public class BlockSummarySortedMessageQueue extends ForwardingBlockingQueue<BlockSummaryMessage> {
+public class BlockSummaryProbabilityPriorityQueue extends ForwardingBlockingQueue<BlockSummaryMessage> {
 
   private final BlockingQueue<BlockSummaryMessage> queue;
-  private final Multimap<MessageType, BlockSummaryMessage> messages;
-
-  private final MessageType[] ordering;
+  private final List<BlockSummaryMessage> reordered;
+  private final ImmutableMap<MessageType, Double> probability;
 
   /**
    * Mimics a blocking queue but changes the blocking method <code>take</code> to prioritize
@@ -30,37 +28,27 @@ public class BlockSummarySortedMessageQueue extends ForwardingBlockingQueue<Bloc
    *
    * @param pQueue the queue to forward
    */
-  private BlockSummarySortedMessageQueue(BlockingQueue<BlockSummaryMessage> pQueue) {
+  private BlockSummaryProbabilityPriorityQueue(BlockingQueue<BlockSummaryMessage> pQueue) {
     queue = pQueue;
-    messages = ArrayListMultimap.create();
-    ordering = MessageType.values();
+    reordered = new ArrayList<>();
+    probability = ImmutableMap.<MessageType, Double>builder()
+        .put(MessageType.STATISTICS, 1d)
+        .put(MessageType.ERROR, 1d)
+        .put(MessageType.FOUND_RESULT, 1d)
+        .put(MessageType.ERROR_CONDITION_UNREACHABLE, 1d)
+        .put(MessageType.ERROR_CONDITION, .7)
+        .put(MessageType.BLOCK_POSTCONDITION, .5)
+        .put(MessageType.ABSTRACTION_STATE, .1)
+        .build();
   }
 
-  public BlockSummarySortedMessageQueue() {
+  public BlockSummaryProbabilityPriorityQueue() {
     this(new LinkedBlockingQueue<>());
   }
 
   @Override
   protected BlockingQueue<BlockSummaryMessage> delegate() {
     return queue;
-  }
-
-  public void setOrdering(MessageType... pOrdering) {
-    assert pOrdering.length == ordering.length : "please provide all types for the ordering";
-    System.arraycopy(pOrdering, 0, ordering, 0, pOrdering.length);
-  }
-
-  private void moveToMap(BlockSummaryMessage pMessage) {
-    messages.put(pMessage.getType(), pMessage);
-  }
-
-  private Optional<BlockSummaryMessage> firstOfType(MessageType pType) {
-    if (!messages.get(pType).isEmpty()) {
-      Optional<BlockSummaryMessage> optionalMessage = messages.get(pType).stream().findFirst();
-      messages.remove(pType, optionalMessage.orElseThrow());
-      return optionalMessage;
-    }
-    return Optional.empty();
   }
 
   /**
@@ -74,13 +62,16 @@ public class BlockSummarySortedMessageQueue extends ForwardingBlockingQueue<Bloc
     // empty pending messages (non blocking)
     // return queue.take();
     while (!queue.isEmpty()) {
-      moveToMap(queue.take());
-    }
-    for (MessageType messageType : ordering) {
-      Optional<BlockSummaryMessage> m = firstOfType(messageType);
-      if (m.isPresent()) {
-        return m.orElseThrow();
+      double random = Math.random();
+      BlockSummaryMessage message = queue.take();
+      if (random < probability.get(message.getType())) {
+        reordered.add(0, message);
+      } else {
+        reordered.add(message);
       }
+    }
+    if(!reordered.isEmpty()) {
+      return reordered.remove(0);
     }
     return queue.take();
   }

@@ -79,4 +79,9 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   public ConfigurableProgramAnalysis getCPA() {
     return callstackCPA;
   }
+
+  @Override
+  public boolean isTop(AbstractState pAbstractState) {
+    return true;
+  }
 }

@@ -90,4 +90,17 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   public ConfigurableProgramAnalysis getCPA() {
     return predicateCPA;
   }
+
+  @Override
+  public boolean isTop(AbstractState pAbstractState) {
+    PredicateAbstractState predicateAbstractState = (PredicateAbstractState) pAbstractState;
+    if (predicateAbstractState.isAbstractionState()) {
+      return predicateAbstractState.getAbstractionFormula().isTrue();
+    }
+    return predicateCPA
+        .getSolver()
+        .getFormulaManager()
+        .getBooleanFormulaManager()
+        .isTrue(predicateAbstractState.getPathFormula().getFormula());
+  }
 }

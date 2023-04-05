@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import java.util.Map;
+import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
@@ -40,7 +40,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   private final DeserializeCompositePrecisionOperator deserializePrecisionOperator;
   private final SerializeCompositePrecisionOperator serializePrecisionOperator;
 
-  private final Map<
+  private final ImmutableMap<
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
       analyses;
 
@@ -48,7 +48,8 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
       CompositeCPA pCompositeCPA,
       BlockNode pNode,
       AnalysisDirection pDirection,
-      Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
+      ImmutableMap<
+              Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
           registered) {
     statistics =
         new BlockAnalysisStatistics("DCPA-" + pDirection.name().charAt(0) + "-" + pNode.getId());
@@ -86,6 +87,22 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   @Override
   public ConfigurableProgramAnalysis getCPA() {
     return compositeCPA;
+  }
+
+  @Override
+  public boolean isTop(AbstractState pAbstractState) {
+    CompositeState co = (CompositeState) pAbstractState;
+    for (AbstractState wrappedState : co.getWrappedStates()) {
+      for (DistributedConfigurableProgramAnalysis value : analyses.values()) {
+        if (value.doesOperateOn(wrappedState.getClass())) {
+          if (!value.isTop(wrappedState)) {
+            return false;
+          }
+          break;
+        }
+      }
+    }
+    return true;
   }
 
   @Override

@@ -8,11 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
-import com.google.common.collect.Iterables;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.NoPrecisionDeserializeOperator;
@@ -24,8 +19,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
-import org.sosy_lab.cpachecker.util.CPAs;
 
 public interface DistributedConfigurableProgramAnalysis extends ConfigurableProgramAnalysis {
 
@@ -74,6 +67,8 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    */
   ConfigurableProgramAnalysis getCPA();
 
+  boolean isTop(AbstractState pAbstractState);
+
   /**
    * Check whether this distributed CPA can work with {@code pClass}.
    *
@@ -89,20 +84,5 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
         .addAllEntries(getSerializeOperator().serialize(pAbstractState))
         .addAllEntries(getSerializePrecisionOperator().serializePrecision(pPrecision))
         .buildPayload();
-  }
-
-  static DistributedConfigurableProgramAnalysis distribute(
-      ConfigurableProgramAnalysis pCPA, BlockNode pBlock, CFA pCFA, AnalysisDirection pDirection) {
-    DCPAHandler handler = new DCPAHandler();
-    CompositeCPA compositeCPA = CPAs.retrieveCPA(pCPA, CompositeCPA.class);
-    if (compositeCPA == null) {
-      handler.registerDCPA(pCPA, pBlock, pDirection, pCFA);
-      return Iterables.getOnlyElement(handler.getRegisteredAnalyses().values());
-    }
-    for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
-      handler.registerDCPA(wrappedCPA, pBlock, pDirection, pCFA);
-    }
-    return new DistributedCompositeCPA(
-        compositeCPA, pBlock, pDirection, handler.getRegisteredAnalyses());
   }
 }

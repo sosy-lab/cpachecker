@@ -59,4 +59,9 @@ public class DistributedFunctionPointerCPA
   public ConfigurableProgramAnalysis getCPA() {
     return functionPointerCPA;
   }
+
+  @Override
+  public boolean isTop(AbstractState pAbstractState) {
+    return true;
+  }
 }

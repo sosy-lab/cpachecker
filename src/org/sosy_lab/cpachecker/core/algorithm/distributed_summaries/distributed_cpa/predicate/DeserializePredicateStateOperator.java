@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryErrorConditionTracker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -27,16 +26,13 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class DeserializePredicateStateOperator
-    implements DeserializeOperator, BlockSummaryErrorConditionTracker {
+public class DeserializePredicateStateOperator implements DeserializeOperator {
 
   private final PredicateCPA predicateCPA;
   private final FormulaManagerView formulaManagerView;
   private final PathFormulaManager pathFormulaManager;
 
   private final PredicateAbstractState previousState;
-  private final BlockNode block;
-  private BooleanFormula errorCondition;
 
   public DeserializePredicateStateOperator(
       PredicateCPA pPredicateCPA,
@@ -46,12 +42,10 @@ public class DeserializePredicateStateOperator
     predicateCPA = pPredicateCPA;
     formulaManagerView = pFormulaManagerView;
     pathFormulaManager = pPathFormulaManager;
-    block = pBlockNode;
-    errorCondition = pFormulaManagerView.getBooleanFormulaManager().makeTrue();
     previousState =
         (PredicateAbstractState)
             predicateCPA.getInitialState(
-                block.getStartNode(), StateSpacePartition.getDefaultPartition());
+                pBlockNode.getStartNode(), StateSpacePartition.getDefaultPartition());
   }
 
   @Override
@@ -83,61 +77,20 @@ public class DeserializePredicateStateOperator
           PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
               abstraction, previousState);
     } else {
+      BooleanFormula uninstantiated =
+          PredicateOperatorUtil.uninstantiate(abstraction, formulaManagerView).booleanFormula();
+      PathFormula pathFormula =
+          pathFormulaManager
+              .makeEmptyPathFormulaWithContext(map, PointerTargetSet.emptyPointerTargetSet())
+              .withFormula(uninstantiated);
       deserialized =
           PredicateAbstractState.mkAbstractionState(
               pathFormulaManager.makeEmptyPathFormula(),
-              predicateCPA
-                  .getPredicateManager()
-                  .asAbstraction(
-                      PredicateOperatorUtil.uninstantiate(abstraction, formulaManagerView)
-                          .booleanFormula(),
-                      abstraction),
+              predicateCPA.getPredicateManager().asAbstraction(uninstantiated, pathFormula),
               PathCopyingPersistentTreeMap.of(),
               previousState);
     }
 
-    if (pMessage instanceof BlockSummaryErrorConditionMessage) {
-      errorCondition =
-          formulaManagerView.uninstantiate(
-              PredicateOperatorUtil.uninstantiate(
-                      abstraction, formulaManagerView, pathFormulaManager)
-                  .getFormula());
-    }
     return deserialized;
-  }
-
-  @Override
-  public void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage) {
-    String formula =
-        PredicateOperatorUtil.extractFormulaString(
-            pMessage, predicateCPA.getClass(), formulaManagerView);
-    SSAMap map = pMessage.getSSAMap();
-    PointerTargetSet pts = pMessage.getPointerTargetSet();
-    PathFormula abstraction =
-        PredicateOperatorUtil.getPathFormula(
-            formula, pathFormulaManager, formulaManagerView, pts, map);
-    errorCondition =
-        formulaManagerView.uninstantiate(
-            PredicateOperatorUtil.uninstantiate(abstraction, formulaManagerView, pathFormulaManager)
-                .getFormula());
-  }
-
-  @Override
-  public BooleanFormula resetErrorCondition(FormulaManagerView pFormulaManagerView) {
-    BooleanFormula copy = errorCondition;
-    errorCondition = formulaManagerView.getBooleanFormulaManager().makeTrue();
-    return pFormulaManagerView.translateFrom(copy, formulaManagerView);
-  }
-
-  @Override
-  public BooleanFormula getErrorCondition(FormulaManagerView pFormulaManagerView) {
-    return pFormulaManagerView.translateFrom(errorCondition, formulaManagerView);
-  }
-
-  @Override
-  public void setErrorCondition(BooleanFormula pErrorCondition) {
-    if (pErrorCondition != null) {
-      errorCondition = pErrorCondition;
-    }
   }
 }
