@@ -44,7 +44,7 @@ public class BlockSummaryProbabilityPriorityQueue
             .put(MessageType.ERROR_CONDITION, .7)
             .put(MessageType.BLOCK_POSTCONDITION, .5)
             .put(MessageType.ABSTRACTION_STATE, .1)
-            .build();
+            .buildKeepingLast();
   }
 
   public BlockSummaryProbabilityPriorityQueue() {
@@ -65,11 +65,10 @@ public class BlockSummaryProbabilityPriorityQueue
   @Override
   public BlockSummaryMessage take() throws InterruptedException {
     // empty pending messages (non blocking)
-    return queue.take();
-    /*while (!queue.isEmpty()) {
+    while (!queue.isEmpty()) {
       double random = Math.random();
       BlockSummaryMessage message = queue.take();
-      if (random < probability.get(message.getType())) {
+      if (random < probability.getOrDefault(message.getType(), 0d)) {
         reordered.add(0, message);
       } else {
         reordered.add(message);
@@ -78,6 +77,6 @@ public class BlockSummaryProbabilityPriorityQueue
     if (!reordered.isEmpty()) {
       return reordered.remove(0);
     }
-    return queue.take();*/
+    return queue.take();
   }
 }

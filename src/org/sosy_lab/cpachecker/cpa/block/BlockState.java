@@ -18,13 +18,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateOperatorUtil;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -127,16 +125,6 @@ public class BlockState
       return manager.getBooleanFormulaManager().and(approximations.toList());
     }
     return manager.getBooleanFormulaManager().makeTrue();
-  }
-
-  private BooleanFormula extractFormula(
-      PredicateAbstractState pPredicateAbstractState, FormulaManagerView manager) {
-    if (pPredicateAbstractState.isAbstractionState()) {
-      // already uninstantiated by convention
-      return pPredicateAbstractState.getAbstractionFormula().asFormula();
-    }
-    return PredicateOperatorUtil.uninstantiate(pPredicateAbstractState.getPathFormula(), manager)
-        .booleanFormula();
   }
 
   // error condition intentionally left out as it is mutable

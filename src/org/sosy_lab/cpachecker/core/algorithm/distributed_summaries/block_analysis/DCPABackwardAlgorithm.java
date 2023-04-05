@@ -189,6 +189,7 @@ public class DCPABackwardAlgorithm {
     return forwardAnalysis.getDCPA().getDeserializeOperator().deserialize(forwardMessage);
   }
 
+  /* TODO: reconsider
   private void synchronizePrecision() {
     initialPrecision =
         dcpa.getDeserializePrecisionOperator()
@@ -201,7 +202,7 @@ public class DCPABackwardAlgorithm {
                         .getSerializePrecisionOperator()
                         .serializePrecision(forwardAnalysis.getPrecisionAtBlockEnd()),
                     false));
-  }
+  }*/
 
   private boolean denyMessage() {
     return forwardAnalysis.isInfeasible();

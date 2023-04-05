@@ -294,7 +294,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
 
     /**
      * Messages of this type transport the stack trace of an exception. See {@link
-     * BlockSummaryErrorMessage}.
+     * BlockSummaryExceptionMessage}.
      */
     ERROR,
 
