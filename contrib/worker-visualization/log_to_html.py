@@ -233,11 +233,9 @@ def visualize_messages(
 ):
     all_messages = []
     hash_code = None
-    jsons = list(
-        sorted(
-            [f for f in listdir(message_dir) if isfile(join(message_dir, f))],
-            key=lambda text: int(text[1:-5]),
-        )
+    jsons = sorted(
+        [f for f in listdir(message_dir) if isfile(join(message_dir, f))],
+        key=lambda text: int(text[1:-5]),
     )
     for message_json in jsons:
         parsed_file = parse_jsons(join(message_dir, message_json))
