@@ -26,7 +26,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -84,22 +83,6 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     uniqueBlockId = pUniqueBlockId;
     timestamp = pTimeStamp;
     // when the message was created
-  }
-
-  public static BlockSummaryMessage addEntry(
-      BlockSummaryMessage message, String key, Object value) {
-    return message.replacePayload(
-        BlockSummaryMessagePayload.builder()
-            .addAllEntries(message.getPayload())
-            .addEntry(key, value)
-            .buildPayload());
-  }
-
-  public static BlockSummaryMessage removeEntry(BlockSummaryMessage message, String key) {
-    Map<String, Object> copy = new HashMap<>(message.getPayload());
-    copy.remove(key);
-    return message.replacePayload(
-        BlockSummaryMessagePayload.builder().addAllEntries(copy).buildPayload());
   }
 
   public final String getPayloadJSON(Predicate<String> pKeyFilter) throws IOException {
@@ -216,7 +199,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
   }
 
   public static BlockSummaryMessage newErrorMessage(String pUniqueBlockId, Throwable pException) {
-    return new BlockSummaryErrorMessage(
+    return new BlockSummaryExceptionMessage(
         pUniqueBlockId,
         0,
         BlockSummaryMessagePayload.builder()
@@ -423,7 +406,8 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
       return switch (type) {
         case FOUND_RESULT -> new BlockSummaryResultMessage(
             uniqueBlockId, nodeNumber, payload, timestamp);
-        case ERROR -> new BlockSummaryErrorMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+        case ERROR -> new BlockSummaryExceptionMessage(
+            uniqueBlockId, nodeNumber, payload, timestamp);
         case ERROR_CONDITION_UNREACHABLE -> new BlockSummaryErrorConditionUnreachableMessage(
             uniqueBlockId, nodeNumber, payload, timestamp);
         case ERROR_CONDITION -> new BlockSummaryErrorConditionMessage(

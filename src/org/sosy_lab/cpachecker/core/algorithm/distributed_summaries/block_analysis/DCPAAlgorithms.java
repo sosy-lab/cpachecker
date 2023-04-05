@@ -216,13 +216,13 @@ public class DCPAAlgorithms {
     }
 
     public BlockAnalysisIntermediateResult refine(
-        Collection<ARGState> pAbstractionStates,
+        Collection<AbstractState> pAbstractionStates,
         AbstractDomain pAbstractDomain,
         Class<? extends AbstractState> pAbstractStateClass)
         throws CPAException, InterruptedException {
       ImmutableSet.Builder<ARGState> remove = ImmutableSet.builder();
       for (ARGState blockEnd : getBlockEnds()) {
-        for (ARGState value : pAbstractionStates) {
+        for (AbstractState value : pAbstractionStates) {
           if (pAbstractDomain.isLessOrEqual(
               Objects.requireNonNull(
                   AbstractStates.extractStateByType(blockEnd, pAbstractStateClass)),

@@ -16,7 +16,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryExceptionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryResultMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage;
@@ -62,7 +62,7 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
           ABSTRACTION_STATE -> statusObserver.updateStatus(pMessage);
       case ERROR -> {
         shutdown = true;
-        errorMessage = Optional.of(((BlockSummaryErrorMessage) pMessage).getErrorMessage());
+        errorMessage = Optional.of(((BlockSummaryExceptionMessage) pMessage).getErrorMessage());
       }
       case STATISTICS -> {
         stats.put(pMessage.getBlockId(), ((BlockSummaryStatisticsMessage) pMessage).getStats());

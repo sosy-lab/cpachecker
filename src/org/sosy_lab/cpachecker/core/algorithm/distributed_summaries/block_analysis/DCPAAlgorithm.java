@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analys
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DCPAFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -48,7 +49,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -64,7 +64,7 @@ public class DCPAAlgorithm {
   private final AbstractState startState;
   private final Set<String> predecessors;
   private final Set<String> loopPredecessors;
-  private final Map<BlockAndLocation, ARGState> abstractionStates;
+  private final Map<BlockAndLocation, AbstractState> abstractionStates;
 
   // forward analysis variables
   private AlgorithmStatus status;
@@ -94,10 +94,7 @@ public class DCPAAlgorithm {
     algorithm = parts.algorithm();
     cpa = parts.cpa();
     block = pBlock;
-    dcpa =
-        DistributedConfigurableProgramAnalysis.distribute(
-            cpa, pBlock, pCFA, AnalysisDirection.FORWARD);
-
+    dcpa = DCPAFactory.distribute(cpa, pBlock, AnalysisDirection.FORWARD, pCFA);
     // prepare reached set and initial elements
     reachedSet = parts.reached();
     checkNotNull(reachedSet, "BlockAnalysis requires the initial reachedSet");
@@ -106,9 +103,7 @@ public class DCPAAlgorithm {
         dcpa.getInitialPrecision(block.getStartNode(), StateSpacePartition.getDefaultPartition());
     blockEndPrecision = blockStartPrecision;
     startState =
-        new ARGState(
-            dcpa.getInitialState(block.getStartNode(), StateSpacePartition.getDefaultPartition()),
-            null);
+        dcpa.getInitialState(block.getStartNode(), StateSpacePartition.getDefaultPartition());
 
     // handle predecessors
     states = new LinkedHashMap<>();
@@ -142,7 +137,8 @@ public class DCPAAlgorithm {
     Collection<BlockSummaryMessage> results =
         processIntermediateResult(
             DCPAAlgorithms.findReachableTargetStatesInBlock(
-                algorithm, reachedSet, block, AnalysisDirection.FORWARD));
+                algorithm, reachedSet, block, AnalysisDirection.FORWARD),
+            false);
     if (results.isEmpty()) {
       return reportUnreachableBlockEnd();
     }
@@ -156,16 +152,14 @@ public class DCPAAlgorithm {
     }
     AbstractState deserialized = dcpa.getDeserializeOperator().deserialize(pMessage);
     abstractionStates.put(
-        new BlockAndLocation(pMessage.getBlockId(), pMessage.getTargetNodeNumber()),
-        new ARGState(deserialized, null));
+        new BlockAndLocation(pMessage.getBlockId(), pMessage.getTargetNodeNumber()), deserialized);
   }
 
   public Collection<BlockSummaryMessage> runAnalysisForMessage(
       BlockSummaryPostConditionMessage pReceived)
       throws SolverException, InterruptedException, CPAException {
     // check if message is meant for this block
-    AbstractState deserialized =
-        new ARGState(dcpa.getDeserializeOperator().deserialize(pReceived), null);
+    AbstractState deserialized = dcpa.getDeserializeOperator().deserialize(pReceived);
     blockStartPrecision = dcpa.getDeserializePrecisionOperator().deserializePrecision(pReceived);
     BlockSummaryMessageProcessing processing = dcpa.getProceedOperator().proceed(deserialized);
     if (processing.end()) {
@@ -181,10 +175,15 @@ public class DCPAAlgorithm {
     // TODO: this should somehow be checked by ProceedBlockStateOperator,
     //  but it has no access to this attribute.
     if (pReceived.isReachable()) {
+      // reset all loop predecessors if non-loop predecessor updates
       if (!loopPredecessors.isEmpty() && !loopPredecessors.contains(pReceived.getBlockId())) {
         loopPredecessors.forEach(id -> states.put(id, null));
       }
-      states.put(pReceived.getBlockId(), pReceived);
+      if (loopPredecessors.contains(pReceived.getBlockId()) && dcpa.isTop(deserialized)) {
+        states.put(pReceived.getBlockId(), null);
+      } else {
+        states.put(pReceived.getBlockId(), pReceived);
+      }
     } else {
       // null means that we cannot expect a state from this predecessor, i.e.,
       // we do not under-approximate when ignoring this predecessor.
@@ -228,7 +227,7 @@ public class DCPAAlgorithm {
     result =
         result.refine(
             abstractionStates.values(), dcpa.getAbstractDomain(), dcpa.getAbstractStateClass());
-    return processIntermediateResult(result);
+    return processIntermediateResult(result, errorCondition.isPresent());
   }
 
   /**
@@ -245,7 +244,7 @@ public class DCPAAlgorithm {
       if (message == null) {
         continue;
       }
-      AbstractState value = new ARGState(dcpa.getDeserializeOperator().deserialize(message), null);
+      AbstractState value = dcpa.getDeserializeOperator().deserialize(message);
       if (reachedSet.isEmpty()) {
         reachedSet.add(value, blockStartPrecision);
       } else {
@@ -271,7 +270,7 @@ public class DCPAAlgorithm {
   }
 
   private Collection<BlockSummaryMessage> processIntermediateResult(
-      BlockAnalysisIntermediateResult result) throws InterruptedException {
+      BlockAnalysisIntermediateResult result, boolean filter) throws InterruptedException {
     // adapt precision
     isInfeasible = result.wasAbstracted();
     status = status.update(result.getStatus());
@@ -308,16 +307,7 @@ public class DCPAAlgorithm {
           // serialize the precision and the states at the block ends
           // (BlockPostConditionMessages)
           FluentIterable.from(result.getBlockEnds())
-              .filter(
-                  m -> {
-                    PredicateAbstractState abstractState =
-                        AbstractStates.extractStateByType(m, PredicateAbstractState.class);
-                    boolean isTop = false;
-                    if (abstractState.isAbstractionState()) {
-                      isTop = abstractState.getAbstractionFormula().isTrue();
-                    }
-                    return !hasSentFirstMessages || !isTop;
-                  })
+              .filter(m -> filter || !hasSentFirstMessages || !dcpa.isTop(m))
               .transform(state -> dcpa.serialize(state, reachedSet.getPrecision(state)))
               .transform(
                   p ->

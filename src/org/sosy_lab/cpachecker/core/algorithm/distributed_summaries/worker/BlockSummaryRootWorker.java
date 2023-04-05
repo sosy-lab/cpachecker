@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analys
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.AlgorithmFactory.AnalysisComponents;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DCPAFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -80,9 +81,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
             pShutdownManager,
             pNode);
     // never needs precision
-    dcpa =
-        DistributedConfigurableProgramAnalysis.distribute(
-            parts.cpa(), pNode, pCfa, AnalysisDirection.FORWARD);
+    dcpa = DCPAFactory.distribute(parts.cpa(), pNode, AnalysisDirection.FORWARD, pCfa);
     topState =
         Objects.requireNonNull(parts.cpa())
             .getInitialState(root.getLastNode(), StateSpacePartition.getDefaultPartition());
@@ -90,7 +89,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
 
   @Override
   public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage)
-      throws InterruptedException, SolverException, CPAException, IOException {
+      throws InterruptedException, SolverException {
     switch (pMessage.getType()) {
       case ERROR_CONDITION -> {
         AbstractState currentState = dcpa.getDeserializeOperator().deserialize(pMessage);

@@ -10,13 +10,15 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ForwardingBlockingQueue;
-import java.util.ArrayList;import java.util.List;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
 
-public class BlockSummaryProbabilityPriorityQueue extends ForwardingBlockingQueue<BlockSummaryMessage> {
+public class BlockSummaryProbabilityPriorityQueue
+    extends ForwardingBlockingQueue<BlockSummaryMessage> {
 
   private final BlockingQueue<BlockSummaryMessage> queue;
   private final List<BlockSummaryMessage> reordered;
@@ -31,15 +33,18 @@ public class BlockSummaryProbabilityPriorityQueue extends ForwardingBlockingQueu
   private BlockSummaryProbabilityPriorityQueue(BlockingQueue<BlockSummaryMessage> pQueue) {
     queue = pQueue;
     reordered = new ArrayList<>();
-    probability = ImmutableMap.<MessageType, Double>builder()
-        .put(MessageType.STATISTICS, 1d)
-        .put(MessageType.ERROR, 1d)
-        .put(MessageType.FOUND_RESULT, 1d)
-        .put(MessageType.ERROR_CONDITION_UNREACHABLE, 1d)
-        .put(MessageType.ERROR_CONDITION, .7)
-        .put(MessageType.BLOCK_POSTCONDITION, .5)
-        .put(MessageType.ABSTRACTION_STATE, .1)
-        .build();
+    // necessary to avoid endless loops of ErrorCondition messages for loop structures.
+    // the number is the probability within [0;1) that the messages will be processed next
+    probability =
+        ImmutableMap.<MessageType, Double>builder()
+            .put(MessageType.STATISTICS, 1d)
+            .put(MessageType.ERROR, 1d)
+            .put(MessageType.FOUND_RESULT, 1d)
+            .put(MessageType.ERROR_CONDITION_UNREACHABLE, 1d)
+            .put(MessageType.ERROR_CONDITION, .7)
+            .put(MessageType.BLOCK_POSTCONDITION, .5)
+            .put(MessageType.ABSTRACTION_STATE, .1)
+            .build();
   }
 
   public BlockSummaryProbabilityPriorityQueue() {
@@ -60,8 +65,8 @@ public class BlockSummaryProbabilityPriorityQueue extends ForwardingBlockingQueu
   @Override
   public BlockSummaryMessage take() throws InterruptedException {
     // empty pending messages (non blocking)
-    // return queue.take();
-    while (!queue.isEmpty()) {
+    return queue.take();
+    /*while (!queue.isEmpty()) {
       double random = Math.random();
       BlockSummaryMessage message = queue.take();
       if (random < probability.get(message.getType())) {
@@ -70,9 +75,9 @@ public class BlockSummaryProbabilityPriorityQueue extends ForwardingBlockingQueu
         reordered.add(message);
       }
     }
-    if(!reordered.isEmpty()) {
+    if (!reordered.isEmpty()) {
       return reordered.remove(0);
     }
-    return queue.take();
+    return queue.take();*/
   }
 }

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -113,20 +114,19 @@ public class BlockState
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
-    return isTarget()
-            && direction == AnalysisDirection.FORWARD
-            && !blockNode.getLastNode().equals(blockNode.getAbstractionNode())
-            && !blockNode.getLastNode().equals(node)
-            && !isStartNodeOfBlock()
-        ? errorCondition
-            .map(
-                state ->
-                    extractFormula(
-                        Objects.requireNonNull(
-                            AbstractStates.extractStateByType(state, PredicateAbstractState.class)),
-                        manager))
-            .orElse(manager.getBooleanFormulaManager().makeTrue())
-        : manager.getBooleanFormulaManager().makeTrue();
+    if (isTarget()
+        && errorCondition.isPresent()
+        && direction == AnalysisDirection.FORWARD
+        && !blockNode.getLastNode().equals(blockNode.getAbstractionNode())
+        && !blockNode.getLastNode().equals(node)
+        && !isStartNodeOfBlock()) {
+      FluentIterable<BooleanFormula> approximations =
+          AbstractStates.asIterable(errorCondition.orElseThrow())
+              .filter(FormulaReportingState.class)
+              .transform(s -> s.getFormulaApproximation(manager));
+      return manager.getBooleanFormulaManager().and(approximations.toList());
+    }
+    return manager.getBooleanFormulaManager().makeTrue();
   }
 
   private BooleanFormula extractFormula(

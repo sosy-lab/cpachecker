@@ -28,7 +28,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 
 @Options
 public class MessageLogger {
@@ -82,10 +81,7 @@ public class MessageLogger {
     messageToJSON.put("timestamp", secondsToNano.toString());
     messageToJSON.put("hashCode", hashCode);
     messageToJSON.put("from", pMessage.getUniqueBlockId());
-    if (pMessage.getAbstractState(PredicateCPA.class).isEmpty()) {
-      pMessage = BlockSummaryMessage.addEntry(pMessage, PredicateCPA.class.getName(), "true");
-    }
-    messageToJSON.put("payload", pMessage.getPayloadJSON(s -> s.contains("PredicateCPA")));
+    messageToJSON.put("payload", pMessage.getPayloadJSON(s -> s.contains("readable")));
     JSON.writeJSONString(
         messageToJSON, reportFiles.resolve("M" + ID_GENERATOR.getFreshId() + ".json"));
   }
