@@ -54,22 +54,18 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
         PredicateOperatorUtil.extractFormulaString(
             pMessage, predicateCPA.getClass(), formulaManagerView);
     SSAMap map = SSAMap.emptySSAMap();
-    // PointerTargetSet pts = PointerTargetSet.emptyPointerTargetSet();
+    PointerTargetSet pts = PointerTargetSet.emptyPointerTargetSet();
     if (pMessage instanceof BlockSummaryPostConditionMessage) {
       map = ((BlockSummaryPostConditionMessage) pMessage).getSSAMap();
-      // pts = ((BlockSummaryPostConditionMessage) pMessage).getPointerTargetSet();
+      pts = ((BlockSummaryPostConditionMessage) pMessage).getPointerTargetSet();
     } else if (pMessage instanceof BlockSummaryErrorConditionMessage) {
       map = ((BlockSummaryErrorConditionMessage) pMessage).getSSAMap();
-      // pts = ((BlockSummaryErrorConditionMessage) pMessage).getPointerTargetSet();
+      pts = ((BlockSummaryErrorConditionMessage) pMessage).getPointerTargetSet();
     }
 
     PathFormula abstraction =
         PredicateOperatorUtil.getPathFormula(
-            formula,
-            pathFormulaManager,
-            formulaManagerView,
-            PointerTargetSet.emptyPointerTargetSet(),
-            map);
+            formula, pathFormulaManager, formulaManagerView, pts, map);
 
     PredicateAbstractState deserialized;
     if (pMessage.getType() == MessageType.ERROR_CONDITION) {

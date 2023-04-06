@@ -64,10 +64,10 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     }
     String serializedFormula = formulaManagerView.dumpFormula(booleanFormula).toString();
     String serializedSSAMap;
-    // String pts;
+    String pts;
     try {
       serializedSSAMap = SerializeUtil.serialize(ssaMap);
-      // pts = SerializeUtil.serialize(state.getPathFormula().getPointerTargetSet());
+      pts = SerializeUtil.serialize(state.getPathFormula().getPointerTargetSet());
     } catch (IOException pE) {
       throw new AssertionError("Unable to serialize SSAMap " + state.getPathFormula().getSsa());
     }
@@ -75,7 +75,7 @@ public class SerializePredicateStateOperator implements SerializeOperator {
         .addEntry(PredicateCPA.class.getName(), serializedFormula)
         .addEntry("readable", booleanFormula.toString())
         .addEntry(BlockSummaryMessagePayload.SSA, serializedSSAMap)
-        // .addEntry(BlockSummaryMessagePayload.PTS, pts)
+        .addEntry(BlockSummaryMessagePayload.PTS, pts)
         .buildPayload();
   }
 }
