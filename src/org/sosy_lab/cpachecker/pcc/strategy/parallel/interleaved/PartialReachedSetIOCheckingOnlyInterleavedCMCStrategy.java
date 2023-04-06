@@ -233,8 +233,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
                 automatonWriter.getAllAncestorsFor(unexplored),
                 unexplored,
                 (ARGState) reached.getFirstState());
-        GlobalSerializationInformation.getInstance()
-            .writeSerializationInformation(cpas.get(i), cfa);
+        GlobalSerializationInformation.writeSerializationInformation(cpas.get(i), cfa);
         ioHelper.writeProof(pOut, reached, pCpa);
         GlobalSerializationInformation.clear();
       }
@@ -305,7 +304,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
           }
           cpas[i] = (PropertyCheckerCPA) cpa;
           mustReadAndCheckSequentially = CPAs.retrieveCPA(cpa, PredicateCPA.class) != null;
-          GlobalSerializationInformation.getInstance().writeSerializationInformation(cpas[i], cfa);
+          GlobalSerializationInformation.writeSerializationInformation(cpas[i], cfa);
           ioHelper.readMetadata(o, true);
           GlobalSerializationInformation.clear();
           roots[i] = ioHelper.getRoot();
