@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalSerializationInformation;
 
 public class LocationState
     implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
@@ -215,7 +215,7 @@ public class LocationState
     }
 
     private Object readResolve() {
-      CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
+      CFAInfo cfaInfo = GlobalSerializationInformation.getInstance().getCFAInfo().orElseThrow();
       return cfaInfo.getLocationStateFactory().getState(cfaInfo.getNodeByNodeNumber(nodeNumber));
     }
   }

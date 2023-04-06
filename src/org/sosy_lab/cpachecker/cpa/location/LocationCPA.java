@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalSerializationInformation;
 
 public class LocationCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM, ProofCheckerCPA {
@@ -37,7 +37,7 @@ public class LocationCPA extends AbstractCPA
     super("sep", "sep", new LocationTransferRelation(pStateFactory));
     stateFactory = pStateFactory;
 
-    Optional<CFAInfo> cfaInfo = GlobalInfo.getInstance().getCFAInfo();
+    Optional<CFAInfo> cfaInfo = GlobalSerializationInformation.getInstance().getCFAInfo();
     if (cfaInfo.isPresent()) {
       cfaInfo.orElseThrow().storeLocationStateFactory(stateFactory);
     }

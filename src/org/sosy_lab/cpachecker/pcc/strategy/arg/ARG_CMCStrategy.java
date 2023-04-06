@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.AssumptionAutomatonGenerator;
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.PartialCPABuilder;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalSerializationInformation;
 
 public class ARG_CMCStrategy extends AbstractStrategy {
 
@@ -50,6 +50,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   private final ShutdownNotifier shutdown;
   private final PartialCPABuilder cpaBuilder;
   private final AssumptionAutomatonGenerator automatonWriter;
+  private final CFA cfa;
 
   private ARGState[] roots;
   private boolean proofKnown = false;
@@ -66,6 +67,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     // pConfig.inject(this);
     globalConfig = pConfig;
     shutdown = pShutdownNotifier;
+    cfa = pCfa;
     cpaBuilder = new PartialCPABuilder(pConfig, pLogger, pShutdownNotifier, pCfa, pSpecification);
     automatonWriter = new AssumptionAutomatonGenerator(pConfig, pLogger);
   }
@@ -126,8 +128,10 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       pOut.writeInt(roots.length);
 
       for (int i = 0; i < historyReached.getCPAs().size(); i++) {
-        GlobalInfo.getInstance().setUpInfoFromCPA(historyReached.getCPAs().get(i));
+        GlobalSerializationInformation.getInstance()
+            .writeSerializationInformation(historyReached.getCPAs().get(i), cfa);
         pOut.writeObject(roots[i]);
+        GlobalSerializationInformation.clear();
       }
     }
   }
@@ -161,8 +165,9 @@ public class ARG_CMCStrategy extends AbstractStrategy {
         for (int i = 0; i < roots.length; i++) {
           logger.log(Level.FINEST, "Build CPA for reading and checking partial ARG", i);
           cpa = cpaBuilder.buildPartialCPA(i, factory);
-          GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+          GlobalSerializationInformation.getInstance().writeSerializationInformation(cpa, cfa);
           readARG = o.readObject();
+          GlobalSerializationInformation.clear();
           if (!(readARG instanceof ARGState)) {
             return false;
           }
@@ -234,8 +239,10 @@ public class ARG_CMCStrategy extends AbstractStrategy {
                     for (int i = 0; i < roots.length && checkResult.get(); i++) {
                       logger.log(Level.FINEST, "Build CPA for correctly reading ", i);
                       cpas[i] = cpaBuilder.buildPartialCPA(i, factory);
-                      GlobalInfo.getInstance().setUpInfoFromCPA(cpas[i]);
+                      GlobalSerializationInformation.getInstance()
+                          .writeSerializationInformation(cpas[i], cfa);
                       readARG = o.readObject();
+                      GlobalSerializationInformation.clear();
                       if (!(readARG instanceof ARGState)) {
                         abortPreparation();
                       }

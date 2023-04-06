@@ -70,7 +70,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CompoundException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.ThreadCpuTimeLimit;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -315,10 +314,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
                 null),
             terminated);
     return () -> {
-      // TODO global info will not work correctly with parallel analyses
-      // as it is a mutable singleton object
-      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
       if (algorithm instanceof ConditionAdjustmentEventSubscriber) {
         conditionAdjustmentEventSubscribers.add((ConditionAdjustmentEventSubscriber) algorithm);
       }

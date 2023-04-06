@@ -21,7 +21,7 @@ import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalSerializationInformation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -164,19 +164,23 @@ public class AbstractionFormula implements Serializable {
     private final PathFormula blockFormula;
 
     public SerializationProxy(AbstractionFormula pAbstractionFormula) {
-      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+      FormulaManagerView mgr =
+          GlobalSerializationInformation.getInstance().getPredicateFormulaManagerView();
       instantiatedFormulaDump =
           mgr.dumpFormula(pAbstractionFormula.asInstantiatedFormula()).toString();
       blockFormula = pAbstractionFormula.getBlockFormula();
     }
 
     private Object readResolve() {
-      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+      FormulaManagerView mgr =
+          GlobalSerializationInformation.getInstance().getPredicateFormulaManagerView();
       BooleanFormula instantiatedFormula = mgr.parse(instantiatedFormulaDump);
       BooleanFormula notInstantiated = mgr.uninstantiate(instantiatedFormula);
       return new AbstractionFormula(
           mgr,
-          GlobalInfo.getInstance().getAbstractionManager().convertFormulaToRegion(notInstantiated),
+          GlobalSerializationInformation.getInstance()
+              .getAbstractionManager()
+              .convertFormulaToRegion(notInstantiated),
           notInstantiated,
           instantiatedFormula,
           blockFormula,

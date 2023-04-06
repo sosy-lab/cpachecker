@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPABackward;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 /** Factory for new independent CPA algorithms. */
@@ -64,7 +63,6 @@ public class AlgorithmFactory {
     ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
     Optional.ofNullable(CPAs.retrieveCPA(cpa, BlockCPA.class)).ifPresent(b -> b.init(node));
     Optional.ofNullable(CPAs.retrieveCPA(cpa, BlockCPABackward.class)).ifPresent(b -> b.init(node));
-    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
     Algorithm algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
     ReachedSet reached =
         createInitialReachedSet(cpa, node.getStartNode(), coreComponents, singleLogger);
