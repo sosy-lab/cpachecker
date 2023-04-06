@@ -140,13 +140,6 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   @Option(
       secure = true,
       description =
-          "Use the old version of assignment handling for normal assignments. "
-              + "Memory manipulation functions still will use the new version.")
-  private boolean useOldAssignment = false;
-
-  @Option(
-      secure = true,
-      description =
           "Enable functions memset, memcopy, memmove. "
               + "If disabled, using these functions will result in an error.")
   private boolean enableMemoryAssignmentFunctions = true;
@@ -282,10 +275,6 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
 
   public boolean useByteArrayForHeap() {
     return useByteArrayForHeap;
-  }
-
-  boolean useOldAssignment() {
-    return useOldAssignment;
   }
 
   boolean enableMemoryAssignmentFunctions() {

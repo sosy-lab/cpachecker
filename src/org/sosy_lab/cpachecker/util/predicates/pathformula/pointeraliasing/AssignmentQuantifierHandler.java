@@ -740,7 +740,8 @@ class AssignmentQuantifierHandler {
         conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
   }
 
-  public BooleanFormula makeDestructiveAssignment(
+  @Deprecated
+  BooleanFormula makeDestructiveAssignment(
       CType lvalueType,
       CType rvalueType,
       final Location lvalue,
@@ -762,18 +763,4 @@ class AssignmentQuantifierHandler {
         useQuantifiers);
   }
 
-  void finishAssignmentsForUF(
-      CType lvalueType,
-      final AliasedLocation lvalue,
-      final PointerTargetPattern pattern,
-      final Set<MemoryRegion> updatedRegions)
-      throws InterruptedException {
-    // TODO: remove this function
-    assignmentFormulaHandler.finishAssignmentsForUF(lvalueType, lvalue, pattern, updatedRegions);
-  }
-
-  Optional<Formula> getValueFormula(CType pRValueType, Expression pRValue) {
-    // TODO: remove this function
-    return assignmentFormulaHandler.getValueFormula(pRValueType, pRValue);
-  }
 }

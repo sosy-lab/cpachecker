@@ -423,6 +423,7 @@ public class AssignmentFormulaHandler {
    * @return A formula for the assignment.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
+  @Deprecated
   BooleanFormula makeDestructiveAssignment(
       CType lvalueType,
       CType rvalueType,
@@ -474,6 +475,7 @@ public class AssignmentFormulaHandler {
     }
   }
 
+  @Deprecated
   private BooleanFormula makeDestructiveArrayAssignment(
       CArrayType lvalueArrayType,
       CType rvalueType,
@@ -567,6 +569,7 @@ public class AssignmentFormulaHandler {
     return result;
   }
 
+  @Deprecated
   private BooleanFormula makeDestructiveCompositeAssignment(
       final CCompositeType lvalueCompositeType,
       CType rvalueType,
