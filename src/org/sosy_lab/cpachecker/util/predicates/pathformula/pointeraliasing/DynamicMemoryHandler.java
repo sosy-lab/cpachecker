@@ -703,7 +703,7 @@ class DynamicMemoryHandler {
     }
 
     // Track currently deferred allocations
-    if (conv.options.deferUntypedAllocations() && !isAllocation) {
+    if (!isAllocation) {
       handleDeferredAllocationsInAssignment(
           lhs, rhs, lhsType, lhsLearnedPointerTypes, rhsLearnedPointerTypes);
     }

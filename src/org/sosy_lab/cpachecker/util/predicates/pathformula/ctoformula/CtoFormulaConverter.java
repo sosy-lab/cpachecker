@@ -651,6 +651,49 @@ public class CtoFormulaConverter {
   }
 
   /**
+   * Create a formula that reinterprets the raw bit values as a bitvector formula with the same
+   * size. Useful for converting floats to bitvectors. Returns {@code null} if this is not
+   * implemented for the given types.
+   */
+  protected @Nullable BitvectorFormula makeValueReinterpretationToBitvector(
+      final CType pFromType, Formula formula) {
+    CType fromType = handlePointerAndEnumAsInt(pFromType);
+    FormulaType<?> fromFormulaType = getFormulaTypeFromCType(fromType);
+
+    if (fromFormulaType.isBitvectorType()) {
+      // already a bitvector
+      return (BitvectorFormula) formula;
+    } else if (fromFormulaType.isFloatingPointType()) {
+      return fmgr.getFloatingPointFormulaManager().toIeeeBitvector((FloatingPointFormula) formula);
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * Create a formula that reinterprets a bitvector formula as a formula of a given type. Useful for
+   * converting floating-point values represented in bitvectors back to float. Returns {@code null}
+   * if this is not implemented for the given types.
+   */
+  protected @Nullable Formula makeValueReinterpretationFromBitvector(
+      final CType pToType, Formula formula) {
+    BitvectorFormula bitvectorFormula = (BitvectorFormula) formula;
+    CType toType = handlePointerAndEnumAsInt(pToType);
+    FormulaType<?> toFormulaType = getFormulaTypeFromCType(toType);
+
+    if (toFormulaType.isFloatingPointType()) {
+      return fmgr.getFloatingPointFormulaManager()
+          .fromIeeeBitvector(bitvectorFormula, (FloatingPointType) toFormulaType);
+    } else if (toFormulaType.isBitvectorType()) {
+      // already a bitvector
+      return formula;
+    } else {
+      return null; // TODO use UF
+    }
+  }
+
+
+  /**
    * Used for implicit and explicit type casts between CTypes. Optionally, overflows can be replaced
    * with UFs.
    *

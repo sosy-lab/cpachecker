@@ -34,13 +34,11 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -56,6 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -191,19 +190,15 @@ public class AssignmentFormulaHandler {
 
       // perform partial assignment
 
-      // reinterpret to integer version of target type
-      Formula reinterpretedRhsFormula =
-          conv.makeValueReinterpretation(
-              targetType, getIntegerTypeReinterpretation(targetType), convertedRhsFormula);
-      if (reinterpretedRhsFormula != null) {
-        convertedRhsFormula = reinterpretedRhsFormula;
-      }
+      // make the formula bitvector formula
+      BitvectorFormula bitvectorRhsFormula =
+          conv.makeValueReinterpretationToBitvector(targetType, convertedRhsFormula);
 
       // extract the interesting part and dimension to new lhs type, shift left
       // this will make the formula type integer version of new lhs type
       Formula extractedFormula =
           fmgr.makeExtract(
-              convertedRhsFormula,
+              bitvectorRhsFormula,
               (int) (rhs.span().rhsBitOffset() + rhs.span().bitSize() - 1),
               (int) rhs.span().rhsBitOffset());
 
@@ -231,59 +226,51 @@ public class AssignmentFormulaHandler {
 
     // the whole type is now definitely the type of LHS
     wholeType = lhsResolved.type();
-    if (!forceNondet) {
-      if (!suppressReinterpretation) {
-        RangeSet<Long> retainedRangeSet =
-            lhsRangeSet.complement().subRangeSet(Range.closedOpen((long) 0, lhsBitSize));
-        if (!retainedRangeSet.isEmpty()) {
-          // there are some retained bits
-          Optional<Formula> optionalPreviousLhsFormula =
-              getValueFormula(lhsResolved.type(), lhsResolved.expression());
-          if (optionalPreviousLhsFormula.isPresent()) {
-            Formula previousLhsFormula = optionalPreviousLhsFormula.get();
-            Formula reinterpretedPreviousLhsFormula =
-                conv.makeValueReinterpretation(
-                    lhsResolved.type(),
-                    getIntegerTypeReinterpretation(lhsResolved.type()),
-                    previousLhsFormula);
-            if (reinterpretedPreviousLhsFormula != null) {
-              previousLhsFormula = reinterpretedPreviousLhsFormula;
-            }
-            // bit-or retained bits
-            for (Range<Long> retainedRange : retainedRangeSet.asRanges()) {
-              if (!retainedRange.isEmpty()) {
-                long retainedBitOffset = retainedRange.lowerEndpoint();
-                long retainedBitSize =
-                    retainedRange.upperEndpoint() - retainedRange.lowerEndpoint();
-                Formula extractedFormula =
-                    fmgr.makeExtract(
-                        previousLhsFormula,
-                        (int) (retainedRange.upperEndpoint() - 1),
-                        (int) (retainedRange.lowerEndpoint().longValue()));
+    if (!forceNondet && !suppressReinterpretation) {
+      RangeSet<Long> retainedRangeSet =
+          lhsRangeSet.complement().subRangeSet(Range.closedOpen((long) 0, lhsBitSize));
+      if (!retainedRangeSet.isEmpty()) {
+        // there are some retained bits
+        Optional<Formula> optionalPreviousLhsFormula =
+            getValueFormula(lhsResolved.type(), lhsResolved.expression());
+        if (optionalPreviousLhsFormula.isPresent()) {
+          Formula previousLhsFormula = optionalPreviousLhsFormula.get();
+          Formula reinterpretedPreviousLhsFormula =
+              conv.makeValueReinterpretationFromBitvector(lhsResolved.type(), previousLhsFormula);
+          // bit-or retained bits
+          for (Range<Long> retainedRange : retainedRangeSet.asRanges()) {
+            if (!retainedRange.isEmpty()) {
+              long retainedBitOffset = retainedRange.lowerEndpoint();
+              long retainedBitSize =
+                  retainedRange.upperEndpoint() - retainedRange.lowerEndpoint();
+              Formula extractedFormula =
+                  fmgr.makeExtract(
+                      reinterpretedPreviousLhsFormula,
+                      (int) (retainedRange.upperEndpoint() - 1),
+                      (int) (retainedRange.lowerEndpoint().longValue()));
 
-                long numExtendBits = lhsBitSize - retainedBitSize;
+              long numExtendBits = lhsBitSize - retainedBitSize;
 
-                Formula extendedFormula =
-                    fmgr.makeExtend(extractedFormula, (int) numExtendBits, false);
+              Formula extendedFormula =
+                  fmgr.makeExtend(extractedFormula, (int) numExtendBits, false);
 
-                Formula shiftedFormula =
-                    fmgr.makeShiftLeft(
-                        extendedFormula,
-                        fmgr.makeNumber(
-                            FormulaType.getBitvectorTypeWithSize((int) lhsBitSize),
-                            retainedBitOffset));
-                // bit-or with other parts
-                if (wholeRhsFormula != null) {
-                  wholeRhsFormula = fmgr.makeOr(wholeRhsFormula, shiftedFormula);
-                } else {
-                  wholeRhsFormula = shiftedFormula;
-                }
+              Formula shiftedFormula =
+                  fmgr.makeShiftLeft(
+                      extendedFormula,
+                      fmgr.makeNumber(
+                          FormulaType.getBitvectorTypeWithSize((int) lhsBitSize),
+                          retainedBitOffset));
+              // bit-or with other parts
+              if (wholeRhsFormula != null) {
+                wholeRhsFormula = fmgr.makeOr(wholeRhsFormula, shiftedFormula);
+              } else {
+                wholeRhsFormula = shiftedFormula;
               }
             }
-
-          } else {
-            forceNondet = true;
           }
+
+        } else {
+          forceNondet = true;
         }
       }
     }
@@ -294,14 +281,8 @@ public class AssignmentFormulaHandler {
     } else {
       if (!suppressReinterpretation) {
         // reinterpret to LHS type
-        Formula reinterpretedWholeRhsFormula =
-            conv.makeValueReinterpretation(
-                getIntegerTypeReinterpretation(lhsResolved.type()),
-                lhsResolved.type(),
-                wholeRhsFormula);
-        if (reinterpretedWholeRhsFormula != null) {
-          wholeRhsFormula = reinterpretedWholeRhsFormula;
-        }
+        wholeRhsFormula =
+            conv.makeValueReinterpretationFromBitvector(lhsResolved.type(), wholeRhsFormula);
       }
       rhsResult = Value.ofValue(wholeRhsFormula);
     }
@@ -1093,31 +1074,4 @@ public class AssignmentFormulaHandler {
     }
   }
 
-  private CType getIntegerTypeReinterpretation(CType type) {
-
-    // TODO: unify with memory fns and put into MachineModel
-    if (!(type instanceof CSimpleType)) {
-      return type;
-    }
-
-    CSimpleType simpleType = (CSimpleType) type;
-
-    CBasicType basicType = simpleType.getType();
-
-    // we need to construct the corresponding integer type with the same byte size
-    // as the floating-point type so that we can populate it
-
-    if (basicType == CBasicType.FLOAT) {
-      // TODO: integer type with the same sizeof as float should be resolved by a reverse lookup
-      // into the machine model
-      // we use unsigned int in the meantime
-      return CNumericTypes.UNSIGNED_INT;
-    } else if (basicType == CBasicType.DOUBLE) {
-      // TODO: integer type with the same sizeof as float should be resolved by a reverse lookup
-      // into the machine model
-      // we use unsigned long long in the meantime
-      return CNumericTypes.UNSIGNED_LONG_LONG_INT;
-    }
-    return type;
-  }
 }

@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -1226,6 +1227,20 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   protected @Nullable Formula makeValueReinterpretation(
       CType pFromType, CType pToType, Formula pFormula) {
     return super.makeValueReinterpretation(pFromType, pToType, pFormula);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  protected @Nullable BitvectorFormula makeValueReinterpretationToBitvector(
+      CType pFromType, Formula pFormula) {
+    return super.makeValueReinterpretationToBitvector(pFromType, pFormula);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  protected @Nullable Formula makeValueReinterpretationFromBitvector(
+      CType pToType, Formula pFormula) {
+    return super.makeValueReinterpretationFromBitvector(pToType, pFormula);
   }
 
   /** {@inheritDoc} */
