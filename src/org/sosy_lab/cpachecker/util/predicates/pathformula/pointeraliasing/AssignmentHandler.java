@@ -14,9 +14,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -39,13 +41,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Array
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceSplitExpression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceTail;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
-import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaType;
 
 /** Implements a handler for assignments. */
 class AssignmentHandler {
@@ -662,130 +660,62 @@ class AssignmentHandler {
       final CType declarationType,
       final List<CExpressionAssignmentStatement> assignments)
       throws UnrecognizedCodeException, InterruptedException {
+
+    // cast normally, use old SSA indices if aliased
+    AssignmentOptions assignmentOptions =
+        new AssignmentOptions(true, AssignmentConversionType.CAST, false, false);
+
     if (options.useQuantifiersOnArrays()
-        && (declarationType instanceof CArrayType)
+        && (declarationType instanceof CArrayType arrayType)
         && !assignments.isEmpty()) {
-      return handleInitializationAssignmentsWithQuantifier(variable, assignments, false);
-    } else {
-      return handleInitializationAssignmentsWithoutQuantifier(assignments);
-    }
-  }
+      // try to make a single slice assignment out of the assignments
 
-  /**
-   * Handles initialization assignments.
-   *
-   * @param assignments A list of assignment statements.
-   * @return A boolean formula for the assignment.
-   * @throws UnrecognizedCodeException If the C code was unrecognizable.
-   * @throws InterruptedException It the execution was interrupted.
-   */
-  private BooleanFormula handleInitializationAssignmentsWithoutQuantifier(
-      final List<CExpressionAssignmentStatement> assignments)
-      throws UnrecognizedCodeException, InterruptedException {
-    BooleanFormula result = conv.bfmgr.makeTrue();
+      OptionalInt arrayLength = arrayType.getLengthAsInt();
+
+      CExpressionAssignmentStatement firstAssignment = assignments.get(0);
+
+      // we can visit lhs and rhs multiple times without side effects
+      // as there is no CFunctionCallExpression visit possible
+      final CExpressionVisitorWithPointerAliasing rhsVisitor =
+          new CExpressionVisitorWithPointerAliasing(
+              conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+      final Expression rhsValue = firstAssignment.getRightHandSide().accept(rhsVisitor);
+
+      final CExpressionVisitorWithPointerAliasing lhsVisitor =
+          new CExpressionVisitorWithPointerAliasing(
+              conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+      final Location lhsLocation = variable.accept(lhsVisitor).asLocation();
+
+      if (arrayLength.isPresent()
+          && arrayLength.getAsInt() == assignments.size()
+          && rhsValue.isValue()
+          && checkEqualityOfInitializers(assignments, rhsVisitor)
+          && lhsLocation.isAliased()) {
+        // there is an initializer for every array element and all of them are the same
+        // make a single slice assignment over the array length
+        CArraySubscriptExpression firstAssignmentLeftSide =
+            (CArraySubscriptExpression) firstAssignment.getLeftHandSide();
+        CExpression wholeAssignmentLeftSide = firstAssignmentLeftSide.getArrayExpression();
+
+        ArraySliceExpression sliceLhs =
+            new ArraySliceExpression(wholeAssignmentLeftSide)
+                .withIndex(new ArraySliceIndexVariable(arrayType.getLength()));
+        ArraySliceExpression sliceRhs =
+            new ArraySliceExpression(firstAssignment.getRightHandSide());
+        ArraySliceAssignment sliceAssignment =
+            new ArraySliceAssignment(sliceLhs, new ArraySliceExpressionRhs(sliceRhs));
+        return handleSliceAssignments(ImmutableList.of(sliceAssignment), assignmentOptions);
+      }
+    }
+
+    ImmutableList.Builder<ArraySliceAssignment> builder =
+        ImmutableList.<ArraySliceAssignment>builder();
     for (CExpressionAssignmentStatement assignment : assignments) {
-      final CLeftHandSide lhs = assignment.getLeftHandSide();
-      result =
-          conv.bfmgr.and(result, handleAssignment(lhs, lhs, assignment.getRightHandSide(), true));
+      ArraySliceExpression lhs = new ArraySliceExpression(assignment.getLeftHandSide());
+      ArraySliceExpression rhs = new ArraySliceExpression(assignment.getRightHandSide());
+      builder.add(new ArraySliceAssignment(lhs, new ArraySliceExpressionRhs(rhs)));
     }
-    return result;
-  }
-
-  /**
-   * Handles an initialization assignments, i.e. an assignment with a C initializer, with using a
-   * quantifier over the resulting SMT array.
-   *
-   * <p>If we cannot make an assignment of the form {@code <variable> = <value>}, we fall back to
-   * the normal initialization in {@link #handleInitializationAssignmentsWithoutQuantifier(List)}.
-   *
-   * @param pLeftHandSide The left hand side of the statement. Needed for fallback scenario.
-   * @param pAssignments A list of assignment statements.
-   * @param pUseOldSSAIndices A flag indicating whether we will reuse SSA indices or not.
-   * @return A boolean formula for the assignment.
-   * @throws UnrecognizedCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
-   * @see #handleInitializationAssignmentsWithoutQuantifier(List)
-   */
-  private BooleanFormula handleInitializationAssignmentsWithQuantifier(
-      final CIdExpression pLeftHandSide,
-      final List<CExpressionAssignmentStatement> pAssignments,
-      final boolean pUseOldSSAIndices)
-      throws UnrecognizedCodeException, InterruptedException {
-
-    assert !pAssignments.isEmpty()
-        : "Cannot handle initialization assignments without an assignment right hand side.";
-
-    final CType lhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getLeftHandSide());
-    final CType rhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getRightHandSide());
-
-    final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
-    final Expression rhsValue = pAssignments.get(0).getRightHandSide().accept(rhsVisitor);
-
-    final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
-    final Location lhsLocation = pLeftHandSide.accept(lhsVisitor).asLocation();
-
-    if (!rhsValue.isValue()
-        || !checkEqualityOfInitializers(pAssignments, rhsVisitor)
-        || !lhsLocation.isAliased()) {
-      // Fallback case, if we have no initialization of the form "<variable> = <value>"
-      // Example code snippet
-      // (cf. test/programs/simple/struct-initializer-for-composite-field.c)
-      //    struct s { int x; };
-      //    struct t { struct s s; };
-      //    ...
-      //    const struct s s = { .x = 1 };
-      //    struct t t = { .s = s };
-      return handleInitializationAssignmentsWithoutQuantifier(pAssignments);
-    } else {
-      MemoryRegion region = lhsLocation.asAliased().getMemoryRegion();
-      if (region == null) {
-        region = regionMgr.makeMemoryRegion(lhsType);
-      }
-      final String targetName = regionMgr.getPointerAccessName(region);
-      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lhsType);
-      final int oldIndex = conv.getIndex(targetName, lhsType, ssa);
-      final int newIndex =
-          pUseOldSSAIndices
-              ? conv.getIndex(targetName, lhsType, ssa)
-              : conv.getFreshIndex(targetName, lhsType, ssa);
-
-      final Formula counter =
-          fmgr.makeVariableWithoutSSAIndex(
-              conv.voidPointerFormulaType, targetName + "__" + oldIndex + "__counter");
-      final BooleanFormula rangeConstraint =
-          fmgr.makeElementIndexConstraint(
-              counter, lhsLocation.asAliased().getAddress(), pAssignments.size(), false);
-
-      final Formula newDereference =
-          conv.ptsMgr.makePointerDereference(targetName, targetType, newIndex, counter);
-      final Formula rhs =
-          conv.makeCast(rhsType, lhsType, rhsValue.asValue().getValue(), constraints, edge);
-
-      final BooleanFormula assignNewValue = fmgr.assignment(newDereference, rhs);
-
-      final BooleanFormula copyOldValue;
-      if (options.useArraysForHeap()) {
-        final ArrayFormulaManagerView afmgr = fmgr.getArrayFormulaManager();
-        final ArrayFormula<?, ?> newArray =
-            afmgr.makeArray(targetName, newIndex, conv.voidPointerFormulaType, targetType);
-        final ArrayFormula<?, ?> oldArray =
-            afmgr.makeArray(targetName, oldIndex, conv.voidPointerFormulaType, targetType);
-        copyOldValue = fmgr.makeEqual(newArray, oldArray);
-
-      } else {
-        copyOldValue =
-            fmgr.assignment(
-                newDereference,
-                conv.ptsMgr.makePointerDereference(targetName, targetType, oldIndex, counter));
-      }
-
-      return fmgr.getQuantifiedFormulaManager()
-          .forall(
-              counter,
-              bfmgr.and(
-                  bfmgr.implication(rangeConstraint, assignNewValue),
-                  bfmgr.implication(bfmgr.not(rangeConstraint), copyOldValue)));
-    }
+    return handleSliceAssignments(builder.build(), assignmentOptions);
   }
 
   /**
@@ -832,11 +762,6 @@ class AssignmentHandler {
         updatedRegions,
         condition,
         useQuantifiers);
-  }
-
-  private CExpressionVisitorWithPointerAliasing newExpressionVisitor() {
-    // TODO: remove this function
-    return assignmentQuantifierHandler.newExpressionVisitor();
   }
 
 }
