@@ -14,6 +14,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -79,6 +80,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeRes
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceAssignment;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceExpressionRhs;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceNondetRhs;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.AssignmentConversionType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.AssignmentOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -992,6 +998,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final BooleanFormula result;
     if (initializer instanceof CInitializerExpression || initializer == null) {
 
+      // use old SSA indices if aliased as this is an initialization assignment,
+      // no other special options
+      AssignmentOptions assignmentOptions =
+          new AssignmentOptions(true, AssignmentConversionType.CAST, false, false);
+      final ArraySliceExpression lhsSlice = new ArraySliceExpression(lhs);
+
       if (initializer != null) {
         if (options.handleStringLiteralInitializers()) {
           // TODO: see if this can be simplified, this block is just copied from the case
@@ -1004,17 +1016,22 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           return assignmentHandler.handleInitializationAssignments(
               lhs, declarationType, assignments);
         }
+
+        CExpression rhs = ((CInitializerExpression) initializer).getExpression();
+        ArraySliceAssignment assignment =
+            new ArraySliceAssignment(lhsSlice, new ArraySliceExpressionRhs(rhs));
+
+        // perform a slice assignment to lhs from rhs
         result =
-            assignmentHandler.handleAssignment(
-                lhs,
-                lhs,
-                typeHandler.getSimplifiedType(lhs),
-                ((CInitializerExpression) initializer).getExpression(),
-                true);
+            assignmentHandler.handleSliceAssignments(
+                ImmutableList.of(assignment), assignmentOptions);
       } else if (isRelevantVariable(declaration) && !declarationType.isIncomplete()) {
+        // perform a slice assignment of nondet value to lhs
+        ArraySliceAssignment assignment =
+            new ArraySliceAssignment(lhsSlice, new ArraySliceNondetRhs());
         result =
-            assignmentHandler.handleAssignment(
-                lhs, lhs, typeHandler.getSimplifiedType(lhs), null, true);
+            assignmentHandler.handleSliceAssignments(
+                ImmutableList.of(assignment), assignmentOptions);
       } else {
         result = bfmgr.makeTrue();
       }

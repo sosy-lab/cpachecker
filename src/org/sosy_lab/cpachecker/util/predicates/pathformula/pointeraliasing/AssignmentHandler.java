@@ -130,7 +130,7 @@ class AssignmentHandler {
     final ArraySliceRhs rhsSlice;
     if (rhs != null) {
       if (rhs instanceof CExpression rhsExpression) {
-      rhsSlice = new ArraySliceExpressionRhs(new ArraySliceExpression(rhsExpression));
+        rhsSlice = new ArraySliceExpressionRhs(rhsExpression);
       } else if (rhs instanceof CFunctionCallExpression rhsCall) {
         rhsSlice = new ArraySliceCallRhs(rhsCall);
       } else {
@@ -164,6 +164,10 @@ class AssignmentHandler {
     ArraySliceExpressionRhs(ArraySliceExpression expression) {
       checkNotNull(expression);
       this.expression = expression;
+    }
+
+    ArraySliceExpressionRhs(CExpression expression) {
+      this(new ArraySliceExpression(expression));
     }
 
     @Override
@@ -645,10 +649,9 @@ class AssignmentHandler {
         ArraySliceExpression sliceLhs =
             new ArraySliceExpression(wholeAssignmentLeftSide)
                 .withIndex(new ArraySliceIndexVariable(arrayType.getLength()));
-        ArraySliceExpression sliceRhs =
-            new ArraySliceExpression(firstAssignment.getRightHandSide());
-        ArraySliceAssignment sliceAssignment =
-            new ArraySliceAssignment(sliceLhs, new ArraySliceExpressionRhs(sliceRhs));
+        ArraySliceExpressionRhs sliceRhs =
+            new ArraySliceExpressionRhs(firstAssignment.getRightHandSide());
+        ArraySliceAssignment sliceAssignment = new ArraySliceAssignment(sliceLhs, sliceRhs);
         return handleSliceAssignments(ImmutableList.of(sliceAssignment), assignmentOptions);
       }
     }

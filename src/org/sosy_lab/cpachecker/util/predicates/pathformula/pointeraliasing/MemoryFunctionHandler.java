@@ -396,11 +396,10 @@ class MemoryFunctionHandler {
       actualSetValue = createSetValueExpression((CSimpleType) type, setValueUnsignedChar);
     }
 
-    // wrap the actualSetValue in ArraySliceExpression, there is no indexing of rhs
-    ArraySliceExpression rhsSlice = new ArraySliceExpression(actualSetValue);
-
+    // there is no indexing of rhs
     AssignmentHandler.ArraySliceAssignment sliceAssignment =
-        new AssignmentHandler.ArraySliceAssignment(lhsSlice, new ArraySliceExpressionRhs(rhsSlice));
+        new AssignmentHandler.ArraySliceAssignment(
+            lhsSlice, new ArraySliceExpressionRhs(actualSetValue));
 
     assignments.add(sliceAssignment);
   }
