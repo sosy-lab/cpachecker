@@ -104,60 +104,22 @@ class AssignmentHandler {
             pConv, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions, pRegionMgr);
   }
 
-  /**
-   * Creates a formula to handle assignments.
-   *
-   * @param lhs The left hand side of an assignment.
-   * @param lhsForChecking The left hand side of an assignment to check.
-   * @param rhs Either {@code null} or the right hand side of the assignment.
-   * @param useOldSSAIndicesIfAliased A flag indicating whether we can use old SSA indices for
-   *     aliased locations (because the location was not used before) instead of casting it
-   *     according to C rules
-   * @return A formula for the assignment.
-   * @throws UnrecognizedCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
-   */
-  BooleanFormula handleAssignment(
-      final CLeftHandSide lhs,
-      final CLeftHandSide lhsForChecking,
-      final CType lhsType,
-      final @Nullable CRightHandSide rhs,
-      final boolean useOldSSAIndicesIfAliased)
-      throws UnrecognizedCodeException, InterruptedException {
-    // TODO: remake the parameters
-
-    final ArraySliceExpression lhsSlice = new ArraySliceExpression(lhs);
-    final ArraySliceRhs rhsSlice;
-    if (rhs != null) {
-      if (rhs instanceof CExpression rhsExpression) {
-        rhsSlice = new ArraySliceExpressionRhs(rhsExpression);
-      } else if (rhs instanceof CFunctionCallExpression rhsCall) {
-        rhsSlice = new ArraySliceCallRhs(rhsCall);
-      } else {
-        assert(false);
-        rhsSlice = null;
-      }
-    } else {
-      rhsSlice = new ArraySliceNondetRhs();
-    }
-
-    ArraySliceAssignment assignment = new ArraySliceAssignment(lhsSlice, rhsSlice);
-
-    AssignmentOptions assignmentOptions =
-        new AssignmentOptions(
-            useOldSSAIndicesIfAliased,
-            AssignmentConversionType.CAST,
-            false,
-            !lhsType.equals(typeHandler.getSimplifiedType(lhs)));
-
-    return handleSliceAssignments(ImmutableList.of(assignment), assignmentOptions);
-  }
-
   record ArraySlicePartSpan(long lhsBitOffset, long rhsBitOffset, long bitSize) {}
 
   sealed interface ArraySliceRhs
       permits ArraySliceExpressionRhs, ArraySliceCallRhs, ArraySliceNondetRhs {
     CType getType(CType targetType, CType sizeType);
+
+    static ArraySliceRhs fromCRightHandSide(CRightHandSide rhs) {
+      if (rhs instanceof CExpression rhsExpression) {
+        return new ArraySliceExpressionRhs(rhsExpression);
+      } else if (rhs instanceof CFunctionCallExpression rhsCall) {
+        return new ArraySliceCallRhs(rhsCall);
+      } else {
+        assert (false);
+        return null;
+      }
+    }
   }
 
   record ArraySliceExpressionRhs(ArraySliceExpression expression) implements ArraySliceRhs {

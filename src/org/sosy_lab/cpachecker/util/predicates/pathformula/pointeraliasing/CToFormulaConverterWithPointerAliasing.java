@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevant
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceAssignment;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceExpressionRhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceNondetRhs;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceRhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.AssignmentConversionType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.AssignmentOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
@@ -812,6 +813,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
 
+    assert(lhs != null);
+    assert(lhsForChecking != null);
+    assert(rhs != null);
+
     // This corresponds to an argument passed as function parameter of array type
     // (this is the only case when arrays can be "assigned" explicitly, not as structure members)
     // In this case the parameter is treated as pointer
@@ -823,20 +828,26 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     // converts the RHS to make it compatible with the LHS, but in this case *both* sides should
     // be converted to pointers
     CType lhsType = typeHandler.getSimplifiedType(lhs);
-    if (isArrayAssignment(lhs, lhsType)) {
-      lhsType =
-          new CPointerType(
-              lhsType.isConst(), lhsType.isVolatile(), ((CArrayType) lhsType).getType());
-    }
+    boolean forcePointerAssignment = isArrayAssignment(lhs, lhsType);
 
     if (rhs instanceof CExpression) {
       rhs = makeCastFromArrayToPointerIfNecessary((CExpression) rhs, lhsType);
     }
 
+    // perform as slice assignment
+    AssignmentOptions assignmentOptions =
+        new AssignmentOptions(false, AssignmentConversionType.CAST, false, forcePointerAssignment);
+
+    ArraySliceExpression assignmentLhs = new ArraySliceExpression(lhs);
+    ArraySliceRhs assignmentRhs = ArraySliceRhs.fromCRightHandSide(rhs);
+    ArraySliceAssignment assignment = new ArraySliceAssignment(assignmentLhs, assignmentRhs);
+
     AssignmentHandler assignmentHandler =
         new AssignmentHandler(
             this, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
-    return assignmentHandler.handleAssignment(lhs, lhsForChecking, lhsType, rhs, false);
+
+    return assignmentHandler.handleSliceAssignments(
+        ImmutableList.of(assignment), assignmentOptions);
   }
 
   /** Is the left-hand-side an array and do we allow to assign a value to it? */
