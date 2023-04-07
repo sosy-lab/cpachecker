@@ -83,6 +83,8 @@ class AssignmentQuantifierHandler {
 
   private final AssignmentFormulaHandler assignmentFormulaHandler;
 
+  private final CSimpleType sizeType;
+
   /**
    * Creates a new AssignmentQuantifierHandler.
    *
@@ -117,9 +119,12 @@ class AssignmentQuantifierHandler {
     constraints = pConstraints;
     errorConditions = pErrorConditions;
     regionMgr = pRegionMgr;
+
     assignmentFormulaHandler =
         new AssignmentFormulaHandler(
             pConv, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions, pRegionMgr);
+
+    sizeType = conv.machineModel.getPointerEquivalentSimpleType();
   }
 
   BooleanFormula handleSimpleSliceAssignments(
@@ -184,163 +189,9 @@ class AssignmentQuantifierHandler {
 
     // the recursive unrolling is probably slow, but will serve well for now
 
-    CSimpleType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
-
     if (quantifierVariables.isEmpty()) {
-      // already unrolled, resolve the indices in array slice expressions
-      final CExpressionVisitorWithPointerAliasing lhsVisitor =
-          new CExpressionVisitorWithPointerAliasing(
-              conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
-
-      ArraySliceExpression lhsSliceExpression = lhs.actual();
-      while (!lhsSliceExpression.isResolved()) {
-        ArraySliceIndexVariable firstLhsIndex = lhsSliceExpression.getFirstIndex();
-        Long unrolledIndex = unrolledVariables.get(firstLhsIndex);
-        // there were sometimes problems with index not found, so check for not null
-        checkNotNull(
-            unrolledIndex,
-            "Could not get value of unrolled index %s for lhs %s",
-            firstLhsIndex,
-            lhsSliceExpression);
-        lhsSliceExpression = lhsSliceExpression.resolveFirstIndex(sizeType, unrolledIndex);
-      }
-      CExpression lhsBase = lhsSliceExpression.getResolvedExpression();
-      Expression lhsExpression = lhsBase.accept(lhsVisitor);
-      CType lhsFinalType = typeHandler.getSimplifiedType(lhsBase);
-
-      if (assignmentOptions.forcePointerAssignment()) {
-        // if the force pointer assignment option is used, lhs must be an array
-        // interpret it as a pointer instead
-        lhsFinalType = CTypes.adjustFunctionOrArrayType((lhsFinalType));
-      }
-
-      ImmutableList.Builder<ArraySliceSpanResolved> builder = ImmutableList.builder();
-
-      // only resolve each rhs CExpression once
-      List<ArraySliceRhs> rhsSlices = new ArrayList<>();
-
-      for (ArraySliceSpanRhs rhs : rhsCollection) {
-        rhsSlices.add(rhs.actual());
-      }
-
-      Map<ArraySliceRhs, ArraySliceResolved> rhsResolutionMap = new HashMap<>();
-
-      // add initialized and used fields of lhs to pointer-target set as essential
-      pts.addEssentialFields(lhsVisitor.getInitializedFields());
-      pts.addEssentialFields(lhsVisitor.getUsedFields());
-
-      List<CompositeField> rhsAddressedFields = new ArrayList<>();
-
-      for (ArraySliceRhs rhs : rhsSlices) {
-        final CExpressionVisitorWithPointerAliasing rhsVisitor =
-            new CExpressionVisitorWithPointerAliasing(
-                conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
-
-        final @Nullable CRightHandSide rhsBase;
-        final ArraySliceResolved rhsResolved;
-        if (rhs instanceof ArraySliceNondetRhs nondetRhs) {
-          rhsResolved = new ArraySliceResolved(Value.nondetValue(), lhsFinalType);
-          rhsBase = null;
-        } else if (rhs instanceof ArraySliceCallRhs callRhs) {
-          rhsBase = callRhs.call();
-          Expression rhsExpression = callRhs.call().accept(rhsVisitor);
-          rhsResolved =
-              new ArraySliceResolved(rhsExpression, typeHandler.getSimplifiedType(callRhs.call()));
-        } else if (rhs instanceof ArraySliceExpressionRhs expressionRhs) {
-          // resolve all indices
-          ArraySliceExpression rhsSliceExpression = expressionRhs.expression();
-          while (!rhsSliceExpression.isResolved()) {
-            ArraySliceIndexVariable firstIndex = rhsSliceExpression.getFirstIndex();
-            Long unrolledIndex = unrolledVariables.get(firstIndex);
-            // there were sometimes problems with index not found, so check for not null
-            checkNotNull(
-                unrolledIndex,
-                "Could not get value of unrolled index %s for lhs %s and rhs %s",
-                firstIndex,
-                lhs,
-                rhsSliceExpression);
-            rhsSliceExpression = rhsSliceExpression.resolveFirstIndex(sizeType, unrolledIndex);
-          }
-          // lhs must be simple, so not an array, therefore, rhs array type must be converted to
-          // pointer
-          rhsBase = rhsSliceExpression.getResolvedExpression();
-          CType rhsType = CTypes.adjustFunctionOrArrayType(typeHandler.getSimplifiedType(rhsBase));
-          Expression rhsExpression = rhsBase.accept(rhsVisitor);
-          rhsResolved = new ArraySliceResolved(rhsExpression, rhsType);
-        } else {
-          assert (false);
-          rhsBase = null;
-          rhsResolved = null;
-        }
-        // add initialized and used fields of rhs to pointer-target set as essential
-        pts.addEssentialFields(rhsVisitor.getInitializedFields());
-        pts.addEssentialFields(rhsVisitor.getUsedFields());
-
-        // apply the deferred memory handler: if there is a malloc with void* type, the allocation
-        // can
-        // be deferred until the assignment that uses the value; the allocation type can then be
-        // inferred from assignment lhs type
-        if (rhsBase != null
-            && rhsResolved != null
-            && (conv.options.revealAllocationTypeFromLHS()
-                || conv.options.deferUntypedAllocations())) {
-
-          // we have everything we need, call memory handler
-          DynamicMemoryHandler memoryHandler =
-              new DynamicMemoryHandler(
-                  conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
-          memoryHandler.handleDeferredAllocationsInAssignment(
-              (CLeftHandSide) lhsBase,
-              rhsBase,
-              rhsResolved.expression(),
-              lhsFinalType,
-              lhsVisitor.getLearnedPointerTypes(),
-              rhsVisitor.getLearnedPointerTypes());
-        }
-
-        rhsAddressedFields.addAll(rhsVisitor.getAddressedFields());
-
-        // put into resolution map
-        rhsResolutionMap.put(rhs, rhsResolved);
-      }
-
-      for (ArraySliceSpanRhs rhs : rhsCollection) {
-        ArraySliceResolved rhsResolved = rhsResolutionMap.get(rhs.actual());
-        assert (rhsResolved != null);
-        builder.add(new ArraySliceSpanResolved(rhs.span(), rhsResolved));
-      }
-
-      // compute pointer-target set pattern if necessary for UFs finishing
-      // UFs must be finished only if all three of the following conditions are met:
-      // 1. UF heap is used
-      // 2. lhs is in aliased location (unaliased location is assigned as a whole)
-      // 3. using old SSA indices is not selected
-      final PointerTargetPattern pattern =
-          !options.useArraysForHeap()
-                  && lhsExpression.isAliasedLocation()
-                  && !assignmentOptions.useOldSSAIndicesIfAliased()
-              ? PointerTargetPattern.forLeftHandSide(
-                  (CLeftHandSide) lhsBase, typeHandler, edge, pts)
-              : null;
-
-      // make the actual assignment
-      ArraySliceResolved lhsVisited = new ArraySliceResolved(lhsExpression, lhsFinalType);
-      BooleanFormula result =
-          assignmentFormulaHandler.makeSliceAssignment(
-              lhsVisited,
-              lhs.targetType(),
-              builder.build(),
-              assignmentOptions,
-              condition,
-              false,
-              pattern);
-
-      // add addressed fields of rhs to pointer-target set
-      for (final CompositeField field : rhsAddressedFields) {
-        pts.addField(field);
-      }
-
-      return result;
+      return performSliceAssignment(
+          lhs, rhsCollection, assignmentOptions, unrolledVariables, condition);
     }
 
     // for better speed, work with the last variable in quantifierVariables
@@ -412,6 +263,167 @@ class AssignmentQuantifierHandler {
     return result;
   }
 
+  private BooleanFormula performSliceAssignment(
+      ArraySliceSpanLhs lhs,
+      Collection<ArraySliceSpanRhs> rhsCollection,
+      AssignmentOptions assignmentOptions,
+      Map<ArraySliceIndexVariable, Long> unrolledVariables,
+      BooleanFormula condition)
+      throws UnrecognizedCodeException, InterruptedException {
+    // already unrolled, resolve the indices in array slice expressions
+    final CExpressionVisitorWithPointerAliasing lhsVisitor =
+        new CExpressionVisitorWithPointerAliasing(
+            conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+
+    ArraySliceExpression lhsSliceExpression = lhs.actual();
+    while (!lhsSliceExpression.isResolved()) {
+      ArraySliceIndexVariable firstLhsIndex = lhsSliceExpression.getFirstIndex();
+      Long unrolledIndex = unrolledVariables.get(firstLhsIndex);
+      // there were sometimes problems with index not found, so check for not null
+      checkNotNull(
+          unrolledIndex,
+          "Could not get value of unrolled index %s for lhs %s",
+          firstLhsIndex,
+          lhsSliceExpression);
+      lhsSliceExpression = lhsSliceExpression.resolveFirstIndex(sizeType, unrolledIndex);
+    }
+    CExpression lhsBase = lhsSliceExpression.getResolvedExpression();
+    Expression lhsExpression = lhsBase.accept(lhsVisitor);
+    CType lhsFinalType = typeHandler.getSimplifiedType(lhsBase);
+
+    if (assignmentOptions.forcePointerAssignment()) {
+      // if the force pointer assignment option is used, lhs must be an array
+      // interpret it as a pointer instead
+      lhsFinalType = CTypes.adjustFunctionOrArrayType((lhsFinalType));
+    }
+
+    ImmutableList.Builder<ArraySliceSpanResolved> builder = ImmutableList.builder();
+
+    // only resolve each rhs CExpression once
+    List<ArraySliceRhs> rhsSlices = new ArrayList<>();
+
+    for (ArraySliceSpanRhs rhs : rhsCollection) {
+      rhsSlices.add(rhs.actual());
+    }
+
+    Map<ArraySliceRhs, ArraySliceResolved> rhsResolutionMap = new HashMap<>();
+
+    // add initialized and used fields of lhs to pointer-target set as essential
+    pts.addEssentialFields(lhsVisitor.getInitializedFields());
+    pts.addEssentialFields(lhsVisitor.getUsedFields());
+
+    List<CompositeField> rhsAddressedFields = new ArrayList<>();
+
+    for (ArraySliceRhs rhs : rhsSlices) {
+      final CExpressionVisitorWithPointerAliasing rhsVisitor =
+          new CExpressionVisitorWithPointerAliasing(
+              conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+
+      final @Nullable CRightHandSide rhsBase;
+      final ArraySliceResolved rhsResolved;
+      if (rhs instanceof ArraySliceNondetRhs nondetRhs) {
+        rhsResolved = new ArraySliceResolved(Value.nondetValue(), lhsFinalType);
+        rhsBase = null;
+      } else if (rhs instanceof ArraySliceCallRhs callRhs) {
+        rhsBase = callRhs.call();
+        Expression rhsExpression = callRhs.call().accept(rhsVisitor);
+        rhsResolved =
+            new ArraySliceResolved(rhsExpression, typeHandler.getSimplifiedType(callRhs.call()));
+      } else if (rhs instanceof ArraySliceExpressionRhs expressionRhs) {
+        // resolve all indices
+        ArraySliceExpression rhsSliceExpression = expressionRhs.expression();
+        while (!rhsSliceExpression.isResolved()) {
+          ArraySliceIndexVariable firstIndex = rhsSliceExpression.getFirstIndex();
+          Long unrolledIndex = unrolledVariables.get(firstIndex);
+          // there were sometimes problems with index not found, so check for not null
+          checkNotNull(
+              unrolledIndex,
+              "Could not get value of unrolled index %s for lhs %s and rhs %s",
+              firstIndex,
+              lhs,
+              rhsSliceExpression);
+          rhsSliceExpression = rhsSliceExpression.resolveFirstIndex(sizeType, unrolledIndex);
+        }
+        // lhs must be simple, so not an array, therefore, rhs array type must be converted to
+        // pointer
+        rhsBase = rhsSliceExpression.getResolvedExpression();
+        CType rhsType = CTypes.adjustFunctionOrArrayType(typeHandler.getSimplifiedType(rhsBase));
+        Expression rhsExpression = rhsBase.accept(rhsVisitor);
+        rhsResolved = new ArraySliceResolved(rhsExpression, rhsType);
+      } else {
+        assert (false);
+        rhsBase = null;
+        rhsResolved = null;
+      }
+      // add initialized and used fields of rhs to pointer-target set as essential
+      pts.addEssentialFields(rhsVisitor.getInitializedFields());
+      pts.addEssentialFields(rhsVisitor.getUsedFields());
+
+      // apply the deferred memory handler: if there is a malloc with void* type, the allocation
+      // can
+      // be deferred until the assignment that uses the value; the allocation type can then be
+      // inferred from assignment lhs type
+      if (rhsBase != null
+          && rhsResolved != null
+          && (conv.options.revealAllocationTypeFromLHS()
+              || conv.options.deferUntypedAllocations())) {
+
+        // we have everything we need, call memory handler
+        DynamicMemoryHandler memoryHandler =
+            new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
+        memoryHandler.handleDeferredAllocationsInAssignment(
+            (CLeftHandSide) lhsBase,
+            rhsBase,
+            rhsResolved.expression(),
+            lhsFinalType,
+            lhsVisitor.getLearnedPointerTypes(),
+            rhsVisitor.getLearnedPointerTypes());
+      }
+
+      rhsAddressedFields.addAll(rhsVisitor.getAddressedFields());
+
+      // put into resolution map
+      rhsResolutionMap.put(rhs, rhsResolved);
+    }
+
+    for (ArraySliceSpanRhs rhs : rhsCollection) {
+      ArraySliceResolved rhsResolved = rhsResolutionMap.get(rhs.actual());
+      assert (rhsResolved != null);
+      builder.add(new ArraySliceSpanResolved(rhs.span(), rhsResolved));
+    }
+
+    // compute pointer-target set pattern if necessary for UFs finishing
+    // UFs must be finished only if all three of the following conditions are met:
+    // 1. UF heap is used
+    // 2. lhs is in aliased location (unaliased location is assigned as a whole)
+    // 3. using old SSA indices is not selected
+    final PointerTargetPattern pattern =
+        !options.useArraysForHeap()
+                && lhsExpression.isAliasedLocation()
+                && !assignmentOptions.useOldSSAIndicesIfAliased()
+            ? PointerTargetPattern.forLeftHandSide((CLeftHandSide) lhsBase, typeHandler, edge, pts)
+            : null;
+
+    // make the actual assignment
+    ArraySliceResolved lhsVisited = new ArraySliceResolved(lhsExpression, lhsFinalType);
+    BooleanFormula result =
+        assignmentFormulaHandler.makeSliceAssignment(
+            lhsVisited,
+            lhs.targetType(),
+            builder.build(),
+            assignmentOptions,
+            condition,
+            false,
+            pattern);
+
+    // add addressed fields of rhs to pointer-target set
+    for (final CompositeField field : rhsAddressedFields) {
+      pts.addField(field);
+    }
+
+    return result;
+  }
+
   private ImmutableList<ArraySliceIndexVariable> resolveAllIndexVariables(
       Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap) {
     // remove duplicates, but preserve ordering so quantification is deterministic
@@ -440,7 +452,6 @@ class AssignmentQuantifierHandler {
     List<ArraySliceIndexVariable> indexVariables = resolveAllIndexVariables(assignmentMultimap);
 
     // the quantified variables should be of the size type
-    final CSimpleType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
     FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromCType(sizeType);
     Formula zeroFormula = conv.fmgr.makeNumber(sizeFormulaType, 0);
     boolean sizeTypeSigned = sizeType.getCanonicalType().isSigned();
