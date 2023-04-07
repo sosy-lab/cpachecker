@@ -10,13 +10,12 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +24,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -132,75 +132,108 @@ class AssignmentQuantifierHandler {
       final AssignmentOptions assignmentOptions)
       throws UnrecognizedCodeException, InterruptedException {
 
-    if (options.useQuantifiersOnArrays() || assignmentOptions.forceQuantifiers()) {
-      return handleSimpleSliceAssignmentsWithQuantifiers(assignmentMultimap, assignmentOptions);
-    } else {
-      return handleSimpleSliceAssignmentsWithoutQuantifiers(assignmentMultimap, assignmentOptions);
-    }
-  }
-
-  private BooleanFormula handleSimpleSliceAssignmentsWithoutQuantifiers(
-      final Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap,
-      final AssignmentOptions assignmentOptions)
-      throws UnrecognizedCodeException, InterruptedException {
-
-    // unroll the variables for every assignment
-
-    BooleanFormula result = bfmgr.makeTrue();
+    LinkedHashSet<ArraySliceIndexVariable> variablesToQuantify = new LinkedHashSet<>();
 
     for (Entry<ArraySliceSpanLhs, Collection<ArraySliceSpanRhs>> entry :
         assignmentMultimap.asMap().entrySet()) {
-      ArraySliceSpanLhs lhs = entry.getKey();
-      Collection<ArraySliceSpanRhs> rhsCollection = entry.getValue();
-
-      // get all quantifier variables that are used by at least one side
-      HashSet<ArraySliceIndexVariable> quantifierVariableSet = new LinkedHashSet<>();
-      quantifierVariableSet.addAll(lhs.actual().getUnresolvedIndexVariables());
-      for (ArraySliceSpanRhs rhs : rhsCollection) {
+      variablesToQuantify.addAll(entry.getKey().actual().getUnresolvedIndexVariables());
+      for (ArraySliceSpanRhs rhs : entry.getValue()) {
         if (rhs.actual() instanceof ArraySliceExpressionRhs expressionRhs) {
-          quantifierVariableSet.addAll(expressionRhs.expression().getUnresolvedIndexVariables());
+          variablesToQuantify.addAll(expressionRhs.expression().getUnresolvedIndexVariables());
         }
       }
-      List<ArraySliceIndexVariable> quantifierVariables = new ArrayList<>(quantifierVariableSet);
-
-      result =
-          bfmgr.and(
-              result,
-              unrollSliceAssignment(
-                  lhs,
-                  rhsCollection,
-                  assignmentOptions,
-                  quantifierVariables,
-                  new HashMap<>(),
-                  bfmgr.makeTrue()));
     }
 
-    return result;
+    return quantifySliceAssignment(
+        assignmentMultimap,
+        assignmentOptions,
+        variablesToQuantify,
+        ImmutableMap.of(),
+        bfmgr.makeTrue());
   }
 
-  private BooleanFormula unrollSliceAssignment(
-      ArraySliceSpanLhs lhs,
-      Collection<ArraySliceSpanRhs> rhsCollection,
+  private boolean shouldUnroll(AssignmentOptions assignmentOptions) {
+    return !options.useQuantifiersOnArrays() && !assignmentOptions.forceQuantifiers();
+  }
+
+  private BooleanFormula quantifySliceAssignment(
+      Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap,
       AssignmentOptions assignmentOptions,
-      List<ArraySliceIndexVariable> quantifierVariables,
+      LinkedHashSet<ArraySliceIndexVariable> variablesToQuantify,
       Map<ArraySliceIndexVariable, Long> unrolledVariables,
       BooleanFormula condition)
       throws UnrecognizedCodeException, InterruptedException {
 
-    // the recursive unrolling is probably slow, but will serve well for now
-
-    if (quantifierVariables.isEmpty()) {
-      return performSliceAssignment(
-          lhs, rhsCollection, assignmentOptions, unrolledVariables, condition);
+    // recursive quantification
+    if (variablesToQuantify.isEmpty()) {
+      // all variables are quantified
+      // apply unrolled variables if necessary
+      Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> unrolledAssignmentMultimap =
+          applyUnrolledVariables(assignmentMultimap, assignmentOptions, unrolledVariables);
+      // perform quantified assignment
+      return performQuantifiedAssignment(
+          unrolledAssignmentMultimap, assignmentOptions, unrolledVariables, condition);
     }
 
-    // for better speed, work with the last variable in quantifierVariables
-    // remove it from the list now and re-add it after recursion to avoid creating new lists
+    // get the variable to quantify
+    ArraySliceIndexVariable variableToQuantify = variablesToQuantify.iterator().next();
 
-    ArraySliceIndexVariable unrolledIndex =
-        quantifierVariables.remove(quantifierVariables.size() - 1);
+    LinkedHashSet<ArraySliceIndexVariable> nextVariablesToQuantify =
+        new LinkedHashSet<>(variablesToQuantify);
+    nextVariablesToQuantify.remove(variableToQuantify);
 
-    CExpression sliceSize = unrolledIndex.getSize();
+    CExpression sliceSize = variableToQuantify.getSize();
+
+    // we will perform the unrolled assignments conditionally, only if the index is smaller than the
+    // actual size
+    CExpression sliceSizeCastToSizeType =
+        new CCastExpression(FileLocation.DUMMY, sizeType, sliceSize);
+
+    final CExpressionVisitorWithPointerAliasing indexSizeVisitor =
+        new CExpressionVisitorWithPointerAliasing(
+            conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+    Expression sliceSizeExpression = sliceSizeCastToSizeType.accept(indexSizeVisitor);
+    // TODO: add fields to UF from visitor
+
+    Formula sliceSizeFormula = indexSizeVisitor.asValueFormula(sliceSizeExpression, sizeType);
+
+    // decide whether to encode or unroll the quantifier
+    if (shouldUnroll(assignmentOptions)) {
+      return unrollQuantifier(
+          assignmentMultimap,
+          assignmentOptions,
+          nextVariablesToQuantify,
+          unrolledVariables,
+          condition,
+          variableToQuantify,
+          sliceSizeFormula);
+    } else {
+      return encodeQuantifier(
+          assignmentMultimap,
+          assignmentOptions,
+          nextVariablesToQuantify,
+          unrolledVariables,
+          condition,
+          sliceSizeFormula);
+    }
+  }
+
+  private BooleanFormula unrollQuantifier(
+      Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap,
+      AssignmentOptions assignmentOptions,
+      LinkedHashSet<ArraySliceIndexVariable> nextVariablesToQuantify,
+      Map<ArraySliceIndexVariable, Long> unrolledVariables,
+      BooleanFormula condition,
+      ArraySliceIndexVariable variableToQuantify,
+      Formula sliceSizeFormula)
+      throws UnrecognizedCodeException, InterruptedException {
+
+    CExpression sliceSize = variableToQuantify.getSize();
+
+
+    FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromCType(sizeType);
+    Formula zeroFormula = conv.fmgr.makeNumber(sizeFormulaType, 0);
+    boolean sizeTypeSigned = sizeType.getCanonicalType().isSigned();
 
     // overapproximate for long arrays
     long consideredArraySize = options.defaultArrayLength();
@@ -212,144 +245,177 @@ class AssignmentQuantifierHandler {
       }
     }
 
-    // TODO: unify the index handling with quantifier version
-    // we will perform the unrolled assignments conditionally, only if the index is smaller than the
-    // actual size
-    CExpression indexSizeCCast = new CCastExpression(FileLocation.DUMMY, sizeType, sliceSize);
-
-    final CExpressionVisitorWithPointerAliasing indexSizeVisitor =
-        new CExpressionVisitorWithPointerAliasing(
-            conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
-    Expression indexSizeExpression = indexSizeCCast.accept(indexSizeVisitor);
-    // TODO: add fields to UF from visitor
-
-    Formula sizeFormula = indexSizeVisitor.asValueFormula(indexSizeExpression, sizeType);
-
     BooleanFormula result = bfmgr.makeTrue();
-
-    FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromCType(sizeType);
-    Formula zeroFormula = conv.fmgr.makeNumber(sizeFormulaType, 0);
-    boolean sizeTypeSigned = sizeType.getCanonicalType().isSigned();
 
     for (long i = 0; i < consideredArraySize; ++i) {
 
       Formula indexFormula = conv.fmgr.makeNumber(sizeFormulaType, i);
 
       // the variable condition holds when 0 <= index < size
-      BooleanFormula unrolledCondition =
+      BooleanFormula nextCondition =
           bfmgr.and(
+              condition,
               fmgr.makeLessOrEqual(zeroFormula, indexFormula, sizeTypeSigned),
-              fmgr.makeLessThan(indexFormula, sizeFormula, sizeTypeSigned));
+              fmgr.makeLessThan(indexFormula, sliceSizeFormula, sizeTypeSigned));
 
-      // we do not need to remove the index from unrolledVariables after recursion as it will be
-      // overwritten before next use anyway
-      unrolledVariables.put(unrolledIndex, i);
+      // make a new map with added newly unrolled variable
+      Map<ArraySliceIndexVariable, Long> nextUnrolledVariables = new HashMap<>(unrolledVariables);
+      nextUnrolledVariables.put(variableToQuantify, i);
 
-      // recursive unrolling
+      // quantify recursively
       BooleanFormula recursionResult =
-          unrollSliceAssignment(
-              lhs,
-              rhsCollection,
+          quantifySliceAssignment(
+              assignmentMultimap,
               assignmentOptions,
-              quantifierVariables,
-              unrolledVariables,
-              unrolledCondition);
+              nextVariablesToQuantify,
+              nextUnrolledVariables,
+              nextCondition);
       result = bfmgr.and(result, recursionResult);
     }
-
-    // re-add variable to quantified variable list
-    quantifierVariables.add(unrolledIndex);
 
     return result;
   }
 
-  private BooleanFormula performSliceAssignment(
-      ArraySliceSpanLhs lhs,
-      Collection<ArraySliceSpanRhs> rhsCollection,
+  private ArraySliceExpression applyUnrolledVariables(
+      ArraySliceExpression expression,
+      Map<ArraySliceIndexVariable, Long> unrolledVariables) {
+
+    while (!expression.isResolved()) {
+      ArraySliceIndexVariable firstIndex = expression.getFirstIndex();
+      Long unrolledIndex = unrolledVariables.get(firstIndex);
+      // there were sometimes problems with index not found, so check for not null
+      checkNotNull(
+          unrolledIndex,
+          "Could not get value of unrolled index %s for expression %s",
+          firstIndex,
+          expression);
+      expression = expression.resolveFirstIndex(sizeType, unrolledIndex);
+    }
+    return expression;
+  }
+
+  private Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> applyUnrolledVariables(
+      Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap,
+      AssignmentOptions assignmentOptions,
+      Map<ArraySliceIndexVariable, Long> unrolledVariables) {
+    if (!shouldUnroll(assignmentOptions)) {
+      return assignmentMultimap;
+    }
+
+    Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> unrolledAssignmentMultimap =
+        LinkedHashMultimap.create();
+
+    for (Entry<ArraySliceSpanLhs, Collection<ArraySliceSpanRhs>> assignment :
+        assignmentMultimap.asMap().entrySet()) {
+      ArraySliceExpression unrolledLhsExpression =
+          applyUnrolledVariables(assignment.getKey().actual(), unrolledVariables);
+      ArraySliceSpanLhs unrolledLhs =
+          new ArraySliceSpanLhs(unrolledLhsExpression, assignment.getKey().targetType());
+
+      for (ArraySliceSpanRhs rhs : assignment.getValue()) {
+        final ArraySliceSpanRhs unrolledRhs;
+        if (rhs.actual() instanceof ArraySliceExpressionRhs expressionRhs) {
+          ArraySliceExpression unrolledRhsExpression =
+              applyUnrolledVariables(expressionRhs.expression(), unrolledVariables);
+          unrolledRhs =
+              new ArraySliceSpanRhs(rhs.span(), new ArraySliceExpressionRhs(unrolledRhsExpression));
+        } else {
+          unrolledRhs = rhs;
+        }
+        unrolledAssignmentMultimap.put(unrolledLhs, unrolledRhs);
+      }
+    }
+    return unrolledAssignmentMultimap;
+  }
+
+  private record ArraySliceResolvedWithVisitor(
+      ArraySliceResolved resolved, CExpressionVisitorWithPointerAliasing visitor) {
+
+    ArraySliceResolvedWithVisitor(
+        ArraySliceResolved resolved, CExpressionVisitorWithPointerAliasing visitor) {
+      checkNotNull(resolved);
+      checkNotNull(visitor);
+      this.resolved = resolved;
+      this.visitor = visitor;
+    }
+  }
+
+  private BooleanFormula performQuantifiedAssignment(
+      Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap,
       AssignmentOptions assignmentOptions,
       Map<ArraySliceIndexVariable, Long> unrolledVariables,
       BooleanFormula condition)
       throws UnrecognizedCodeException, InterruptedException {
-    // already unrolled, resolve the indices in array slice expressions
-    final CExpressionVisitorWithPointerAliasing lhsVisitor =
-        new CExpressionVisitorWithPointerAliasing(
-            conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
 
-    ArraySliceExpression lhsSliceExpression = lhs.actual();
-    while (!lhsSliceExpression.isResolved()) {
-      ArraySliceIndexVariable firstLhsIndex = lhsSliceExpression.getFirstIndex();
-      Long unrolledIndex = unrolledVariables.get(firstLhsIndex);
-      // there were sometimes problems with index not found, so check for not null
-      checkNotNull(
-          unrolledIndex,
-          "Could not get value of unrolled index %s for lhs %s",
-          firstLhsIndex,
-          lhsSliceExpression);
-      lhsSliceExpression = lhsSliceExpression.resolveFirstIndex(sizeType, unrolledIndex);
-    }
-    CExpression lhsBase = lhsSliceExpression.getResolvedExpression();
-    Expression lhsExpression = lhsBase.accept(lhsVisitor);
-    CType lhsFinalType = typeHandler.getSimplifiedType(lhsBase);
+    // only resolve each lhs and rhs expression once
 
-    if (assignmentOptions.forcePointerAssignment()) {
-      // if the force pointer assignment option is used, lhs must be an array
-      // interpret it as a pointer instead
-      lhsFinalType = CTypes.adjustFunctionOrArrayType((lhsFinalType));
-    }
+    LinkedHashSet<ArraySliceExpression> lhsSliceSet =
+        assignmentMultimap.entries().stream()
+            .map(entry -> entry.getKey().actual())
+            .collect(Collectors.toCollection(LinkedHashSet::new));
 
-    ImmutableList.Builder<ArraySliceSpanResolved> builder = ImmutableList.builder();
+    Map<ArraySliceExpression, ArraySliceResolvedWithVisitor> lhsResolutionMap = new HashMap<>();
 
-    // only resolve each rhs CExpression once
-    List<ArraySliceRhs> rhsSlices = new ArrayList<>();
+    for (ArraySliceExpression lhs : lhsSliceSet) {
+      final CExpressionVisitorWithPointerAliasing lhsVisitor =
+          new CExpressionVisitorWithPointerAliasing(
+              conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
 
-    for (ArraySliceSpanRhs rhs : rhsCollection) {
-      rhsSlices.add(rhs.actual());
+      CExpression lhsBase = lhs.getResolvedExpression();
+      Expression lhsExpression = lhsBase.accept(lhsVisitor);
+
+      // add initialized and used fields of lhs to pointer-target set as essential
+      pts.addEssentialFields(lhsVisitor.getInitializedFields());
+      pts.addEssentialFields(lhsVisitor.getUsedFields());
+
+      CType lhsFinalType = typeHandler.getSimplifiedType(lhsBase);
+
+      if (assignmentOptions.forcePointerAssignment()) {
+        // if the force pointer assignment option is used, lhs must be an array
+        // interpret it as a pointer instead
+        lhsFinalType = CTypes.adjustFunctionOrArrayType((lhsFinalType));
+      }
+
+      ArraySliceResolved lhsResolved = new ArraySliceResolved(lhsExpression, lhsFinalType);
+      lhsResolutionMap.put(lhs, new ArraySliceResolvedWithVisitor(lhsResolved, lhsVisitor));
     }
 
-    Map<ArraySliceRhs, ArraySliceResolved> rhsResolutionMap = new HashMap<>();
+    Map<ArraySliceRhs, Optional<ArraySliceResolvedWithVisitor>> rhsResolutionMap = new HashMap<>();
 
-    // add initialized and used fields of lhs to pointer-target set as essential
-    pts.addEssentialFields(lhsVisitor.getInitializedFields());
-    pts.addEssentialFields(lhsVisitor.getUsedFields());
+    LinkedHashSet<ArraySliceRhs> rhsSliceSet =
+        assignmentMultimap.entries().stream()
+            .map(entry -> entry.getValue().actual())
+            .collect(Collectors.toCollection(LinkedHashSet::new));
 
     List<CompositeField> rhsAddressedFields = new ArrayList<>();
 
-    for (ArraySliceRhs rhs : rhsSlices) {
+    for (ArraySliceRhs rhs : rhsSliceSet) {
       final CExpressionVisitorWithPointerAliasing rhsVisitor =
           new CExpressionVisitorWithPointerAliasing(
               conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
 
       final @Nullable CRightHandSide rhsBase;
-      final ArraySliceResolved rhsResolved;
+      final Optional<ArraySliceResolved> rhsResolved;
       if (rhs instanceof ArraySliceNondetRhs nondetRhs) {
-        rhsResolved = new ArraySliceResolved(Value.nondetValue(), lhsFinalType);
+        rhsResolved = Optional.empty();
         rhsBase = null;
       } else if (rhs instanceof ArraySliceCallRhs callRhs) {
         rhsBase = callRhs.call();
         Expression rhsExpression = callRhs.call().accept(rhsVisitor);
         rhsResolved =
-            new ArraySliceResolved(rhsExpression, typeHandler.getSimplifiedType(callRhs.call()));
+            Optional.of(new ArraySliceResolved(rhsExpression, typeHandler.getSimplifiedType(callRhs.call())));
       } else if (rhs instanceof ArraySliceExpressionRhs expressionRhs) {
         // resolve all indices
         ArraySliceExpression rhsSliceExpression = expressionRhs.expression();
-        while (!rhsSliceExpression.isResolved()) {
-          ArraySliceIndexVariable firstIndex = rhsSliceExpression.getFirstIndex();
-          Long unrolledIndex = unrolledVariables.get(firstIndex);
-          // there were sometimes problems with index not found, so check for not null
-          checkNotNull(
-              unrolledIndex,
-              "Could not get value of unrolled index %s for lhs %s and rhs %s",
-              firstIndex,
-              lhs,
-              rhsSliceExpression);
-          rhsSliceExpression = rhsSliceExpression.resolveFirstIndex(sizeType, unrolledIndex);
+        if (shouldUnroll(assignmentOptions)) {
+          rhsSliceExpression = applyUnrolledVariables(rhsSliceExpression, unrolledVariables);
         }
         // lhs must be simple, so not an array, therefore, rhs array type must be converted to
         // pointer
         rhsBase = rhsSliceExpression.getResolvedExpression();
         CType rhsType = CTypes.adjustFunctionOrArrayType(typeHandler.getSimplifiedType(rhsBase));
         Expression rhsExpression = rhsBase.accept(rhsVisitor);
-        rhsResolved = new ArraySliceResolved(rhsExpression, rhsType);
+        rhsResolved = Optional.of(new ArraySliceResolved(rhsExpression, rhsType));
       } else {
         assert (false);
         rhsBase = null;
@@ -359,62 +425,92 @@ class AssignmentQuantifierHandler {
       pts.addEssentialFields(rhsVisitor.getInitializedFields());
       pts.addEssentialFields(rhsVisitor.getUsedFields());
 
-      // apply the deferred memory handler: if there is a malloc with void* type, the allocation
-      // can
-      // be deferred until the assignment that uses the value; the allocation type can then be
-      // inferred from assignment lhs type
-      if (rhsBase != null
-          && rhsResolved != null
-          && (conv.options.revealAllocationTypeFromLHS()
-              || conv.options.deferUntypedAllocations())) {
+      // prepare to add addressed fields of rhs to pointer-target set after assignment
+      rhsAddressedFields.addAll(rhsVisitor.getAddressedFields());
+
+      // add to resolution map
+      if (rhsResolved.isPresent()) {
+        rhsResolutionMap.put(
+            rhs, Optional.of(new ArraySliceResolvedWithVisitor(rhsResolved.get(), rhsVisitor)));
+      } else {
+        rhsResolutionMap.put(rhs, Optional.empty());
+      }
+    }
+
+    BooleanFormula result = bfmgr.makeTrue();
+
+    for (Entry<ArraySliceSpanLhs, Collection<ArraySliceSpanRhs>> assignment :
+        assignmentMultimap.asMap().entrySet()) {
+
+      ArraySliceExpression lhs = assignment.getKey().actual();
+      CType targetType = assignment.getKey().targetType();
+
+      ArraySliceResolvedWithVisitor lhsResolvedWithVisitor = lhsResolutionMap.get(lhs);
+      ArraySliceResolved lhsResolved = lhsResolvedWithVisitor.resolved;
+
+      List<ArraySliceSpanResolved> rhsResolvedList = new ArrayList<>();
+
+      for (ArraySliceSpanRhs rhs : assignment.getValue()) {
+        Optional<ArraySliceResolvedWithVisitor> rhsResolvedWithVisitor = rhsResolutionMap.get(rhs.actual());
+
+        // apply the deferred memory handler: if there is a malloc with void* type, the allocation
+        // can
+        // be deferred until the assignment that uses the value; the allocation type can then be
+        // inferred from assignment lhs type
+        if (rhsResolvedWithVisitor.isPresent()
+            && (conv.options.revealAllocationTypeFromLHS()
+                || conv.options.deferUntypedAllocations())) {
 
         // we have everything we need, call memory handler
         DynamicMemoryHandler memoryHandler =
             new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
-        memoryHandler.handleDeferredAllocationsInAssignment(
-            (CLeftHandSide) lhsBase,
-            rhsBase,
-            rhsResolved.expression(),
-            lhsFinalType,
-            lhsVisitor.getLearnedPointerTypes(),
-            rhsVisitor.getLearnedPointerTypes());
+          memoryHandler.handleDeferredAllocationsInAssignment(
+              (CLeftHandSide) lhs.getDummyResolvedExpression(sizeType),
+              rhs.actual().getDummyResolvedRightHandSide(sizeType).get(),
+              rhsResolvedWithVisitor.get().resolved.expression(),
+              lhsResolvedWithVisitor.resolved.type(),
+              lhsResolvedWithVisitor.visitor.getLearnedPointerTypes(),
+              rhsResolvedWithVisitor.get().visitor.getLearnedPointerTypes());
+        }
+
+        if (rhsResolvedWithVisitor.isPresent()) {
+          rhsResolvedList.add(
+              new ArraySliceSpanResolved(rhs.span(), rhsResolvedWithVisitor.get().resolved));
+        } else {
+          // we need to construct nondet rhs with target type
+          // no other rhs are needed after that
+          rhsResolvedList.add(
+              new ArraySliceSpanResolved(
+                  rhs.span(), new ArraySliceResolved(Value.nondetValue(), targetType)));
+        }
       }
 
-      rhsAddressedFields.addAll(rhsVisitor.getAddressedFields());
+      // compute pointer-target set pattern if necessary for UFs finishing
+      // UFs must be finished only if all three of the following conditions are met:
+      // 1. UF heap is used
+      // 2. lhs is in aliased location (unaliased location is assigned as a whole)
+      // 3. using old SSA indices is not selected
+      final PointerTargetPattern pattern =
+          !options.useArraysForHeap()
+                  && lhsResolved.expression().isAliasedLocation()
+                  && !assignmentOptions.useOldSSAIndicesIfAliased()
+              ? PointerTargetPattern.forLeftHandSide(
+                  (CLeftHandSide) lhs.getDummyResolvedExpression(sizeType), typeHandler, edge, pts)
+              : null;
 
-      // put into resolution map
-      rhsResolutionMap.put(rhs, rhsResolved);
+      // make the actual assignment
+      result =
+          bfmgr.and(
+              result,
+              assignmentFormulaHandler.makeSliceAssignment(
+                  lhsResolved,
+                  targetType,
+                  rhsResolvedList,
+                  assignmentOptions,
+                  condition,
+                  false,
+                  pattern));
     }
-
-    for (ArraySliceSpanRhs rhs : rhsCollection) {
-      ArraySliceResolved rhsResolved = rhsResolutionMap.get(rhs.actual());
-      assert (rhsResolved != null);
-      builder.add(new ArraySliceSpanResolved(rhs.span(), rhsResolved));
-    }
-
-    // compute pointer-target set pattern if necessary for UFs finishing
-    // UFs must be finished only if all three of the following conditions are met:
-    // 1. UF heap is used
-    // 2. lhs is in aliased location (unaliased location is assigned as a whole)
-    // 3. using old SSA indices is not selected
-    final PointerTargetPattern pattern =
-        !options.useArraysForHeap()
-                && lhsExpression.isAliasedLocation()
-                && !assignmentOptions.useOldSSAIndicesIfAliased()
-            ? PointerTargetPattern.forLeftHandSide((CLeftHandSide) lhsBase, typeHandler, edge, pts)
-            : null;
-
-    // make the actual assignment
-    ArraySliceResolved lhsVisited = new ArraySliceResolved(lhsExpression, lhsFinalType);
-    BooleanFormula result =
-        assignmentFormulaHandler.makeSliceAssignment(
-            lhsVisited,
-            lhs.targetType(),
-            builder.build(),
-            assignmentOptions,
-            condition,
-            false,
-            pattern);
 
     // add addressed fields of rhs to pointer-target set
     for (final CompositeField field : rhsAddressedFields) {
@@ -424,144 +520,44 @@ class AssignmentQuantifierHandler {
     return result;
   }
 
-  private ImmutableList<ArraySliceIndexVariable> resolveAllIndexVariables(
-      Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap) {
-    // remove duplicates, but preserve ordering so quantification is deterministic
-    Set<ArraySliceIndexVariable> indexVariableSet = new LinkedHashSet<>();
-
-    for (Entry<ArraySliceSpanLhs, Collection<ArraySliceSpanRhs>> entry :
-        assignmentMultimap.asMap().entrySet()) {
-      indexVariableSet.addAll(entry.getKey().actual().getUnresolvedIndexVariables());
-      for (ArraySliceSpanRhs rhs : entry.getValue()) {
-        // only expression rhs can have unresolved index variables
-        if (rhs.actual() instanceof ArraySliceExpressionRhs expressionRhs) {
-          indexVariableSet.addAll(expressionRhs.expression().getUnresolvedIndexVariables());
-        }
-      }
-    }
-    // convert to list
-    return ImmutableList.copyOf(indexVariableSet);
-  }
-
-  private BooleanFormula handleSimpleSliceAssignmentsWithQuantifiers(
-      final Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap,
-      final AssignmentOptions assignmentOptions)
+  private BooleanFormula encodeQuantifier(
+      Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap,
+      AssignmentOptions assignmentOptions,
+      LinkedHashSet<ArraySliceIndexVariable> nextVariablesToQuantify,
+      Map<ArraySliceIndexVariable, Long> unrolledVariables,
+      BooleanFormula condition,
+      Formula sliceSizeFormula)
       throws UnrecognizedCodeException, InterruptedException {
-
-    // get all index variables
-    List<ArraySliceIndexVariable> indexVariables = resolveAllIndexVariables(assignmentMultimap);
 
     // the quantified variables should be of the size type
     FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromCType(sizeType);
     Formula zeroFormula = conv.fmgr.makeNumber(sizeFormulaType, 0);
-    boolean sizeTypeSigned = sizeType.getCanonicalType().isSigned();
+    boolean sizeTypeIsSigned = sizeType.getCanonicalType().isSigned();
 
-    // instantiate all index variables and create the condition for whether an element will be
-    // assignment, depending on whether all quantified variable conditions hold for it
+    // create encoded quantified variable
+    final Formula encodedVariable =
+        fmgr.makeVariableWithoutSSAIndex(
+            sizeFormulaType, "__quantifier_" + nextQuantifierVariableNumber++);
 
-    BooleanFormula conditionFormula = bfmgr.makeTrue();
+    // create the condition for quantifier
+    // the quantified variable condition holds when 0 <= index < size
+    BooleanFormula nextCondition =
+        bfmgr.and(
+            condition,
+            fmgr.makeLessOrEqual(zeroFormula, encodedVariable, sizeTypeIsSigned),
+            fmgr.makeLessThan(encodedVariable, sliceSizeFormula, sizeTypeIsSigned));
 
-    // as we will be creating the quantifiers from this, use a LinkedHashMap to retain
-    // predictable quantifier ordering
-    Map<ArraySliceIndexVariable, Formula> quantifiedVariableFormulaMap = new LinkedHashMap<>();
+    // recurse
+    BooleanFormula recursionResult =
+        quantifySliceAssignment(
+            assignmentMultimap,
+            assignmentOptions,
+            nextVariablesToQuantify,
+            unrolledVariables,
+            nextCondition);
 
-    for (ArraySliceIndexVariable indexVariable : indexVariables) {
-
-      // TODO: better naming of quantifiedVariable
-      final Formula quantifiedVariableFormula =
-          fmgr.makeVariableWithoutSSAIndex(
-              sizeFormulaType, "__quantifier_" + nextQuantifierVariableNumber++);
-      quantifiedVariableFormulaMap.put(indexVariable, quantifiedVariableFormula);
-
-      // cast the index size expression to the size type to make sure there are no suprises
-      // comparing
-      CCastExpression indexSizeCCast =
-          new CCastExpression(FileLocation.DUMMY, sizeType, indexVariable.getSize());
-
-      final CExpressionVisitorWithPointerAliasing indexSizeVisitor =
-          new CExpressionVisitorWithPointerAliasing(
-              conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
-      Expression indexSizeExpression = indexSizeCCast.accept(indexSizeVisitor);
-      // TODO: add fields to UF from visitor
-
-      Formula sizeFormula = indexSizeVisitor.asValueFormula(indexSizeExpression, sizeType);
-
-      // the quantified variable condition holds when 0 <= index < size
-      BooleanFormula quantifiedVariableCondition =
-          bfmgr.and(
-              fmgr.makeLessOrEqual(zeroFormula, quantifiedVariableFormula, sizeTypeSigned),
-              fmgr.makeLessThan(quantifiedVariableFormula, sizeFormula, sizeTypeSigned));
-
-      conditionFormula = bfmgr.and(conditionFormula, quantifiedVariableCondition);
-    }
-
-    // construct the result as a conjunction of assignments
-    BooleanFormula assignmentSystem = bfmgr.makeTrue();
-
-    // now that we have everything quantified, we can perform the assignments
-    for (Entry<ArraySliceSpanLhs, Collection<ArraySliceSpanRhs>> entry :
-        assignmentMultimap.asMap().entrySet()) {
-
-      // TODO: add fields handling for UF
-      CExpressionVisitorWithPointerAliasing visitor =
-          new CExpressionVisitorWithPointerAliasing(
-              conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
-      ArraySliceResolved lhsResolved =
-          resolveSliceExpression(
-              entry.getKey().actual(), Optional.empty(), quantifiedVariableFormulaMap, visitor);
-      if (lhsResolved == null) {
-        // TODO: only used for ignoring assignments to bit-fields which should be handled properly
-        // do not perform this assignment, but others can be done
-        continue;
-      }
-
-      ImmutableList.Builder<ArraySliceSpanResolved> builder = ImmutableList.builder();
-      for (ArraySliceSpanRhs rhs : entry.getValue()) {
-        ArraySliceResolved rhsResolved =
-            resolveRhs(rhs.actual(), lhsResolved.type(), quantifiedVariableFormulaMap, visitor);
-
-        if (rhsResolved == null) {
-          // TODO: only used for ignoring assignments to bit-fields which should be handled properly
-          // do not perform this assignment, but others can be done
-          continue;
-        }
-
-        builder.add(new ArraySliceSpanResolved(rhs.span(), rhsResolved));
-      }
-
-      // TODO: add updatedRegions handling for UF
-
-      // if there are no quantifiers, do not force array heap to use the quantified assignment
-      // force UF heap to use the quantified assignment version, as it would not retain other
-      // assignments otherwise
-      // we do not want to use the technique of finishing assignments if we can use quantifiers
-      // as quantified retainment is the most precise
-      boolean isReallyQuantified =
-          !options.useArraysForHeap() || !quantifiedVariableFormulaMap.isEmpty();
-
-      // after cast/reinterpretation, lhs and rhs have the lhs type
-      // do not provide a pointer-target set pattern as we do not want to finish assignments
-      BooleanFormula assignmentResult =
-          assignmentFormulaHandler.makeSliceAssignment(
-              lhsResolved,
-              entry.getKey().targetType(),
-              builder.build(),
-              assignmentOptions,
-              conditionFormula,
-              isReallyQuantified,
-              null);
-      assignmentSystem = bfmgr.and(assignmentSystem, assignmentResult);
-    }
-
-    // add quantifiers around the assignment system
-
-    for (Formula quantifiedVariableFormula : quantifiedVariableFormulaMap.values()) {
-      assignmentSystem =
-          fmgr.getQuantifiedFormulaManager().forall(quantifiedVariableFormula, assignmentSystem);
-    }
-
-    // we are done
-    return assignmentSystem;
+    // add quantifier around the recursion result
+    return fmgr.getQuantifiedFormulaManager().forall(encodedVariable, recursionResult);
   }
 
   private @Nullable ArraySliceResolved resolveRhs(

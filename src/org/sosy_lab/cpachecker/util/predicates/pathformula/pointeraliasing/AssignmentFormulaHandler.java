@@ -115,7 +115,7 @@ public class AssignmentFormulaHandler {
   BooleanFormula makeSliceAssignment(
       ArraySliceResolved lhsResolved,
       CType targetType,
-      ImmutableList<ArraySliceSpanResolved> rhsList,
+      List<ArraySliceSpanResolved> rhsList,
       AssignmentOptions assignmentOptions,
       BooleanFormula conditionFormula,
       boolean useQuantifiers,

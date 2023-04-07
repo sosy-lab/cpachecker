@@ -16,6 +16,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
@@ -112,6 +113,8 @@ class AssignmentHandler {
       permits ArraySliceExpressionRhs, ArraySliceCallRhs, ArraySliceNondetRhs {
     CType getType(CType targetType, CType sizeType);
 
+    Optional<CRightHandSide> getDummyResolvedRightHandSide(CType sizeType);
+
     static ArraySliceRhs fromCRightHandSide(CRightHandSide rhs) {
       if (rhs instanceof CExpression rhsExpression) {
         return new ArraySliceExpressionRhs(rhsExpression);
@@ -122,6 +125,7 @@ class AssignmentHandler {
         return null;
       }
     }
+
   }
 
   record ArraySliceExpressionRhs(ArraySliceExpression expression) implements ArraySliceRhs {
@@ -136,8 +140,12 @@ class AssignmentHandler {
 
     @Override
     public CType getType(CType targetType, CType sizeType) {
-      // TODO Auto-generated method stub
       return expression.getResolvedExpressionType(sizeType);
+    }
+
+    @Override
+    public Optional<CRightHandSide> getDummyResolvedRightHandSide(CType sizeType) {
+      return Optional.of(expression.getDummyResolvedExpression(sizeType));
     }
   }
 
@@ -152,12 +160,21 @@ class AssignmentHandler {
       return call.getExpressionType();
     }
 
+    @Override
+    public Optional<CRightHandSide> getDummyResolvedRightHandSide(CType sizeType) {
+      return Optional.of(call);
+    }
   }
 
   record ArraySliceNondetRhs() implements ArraySliceRhs {
     @Override
     public CType getType(CType targetType, CType sizeType) {
       return targetType;
+    }
+
+    @Override
+    public Optional<CRightHandSide> getDummyResolvedRightHandSide(CType sizeType) {
+      return Optional.empty();
     }
   }
 
