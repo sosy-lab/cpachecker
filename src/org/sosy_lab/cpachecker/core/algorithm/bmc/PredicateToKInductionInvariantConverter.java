@@ -92,6 +92,12 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
               + "(use seconds or specify a unit; 0 for infinite)")
   @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
   private TimeSpan adaptionLimit = TimeSpan.ofNanos(0);
+  
+  @Option(
+      secure = true,
+      name = "localAsFunction",
+      description = "Treat local predicates like function predicates of the function they are in. Works only if local predicates are analyzed.")
+  private Boolean localAsFunction = false;
 
   private final Timer conversionTime = new Timer();
   private int numVarsAddedToPrecision = 0;
@@ -197,7 +203,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     
     pConversionShutdownNotifier.shutdownIfNecessary();
     
-    // Get all predicate precisions in the same set
+    // Get the whole predicate precision in the same set
     if(converterStrategy.global) {
       for (AbstractionPredicate pred : new HashSet<>(pPredPrec.getGlobalPredicates())) {
         if(cfa.getAllLoopHeads().isPresent()) {
@@ -230,13 +236,26 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     if(converterStrategy.local) {
       SetMultimap<CFANode, AbstractionPredicate> localPreds = HashMultimap.create(pPredPrec.getLocalPredicates());
       for (CFANode node : localPreds.keySet()) {
-        if(node.isLoopStart()) {
-          for (AbstractionPredicate pred : localPreds.get(node)) {
-            allPreds.put(node, pred.getSymbolicAtom());
+        if(localAsFunction) {
+          if(cfa.getAllLoopHeads().isPresent()) {
+            for(CFANode loopHead : cfa.getAllLoopHeads().get()) {
+              if(loopHead.getFunctionName().equals(node.getFunctionName())){
+                for (AbstractionPredicate pred : localPreds.get(node)) {
+                  allPreds.put(loopHead, pred.getSymbolicAtom());
+                }
+              }
+            }
+          }
+        } else {
+          if(node.isLoopStart()) {
+            for (AbstractionPredicate pred : localPreds.get(node)) {
+              allPreds.put(node, pred.getSymbolicAtom());
+            }
           }
         }
       }
     }
+    
     
     pConversionShutdownNotifier.shutdownIfNecessary();
     
