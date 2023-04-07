@@ -207,7 +207,9 @@ class AssignmentQuantifierHandler {
 
     if (quantifierVariables.isEmpty()) {
       // already unrolled, resolve the indices in array slice expressions
-      final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
+      final CExpressionVisitorWithPointerAliasing lhsVisitor =
+          new CExpressionVisitorWithPointerAliasing(
+              conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
 
       ArraySliceExpression lhsSliceExpression = lhs.actual();
       while (!lhsSliceExpression.isResolved()) {
@@ -249,7 +251,9 @@ class AssignmentQuantifierHandler {
       List<CompositeField> rhsAddressedFields = new ArrayList<>();
 
       for (ArraySliceRhs rhs : rhsSlices) {
-        final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
+        final CExpressionVisitorWithPointerAliasing rhsVisitor =
+            new CExpressionVisitorWithPointerAliasing(
+                conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
 
         final @Nullable CRightHandSide rhsBase;
         final ArraySliceResolved rhsResolved;
@@ -381,7 +385,9 @@ class AssignmentQuantifierHandler {
     // actual size
     CExpression indexSizeCCast = new CCastExpression(FileLocation.DUMMY, sizeType, sliceSize);
 
-    final CExpressionVisitorWithPointerAliasing indexSizeVisitor = newExpressionVisitor();
+    final CExpressionVisitorWithPointerAliasing indexSizeVisitor =
+        new CExpressionVisitorWithPointerAliasing(
+            conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
     Expression indexSizeExpression = indexSizeCCast.accept(indexSizeVisitor);
     // TODO: add fields to UF from visitor
 
@@ -480,7 +486,9 @@ class AssignmentQuantifierHandler {
       CCastExpression indexSizeCCast =
           new CCastExpression(FileLocation.DUMMY, sizeType, indexVariable.getSize());
 
-      final CExpressionVisitorWithPointerAliasing indexSizeVisitor = newExpressionVisitor();
+      final CExpressionVisitorWithPointerAliasing indexSizeVisitor =
+          new CExpressionVisitorWithPointerAliasing(
+              conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
       Expression indexSizeExpression = indexSizeCCast.accept(indexSizeVisitor);
       // TODO: add fields to UF from visitor
 
@@ -709,11 +717,6 @@ class AssignmentQuantifierHandler {
 
     // return the resolved formula with adjusted address and field type
     return new ArraySliceResolved(resultLocation, fieldType);
-  }
-
-  CExpressionVisitorWithPointerAliasing newExpressionVisitor() {
-    return new CExpressionVisitorWithPointerAliasing(
-        conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
   }
 
   @Deprecated
