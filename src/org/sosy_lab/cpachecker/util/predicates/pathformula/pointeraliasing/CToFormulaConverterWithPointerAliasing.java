@@ -828,7 +828,15 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     // converts the RHS to make it compatible with the LHS, but in this case *both* sides should
     // be converted to pointers
     CType lhsType = typeHandler.getSimplifiedType(lhs);
-    boolean forcePointerAssignment = isArrayAssignment(lhs, lhsType);
+    boolean forcePointerAssignment = false;
+    if (isArrayAssignment(lhs, lhsType)) {
+      forcePointerAssignment = true;
+      // note that it is necessary to make the new pointer lhsType here because of the possible rhs
+      // cast to lhsType immediately after
+      lhsType =
+          new CPointerType(
+              lhsType.isConst(), lhsType.isVolatile(), ((CArrayType) lhsType).getType());
+    }
 
     if (rhs instanceof CExpression) {
       rhs = makeCastFromArrayToPointerIfNecessary((CExpression) rhs, lhsType);
