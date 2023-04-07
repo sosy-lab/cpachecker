@@ -160,7 +160,7 @@ class AssignmentQuantifierHandler {
 
     // unroll the variables for every assignment
 
-    BooleanFormula result = null;
+    BooleanFormula result = bfmgr.makeTrue();
 
     for (Entry<ArraySliceSpanLhs, Collection<ArraySliceSpanRhs>> entry :
         assignmentMultimap.asMap().entrySet()) {
@@ -178,7 +178,7 @@ class AssignmentQuantifierHandler {
       List<ArraySliceIndexVariable> quantifierVariables = new ArrayList<>(quantifierVariableSet);
 
       result =
-          nullableAnd(
+          bfmgr.and(
               result,
               unrollSliceAssignment(
                   lhs,
@@ -186,10 +186,10 @@ class AssignmentQuantifierHandler {
                   assignmentOptions,
                   quantifierVariables,
                   new HashMap<>(),
-                  null));
+                  bfmgr.makeTrue()));
     }
 
-    return nullToTrue(result);
+    return result;
   }
 
   private BooleanFormula unrollSliceAssignment(
@@ -198,7 +198,7 @@ class AssignmentQuantifierHandler {
       AssignmentOptions assignmentOptions,
       List<ArraySliceIndexVariable> quantifierVariables,
       Map<ArraySliceIndexVariable, Long> unrolledVariables,
-      @Nullable BooleanFormula condition)
+      BooleanFormula condition)
       throws UnrecognizedCodeException, InterruptedException {
 
     // the recursive unrolling is probably slow, but will serve well for now
@@ -346,7 +346,7 @@ class AssignmentQuantifierHandler {
               lhs.targetType(),
               builder.build(),
               assignmentOptions,
-              nullToTrue(condition),
+              condition,
               false,
               pattern);
 
@@ -416,32 +416,13 @@ class AssignmentQuantifierHandler {
               quantifierVariables,
               unrolledVariables,
               unrolledCondition);
-      result = nullableAnd(result, recursionResult);
+      result = bfmgr.and(result, recursionResult);
     }
 
     // re-add variable to quantified variable list
     quantifierVariables.add(unrolledIndex);
 
-    return nullToTrue(result);
-  }
-
-  private BooleanFormula nullableAnd(@Nullable BooleanFormula a, @Nullable BooleanFormula b) {
-    // TODO: this support function should be moved to some manager / utils
-    if (a == null) {
-      return b;
-    }
-    if (b == null) {
-      return a;
-    }
-    return bfmgr.and(a, b);
-  }
-
-  private BooleanFormula nullToTrue(@Nullable BooleanFormula a) {
-    // TODO: this support function should be moved to some manager / utils
-    if (a == null) {
-      return bfmgr.makeTrue();
-    }
-    return a;
+    return result;
   }
 
   private ImmutableList<ArraySliceIndexVariable> resolveAllIndexVariables(
@@ -480,7 +461,7 @@ class AssignmentQuantifierHandler {
     // instantiate all index variables and create the condition for whether an element will be
     // assignment, depending on whether all quantified variable conditions hold for it
 
-    BooleanFormula conditionFormula = null;
+    BooleanFormula conditionFormula = bfmgr.makeTrue();
 
     // as we will be creating the quantifiers from this, use a LinkedHashMap to retain
     // predictable quantifier ordering
@@ -511,14 +492,11 @@ class AssignmentQuantifierHandler {
               fmgr.makeLessOrEqual(zeroFormula, quantifiedVariableFormula, sizeTypeSigned),
               fmgr.makeLessThan(quantifiedVariableFormula, sizeFormula, sizeTypeSigned));
 
-      conditionFormula = nullableAnd(conditionFormula, quantifiedVariableCondition);
+      conditionFormula = bfmgr.and(conditionFormula, quantifiedVariableCondition);
     }
 
-    conditionFormula = nullToTrue(conditionFormula);
-
     // construct the result as a conjunction of assignments
-    // make sure that there is no unnecessary tautology polluting the formula
-    BooleanFormula assignmentSystem = null;
+    BooleanFormula assignmentSystem = bfmgr.makeTrue();
 
     // now that we have everything quantified, we can perform the assignments
     for (Entry<ArraySliceSpanLhs, Collection<ArraySliceSpanRhs>> entry :
@@ -572,20 +550,18 @@ class AssignmentQuantifierHandler {
               conditionFormula,
               isReallyQuantified,
               null);
-      assignmentSystem = nullableAnd(assignmentSystem, assignmentResult);
+      assignmentSystem = bfmgr.and(assignmentSystem, assignmentResult);
     }
 
     // add quantifiers around the assignment system
-    BooleanFormula quantifiedAssignmentSystem = nullToTrue(assignmentSystem);
 
     for (Formula quantifiedVariableFormula : quantifiedVariableFormulaMap.values()) {
-      quantifiedAssignmentSystem =
-          fmgr.getQuantifiedFormulaManager()
-              .forall(quantifiedVariableFormula, quantifiedAssignmentSystem);
+      assignmentSystem =
+          fmgr.getQuantifiedFormulaManager().forall(quantifiedVariableFormula, assignmentSystem);
     }
 
     // we are done
-    return quantifiedAssignmentSystem;
+    return assignmentSystem;
   }
 
   private @Nullable ArraySliceResolved resolveRhs(
