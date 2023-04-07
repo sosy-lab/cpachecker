@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -149,6 +148,7 @@ class AssignmentQuantifierHandler {
         assignmentOptions,
         variablesToQuantify,
         ImmutableMap.of(),
+        ImmutableMap.of(),
         bfmgr.makeTrue());
   }
 
@@ -161,6 +161,7 @@ class AssignmentQuantifierHandler {
       AssignmentOptions assignmentOptions,
       LinkedHashSet<ArraySliceIndexVariable> variablesToQuantify,
       Map<ArraySliceIndexVariable, Long> unrolledVariables,
+      Map<ArraySliceIndexVariable, Formula> encodedVariables,
       BooleanFormula condition)
       throws UnrecognizedCodeException, InterruptedException {
 
@@ -172,7 +173,11 @@ class AssignmentQuantifierHandler {
           applyUnrolledVariables(assignmentMultimap, assignmentOptions, unrolledVariables);
       // perform quantified assignment
       return performQuantifiedAssignment(
-          unrolledAssignmentMultimap, assignmentOptions, unrolledVariables, condition);
+          unrolledAssignmentMultimap,
+          assignmentOptions,
+          unrolledVariables,
+          encodedVariables,
+          condition);
     }
 
     // get the variable to quantify
@@ -204,6 +209,7 @@ class AssignmentQuantifierHandler {
           assignmentOptions,
           nextVariablesToQuantify,
           unrolledVariables,
+          encodedVariables,
           condition,
           variableToQuantify,
           sliceSizeFormula);
@@ -213,7 +219,9 @@ class AssignmentQuantifierHandler {
           assignmentOptions,
           nextVariablesToQuantify,
           unrolledVariables,
+          encodedVariables,
           condition,
+          variableToQuantify,
           sliceSizeFormula);
     }
   }
@@ -223,12 +231,13 @@ class AssignmentQuantifierHandler {
       AssignmentOptions assignmentOptions,
       LinkedHashSet<ArraySliceIndexVariable> nextVariablesToQuantify,
       Map<ArraySliceIndexVariable, Long> unrolledVariables,
+      Map<ArraySliceIndexVariable, Formula> encodedVariables,
       BooleanFormula condition,
-      ArraySliceIndexVariable variableToQuantify,
+      ArraySliceIndexVariable variableToUnroll,
       Formula sliceSizeFormula)
       throws UnrecognizedCodeException, InterruptedException {
 
-    CExpression sliceSize = variableToQuantify.getSize();
+    CExpression sliceSize = variableToUnroll.getSize();
 
 
     FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromCType(sizeType);
@@ -260,7 +269,7 @@ class AssignmentQuantifierHandler {
 
       // make a new map with added newly unrolled variable
       Map<ArraySliceIndexVariable, Long> nextUnrolledVariables = new HashMap<>(unrolledVariables);
-      nextUnrolledVariables.put(variableToQuantify, i);
+      nextUnrolledVariables.put(variableToUnroll, i);
 
       // quantify recursively
       BooleanFormula recursionResult =
@@ -269,6 +278,7 @@ class AssignmentQuantifierHandler {
               assignmentOptions,
               nextVariablesToQuantify,
               nextUnrolledVariables,
+              encodedVariables,
               nextCondition);
       result = bfmgr.and(result, recursionResult);
     }
@@ -344,6 +354,7 @@ class AssignmentQuantifierHandler {
       Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap,
       AssignmentOptions assignmentOptions,
       Map<ArraySliceIndexVariable, Long> unrolledVariables,
+      Map<ArraySliceIndexVariable, Formula> encodedVariables,
       BooleanFormula condition)
       throws UnrecognizedCodeException, InterruptedException {
 
@@ -361,22 +372,21 @@ class AssignmentQuantifierHandler {
           new CExpressionVisitorWithPointerAliasing(
               conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
 
-      CExpression lhsBase = lhs.getResolvedExpression();
-      Expression lhsExpression = lhsBase.accept(lhsVisitor);
+      ArraySliceResolved lhsResolved = resolveSliceExpression(lhs, encodedVariables, lhsVisitor);
 
       // add initialized and used fields of lhs to pointer-target set as essential
       pts.addEssentialFields(lhsVisitor.getInitializedFields());
       pts.addEssentialFields(lhsVisitor.getUsedFields());
 
-      CType lhsFinalType = typeHandler.getSimplifiedType(lhsBase);
+      CType lhsFinalType = lhsResolved.type();
 
       if (assignmentOptions.forcePointerAssignment()) {
         // if the force pointer assignment option is used, lhs must be an array
         // interpret it as a pointer instead
-        lhsFinalType = CTypes.adjustFunctionOrArrayType((lhsFinalType));
+        CType lhsPointerType = CTypes.adjustFunctionOrArrayType(lhsFinalType);
+        lhsResolved = new ArraySliceResolved(lhsResolved.expression(), lhsPointerType);
       }
 
-      ArraySliceResolved lhsResolved = new ArraySliceResolved(lhsExpression, lhsFinalType);
       lhsResolutionMap.put(lhs, new ArraySliceResolvedWithVisitor(lhsResolved, lhsVisitor));
     }
 
@@ -394,33 +404,9 @@ class AssignmentQuantifierHandler {
           new CExpressionVisitorWithPointerAliasing(
               conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
 
-      final @Nullable CRightHandSide rhsBase;
-      final Optional<ArraySliceResolved> rhsResolved;
-      if (rhs instanceof ArraySliceNondetRhs nondetRhs) {
-        rhsResolved = Optional.empty();
-        rhsBase = null;
-      } else if (rhs instanceof ArraySliceCallRhs callRhs) {
-        rhsBase = callRhs.call();
-        Expression rhsExpression = callRhs.call().accept(rhsVisitor);
-        rhsResolved =
-            Optional.of(new ArraySliceResolved(rhsExpression, typeHandler.getSimplifiedType(callRhs.call())));
-      } else if (rhs instanceof ArraySliceExpressionRhs expressionRhs) {
-        // resolve all indices
-        ArraySliceExpression rhsSliceExpression = expressionRhs.expression();
-        if (shouldUnroll(assignmentOptions)) {
-          rhsSliceExpression = applyUnrolledVariables(rhsSliceExpression, unrolledVariables);
-        }
-        // lhs must be simple, so not an array, therefore, rhs array type must be converted to
-        // pointer
-        rhsBase = rhsSliceExpression.getResolvedExpression();
-        CType rhsType = CTypes.adjustFunctionOrArrayType(typeHandler.getSimplifiedType(rhsBase));
-        Expression rhsExpression = rhsBase.accept(rhsVisitor);
-        rhsResolved = Optional.of(new ArraySliceResolved(rhsExpression, rhsType));
-      } else {
-        assert (false);
-        rhsBase = null;
-        rhsResolved = null;
-      }
+      final Optional<ArraySliceResolved> rhsResolved =
+          resolveRhs(rhs, encodedVariables, rhsVisitor);
+
       // add initialized and used fields of rhs to pointer-target set as essential
       pts.addEssentialFields(rhsVisitor.getInitializedFields());
       pts.addEssentialFields(rhsVisitor.getUsedFields());
@@ -525,7 +511,9 @@ class AssignmentQuantifierHandler {
       AssignmentOptions assignmentOptions,
       LinkedHashSet<ArraySliceIndexVariable> nextVariablesToQuantify,
       Map<ArraySliceIndexVariable, Long> unrolledVariables,
+      Map<ArraySliceIndexVariable, Formula> encodedVariables,
       BooleanFormula condition,
+      ArraySliceIndexVariable variableToEncode,
       Formula sliceSizeFormula)
       throws UnrecognizedCodeException, InterruptedException {
 
@@ -538,6 +526,10 @@ class AssignmentQuantifierHandler {
     final Formula encodedVariable =
         fmgr.makeVariableWithoutSSAIndex(
             sizeFormulaType, "__quantifier_" + nextQuantifierVariableNumber++);
+
+    HashMap<ArraySliceIndexVariable, Formula> nextEncodedVariables =
+        new HashMap<>(encodedVariables);
+    nextEncodedVariables.put(variableToEncode, encodedVariable);
 
     // create the condition for quantifier
     // the quantified variable condition holds when 0 <= index < size
@@ -554,38 +546,41 @@ class AssignmentQuantifierHandler {
             assignmentOptions,
             nextVariablesToQuantify,
             unrolledVariables,
+            nextEncodedVariables,
             nextCondition);
 
     // add quantifier around the recursion result
     return fmgr.getQuantifiedFormulaManager().forall(encodedVariable, recursionResult);
   }
 
-  private @Nullable ArraySliceResolved resolveRhs(
+  private Optional<ArraySliceResolved> resolveRhs(
       final ArraySliceRhs rhs,
-      final CType lhsType,
-      final Map<ArraySliceIndexVariable, Formula> quantifiedVariableFormulaMap,
+      final Map<ArraySliceIndexVariable, Formula> encodedVariables,
       CExpressionVisitorWithPointerAliasing visitor)
       throws UnrecognizedCodeException {
 
-    if (rhs instanceof ArraySliceNondetRhs nondetRhs) {
-      return new ArraySliceResolved(Value.nondetValue(), lhsType);
-    }
     if (rhs instanceof ArraySliceCallRhs callRhs) {
       Expression rhsExpression = callRhs.call().accept(visitor);
-      return new ArraySliceResolved(rhsExpression, typeHandler.getSimplifiedType(callRhs.call()));
+      return Optional.of(
+          new ArraySliceResolved(rhsExpression, typeHandler.getSimplifiedType(callRhs.call())));
+    } else if (rhs instanceof ArraySliceExpressionRhs expressionRhs) {
+      // lhs must be simple, so not an array, therefore, array type rhs must be converted to
+      // pointer
+      ArraySliceResolved resolved =
+          resolveSliceExpression(
+              ((ArraySliceExpressionRhs) rhs).expression(), encodedVariables, visitor);
+      CType rhsType = CTypes.adjustFunctionOrArrayType(resolved.type());
+      return Optional.of(new ArraySliceResolved(resolved.expression(), rhsType));
+    } else {
+      assert (rhs instanceof ArraySliceNondetRhs);
+      return Optional.empty();
     }
 
-    return resolveSliceExpression(
-        ((ArraySliceExpressionRhs) rhs).expression(),
-        Optional.empty(),
-        quantifiedVariableFormulaMap,
-        visitor);
   }
 
   private @Nullable ArraySliceResolved resolveSliceExpression(
       final ArraySliceExpression sliceExpression,
-      final Optional<CType> finalType,
-      final Map<ArraySliceIndexVariable, Formula> quantifiedVariableFormulaMap,
+      final Map<ArraySliceIndexVariable, Formula> encodedVariables,
       CExpressionVisitorWithPointerAliasing visitor)
       throws UnrecognizedCodeException {
 
@@ -604,7 +599,7 @@ class AssignmentQuantifierHandler {
 
     for (ArraySliceModifier modifier : sliceExpression.getModifiers()) {
       if (modifier instanceof ArraySliceSubscriptModifier subscriptModifier) {
-        base = resolveSubscriptModifier(base, subscriptModifier, quantifiedVariableFormulaMap);
+        base = resolveSubscriptModifier(base, subscriptModifier, encodedVariables);
       } else {
         base = resolveFieldAccessModifier(base, (ArraySliceFieldAccessModifier) modifier);
       }
@@ -615,23 +610,18 @@ class AssignmentQuantifierHandler {
       }
     }
 
-    if (finalType.isPresent()) {
-      // retype to final type
-      base = new ArraySliceResolved(base.expression(), finalType.get());
-    }
-
     return base;
   }
 
   private ArraySliceResolved resolveSubscriptModifier(
       ArraySliceResolved base,
       ArraySliceSubscriptModifier modifier,
-      final Map<ArraySliceIndexVariable, Formula> quantifiedVariableFormulaMap) {
+      final Map<ArraySliceIndexVariable, Formula> encodedVariables) {
 
     // find the quantified variable formula, the caller is responsible for ensuring that it is in
     // the map
 
-    Formula quantifiedVariableFormula = quantifiedVariableFormulaMap.get(modifier.index());
+    Formula quantifiedVariableFormula = encodedVariables.get(modifier.index());
     checkNotNull(quantifiedVariableFormula);
 
     // get the array element type
