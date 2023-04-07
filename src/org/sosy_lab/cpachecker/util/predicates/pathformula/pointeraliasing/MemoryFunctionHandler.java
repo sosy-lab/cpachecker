@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Verify.verify;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -256,7 +257,8 @@ class MemoryFunctionHandler {
         new AssignmentHandler.ArraySliceAssignment(lhs, new ArraySliceExpressionRhs(rhs));
 
     BooleanFormula assignmentFormula =
-        assignmentHandler.handleSliceAssignment(sliceAssignment, assignmentOptions);
+        assignmentHandler.handleSliceAssignments(
+            ImmutableList.of(sliceAssignment), assignmentOptions);
     constraints.addConstraint(assignmentFormula);
   }
 

@@ -112,28 +112,6 @@ class AssignmentHandler {
    * @param rhs Either {@code null} or the right hand side of the assignment.
    * @param useOldSSAIndicesIfAliased A flag indicating whether we can use old SSA indices for
    *     aliased locations (because the location was not used before)
-   * @return A formula for the assignment.
-   * @throws UnrecognizedCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
-   */
-  BooleanFormula handleAssignment(
-      final CLeftHandSide lhs,
-      final CLeftHandSide lhsForChecking,
-      final CType lhsType,
-      final @Nullable CRightHandSide rhs,
-      final boolean useOldSSAIndicesIfAliased)
-      throws UnrecognizedCodeException, InterruptedException {
-    return handleAssignment(lhs, lhsForChecking, lhsType, rhs, useOldSSAIndicesIfAliased, false);
-  }
-
-  /**
-   * Creates a formula to handle assignments.
-   *
-   * @param lhs The left hand side of an assignment.
-   * @param lhsForChecking The left hand side of an assignment to check.
-   * @param rhs Either {@code null} or the right hand side of the assignment.
-   * @param useOldSSAIndicesIfAliased A flag indicating whether we can use old SSA indices for
-   *     aliased locations (because the location was not used before)
    * @param reinterpretInsteadOfCasting A flag indicating whether we should reinterpret the
    *     right-hand side type, preserving the bit-vector representation, to the left-hand side type
    *     instead of casting it according to C rules
@@ -181,8 +159,7 @@ class AssignmentHandler {
             false,
             !lhsType.equals(typeHandler.getSimplifiedType(lhs)));
 
-
-    return handleSliceAssignment(assignment, assignmentOptions);
+    return handleSliceAssignments(ImmutableList.of(assignment), assignmentOptions);
   }
 
   record ArraySlicePartSpan(long lhsBitOffset, long rhsBitOffset, long bitSize) {}
@@ -291,12 +268,6 @@ class AssignmentHandler {
       this.forceQuantifiers = forceQuantifiers;
       this.forcePointerAssignment = forcePointerAssignment;
     }
-  }
-
-  BooleanFormula handleSliceAssignment(
-      ArraySliceAssignment assignment, final AssignmentOptions assignmentOptions)
-      throws UnrecognizedCodeException, InterruptedException {
-    return handleSliceAssignments(ImmutableList.of(assignment), assignmentOptions);
   }
 
   BooleanFormula handleSliceAssignments(
@@ -617,32 +588,6 @@ class AssignmentHandler {
       // already simple, just add the assignment to simple assignments
       simpleAssignments.add(assignment);
     }
-  }
-
-  BooleanFormula handleAssignment(
-      final CLeftHandSide lhs,
-      final CLeftHandSide lhsForChecking,
-      final @Nullable CRightHandSide rhs,
-      final boolean useOldSSAIndicesIfAliased)
-      throws UnrecognizedCodeException, InterruptedException {
-    return handleAssignment(
-        lhs, lhsForChecking, typeHandler.getSimplifiedType(lhs), rhs, useOldSSAIndicesIfAliased);
-  }
-
-  BooleanFormula handleAssignment(
-      final CLeftHandSide lhs,
-      final CLeftHandSide lhsForChecking,
-      final @Nullable CRightHandSide rhs,
-      final boolean useOldSSAIndicesIfAliased,
-      final boolean reinterpretInsteadOfCasting)
-      throws UnrecognizedCodeException, InterruptedException {
-    return handleAssignment(
-        lhs,
-        lhsForChecking,
-        typeHandler.getSimplifiedType(lhs),
-        rhs,
-        useOldSSAIndicesIfAliased,
-        reinterpretInsteadOfCasting);
   }
 
   /**

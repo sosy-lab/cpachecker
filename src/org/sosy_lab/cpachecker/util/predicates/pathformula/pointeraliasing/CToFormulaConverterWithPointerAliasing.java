@@ -830,7 +830,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     AssignmentHandler assignmentHandler =
         new AssignmentHandler(
             this, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
-    return assignmentHandler.handleAssignment(lhs, lhsForChecking, lhsType, rhs, false);
+    return assignmentHandler.handleAssignment(lhs, lhsForChecking, lhsType, rhs, false, false);
   }
 
   /** Is the left-hand-side an array and do we allow to assign a value to it? */
@@ -1006,9 +1006,16 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         }
         result =
             assignmentHandler.handleAssignment(
-                lhs, lhs, ((CInitializerExpression) initializer).getExpression(), true);
+                lhs,
+                lhs,
+                typeHandler.getSimplifiedType(lhs),
+                ((CInitializerExpression) initializer).getExpression(),
+                true,
+                false);
       } else if (isRelevantVariable(declaration) && !declarationType.isIncomplete()) {
-        result = assignmentHandler.handleAssignment(lhs, lhs, null, true);
+        result =
+            assignmentHandler.handleAssignment(
+                lhs, lhs, typeHandler.getSimplifiedType(lhs), null, true, false);
       } else {
         result = bfmgr.makeTrue();
       }
