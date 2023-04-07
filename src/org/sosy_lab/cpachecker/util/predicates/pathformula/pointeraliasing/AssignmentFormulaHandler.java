@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceResolved;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySlicePartSpan;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceSpanResolved;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.AssignmentConversionType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.AssignmentOptions;
@@ -138,156 +139,10 @@ public class AssignmentFormulaHandler {
       return bfmgr.makeTrue();
     }
 
-    final Expression rhsResult;
-    final CType wholeType;
-
-    // TODO: float handling is somewhat wonky
-
-    RangeSet<Long> lhsRangeSet = TreeRangeSet.create();
-
     // put together the rhs expressions from spans
 
-    long targetBitSize = typeHandler.getBitSizeof(targetType);
-    long lhsBitSize = typeHandler.getBitSizeof(lhsResolved.type());
-    Formula wholeRhsFormula = null;
-    boolean forceNondet = false;
-    boolean suppressReinterpretation = false;
-    for (ArraySliceSpanResolved rhs : rhsList) {
-
-      // convert RHS expression to target type
-      Expression convertedRhs =
-          convertRhsExpression(assignmentOptions.conversionType(), targetType, rhs.actual());
-
-      if (rhs.span().lhsBitOffset() == 0
-          && rhs.span().rhsBitOffset() == 0
-          && rhs.span().bitSize() == lhsBitSize
-          && lhsBitSize == targetBitSize) {
-        // handle full assignments without complications
-        // reinterpret from targetType to lhsResolved.type
-        convertedRhs =
-            convertRhsExpression(
-                AssignmentConversionType.REINTERPRET,
-                lhsResolved.type(),
-                new ArraySliceResolved(convertedRhs, targetType));
-        suppressReinterpretation = true;
-      }
-
-      Optional<Formula> optionalConvertedRhsFormula = getValueFormula(targetType, convertedRhs);
-
-      if (optionalConvertedRhsFormula.isEmpty()) {
-        // no RHS formula due to nondet expression
-        // force span lhs nondet
-        forceNondet = true;
-        break;
-      }
-
-      Formula convertedRhsFormula = optionalConvertedRhsFormula.get();
-
-      if (suppressReinterpretation) {
-        wholeRhsFormula = convertedRhsFormula;
-        break;
-      }
-
-      // perform partial assignment
-
-      // make the formula bitvector formula
-      BitvectorFormula bitvectorRhsFormula =
-          conv.makeValueReinterpretationToBitvector(targetType, convertedRhsFormula);
-
-      // extract the interesting part and dimension to new lhs type, shift left
-      // this will make the formula type integer version of new lhs type
-      Formula extractedFormula =
-          fmgr.makeExtract(
-              bitvectorRhsFormula,
-              (int) (rhs.span().rhsBitOffset() + rhs.span().bitSize() - 1),
-              (int) rhs.span().rhsBitOffset());
-
-      long numExtendBits = lhsBitSize - rhs.span().bitSize();
-
-      Formula extendedFormula = fmgr.makeExtend(extractedFormula, (int) numExtendBits, false);
-
-      Formula shiftedFormula =
-          fmgr.makeShiftLeft(
-              extendedFormula,
-              fmgr.makeNumber(
-                  FormulaType.getBitvectorTypeWithSize((int) lhsBitSize), rhs.span().lhsBitOffset()));
-
-      // bit-or with other parts
-      if (wholeRhsFormula != null) {
-        wholeRhsFormula = fmgr.makeOr(wholeRhsFormula, shiftedFormula);
-      } else {
-        wholeRhsFormula = shiftedFormula;
-      }
-      // add to lhs range set
-      long lhsOffset = rhs.span().lhsBitOffset();
-      long lhsAfterEnd = rhs.span().lhsBitOffset() + rhs.span().bitSize();
-      lhsRangeSet.add(Range.closedOpen(lhsOffset, lhsAfterEnd));
-    }
-
-    // the whole type is now definitely the type of LHS
-    wholeType = lhsResolved.type();
-    if (!forceNondet && !suppressReinterpretation) {
-      RangeSet<Long> retainedRangeSet =
-          lhsRangeSet.complement().subRangeSet(Range.closedOpen((long) 0, lhsBitSize));
-      if (!retainedRangeSet.isEmpty()) {
-        // there are some retained bits
-        Optional<Formula> optionalPreviousLhsFormula =
-            getValueFormula(lhsResolved.type(), lhsResolved.expression());
-        if (optionalPreviousLhsFormula.isPresent()) {
-          Formula previousLhsFormula = optionalPreviousLhsFormula.get();
-          Formula reinterpretedPreviousLhsFormula =
-              conv.makeValueReinterpretationFromBitvector(lhsResolved.type(), previousLhsFormula);
-          // bit-or retained bits
-          for (Range<Long> retainedRange : retainedRangeSet.asRanges()) {
-            if (!retainedRange.isEmpty()) {
-              long retainedBitOffset = retainedRange.lowerEndpoint();
-              long retainedBitSize =
-                  retainedRange.upperEndpoint() - retainedRange.lowerEndpoint();
-              Formula extractedFormula =
-                  fmgr.makeExtract(
-                      reinterpretedPreviousLhsFormula,
-                      (int) (retainedRange.upperEndpoint() - 1),
-                      (int) (retainedRange.lowerEndpoint().longValue()));
-
-              long numExtendBits = lhsBitSize - retainedBitSize;
-
-              Formula extendedFormula =
-                  fmgr.makeExtend(extractedFormula, (int) numExtendBits, false);
-
-              Formula shiftedFormula =
-                  fmgr.makeShiftLeft(
-                      extendedFormula,
-                      fmgr.makeNumber(
-                          FormulaType.getBitvectorTypeWithSize((int) lhsBitSize),
-                          retainedBitOffset));
-              // bit-or with other parts
-              if (wholeRhsFormula != null) {
-                wholeRhsFormula = fmgr.makeOr(wholeRhsFormula, shiftedFormula);
-              } else {
-                wholeRhsFormula = shiftedFormula;
-              }
-            }
-          }
-
-        } else {
-          forceNondet = true;
-        }
-      }
-    }
-
-    if (forceNondet) {
-      // force RHS result to be nondeterministic
-      rhsResult = Value.nondetValue();
-    } else {
-      if (!suppressReinterpretation) {
-        // reinterpret to LHS type
-        wholeRhsFormula =
-            conv.makeValueReinterpretationFromBitvector(lhsResolved.type(), wholeRhsFormula);
-      }
-      rhsResult = Value.ofValue(wholeRhsFormula);
-    }
-
-    // TODO: currently cannot be simple due to function calls
+    Expression rhsResult =
+        constructWholeRhsExpression(lhsResolved, targetType, rhsList, assignmentOptions);
 
     // perform assignment and, if using UF encoding, finish the assignments afterwards
 
@@ -302,8 +157,8 @@ public class AssignmentFormulaHandler {
     // perform the actual destructive assignment
     BooleanFormula result =
         makeSimpleDestructiveAssignment(
-            lhsResolved.type(),
-            wholeType,
+            lhsType,
+            lhsType,
             lhsLocation,
             rhsResult,
             assignmentOptions.useOldSSAIndicesIfAliased()
@@ -320,6 +175,164 @@ public class AssignmentFormulaHandler {
     }
 
     return result;
+  }
+
+  private Expression constructWholeRhsExpression(
+      ArraySliceResolved lhs,
+      CType targetType,
+      List<ArraySliceSpanResolved> rhsList,
+      AssignmentOptions assignmentOptions)
+      throws UnrecognizedCodeException {
+
+    CType lhsType = lhs.type();
+    long targetBitSize = typeHandler.getBitSizeof(targetType);
+    long lhsBitSize = typeHandler.getBitSizeof(lhsType);
+
+    RangeSet<Long> lhsRangeSet = TreeRangeSet.create();
+
+    Formula wholeRhsFormula = null;
+
+    for (ArraySliceSpanResolved rhs : rhsList) {
+
+      ArraySlicePartSpan rhsSpan = rhs.span();
+
+      // convert RHS expression to target type
+      Expression targetTypeRhsExpression =
+          convertRhsExpression(assignmentOptions.conversionType(), targetType, rhs.actual());
+
+      Optional<Formula> rhsFormula = getValueFormula(targetType, targetTypeRhsExpression);
+      if (rhsFormula.isEmpty()) {
+        // nondet rhs part, make the whole rhs result nondeterministic
+        return Value.nondetValue();
+      }
+
+      if (rhsSpan.lhsBitOffset() == 0
+          && rhsSpan.rhsBitOffset() == 0
+          && rhsSpan.bitSize() == lhsBitSize
+          && lhsBitSize == targetBitSize) {
+        // handle full assignments without complications: reinterpret from targetType to
+        // lhsResolved.type and return the resulting expression
+        return convertRhsExpression(
+            AssignmentConversionType.REINTERPRET,
+            lhs.type(),
+            new ArraySliceResolved(targetTypeRhsExpression, targetType));
+      }
+
+      Formula currentRhsFormula =
+          constructPartialRhsFormula(
+              lhsType,
+              targetType,
+              rhsSpan,
+              rhsFormula.get(),
+              lhsRangeSet);
+
+      // bit-or with other parts
+      // note that this is an operation on bitvectors, not on Boolean formulas, so we cannot
+      // initially make wholeRhsFormula a tautology like with Boolean formulas
+      wholeRhsFormula =
+          (wholeRhsFormula != null)
+              ? fmgr.makeOr(wholeRhsFormula, currentRhsFormula)
+              : currentRhsFormula;
+    }
+
+    // the whole type is now definitely the type of LHS
+    RangeSet<Long> retainedRangeSet =
+        lhsRangeSet.complement().subRangeSet(Range.closedOpen((long) 0, lhsBitSize));
+    if (!retainedRangeSet.isEmpty()) {
+      // there are some retained bits from previous LHS
+      Optional<Formula> previousLhsFormula = getValueFormula(lhs.type(), lhs.expression());
+      if (previousLhsFormula.isEmpty()) {
+        // some bits from previous LHS are retained in current RHS, but previous LHS is nondet
+        // make current RHS nondet as well
+        return Value.nondetValue();
+      }
+      Formula bitvectorPreviousLhsFormula =
+          conv.makeValueReinterpretationToBitvector(lhs.type(), previousLhsFormula.get());
+      // bit-or retained bits
+      for (Range<Long> retainedRange : retainedRangeSet.asRanges()) {
+        if (retainedRange.isEmpty()) {
+          continue;
+        }
+        Formula partialRhsFormula =
+            constructPartialRhsFromPreviousLhsFormula(
+                bitvectorPreviousLhsFormula, lhsBitSize, retainedRange);
+        // bit-or with other parts
+        wholeRhsFormula =
+            (wholeRhsFormula != null)
+                ? fmgr.makeOr(wholeRhsFormula, partialRhsFormula)
+                : partialRhsFormula;
+        }
+    }
+
+    // reinterpret to LHS type
+    wholeRhsFormula = conv.makeValueReinterpretationFromBitvector(lhs.type(), wholeRhsFormula);
+
+    return Value.ofValue(wholeRhsFormula);
+  }
+
+  private Formula constructPartialRhsFormula(
+      CType lhsType,
+      CType targetType,
+      ArraySlicePartSpan rhsSpan,
+      Formula rhsFormula,
+      RangeSet<Long> lhsRangeSet) {
+
+    long lhsBitSize = typeHandler.getBitSizeof(lhsType);
+
+    // add to lhs range set
+    long lhsOffset = rhsSpan.lhsBitOffset();
+    long lhsAfterEnd = rhsSpan.lhsBitOffset() + rhsSpan.bitSize();
+    lhsRangeSet.add(Range.closedOpen(lhsOffset, lhsAfterEnd));
+
+    // perform partial assignment
+
+    // make the formula bitvector formula
+    BitvectorFormula bitvectorRhsFormula =
+        conv.makeValueReinterpretationToBitvector(targetType, rhsFormula);
+
+    // extract the interesting part and dimension to new lhs type, shift left
+    // this will make the formula type integer version of new lhs type
+    Formula extractedFormula =
+        fmgr.makeExtract(
+            bitvectorRhsFormula,
+            (int) (rhsSpan.rhsBitOffset() + rhsSpan.bitSize() - 1),
+            (int) rhsSpan.rhsBitOffset());
+
+    long numExtendBits = lhsBitSize - rhsSpan.bitSize();
+
+    Formula extendedFormula = fmgr.makeExtend(extractedFormula, (int) numExtendBits, false);
+
+    Formula shiftedFormula =
+        fmgr.makeShiftLeft(
+            extendedFormula,
+            fmgr.makeNumber(
+                FormulaType.getBitvectorTypeWithSize((int) lhsBitSize), rhsSpan.lhsBitOffset()));
+
+    return shiftedFormula;
+  }
+
+  private Formula constructPartialRhsFromPreviousLhsFormula(
+      Formula bitvectorPreviousLhsFormula, long lhsBitSize, Range<Long> retainedRange) {
+
+    long retainedBitOffset = retainedRange.lowerEndpoint();
+    long retainedBitSize = retainedRange.upperEndpoint() - retainedRange.lowerEndpoint();
+    Formula extractedFormula =
+        fmgr.makeExtract(
+            bitvectorPreviousLhsFormula,
+            (int) (retainedRange.upperEndpoint() - 1),
+            (int) (retainedRange.lowerEndpoint().longValue()));
+
+    long numExtendBits = lhsBitSize - retainedBitSize;
+
+    Formula extendedFormula = fmgr.makeExtend(extractedFormula, (int) numExtendBits, false);
+
+    Formula shiftedFormula =
+        fmgr.makeShiftLeft(
+            extendedFormula,
+            fmgr.makeNumber(
+                FormulaType.getBitvectorTypeWithSize((int) lhsBitSize), retainedBitOffset));
+
+    return shiftedFormula;
   }
 
   private Expression convertRhsExpression(
