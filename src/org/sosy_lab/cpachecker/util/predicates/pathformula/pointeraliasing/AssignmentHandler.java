@@ -125,10 +125,6 @@ class AssignmentHandler {
       final boolean useOldSSAIndicesIfAliased)
       throws UnrecognizedCodeException, InterruptedException {
     // TODO: remake the parameters
-    if (!conv.isRelevantLeftHandSide(lhsForChecking)) {
-      // Optimization for unused variables and fields
-      return conv.bfmgr.makeTrue();
-    }
 
     final ArraySliceExpression lhsSlice = new ArraySliceExpression(lhs);
     final ArraySliceRhs rhsSlice;
@@ -270,6 +266,15 @@ class AssignmentHandler {
       throws UnrecognizedCodeException, InterruptedException {
 
     CSimpleType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
+
+    // apply relevancy of left-hand side
+    assignments =
+        assignments.stream()
+            .filter(
+                assignment ->
+                    conv.isRelevantLeftHandSide(
+                        (CLeftHandSide) assignment.lhs.getDummyResolvedExpression(sizeType)))
+            .toList();
 
     // apply Havoc abstraction: if Havoc abstraction is turned on
     // and rhs is not relevant, make it nondeterministic
