@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import java.util.ArrayList;
 import java.util.List;
@@ -270,7 +272,7 @@ class AssignmentHandler {
     }
 
     // generate simple slice assignments to resolve assignments to structures and arrays
-    List<ArraySliceSpanAssignment> simpleAssignments = new ArrayList<>();
+    Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> simpleAssignmentMultimap = ArrayListMultimap.create();
 
     for (ArraySliceAssignment assignment : assignments) {
 
@@ -308,17 +310,17 @@ class AssignmentHandler {
               new ArraySliceSpanRhs(new ArraySlicePartSpan(0, 0, targetBitSize), assignment.rhs));
       if (assignmentOptions.forcePointerAssignment) {
         // actual assignment type should be pointer, which is already simple
-        simpleAssignments.add(spanAssignment);
+        simpleAssignmentMultimap.put(spanAssignment.lhs, spanAssignment.rhs);
       } else {
         // convert to progenitor
         ArraySliceSpanAssignment progenitorAssignment =
             convertSliceAssignmentLhsToProgenitor(spanAssignment);
 
-        generateSimpleSliceAssignments(progenitorAssignment, simpleAssignments);
+        generateSimpleSliceAssignments(progenitorAssignment, simpleAssignmentMultimap);
       }
     }
     // hand over
-    return assignmentQuantifierHandler.handleSimpleSliceAssignments(simpleAssignments, assignmentOptions);
+    return assignmentQuantifierHandler.handleSimpleSliceAssignments(simpleAssignmentMultimap, assignmentOptions);
   }
 
   private ArraySliceSpanAssignment convertSliceAssignmentLhsToProgenitor(
@@ -366,7 +368,8 @@ class AssignmentHandler {
   }
 
   private void generateSimpleSliceAssignments(
-      ArraySliceSpanAssignment assignment, List<ArraySliceSpanAssignment> simpleAssignments) {
+      ArraySliceSpanAssignment assignment,
+      Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> simpleAssignmentMultimap) {
 
     CSimpleType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
 
@@ -472,7 +475,7 @@ class AssignmentHandler {
               new ArraySliceSpanAssignment(
                   new ArraySliceSpanLhs(lhsMemberSlice, assignment.lhs.targetType), memberRhs);
           }
-          generateSimpleSliceAssignments(memberAssignment, simpleAssignments);
+        generateSimpleSliceAssignments(memberAssignment, simpleAssignmentMultimap);
       }
     } else if (lhsType instanceof CArrayType lhsArrayType) {
       @Nullable CExpression lhsArrayLength = lhsArrayType.getLength();
@@ -548,11 +551,11 @@ class AssignmentHandler {
       ArraySliceSpanAssignment elementAssignment =
           new ArraySliceSpanAssignment(
               new ArraySliceSpanLhs(elementLhs, elementType), elementSpanRhs);
-      generateSimpleSliceAssignments(elementAssignment, simpleAssignments);
+      generateSimpleSliceAssignments(elementAssignment, simpleAssignmentMultimap);
 
     } else {
       // already simple, just add the assignment to simple assignments
-      simpleAssignments.add(assignment);
+      simpleAssignmentMultimap.put(assignment.lhs, assignment.rhs);
     }
   }
 

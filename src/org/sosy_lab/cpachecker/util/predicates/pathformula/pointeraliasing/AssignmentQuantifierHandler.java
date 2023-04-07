@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -52,7 +51,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Assig
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceExpressionRhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceNondetRhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceRhs;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceSpanAssignment;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceSpanLhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceSpanResolved;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceSpanRhs;
@@ -125,28 +123,11 @@ class AssignmentQuantifierHandler {
   }
 
   BooleanFormula handleSimpleSliceAssignments(
-      final List<ArraySliceSpanAssignment> assignments, final AssignmentOptions assignmentOptions)
+      final Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap,
+      final AssignmentOptions assignmentOptions)
       throws UnrecognizedCodeException, InterruptedException {
 
-    // no union handling here now
-
-    boolean canUseQuantifiers = true;
-
-    Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap = LinkedHashMultimap.create();
-    for (ArraySliceSpanAssignment assignment : assignments) {
-      assignmentMultimap.put(assignment.lhs(), assignment.rhs());
-      if (assignment.rhs().actual() instanceof ArraySliceCallRhs) {
-        // call rhs precludes using quantifiers, as the call cannot be handled
-        // in dynamic memory handler
-        // this overrides even forcing quantifiers in assignment options
-        canUseQuantifiers = false;
-      }
-    }
-
-    // hand off the span assignments
-
-    if (canUseQuantifiers
-        && (options.useQuantifiersOnArrays() || assignmentOptions.forceQuantifiers())) {
+    if (options.useQuantifiersOnArrays() || assignmentOptions.forceQuantifiers()) {
       return handleSimpleSliceAssignmentsWithQuantifiers(assignmentMultimap, assignmentOptions);
     } else {
       return handleSimpleSliceAssignmentsWithoutQuantifiers(assignmentMultimap, assignmentOptions);
