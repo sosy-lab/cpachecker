@@ -393,7 +393,7 @@ class AssignmentQuantifierHandler {
 
     Formula sizeFormula = indexSizeVisitor.asValueFormula(indexSizeExpression, sizeType);
 
-    BooleanFormula result = null;
+    BooleanFormula result = bfmgr.makeTrue();
 
     FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromCType(sizeType);
     Formula zeroFormula = conv.fmgr.makeNumber(sizeFormulaType, 0);
