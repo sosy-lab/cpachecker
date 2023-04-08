@@ -25,8 +25,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -303,6 +305,14 @@ class AssignmentQuantifierHandler {
         ArraySliceResolved rhsResolvedBase = resolvedRhsBases.get(rhsSlice.getBase());
         ArraySliceResolved rhsResolved =
             rhsSlice.resolveModifiers(rhsResolvedBase, conv, ssa, errorConditions, regionMgr);
+        if (targetType instanceof CPointerType) {
+          // after resolving rhs, the rhs resolved type may be array even if we want to do
+          // pointer assignment, signified by pointer target type
+          // make rhs resolved target type into pointer in that case
+          rhsResolved =
+              new ArraySliceResolved(
+                  rhsResolved.expression(), CTypes.adjustFunctionOrArrayType(rhsResolved.type()));
+        }
         rhsResolvedList.add(new ArraySliceSpanResolved(rhs.span(), Optional.of(rhsResolved)));
       }
 
