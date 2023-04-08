@@ -12,19 +12,20 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -34,15 +35,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceFieldAccessModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceIndexVariable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceResolved;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceSplitExpression;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceTail;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -65,7 +67,7 @@ class AssignmentHandler {
   private final ErrorConditions errorConditions;
   private final MemoryRegionManager regionMgr;
 
-  private final AssignmentQuantifierHandler assignmentQuantifierHandler;
+  private final CSimpleType sizeType;
 
   /**
    * Creates a new AssignmentHandler.
@@ -102,90 +104,10 @@ class AssignmentHandler {
     errorConditions = pErrorConditions;
     regionMgr = pRegionMgr;
 
-    assignmentQuantifierHandler =
-        new AssignmentQuantifierHandler(
-            pConv, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions, pRegionMgr);
+    sizeType = conv.machineModel.getPointerEquivalentSimpleType();
   }
 
-  record ArraySlicePartSpan(long lhsBitOffset, long rhsBitOffset, long bitSize) {}
-
-  sealed interface ArraySliceRhs
-      permits ArraySliceExpressionRhs, ArraySliceCallRhs, ArraySliceNondetRhs {
-    CType getType(CType targetType, CType sizeType);
-
-    Optional<CRightHandSide> getDummyResolvedRightHandSide(CType sizeType);
-
-    static ArraySliceRhs fromCRightHandSide(CRightHandSide rhs) {
-      if (rhs instanceof CExpression rhsExpression) {
-        return new ArraySliceExpressionRhs(rhsExpression);
-      } else if (rhs instanceof CFunctionCallExpression rhsCall) {
-        return new ArraySliceCallRhs(rhsCall);
-      } else {
-        assert (false);
-        return null;
-      }
-    }
-
-  }
-
-  record ArraySliceExpressionRhs(ArraySliceExpression expression) implements ArraySliceRhs {
-    ArraySliceExpressionRhs(ArraySliceExpression expression) {
-      checkNotNull(expression);
-      this.expression = expression;
-    }
-
-    ArraySliceExpressionRhs(CExpression expression) {
-      this(new ArraySliceExpression(expression));
-    }
-
-    @Override
-    public CType getType(CType targetType, CType sizeType) {
-      return expression.getResolvedExpressionType(sizeType);
-    }
-
-    @Override
-    public Optional<CRightHandSide> getDummyResolvedRightHandSide(CType sizeType) {
-      return Optional.of(expression.getDummyResolvedExpression(sizeType));
-    }
-  }
-
-  record ArraySliceCallRhs(CFunctionCallExpression call) implements ArraySliceRhs {
-    ArraySliceCallRhs(CFunctionCallExpression call) {
-      checkNotNull(call);
-      this.call = call;
-    }
-
-    @Override
-    public CType getType(CType targetType, CType sizeType) {
-      return call.getExpressionType();
-    }
-
-    @Override
-    public Optional<CRightHandSide> getDummyResolvedRightHandSide(CType sizeType) {
-      return Optional.of(call);
-    }
-  }
-
-  record ArraySliceNondetRhs() implements ArraySliceRhs {
-    @Override
-    public CType getType(CType targetType, CType sizeType) {
-      return targetType;
-    }
-
-    @Override
-    public Optional<CRightHandSide> getDummyResolvedRightHandSide(CType sizeType) {
-      return Optional.empty();
-    }
-  }
-
-  record ArraySliceSpanRhs(ArraySlicePartSpan span, ArraySliceRhs actual) {
-    ArraySliceSpanRhs(ArraySlicePartSpan span, ArraySliceRhs actual) {
-      checkNotNull(span);
-      checkNotNull(actual);
-      this.span = span;
-      this.actual = actual;
-    }
-  }
+  record ArraySliceSpan(long lhsBitOffset, long rhsBitOffset, long bitSize) {}
 
   record ArraySliceSpanLhs(ArraySliceExpression actual, CType targetType) {
     ArraySliceSpanLhs(ArraySliceExpression actual, CType targetType) {
@@ -193,6 +115,15 @@ class AssignmentHandler {
       checkNotNull(targetType);
       this.actual = actual;
       this.targetType = targetType;
+    }
+  }
+
+  record ArraySliceSpanRhs(ArraySliceSpan span, Optional<ArraySliceExpression> actual) {
+    ArraySliceSpanRhs(ArraySliceSpan span, Optional<ArraySliceExpression> actual) {
+      checkNotNull(span);
+      checkNotNull(actual);
+      this.span = span;
+      this.actual = actual;
     }
   }
 
@@ -205,8 +136,8 @@ class AssignmentHandler {
     }
   }
 
-  record ArraySliceSpanResolved(ArraySlicePartSpan span, ArraySliceResolved actual) {
-    ArraySliceSpanResolved(ArraySlicePartSpan span, ArraySliceResolved actual) {
+  record ArraySliceSpanResolved(ArraySliceSpan span, Optional<ArraySliceResolved> actual) {
+    ArraySliceSpanResolved(ArraySliceSpan span, Optional<ArraySliceResolved> actual) {
       checkNotNull(span);
       checkNotNull(actual);
       this.span = span;
@@ -214,12 +145,20 @@ class AssignmentHandler {
     }
   }
 
-  record ArraySliceAssignment(ArraySliceExpression lhs, ArraySliceRhs rhs) {
-    ArraySliceAssignment(ArraySliceExpression lhs, ArraySliceRhs rhs) {
+  record ArraySliceAssignment(
+      ArraySliceExpression lhs, CLeftHandSide relevancyLhs, Optional<ArraySliceExpression> rhs) {
+    ArraySliceAssignment(
+        ArraySliceExpression lhs, CLeftHandSide relevancyLhs, Optional<ArraySliceExpression> rhs) {
       checkNotNull(lhs);
+      checkNotNull(relevancyLhs);
       checkNotNull(rhs);
       this.lhs = lhs;
+      this.relevancyLhs = relevancyLhs;
       this.rhs = rhs;
+    }
+
+    ArraySliceAssignment(ArraySliceExpression lhs, Optional<ArraySliceExpression> rhs) {
+      this(lhs, (CLeftHandSide) lhs.getBase(), rhs);
     }
   }
 
@@ -250,137 +189,257 @@ class AssignmentHandler {
       List<ArraySliceAssignment> assignments, final AssignmentOptions assignmentOptions)
       throws UnrecognizedCodeException, InterruptedException {
 
-    CSimpleType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
-
-    // apply relevancy of left-hand side
+    // apply relevancy of left-hand side and make canonical
     assignments =
         assignments.stream()
-            .filter(
-                assignment ->
-                    conv.isRelevantLeftHandSide(
-                        (CLeftHandSide) assignment.lhs.getDummyResolvedExpression(sizeType)))
+            .filter(assignment -> conv.isRelevantLeftHandSide(assignment.relevancyLhs()))
+            .map(assignment -> new ArraySliceAssignment(assignment.lhs.constructCanonical(),
+                assignment.relevancyLhs, assignment.rhs().map(rhsSlice -> rhsSlice.constructCanonical())))
             .toList();
 
     // apply Havoc abstraction: if Havoc abstraction is turned on
     // and rhs is not relevant, make it nondeterministic
-    List<ArraySliceAssignment> appliedHavocAssignments = new ArrayList<>();
     if (conv.options.useHavocAbstraction()) {
-      for (ArraySliceAssignment assignment : assignments) {
-        ArraySliceAssignment appliedHavocAssignment = assignment;
-        // function call rhs are always relevant
-        // nondet rhs can be always retained
-        // only expression rhs have to be tested
-        if (assignment.rhs instanceof ArraySliceExpressionRhs expressionRhs) {
-          // the Havoc relevant visitor does not care about subscripts and fields,
-          // we can just test for relevancy of the base
-          if (expressionRhs
-              .expression
-              .getBaseExpression()
-              .accept(new IsRelevantWithHavocAbstractionVisitor(conv))) {
-            // make nondet
-            appliedHavocAssignment =
-                new ArraySliceAssignment(assignment.lhs, new ArraySliceNondetRhs());
-          }
-        }
-        appliedHavocAssignments.add(appliedHavocAssignment);
+      assignments =
+          assignments.stream()
+              .map(
+                  assignment -> {
+                    // the Havoc relevant visitor does not care about subscripts and fields,
+                    // we can just test for relevancy of the base
+                    if (assignment.rhs.isEmpty()) {
+                      // already nondeterministic
+                      return assignment;
+                    }
+                    IsRelevantWithHavocAbstractionVisitor havocVisitor = new IsRelevantWithHavocAbstractionVisitor(conv);
+                    if (assignment.rhs.get().getBase().accept(havocVisitor)) {
+                      // relevant
+                      return assignment;
+                    }
+                    // havoc by making rhs nondeterministic
+                    return new ArraySliceAssignment(
+                        assignment.lhs, assignment.relevancyLhs, Optional.empty());
+                  })
+              .toList();
+    }
+
+    // generate lhs and rhs bases
+
+    Map<CLeftHandSide, ArraySliceResolved> resolvedLhsBases = new HashMap<>();
+    Map<CRightHandSide, ArraySliceResolved> resolvedRhsBases = new HashMap<>();
+    List<CompositeField> rhsAddressedFields = new ArrayList<>();
+
+    for (ArraySliceAssignment assignment : assignments) {
+      // resolve lhs base
+
+      final CExpressionVisitorWithPointerAliasing lhsBaseVisitor =
+          new CExpressionVisitorWithPointerAliasing(
+              conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+
+      CLeftHandSide lhsBase = (CLeftHandSide) assignment.lhs.getBase();
+      ArraySliceResolved resolvedLhsBase = resolveBase(lhsBase, lhsBaseVisitor);
+
+      // add initialized and used fields of lhs to pointer-target set as essential
+      pts.addEssentialFields(lhsBaseVisitor.getInitializedFields());
+      pts.addEssentialFields(lhsBaseVisitor.getUsedFields());
+
+      if (assignmentOptions.forcePointerAssignment()) {
+        // if the force pointer assignment option is used, lhs must be an array
+        // interpret it as a pointer instead
+        CType lhsPointerType = CTypes.adjustFunctionOrArrayType(resolvedLhsBase.type());
+        resolvedLhsBase = new ArraySliceResolved(resolvedLhsBase.expression(), lhsPointerType);
       }
-    } else {
-      appliedHavocAssignments.addAll(assignments);
+
+      resolvedLhsBases.put(lhsBase, resolvedLhsBase);
+
+      if (assignment.rhs.isEmpty()) {
+        // no resolution of rhs base or deferred memory handling
+        continue;
+      }
+      ArraySliceExpression rhs = assignment.rhs.get();
+      // resolve rhs base
+      CRightHandSide rhsBase = rhs.getBase();
+      final CExpressionVisitorWithPointerAliasing rhsBaseVisitor =
+          new CExpressionVisitorWithPointerAliasing(
+              conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+      ArraySliceResolved resolvedRhsBase = resolveBase(rhsBase, rhsBaseVisitor);
+
+      // add initialized and used fields of rhs to pointer-target set as essential
+      pts.addEssentialFields(rhsBaseVisitor.getInitializedFields());
+      pts.addEssentialFields(rhsBaseVisitor.getUsedFields());
+
+      // prepare to add addressed fields of rhs to pointer-target set after assignment
+      rhsAddressedFields.addAll(rhsBaseVisitor.getAddressedFields());
+
+      resolvedRhsBases.put(rhsBase, resolvedRhsBase);
+
+      // apply the deferred memory handler: if there is a malloc with void* type, the allocation
+      // can be deferred until the assignment that uses the value; the allocation type can then be
+      // inferred from assignment lhs type
+      if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
+
+        // the deferred memory handler does not care about actual subscript values, we can use dummy resolved expressions
+        // it is necessary that there are no modifiers after CFunctionCallExpression base in assignments
+        CRightHandSide lhsDummy = assignment.lhs.getDummyResolvedExpression(sizeType);
+        CRightHandSide rhsDummy = rhs.getDummyResolvedExpression(sizeType);
+        CType lhsType = typeHandler.getSimplifiedType(lhsDummy);
+
+        if (assignmentOptions.forcePointerAssignment()) {
+          // if the force pointer assignment option is used, lhs must be an array
+          // interpret it as a pointer instead
+          lhsType = CTypes.adjustFunctionOrArrayType(lhsType);
+        }
+
+        // we have everything we need, call memory handler
+        // rhs expression is only used when rhs is CFunctionCallExpression which can have no modifiers in assignments
+        // so we can substitute resolvedRhsBase.expression()
+        DynamicMemoryHandler memoryHandler =
+          new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
+        memoryHandler.handleDeferredAllocationsInAssignment(
+            (CLeftHandSide) lhsDummy,
+            rhsDummy,
+            resolvedRhsBase.expression(),
+            lhsType,
+            lhsBaseVisitor.getLearnedPointerTypes(),
+            rhsBaseVisitor.getLearnedPointerTypes());
+      }
+    }
+
+
+    // make span assignments from assignments and convert them to progenitor span assignments
+    List<ArraySliceSpanAssignment> progenitorSpanAssignments = new ArrayList<>();
+
+    for (ArraySliceAssignment assignment : assignments) {
+        // to initialize the span size, we need to know the type after potential casting
+        // this is usually the type of lhs, but if pointer assignment is being forced,
+        // it must be adjusted to pointer
+
+        CType targetType =
+            typeHandler.simplifyType(assignment.lhs.getFullExpressionType());
+        if (assignmentOptions.forcePointerAssignment) {
+          targetType = CTypes.adjustFunctionOrArrayType(targetType);
+        }
+
+        ArraySliceSpanLhs spanLhs = new ArraySliceSpanLhs(assignment.lhs, targetType);
+
+        long targetBitSize = typeHandler.getBitSizeof(targetType);
+        ArraySliceSpanRhs spanRhs =
+            new ArraySliceSpanRhs(
+                new ArraySliceSpan(0, 0, targetBitSize), assignment.rhs);
+
+        // construct span assignment
+        ArraySliceSpanAssignment spanAssignment =
+            new ArraySliceSpanAssignment(spanLhs, spanRhs);
+
+        // convert span assignment to progenitor
+        progenitorSpanAssignments.add(convertSliceAssignmentToProgenitor(spanAssignment));
     }
 
     // generate simple slice assignments to resolve assignments to structures and arrays
-    Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> simpleAssignmentMultimap = ArrayListMultimap.create();
+    Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> simpleAssignmentMultimap =
+        ArrayListMultimap.create();
 
-    for (ArraySliceAssignment assignment : assignments) {
-
-      CType lhsType = typeHandler.simplifyType(assignment.lhs.getResolvedExpressionType(sizeType));
-
-      final CType rhsNonsimplifiedType;
-        if (assignment.rhs instanceof ArraySliceExpressionRhs expressionRhs) {
-          rhsNonsimplifiedType = expressionRhs.expression.getResolvedExpressionType(sizeType);
-        } else if (assignment.rhs instanceof ArraySliceCallRhs callRhs) {
-          rhsNonsimplifiedType = callRhs.call.getExpressionType().getCanonicalType();
-        } else if (assignment.rhs instanceof ArraySliceNondetRhs nondetRhs) {
-          // get lhs type
-          rhsNonsimplifiedType = assignment.lhs.getResolvedExpressionType(sizeType);
-        } else {
-          assert (false);
-          rhsNonsimplifiedType = null;
-        }
-      final CType rhsType = typeHandler.simplifyType(rhsNonsimplifiedType);
-
-      // to initialize the span size, we need to know the type after potential casting
-      // this is usually the type of lhs, but if pointer assignment is being forced,
-      // we need to take it from rhs
-      final CType targetType;
+    for (ArraySliceSpanAssignment spanAssignment : progenitorSpanAssignments) {
       if (assignmentOptions.forcePointerAssignment) {
-        targetType = rhsType;
-      } else {
-        targetType = lhsType;
-      }
-
-      long targetBitSize = typeHandler.getBitSizeof(targetType);
-
-      ArraySliceSpanAssignment spanAssignment =
-          new ArraySliceSpanAssignment(
-              new ArraySliceSpanLhs(assignment.lhs, targetType),
-              new ArraySliceSpanRhs(new ArraySlicePartSpan(0, 0, targetBitSize), assignment.rhs));
-      if (assignmentOptions.forcePointerAssignment) {
-        // actual assignment type should be pointer, which is already simple
+        // actual assignment type is pointer, which is already simple
         simpleAssignmentMultimap.put(spanAssignment.lhs, spanAssignment.rhs);
       } else {
-        // convert to progenitor
-        ArraySliceSpanAssignment progenitorAssignment =
-            convertSliceAssignmentLhsToProgenitor(spanAssignment);
-
-        generateSimpleSliceAssignments(progenitorAssignment, simpleAssignmentMultimap);
+        generateSimpleSliceAssignments(spanAssignment, simpleAssignmentMultimap);
       }
     }
-    // hand over
-    return assignmentQuantifierHandler.handleSimpleSliceAssignments(simpleAssignmentMultimap, assignmentOptions);
+
+    // hand over to quantifier handler
+    AssignmentQuantifierHandler assignmentQuantifierHandler =
+        new AssignmentQuantifierHandler(
+            conv,
+            edge,
+            function,
+            ssa,
+            pts,
+            constraints,
+            errorConditions,
+            regionMgr,
+            assignmentOptions,
+            resolvedLhsBases,
+            resolvedRhsBases);
+
+    BooleanFormula result =
+        assignmentQuantifierHandler.handleSimpleSliceAssignments(simpleAssignmentMultimap);
+
+    // add addressed fields of rhs to pointer-target set
+    for (final CompositeField field : rhsAddressedFields) {
+      pts.addField(field);
+    }
+
+    return result;
   }
 
-  private ArraySliceSpanAssignment convertSliceAssignmentLhsToProgenitor(
+  private ArraySliceResolved resolveBase(
+      CRightHandSide base, CExpressionVisitorWithPointerAliasing visitor)
+      throws UnrecognizedCodeException {
+    CType lhsBaseType = typeHandler.getSimplifiedType(base);
+    Expression lhsBaseExpression = base.accept(visitor);
+    return new ArraySliceResolved(lhsBaseExpression, lhsBaseType);
+  }
+
+  private ArraySliceSpanAssignment convertSliceAssignmentToProgenitor(
       ArraySliceSpanAssignment assignment) {
 
-    CSimpleType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
+    // we assume assignment is already canonical
 
-    // split the lhs into a base part followed by field accesses
-    // e.g. with (*x).a.b.c.d, split into (*x) and .a.b.c.d
-    // the base part is the progenitor from which we will be assigning to span
+    // split the canonical lhs modifiers into progenitor modifiers and trailing field accesses
+    // e.g. with (*x).a.b[0].c.d, split into (*x).a.b[0] and .c.d
+    // the head is the progenitor from which we will be assigning to span
 
-    final ArraySliceSplitExpression splitLhs = assignment.lhs.actual.getSplit();
-    final ArraySliceExpression progenitor = splitLhs.head();
-    final CType progenitorType = progenitor.getResolvedExpressionType(sizeType);
-    final ArraySliceTail tail = splitLhs.tail();
+    ImmutableList<ArraySliceModifier> lhsModifiers = assignment.lhs.actual.getModifiers();
 
-    // compute the full offset from progenitor
+    // iterate in reverse to split to head and trailing
+    List<ArraySliceModifier> progenitorModifiers = new ArrayList<>();
 
-    CType parentType = progenitorType;
+    List<ArraySliceFieldAccessModifier> trailingFieldAccesses = new ArrayList<>();
 
+    boolean stillTrailing = true;
+
+    for (ArraySliceModifier modifier : Lists.reverse(lhsModifiers)) {
+      if (stillTrailing && modifier instanceof ArraySliceFieldAccessModifier accessModifier) {
+        // add at the start of trailing
+        trailingFieldAccesses.add(0, accessModifier);
+      } else {
+        // we are no longer trailing, add to the start of head
+        progenitorModifiers.add(0, modifier);
+      }
+    }
+
+    // construct the progenitor lhs
+    ArraySliceExpression progenitorLhs =
+        new ArraySliceExpression(assignment.lhs.actual.getBase(), ImmutableList.copyOf(progenitorModifiers));
+
+    // compute the full bit offset from progenitor
+    // the parent type of first field access is the progenitor type
+    CType parentType = progenitorLhs.getFullExpressionType();
     long bitOffsetFromProgenitor = 0;
 
-    for (CCompositeTypeMemberDeclaration currentFieldAccess : tail.list()) {
+    for (ArraySliceFieldAccessModifier access : trailingFieldAccesses) {
       // field access, parent must be composite
       CCompositeType parentCompositeType = (CCompositeType) parentType;
 
       // add current field access to bit offset from progenitor
-      bitOffsetFromProgenitor += typeHandler.getBitOffset(parentCompositeType, currentFieldAccess);
+      bitOffsetFromProgenitor += typeHandler.getBitOffset(parentCompositeType, access.field());
 
-      parentType = typeHandler.getSimplifiedType(currentFieldAccess);
+      // compute the parent type of next access, which is the simplified type of this accessed field
+      parentType = typeHandler.getSimplifiedType(access.field());
     }
 
-    ArraySlicePartSpan originalSpan = assignment.rhs.span;
-    ArraySlicePartSpan spanFromProgenitor = new ArraySlicePartSpan(
+    ArraySliceSpan originalSpan = assignment.rhs.span;
+    ArraySliceSpan spanFromProgenitor = new ArraySliceSpan(
         bitOffsetFromProgenitor + originalSpan.lhsBitOffset,
         originalSpan.rhsBitOffset,
         originalSpan.bitSize
         );
 
-    // now construct the new assignment with lhs being the progenitor and span modified accordingly
+    // now construct the new progenitor assignment with lhs and span modified accordingly
     // rhs does not change, so target type does not change as well
     return new ArraySliceSpanAssignment(
-        new ArraySliceSpanLhs(progenitor, assignment.lhs.targetType),
+        new ArraySliceSpanLhs(progenitorLhs, assignment.lhs.targetType),
         new ArraySliceSpanRhs(spanFromProgenitor, assignment.rhs.actual));
   }
 
@@ -388,18 +447,11 @@ class AssignmentHandler {
       ArraySliceSpanAssignment assignment,
       Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> simpleAssignmentMultimap) {
 
-    CSimpleType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
-
-    CType lhsType =
-        typeHandler.simplifyType(assignment.lhs.actual.getResolvedExpressionType(sizeType));
-
-
-    boolean rhsIsExpression = assignment.rhs.actual instanceof ArraySliceExpressionRhs;
-    boolean rhsIsNondet = assignment.rhs.actual instanceof ArraySliceNondetRhs;
+    CType lhsType = typeHandler.simplifyType(assignment.lhs.actual.getFullExpressionType());
 
     if (lhsType instanceof CCompositeType lhsCompositeType) {
 
-      ArraySlicePartSpan originalSpan = assignment.rhs.span;
+      ArraySliceSpan originalSpan = assignment.rhs.span;
 
         for (CCompositeTypeMemberDeclaration lhsMember : lhsCompositeType.getMembers()) {
           long lhsMemberBitOffset = typeHandler.getBitOffset(lhsCompositeType, lhsMember);
@@ -429,38 +481,30 @@ class AssignmentHandler {
 
           ArraySliceSpanAssignment memberAssignment;
 
-        if (originalSpan.lhsBitOffset == originalSpan.rhsBitOffset
-            && ((rhsIsExpression
-                    && assignment
-                        .rhs
-                        .actual
-                        .getType(assignment.lhs.targetType, sizeType)
-                        .equals(lhsType))
-                || rhsIsNondet)) {
+        // if rhs type is nondet, treat is as lhs type
+        CType rhsType =
+            assignment
+                .rhs
+                .actual
+                .map(rhsSlice -> typeHandler.simplifyType(rhsSlice.getFullExpressionType()))
+                .orElse(lhsType);
 
+        // go into rhs as well if bit offsets and types are the same
+        if (originalSpan.lhsBitOffset == originalSpan.rhsBitOffset && lhsType.equals(rhsType)) {
           // types and offsets are equal, go into rhs as well
 
           // the offsets will remain the same for lhs and rhs
-          ArraySlicePartSpan memberSpan =
-              new ArraySlicePartSpan(
+          ArraySliceSpan memberSpan =
+              new ArraySliceSpan(
                   intersectionMemberReferencedLhsBitOffset,
                   intersectionMemberReferencedLhsBitOffset,
                   intersectionBitSize);
 
-          final ArraySliceRhs rhsMemberRhs;
-          if (rhsIsExpression) {
-            rhsMemberRhs =
-                new ArraySliceExpressionRhs(
-                    ((ArraySliceExpressionRhs) assignment.rhs.actual)
-                        .expression.withFieldAccess(lhsMember));
-          } else if (rhsIsNondet) {
-            rhsMemberRhs = new ArraySliceNondetRhs();
-          } else {
-            rhsMemberRhs = null;
-            assert (false);
-          }
+          // go into rhs if not nondet
+          final Optional<ArraySliceExpression> memberRhsSlice =
+              assignment.rhs.actual.map(rhsSlice -> rhsSlice.withFieldAccess(lhsMember));
 
-          ArraySliceSpanRhs memberRhs = new ArraySliceSpanRhs(memberSpan, rhsMemberRhs);
+          ArraySliceSpanRhs memberRhs = new ArraySliceSpanRhs(memberSpan, memberRhsSlice);
 
           // target type is now member type
           CType memberTargetType = typeHandler.getSimplifiedType(lhsMember);
@@ -480,8 +524,8 @@ class AssignmentHandler {
                   + lhsIntersectionRange.lowerEndpoint()
                   - lhsOriginalRange.lowerEndpoint();
 
-          ArraySlicePartSpan memberSpan =
-              new ArraySlicePartSpan(
+          ArraySliceSpan memberSpan =
+              new ArraySliceSpan(
                   intersectionMemberReferencedLhsBitOffset,
                   intersectionRhsBitOffset,
                   intersectionBitSize);
@@ -506,23 +550,7 @@ class AssignmentHandler {
         return;
       }
 
-      if (rhsIsExpression) {
-        CType rhsType = assignment.rhs.actual.getType(assignment.lhs.targetType, sizeType);
-        if (!lhsType.equals(rhsType)) {
-          // we currently do not assign to array types from different types as that would
-          // require spans to support quantification, which would be problematic
-          // it should be only required for cases of unions containing arrays
-          conv.logger.logfOnce(
-              Level.WARNING,
-              "%s: Ignoring assignment to array type %s from different type %s",
-              edge.getFileLocation(),
-              lhsArrayType,
-              rhsType);
-          return;
-        }
-      }
-
-      ArraySlicePartSpan originalSpan = assignment.rhs.span;
+      ArraySliceSpan originalSpan = assignment.rhs.span;
 
       if (originalSpan.lhsBitOffset != 0
           || originalSpan.rhsBitOffset != 0
@@ -542,27 +570,13 @@ class AssignmentHandler {
       // add an assignment of every element of array using a quantified variable
       ArraySliceIndexVariable indexVariable = new ArraySliceIndexVariable(lhsArrayType.getLength());
       ArraySliceExpression elementLhs = assignment.lhs.actual.withIndex(indexVariable);
-      final ArraySliceRhs elementRhs;
-      if (rhsIsExpression) {
-        elementRhs =
-            new ArraySliceExpressionRhs(
-                ((ArraySliceExpressionRhs) assignment.rhs.actual)
-                    .expression.withIndex(indexVariable));
-      } else if (rhsIsNondet) {
-        elementRhs = new ArraySliceNondetRhs();
-      } else {
-        // TODO: remove separate handling of calls
-        conv.logger.logfOnce(
-            Level.WARNING,
-            "%s: Ignoring assignment to array type %s from call",
-            edge.getFileLocation(),
-            lhsArrayType);
-        return;
-      }
+      Optional<ArraySliceExpression> elementRhs =
+          assignment.rhs.actual.map(rhsSlice -> rhsSlice.withIndex(indexVariable));
+
       CType elementType = typeHandler.simplifyType(lhsArrayType.getType());
       // full span
-      ArraySlicePartSpan elementSpan =
-          new ArraySlicePartSpan(0, 0, typeHandler.getBitSizeof(elementType));
+      ArraySliceSpan elementSpan =
+          new ArraySliceSpan(0, 0, typeHandler.getBitSizeof(elementType));
       ArraySliceSpanRhs elementSpanRhs = new ArraySliceSpanRhs(elementSpan, elementRhs);
       // target type is now element type
       ArraySliceSpanAssignment elementAssignment =
@@ -626,24 +640,28 @@ class AssignmentHandler {
         // make a single slice assignment over the array length
         CArraySubscriptExpression firstAssignmentLeftSide =
             (CArraySubscriptExpression) firstAssignment.getLeftHandSide();
-        CExpression wholeAssignmentLeftSide = firstAssignmentLeftSide.getArrayExpression();
+        CLeftHandSide wholeAssignmentLeftSide =
+            (CLeftHandSide) firstAssignmentLeftSide.getArrayExpression();
 
         ArraySliceExpression sliceLhs =
             new ArraySliceExpression(wholeAssignmentLeftSide)
                 .withIndex(new ArraySliceIndexVariable(arrayType.getLength()));
-        ArraySliceExpressionRhs sliceRhs =
-            new ArraySliceExpressionRhs(firstAssignment.getRightHandSide());
-        ArraySliceAssignment sliceAssignment = new ArraySliceAssignment(sliceLhs, sliceRhs);
+        ArraySliceExpression sliceRhs =
+            new ArraySliceExpression(firstAssignment.getRightHandSide());
+        ArraySliceAssignment sliceAssignment =
+            new ArraySliceAssignment(sliceLhs, Optional.of(sliceRhs));
         return handleSliceAssignments(ImmutableList.of(sliceAssignment), assignmentOptions);
       }
     }
+
+    // normal initializer handling, build all initialization assignments
 
     ImmutableList.Builder<ArraySliceAssignment> builder =
         ImmutableList.<ArraySliceAssignment>builder();
     for (CExpressionAssignmentStatement assignment : assignments) {
       ArraySliceExpression lhs = new ArraySliceExpression(assignment.getLeftHandSide());
       ArraySliceExpression rhs = new ArraySliceExpression(assignment.getRightHandSide());
-      builder.add(new ArraySliceAssignment(lhs, new ArraySliceExpressionRhs(rhs)));
+      builder.add(new ArraySliceAssignment(lhs, Optional.of(rhs)));
     }
     return handleSliceAssignments(builder.build(), assignmentOptions);
   }
@@ -671,27 +689,4 @@ class AssignmentHandler {
     }
     return true;
   }
-
-  @Deprecated
-  BooleanFormula makeDestructiveAssignment(
-      CType lvalueType,
-      CType rvalueType,
-      final Location lvalue,
-      final Expression rvalue,
-      final boolean useOldSSAIndices,
-      final @Nullable Set<MemoryRegion> updatedRegions,
-      final @Nullable BooleanFormula condition,
-      boolean useQuantifiers)
-      throws UnrecognizedCodeException {
-    return assignmentQuantifierHandler.makeDestructiveAssignment(
-        lvalueType,
-        rvalueType,
-        lvalue,
-        rvalue,
-        useOldSSAIndices,
-        updatedRegions,
-        condition,
-        useQuantifiers);
-  }
-
 }

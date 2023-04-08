@@ -81,9 +81,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraint
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceAssignment;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceExpressionRhs;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceNondetRhs;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceRhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.AssignmentConversionType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.AssignmentOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
@@ -847,8 +844,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         new AssignmentOptions(false, AssignmentConversionType.CAST, false, forcePointerAssignment);
 
     ArraySliceExpression assignmentLhs = new ArraySliceExpression(lhs);
-    ArraySliceRhs assignmentRhs = ArraySliceRhs.fromCRightHandSide(rhs);
-    ArraySliceAssignment assignment = new ArraySliceAssignment(assignmentLhs, assignmentRhs);
+    ArraySliceExpression assignmentRhs = new ArraySliceExpression(rhs);
+    ArraySliceAssignment assignment =
+        new ArraySliceAssignment(assignmentLhs, lhsForChecking, Optional.of(assignmentRhs));
 
     AssignmentHandler assignmentHandler =
         new AssignmentHandler(
@@ -1037,8 +1035,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         }
 
         CExpression rhs = ((CInitializerExpression) initializer).getExpression();
-        ArraySliceAssignment assignment =
-            new ArraySliceAssignment(lhsSlice, new ArraySliceExpressionRhs(rhs));
+        ArraySliceExpression rhsSlice = new ArraySliceExpression(rhs);
+        ArraySliceAssignment assignment = new ArraySliceAssignment(lhsSlice, Optional.of(rhsSlice));
 
         // perform a slice assignment to lhs from rhs
         result =
@@ -1046,8 +1044,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                 ImmutableList.of(assignment), assignmentOptions);
       } else if (isRelevantVariable(declaration) && !declarationType.isIncomplete()) {
         // perform a slice assignment of nondet value to lhs
-        ArraySliceAssignment assignment =
-            new ArraySliceAssignment(lhsSlice, new ArraySliceNondetRhs());
+        ArraySliceAssignment assignment = new ArraySliceAssignment(lhsSlice, Optional.empty());
         result =
             assignmentHandler.handleSliceAssignments(
                 ImmutableList.of(assignment), assignmentOptions);

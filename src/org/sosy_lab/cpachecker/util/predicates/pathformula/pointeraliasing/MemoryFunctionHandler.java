@@ -13,6 +13,7 @@ import static com.google.common.base.Verify.verify;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -41,7 +42,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceIndexVariable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceExpressionRhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.AssignmentOptions;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -254,7 +254,7 @@ class MemoryFunctionHandler {
             false);
 
     AssignmentHandler.ArraySliceAssignment sliceAssignment =
-        new AssignmentHandler.ArraySliceAssignment(lhs, new ArraySliceExpressionRhs(rhs));
+        new AssignmentHandler.ArraySliceAssignment(lhs, Optional.of(rhs));
 
     BooleanFormula assignmentFormula =
         assignmentHandler.handleSliceAssignments(
@@ -301,9 +301,7 @@ class MemoryFunctionHandler {
       List<AssignmentHandler.ArraySliceAssignment> assignments)
       throws UnrecognizedCodeException, InterruptedException {
 
-    CType sizeType = conv.machineModel.getPointerEquivalentSimpleType();
-
-    CType type = lhsSlice.getResolvedExpressionType(sizeType);
+    CType type = lhsSlice.getFullExpressionType();
 
     if (type instanceof CArrayType arrayType) {
       // we handle arrays inside memsetted element by memsetting all of their elements
@@ -396,10 +394,11 @@ class MemoryFunctionHandler {
       actualSetValue = createSetValueExpression((CSimpleType) type, setValueUnsignedChar);
     }
 
+    ArraySliceExpression rhsSlice = new ArraySliceExpression(actualSetValue);
+
     // there is no indexing of rhs
     AssignmentHandler.ArraySliceAssignment sliceAssignment =
-        new AssignmentHandler.ArraySliceAssignment(
-            lhsSlice, new ArraySliceExpressionRhs(actualSetValue));
+        new AssignmentHandler.ArraySliceAssignment(lhsSlice, Optional.of(rhsSlice));
 
     assignments.add(sliceAssignment);
   }

@@ -388,12 +388,12 @@ class DynamicMemoryHandler {
       // using low-level SMT formulas means that slice assignments cannot be used;
       // this means that calloc cannot use encoded quantifiers
       // TODO: rewrite dynamic memory handler to use high-level slice assignments and memset
-      AssignmentHandler assignmentHandler =
-          new AssignmentHandler(
+      AssignmentFormulaHandler assignmentFormulaHandler =
+          new AssignmentFormulaHandler(
               conv, edge, base, ssa, pts, constraints, errorConditions, regionMgr);
       @SuppressWarnings("deprecation")
       final BooleanFormula initialization =
-          assignmentHandler.makeDestructiveAssignment(
+          assignmentFormulaHandler.makeDestructiveAssignment(
               type,
               CNumericTypes.SIGNED_CHAR,
               AliasedLocation.ofAddress(result),

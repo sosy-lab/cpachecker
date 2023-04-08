@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceResolved;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySlicePartSpan;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceSpan;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceSpanResolved;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.AssignmentConversionType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.AssignmentOptions;
@@ -194,11 +194,15 @@ public class AssignmentFormulaHandler {
 
     for (ArraySliceSpanResolved rhs : rhsList) {
 
-      ArraySlicePartSpan rhsSpan = rhs.span();
+      ArraySliceSpan rhsSpan = rhs.span();
+
+      // if rhs was not resolved, treat it as a nondet value with target type
+      ArraySliceResolved rhsResolved =
+          rhs.actual().orElse(new ArraySliceResolved(Value.nondetValue(), targetType));
 
       // convert RHS expression to target type
       Expression targetTypeRhsExpression =
-          convertRhsExpression(assignmentOptions.conversionType(), targetType, rhs.actual());
+          convertRhsExpression(assignmentOptions.conversionType(), targetType, rhsResolved);
 
       Optional<Formula> rhsFormula = getValueFormula(targetType, targetTypeRhsExpression);
       if (rhsFormula.isEmpty()) {
@@ -273,7 +277,7 @@ public class AssignmentFormulaHandler {
   private Formula constructPartialRhsFormula(
       CType lhsType,
       CType targetType,
-      ArraySlicePartSpan rhsSpan,
+      ArraySliceSpan rhsSpan,
       Formula rhsFormula,
       RangeSet<Long> lhsRangeSet) {
 

@@ -9,24 +9,29 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.OptionalLong;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
+import org.sosy_lab.java_smt.api.Formula;
 
 /**
  * A helper class for realization of assignments to array slices, used for indexing by quantified
@@ -89,6 +94,9 @@ final class ArraySliceExpression {
   sealed interface ArraySliceModifier
       permits ArraySliceFieldAccessModifier, ArraySliceSubscriptModifier {}
 
+  sealed interface ArraySliceSubscriptModifier extends ArraySliceModifier
+      permits ArraySliceQuantifiedSubscriptModifier, ArraySliceResolvedSubscriptModifier {}
+
   /** Represents performing a field access on a {@code CExpression}, i.e., {@code base.field}. */
   record ArraySliceFieldAccessModifier(CCompositeTypeMemberDeclaration field)
       implements ArraySliceModifier {
@@ -101,33 +109,39 @@ final class ArraySliceExpression {
   /**
    * Represents performing a subscript operation on a {@code CExpression}, i.e., {@code base[i]}.
    */
-  record ArraySliceSubscriptModifier(ArraySliceIndexVariable index) implements ArraySliceModifier {
-    ArraySliceSubscriptModifier(ArraySliceIndexVariable index) {
+  record ArraySliceQuantifiedSubscriptModifier(ArraySliceIndexVariable index)
+      implements ArraySliceSubscriptModifier {
+    ArraySliceQuantifiedSubscriptModifier(ArraySliceIndexVariable index) {
       checkNotNull(index);
       this.index = index;
     }
   }
 
-  private final CExpression base;
+  /** Represents performing a subscript operation with a resolved formula. */
+  record ArraySliceResolvedSubscriptModifier(Formula encodedVariable)
+      implements ArraySliceSubscriptModifier {
+    ArraySliceResolvedSubscriptModifier(Formula encodedVariable) {
+      checkNotNull(encodedVariable);
+      this.encodedVariable = encodedVariable;
+    }
+  }
+
+  private final CRightHandSide base;
   private final ImmutableList<ArraySliceModifier> modifiers;
 
   /**
    * Construct using a base, with no modifiers.
    *
-   * @param pBase The base
+   * @param base The base
    */
-  ArraySliceExpression(CExpression pBase) {
-    base = checkNotNull(pBase);
-    modifiers = ImmutableList.of();
+  ArraySliceExpression(CRightHandSide base) {
+    this.base = checkNotNull(base);
+    this.modifiers = ImmutableList.of();
   }
 
-  private ArraySliceExpression(CExpression pBase, ImmutableList<ArraySliceModifier> pModifiers) {
-    base = checkNotNull(pBase);
-    modifiers = checkNotNull(pModifiers);
-  }
-
-  static ArraySliceExpression fromSplit(ArraySliceSplitExpression split) {
-    return split.head().withFieldAccesses(split.tail.list);
+  ArraySliceExpression(CRightHandSide base, ImmutableList<ArraySliceModifier> pModifiers) {
+    this.base = checkNotNull(base);
+    this.modifiers = checkNotNull(pModifiers);
   }
 
   /**
@@ -140,13 +154,6 @@ final class ArraySliceExpression {
    */
   ArraySliceExpression withFieldAccess(CCompositeTypeMemberDeclaration field) {
     checkNotNull(field);
-    if (modifiers.isEmpty()) {
-      CExpression newBase =
-          new CFieldReference(FileLocation.DUMMY, field.getType(), field.getName(), base, false);
-      // do not add to modifiers, resolve immediately
-      return new ArraySliceExpression(newBase, ImmutableList.of());
-    }
-
     // add to modifiers
     ImmutableList<ArraySliceModifier> newModifiers =
         ImmutableList.<ArraySliceModifier>builder()
@@ -154,15 +161,6 @@ final class ArraySliceExpression {
             .add(new ArraySliceFieldAccessModifier(field))
             .build();
     return new ArraySliceExpression(base, newModifiers);
-  }
-
-  ArraySliceExpression withFieldAccesses(ImmutableList<CCompositeTypeMemberDeclaration> fields) {
-    // TODO: make the list version basic
-    ArraySliceExpression result = this;
-    for (CCompositeTypeMemberDeclaration field : fields) {
-      result = result.withFieldAccess(field);
-    }
-    return result;
   }
 
   /**
@@ -174,180 +172,229 @@ final class ArraySliceExpression {
    */
   ArraySliceExpression withIndex(ArraySliceIndexVariable index) {
     checkNotNull(index);
-    // cannot resolve immediately, add to modifiers
+    // add to modifiers
     ImmutableList<ArraySliceModifier> newModifiers =
         ImmutableList.<ArraySliceModifier>builder()
             .addAll(modifiers)
-            .add(new ArraySliceSubscriptModifier(index))
+            .add(new ArraySliceQuantifiedSubscriptModifier(index))
             .build();
     return new ArraySliceExpression(base, newModifiers);
   }
 
   /**
-   * Return a new {@code ArraySliceExpression} where the first modifier (which is always an indexing
-   * modifier) is resolved by a concrete value of index {@code indexValue}.
+   * Return a new {@code ArraySliceExpression} where the quantified modifiers with a given
+   * quantified variable are resolved by a given formula.
    *
-   * <p>This is done by dropping the first modifier and auto-resolving field modifiers that follow,
-   * so that there are, again, either no modifiers in the returned {@code ArraySliceExpression} or
-   * the first modifier is an {@code ArraySliceSubscriptModifier}.
-   *
-   * @param sizeType Machine pointer-equivalent size type
-   * @param indexValue The concrete value of the index which resolves the index variable
+   * @param quantifiedVariable The quantified variable to resolve
+   * @param encodedVariable The formula to resolve the variable with
    * @return The resolved {@code ArraySliceExpression}
    * @throws IllegalStateException If there were no modifiers.
    */
-  public ArraySliceExpression resolveFirstIndex(CType sizeType, long indexValue) {
-    checkState(!isResolved());
+  ArraySliceExpression resolveVariable(
+      ArraySliceIndexVariable quantifiedVariable, Formula encodedVariable) {
 
-    // just wrap base in a subscript with the index value
-    CExpression indexValueExpression =
-        CIntegerLiteralExpression.createDummyLiteral(indexValue, sizeType);
-    // the element type must be taken from the base type
-    CPointerType basePointerType =
-        (CPointerType)
-            CTypes.adjustFunctionOrArrayType(base.getExpressionType().getCanonicalType());
-    CType elementType = basePointerType.getType().getCanonicalType();
-    CExpression newBase =
-        new CArraySubscriptExpression(FileLocation.DUMMY, elementType, base, indexValueExpression);
-    return resolveFirstIndex(newBase);
+    // replace quantified subscript modifiers on the given variable by fixed subscripts
+    // with the provided encoded variable subscript modifiers
+    List<ArraySliceModifier> newModifiers =
+        modifiers.stream()
+            .map(
+                modifier ->
+                    modifier instanceof ArraySliceQuantifiedSubscriptModifier quantifiedModifier
+                            && quantifiedModifier.index.equals(quantifiedVariable)
+                        ? new ArraySliceResolvedSubscriptModifier(encodedVariable)
+                        : modifier)
+            .toList();
+
+    return new ArraySliceExpression(base, ImmutableList.copyOf(newModifiers));
   }
 
   /**
-   * Return a new {@code ArraySliceExpression} where the first modifier (which is always an indexing
-   * modifier) is resolved by the parameter {@code newBase}.
-   *
-   * <p>This is done by dropping the first modifier and auto-resolving field modifiers that follow,
-   * so that there are, again, either no modifiers in the returned {@code ArraySliceExpression} or
-   * the first modifier is an {@code ArraySliceSubscriptModifier}.
-   *
-   * @param newBase The new base to which the old base with first modifier was resolved
-   * @return The resolved {@code ArraySliceExpression}
-   * @throws IllegalStateException If there were no modifiers.
-   */
-  ArraySliceExpression resolveFirstIndex(CExpression newBase) {
-    checkNotNull(newBase);
-    checkState(!isResolved());
-
-    // we will drop the first (subscript) modifier and auto-resolve all field-access fields after
-    // it, retaining the next subscript modifier and fields after it
-
-    ImmutableList.Builder<ArraySliceModifier> builder = ImmutableList.<ArraySliceModifier>builder();
-
-    boolean canResolve = true;
-    // skip the first modifier which is already resolved
-    for (ArraySliceModifier modifier : Iterables.skip(modifiers, 1)) {
-      if (canResolve && (modifier instanceof ArraySliceFieldAccessModifier fieldModifier)) {
-        newBase =
-            new CFieldReference(
-                FileLocation.DUMMY,
-                fieldModifier.field.getType(),
-                fieldModifier.field.getName(),
-                newBase,
-                false);
-      } else {
-        builder.add(modifier);
-        canResolve = false;
-      }
-    }
-
-    return new ArraySliceExpression(newBase, builder.build());
-  }
-
-  /**
-   * Returns whether the expression is resolved, i.e., there are no modifiers left.
+   * Returns whether the expression is resolved, i.e., there are only field access and fixed
+   * subscript modifiers.
    *
    * @return Whether the expression is resolved.
    */
   boolean isResolved() {
-    return modifiers.isEmpty();
+    return modifiers.stream()
+        .allMatch(
+            modifier ->
+                modifier instanceof ArraySliceFieldAccessModifier
+                    || modifier instanceof ArraySliceResolvedSubscriptModifier);
   }
 
   /**
-   * Returns a resolved expression, throws if it is unresolved.
+   * Returns the base.
    *
-   * @return The fully resolved expression.
-   * @throws IllegalStateException If the expression is unresolved due to some remaining modifiers.
+   * @return The base.
    */
-  CExpression getResolvedExpression() {
-    checkState(isResolved());
-
+  CRightHandSide getBase() {
     return base;
   }
 
   /**
-   * Returns the base expression, which may be still unresolved.
+   * Returns the canonical type of full expression. Use {@code
+   * getBase().getExpressionType().getCanonicalType()} instead if you want the type of the base.
    *
-   * @return The base expression.
+   * @return The canonical type of expression after it is resolved
    */
-  CExpression getBaseExpression() {
-    return base;
-  }
+  CType getFullExpressionType() {
+    CType type = base.getExpressionType().getCanonicalType();
 
-  record ArraySliceTail(ImmutableList<CCompositeTypeMemberDeclaration> list) {
-    ArraySliceTail(ImmutableList<CCompositeTypeMemberDeclaration> list) {
-      checkNotNull(list);
-      this.list = list;
-    }
-  }
-
-  record ArraySliceSplitExpression(ArraySliceExpression head, ArraySliceTail tail) {
-    ArraySliceSplitExpression(ArraySliceExpression head, ArraySliceTail tail) {
-      checkNotNull(head);
-      checkNotNull(tail);
-      this.head = head;
-      this.tail = tail;
-    }
-  }
-
-  ArraySliceSplitExpression getSplit() {
-    if (isResolved()) {
-
-      // resolved, extract the trailing field accesses from the base expression
-      // the CExpression is bottom-up, i.e. the rightmost access is first in CExpression, therefore,
-      // the list of tail fields will be constructed reversed
-      List<CCompositeTypeMemberDeclaration> reversedTailFields = new ArrayList<>();
-      CExpression current = base;
-      while (current instanceof CFieldReference currentField) {
-        if (currentField.isPointerDereference()) {
-          // field dereference, we need to stop
-          break;
-        }
-        reversedTailFields.add(
-            new CCompositeTypeMemberDeclaration(
-                currentField.getExpressionType(), currentField.getFieldName()));
-        current = currentField.getFieldOwner();
-      }
-      // reverse the reversed list of tail fields
-      ImmutableList<CCompositeTypeMemberDeclaration> tailFields =
-          ImmutableList.copyOf(Lists.reverse(reversedTailFields));
-      return new ArraySliceSplitExpression(
-          new ArraySliceExpression(current), new ArraySliceTail(tailFields));
-    }
-    // not resolved, extract the trailing field accesses from modifiers
-    // to prevent errors, we do this by adding field modifiers to the tail modifiers, then adding
-    // the rest to head modifiers; since we iterate from the back, the resulting lists will be
-    // reversed
-    List<ArraySliceModifier> reversedHeadModifiers = new ArrayList<>();
-    List<CCompositeTypeMemberDeclaration> reversedTailFields = new ArrayList<>();
-    boolean addToTail = true;
-    for (ArraySliceModifier modifier : Lists.reverse(modifiers)) {
-      if (addToTail && (modifier instanceof ArraySliceFieldAccessModifier fieldModifier)) {
-        reversedTailFields.add(fieldModifier.field);
+    for (ArraySliceModifier modifier : modifiers) {
+      if (modifier instanceof ArraySliceFieldAccessModifier fieldModifier) {
+        // replace type with field type
+        type = fieldModifier.field.getType().getCanonicalType();
       } else {
-        addToTail = false;
-        reversedHeadModifiers.add(modifier);
+        assert (modifier instanceof ArraySliceQuantifiedSubscriptModifier);
+        // replace type with its element type
+        CPointerType adjustedPointerType = (CPointerType) CTypes.adjustFunctionOrArrayType(type);
+        type = adjustedPointerType.getType().getCanonicalType();
       }
     }
 
-    // reverse the reversed lists
+    return type;
+  }
 
-    ImmutableList<ArraySliceModifier> headModifiers =
-        ImmutableList.copyOf(Lists.reverse(reversedHeadModifiers));
-    ImmutableList<CCompositeTypeMemberDeclaration> tailFields =
-        ImmutableList.copyOf(Lists.reverse(reversedTailFields));
+  /**
+   * Makes a canonical ArraySliceExpression out of this one. A canonical expression has all outer
+   * field accesses in base (that do not dereference) moved to the start of modifiers.
+   *
+   * @return A canonical version of this.
+   */
+  ArraySliceExpression constructCanonical() {
+    // only CExpression can have outer field accesses
+    if (!(base instanceof CExpression)) {
+      return this;
+    }
+    CExpression currentBase = (CExpression) base;
+    List<ArraySliceModifier> canonicalModifiers = new ArrayList<>(modifiers);
+    while (currentBase instanceof CFieldReference outerFieldReference) {
+      if (outerFieldReference.isPointerDereference()) {
+        // pointer dereference, stop canonizing
+        break;
+      }
+      // the outer reference must be added in front of all previous modifiers
+      canonicalModifiers.add(
+          0,
+          new ArraySliceFieldAccessModifier(
+              new CCompositeTypeMemberDeclaration(
+                  outerFieldReference.getExpressionType(), outerFieldReference.getFieldName())));
+      currentBase = outerFieldReference.getFieldOwner();
+    }
+    return new ArraySliceExpression(currentBase, ImmutableList.copyOf(canonicalModifiers));
+  }
 
-    return new ArraySliceSplitExpression(
-        new ArraySliceExpression(base, headModifiers), new ArraySliceTail(tailFields));
+  /**
+   * Returns all modifiers.
+   *
+   * @return All modifiers.
+   */
+  ImmutableList<ArraySliceModifier> getModifiers() {
+    return modifiers;
+  }
+
+  ImmutableList<ArraySliceIndexVariable> getUnresolvedIndexVariables() {
+    ImmutableList.Builder<ArraySliceIndexVariable> builder = ImmutableList.builder();
+    for (ArraySliceModifier modifier : modifiers) {
+      if (modifier instanceof ArraySliceQuantifiedSubscriptModifier subscriptModifier) {
+        builder.add(subscriptModifier.index());
+      }
+    }
+    return builder.build();
+  }
+
+  ArraySliceResolved resolveModifiers(
+      ArraySliceResolved resolvedBase,
+      CToFormulaConverterWithPointerAliasing conv,
+      MemoryRegionManager regionMgr) {
+
+    // we have resolved the base
+    ArraySliceResolved resolved = resolvedBase;
+
+    // resolve the modifiers now
+    for (ArraySliceModifier modifier : modifiers) {
+      if (modifier instanceof ArraySliceSubscriptModifier subscriptModifier) {
+        resolved = convertSubscriptModifier(conv, resolved, subscriptModifier);
+      } else {
+        resolved =
+            convertFieldAccessModifier(
+                conv, regionMgr, resolved, (ArraySliceFieldAccessModifier) modifier);
+      }
+    }
+
+    return resolved;
+  }
+
+
+  private ArraySliceResolved convertSubscriptModifier(
+      CToFormulaConverterWithPointerAliasing conv,
+      ArraySliceResolved resolved,
+      ArraySliceSubscriptModifier modifier) {
+    // all subscript modifiers must be already resolved here
+    ArraySliceResolvedSubscriptModifier resolvedModifier =
+        (ArraySliceResolvedSubscriptModifier) modifier;
+
+    // get the array element type
+    CPointerType basePointerType = (CPointerType) CTypes.adjustFunctionOrArrayType(resolved.type());
+    final CType elementType = conv.typeHandler.simplifyType(basePointerType.getType());
+
+    // get base array address, arrays must be always aliased
+    Formula baseAddress = resolved.expression().asAliasedLocation().getAddress();
+
+    // get size of array element
+    final Formula sizeofElement =
+        conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
+
+    // perform pointer arithmetic, we have array[base] and want array[base + i]
+    // the quantified variable i must be multiplied by the sizeof the element type
+    final Formula adjustedAddress =
+        conv.fmgr.makePlus(
+            baseAddress, conv.fmgr.makeMultiply(resolvedModifier.encodedVariable(), sizeofElement));
+
+    // return the resolved formula with adjusted address and array element type
+    return new ArraySliceResolved(AliasedLocation.ofAddress(adjustedAddress), elementType);
+  }
+
+  private ArraySliceResolved convertFieldAccessModifier(
+      CToFormulaConverterWithPointerAliasing conv,
+      MemoryRegionManager regionMgr,
+      ArraySliceResolved resolved,
+      ArraySliceFieldAccessModifier modifier) {
+
+    // the base type must be a composite type to have fields
+    CCompositeType baseType = (CCompositeType) resolved.type();
+    final String fieldName = modifier.field().getName();
+    CType fieldType = conv.typeHandler.getSimplifiedType(modifier.field());
+
+    // composite types may be aliased or unaliased, resolve in both cases
+    if (resolved.expression().isUnaliasedLocation()) {
+      UnaliasedLocation resultLocation =
+          UnaliasedLocation.ofVariableName(
+              getFieldAccessName(
+                  resolved.expression().asUnaliasedLocation().getVariableName(), modifier.field()));
+      return new ArraySliceResolved(resultLocation, fieldType);
+    }
+
+    // aliased location
+    // we will increase the base address by field offset
+    Formula baseAddress = resolved.expression().asAliasedLocation().getAddress();
+
+    // we must create a memory region for access
+    final MemoryRegion region = regionMgr.makeMemoryRegion(baseType, modifier.field());
+
+    final OptionalLong offset = conv.typeHandler.getOffset(baseType, fieldName);
+    if (!offset.isPresent()) {
+      // this loses assignments from/to aliased bitfields
+      // TODO: implement aliased bitfields
+      return new ArraySliceResolved(Value.nondetValue(), fieldType);
+    }
+
+    final Formula offsetFormula =
+        conv.fmgr.makeNumber(conv.voidPointerFormulaType, offset.orElseThrow());
+    final Formula adjustedAdress = conv.fmgr.makePlus(baseAddress, offsetFormula);
+
+    AliasedLocation adjustedLocation = AliasedLocation.ofAddressWithRegion(adjustedAdress, region);
+    return new ArraySliceResolved(adjustedLocation, fieldType);
   }
 
   /**
@@ -356,11 +403,23 @@ final class ArraySliceExpression {
    *
    * @param sizeType Machine pointer-equivalent size type
    * @return Dummy-resolved expression.
+   * @throws IllegalStateException If the combination of base and modifiers cannot be expressed as
+   *     dummy-resolved expression
    */
-  CExpression getDummyResolvedExpression(CType sizeType) {
+  CRightHandSide getDummyResolvedExpression(CType sizeType) {
     checkNotNull(sizeType);
+
+    if (modifiers.isEmpty()) {
+      return base;
+    }
+
+    if (!(base instanceof CExpression)) {
+      throw new IllegalStateException(
+          "Cannot get dummy resolved expression, base is not CExpression and has modifiers");
+    }
+
     // resolve the expression with dummy zero indices to get the type
-    CExpression resolved = base;
+    CExpression resolved = (CExpression) base;
     for (ArraySliceModifier modifier : modifiers) {
       if (modifier instanceof ArraySliceFieldAccessModifier fieldAccess) {
         resolved =
@@ -376,7 +435,8 @@ final class ArraySliceExpression {
             CIntegerLiteralExpression.createDummyLiteral(0, sizeType);
 
         CPointerType resolvedPointerType =
-            (CPointerType) CTypes.adjustFunctionOrArrayType(resolved.getExpressionType().getCanonicalType());
+            (CPointerType)
+                CTypes.adjustFunctionOrArrayType(resolved.getExpressionType().getCanonicalType());
         CType underlyingType = resolvedPointerType.getType().getCanonicalType();
 
         resolved =
@@ -385,47 +445,6 @@ final class ArraySliceExpression {
       }
     }
     return resolved;
-  }
-
-  /**
-   * Returns the canonical type of fully resolved expression. Use {@code
-   * getBaseExpression().getExpressionType().getCanonicalType()} instead if you want the type of the
-   * base which may be still unresolved.
-   *
-   * @param sizeType Machine pointer-equivalent size type
-   * @return The canonical type of expression after it is resolved
-   */
-  CType getResolvedExpressionType(CType sizeType) {
-    return getDummyResolvedExpression(sizeType).getExpressionType().getCanonicalType();
-  }
-
-  /**
-   * @return The index variable of the first subscript modifier.
-   * @throws IllegalStateException If the expression is resolved
-   */
-  ArraySliceIndexVariable getFirstIndex() {
-    checkState(!isResolved());
-
-    return ((ArraySliceSubscriptModifier) modifiers.get(0)).index;
-  }
-
-  /**
-   * Returns all unresolved modifiers.
-   *
-   * @return All unresolved modifiers.
-   */
-  ImmutableList<ArraySliceModifier> getModifiers() {
-    return modifiers;
-  }
-
-  ImmutableList<ArraySliceIndexVariable> getUnresolvedIndexVariables() {
-    ImmutableList.Builder<ArraySliceIndexVariable> builder = ImmutableList.builder();
-    for (ArraySliceModifier modifier : modifiers) {
-      if (modifier instanceof ArraySliceSubscriptModifier subscriptModifier) {
-        builder.add(subscriptModifier.index());
-      }
-    }
-    return builder.build();
   }
 
   @Override
@@ -452,4 +471,6 @@ final class ArraySliceExpression {
     ArraySliceExpression other = (ArraySliceExpression) obj;
     return Objects.equals(base, other.base) && Objects.equals(modifiers, other.modifiers);
   }
+
+
 }
