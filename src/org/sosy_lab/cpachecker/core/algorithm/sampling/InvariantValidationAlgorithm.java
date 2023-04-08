@@ -64,9 +64,11 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
@@ -140,9 +142,6 @@ public class InvariantValidationAlgorithm implements Algorithm {
 
   private final CParser parser;
   private final ParserTools parserTools;
-
-  // TODO: Hardcoded for now
-  private static final int BITVECTOR_SIZE = 32;
 
   public record PreconditionCounterexample(
       CandidateInvariant candidate, Collection<ValueAssignment> pre) {}
@@ -222,6 +221,7 @@ public class InvariantValidationAlgorithm implements Algorithm {
         CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, InvariantValidationAlgorithm.class);
     Solver solver = predicateCPA.getSolver();
     FormulaManagerView fmgr = solver.getFormulaManager();
+    BitvectorFormulaManagerView bvmgr = fmgr.getBitvectorFormulaManager();
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
     PathFormulaManager pmgr = predicateCPA.getPathFormulaManager();
 
@@ -263,7 +263,9 @@ public class InvariantValidationAlgorithm implements Algorithm {
     variables.addAll(fmgr.extractVariables(pathFormula.getFormula()).values());
     variables.addAll(fmgr.extractVariables(programSafe).values());
     for (Formula variable : variables) {
-      output.append("(declare-const %s (_ BitVec %s))".formatted(variable, BITVECTOR_SIZE));
+      // TODO: We assume all variables are bitvectors for now
+      int length = bvmgr.getLength((BitvectorFormula) variable);
+      output.append("(declare-const %s (_ BitVec %s))".formatted(variable, length));
     }
     output.append("\",\n");
 
