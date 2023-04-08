@@ -449,6 +449,14 @@ class AssignmentHandler {
 
     CType lhsType = typeHandler.simplifyType(assignment.lhs.actual.getFullExpressionType());
 
+    // if rhs type is nondet, treat is as lhs type
+    CType rhsType =
+        assignment
+            .rhs
+            .actual
+            .map(rhsSlice -> typeHandler.simplifyType(rhsSlice.getFullExpressionType()))
+            .orElse(lhsType);
+
     if (lhsType instanceof CCompositeType lhsCompositeType) {
 
       ArraySliceSpan originalSpan = assignment.rhs.span;
@@ -480,14 +488,6 @@ class AssignmentHandler {
           long intersectionBitSize = lhsIntersectionRange.upperEndpoint() - lhsIntersectionRange.lowerEndpoint();
 
           ArraySliceSpanAssignment memberAssignment;
-
-        // if rhs type is nondet, treat is as lhs type
-        CType rhsType =
-            assignment
-                .rhs
-                .actual
-                .map(rhsSlice -> typeHandler.simplifyType(rhsSlice.getFullExpressionType()))
-                .orElse(lhsType);
 
         // go into rhs as well if bit offsets and types are the same
         if (originalSpan.lhsBitOffset == originalSpan.rhsBitOffset && lhsType.equals(rhsType)) {
@@ -552,13 +552,23 @@ class AssignmentHandler {
 
       ArraySliceSpan originalSpan = assignment.rhs.span;
 
-      if (originalSpan.lhsBitOffset != 0
-          || originalSpan.rhsBitOffset != 0
-          || originalSpan.bitSize != typeHandler.getBitSizeof(lhsArrayType)) {
+      if (!lhsType.equals(rhsType)) {
         // we currently do not assign to array types from different types as that would ideally
         // require spans
         // to support quantification, which would be problematic
         // it should be only required for cases of unions containing arrays
+        conv.logger.logfOnce(
+            Level.WARNING,
+            "%s: Ignoring assignment to array type %s from other type %s",
+            edge.getFileLocation(),
+            lhsArrayType,
+            rhsType);
+        return;
+      }
+      if (originalSpan.lhsBitOffset != 0
+          || originalSpan.rhsBitOffset != 0
+          || originalSpan.bitSize != typeHandler.getBitSizeof(lhsArrayType)) {
+        // we currently do not assign for non-full spans as it would not be trivial
         conv.logger.logfOnce(
             Level.WARNING,
             "%s: Ignoring assignment to array type %s with non-full span",
