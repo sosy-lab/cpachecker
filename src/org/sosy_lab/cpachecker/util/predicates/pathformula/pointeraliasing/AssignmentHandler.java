@@ -146,19 +146,19 @@ class AssignmentHandler {
   }
 
   record ArraySliceAssignment(
-      ArraySliceExpression lhs, CLeftHandSide relevancyLhs, Optional<ArraySliceExpression> rhs) {
+      ArraySliceExpression lhs,
+      Optional<CLeftHandSide> relevancyLhs,
+      Optional<ArraySliceExpression> rhs) {
     ArraySliceAssignment(
-        ArraySliceExpression lhs, CLeftHandSide relevancyLhs, Optional<ArraySliceExpression> rhs) {
+        ArraySliceExpression lhs,
+        Optional<CLeftHandSide> relevancyLhs,
+        Optional<ArraySliceExpression> rhs) {
       checkNotNull(lhs);
       checkNotNull(relevancyLhs);
       checkNotNull(rhs);
       this.lhs = lhs;
       this.relevancyLhs = relevancyLhs;
       this.rhs = rhs;
-    }
-
-    ArraySliceAssignment(ArraySliceExpression lhs, Optional<ArraySliceExpression> rhs) {
-      this(lhs, (CLeftHandSide) lhs.getBase(), rhs);
     }
   }
 
@@ -186,15 +186,26 @@ class AssignmentHandler {
   }
 
   BooleanFormula handleSliceAssignments(
-      List<ArraySliceAssignment> assignments, final AssignmentOptions assignmentOptions)
+      List<ArraySliceAssignment> pAssignments, final AssignmentOptions assignmentOptions)
       throws UnrecognizedCodeException, InterruptedException {
+
+    List<ArraySliceAssignment> assignments = new ArrayList<>(pAssignments);
 
     // apply relevancy of left-hand side and make canonical
     assignments =
         assignments.stream()
-            .filter(assignment -> conv.isRelevantLeftHandSide(assignment.relevancyLhs()))
-            .map(assignment -> new ArraySliceAssignment(assignment.lhs.constructCanonical(),
-                assignment.relevancyLhs, assignment.rhs().map(rhsSlice -> rhsSlice.constructCanonical())))
+            .filter(
+                assignment ->
+                    assignment
+                        .relevancyLhs
+                        .map(relevancyLhs -> conv.isRelevantLeftHandSide(relevancyLhs))
+                        .orElse(true))
+            .map(
+                assignment ->
+                    new ArraySliceAssignment(
+                        assignment.lhs.constructCanonical(),
+                        assignment.relevancyLhs,
+                        assignment.rhs().map(rhsSlice -> rhsSlice.constructCanonical())))
             .toList();
 
     // apply Havoc abstraction: if Havoc abstraction is turned on
@@ -224,7 +235,7 @@ class AssignmentHandler {
 
     // generate lhs and rhs bases
 
-    Map<CLeftHandSide, ArraySliceResolved> resolvedLhsBases = new HashMap<>();
+    Map<CRightHandSide, ArraySliceResolved> resolvedLhsBases = new HashMap<>();
     Map<CRightHandSide, ArraySliceResolved> resolvedRhsBases = new HashMap<>();
     List<CompositeField> rhsAddressedFields = new ArrayList<>();
 
@@ -235,7 +246,7 @@ class AssignmentHandler {
           new CExpressionVisitorWithPointerAliasing(
               conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
 
-      CLeftHandSide lhsBase = (CLeftHandSide) assignment.lhs.getBase();
+      CRightHandSide lhsBase = assignment.lhs.getBase();
       ArraySliceResolved resolvedLhsBase = resolveBase(lhsBase, lhsBaseVisitor);
 
       // add initialized and used fields of lhs to pointer-target set as essential
@@ -405,6 +416,7 @@ class AssignmentHandler {
         trailingFieldAccesses.add(0, accessModifier);
       } else {
         // we are no longer trailing, add to the start of head
+        stillTrailing = false;
         progenitorModifiers.add(0, modifier);
       }
     }
@@ -659,7 +671,8 @@ class AssignmentHandler {
         ArraySliceExpression sliceRhs =
             new ArraySliceExpression(firstAssignment.getRightHandSide());
         ArraySliceAssignment sliceAssignment =
-            new ArraySliceAssignment(sliceLhs, Optional.of(sliceRhs));
+            new ArraySliceAssignment(
+                sliceLhs, Optional.of(firstAssignmentLeftSide), Optional.of(sliceRhs));
         return handleSliceAssignments(ImmutableList.of(sliceAssignment), assignmentOptions);
       }
     }
@@ -671,7 +684,9 @@ class AssignmentHandler {
     for (CExpressionAssignmentStatement assignment : assignments) {
       ArraySliceExpression lhs = new ArraySliceExpression(assignment.getLeftHandSide());
       ArraySliceExpression rhs = new ArraySliceExpression(assignment.getRightHandSide());
-      builder.add(new ArraySliceAssignment(lhs, Optional.of(rhs)));
+      builder.add(
+          new ArraySliceAssignment(
+              lhs, Optional.of(assignment.getLeftHandSide()), Optional.of(rhs)));
     }
     return handleSliceAssignments(builder.build(), assignmentOptions);
   }

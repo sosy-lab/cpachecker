@@ -61,7 +61,7 @@ class AssignmentQuantifierHandler {
   private final MemoryRegionManager regionMgr;
 
   private final AssignmentOptions assignmentOptions;
-  private final Map<CLeftHandSide, ArraySliceResolved> resolvedLhsBases;
+  private final Map<CRightHandSide, ArraySliceResolved> resolvedLhsBases;
   private final Map<CRightHandSide, ArraySliceResolved> resolvedRhsBases;
 
   private final CSimpleType sizeType;
@@ -87,7 +87,7 @@ class AssignmentQuantifierHandler {
       ErrorConditions pErrorConditions,
       MemoryRegionManager pRegionMgr,
       AssignmentOptions pAssignmentOptions,
-      Map<CLeftHandSide, ArraySliceResolved> pResolvedLhsBases,
+      Map<CRightHandSide, ArraySliceResolved> pResolvedLhsBases,
       Map<CRightHandSide, ArraySliceResolved> pResolvedRhsBases) {
     conv = pConv;
 
@@ -281,7 +281,8 @@ class AssignmentQuantifierHandler {
       CType targetType = assignment.getKey().targetType();
 
       ArraySliceResolved lhsResolvedBase = resolvedLhsBases.get(lhs.getBase());
-      ArraySliceResolved lhsResolved = lhs.resolveModifiers(lhsResolvedBase, conv, regionMgr);
+      ArraySliceResolved lhsResolved =
+          lhs.resolveModifiers(lhsResolvedBase, conv, ssa, errorConditions, regionMgr);
 
       if (lhsResolved.expression().isNondetValue()) {
         // should only happen when we cannot assign to aliased bitfields
@@ -301,7 +302,7 @@ class AssignmentQuantifierHandler {
         ArraySliceExpression rhsSlice = rhs.actual().get();
         ArraySliceResolved rhsResolvedBase = resolvedRhsBases.get(rhsSlice.getBase());
         ArraySliceResolved rhsResolved =
-            rhsSlice.resolveModifiers(rhsResolvedBase, conv, regionMgr);
+            rhsSlice.resolveModifiers(rhsResolvedBase, conv, ssa, errorConditions, regionMgr);
         rhsResolvedList.add(new ArraySliceSpanResolved(rhs.span(), Optional.of(rhsResolved)));
       }
 

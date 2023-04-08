@@ -253,8 +253,9 @@ class MemoryFunctionHandler {
             conv.options.forceQuantifiersInMemoryAssignmentFunctions(),
             false);
 
+    // TODO: add relevancy checking
     AssignmentHandler.ArraySliceAssignment sliceAssignment =
-        new AssignmentHandler.ArraySliceAssignment(lhs, Optional.of(rhs));
+        new AssignmentHandler.ArraySliceAssignment(lhs, Optional.empty(), Optional.of(rhs));
 
     BooleanFormula assignmentFormula =
         assignmentHandler.handleSliceAssignments(
@@ -397,8 +398,10 @@ class MemoryFunctionHandler {
     ArraySliceExpression rhsSlice = new ArraySliceExpression(actualSetValue);
 
     // there is no indexing of rhs
+    // TODO: add relevancy checking
     AssignmentHandler.ArraySliceAssignment sliceAssignment =
-        new AssignmentHandler.ArraySliceAssignment(lhsSlice, Optional.of(rhsSlice));
+        new AssignmentHandler.ArraySliceAssignment(
+            lhsSlice, Optional.empty(), Optional.of(rhsSlice));
 
     assignments.add(sliceAssignment);
   }

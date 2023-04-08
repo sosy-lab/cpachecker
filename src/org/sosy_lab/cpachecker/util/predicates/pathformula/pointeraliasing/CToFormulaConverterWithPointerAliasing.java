@@ -846,7 +846,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     ArraySliceExpression assignmentLhs = new ArraySliceExpression(lhs);
     ArraySliceExpression assignmentRhs = new ArraySliceExpression(rhs);
     ArraySliceAssignment assignment =
-        new ArraySliceAssignment(assignmentLhs, lhsForChecking, Optional.of(assignmentRhs));
+        new ArraySliceAssignment(
+            assignmentLhs, Optional.of(lhsForChecking), Optional.of(assignmentRhs));
 
     AssignmentHandler assignmentHandler =
         new AssignmentHandler(
@@ -1036,7 +1037,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
         CExpression rhs = ((CInitializerExpression) initializer).getExpression();
         ArraySliceExpression rhsSlice = new ArraySliceExpression(rhs);
-        ArraySliceAssignment assignment = new ArraySliceAssignment(lhsSlice, Optional.of(rhsSlice));
+        ArraySliceAssignment assignment =
+            new ArraySliceAssignment(lhsSlice, Optional.of(lhs), Optional.of(rhsSlice));
 
         // perform a slice assignment to lhs from rhs
         result =
@@ -1044,7 +1046,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                 ImmutableList.of(assignment), assignmentOptions);
       } else if (isRelevantVariable(declaration) && !declarationType.isIncomplete()) {
         // perform a slice assignment of nondet value to lhs
-        ArraySliceAssignment assignment = new ArraySliceAssignment(lhsSlice, Optional.empty());
+        ArraySliceAssignment assignment =
+            new ArraySliceAssignment(lhsSlice, Optional.of(lhs), Optional.empty());
         result =
             assignmentHandler.handleSliceAssignments(
                 ImmutableList.of(assignment), assignmentOptions);

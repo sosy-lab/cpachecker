@@ -21,13 +21,18 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
@@ -306,15 +311,22 @@ final class ArraySliceExpression {
   ArraySliceResolved resolveModifiers(
       ArraySliceResolved resolvedBase,
       CToFormulaConverterWithPointerAliasing conv,
+      SSAMapBuilder ssa,
+      ErrorConditions errorConditions,
       MemoryRegionManager regionMgr) {
 
     // we have resolved the base
     ArraySliceResolved resolved = resolvedBase;
 
+    boolean wasParameterId = (base instanceof CIdExpression idBase) &&
+         idBase.getDeclaration() instanceof CParameterDeclaration;
+
     // resolve the modifiers now
     for (ArraySliceModifier modifier : modifiers) {
       if (modifier instanceof ArraySliceSubscriptModifier subscriptModifier) {
-        resolved = convertSubscriptModifier(conv, resolved, subscriptModifier);
+        resolved =
+            convertSubscriptModifier(
+                conv, ssa, errorConditions, regionMgr, resolved, subscriptModifier, wasParameterId);
       } else {
         resolved =
             convertFieldAccessModifier(
@@ -325,11 +337,65 @@ final class ArraySliceExpression {
     return resolved;
   }
 
+  private Formula asValueFormula(
+      CToFormulaConverterWithPointerAliasing conv,
+      SSAMapBuilder ssa,
+      ErrorConditions errorConditions,
+      MemoryRegionManager regionMgr,
+      final Expression e,
+      final CType type,
+      final boolean isSafe) {
+    // TODO: deduplicate with CExpressionVisitorWithPointerAliasing.asValueFormula
+    if (e.isNondetValue()) {
+      throw new IllegalStateException();
+    } else if (e.isValue()) {
+      return e.asValue().getValue();
+    } else if (e.isAliasedLocation()) {
+      MemoryRegion region = e.asAliasedLocation().getMemoryRegion();
+      if (region == null) {
+        region = regionMgr.makeMemoryRegion(type);
+      }
+      return !isSafe
+          ? conv.makeDereference(
+              type, e.asAliasedLocation().getAddress(), ssa, errorConditions, region)
+          : conv.makeSafeDereference(type, e.asAliasedLocation().getAddress(), ssa, region);
+    } else { // Unaliased location
+      return conv.makeVariable(e.asUnaliasedLocation().getVariableName(), type, ssa);
+    }
+  }
 
   private ArraySliceResolved convertSubscriptModifier(
       CToFormulaConverterWithPointerAliasing conv,
+      SSAMapBuilder ssa,
+      ErrorConditions errorConditions,
+      MemoryRegionManager regionMgr,
       ArraySliceResolved resolved,
-      ArraySliceSubscriptModifier modifier) {
+      ArraySliceSubscriptModifier modifier,
+      boolean wasParameterId) {
+
+    final AliasedLocation dereferenced;
+
+    // dereference resolved
+    // TODO: deduplicate with CExpressionVisitorWithPointerAliasing.dereference
+    boolean shouldTreatAsDirectAccess = resolved.expression.isAliasedLocation()
+        && (resolved.type instanceof CCompositeType
+            || (resolved.type instanceof CArrayType
+                && !wasParameterId));
+    if (shouldTreatAsDirectAccess) {
+      dereferenced = resolved.expression.asAliasedLocation();
+    } else {
+      dereferenced =
+          AliasedLocation.ofAddress(
+              asValueFormula(
+                  conv,
+                  ssa,
+                  errorConditions,
+                  regionMgr,
+                  resolved.expression,
+                  CTypeUtils.implicitCastToPointer(resolved.type),
+                  shouldTreatAsDirectAccess));
+    }
+
     // all subscript modifiers must be already resolved here
     ArraySliceResolvedSubscriptModifier resolvedModifier =
         (ArraySliceResolvedSubscriptModifier) modifier;
@@ -339,7 +405,7 @@ final class ArraySliceExpression {
     final CType elementType = conv.typeHandler.simplifyType(basePointerType.getType());
 
     // get base array address, arrays must be always aliased
-    Formula baseAddress = resolved.expression().asAliasedLocation().getAddress();
+    Formula baseAddress = dereferenced.getAddress();
 
     // get size of array element
     final Formula sizeofElement =
