@@ -152,7 +152,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -1790,18 +1789,20 @@ class ASTConverter {
 
     // non void function without return expression
     CType returnType = returnVariableDeclaration.orElseThrow().getType();
-    // return default value only when return type is int
+
+    // only allow return type to be int
     if (!returnType.equals(CNumericTypes.INT)) {
-      throw parseContext.parseError("Return statement without expression in non-void function.", s);
+      String functionName = ((FunctionScope) scope).getCurrentFunctionName();
+      throw parseContext.parseError(
+          "Function "
+              + functionName
+              + " with return type "
+              + returnType
+              + " misses return statement",
+          s);
     }
 
-    CInitializer defaultValue = CDefaults.forType(CNumericTypes.INT, loc);
-    CIdExpression lhs = new CIdExpression(loc, returnVariableDeclaration.orElseThrow());
-    CExpression rhs = ((CInitializerExpression) defaultValue).getExpression();
-    CAssignment returnAssignment = new CExpressionAssignmentStatement(loc, lhs, rhs);
-    CReturnStatement returnstmt = new CReturnStatement(loc, rhs, returnAssignment);
-    returnstmt.useDefault();
-    return returnstmt;
+    return null;
   }
 
   private record Declarator(CType type, IASTInitializer initializer, String name) {}

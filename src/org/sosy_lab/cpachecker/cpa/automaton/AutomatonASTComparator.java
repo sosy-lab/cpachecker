@@ -68,9 +68,6 @@ class AutomatonASTComparator {
       throws InvalidAutomatonException, NoException, InterruptedException {
     CStatement patternAST =
         CParserUtils.parseSingleStatement(replaceJokersInPattern(pPattern), parser, scope);
-    if (patternAST == null) {
-      throw new InvalidAutomatonException("Pattern does not generate AST: " + pPattern);
-    }
     return patternAST.accept(ASTMatcherGenerator.INSTANCE);
   }
 

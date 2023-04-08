@@ -14,8 +14,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class CReturnStatement extends AbstractReturnStatement implements CAstNode {
 
   private static final long serialVersionUID = -7428161836121584760L;
-  // determine whether to use a default return expression
-  private boolean returnDefault = false;
 
   public CReturnStatement(
       final FileLocation pFileLocation,
@@ -57,13 +55,5 @@ public final class CReturnStatement extends AbstractReturnStatement implements C
     }
 
     return super.equals(obj);
-  }
-
-  public void useDefault() {
-    returnDefault = true;
-  }
-
-  public boolean isDefaultReturnExpr() {
-    return returnDefault;
   }
 }

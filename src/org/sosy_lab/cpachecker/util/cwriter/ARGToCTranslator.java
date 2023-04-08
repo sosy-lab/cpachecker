@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -78,7 +77,6 @@ import org.sosy_lab.cpachecker.util.cwriter.Statement.SimpleStatement;
 
 public class ARGToCTranslator {
   private static final String ASSERTFAIL = "__assert_fail";
-  private static final String RETURN = "return";
   private static final String TMPVARPREFIX = "__tmp_";
 
   private static final AbstractState BOTTOM = new AbstractState() {};
@@ -649,11 +647,6 @@ public class ARGToCTranslator {
     }
   }
 
-  private boolean shouldHandleBlankReturn(final CFAEdge pEdge) {
-    return pEdge.getSuccessor() instanceof FunctionExitNode
-        && pEdge.getDescription().equals(RETURN);
-  }
-
   private ARGState getCovering(final ARGState pCovered) {
     Set<ARGState> seen = new HashSet<>();
     ARGState current = pCovered;
@@ -695,9 +688,7 @@ public class ARGToCTranslator {
 
     switch (pCFAEdge.getEdgeType()) {
       case BlankEdge:
-        if (shouldHandleBlankReturn(pCFAEdge)) {
-          return "return;";
-        }
+        // nothing to do
         break;
 
       case AssumeEdge:

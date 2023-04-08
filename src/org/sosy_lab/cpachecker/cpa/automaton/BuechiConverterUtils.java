@@ -347,9 +347,6 @@ public final class BuechiConverterUtils {
         throw new LtlParseException(
             String.format("Error in literal of ltl-formula: %s", e.getMessage()), e);
       }
-      if (sourceAST == null) {
-        throw new RuntimeException("Expression does not generate AST: " + pExpression);
-      }
       CExpression expression = ((CExpressionStatement) sourceAST).getExpression();
       if (expression.getExpressionType() instanceof CProblemType) {
         logger.log(

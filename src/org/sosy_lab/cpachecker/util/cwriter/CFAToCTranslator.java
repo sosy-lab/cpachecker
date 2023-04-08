@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -58,8 +57,6 @@ import org.sosy_lab.cpachecker.util.cwriter.Statement.Label;
 import org.sosy_lab.cpachecker.util.cwriter.Statement.SimpleStatement;
 
 public class CFAToCTranslator {
-
-  private static final String RETURN = "return";
   // Use original, unqualified names for variables
   private static final boolean NAMES_QUALIFIED = false;
 
@@ -443,11 +440,6 @@ public class CFAToCTranslator {
     return newBlock;
   }
 
-  private boolean shouldHandleBlankReturn(final CFAEdge pEdge) {
-    return pEdge.getSuccessor() instanceof FunctionExitNode
-        && pEdge.getDescription().equals(RETURN);
-  }
-
   private String translateSimpleEdge(CFAEdge pCFAEdge) throws CPAException {
     if (pCFAEdge == null) {
       return "";
@@ -455,9 +447,7 @@ public class CFAToCTranslator {
 
     switch (pCFAEdge.getEdgeType()) {
       case BlankEdge:
-        if (shouldHandleBlankReturn(pCFAEdge)) {
-          return "return;";
-        }
+        // nothing to do
         break;
       case AssumeEdge:
         // nothing to do

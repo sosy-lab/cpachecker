@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
@@ -62,6 +61,7 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * This class takes several CFAs (each for a single function) and combines them into one CFA by
@@ -188,7 +188,11 @@ public class CFASecondPassBuilder {
     // check if the non void called function have return expresssion
     if (!checkReturnExpr(functionCall)) {
       throw new CParserException(
-          "Non void funtion " + functionName + " do not have return expression");
+          "Function "
+              + functionName
+              + " with return type "
+              + fDefNode.getReturnVariable().get().getType()
+              + " is called in non-void context but misses return statement");
     }
 
     // get the parameter expression
@@ -362,14 +366,10 @@ public class CFASecondPassBuilder {
     if (fExitNodeOption.isEmpty()) {
       return true;
     }
-    FunctionExitNode fExitNode = fExitNodeOption.get();
-    for (int i = 0; i < fExitNode.getNumEnteringEdges(); i++) {
-      CFAEdge enteringEdge = fExitNode.getEnteringEdge(i);
-      if (!(enteringEdge instanceof CReturnStatementEdge)) {
-        continue;
-      }
 
-      if (((CReturnStatementEdge) enteringEdge).getReturnStatement().isDefaultReturnExpr()) {
+    FunctionExitNode fExitNode = fExitNodeOption.get();
+    for (CFAEdge enteringEdge : CFAUtils.enteringEdges(fExitNode)) {
+      if (enteringEdge instanceof BlankEdge) {
         return false;
       }
     }
