@@ -359,16 +359,8 @@ public class InvariantValidationAlgorithm implements Algorithm {
     // Assert that invariant holds
     BooleanFormula invariantHolds = candidate.getAssertion(pReachedSet, fmgr, pmgr);
 
-    for (Formula variable : fmgr.extractVariables(invariantHolds).values()) {
-      Formula uninstantiated_variable = fmgr.uninstantiate(variable);
-      if (!pathFormula.getSsa().containsVariable(uninstantiated_variable.toString())) {
-        // Some variable appearing in the candidate invariant does not exist here, so the candidate
-        // must be for some other location.
-        // TODO: To avoid unnecessary work, pass the location where the candidate should be checked
-        //       and throw an exception if a used variable does not exist
-        return;
-      }
-    }
+    // TODO: To avoid unnecessary work, pass the location where the candidate should be checked
+    //       and throw an exception if a used variable does not exist
 
     // Any models satisfying this formula are precondition counterexamples: !(P => I)
     BooleanFormula preconditionFormula =
