@@ -374,7 +374,7 @@ class AssignmentHandler {
             resolvedRhsBases);
 
     BooleanFormula result =
-        assignmentQuantifierHandler.handleSimpleSliceAssignments(simpleAssignmentMultimap);
+        assignmentQuantifierHandler.assignSimpleSlices(simpleAssignmentMultimap);
 
     // add addressed fields of rhs to pointer-target set
     for (final CompositeField field : rhsAddressedFields) {

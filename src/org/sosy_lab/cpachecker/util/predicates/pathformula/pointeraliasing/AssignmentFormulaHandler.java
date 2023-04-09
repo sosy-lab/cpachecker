@@ -62,7 +62,9 @@ import org.sosy_lab.java_smt.api.FormulaType;
 
 /**
  * Handler for low-level slice assignments with left-hand sides and partial right-hand sides already
- * resolved to an expression. Normal code should use {@link AssignmentHandler} for assignments.
+ * resolved to an expression.
+ *
+ * <p>Normal code should use {@link AssignmentHandler} for assignments.
  */
 class AssignmentFormulaHandler {
 
@@ -126,11 +128,11 @@ class AssignmentFormulaHandler {
    * @param useQuantifiers Whether quantifiers are used, which may impact handling in heaps.
    * @param pattern Pointer-target pattern used for UFs finishing. If null, UF finishing is not
    *     used.
-   * @return The boolean formula describing the assignment.
+   * @return The Boolean formula describing the assignment.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If a shutdown was requested during assignment making.
    */
-  BooleanFormula makeSliceAssignment(
+  BooleanFormula assignResolvedSlice(
       ArraySliceResolved lhsResolved,
       CType targetType,
       List<ArraySliceSpanResolved> rhsList,
