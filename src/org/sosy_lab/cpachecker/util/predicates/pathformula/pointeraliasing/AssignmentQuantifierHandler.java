@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ArraySliceIndexVariable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceVariable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.PartialSpan;
@@ -204,7 +204,7 @@ class AssignmentQuantifierHandler {
     // get a set of variables that we need to quantify (encode or unroll)
     // each variable can be present in more locations, so we use a set to remove duplicates
     // as we want to have deterministic order of quantification, we use a LinkedHashSet
-    final LinkedHashSet<ArraySliceIndexVariable> variablesToQuantify = new LinkedHashSet<>();
+    final LinkedHashSet<SliceVariable> variablesToQuantify = new LinkedHashSet<>();
     for (Entry<PartialAssignmentLhs, Collection<PartialAssignmentRhs>> entry :
         assignmentMultimap.asMap().entrySet()) {
       variablesToQuantify.addAll(entry.getKey().actual().getUnresolvedIndexVariables());
@@ -239,7 +239,7 @@ class AssignmentQuantifierHandler {
    */
   private BooleanFormula quantifyAssignments(
       final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap,
-      final LinkedHashSet<ArraySliceIndexVariable> variablesToQuantify,
+      final LinkedHashSet<SliceVariable> variablesToQuantify,
       final BooleanFormula condition)
       throws UnrecognizedCodeException, InterruptedException {
 
@@ -249,10 +249,10 @@ class AssignmentQuantifierHandler {
     }
 
     // not all variables have been quantified, get the variable to quantify
-    final ArraySliceIndexVariable variableToQuantify = variablesToQuantify.iterator().next();
+    final SliceVariable variableToQuantify = variablesToQuantify.iterator().next();
 
     // remove the variable which will be quantified from the next variables to quantify
-    final LinkedHashSet<ArraySliceIndexVariable> nextVariablesToQuantify =
+    final LinkedHashSet<SliceVariable> nextVariablesToQuantify =
         new LinkedHashSet<>(variablesToQuantify);
     nextVariablesToQuantify.remove(variableToQuantify);
 
@@ -317,9 +317,9 @@ class AssignmentQuantifierHandler {
    */
   private BooleanFormula encodeQuantifier(
       Multimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap,
-      LinkedHashSet<ArraySliceIndexVariable> nextVariablesToQuantify,
+      LinkedHashSet<SliceVariable> nextVariablesToQuantify,
       BooleanFormula condition,
-      ArraySliceIndexVariable variableToEncode,
+      SliceVariable variableToEncode,
       Formula sliceSizeFormula)
       throws UnrecognizedCodeException, InterruptedException {
 
@@ -375,9 +375,9 @@ class AssignmentQuantifierHandler {
    */
   private BooleanFormula unrollQuantifier(
       Multimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap,
-      LinkedHashSet<ArraySliceIndexVariable> nextVariablesToQuantify,
+      LinkedHashSet<SliceVariable> nextVariablesToQuantify,
       BooleanFormula condition,
-      ArraySliceIndexVariable variableToUnroll,
+      SliceVariable variableToUnroll,
       Formula sliceSizeFormula)
       throws UnrecognizedCodeException, InterruptedException {
 

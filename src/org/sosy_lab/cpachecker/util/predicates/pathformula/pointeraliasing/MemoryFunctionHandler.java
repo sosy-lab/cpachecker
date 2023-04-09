@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ArraySliceIndexVariable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceVariable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentConversionType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentOptions;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -239,7 +239,7 @@ class MemoryFunctionHandler {
 
     // the memcopy just indexes the destination and source with the same index
 
-    ArraySliceIndexVariable sliceIndex = new ArraySliceIndexVariable(sizeInElements);
+    SliceVariable sliceIndex = new SliceVariable(sizeInElements);
 
     SliceExpression lhs = new SliceExpression(destination).withIndex(sliceIndex);
     SliceExpression rhs = new SliceExpression(source).withIndex(sliceIndex);
@@ -281,7 +281,7 @@ class MemoryFunctionHandler {
     CType destinationType = destination.getExpressionType().getCanonicalType();
     CExpression sizeInElements = convertSizeInBytesToSizeInElements(sizeInBytes, destinationType);
 
-    ArraySliceIndexVariable sliceIndex = new ArraySliceIndexVariable(sizeInElements);
+    SliceVariable sliceIndex = new SliceVariable(sizeInElements);
     SliceExpression slice = new SliceExpression(destination).withIndex(sliceIndex);
 
     List<AssignmentHandler.SliceAssignment> assignments = new ArrayList<>();
@@ -328,7 +328,7 @@ class MemoryFunctionHandler {
             "Unexpected incomplete-array memset destination field", edge);
       }
 
-      ArraySliceIndexVariable arrayIndex = new ArraySliceIndexVariable(length);
+      SliceVariable arrayIndex = new SliceVariable(length);
       SliceExpression newSlice = lhsSlice.withIndex(arrayIndex);
       generateMemsetAssignments(newSlice, setValue, assignments);
 

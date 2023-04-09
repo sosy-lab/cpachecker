@@ -43,9 +43,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ArraySliceFieldAccessModifier;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ArraySliceIndexVariable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ArraySliceModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceFieldAccessModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceVariable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.PartialSpan;
@@ -476,14 +476,14 @@ class AssignmentHandler {
     // e.g. with (*x).a.b[0].c.d, split into (*x).a.b[0] and .c.d
     // the head is the progenitor from which we will be assigning to span
 
-    ImmutableList<ArraySliceModifier> lhsModifiers = assignment.lhs.actual().getModifiers();
+    ImmutableList<SliceModifier> lhsModifiers = assignment.lhs.actual().getModifiers();
 
     // iterate in reverse to split to head and trailing
-    List<ArraySliceModifier> progenitorModifiers = new ArrayList<>();
-    List<ArraySliceFieldAccessModifier> trailingFieldAccesses = new ArrayList<>();
+    List<SliceModifier> progenitorModifiers = new ArrayList<>();
+    List<SliceFieldAccessModifier> trailingFieldAccesses = new ArrayList<>();
     boolean stillTrailing = true;
-    for (ArraySliceModifier modifier : Lists.reverse(lhsModifiers)) {
-      if (stillTrailing && modifier instanceof ArraySliceFieldAccessModifier accessModifier) {
+    for (SliceModifier modifier : Lists.reverse(lhsModifiers)) {
+      if (stillTrailing && modifier instanceof SliceFieldAccessModifier accessModifier) {
         // add at the start of trailing
         trailingFieldAccesses.add(0, accessModifier);
       } else {
@@ -502,7 +502,7 @@ class AssignmentHandler {
     // the parent type of first field access is the progenitor type
     CType parentType = progenitorLhs.getFullExpressionType();
     long bitOffsetFromProgenitor = 0;
-    for (ArraySliceFieldAccessModifier access : trailingFieldAccesses) {
+    for (SliceFieldAccessModifier access : trailingFieldAccesses) {
 
       // field access, parent must be composite
       CCompositeType parentCompositeType = (CCompositeType) parentType;
@@ -625,8 +625,8 @@ class AssignmentHandler {
     }
 
     // slice the assignment using a slice variable
-    final ArraySliceIndexVariable indexVariable =
-        new ArraySliceIndexVariable(lhsArrayType.getLength());
+    final SliceVariable indexVariable =
+        new SliceVariable(lhsArrayType.getLength());
     final SliceExpression elementLhs = assignment.lhs.actual().withIndex(indexVariable);
     final Optional<SliceExpression> elementRhs =
         assignment.rhs.actual().map(rhsSlice -> rhsSlice.withIndex(indexVariable));
@@ -805,7 +805,7 @@ class AssignmentHandler {
 
         SliceExpression sliceLhs =
             new SliceExpression(wholeAssignmentLeftSide)
-                .withIndex(new ArraySliceIndexVariable(arrayType.getLength()));
+                .withIndex(new SliceVariable(arrayType.getLength()));
         SliceExpression sliceRhs =
             new SliceExpression(firstAssignment.getRightHandSide());
         SliceAssignment sliceAssignment =

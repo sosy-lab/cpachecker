@@ -74,10 +74,10 @@ final class SliceExpression {
    * objects with equal fields. Here, an instance of the index stands for a unique quantified
    * variable.
    */
-  static class ArraySliceIndexVariable {
+  static class SliceVariable {
     private final CExpression size;
 
-    ArraySliceIndexVariable(CExpression pSize) {
+    SliceVariable(CExpression pSize) {
       checkNotNull(pSize);
       size = pSize;
     }
@@ -96,16 +96,16 @@ final class SliceExpression {
    * The base CExpression can be modified by multiple modifiers, which are either field access,
    * i.e., {@code base.field}, or subscript, i.e., {@code base[i]}.
    */
-  sealed interface ArraySliceModifier
-      permits ArraySliceFieldAccessModifier, ArraySliceSubscriptModifier {}
+  sealed interface SliceModifier
+      permits SliceFieldAccessModifier, SliceIndexModifier {}
 
-  sealed interface ArraySliceSubscriptModifier extends ArraySliceModifier
-      permits ArraySliceQuantifiedSubscriptModifier, ArraySliceResolvedSubscriptModifier {}
+  sealed interface SliceIndexModifier extends SliceModifier
+      permits SliceVariableIndexModifier, SliceResolvedIndexModifier {}
 
   /** Represents performing a field access on a {@code CExpression}, i.e., {@code base.field}. */
-  record ArraySliceFieldAccessModifier(CCompositeTypeMemberDeclaration field)
-      implements ArraySliceModifier {
-    ArraySliceFieldAccessModifier(CCompositeTypeMemberDeclaration field) {
+  record SliceFieldAccessModifier(CCompositeTypeMemberDeclaration field)
+      implements SliceModifier {
+    SliceFieldAccessModifier(CCompositeTypeMemberDeclaration field) {
       checkNotNull(field);
       this.field = field;
     }
@@ -114,25 +114,25 @@ final class SliceExpression {
   /**
    * Represents performing a subscript operation on a {@code CExpression}, i.e., {@code base[i]}.
    */
-  record ArraySliceQuantifiedSubscriptModifier(ArraySliceIndexVariable index)
-      implements ArraySliceSubscriptModifier {
-    ArraySliceQuantifiedSubscriptModifier(ArraySliceIndexVariable index) {
+  record SliceVariableIndexModifier(SliceVariable index)
+      implements SliceIndexModifier {
+    SliceVariableIndexModifier(SliceVariable index) {
       checkNotNull(index);
       this.index = index;
     }
   }
 
   /** Represents performing a subscript operation with a resolved formula. */
-  record ArraySliceResolvedSubscriptModifier(Formula encodedVariable)
-      implements ArraySliceSubscriptModifier {
-    ArraySliceResolvedSubscriptModifier(Formula encodedVariable) {
+  record SliceResolvedIndexModifier(Formula encodedVariable)
+      implements SliceIndexModifier {
+    SliceResolvedIndexModifier(Formula encodedVariable) {
       checkNotNull(encodedVariable);
       this.encodedVariable = encodedVariable;
     }
   }
 
   private final CRightHandSide base;
-  private final ImmutableList<ArraySliceModifier> modifiers;
+  private final ImmutableList<SliceModifier> modifiers;
 
   /**
    * Construct using a base, with no modifiers.
@@ -144,7 +144,7 @@ final class SliceExpression {
     this.modifiers = ImmutableList.of();
   }
 
-  SliceExpression(CRightHandSide base, ImmutableList<ArraySliceModifier> pModifiers) {
+  SliceExpression(CRightHandSide base, ImmutableList<SliceModifier> pModifiers) {
     this.base = checkNotNull(base);
     this.modifiers = checkNotNull(pModifiers);
   }
@@ -160,10 +160,10 @@ final class SliceExpression {
   SliceExpression withFieldAccess(CCompositeTypeMemberDeclaration field) {
     checkNotNull(field);
     // add to modifiers
-    ImmutableList<ArraySliceModifier> newModifiers =
-        ImmutableList.<ArraySliceModifier>builder()
+    ImmutableList<SliceModifier> newModifiers =
+        ImmutableList.<SliceModifier>builder()
             .addAll(modifiers)
-            .add(new ArraySliceFieldAccessModifier(field))
+            .add(new SliceFieldAccessModifier(field))
             .build();
     return new SliceExpression(base, newModifiers);
   }
@@ -175,13 +175,13 @@ final class SliceExpression {
    * @param index The index variable that should be used for indexing.
    * @return The modified {@code ArraySliceExpression}
    */
-  SliceExpression withIndex(ArraySliceIndexVariable index) {
+  SliceExpression withIndex(SliceVariable index) {
     checkNotNull(index);
     // add to modifiers
-    ImmutableList<ArraySliceModifier> newModifiers =
-        ImmutableList.<ArraySliceModifier>builder()
+    ImmutableList<SliceModifier> newModifiers =
+        ImmutableList.<SliceModifier>builder()
             .addAll(modifiers)
-            .add(new ArraySliceQuantifiedSubscriptModifier(index))
+            .add(new SliceVariableIndexModifier(index))
             .build();
     return new SliceExpression(base, newModifiers);
   }
@@ -196,17 +196,17 @@ final class SliceExpression {
    * @throws IllegalStateException If there were no modifiers.
    */
   SliceExpression resolveVariable(
-      ArraySliceIndexVariable quantifiedVariable, Formula encodedVariable) {
+      SliceVariable quantifiedVariable, Formula encodedVariable) {
 
     // replace quantified subscript modifiers on the given variable by fixed subscripts
     // with the provided encoded variable subscript modifiers
-    List<ArraySliceModifier> newModifiers =
+    List<SliceModifier> newModifiers =
         modifiers.stream()
             .map(
                 modifier ->
-                    modifier instanceof ArraySliceQuantifiedSubscriptModifier quantifiedModifier
+                    modifier instanceof SliceVariableIndexModifier quantifiedModifier
                             && quantifiedModifier.index.equals(quantifiedVariable)
-                        ? new ArraySliceResolvedSubscriptModifier(encodedVariable)
+                        ? new SliceResolvedIndexModifier(encodedVariable)
                         : modifier)
             .toList();
 
@@ -223,8 +223,8 @@ final class SliceExpression {
     return modifiers.stream()
         .allMatch(
             modifier ->
-                modifier instanceof ArraySliceFieldAccessModifier
-                    || modifier instanceof ArraySliceResolvedSubscriptModifier);
+                modifier instanceof SliceFieldAccessModifier
+                    || modifier instanceof SliceResolvedIndexModifier);
   }
 
   /**
@@ -245,12 +245,12 @@ final class SliceExpression {
   CType getFullExpressionType() {
     CType type = base.getExpressionType().getCanonicalType();
 
-    for (ArraySliceModifier modifier : modifiers) {
-      if (modifier instanceof ArraySliceFieldAccessModifier fieldModifier) {
+    for (SliceModifier modifier : modifiers) {
+      if (modifier instanceof SliceFieldAccessModifier fieldModifier) {
         // replace type with field type
         type = fieldModifier.field.getType().getCanonicalType();
       } else {
-        assert (modifier instanceof ArraySliceQuantifiedSubscriptModifier);
+        assert (modifier instanceof SliceVariableIndexModifier);
         // replace type with its element type
         CPointerType adjustedPointerType = (CPointerType) CTypes.adjustFunctionOrArrayType(type);
         type = adjustedPointerType.getType().getCanonicalType();
@@ -272,7 +272,7 @@ final class SliceExpression {
       return this;
     }
     CExpression currentBase = (CExpression) base;
-    List<ArraySliceModifier> canonicalModifiers = new ArrayList<>(modifiers);
+    List<SliceModifier> canonicalModifiers = new ArrayList<>(modifiers);
     while (currentBase instanceof CFieldReference outerFieldReference) {
       if (outerFieldReference.isPointerDereference()) {
         // pointer dereference, stop canonizing
@@ -281,7 +281,7 @@ final class SliceExpression {
       // the outer reference must be added in front of all previous modifiers
       canonicalModifiers.add(
           0,
-          new ArraySliceFieldAccessModifier(
+          new SliceFieldAccessModifier(
               new CCompositeTypeMemberDeclaration(
                   outerFieldReference.getExpressionType(), outerFieldReference.getFieldName())));
       currentBase = outerFieldReference.getFieldOwner();
@@ -294,14 +294,14 @@ final class SliceExpression {
    *
    * @return All modifiers.
    */
-  ImmutableList<ArraySliceModifier> getModifiers() {
+  ImmutableList<SliceModifier> getModifiers() {
     return modifiers;
   }
 
-  ImmutableList<ArraySliceIndexVariable> getUnresolvedIndexVariables() {
-    ImmutableList.Builder<ArraySliceIndexVariable> builder = ImmutableList.builder();
-    for (ArraySliceModifier modifier : modifiers) {
-      if (modifier instanceof ArraySliceQuantifiedSubscriptModifier subscriptModifier) {
+  ImmutableList<SliceVariable> getUnresolvedIndexVariables() {
+    ImmutableList.Builder<SliceVariable> builder = ImmutableList.builder();
+    for (SliceModifier modifier : modifiers) {
+      if (modifier instanceof SliceVariableIndexModifier subscriptModifier) {
         builder.add(subscriptModifier.index());
       }
     }
@@ -322,15 +322,15 @@ final class SliceExpression {
          idBase.getDeclaration() instanceof CParameterDeclaration;
 
     // resolve the modifiers now
-    for (ArraySliceModifier modifier : modifiers) {
-      if (modifier instanceof ArraySliceSubscriptModifier subscriptModifier) {
+    for (SliceModifier modifier : modifiers) {
+      if (modifier instanceof SliceIndexModifier subscriptModifier) {
         resolved =
             convertSubscriptModifier(
                 conv, ssa, errorConditions, regionMgr, resolved, subscriptModifier, wasParameterId);
       } else {
         resolved =
             convertFieldAccessModifier(
-                conv, regionMgr, resolved, (ArraySliceFieldAccessModifier) modifier);
+                conv, regionMgr, resolved, (SliceFieldAccessModifier) modifier);
       }
     }
 
@@ -370,7 +370,7 @@ final class SliceExpression {
       ErrorConditions errorConditions,
       MemoryRegionManager regionMgr,
       ResolvedSlice resolved,
-      ArraySliceSubscriptModifier modifier,
+      SliceIndexModifier modifier,
       boolean wasParameterId) {
 
     final AliasedLocation dereferenced;
@@ -397,8 +397,8 @@ final class SliceExpression {
     }
 
     // all subscript modifiers must be already resolved here
-    ArraySliceResolvedSubscriptModifier resolvedModifier =
-        (ArraySliceResolvedSubscriptModifier) modifier;
+    SliceResolvedIndexModifier resolvedModifier =
+        (SliceResolvedIndexModifier) modifier;
 
     // get the array element type
     CPointerType basePointerType = (CPointerType) CTypes.adjustFunctionOrArrayType(resolved.type());
@@ -425,7 +425,7 @@ final class SliceExpression {
       CToFormulaConverterWithPointerAliasing conv,
       MemoryRegionManager regionMgr,
       ResolvedSlice resolved,
-      ArraySliceFieldAccessModifier modifier) {
+      SliceFieldAccessModifier modifier) {
 
     // the base type must be a composite type to have fields
     CCompositeType baseType = (CCompositeType) resolved.type();
@@ -486,8 +486,8 @@ final class SliceExpression {
 
     // resolve the expression with dummy zero indices to get the type
     CExpression resolved = (CExpression) base;
-    for (ArraySliceModifier modifier : modifiers) {
-      if (modifier instanceof ArraySliceFieldAccessModifier fieldAccess) {
+    for (SliceModifier modifier : modifiers) {
+      if (modifier instanceof SliceFieldAccessModifier fieldAccess) {
         resolved =
             new CFieldReference(
                 FileLocation.DUMMY,
@@ -515,12 +515,12 @@ final class SliceExpression {
 
   boolean containsUnresolvedIndexModifiers() {
     return modifiers.stream()
-        .anyMatch(modifier -> modifier instanceof ArraySliceQuantifiedSubscriptModifier);
+        .anyMatch(modifier -> modifier instanceof SliceVariableIndexModifier);
   }
 
   boolean containsResolvedIndexModifiers() {
     return modifiers.stream()
-        .anyMatch(modifier -> modifier instanceof ArraySliceResolvedSubscriptModifier);
+        .anyMatch(modifier -> modifier instanceof SliceResolvedIndexModifier);
   }
 
   @Override
