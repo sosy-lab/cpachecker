@@ -82,7 +82,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentConversionType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentOptions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceAssignment;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.SliceAssignment;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -845,16 +845,23 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     ArraySliceExpression assignmentLhs = new ArraySliceExpression(lhs);
     ArraySliceExpression assignmentRhs = new ArraySliceExpression(rhs);
-    ArraySliceAssignment assignment =
-        new ArraySliceAssignment(
+    SliceAssignment assignment =
+        new SliceAssignment(
             assignmentLhs, Optional.of(lhsForChecking), Optional.of(assignmentRhs));
 
     AssignmentHandler assignmentHandler =
         new AssignmentHandler(
-            this, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
+            this,
+            edge,
+            function,
+            ssa,
+            pts,
+            constraints,
+            errorConditions,
+            regionMgr,
+            assignmentOptions);
 
-    return assignmentHandler.handleSliceAssignments(
-        ImmutableList.of(assignment), assignmentOptions);
+    return assignmentHandler.assign(ImmutableList.of(assignment));
   }
 
   /** Is the left-hand-side an array and do we allow to assign a value to it? */
@@ -1010,16 +1017,26 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
 
     final CIdExpression lhs = new CIdExpression(declaration.getFileLocation(), declaration);
+
+    // use old SSA indices if aliased as this is an initialization assignment,
+    // no other special options
+    AssignmentOptions assignmentOptions =
+        new AssignmentOptions(true, AssignmentConversionType.CAST, false, false);
     final AssignmentHandler assignmentHandler =
         new AssignmentHandler(
-            this, declarationEdge, function, ssa, pts, constraints, errorConditions, regionMgr);
+            this,
+            declarationEdge,
+            function,
+            ssa,
+            pts,
+            constraints,
+            errorConditions,
+            regionMgr,
+            assignmentOptions);
+
     final BooleanFormula result;
     if (initializer instanceof CInitializerExpression || initializer == null) {
 
-      // use old SSA indices if aliased as this is an initialization assignment,
-      // no other special options
-      AssignmentOptions assignmentOptions =
-          new AssignmentOptions(true, AssignmentConversionType.CAST, false, false);
       final ArraySliceExpression lhsSlice = new ArraySliceExpression(lhs);
 
       if (initializer != null) {
@@ -1031,26 +1048,22 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
               CInitializers.convertToAssignments(declaration, declarationEdge);
           // Special handling for string literal initializers -- convert them into character arrays
           assignments = expandStringLiterals(assignments);
-          return assignmentHandler.handleInitializationAssignments(
+          return assignmentHandler.initializationAssign(
               lhs, declarationType, assignments);
         }
 
         CExpression rhs = ((CInitializerExpression) initializer).getExpression();
         ArraySliceExpression rhsSlice = new ArraySliceExpression(rhs);
-        ArraySliceAssignment assignment =
-            new ArraySliceAssignment(lhsSlice, Optional.of(lhs), Optional.of(rhsSlice));
+        SliceAssignment assignment =
+            new SliceAssignment(lhsSlice, Optional.of(lhs), Optional.of(rhsSlice));
 
         // perform a slice assignment to lhs from rhs
-        result =
-            assignmentHandler.handleSliceAssignments(
-                ImmutableList.of(assignment), assignmentOptions);
+        result = assignmentHandler.assign(ImmutableList.of(assignment));
       } else if (isRelevantVariable(declaration) && !declarationType.isIncomplete()) {
         // perform a slice assignment of nondet value to lhs
-        ArraySliceAssignment assignment =
-            new ArraySliceAssignment(lhsSlice, Optional.of(lhs), Optional.empty());
-        result =
-            assignmentHandler.handleSliceAssignments(
-                ImmutableList.of(assignment), assignmentOptions);
+        SliceAssignment assignment =
+            new SliceAssignment(lhsSlice, Optional.of(lhs), Optional.empty());
+        result = assignmentHandler.assign(ImmutableList.of(assignment));
       } else {
         result = bfmgr.makeTrue();
       }
@@ -1066,7 +1079,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       if (options.handleImplicitInitialization()) {
         assignments = expandAssignmentList(declaration, assignments);
       }
-      result = assignmentHandler.handleInitializationAssignments(lhs, declarationType, assignments);
+      result = assignmentHandler.initializationAssign(lhs, declarationType, assignments);
 
     } else {
       throw new UnrecognizedCodeException("Unrecognized initializer", declarationEdge, initializer);

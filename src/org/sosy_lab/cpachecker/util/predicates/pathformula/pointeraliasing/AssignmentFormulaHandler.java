@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceResolved;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ResolvedSlice;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
@@ -64,11 +64,21 @@ import org.sosy_lab.java_smt.api.FormulaType;
  */
 class AssignmentFormulaHandler {
 
+  /**
+   * Determines how conversion of right-hand-side type to target type should be handled, especially
+   * if one of them is an integer and the other one is a floating-point type. Casting is used in
+   * normal assignment circumstances. Reinterpretation preserves the exact bit content; both types
+   * must have the same number of bits.
+   */
   enum AssignmentConversionType {
     CAST,
     REINTERPRET
   }
 
+  /**
+   * Local options for assignments that are to be performed. Changes the assignment behavior
+   * depending on the needs of the caller.
+   */
   record AssignmentOptions(
       boolean useOldSSAIndicesIfAliased,
       AssignmentConversionType conversionType,
@@ -87,10 +97,20 @@ class AssignmentFormulaHandler {
     }
   }
 
-  record ArraySliceSpan(long lhsBitOffset, long rhsBitOffset, long bitSize) {}
+  /**
+   * Determines the span of a partial assignment. The only relevant part is {@link #bitSize} bits
+   * long. Its least-significant-bit offset on the left-hand side is {@link #lhsBitOffset}. On the
+   * right-hand side, the offset {@link #rhsTargetBitOffset} pertains to the value after
+   * casting/reinterpreting to target type.
+   */
+  record PartialSpan(long lhsBitOffset, long rhsTargetBitOffset, long bitSize) {}
 
-  record ArraySliceSpanResolved(ArraySliceSpan span, Optional<ArraySliceResolved> actual) {
-    ArraySliceSpanResolved(ArraySliceSpan span, Optional<ArraySliceResolved> actual) {
+  /**
+   * Resolved right-hand side of assignment with partial span that determines how it should be
+   * mapped onto left-hand side after casting/reinterpreting to targett type.
+   */
+  record ResolvedPartialAssignmentRhs(PartialSpan span, Optional<ResolvedSlice> actual) {
+    ResolvedPartialAssignmentRhs(PartialSpan span, Optional<ResolvedSlice> actual) {
       checkNotNull(span);
       checkNotNull(actual);
       this.span = span;
@@ -163,9 +183,9 @@ class AssignmentFormulaHandler {
    * @throws InterruptedException If a shutdown was requested during assignment making.
    */
   BooleanFormula assignResolvedSlice(
-      ArraySliceResolved lhsResolved,
+      ResolvedSlice lhsResolved,
       CType targetType,
-      List<ArraySliceSpanResolved> rhsList,
+      List<ResolvedPartialAssignmentRhs> rhsList,
       AssignmentOptions assignmentOptions,
       BooleanFormula conditionFormula,
       boolean useQuantifiers,
@@ -242,9 +262,9 @@ class AssignmentFormulaHandler {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   private Expression constructCompleteRhsExpression(
-      ArraySliceResolved lhs,
+      ResolvedSlice lhs,
       CType targetType,
-      List<ArraySliceSpanResolved> rhsList,
+      List<ResolvedPartialAssignmentRhs> rhsList,
       AssignmentOptions assignmentOptions)
       throws UnrecognizedCodeException {
 
@@ -265,14 +285,14 @@ class AssignmentFormulaHandler {
     Formula completeRhsFormula = null;
 
     // for each partial RHS, insert the part into the correct place in the complete formula
-    for (ArraySliceSpanResolved rhs : rhsList) {
+    for (ResolvedPartialAssignmentRhs rhs : rhsList) {
 
-      ArraySliceSpan rhsSpan = rhs.span();
+      PartialSpan rhsSpan = rhs.span();
 
       // if resolved RHS is nondet, treat it as a nondet value with target type
       // this means there is now only one way to represent a nondet value
-      ArraySliceResolved rhsResolved =
-          rhs.actual().orElse(new ArraySliceResolved(Value.nondetValue(), targetType));
+      ResolvedSlice rhsResolved =
+          rhs.actual().orElse(new ResolvedSlice(Value.nondetValue(), targetType));
 
       // convert RHS expression to target type
       Expression targetTypeRhsExpression =
@@ -288,13 +308,13 @@ class AssignmentFormulaHandler {
       // handle full assignments without complications: reinterpret from targetType to
       // lhsResolved.type and return the resulting expression
       if (rhsSpan.lhsBitOffset() == 0
-          && rhsSpan.rhsBitOffset() == 0
+          && rhsSpan.rhsTargetBitOffset() == 0
           && rhsSpan.bitSize() == lhsBitSize
           && lhsBitSize == targetBitSize) {
         return convertResolved(
             AssignmentConversionType.REINTERPRET,
             lhs.type(),
-            new ArraySliceResolved(targetTypeRhsExpression, targetType));
+            new ResolvedSlice(targetTypeRhsExpression, targetType));
       }
 
       // add to lhs range set
@@ -377,7 +397,7 @@ class AssignmentFormulaHandler {
    *     {@code span}, all other bits filled with zeros.
    */
   private Formula constructPartialRhsFormula(
-      long lhsBitSize, CType targetType, ArraySliceSpan span, Formula rhsFormula) {
+      long lhsBitSize, CType targetType, PartialSpan span, Formula rhsFormula) {
 
     // make the formula a bitvector formula
     BitvectorFormula bitvectorRhsFormula =
@@ -387,8 +407,8 @@ class AssignmentFormulaHandler {
     Formula extractedFormula =
         fmgr.makeExtract(
             bitvectorRhsFormula,
-            (int) (span.rhsBitOffset() + span.bitSize() - 1),
-            (int) span.rhsBitOffset());
+            (int) (span.rhsTargetBitOffset() + span.bitSize() - 1),
+            (int) span.rhsTargetBitOffset());
 
     // extend to LHS type size
     long numExtendBits = lhsBitSize - span.bitSize();
@@ -452,7 +472,7 @@ class AssignmentFormulaHandler {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   private Expression convertResolved(
-      AssignmentConversionType conversionType, CType toType, ArraySliceResolved resolved)
+      AssignmentConversionType conversionType, CType toType, ResolvedSlice resolved)
       throws UnrecognizedCodeException {
 
     // convert only if necessary, the types are already simplified

@@ -50,9 +50,9 @@ import org.sosy_lab.java_smt.api.Formula;
  */
 final class ArraySliceExpression {
 
-  record ArraySliceResolved(Expression expression, CType type) {
+  record ResolvedSlice(Expression expression, CType type) {
 
-    ArraySliceResolved(Expression expression, CType type) {
+    ResolvedSlice(Expression expression, CType type) {
       checkNotNull(expression);
       checkIsSimplified(type);
       this.expression = expression;
@@ -308,15 +308,15 @@ final class ArraySliceExpression {
     return builder.build();
   }
 
-  ArraySliceResolved resolveModifiers(
-      ArraySliceResolved resolvedBase,
+  ResolvedSlice resolveModifiers(
+      ResolvedSlice resolvedBase,
       CToFormulaConverterWithPointerAliasing conv,
       SSAMapBuilder ssa,
       ErrorConditions errorConditions,
       MemoryRegionManager regionMgr) {
 
     // we have resolved the base
-    ArraySliceResolved resolved = resolvedBase;
+    ResolvedSlice resolved = resolvedBase;
 
     boolean wasParameterId = (base instanceof CIdExpression idBase) &&
          idBase.getDeclaration() instanceof CParameterDeclaration;
@@ -364,12 +364,12 @@ final class ArraySliceExpression {
     }
   }
 
-  private ArraySliceResolved convertSubscriptModifier(
+  private ResolvedSlice convertSubscriptModifier(
       CToFormulaConverterWithPointerAliasing conv,
       SSAMapBuilder ssa,
       ErrorConditions errorConditions,
       MemoryRegionManager regionMgr,
-      ArraySliceResolved resolved,
+      ResolvedSlice resolved,
       ArraySliceSubscriptModifier modifier,
       boolean wasParameterId) {
 
@@ -418,13 +418,13 @@ final class ArraySliceExpression {
             baseAddress, conv.fmgr.makeMultiply(resolvedModifier.encodedVariable(), sizeofElement));
 
     // return the resolved formula with adjusted address and array element type
-    return new ArraySliceResolved(AliasedLocation.ofAddress(adjustedAddress), elementType);
+    return new ResolvedSlice(AliasedLocation.ofAddress(adjustedAddress), elementType);
   }
 
-  private ArraySliceResolved convertFieldAccessModifier(
+  private ResolvedSlice convertFieldAccessModifier(
       CToFormulaConverterWithPointerAliasing conv,
       MemoryRegionManager regionMgr,
-      ArraySliceResolved resolved,
+      ResolvedSlice resolved,
       ArraySliceFieldAccessModifier modifier) {
 
     // the base type must be a composite type to have fields
@@ -438,7 +438,7 @@ final class ArraySliceExpression {
           UnaliasedLocation.ofVariableName(
               getFieldAccessName(
                   resolved.expression().asUnaliasedLocation().getVariableName(), modifier.field()));
-      return new ArraySliceResolved(resultLocation, fieldType);
+      return new ResolvedSlice(resultLocation, fieldType);
     }
 
     // aliased location
@@ -452,7 +452,7 @@ final class ArraySliceExpression {
     if (!offset.isPresent()) {
       // this loses assignments from/to aliased bitfields
       // TODO: implement aliased bitfields
-      return new ArraySliceResolved(Value.nondetValue(), fieldType);
+      return new ResolvedSlice(Value.nondetValue(), fieldType);
     }
 
     final Formula offsetFormula =
@@ -460,7 +460,7 @@ final class ArraySliceExpression {
     final Formula adjustedAdress = conv.fmgr.makePlus(baseAddress, offsetFormula);
 
     AliasedLocation adjustedLocation = AliasedLocation.ofAddressWithRegion(adjustedAdress, region);
-    return new ArraySliceResolved(adjustedLocation, fieldType);
+    return new ResolvedSlice(adjustedLocation, fieldType);
   }
 
   /**
@@ -511,6 +511,16 @@ final class ArraySliceExpression {
       }
     }
     return resolved;
+  }
+
+  boolean containsUnresolvedIndexModifiers() {
+    return modifiers.stream()
+        .anyMatch(modifier -> modifier instanceof ArraySliceQuantifiedSubscriptModifier);
+  }
+
+  boolean containsResolvedIndexModifiers() {
+    return modifiers.stream()
+        .anyMatch(modifier -> modifier instanceof ArraySliceResolvedSubscriptModifier);
   }
 
   @Override

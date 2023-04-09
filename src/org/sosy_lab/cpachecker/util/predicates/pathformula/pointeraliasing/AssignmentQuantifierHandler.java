@@ -37,10 +37,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceIndexVariable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceResolved;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.ArraySliceSpan;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.ArraySliceSpanResolved;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ResolvedSlice;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.PartialSpan;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.ResolvedPartialAssignmentRhs;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -66,8 +66,13 @@ import org.sosy_lab.java_smt.api.FormulaType;
  */
 class AssignmentQuantifierHandler {
 
-  record ArraySliceSpanLhs(ArraySliceExpression actual, CType targetType) {
-    ArraySliceSpanLhs(ArraySliceExpression actual, CType targetType) {
+  /**
+   * Left-hand side of an unresolved partial assignment. It stores both the slice expression and the
+   * target type the right-hand sides should be cast/reinterpreted to. This is necessary because the
+   * original cast target type is lost when making partial assignments simple.
+   */
+  record PartialAssignmentLhs(ArraySliceExpression actual, CType targetType) {
+    PartialAssignmentLhs(ArraySliceExpression actual, CType targetType) {
       checkNotNull(actual);
       checkNotNull(targetType);
       this.actual = actual;
@@ -75,8 +80,13 @@ class AssignmentQuantifierHandler {
     }
   }
 
-  record ArraySliceSpanRhs(ArraySliceSpan span, Optional<ArraySliceExpression> actual) {
-    ArraySliceSpanRhs(ArraySliceSpan span, Optional<ArraySliceExpression> actual) {
+  /**
+   * Right-hand side of an unresolved partial assignment. In addition to the slice expression, it
+   * stores the span mapping the relevant part of right-hand side (after casting to target type) to
+   * left-hand side.
+   */
+  record PartialAssignmentRhs(PartialSpan span, Optional<ArraySliceExpression> actual) {
+    PartialAssignmentRhs(PartialSpan span, Optional<ArraySliceExpression> actual) {
       checkNotNull(span);
       checkNotNull(actual);
       this.span = span;
@@ -115,13 +125,13 @@ class AssignmentQuantifierHandler {
    * Resolved left-hand-side bases of assignments. For each assignment to be handled, the
    * left-hand-side base must be present as a key in this map.
    */
-  private final Map<CRightHandSide, ArraySliceResolved> resolvedLhsBases;
+  private final Map<CRightHandSide, ResolvedSlice> resolvedLhsBases;
 
   /**
    * Resolved left-hand-side bases of assignments. For each assignment to be handled, the base of
    * each deterministic right-hand-side part must be present as a key in this map.
    */
-  private final Map<CRightHandSide, ArraySliceResolved> resolvedRhsBases;
+  private final Map<CRightHandSide, ResolvedSlice> resolvedRhsBases;
 
   /** Machine model pointer-equivalent size type, retained here for conciseness. */
   private final CSimpleType sizeType;
@@ -152,8 +162,8 @@ class AssignmentQuantifierHandler {
       ErrorConditions pErrorConditions,
       MemoryRegionManager pRegionMgr,
       AssignmentOptions pAssignmentOptions,
-      Map<CRightHandSide, ArraySliceResolved> pResolvedLhsBases,
-      Map<CRightHandSide, ArraySliceResolved> pResolvedRhsBases) {
+      Map<CRightHandSide, ResolvedSlice> pResolvedLhsBases,
+      Map<CRightHandSide, ResolvedSlice> pResolvedRhsBases) {
     conv = pConv;
 
     typeHandler = pConv.typeHandler;
@@ -188,17 +198,17 @@ class AssignmentQuantifierHandler {
    * @throws InterruptedException If a shutdown was requested during assigning.
    */
   BooleanFormula assignSimpleSlices(
-      final Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap)
+      final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap)
       throws UnrecognizedCodeException, InterruptedException {
 
     // get a set of variables that we need to quantify (encode or unroll)
     // each variable can be present in more locations, so we use a set to remove duplicates
     // as we want to have deterministic order of quantification, we use a LinkedHashSet
     final LinkedHashSet<ArraySliceIndexVariable> variablesToQuantify = new LinkedHashSet<>();
-    for (Entry<ArraySliceSpanLhs, Collection<ArraySliceSpanRhs>> entry :
+    for (Entry<PartialAssignmentLhs, Collection<PartialAssignmentRhs>> entry :
         assignmentMultimap.asMap().entrySet()) {
       variablesToQuantify.addAll(entry.getKey().actual().getUnresolvedIndexVariables());
-      for (ArraySliceSpanRhs rhs : entry.getValue()) {
+      for (PartialAssignmentRhs rhs : entry.getValue()) {
         if (rhs.actual().isPresent()) {
           variablesToQuantify.addAll(rhs.actual().get().getUnresolvedIndexVariables());
         }
@@ -228,7 +238,7 @@ class AssignmentQuantifierHandler {
    * @throws InterruptedException If a shutdown was requested during assigning.
    */
   private BooleanFormula quantifyAssignments(
-      final Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap,
+      final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap,
       final LinkedHashSet<ArraySliceIndexVariable> variablesToQuantify,
       final BooleanFormula condition)
       throws UnrecognizedCodeException, InterruptedException {
@@ -306,7 +316,7 @@ class AssignmentQuantifierHandler {
    * @return The Boolean formula describing the assignments.
    */
   private BooleanFormula encodeQuantifier(
-      Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap,
+      Multimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap,
       LinkedHashSet<ArraySliceIndexVariable> nextVariablesToQuantify,
       BooleanFormula condition,
       ArraySliceIndexVariable variableToEncode,
@@ -326,7 +336,7 @@ class AssignmentQuantifierHandler {
     // resolve in assignments
     // for every (LHS or RHS) slice, we replace it with a slice that has unresolved indexing
     // by variableToUnroll replaced by resolved indexing by indexFormula
-    final Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> nextAssignmentMultimap =
+    final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> nextAssignmentMultimap =
         mapAssignmentSlices(
             assignmentMultimap, slice -> slice.resolveVariable(variableToEncode, encodedVariable));
 
@@ -364,7 +374,7 @@ class AssignmentQuantifierHandler {
    * @return The Boolean formula describing the assignments.
    */
   private BooleanFormula unrollQuantifier(
-      Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap,
+      Multimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap,
       LinkedHashSet<ArraySliceIndexVariable> nextVariablesToQuantify,
       BooleanFormula condition,
       ArraySliceIndexVariable variableToUnroll,
@@ -427,7 +437,7 @@ class AssignmentQuantifierHandler {
       // resolve the quantifier in assignments
       // for every (LHS or RHS) slice, we replace it with a slice that has unresolved indexing
       // by variableToUnroll replaced by resolved indexing by indexFormula
-      final Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> nextAssignmentMultimap =
+      final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> nextAssignmentMultimap =
           mapAssignmentSlices(
               assignmentMultimap, slice -> slice.resolveVariable(variableToUnroll, indexFormula));
 
@@ -453,31 +463,31 @@ class AssignmentQuantifierHandler {
    * @return A new multimap with the function applied, with no other changes. Preserves ordering of
    *     {@code assignmentMultimap}.
    */
-  private Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> mapAssignmentSlices(
-      final Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap,
+  private Multimap<PartialAssignmentLhs, PartialAssignmentRhs> mapAssignmentSlices(
+      final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap,
       final Function<ArraySliceExpression, ArraySliceExpression> sliceMappingFunction) {
 
     // LinkedHashMultimap to preserve ordering
-    final Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> result = LinkedHashMultimap.create();
+    final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> result = LinkedHashMultimap.create();
 
     // iterate over all LHS
-    for (Entry<ArraySliceSpanLhs, Collection<ArraySliceSpanRhs>> assignment :
+    for (Entry<PartialAssignmentLhs, Collection<PartialAssignmentRhs>> assignment :
         assignmentMultimap.asMap().entrySet()) {
       // apply the function to the LHS slice
       final ArraySliceExpression mappedLhsSlice =
           sliceMappingFunction.apply(assignment.getKey().actual());
       // construct the whole LHS
-      final ArraySliceSpanLhs mappedLhs =
-          new ArraySliceSpanLhs(mappedLhsSlice, assignment.getKey().targetType());
+      final PartialAssignmentLhs mappedLhs =
+          new PartialAssignmentLhs(mappedLhsSlice, assignment.getKey().targetType());
 
       // iterate over all RHS
-      for (ArraySliceSpanRhs rhs : assignment.getValue()) {
+      for (PartialAssignmentRhs rhs : assignment.getValue()) {
         // apply the function to the RHS slice if it exists
         // (if it does not, it is taken as nondet)
         final Optional<ArraySliceExpression> resolvedRhsSlice =
             rhs.actual().map(rhsSlice -> sliceMappingFunction.apply(rhsSlice));
         // construct the whole RHS and put the result into the new multimap
-        final ArraySliceSpanRhs resolvedRhs = new ArraySliceSpanRhs(rhs.span(), resolvedRhsSlice);
+        final PartialAssignmentRhs resolvedRhs = new PartialAssignmentRhs(rhs.span(), resolvedRhsSlice);
         result.put(mappedLhs, resolvedRhs);
       }
     }
@@ -496,7 +506,7 @@ class AssignmentQuantifierHandler {
    * @throws InterruptedException If a shutdown was requested during assigning.
    */
   private BooleanFormula assignSimpleSlicesWithResolvedIndexing(
-      final Multimap<ArraySliceSpanLhs, ArraySliceSpanRhs> assignmentMultimap,
+      final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap,
       final BooleanFormula condition)
       throws UnrecognizedCodeException, InterruptedException {
 
@@ -508,16 +518,16 @@ class AssignmentQuantifierHandler {
     BooleanFormula result = bfmgr.makeTrue();
 
     // for each assignment, perform it using the formula handler and conjunct the result
-    for (Entry<ArraySliceSpanLhs, Collection<ArraySliceSpanRhs>> assignment :
+    for (Entry<PartialAssignmentLhs, Collection<PartialAssignmentRhs>> assignment :
         assignmentMultimap.asMap().entrySet()) {
 
       final ArraySliceExpression lhs = assignment.getKey().actual();
       final CType targetType = assignment.getKey().targetType();
 
       // resolve the LHS by getting the resolved base and resolving modifiers over it
-      final ArraySliceResolved lhsResolvedBase = resolvedLhsBases.get(lhs.getBase());
+      final ResolvedSlice lhsResolvedBase = resolvedLhsBases.get(lhs.getBase());
       assert (lhsResolvedBase != null);
-      final ArraySliceResolved lhsResolved =
+      final ResolvedSlice lhsResolved =
           lhs.resolveModifiers(lhsResolvedBase, conv, ssa, errorConditions, regionMgr);
 
       // skip assignment if LHS is nondet
@@ -527,22 +537,22 @@ class AssignmentQuantifierHandler {
         continue;
       }
 
-      final List<ArraySliceSpanResolved> rhsResolvedList = new ArrayList<>();
+      final List<ResolvedPartialAssignmentRhs> rhsResolvedList = new ArrayList<>();
 
       // resolve each RHS and collect them into a list
-      for (ArraySliceSpanRhs rhs : assignment.getValue()) {
+      for (PartialAssignmentRhs rhs : assignment.getValue()) {
 
         // make nondet RHS into nondet resolved
         if (rhs.actual().isEmpty()) {
-          rhsResolvedList.add(new ArraySliceSpanResolved(rhs.span(), Optional.empty()));
+          rhsResolvedList.add(new ResolvedPartialAssignmentRhs(rhs.span(), Optional.empty()));
           continue;
         }
 
         // resolve the RHS by getting the resolved base and resolving modifiers over it
         final ArraySliceExpression rhsSlice = rhs.actual().get();
-        final ArraySliceResolved rhsResolvedBase = resolvedRhsBases.get(rhsSlice.getBase());
+        final ResolvedSlice rhsResolvedBase = resolvedRhsBases.get(rhsSlice.getBase());
         assert (rhsResolvedBase != null);
-        ArraySliceResolved rhsResolved =
+        ResolvedSlice rhsResolved =
             rhsSlice.resolveModifiers(rhsResolvedBase, conv, ssa, errorConditions, regionMgr);
 
         // after resolving rhs, the rhs resolved type may be array even if we want to do
@@ -550,11 +560,11 @@ class AssignmentQuantifierHandler {
         // make rhs resolved target type into pointer in that case
         if (targetType instanceof CPointerType) {
           rhsResolved =
-              new ArraySliceResolved(
+              new ResolvedSlice(
                   rhsResolved.expression(), CTypes.adjustFunctionOrArrayType(rhsResolved.type()));
         }
         // add resolved RHS to list
-        rhsResolvedList.add(new ArraySliceSpanResolved(rhs.span(), Optional.of(rhsResolved)));
+        rhsResolvedList.add(new ResolvedPartialAssignmentRhs(rhs.span(), Optional.of(rhsResolved)));
       }
 
       // compute pointer-target set pattern if necessary for UFs finishing

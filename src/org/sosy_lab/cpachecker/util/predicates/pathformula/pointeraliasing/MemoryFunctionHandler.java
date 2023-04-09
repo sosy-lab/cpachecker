@@ -244,23 +244,29 @@ class MemoryFunctionHandler {
     ArraySliceExpression lhs = new ArraySliceExpression(destination).withIndex(sliceIndex);
     ArraySliceExpression rhs = new ArraySliceExpression(source).withIndex(sliceIndex);
 
-    AssignmentHandler assignmentHandler =
-        new AssignmentHandler(
-            conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
     AssignmentOptions assignmentOptions =
         new AssignmentOptions(
             false,
             AssignmentConversionType.REINTERPRET,
             conv.options.forceQuantifiersInMemoryAssignmentFunctions(),
             false);
+    AssignmentHandler assignmentHandler =
+        new AssignmentHandler(
+            conv,
+            edge,
+            function,
+            ssa,
+            pts,
+            constraints,
+            errorConditions,
+            regionMgr,
+            assignmentOptions);
 
     // TODO: add relevancy checking
-    AssignmentHandler.ArraySliceAssignment sliceAssignment =
-        new AssignmentHandler.ArraySliceAssignment(lhs, Optional.empty(), Optional.of(rhs));
+    AssignmentHandler.SliceAssignment sliceAssignment =
+        new AssignmentHandler.SliceAssignment(lhs, Optional.empty(), Optional.of(rhs));
 
-    BooleanFormula assignmentFormula =
-        assignmentHandler.handleSliceAssignments(
-            ImmutableList.of(sliceAssignment), assignmentOptions);
+    BooleanFormula assignmentFormula = assignmentHandler.assign(ImmutableList.of(sliceAssignment));
     constraints.addConstraint(assignmentFormula);
   }
 
@@ -278,21 +284,28 @@ class MemoryFunctionHandler {
     ArraySliceIndexVariable sliceIndex = new ArraySliceIndexVariable(sizeInElements);
     ArraySliceExpression slice = new ArraySliceExpression(destination).withIndex(sliceIndex);
 
-    List<AssignmentHandler.ArraySliceAssignment> assignments = new ArrayList<>();
+    List<AssignmentHandler.SliceAssignment> assignments = new ArrayList<>();
     generateMemsetAssignments(slice, setValue, assignments);
 
     // reinterpret instead of casting in assignment to properly handle memset of floats
-    AssignmentHandler assignmentHandler =
-        new AssignmentHandler(
-            conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
     AssignmentOptions assignmentOptions =
         new AssignmentOptions(
             false,
             AssignmentConversionType.REINTERPRET,
             conv.options.forceQuantifiersInMemoryAssignmentFunctions(),
             false);
-    BooleanFormula assignmentFormula =
-        assignmentHandler.handleSliceAssignments(assignments, assignmentOptions);
+    AssignmentHandler assignmentHandler =
+        new AssignmentHandler(
+            conv,
+            edge,
+            function,
+            ssa,
+            pts,
+            constraints,
+            errorConditions,
+            regionMgr,
+            assignmentOptions);
+    BooleanFormula assignmentFormula = assignmentHandler.assign(assignments);
 
     constraints.addConstraint(assignmentFormula);
   }
@@ -300,7 +313,7 @@ class MemoryFunctionHandler {
   private void generateMemsetAssignments(
       final ArraySliceExpression lhsSlice,
       final CExpression setValue,
-      List<AssignmentHandler.ArraySliceAssignment> assignments)
+      List<AssignmentHandler.SliceAssignment> assignments)
       throws UnrecognizedCodeException, InterruptedException {
 
     CType type = lhsSlice.getFullExpressionType();
@@ -400,8 +413,8 @@ class MemoryFunctionHandler {
 
     // there is no indexing of rhs
     // TODO: add relevancy checking
-    AssignmentHandler.ArraySliceAssignment sliceAssignment =
-        new AssignmentHandler.ArraySliceAssignment(
+    AssignmentHandler.SliceAssignment sliceAssignment =
+        new AssignmentHandler.SliceAssignment(
             lhsSlice, Optional.empty(), Optional.of(rhsSlice));
 
     assignments.add(sliceAssignment);
