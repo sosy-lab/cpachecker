@@ -44,11 +44,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -61,6 +61,10 @@ import org.sosy_lab.java_smt.api.FormulaType;
  * resolved to an expression.
  *
  * <p>Normal code should use {@link AssignmentHandler} for assignments.
+ *
+ * @see SliceExpression
+ * @see AssignmentHandler
+ * @see AssignmentQuantifierHandler
  */
 class AssignmentFormulaHandler {
 

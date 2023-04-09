@@ -43,15 +43,15 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceFieldAccessModifier;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceVariable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceModifier;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.PartialSpan;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentLhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentRhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceFieldAccessModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceVariable;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
@@ -59,14 +59,17 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  *
  * <p>Slice assignments are used, which means that after the LHS and RHS bases, quantified indexing
  * and further field accesses may be done. For example, with {@code int a[3], b[3]}, the function
- * {@code memcpy(&b, &a, size * sizeof(int))} can be encoded as {@code b[i] = a[i]} with index
+ * {@code memcpy(&b, &a, size * sizeof(int))} can be encoded as {@code b[i] = a[i]} with slice
  * variable {@code 0 <= i < size}. Idiomatic loop assignments such as {@code for (i=0; i < size;
  * ++i) b[i] = a[i]} could also be transformed into slice assignments in the future.
  *
  * <p>The entry point is {@link #assign(List)}, which takes care of everything necessary for proper
  * assignment handling.
  *
- * <p>Currently, {@link MemoryFunctionHandler} uses the slicing functionality externally.
+ * @see SliceExpression
+ * @see AssignmentQuantifierHandler
+ * @see AssignmentFormulaHandler
+ * @see MemoryFunctionHandler
  */
 class AssignmentHandler {
 
@@ -95,8 +98,8 @@ class AssignmentHandler {
       checkNotNull(lhs);
       checkNotNull(relevancyLhs);
       checkNotNull(rhs);
-      checkArgument(!lhs.containsUnresolvedIndexModifiers());
-      checkArgument(rhs.isEmpty() || !rhs.get().containsUnresolvedIndexModifiers());
+      checkArgument(!lhs.containsUnresolvedModifiers());
+      checkArgument(rhs.isEmpty() || !rhs.get().containsUnresolvedModifiers());
       this.lhs = lhs;
       this.relevancyLhs = relevancyLhs;
       this.rhs = rhs;

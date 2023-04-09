@@ -9,47 +9,51 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.OptionalLong;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.java_smt.api.Formula;
 
 /**
- * A helper class for realization of assignments to array slices, used for indexing by quantified
- * variables. Since a {@code CExpression} cannot include array slicing (in this context meaning
- * indexing by a quantified variable), this class wraps {@code CExpression} and allows adding
- * modifiers, which consist of either slice-indexing or accessing fields.
+ * Represents a left-hand side or right-hand side of a slice assignment, allowing for quantified
+ * indexing. For example, the function {@code memcpy(&b, &a, size * sizeof(int))} can be encoded as
+ * {@code b[i] = a[i]} with slice variable {@code 0 <= i < size}. The slice variable is unrolled or
+ * encoded during the assignment as needed.
  *
- * <p>If field modifiers are added before the first slicing, they are immediately applied to the
- * {@code CExpression}. For example, {@code foo.a[i].b} results in the base {@code foo.a} and two
- * modifiers representing {@code [i]} and {@code .b} respectively.
+ * <p>Since an AST node cannot include array slicing directly, this class starts with {@link
+ * CRightHandSide} as {@link #base} and allows adding modifiers after it. The modifiers are either
+ * indexing or field access.
+ *
+ * <p>During the assignment handling, the quantifiers are resolved first by {@link
+ * AssignmentQuantifierHandler}, which turns each unresolved {@link SliceVariableIndexModifier} into
+ * a resolved {@link SliceFormulaIndexModifier} which contains the actual variable formula (fixed
+ * index in case of quantifier unrolling, encoded variable name in case of quantifier encoding).
+ * After the quantifiers are resolved, the whole modifier chain is applied to the base which was
+ * already turned to {@link ResolvedSlice} previously.
+ *
+ * <p>Note that the base type is {@link CRightHandSide} even if we are representing the left-hand
+ * side. This is so that {@link CRightHandSide} function parameters do not need to be formally
+ * turned into {@link CLeftHandSide} by introducing formal assignment of (RHS) argument to (LHS)
+ * parameter. It is the responsibility of user of this class to ensure that the left-hand sides
+ * correspond to actual locations.
  */
 final class SliceExpression {
 
+  /** A helper class that tracks a resolved expression together with its corresponding C type. */
   record ResolvedSlice(Expression expression, CType type) {
 
     ResolvedSlice(Expression expression, CType type) {
@@ -62,45 +66,41 @@ final class SliceExpression {
 
   /**
    * A helper class for indexing by quantified variables, standing for an index {@code i} which can
-   * take values from {@code 0 <= i < size}. Indexing the left-hand side and right-hand side by the
-   * same index will result in them sharing the same quantifier (or quantifier replacement).
+   * take values from {@code 0 <= i < sliceSize}. Indexing the left-hand side and right-hand side by
+   * the same index will result in them sharing the same quantifier (or quantifier replacement).
    *
-   * <p>In other words, in {@code a[i] = b[i]}, both instances of {@code
-   * ArraySliceSubscriptModifier} should point to the same {@code ArraySliceIndex}. Otherwise, it
-   * would mean {@code a[i] = b[j]} where {@code i} and {@code j} are different quantified
-   * variables.
+   * <p>In other words, in {@code a[i] = b[i]}, both instances of {@link SliceVariableIndexModifier}
+   * should point to the same {@link SliceVariable}. Otherwise, it would mean {@code a[i] = b[j]}
+   * where {@code i} and {@code j} are different quantified variables.
    *
    * <p>This is a class and not a record as records override equals to provide equality between
-   * objects with equal fields. Here, an instance of the index stands for a unique quantified
-   * variable.
+   * objects with equal fields. Here, an instance stands for a unique slice variable.
    */
   static class SliceVariable {
-    private final CExpression size;
+    private final CExpression sliceSize;
 
-    SliceVariable(CExpression pSize) {
-      checkNotNull(pSize);
-      size = pSize;
+    SliceVariable(CExpression pSliceSize) {
+      checkNotNull(pSliceSize);
+      sliceSize = pSliceSize;
     }
 
-    CExpression getSize() {
-      return size;
+    CExpression getSliceSize() {
+      return sliceSize;
     }
 
     @Override
     public String toString() {
-      return "ArraySliceIndexVariable [size=" + size + "]";
+      // make sure toString() of distinct variables is distinct
+      return super.toString() + " [size=" + sliceSize + "]";
     }
   }
 
-  /**
-   * The base CExpression can be modified by multiple modifiers, which are either field access,
-   * i.e., {@code base.field}, or subscript, i.e., {@code base[i]}.
-   */
-  sealed interface SliceModifier
-      permits SliceFieldAccessModifier, SliceIndexModifier {}
+  /** Represents a modification of the location represented by base. */
+  sealed interface SliceModifier permits SliceFieldAccessModifier, SliceIndexModifier {}
 
+  /** Represents performing indexing on a {@code CExpression}, i.e., {@code base[i]}. */
   sealed interface SliceIndexModifier extends SliceModifier
-      permits SliceVariableIndexModifier, SliceResolvedIndexModifier {}
+      permits SliceVariableIndexModifier, SliceFormulaIndexModifier {}
 
   /** Represents performing a field access on a {@code CExpression}, i.e., {@code base.field}. */
   record SliceFieldAccessModifier(CCompositeTypeMemberDeclaration field)
@@ -112,50 +112,57 @@ final class SliceExpression {
   }
 
   /**
-   * Represents performing a subscript operation on a {@code CExpression}, i.e., {@code base[i]}.
+   * Represents performing indexing on a {@code CExpression}, i.e., {@code base[i]}, where {@code i}
+   * is a slice variable.
    */
-  record SliceVariableIndexModifier(SliceVariable index)
-      implements SliceIndexModifier {
+  record SliceVariableIndexModifier(SliceVariable index) implements SliceIndexModifier {
     SliceVariableIndexModifier(SliceVariable index) {
       checkNotNull(index);
       this.index = index;
     }
   }
 
-  /** Represents performing a subscript operation with a resolved formula. */
-  record SliceResolvedIndexModifier(Formula encodedVariable)
-      implements SliceIndexModifier {
-    SliceResolvedIndexModifier(Formula encodedVariable) {
+  /**
+   * Represents performing indexing on a {@code CExpression}, i.e., {@code base[f]}, where {@code f}
+   * is a resolved formula.
+   */
+  record SliceFormulaIndexModifier(Formula encodedVariable) implements SliceIndexModifier {
+    SliceFormulaIndexModifier(Formula encodedVariable) {
       checkNotNull(encodedVariable);
       this.encodedVariable = encodedVariable;
     }
   }
 
+  /**
+   * The base of slice expression, which is a {@link CRightHandSide} so that both right-hand sides
+   * and left-hand sides can be retained ({@link CLeftHandSide} extends {@link CRightHandSide}).
+   */
   private final CRightHandSide base;
-  private final ImmutableList<SliceModifier> modifiers;
 
   /**
-   * Construct using a base, with no modifiers.
-   *
-   * @param base The base
+   * The base can be modified by multiple modifiers, which are either field access, i.e., {@code
+   * base.field}, or indexing, i.e., {@code base[i]}. The modifiers are stored left-to-right.
    */
+  private final ImmutableList<SliceModifier> modifiers;
+
+  /** Construct the slice expression using a base, with no modifiers. */
   SliceExpression(CRightHandSide base) {
     this.base = checkNotNull(base);
     this.modifiers = ImmutableList.of();
   }
 
+  /** Construct the slice expression using both the base and modifiers. */
   SliceExpression(CRightHandSide base, ImmutableList<SliceModifier> pModifiers) {
     this.base = checkNotNull(base);
     this.modifiers = checkNotNull(pModifiers);
   }
 
   /**
-   * Return a new {@code ArraySliceExpression} with access of the specified field as the last
-   * modifier.
+   * Return a new {@link SliceExpression} with access of the specified field as the last modifier.
    *
    * @param field The structure member which should be accessed. It is the responsibilty of the
    *     calling code to ensure it can actually be accessed at that point.
-   * @return The modified {@code ArraySliceExpression}
+   * @return The modified {@link SliceExpression}
    */
   SliceExpression withFieldAccess(CCompositeTypeMemberDeclaration field) {
     checkNotNull(field);
@@ -169,11 +176,11 @@ final class SliceExpression {
   }
 
   /**
-   * Return a new {@code ArraySliceExpression} with indexing by the specified variable as the last
+   * Return a new {@link SliceExpression} with indexing by the given slice variable as the last
    * modifier.
    *
    * @param index The index variable that should be used for indexing.
-   * @return The modified {@code ArraySliceExpression}
+   * @return The modified {@link SliceExpression}
    */
   SliceExpression withIndex(SliceVariable index) {
     checkNotNull(index);
@@ -187,53 +194,27 @@ final class SliceExpression {
   }
 
   /**
-   * Return a new {@code ArraySliceExpression} where the quantified modifiers with a given
-   * quantified variable are resolved by a given formula.
+   * Return a new {@code ArraySliceExpression} where indexing by the given quantified variable is
+   * replaced with indexing by the given formula.
    *
-   * @param quantifiedVariable The quantified variable to resolve
-   * @param encodedVariable The formula to resolve the variable with
-   * @return The resolved {@code ArraySliceExpression}
-   * @throws IllegalStateException If there were no modifiers.
+   * @param sliceVariable The slice variable to resolve
+   * @param replacementFormula The formula to resolve the variable with
+   * @return The resolved {@link SliceExpression}
    */
-  SliceExpression resolveVariable(
-      SliceVariable quantifiedVariable, Formula encodedVariable) {
+  SliceExpression resolveVariable(SliceVariable sliceVariable, Formula replacementFormula) {
 
-    // replace quantified subscript modifiers on the given variable by fixed subscripts
-    // with the provided encoded variable subscript modifiers
+    // replace variable index modifiers on the given variable by formula index modifiers
     List<SliceModifier> newModifiers =
         modifiers.stream()
             .map(
                 modifier ->
                     modifier instanceof SliceVariableIndexModifier quantifiedModifier
-                            && quantifiedModifier.index.equals(quantifiedVariable)
-                        ? new SliceResolvedIndexModifier(encodedVariable)
+                            && quantifiedModifier.index.equals(sliceVariable)
+                        ? new SliceFormulaIndexModifier(replacementFormula)
                         : modifier)
             .toList();
 
     return new SliceExpression(base, ImmutableList.copyOf(newModifiers));
-  }
-
-  /**
-   * Returns whether the expression is resolved, i.e., there are only field access and fixed
-   * subscript modifiers.
-   *
-   * @return Whether the expression is resolved.
-   */
-  boolean isResolved() {
-    return modifiers.stream()
-        .allMatch(
-            modifier ->
-                modifier instanceof SliceFieldAccessModifier
-                    || modifier instanceof SliceResolvedIndexModifier);
-  }
-
-  /**
-   * Returns the base.
-   *
-   * @return The base.
-   */
-  CRightHandSide getBase() {
-    return base;
   }
 
   /**
@@ -243,6 +224,7 @@ final class SliceExpression {
    * @return The canonical type of expression after it is resolved
    */
   CType getFullExpressionType() {
+    // start with base type
     CType type = base.getExpressionType().getCanonicalType();
 
     for (SliceModifier modifier : modifiers) {
@@ -251,7 +233,7 @@ final class SliceExpression {
         type = fieldModifier.field.getType().getCanonicalType();
       } else {
         assert (modifier instanceof SliceVariableIndexModifier);
-        // replace type with its element type
+        // replace type with the type of its element
         CPointerType adjustedPointerType = (CPointerType) CTypes.adjustFunctionOrArrayType(type);
         type = adjustedPointerType.getType().getCanonicalType();
       }
@@ -261,10 +243,10 @@ final class SliceExpression {
   }
 
   /**
-   * Makes a canonical ArraySliceExpression out of this one. A canonical expression has all outer
-   * field accesses in base (that do not dereference) moved to the start of modifiers.
+   * Makes a canonical {@link SliceExpression} out of this one. A canonical expression has all outer
+   * field accesses in base moved to the start of modifiers.
    *
-   * @return A canonical version of this.
+   * @return A canonical version of this expression.
    */
   SliceExpression constructCanonical() {
     // only CExpression can have outer field accesses
@@ -275,8 +257,8 @@ final class SliceExpression {
     List<SliceModifier> canonicalModifiers = new ArrayList<>(modifiers);
     while (currentBase instanceof CFieldReference outerFieldReference) {
       if (outerFieldReference.isPointerDereference()) {
-        // pointer dereference, stop canonizing
-        break;
+        // pointer dereference, convert to explicit pointer dereference
+        outerFieldReference = outerFieldReference.withExplicitPointerDereference();
       }
       // the outer reference must be added in front of all previous modifiers
       canonicalModifiers.add(
@@ -289,16 +271,8 @@ final class SliceExpression {
     return new SliceExpression(currentBase, ImmutableList.copyOf(canonicalModifiers));
   }
 
-  /**
-   * Returns all modifiers.
-   *
-   * @return All modifiers.
-   */
-  ImmutableList<SliceModifier> getModifiers() {
-    return modifiers;
-  }
-
-  ImmutableList<SliceVariable> getUnresolvedIndexVariables() {
+  /** Returns all slice variables present in the modifiers. */
+  ImmutableList<SliceVariable> getPresentVariables() {
     ImmutableList.Builder<SliceVariable> builder = ImmutableList.builder();
     for (SliceModifier modifier : modifiers) {
       if (modifier instanceof SliceVariableIndexModifier subscriptModifier) {
@@ -306,161 +280,6 @@ final class SliceExpression {
       }
     }
     return builder.build();
-  }
-
-  ResolvedSlice resolveModifiers(
-      ResolvedSlice resolvedBase,
-      CToFormulaConverterWithPointerAliasing conv,
-      SSAMapBuilder ssa,
-      ErrorConditions errorConditions,
-      MemoryRegionManager regionMgr) {
-
-    // we have resolved the base
-    ResolvedSlice resolved = resolvedBase;
-
-    boolean wasParameterId = (base instanceof CIdExpression idBase) &&
-         idBase.getDeclaration() instanceof CParameterDeclaration;
-
-    // resolve the modifiers now
-    for (SliceModifier modifier : modifiers) {
-      if (modifier instanceof SliceIndexModifier subscriptModifier) {
-        resolved =
-            convertSubscriptModifier(
-                conv, ssa, errorConditions, regionMgr, resolved, subscriptModifier, wasParameterId);
-      } else {
-        resolved =
-            convertFieldAccessModifier(
-                conv, regionMgr, resolved, (SliceFieldAccessModifier) modifier);
-      }
-    }
-
-    return resolved;
-  }
-
-  private Formula asValueFormula(
-      CToFormulaConverterWithPointerAliasing conv,
-      SSAMapBuilder ssa,
-      ErrorConditions errorConditions,
-      MemoryRegionManager regionMgr,
-      final Expression e,
-      final CType type,
-      final boolean isSafe) {
-    // TODO: deduplicate with CExpressionVisitorWithPointerAliasing.asValueFormula
-    if (e.isNondetValue()) {
-      throw new IllegalStateException();
-    } else if (e.isValue()) {
-      return e.asValue().getValue();
-    } else if (e.isAliasedLocation()) {
-      MemoryRegion region = e.asAliasedLocation().getMemoryRegion();
-      if (region == null) {
-        region = regionMgr.makeMemoryRegion(type);
-      }
-      return !isSafe
-          ? conv.makeDereference(
-              type, e.asAliasedLocation().getAddress(), ssa, errorConditions, region)
-          : conv.makeSafeDereference(type, e.asAliasedLocation().getAddress(), ssa, region);
-    } else { // Unaliased location
-      return conv.makeVariable(e.asUnaliasedLocation().getVariableName(), type, ssa);
-    }
-  }
-
-  private ResolvedSlice convertSubscriptModifier(
-      CToFormulaConverterWithPointerAliasing conv,
-      SSAMapBuilder ssa,
-      ErrorConditions errorConditions,
-      MemoryRegionManager regionMgr,
-      ResolvedSlice resolved,
-      SliceIndexModifier modifier,
-      boolean wasParameterId) {
-
-    final AliasedLocation dereferenced;
-
-    // dereference resolved
-    // TODO: deduplicate with CExpressionVisitorWithPointerAliasing.dereference
-    boolean shouldTreatAsDirectAccess = resolved.expression.isAliasedLocation()
-        && (resolved.type instanceof CCompositeType
-            || (resolved.type instanceof CArrayType
-                && !wasParameterId));
-    if (shouldTreatAsDirectAccess) {
-      dereferenced = resolved.expression.asAliasedLocation();
-    } else {
-      dereferenced =
-          AliasedLocation.ofAddress(
-              asValueFormula(
-                  conv,
-                  ssa,
-                  errorConditions,
-                  regionMgr,
-                  resolved.expression,
-                  CTypeUtils.implicitCastToPointer(resolved.type),
-                  shouldTreatAsDirectAccess));
-    }
-
-    // all subscript modifiers must be already resolved here
-    SliceResolvedIndexModifier resolvedModifier =
-        (SliceResolvedIndexModifier) modifier;
-
-    // get the array element type
-    CPointerType basePointerType = (CPointerType) CTypes.adjustFunctionOrArrayType(resolved.type());
-    final CType elementType = conv.typeHandler.simplifyType(basePointerType.getType());
-
-    // get base array address, arrays must be always aliased
-    Formula baseAddress = dereferenced.getAddress();
-
-    // get size of array element
-    final Formula sizeofElement =
-        conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
-
-    // perform pointer arithmetic, we have array[base] and want array[base + i]
-    // the quantified variable i must be multiplied by the sizeof the element type
-    final Formula adjustedAddress =
-        conv.fmgr.makePlus(
-            baseAddress, conv.fmgr.makeMultiply(resolvedModifier.encodedVariable(), sizeofElement));
-
-    // return the resolved formula with adjusted address and array element type
-    return new ResolvedSlice(AliasedLocation.ofAddress(adjustedAddress), elementType);
-  }
-
-  private ResolvedSlice convertFieldAccessModifier(
-      CToFormulaConverterWithPointerAliasing conv,
-      MemoryRegionManager regionMgr,
-      ResolvedSlice resolved,
-      SliceFieldAccessModifier modifier) {
-
-    // the base type must be a composite type to have fields
-    CCompositeType baseType = (CCompositeType) resolved.type();
-    final String fieldName = modifier.field().getName();
-    CType fieldType = conv.typeHandler.getSimplifiedType(modifier.field());
-
-    // composite types may be aliased or unaliased, resolve in both cases
-    if (resolved.expression().isUnaliasedLocation()) {
-      UnaliasedLocation resultLocation =
-          UnaliasedLocation.ofVariableName(
-              getFieldAccessName(
-                  resolved.expression().asUnaliasedLocation().getVariableName(), modifier.field()));
-      return new ResolvedSlice(resultLocation, fieldType);
-    }
-
-    // aliased location
-    // we will increase the base address by field offset
-    Formula baseAddress = resolved.expression().asAliasedLocation().getAddress();
-
-    // we must create a memory region for access
-    final MemoryRegion region = regionMgr.makeMemoryRegion(baseType, modifier.field());
-
-    final OptionalLong offset = conv.typeHandler.getOffset(baseType, fieldName);
-    if (!offset.isPresent()) {
-      // this loses assignments from/to aliased bitfields
-      // TODO: implement aliased bitfields
-      return new ResolvedSlice(Value.nondetValue(), fieldType);
-    }
-
-    final Formula offsetFormula =
-        conv.fmgr.makeNumber(conv.voidPointerFormulaType, offset.orElseThrow());
-    final Formula adjustedAdress = conv.fmgr.makePlus(baseAddress, offsetFormula);
-
-    AliasedLocation adjustedLocation = AliasedLocation.ofAddressWithRegion(adjustedAdress, region);
-    return new ResolvedSlice(adjustedLocation, fieldType);
   }
 
   /**
@@ -513,14 +332,20 @@ final class SliceExpression {
     return resolved;
   }
 
-  boolean containsUnresolvedIndexModifiers() {
+  /** Returns whether there are any unresolved modifiers, i.e. slice variable index modifiers. */
+  boolean containsUnresolvedModifiers() {
     return modifiers.stream()
         .anyMatch(modifier -> modifier instanceof SliceVariableIndexModifier);
   }
 
-  boolean containsResolvedIndexModifiers() {
-    return modifiers.stream()
-        .anyMatch(modifier -> modifier instanceof SliceResolvedIndexModifier);
+  /** Returns the base. */
+  CRightHandSide getBase() {
+    return base;
+  }
+
+  /** Returns all modifiers. */
+  ImmutableList<SliceModifier> getModifiers() {
+    return modifiers;
   }
 
   @Override

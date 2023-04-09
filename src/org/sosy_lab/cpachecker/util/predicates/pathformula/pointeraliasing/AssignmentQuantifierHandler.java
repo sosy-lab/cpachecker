@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
 
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -19,15 +20,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -36,11 +42,18 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceVariable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.PartialSpan;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.ResolvedPartialAssignmentRhs;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceFieldAccessModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceFormulaIndexModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceIndexModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceVariable;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -63,6 +76,10 @@ import org.sosy_lab.java_smt.api.FormulaType;
  *
  * <p>Normal code should use {@link AssignmentHandler} for assignments instead which transforms
  * arbitrary assignments to simple assignments before using this handler.
+ *
+ * @see SliceExpression
+ * @see AssignmentHandler
+ * @see AssignmentFormulaHandler
  */
 class AssignmentQuantifierHandler {
 
@@ -207,10 +224,10 @@ class AssignmentQuantifierHandler {
     final LinkedHashSet<SliceVariable> variablesToQuantify = new LinkedHashSet<>();
     for (Entry<PartialAssignmentLhs, Collection<PartialAssignmentRhs>> entry :
         assignmentMultimap.asMap().entrySet()) {
-      variablesToQuantify.addAll(entry.getKey().actual().getUnresolvedIndexVariables());
+      variablesToQuantify.addAll(entry.getKey().actual().getPresentVariables());
       for (PartialAssignmentRhs rhs : entry.getValue()) {
         if (rhs.actual().isPresent()) {
-          variablesToQuantify.addAll(rhs.actual().get().getUnresolvedIndexVariables());
+          variablesToQuantify.addAll(rhs.actual().get().getPresentVariables());
         }
       }
     }
@@ -257,7 +274,7 @@ class AssignmentQuantifierHandler {
     nextVariablesToQuantify.remove(variableToQuantify);
 
     // get the variable slice size (the assignment is done for all i where 0 <= i < sliceSize)
-    final CExpression sliceSize = variableToQuantify.getSize();
+    final CExpression sliceSize = variableToQuantify.getSliceSize();
     // cast it to size type to get a proper formula
     final CExpression sliceSizeCastToSizeType =
         new CCastExpression(FileLocation.DUMMY, sizeType, sliceSize);
@@ -390,7 +407,7 @@ class AssignmentQuantifierHandler {
     long unrollingSize = options.defaultArrayLength();
 
     // if the expression is a literal, we can get the exact slice size
-    final CExpression sliceSize = variableToUnroll.getSize();
+    final CExpression sliceSize = variableToUnroll.getSliceSize();
     if (sliceSize instanceof CIntegerLiteralExpression literalSliceSize) {
       final long exactSliceSize =
           ((CIntegerLiteralExpression) sliceSize).getValue().longValueExact();
@@ -521,14 +538,12 @@ class AssignmentQuantifierHandler {
     for (Entry<PartialAssignmentLhs, Collection<PartialAssignmentRhs>> assignment :
         assignmentMultimap.asMap().entrySet()) {
 
-      final SliceExpression lhs = assignment.getKey().actual();
+      final SliceExpression lhsSlice = assignment.getKey().actual();
       final CType targetType = assignment.getKey().targetType();
 
       // resolve the LHS by getting the resolved base and resolving modifiers over it
-      final ResolvedSlice lhsResolvedBase = resolvedLhsBases.get(lhs.getBase());
-      assert (lhsResolvedBase != null);
-      final ResolvedSlice lhsResolved =
-          lhs.resolveModifiers(lhsResolvedBase, conv, ssa, errorConditions, regionMgr);
+      final ResolvedSlice lhsResolvedBase = resolvedLhsBases.get(lhsSlice.getBase());
+      final ResolvedSlice lhsResolved = applySliceModifiersToResolvedBase(lhsResolvedBase, lhsSlice);
 
       // skip assignment if LHS is nondet
       if (lhsResolved.expression().isNondetValue()) {
@@ -551,9 +566,7 @@ class AssignmentQuantifierHandler {
         // resolve the RHS by getting the resolved base and resolving modifiers over it
         final SliceExpression rhsSlice = rhs.actual().get();
         final ResolvedSlice rhsResolvedBase = resolvedRhsBases.get(rhsSlice.getBase());
-        assert (rhsResolvedBase != null);
-        ResolvedSlice rhsResolved =
-            rhsSlice.resolveModifiers(rhsResolvedBase, conv, ssa, errorConditions, regionMgr);
+        ResolvedSlice rhsResolved = applySliceModifiersToResolvedBase(rhsResolvedBase, rhsSlice);
 
         // after resolving rhs, the rhs resolved type may be array even if we want to do
         // pointer assignment, signified by pointer target type
@@ -577,7 +590,7 @@ class AssignmentQuantifierHandler {
                   && lhsResolved.expression().isAliasedLocation()
                   && !assignmentOptions.useOldSSAIndicesIfAliased()
               ? PointerTargetPattern.forLeftHandSide(
-                  (CLeftHandSide) lhs.getDummyResolvedExpression(sizeType), typeHandler, edge, pts)
+                  (CLeftHandSide) lhsSlice.getDummyResolvedExpression(sizeType), typeHandler, edge, pts)
               : null;
 
       // make the actual assignment
@@ -597,4 +610,141 @@ class AssignmentQuantifierHandler {
     return result;
   }
 
+  /**
+   * Applies slice modifiers to resolved base.
+   *
+   * @param resolvedBase Supplied resolved base (it must be resolved externally).
+   * @return Resolution result after applying modifiers.
+   * @throws IllegalStateException If there are any unresolved modifiers.
+   */
+  private ResolvedSlice applySliceModifiersToResolvedBase(
+      final ResolvedSlice resolvedBase, final SliceExpression slice) {
+    assert (resolvedBase != null);
+
+    ResolvedSlice resolved = resolvedBase;
+
+    // needed for the subscript modifier
+    boolean wasParameterId =
+        (slice.getBase() instanceof CIdExpression idBase)
+            && idBase.getDeclaration() instanceof CParameterDeclaration;
+
+    // apply the modifiers now
+    // TODO: deduplicate the resolution functions with CExpressionVisitorWithPointerAliasing
+    for (SliceModifier modifier : slice.getModifiers()) {
+      if (modifier instanceof SliceIndexModifier subscriptModifier) {
+        resolved = applySubscriptModifier(resolved, subscriptModifier, wasParameterId);
+      } else if (modifier instanceof SliceFieldAccessModifier fieldAccessModifier) {
+        resolved = applyFieldAccessModifier(resolved, fieldAccessModifier);
+      } else {
+        throw new IllegalStateException("Cannot apply unresolved modifier to resolved slice");
+      }
+    }
+
+    return resolved;
+  }
+
+  private ResolvedSlice applyFieldAccessModifier(
+      ResolvedSlice resolved, SliceFieldAccessModifier modifier) {
+
+    // the base type must be a composite type to have fields
+    CCompositeType baseType = (CCompositeType) resolved.type();
+    final String fieldName = modifier.field().getName();
+    CType fieldType = conv.typeHandler.getSimplifiedType(modifier.field());
+
+    // composite types may be aliased or unaliased, resolve in both cases
+    if (resolved.expression().isUnaliasedLocation()) {
+      UnaliasedLocation resultLocation =
+          UnaliasedLocation.ofVariableName(
+              getFieldAccessName(
+                  resolved.expression().asUnaliasedLocation().getVariableName(), modifier.field()));
+      return new ResolvedSlice(resultLocation, fieldType);
+    }
+
+    // aliased location
+    // we will increase the base address by field offset
+    Formula baseAddress = resolved.expression().asAliasedLocation().getAddress();
+
+    // we must create a memory region for access
+    final MemoryRegion region = regionMgr.makeMemoryRegion(baseType, modifier.field());
+
+    final OptionalLong offset = conv.typeHandler.getOffset(baseType, fieldName);
+    if (!offset.isPresent()) {
+      // this loses assignments from/to aliased bitfields
+      // TODO: implement aliased bitfields
+      return new ResolvedSlice(Value.nondetValue(), fieldType);
+    }
+
+    final Formula offsetFormula =
+        conv.fmgr.makeNumber(conv.voidPointerFormulaType, offset.orElseThrow());
+    final Formula adjustedAdress = conv.fmgr.makePlus(baseAddress, offsetFormula);
+
+    AliasedLocation adjustedLocation = AliasedLocation.ofAddressWithRegion(adjustedAdress, region);
+    return new ResolvedSlice(adjustedLocation, fieldType);
+  }
+
+  private ResolvedSlice applySubscriptModifier(
+      ResolvedSlice resolved, SliceIndexModifier modifier, boolean wasParameterId) {
+
+    final AliasedLocation dereferenced;
+
+    // dereference resolved
+    // TODO: deduplicate with CExpressionVisitorWithPointerAliasing.dereference
+    boolean shouldTreatAsDirectAccess =
+        resolved.expression().isAliasedLocation()
+            && (resolved.type() instanceof CCompositeType
+                || (resolved.type() instanceof CArrayType && !wasParameterId));
+    if (shouldTreatAsDirectAccess) {
+      dereferenced = resolved.expression().asAliasedLocation();
+    } else {
+      dereferenced =
+          AliasedLocation.ofAddress(
+              asValueFormula(
+                  resolved.expression(),
+                  CTypeUtils.implicitCastToPointer(resolved.type()),
+                  shouldTreatAsDirectAccess));
+    }
+
+    // all subscript modifiers must be already resolved here
+    SliceFormulaIndexModifier resolvedModifier = (SliceFormulaIndexModifier) modifier;
+
+    // get the array element type
+    CPointerType basePointerType = (CPointerType) CTypes.adjustFunctionOrArrayType(resolved.type());
+    final CType elementType = conv.typeHandler.simplifyType(basePointerType.getType());
+
+    // get base array address, arrays must be always aliased
+    Formula baseAddress = dereferenced.getAddress();
+
+    // get size of array element
+    final Formula sizeofElement =
+        conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
+
+    // perform pointer arithmetic, we have array[base] and want array[base + i]
+    // the quantified variable i must be multiplied by the sizeof the element type
+    final Formula adjustedAddress =
+        conv.fmgr.makePlus(
+            baseAddress, conv.fmgr.makeMultiply(resolvedModifier.encodedVariable(), sizeofElement));
+
+    // return the resolved formula with adjusted address and array element type
+    return new ResolvedSlice(AliasedLocation.ofAddress(adjustedAddress), elementType);
+  }
+
+  private Formula asValueFormula(final Expression e, final CType type, final boolean isSafe) {
+    // TODO: deduplicate with CExpressionVisitorWithPointerAliasing.asValueFormula
+    if (e.isNondetValue()) {
+      throw new IllegalStateException();
+    } else if (e.isValue()) {
+      return e.asValue().getValue();
+    } else if (e.isAliasedLocation()) {
+      MemoryRegion region = e.asAliasedLocation().getMemoryRegion();
+      if (region == null) {
+        region = regionMgr.makeMemoryRegion(type);
+      }
+      return !isSafe
+          ? conv.makeDereference(
+              type, e.asAliasedLocation().getAddress(), ssa, errorConditions, region)
+          : conv.makeSafeDereference(type, e.asAliasedLocation().getAddress(), ssa, region);
+    } else { // Unaliased location
+      return conv.makeVariable(e.asUnaliasedLocation().getVariableName(), type, ssa);
+    }
+  }
 }
