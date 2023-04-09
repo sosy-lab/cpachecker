@@ -45,10 +45,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceResolved;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceSpan;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceSpanResolved;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.AssignmentConversionType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.AssignmentOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
@@ -67,6 +63,40 @@ import org.sosy_lab.java_smt.api.FormulaType;
  * <p>Normal code should use {@link AssignmentHandler} for assignments.
  */
 class AssignmentFormulaHandler {
+
+  enum AssignmentConversionType {
+    CAST,
+    REINTERPRET
+  }
+
+  record AssignmentOptions(
+      boolean useOldSSAIndicesIfAliased,
+      AssignmentConversionType conversionType,
+      boolean forceQuantifiers,
+      boolean forcePointerAssignment) {
+    AssignmentOptions(
+        boolean useOldSSAIndicesIfAliased,
+        AssignmentConversionType conversionType,
+        boolean forceQuantifiers,
+        boolean forcePointerAssignment) {
+      checkNotNull(conversionType);
+      this.useOldSSAIndicesIfAliased = useOldSSAIndicesIfAliased;
+      this.conversionType = conversionType;
+      this.forceQuantifiers = forceQuantifiers;
+      this.forcePointerAssignment = forcePointerAssignment;
+    }
+  }
+
+  record ArraySliceSpan(long lhsBitOffset, long rhsBitOffset, long bitSize) {}
+
+  record ArraySliceSpanResolved(ArraySliceSpan span, Optional<ArraySliceResolved> actual) {
+    ArraySliceSpanResolved(ArraySliceSpan span, Optional<ArraySliceResolved> actual) {
+      checkNotNull(span);
+      checkNotNull(actual);
+      this.span = span;
+      this.actual = actual;
+    }
+  }
 
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView fmgr;

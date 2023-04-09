@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
@@ -36,10 +38,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceIndexVariable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceResolved;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceSpanLhs;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceSpanResolved;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.ArraySliceSpanRhs;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.AssignmentOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.ArraySliceSpan;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.ArraySliceSpanResolved;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentOptions;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -64,6 +65,24 @@ import org.sosy_lab.java_smt.api.FormulaType;
  * arbitrary assignments to simple assignments before using this handler.
  */
 class AssignmentQuantifierHandler {
+
+  record ArraySliceSpanLhs(ArraySliceExpression actual, CType targetType) {
+    ArraySliceSpanLhs(ArraySliceExpression actual, CType targetType) {
+      checkNotNull(actual);
+      checkNotNull(targetType);
+      this.actual = actual;
+      this.targetType = targetType;
+    }
+  }
+
+  record ArraySliceSpanRhs(ArraySliceSpan span, Optional<ArraySliceExpression> actual) {
+    ArraySliceSpanRhs(ArraySliceSpan span, Optional<ArraySliceExpression> actual) {
+      checkNotNull(span);
+      checkNotNull(actual);
+      this.span = span;
+      this.actual = actual;
+    }
+  }
 
   /** Prefix of SMT-encoded variable name, followed by variable number. */
   private static final String ENCODED_VARIABLE_PREFIX = "__quantifier_";

@@ -42,7 +42,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceIndexVariable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.AssignmentOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentConversionType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentOptions;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 class MemoryFunctionHandler {
@@ -246,10 +247,10 @@ class MemoryFunctionHandler {
     AssignmentHandler assignmentHandler =
         new AssignmentHandler(
             conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
-    AssignmentHandler.AssignmentOptions assignmentOptions =
+    AssignmentOptions assignmentOptions =
         new AssignmentOptions(
             false,
-            AssignmentHandler.AssignmentConversionType.REINTERPRET,
+            AssignmentConversionType.REINTERPRET,
             conv.options.forceQuantifiersInMemoryAssignmentFunctions(),
             false);
 
@@ -284,10 +285,10 @@ class MemoryFunctionHandler {
     AssignmentHandler assignmentHandler =
         new AssignmentHandler(
             conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
-    AssignmentHandler.AssignmentOptions assignmentOptions =
+    AssignmentOptions assignmentOptions =
         new AssignmentOptions(
             false,
-            AssignmentHandler.AssignmentConversionType.REINTERPRET,
+            AssignmentConversionType.REINTERPRET,
             conv.options.forceQuantifiersInMemoryAssignmentFunctions(),
             false);
     BooleanFormula assignmentFormula =
