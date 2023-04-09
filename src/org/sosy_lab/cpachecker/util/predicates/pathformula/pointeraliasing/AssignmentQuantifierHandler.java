@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceIndexVariable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ResolvedSlice;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ArraySliceIndexVariable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.PartialSpan;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.ResolvedPartialAssignmentRhs;
@@ -71,8 +71,8 @@ class AssignmentQuantifierHandler {
    * target type the right-hand sides should be cast/reinterpreted to. This is necessary because the
    * original cast target type is lost when making partial assignments simple.
    */
-  record PartialAssignmentLhs(ArraySliceExpression actual, CType targetType) {
-    PartialAssignmentLhs(ArraySliceExpression actual, CType targetType) {
+  record PartialAssignmentLhs(SliceExpression actual, CType targetType) {
+    PartialAssignmentLhs(SliceExpression actual, CType targetType) {
       checkNotNull(actual);
       checkNotNull(targetType);
       this.actual = actual;
@@ -85,8 +85,8 @@ class AssignmentQuantifierHandler {
    * stores the span mapping the relevant part of right-hand side (after casting to target type) to
    * left-hand side.
    */
-  record PartialAssignmentRhs(PartialSpan span, Optional<ArraySliceExpression> actual) {
-    PartialAssignmentRhs(PartialSpan span, Optional<ArraySliceExpression> actual) {
+  record PartialAssignmentRhs(PartialSpan span, Optional<SliceExpression> actual) {
+    PartialAssignmentRhs(PartialSpan span, Optional<SliceExpression> actual) {
       checkNotNull(span);
       checkNotNull(actual);
       this.span = span;
@@ -465,7 +465,7 @@ class AssignmentQuantifierHandler {
    */
   private Multimap<PartialAssignmentLhs, PartialAssignmentRhs> mapAssignmentSlices(
       final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap,
-      final Function<ArraySliceExpression, ArraySliceExpression> sliceMappingFunction) {
+      final Function<SliceExpression, SliceExpression> sliceMappingFunction) {
 
     // LinkedHashMultimap to preserve ordering
     final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> result = LinkedHashMultimap.create();
@@ -474,7 +474,7 @@ class AssignmentQuantifierHandler {
     for (Entry<PartialAssignmentLhs, Collection<PartialAssignmentRhs>> assignment :
         assignmentMultimap.asMap().entrySet()) {
       // apply the function to the LHS slice
-      final ArraySliceExpression mappedLhsSlice =
+      final SliceExpression mappedLhsSlice =
           sliceMappingFunction.apply(assignment.getKey().actual());
       // construct the whole LHS
       final PartialAssignmentLhs mappedLhs =
@@ -484,7 +484,7 @@ class AssignmentQuantifierHandler {
       for (PartialAssignmentRhs rhs : assignment.getValue()) {
         // apply the function to the RHS slice if it exists
         // (if it does not, it is taken as nondet)
-        final Optional<ArraySliceExpression> resolvedRhsSlice =
+        final Optional<SliceExpression> resolvedRhsSlice =
             rhs.actual().map(rhsSlice -> sliceMappingFunction.apply(rhsSlice));
         // construct the whole RHS and put the result into the new multimap
         final PartialAssignmentRhs resolvedRhs = new PartialAssignmentRhs(rhs.span(), resolvedRhsSlice);
@@ -521,7 +521,7 @@ class AssignmentQuantifierHandler {
     for (Entry<PartialAssignmentLhs, Collection<PartialAssignmentRhs>> assignment :
         assignmentMultimap.asMap().entrySet()) {
 
-      final ArraySliceExpression lhs = assignment.getKey().actual();
+      final SliceExpression lhs = assignment.getKey().actual();
       final CType targetType = assignment.getKey().targetType();
 
       // resolve the LHS by getting the resolved base and resolving modifiers over it
@@ -549,7 +549,7 @@ class AssignmentQuantifierHandler {
         }
 
         // resolve the RHS by getting the resolved base and resolving modifiers over it
-        final ArraySliceExpression rhsSlice = rhs.actual().get();
+        final SliceExpression rhsSlice = rhs.actual().get();
         final ResolvedSlice rhsResolvedBase = resolvedRhsBases.get(rhsSlice.getBase());
         assert (rhsResolvedBase != null);
         ResolvedSlice rhsResolved =

@@ -48,7 +48,7 @@ import org.sosy_lab.java_smt.api.Formula;
  * {@code CExpression}. For example, {@code foo.a[i].b} results in the base {@code foo.a} and two
  * modifiers representing {@code [i]} and {@code .b} respectively.
  */
-final class ArraySliceExpression {
+final class SliceExpression {
 
   record ResolvedSlice(Expression expression, CType type) {
 
@@ -139,12 +139,12 @@ final class ArraySliceExpression {
    *
    * @param base The base
    */
-  ArraySliceExpression(CRightHandSide base) {
+  SliceExpression(CRightHandSide base) {
     this.base = checkNotNull(base);
     this.modifiers = ImmutableList.of();
   }
 
-  ArraySliceExpression(CRightHandSide base, ImmutableList<ArraySliceModifier> pModifiers) {
+  SliceExpression(CRightHandSide base, ImmutableList<ArraySliceModifier> pModifiers) {
     this.base = checkNotNull(base);
     this.modifiers = checkNotNull(pModifiers);
   }
@@ -157,7 +157,7 @@ final class ArraySliceExpression {
    *     calling code to ensure it can actually be accessed at that point.
    * @return The modified {@code ArraySliceExpression}
    */
-  ArraySliceExpression withFieldAccess(CCompositeTypeMemberDeclaration field) {
+  SliceExpression withFieldAccess(CCompositeTypeMemberDeclaration field) {
     checkNotNull(field);
     // add to modifiers
     ImmutableList<ArraySliceModifier> newModifiers =
@@ -165,7 +165,7 @@ final class ArraySliceExpression {
             .addAll(modifiers)
             .add(new ArraySliceFieldAccessModifier(field))
             .build();
-    return new ArraySliceExpression(base, newModifiers);
+    return new SliceExpression(base, newModifiers);
   }
 
   /**
@@ -175,7 +175,7 @@ final class ArraySliceExpression {
    * @param index The index variable that should be used for indexing.
    * @return The modified {@code ArraySliceExpression}
    */
-  ArraySliceExpression withIndex(ArraySliceIndexVariable index) {
+  SliceExpression withIndex(ArraySliceIndexVariable index) {
     checkNotNull(index);
     // add to modifiers
     ImmutableList<ArraySliceModifier> newModifiers =
@@ -183,7 +183,7 @@ final class ArraySliceExpression {
             .addAll(modifiers)
             .add(new ArraySliceQuantifiedSubscriptModifier(index))
             .build();
-    return new ArraySliceExpression(base, newModifiers);
+    return new SliceExpression(base, newModifiers);
   }
 
   /**
@@ -195,7 +195,7 @@ final class ArraySliceExpression {
    * @return The resolved {@code ArraySliceExpression}
    * @throws IllegalStateException If there were no modifiers.
    */
-  ArraySliceExpression resolveVariable(
+  SliceExpression resolveVariable(
       ArraySliceIndexVariable quantifiedVariable, Formula encodedVariable) {
 
     // replace quantified subscript modifiers on the given variable by fixed subscripts
@@ -210,7 +210,7 @@ final class ArraySliceExpression {
                         : modifier)
             .toList();
 
-    return new ArraySliceExpression(base, ImmutableList.copyOf(newModifiers));
+    return new SliceExpression(base, ImmutableList.copyOf(newModifiers));
   }
 
   /**
@@ -266,7 +266,7 @@ final class ArraySliceExpression {
    *
    * @return A canonical version of this.
    */
-  ArraySliceExpression constructCanonical() {
+  SliceExpression constructCanonical() {
     // only CExpression can have outer field accesses
     if (!(base instanceof CExpression)) {
       return this;
@@ -286,7 +286,7 @@ final class ArraySliceExpression {
                   outerFieldReference.getExpressionType(), outerFieldReference.getFieldName())));
       currentBase = outerFieldReference.getFieldOwner();
     }
-    return new ArraySliceExpression(currentBase, ImmutableList.copyOf(canonicalModifiers));
+    return new SliceExpression(currentBase, ImmutableList.copyOf(canonicalModifiers));
   }
 
   /**
@@ -544,7 +544,7 @@ final class ArraySliceExpression {
     if (getClass() != obj.getClass()) {
       return false;
     }
-    ArraySliceExpression other = (ArraySliceExpression) obj;
+    SliceExpression other = (SliceExpression) obj;
     return Objects.equals(base, other.base) && Objects.equals(modifiers, other.modifiers);
   }
 

@@ -843,8 +843,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     AssignmentOptions assignmentOptions =
         new AssignmentOptions(false, AssignmentConversionType.CAST, false, forcePointerAssignment);
 
-    ArraySliceExpression assignmentLhs = new ArraySliceExpression(lhs);
-    ArraySliceExpression assignmentRhs = new ArraySliceExpression(rhs);
+    SliceExpression assignmentLhs = new SliceExpression(lhs);
+    SliceExpression assignmentRhs = new SliceExpression(rhs);
     SliceAssignment assignment =
         new SliceAssignment(
             assignmentLhs, Optional.of(lhsForChecking), Optional.of(assignmentRhs));
@@ -1037,7 +1037,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final BooleanFormula result;
     if (initializer instanceof CInitializerExpression || initializer == null) {
 
-      final ArraySliceExpression lhsSlice = new ArraySliceExpression(lhs);
+      final SliceExpression lhsSlice = new SliceExpression(lhs);
 
       if (initializer != null) {
         if (options.handleStringLiteralInitializers()) {
@@ -1053,7 +1053,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         }
 
         CExpression rhs = ((CInitializerExpression) initializer).getExpression();
-        ArraySliceExpression rhsSlice = new ArraySliceExpression(rhs);
+        SliceExpression rhsSlice = new SliceExpression(rhs);
         SliceAssignment assignment =
             new SliceAssignment(lhsSlice, Optional.of(lhs), Optional.of(rhsSlice));
 

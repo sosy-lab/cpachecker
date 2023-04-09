@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceIndexVariable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ArraySliceIndexVariable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentConversionType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentOptions;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -241,8 +241,8 @@ class MemoryFunctionHandler {
 
     ArraySliceIndexVariable sliceIndex = new ArraySliceIndexVariable(sizeInElements);
 
-    ArraySliceExpression lhs = new ArraySliceExpression(destination).withIndex(sliceIndex);
-    ArraySliceExpression rhs = new ArraySliceExpression(source).withIndex(sliceIndex);
+    SliceExpression lhs = new SliceExpression(destination).withIndex(sliceIndex);
+    SliceExpression rhs = new SliceExpression(source).withIndex(sliceIndex);
 
     AssignmentOptions assignmentOptions =
         new AssignmentOptions(
@@ -282,7 +282,7 @@ class MemoryFunctionHandler {
     CExpression sizeInElements = convertSizeInBytesToSizeInElements(sizeInBytes, destinationType);
 
     ArraySliceIndexVariable sliceIndex = new ArraySliceIndexVariable(sizeInElements);
-    ArraySliceExpression slice = new ArraySliceExpression(destination).withIndex(sliceIndex);
+    SliceExpression slice = new SliceExpression(destination).withIndex(sliceIndex);
 
     List<AssignmentHandler.SliceAssignment> assignments = new ArrayList<>();
     generateMemsetAssignments(slice, setValue, assignments);
@@ -311,7 +311,7 @@ class MemoryFunctionHandler {
   }
 
   private void generateMemsetAssignments(
-      final ArraySliceExpression lhsSlice,
+      final SliceExpression lhsSlice,
       final CExpression setValue,
       List<AssignmentHandler.SliceAssignment> assignments)
       throws UnrecognizedCodeException, InterruptedException {
@@ -329,7 +329,7 @@ class MemoryFunctionHandler {
       }
 
       ArraySliceIndexVariable arrayIndex = new ArraySliceIndexVariable(length);
-      ArraySliceExpression newSlice = lhsSlice.withIndex(arrayIndex);
+      SliceExpression newSlice = lhsSlice.withIndex(arrayIndex);
       generateMemsetAssignments(newSlice, setValue, assignments);
 
       return;
@@ -341,7 +341,7 @@ class MemoryFunctionHandler {
       // it should not matter that there will be multiple assignments for union fields
 
       for (CCompositeTypeMemberDeclaration member : compositeUnderlyingType.getMembers()) {
-        ArraySliceExpression newSlice = lhsSlice.withFieldAccess(member);
+        SliceExpression newSlice = lhsSlice.withFieldAccess(member);
         generateMemsetAssignments(newSlice, setValue, assignments);
       }
       return;
@@ -409,7 +409,7 @@ class MemoryFunctionHandler {
       actualSetValue = createSetValueExpression((CSimpleType) type, setValueUnsignedChar);
     }
 
-    ArraySliceExpression rhsSlice = new ArraySliceExpression(actualSetValue);
+    SliceExpression rhsSlice = new SliceExpression(actualSetValue);
 
     // there is no indexing of rhs
     // TODO: add relevancy checking

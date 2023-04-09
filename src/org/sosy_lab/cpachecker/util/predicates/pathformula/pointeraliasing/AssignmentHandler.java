@@ -43,10 +43,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceFieldAccessModifier;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceIndexVariable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ArraySliceModifier;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.ArraySliceExpression.ResolvedSlice;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ArraySliceFieldAccessModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ArraySliceIndexVariable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ArraySliceModifier;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.PartialSpan;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentLhs;
@@ -85,13 +85,13 @@ class AssignmentHandler {
    * resolved later by {@link AssignmentQuantifierHandler}.
    */
   record SliceAssignment(
-      ArraySliceExpression lhs,
+      SliceExpression lhs,
       Optional<CLeftHandSide> relevancyLhs,
-      Optional<ArraySliceExpression> rhs) {
+      Optional<SliceExpression> rhs) {
     SliceAssignment(
-        ArraySliceExpression lhs,
+        SliceExpression lhs,
         Optional<CLeftHandSide> relevancyLhs,
-        Optional<ArraySliceExpression> rhs) {
+        Optional<SliceExpression> rhs) {
       checkNotNull(lhs);
       checkNotNull(relevancyLhs);
       checkNotNull(rhs);
@@ -386,7 +386,7 @@ class AssignmentHandler {
       // no resolution of RHS base or deferred memory handling
       return;
     }
-    final ArraySliceExpression rhs = assignment.rhs.get();
+    final SliceExpression rhs = assignment.rhs.get();
 
     // resolve RHS base using visitor
     final CRightHandSide rhsBase = rhs.getBase();
@@ -494,8 +494,8 @@ class AssignmentHandler {
     }
 
     // construct the progenitor lhs
-    ArraySliceExpression progenitorLhs =
-        new ArraySliceExpression(
+    SliceExpression progenitorLhs =
+        new SliceExpression(
             assignment.lhs.actual().getBase(), ImmutableList.copyOf(progenitorModifiers));
 
     // compute the full bit offset from progenitor
@@ -627,8 +627,8 @@ class AssignmentHandler {
     // slice the assignment using a slice variable
     final ArraySliceIndexVariable indexVariable =
         new ArraySliceIndexVariable(lhsArrayType.getLength());
-    final ArraySliceExpression elementLhs = assignment.lhs.actual().withIndex(indexVariable);
-    final Optional<ArraySliceExpression> elementRhs =
+    final SliceExpression elementLhs = assignment.lhs.actual().withIndex(indexVariable);
+    final Optional<SliceExpression> elementRhs =
         assignment.rhs.actual().map(rhsSlice -> rhsSlice.withIndex(indexVariable));
 
     // full span
@@ -666,7 +666,7 @@ class AssignmentHandler {
 
     final long lhsMemberBitOffset = typeHandler.getBitOffset(lhsCompositeType, lhsMember);
     final long lhsMemberBitSize = typeHandler.getBitSizeof(lhsMember.getType());
-    final ArraySliceExpression lhsMemberSlice = assignment.lhs.actual().withFieldAccess(lhsMember);
+    final SliceExpression lhsMemberSlice = assignment.lhs.actual().withFieldAccess(lhsMember);
 
     // compare LHS assignment range with member range
     final Range<Long> lhsOriginalRange =
@@ -705,7 +705,7 @@ class AssignmentHandler {
               memberAssignmentBitSize);
 
       // go into rhs if not nondet
-      final Optional<ArraySliceExpression> memberRhsSlice =
+      final Optional<SliceExpression> memberRhsSlice =
           assignment.rhs.actual().map(rhsSlice -> rhsSlice.withFieldAccess(lhsMember));
 
       final PartialAssignmentRhs memberRhs = new PartialAssignmentRhs(memberSpan, memberRhsSlice);
@@ -803,11 +803,11 @@ class AssignmentHandler {
         CLeftHandSide wholeAssignmentLeftSide =
             (CLeftHandSide) firstAssignmentLeftSide.getArrayExpression();
 
-        ArraySliceExpression sliceLhs =
-            new ArraySliceExpression(wholeAssignmentLeftSide)
+        SliceExpression sliceLhs =
+            new SliceExpression(wholeAssignmentLeftSide)
                 .withIndex(new ArraySliceIndexVariable(arrayType.getLength()));
-        ArraySliceExpression sliceRhs =
-            new ArraySliceExpression(firstAssignment.getRightHandSide());
+        SliceExpression sliceRhs =
+            new SliceExpression(firstAssignment.getRightHandSide());
         SliceAssignment sliceAssignment =
             new SliceAssignment(
                 sliceLhs, Optional.of(firstAssignmentLeftSide), Optional.of(sliceRhs));
@@ -820,8 +820,8 @@ class AssignmentHandler {
     ImmutableList.Builder<SliceAssignment> builder =
         ImmutableList.<SliceAssignment>builder();
     for (CExpressionAssignmentStatement assignment : assignments) {
-      ArraySliceExpression lhs = new ArraySliceExpression(assignment.getLeftHandSide());
-      ArraySliceExpression rhs = new ArraySliceExpression(assignment.getRightHandSide());
+      SliceExpression lhs = new SliceExpression(assignment.getLeftHandSide());
+      SliceExpression rhs = new SliceExpression(assignment.getRightHandSide());
       builder.add(
           new SliceAssignment(
               lhs, Optional.of(assignment.getLeftHandSide()), Optional.of(rhs)));
