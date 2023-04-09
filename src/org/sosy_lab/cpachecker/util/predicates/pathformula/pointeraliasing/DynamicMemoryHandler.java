@@ -390,7 +390,7 @@ class DynamicMemoryHandler {
       // TODO: rewrite dynamic memory handler to use high-level slice assignments and memset
       AssignmentFormulaHandler assignmentFormulaHandler =
           new AssignmentFormulaHandler(
-              conv, edge, base, ssa, pts, constraints, errorConditions, regionMgr);
+              conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
       @SuppressWarnings("deprecation")
       final BooleanFormula initialization =
           assignmentFormulaHandler.makeDestructiveAssignment(

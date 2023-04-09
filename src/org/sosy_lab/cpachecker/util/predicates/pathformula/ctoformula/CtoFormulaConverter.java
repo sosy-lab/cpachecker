@@ -590,8 +590,9 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Create a formula that reinterprets the raw bit values as a different type Returns {@code null}
-   * if this is not implemented for the given types. Both types need to have the same size
+   * Create a formula that reinterprets the raw bit values as a different type. Returns {@code null}
+   * if this is not implemented for the given types. Returns the original formula if no
+   * reinterpretation was necessary.
    */
   protected @Nullable Formula makeValueReinterpretation(
       final CType pFromType, final CType pToType, Formula formula) {
@@ -645,6 +646,9 @@ public class CtoFormulaConverter {
 
       return formula;
 
+    } else if (fromFormulaType.equals(toFormulaType)) {
+      // return the original formula
+      return formula;
     } else {
       return null; // TODO use UF
     }
@@ -654,6 +658,9 @@ public class CtoFormulaConverter {
    * Create a formula that reinterprets the raw bit values as a bitvector formula with the same
    * size. Useful for converting floats to bitvectors. Returns {@code null} if this is not
    * implemented for the given types.
+   *
+   * <p>Note that unlike {@link #makeValueReinterpretation(CType, CType, Formula)}, this function
+   * returns the original formula if it was already a bitvector formula, not {@code null}.
    */
   protected @Nullable BitvectorFormula makeValueReinterpretationToBitvector(
       final CType pFromType, Formula formula) {
@@ -674,6 +681,9 @@ public class CtoFormulaConverter {
    * Create a formula that reinterprets a bitvector formula as a formula of a given type. Useful for
    * converting floating-point values represented in bitvectors back to float. Returns {@code null}
    * if this is not implemented for the given types.
+   *
+   * <p>Note that unlike {@link #makeValueReinterpretation(CType, CType, Formula)}, this function
+   * returns the original formula if {@code pToType} is represented by bitvector, not {@code null}.
    */
   protected @Nullable Formula makeValueReinterpretationFromBitvector(
       final CType pToType, Formula formula) {

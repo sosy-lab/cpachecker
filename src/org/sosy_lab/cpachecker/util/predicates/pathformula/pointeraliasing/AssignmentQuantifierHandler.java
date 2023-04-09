@@ -269,8 +269,7 @@ class AssignmentQuantifierHandler {
       throws UnrecognizedCodeException, InterruptedException {
 
     AssignmentFormulaHandler assignmentFormulaHandler =
-        new AssignmentFormulaHandler(
-            conv, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
+        new AssignmentFormulaHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
 
     BooleanFormula result = bfmgr.makeTrue();
 

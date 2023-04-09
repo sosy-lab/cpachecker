@@ -60,7 +60,11 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-public class AssignmentFormulaHandler {
+/**
+ * Handler for low-level slice assignments with left-hand sides and partial right-hand sides already
+ * resolved to an expression. Normal code should use {@link AssignmentHandler} for assignments.
+ */
+class AssignmentFormulaHandler {
 
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView fmgr;
@@ -69,7 +73,6 @@ public class AssignmentFormulaHandler {
   private final CToFormulaConverterWithPointerAliasing conv;
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final CFAEdge edge;
-  private final String function;
   private final SSAMapBuilder ssa;
   private final PointerTargetSetBuilder pts;
   private final Constraints constraints;
@@ -81,7 +84,6 @@ public class AssignmentFormulaHandler {
    *
    * @param pConv The C to SMT formula converter.
    * @param pEdge The current edge of the CFA (for logging purposes).
-   * @param pFunction The name of the current function.
    * @param pSsa The SSA map.
    * @param pPts The underlying set of pointer targets.
    * @param pConstraints Additional constraints.
@@ -90,7 +92,6 @@ public class AssignmentFormulaHandler {
   AssignmentFormulaHandler(
       CToFormulaConverterWithPointerAliasing pConv,
       CFAEdge pEdge,
-      String pFunction,
       SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts,
       Constraints pConstraints,
@@ -104,7 +105,6 @@ public class AssignmentFormulaHandler {
     bfmgr = conv.bfmgr;
 
     edge = pEdge;
-    function = pFunction;
     ssa = pSsa;
     pts = pPts;
     constraints = pConstraints;
@@ -112,6 +112,24 @@ public class AssignmentFormulaHandler {
     regionMgr = pRegionMgr;
   }
 
+  /**
+   * Uses the underlying heap to make the slice assignment to the left-hand side from the list of
+   * partial right-hand sides.
+   *
+   * @param lhsResolved Already resolved left-hand side.
+   * @param targetType Original target type to which each partial right-hand side is cast or
+   *     reintepreted before further processing.
+   * @param rhsList List of already resolved partial right-hand sides.
+   * @param assignmentOptions Assignment options.
+   * @param conditionFormula An SMT condition for the assignment to be made; if it does not hold,
+   *     the previous value is retained.
+   * @param useQuantifiers Whether quantifiers are used, which may impact handling in heaps.
+   * @param pattern Pointer-target pattern used for UFs finishing. If null, UF finishing is not
+   *     used.
+   * @return The boolean formula describing the assignment.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
+   * @throws InterruptedException If a shutdown was requested during assignment making.
+   */
   BooleanFormula makeSliceAssignment(
       ArraySliceResolved lhsResolved,
       CType targetType,
@@ -119,13 +137,13 @@ public class AssignmentFormulaHandler {
       AssignmentOptions assignmentOptions,
       BooleanFormula conditionFormula,
       boolean useQuantifiers,
-      PointerTargetPattern pattern)
+      @Nullable PointerTargetPattern pattern)
       throws UnrecognizedCodeException, InterruptedException {
 
     CType lhsType = lhsResolved.type();
 
     if (lhsResolved.expression().isNondetValue()) {
-      // only because of CExpressionVisitorWithPointerAliasing.visit(CFieldReference)
+      // can only occur due to non-supported bit-fields, warn and return
       conv.logger.logfOnce(
           Level.WARNING,
           "%s: Ignoring assignment to %s because bit fields are currently not fully supported",
@@ -134,27 +152,24 @@ public class AssignmentFormulaHandler {
       return bfmgr.makeTrue();
     }
 
-    if (rhsList.isEmpty()) {
-      // nothing to do
-      return bfmgr.makeTrue();
-    }
-
-    // put together the rhs expressions from spans
-
+    // construct the RHS expression
     Expression rhsResult =
-        constructWholeRhsExpression(lhsResolved, targetType, rhsList, assignmentOptions);
+        constructCompleteRhsExpression(lhsResolved, targetType, rhsList, assignmentOptions);
 
-    // perform assignment and, if using UF encoding, finish the assignments afterwards
-
+    // determine whether it is desired to use old SSA indices because we are doing
+    // an initialization assignment
+    // unaliased locations do not get any improvement from using old SSA indices
     final Location lhsLocation = lhsResolved.expression().asLocation();
     final boolean useOldSSAIndices =
         assignmentOptions.useOldSSAIndicesIfAliased() && lhsLocation.isAliased();
 
-    // for UF heap, we need to get the updated regions from assignment
+    // if we are using UF heap and this is not first assignment (which can be done with old SSA
+    // indices), we need to get the updated regions from assignment for finishing assignments
     Set<MemoryRegion> updatedRegions =
         useOldSSAIndices || options.useArraysForHeap() ? null : new HashSet<>();
 
     // perform the actual destructive assignment
+    // the RHS result was already made into lhs-typed in {@link constructWholeRhsExpression()}
     BooleanFormula result =
         makeSimpleDestructiveAssignment(
             lhsType,
@@ -167,229 +182,296 @@ public class AssignmentFormulaHandler {
             conditionFormula,
             useQuantifiers);
 
+    // we are using UF heap and have a pointer-target pattern, we need to finish the assignments
+    // otherwise, the heap with new SSA index would only contain
+    // the new assignment and not retain any other assignments
     if (pattern != null) {
-      // we are using UF heap, we may need to finish the assignments
-      // otherwise, the heap with new SSA index would only contain
-      // the new assignment and not retain any other assignments
       finishAssignmentsForUF(lhsResolved.type(), lhsLocation.asAliased(), pattern, updatedRegions);
     }
 
     return result;
   }
 
-  private Expression constructWholeRhsExpression(
+  /**
+   * Constructs the complete right-hand-side expression from partial resolved right-hand-sides and
+   * previous resolved left-hand-side.
+   *
+   * <p>This is done by first casting / reinterpreting (according to {@link AssignmentOptions}) each
+   * partial RHS to the target type. After that, the interesting part of RHS is extracted and
+   * inserted to the correct place in LHS-sized formula. Since there might be some parts of LHS that
+   * do not correspond to any partial RHS, these are copied from previous LHS value.
+   *
+   * @param lhs Resolved left-hand side.
+   * @param targetType Original target type to which each partial right-hand side is cast or
+   *     reintepreted before further processing.
+   * @param rhsList List of partial resolved right-hand-sides.
+   * @param assignmentOptions Assignment options.
+   * @return Complee right-hand-side expression to be assigned.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
+   */
+  private Expression constructCompleteRhsExpression(
       ArraySliceResolved lhs,
       CType targetType,
       List<ArraySliceSpanResolved> rhsList,
       AssignmentOptions assignmentOptions)
       throws UnrecognizedCodeException {
 
+    // in this function, we consider "RHS formula" to be the resolved formula of a single part
+    // before any span consideration; "partial RHS formula" to be such a formula after extracting
+    // and inserting into an LHS-sized formula, the other bits being zeroed; and "whole RHS formula"
+    // to be a bit-or of all such partial RHS formulas
+
     CType lhsType = lhs.type();
     long targetBitSize = typeHandler.getBitSizeof(targetType);
     long lhsBitSize = typeHandler.getBitSizeof(lhsType);
 
+    // track ranges of LHS which have been already filled
     RangeSet<Long> lhsRangeSet = TreeRangeSet.create();
 
-    Formula wholeRhsFormula = null;
+    // initialize the complete formula to null as it is not trivial
+    // to create a zero-filled formula of given C type
+    Formula completeRhsFormula = null;
 
+    // for each partial RHS, insert the part into the correct place in the complete formula
     for (ArraySliceSpanResolved rhs : rhsList) {
 
       ArraySliceSpan rhsSpan = rhs.span();
 
-      // if rhs was not resolved, treat it as a nondet value with target type
+      // if resolved RHS is nondet, treat it as a nondet value with target type
+      // this means there is now only one way to represent a nondet value
       ArraySliceResolved rhsResolved =
           rhs.actual().orElse(new ArraySliceResolved(Value.nondetValue(), targetType));
 
       // convert RHS expression to target type
       Expression targetTypeRhsExpression =
-          convertRhsExpression(assignmentOptions.conversionType(), targetType, rhsResolved);
+          convertResolved(assignmentOptions.conversionType(), targetType, rhsResolved);
 
+      // get the RHS formula for low-level manipulation
       Optional<Formula> rhsFormula = getValueFormula(targetType, targetTypeRhsExpression);
       if (rhsFormula.isEmpty()) {
         // nondet rhs part, make the whole rhs result nondeterministic
         return Value.nondetValue();
       }
 
+      // handle full assignments without complications: reinterpret from targetType to
+      // lhsResolved.type and return the resulting expression
       if (rhsSpan.lhsBitOffset() == 0
           && rhsSpan.rhsBitOffset() == 0
           && rhsSpan.bitSize() == lhsBitSize
           && lhsBitSize == targetBitSize) {
-        // handle full assignments without complications: reinterpret from targetType to
-        // lhsResolved.type and return the resulting expression
-        return convertRhsExpression(
+        return convertResolved(
             AssignmentConversionType.REINTERPRET,
             lhs.type(),
             new ArraySliceResolved(targetTypeRhsExpression, targetType));
       }
 
-      Formula currentRhsFormula =
-          constructPartialRhsFormula(
-              lhsType,
-              targetType,
-              rhsSpan,
-              rhsFormula.get(),
-              lhsRangeSet);
+      // add to lhs range set
+      long lhsOffset = rhsSpan.lhsBitOffset();
+      long lhsAfterEnd = rhsSpan.lhsBitOffset() + rhsSpan.bitSize();
+      lhsRangeSet.add(Range.closedOpen(lhsOffset, lhsAfterEnd));
 
-      // bit-or with other parts
-      // note that this is an operation on bitvectors, not on Boolean formulas, so we cannot
-      // initially make wholeRhsFormula a tautology like with Boolean formulas
-      wholeRhsFormula =
-          (wholeRhsFormula != null)
-              ? fmgr.makeOr(wholeRhsFormula, currentRhsFormula)
-              : currentRhsFormula;
+      // construct the partial RHS formula in a separate function
+      Formula partialRhsFormula =
+          constructPartialRhsFormula(lhsBitSize, targetType, rhsSpan, rhsFormula.get());
+
+      // bit-or with other parts, all of them are LHS-sized
+      completeRhsFormula =
+          (completeRhsFormula != null)
+              ? fmgr.makeOr(completeRhsFormula, partialRhsFormula)
+              : partialRhsFormula;
     }
 
-    // the whole type is now definitely the type of LHS
+    // completeRhsFormula now contains all partial RHS and is LHS-sized (or null)
+    // however, there is a possibility that some ranges of bits were not assigned
+    // so we need to retain those bits from previous LHS
+
+    // to find out which ranges should be retained, we complement the assigned ranges
+    // and union with the range encompassing completeRhsFormula [0, lhsBitSize)
     RangeSet<Long> retainedRangeSet =
         lhsRangeSet.complement().subRangeSet(Range.closedOpen((long) 0, lhsBitSize));
+
     if (!retainedRangeSet.isEmpty()) {
       // there are some retained bits from previous LHS
+      // get previous LHS formula
       Optional<Formula> previousLhsFormula = getValueFormula(lhs.type(), lhs.expression());
       if (previousLhsFormula.isEmpty()) {
         // some bits from previous LHS are retained in current RHS, but previous LHS is nondet
         // make current RHS nondet as well
         return Value.nondetValue();
       }
+
+      // reinterpret the previous LHS formula to bitvector
       Formula bitvectorPreviousLhsFormula =
           conv.makeValueReinterpretationToBitvector(lhs.type(), previousLhsFormula.get());
-      // bit-or retained bits
+      // for all retained ranges, retain previous LHS values in the complete RHS formula
       for (Range<Long> retainedRange : retainedRangeSet.asRanges()) {
         if (retainedRange.isEmpty()) {
           continue;
         }
+        // construct the partial RHS formula in a separate function
         Formula partialRhsFormula =
             constructPartialRhsFromPreviousLhsFormula(
                 bitvectorPreviousLhsFormula, lhsBitSize, retainedRange);
-        // bit-or with other parts
-        wholeRhsFormula =
-            (wholeRhsFormula != null)
-                ? fmgr.makeOr(wholeRhsFormula, partialRhsFormula)
+        // bit-or with other parts, all of them are LHS-sized
+        completeRhsFormula =
+            (completeRhsFormula != null)
+                ? fmgr.makeOr(completeRhsFormula, partialRhsFormula)
                 : partialRhsFormula;
         }
     }
 
-    // reinterpret to LHS type
-    wholeRhsFormula = conv.makeValueReinterpretationFromBitvector(lhs.type(), wholeRhsFormula);
+    // the complete RHS formula is now definitely non-null as long as the type is non-zero-sized
+    assert (completeRhsFormula != null);
 
-    return Value.ofValue(wholeRhsFormula);
+    // reinterpret from LHS-sized bitvector to the actual LHS type
+    completeRhsFormula =
+        conv.makeValueReinterpretationFromBitvector(lhs.type(), completeRhsFormula);
+
+    // return the complete RHS formula
+    return Value.ofValue(completeRhsFormula);
   }
 
+  /**
+   * Construct an left-hand-side-sized bitvector formula containing the part of given
+   * right-hand-side formula in a given place, as determined by {@code rhsSpan}. All other bits are
+   * zeroed.
+   *
+   * @param lhsBitSize LHS bit size.
+   * @param targetType RHS target type. It is assumed the RHS formula was already cast /
+   *     reinterpreted to this type.
+   * @param span Span which gives the offsets and size of the interesting part of RHS.
+   * @param rhsFormula Supplied RHS formula. Does not need to be a bitvector formula.
+   * @return LHS-sized bitvector formula containing the part of {@code rhsFormula} as determined by
+   *     {@code span}, all other bits filled with zeros.
+   */
   private Formula constructPartialRhsFormula(
-      CType lhsType,
-      CType targetType,
-      ArraySliceSpan rhsSpan,
-      Formula rhsFormula,
-      RangeSet<Long> lhsRangeSet) {
+      long lhsBitSize, CType targetType, ArraySliceSpan span, Formula rhsFormula) {
 
-    long lhsBitSize = typeHandler.getBitSizeof(lhsType);
-
-    // add to lhs range set
-    long lhsOffset = rhsSpan.lhsBitOffset();
-    long lhsAfterEnd = rhsSpan.lhsBitOffset() + rhsSpan.bitSize();
-    lhsRangeSet.add(Range.closedOpen(lhsOffset, lhsAfterEnd));
-
-    // perform partial assignment
-
-    // make the formula bitvector formula
+    // make the formula a bitvector formula
     BitvectorFormula bitvectorRhsFormula =
         conv.makeValueReinterpretationToBitvector(targetType, rhsFormula);
 
-    // extract the interesting part and dimension to new lhs type, shift left
-    // this will make the formula type integer version of new lhs type
+    // extract the interesting part
     Formula extractedFormula =
         fmgr.makeExtract(
             bitvectorRhsFormula,
-            (int) (rhsSpan.rhsBitOffset() + rhsSpan.bitSize() - 1),
-            (int) rhsSpan.rhsBitOffset());
+            (int) (span.rhsBitOffset() + span.bitSize() - 1),
+            (int) span.rhsBitOffset());
 
-    long numExtendBits = lhsBitSize - rhsSpan.bitSize();
-
+    // extend to LHS type size
+    long numExtendBits = lhsBitSize - span.bitSize();
     Formula extendedFormula = fmgr.makeExtend(extractedFormula, (int) numExtendBits, false);
 
+    // shift left by span.lhsBitOffset()
     Formula shiftedFormula =
         fmgr.makeShiftLeft(
             extendedFormula,
             fmgr.makeNumber(
-                FormulaType.getBitvectorTypeWithSize((int) lhsBitSize), rhsSpan.lhsBitOffset()));
+                FormulaType.getBitvectorTypeWithSize((int) lhsBitSize), span.lhsBitOffset()));
 
+    // return the result
     return shiftedFormula;
   }
 
+  /**
+   * Construct an left-hand-side-sized bitvector formula retaining a range of bits in previous LHS
+   * formula, setting all other bits to zero.
+   *
+   * @param bitvectorPreviousLhsFormula Bitvector formula giving the previous LHS value.
+   * @param lhsBitSize LHS bit size.
+   * @param retainedRange The range determining the bits to retain. The range is assumed to be
+   *     closed on bottom and open on top, i.e. [lsb, msb+1).
+   * @return LHS-sized bitvector formula
+   */
   private Formula constructPartialRhsFromPreviousLhsFormula(
       Formula bitvectorPreviousLhsFormula, long lhsBitSize, Range<Long> retainedRange) {
 
-    long retainedBitOffset = retainedRange.lowerEndpoint();
+    // compute the retained bit offset, size, lsb, msb
+    long retainedLsb = retainedRange.lowerEndpoint();
     long retainedBitSize = retainedRange.upperEndpoint() - retainedRange.lowerEndpoint();
+    long retainedMsb = retainedRange.upperEndpoint() - 1;
+
+    // extract the range [lsb, msb]
     Formula extractedFormula =
-        fmgr.makeExtract(
-            bitvectorPreviousLhsFormula,
-            (int) (retainedRange.upperEndpoint() - 1),
-            (int) (retainedRange.lowerEndpoint().longValue()));
+        fmgr.makeExtract(bitvectorPreviousLhsFormula, (int) (retainedMsb), (int) (retainedLsb));
 
+    // extend back to LHS bit size
     long numExtendBits = lhsBitSize - retainedBitSize;
-
     Formula extendedFormula = fmgr.makeExtend(extractedFormula, (int) numExtendBits, false);
 
+    // shift left so that lsb is in its correct place again
     Formula shiftedFormula =
         fmgr.makeShiftLeft(
             extendedFormula,
-            fmgr.makeNumber(
-                FormulaType.getBitvectorTypeWithSize((int) lhsBitSize), retainedBitOffset));
+            fmgr.makeNumber(FormulaType.getBitvectorTypeWithSize((int) lhsBitSize), retainedLsb));
 
+    // return result
     return shiftedFormula;
   }
 
-  private Expression convertRhsExpression(
-      AssignmentConversionType conversionType, CType lhsType, ArraySliceResolved rhsResolved)
+  /**
+   * Convert an expression from resolved array slice to another type.
+   *
+   * @param conversionType Type of conversion (cast / reinterpret).
+   * @param toType The type we are converting to.
+   * @param resolved Resolved array slice containing the expression to convert and type we are
+   *     converting from.
+   * @return Expression from {@code resolved} converted to type {@code toType}.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
+   */
+  private Expression convertResolved(
+      AssignmentConversionType conversionType, CType toType, ArraySliceResolved resolved)
       throws UnrecognizedCodeException {
 
     // convert only if necessary, the types are already simplified
-    if (lhsType.equals(rhsResolved.type())) {
-      return rhsResolved.expression();
+    if (toType.equals(resolved.type())) {
+      return resolved.expression();
     }
 
-    Optional<Formula> optionalRhsFormula =
-        getValueFormula(rhsResolved.type(), rhsResolved.expression());
+    Optional<Formula> optionalRhsFormula = getValueFormula(resolved.type(), resolved.expression());
     if (optionalRhsFormula.isEmpty()) {
       // nondeterministic RHS expression has no formula, do not convert
-      return rhsResolved.expression();
+      return resolved.expression();
     }
-    Formula rhsFormula =
-        getValueFormula(rhsResolved.type(), rhsResolved.expression()).orElseThrow();
+    Formula rhsFormula = getValueFormula(resolved.type(), resolved.expression()).orElseThrow();
     switch (conversionType) {
       case CAST:
         // cast rhs from rhs type to lhs type
         Formula castRhsFormula =
-            conv.makeCast(rhsResolved.type(), lhsType, rhsFormula, constraints, edge);
+            conv.makeCast(resolved.type(), toType, rhsFormula, constraints, edge);
         return Value.ofValue(castRhsFormula);
       case REINTERPRET:
-        if (lhsType instanceof CBitFieldType) {
+        if (toType instanceof CBitFieldType) {
           // cannot reinterpret to bit-field type
           conv.logger.logfOnce(
               Level.WARNING,
               "%s: Making assignment from %s to %s nondeterministic because reinterpretation to bitfield is not supported",
               edge.getFileLocation(),
-              rhsResolved.type(),
-              lhsType);
+              resolved.type(),
+              toType);
           return Value.nondetValue();
         }
 
         // reinterpret rhs from rhs type to lhs type
-        Formula reinterpretedRhsFormula =
-            conv.makeValueReinterpretation(rhsResolved.type(), lhsType, rhsFormula);
-
-        // makeValueReinterpretation returns null if no reinterpretation happened
-        if (reinterpretedRhsFormula != null) {
-          return Value.ofValue(reinterpretedRhsFormula);
-        }
-        break;
+        return Value.ofValue(conv.makeValueReinterpretation(resolved.type(), toType, rhsFormula));
       default:
         assert (false);
     }
-    return rhsResolved.expression();
+    return resolved.expression();
   }
 
-  Optional<Formula> getValueFormula(CType pRValueType, Expression pRValue) throws AssertionError {
+  /**
+   * Gets the formula corresponding to the value of {@link Expression} when interpreted with a given
+   * {@link CType}.
+   *
+   * @param pRValueType The interpretation type.
+   * @param pRValue The expression to get the value of.
+   * @return Optional containing the formula corresponding to the value or empty Optional if the
+   *     value is nondet.
+   * @throws AssertionError When the kind of formula is not handled.
+   */
+  private Optional<Formula> getValueFormula(CType pRValueType, Expression pRValue)
+      throws AssertionError {
     switch (pRValue.getKind()) {
       case ALIASED_LOCATION:
         MemoryRegion region = pRValue.asAliasedLocation().getMemoryRegion();
@@ -415,6 +497,19 @@ public class AssignmentFormulaHandler {
     }
   }
 
+  /**
+   * Finish assignments for uninterpreted function heap.
+   *
+   * <p>Needed when using uninterpreted function heap with unrolled assignments as after an
+   * assignment, the heap with new SSA index would only contain the new assignment and not retain
+   * any other assignments
+   *
+   * @param lvalueType The LHS type of the current assignment.
+   * @param lvalue The written-to aliased location.
+   * @param pattern The pattern matching the (potentially) written heap cells.
+   * @param updatedRegions The set of regions which were affected by the assignment.
+   * @throws InterruptedException If a shutdown was requested during finishing assignments.
+   */
   void finishAssignmentsForUF(
       CType lvalueType,
       final AliasedLocation lvalue,
@@ -822,6 +917,23 @@ public class AssignmentFormulaHandler {
     return result;
   }
 
+  /**
+   * Creates a formula for array destructive assignment.
+   *
+   * <p>Deprecated as non-simple destructive assignments have been superseded by simplifying slice
+   * expressions in {@link AssignmentHandler}.
+   *
+   * @param lvalueArrayType The type of the lvalue.
+   * @param rvalueType The type of the rvalue.
+   * @param lvalue The location of the lvalue.
+   * @param rvalue The rvalue expression.
+   * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
+   * @param updatedRegions Either {@code null} or a set of updated regions.
+   * @param condition Either {@code null} or a condition which determines if the assignment is
+   *     actually done. In case of {@code null}, the assignmment is always done.
+   * @return A formula for the assignment.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
+   */
   @Deprecated
   private BooleanFormula makeDestructiveArrayAssignment(
       CArrayType lvalueArrayType,
@@ -916,6 +1028,23 @@ public class AssignmentFormulaHandler {
     return result;
   }
 
+  /**
+   * Creates a formula for composite destructive assignment.
+   *
+   * <p>Deprecated as non-simple destructive assignments have been superseded by simplifying slice
+   * expressions in {@link AssignmentHandler}.
+   *
+   * @param lvalueCompositeType The type of the lvalue.
+   * @param rvalueType The type of the rvalue.
+   * @param lvalue The location of the lvalue.
+   * @param rvalue The rvalue expression.
+   * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
+   * @param updatedRegions Either {@code null} or a set of updated regions.
+   * @param condition Either {@code null} or a condition which determines if the assignment is
+   *     actually done. In case of {@code null}, the assignmment is always done.
+   * @return A formula for the assignment.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
+   */
   @Deprecated
   private BooleanFormula makeDestructiveCompositeAssignment(
       final CCompositeType lvalueCompositeType,
@@ -1026,6 +1155,9 @@ public class AssignmentFormulaHandler {
 
   /**
    * Creates a formula for a destructive assignment.
+   *
+   * <p>Deprecated as non-simple destructive assignments have been superseded by simplifying slice
+   * expressions in {@link AssignmentHandler}.
    *
    * @param lvalueType The type of the lvalue.
    * @param rvalueType The type of the rvalue.
