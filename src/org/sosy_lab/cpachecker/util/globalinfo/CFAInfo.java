@@ -19,7 +19,7 @@ public class CFAInfo {
 
   CFAInfo(CFA cfa) {
     ImmutableMap.Builder<Integer, CFANode> nodeNumberToNode0 = ImmutableMap.builder();
-    for (CFANode node : cfa.getAllNodes()) {
+    for (CFANode node : cfa.nodes()) {
       nodeNumberToNode0.put(node.getNodeNumber(), node);
     }
     nodeNumberToNode = nodeNumberToNode0.buildOrThrow();

@@ -2424,7 +2424,7 @@ public abstract class AbstractExpressionValueVisitor
       final FileLocation fileLocation) {
 
     if (!value.isExplicitlyKnown()) {
-      return castIfSymbolic(value, targetType, Optional.of(machineModel));
+      return castIfSymbolic(value, targetType);
     }
 
     // For now can only cast numeric value's
@@ -2600,14 +2600,13 @@ public abstract class AbstractExpressionValueVisitor
     return i1.compareTo(i2) < 0;
   }
 
-  private static Value castIfSymbolic(
-      Value pValue, Type pTargetType, Optional<MachineModel> pMachineModel) {
+  private static Value castIfSymbolic(Value pValue, Type pTargetType) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
     if (pValue instanceof SymbolicValue
         && (pTargetType instanceof JSimpleType || pTargetType instanceof CSimpleType)) {
 
-      return factory.cast((SymbolicValue) pValue, pTargetType, pMachineModel);
+      return factory.cast((SymbolicValue) pValue, pTargetType);
     }
 
     // If the value is not symbolic, just return it.
@@ -2637,7 +2636,7 @@ public abstract class AbstractExpressionValueVisitor
       final FileLocation fileLocation) {
 
     if (!value.isExplicitlyKnown()) {
-      return castIfSymbolic(value, targetType, Optional.empty());
+      return castIfSymbolic(value, targetType);
     }
 
     // Other than symbolic values, we can only cast numeric values, for now.

@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -172,7 +173,7 @@ public class CPABuilder {
             ImmutableList.of(CPAConfig.forClass(LocationCPA.class), SPECIFICATION_PLACEHOLDER);
       } else {
         insertionPoint.children =
-            from(insertionPoint.children).append(SPECIFICATION_PLACEHOLDER).toList();
+            listAndElement(insertionPoint.children, SPECIFICATION_PLACEHOLDER);
       }
       placeholderCount++;
     }

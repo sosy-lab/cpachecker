@@ -70,7 +70,7 @@ public abstract class ConditionFolder {
     }
 
     private Map<CFANode, Loop> buildLoopMap() {
-      Map<CFANode, Loop> loopMapResult = Maps.newHashMapWithExpectedSize(cfa.getAllNodes().size());
+      Map<CFANode, Loop> loopMapResult = Maps.newHashMapWithExpectedSize(cfa.nodes().size());
 
       Deque<Pair<CFANode, List<Loop>>> toVisit = new ArrayDeque<>();
       toVisit.push(Pair.of(cfa.getMainFunction(), ImmutableList.of()));

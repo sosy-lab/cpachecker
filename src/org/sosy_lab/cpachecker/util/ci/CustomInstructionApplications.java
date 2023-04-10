@@ -279,7 +279,7 @@ public class CustomInstructionApplications {
 
       try (Writer out =
           IO.openOutputFile(appliedCustomInstructionsDefinition, Charset.defaultCharset())) {
-        for (CFANode node : cfa.getAllNodes()) {
+        for (CFANode node : cfa.nodes()) {
           if (!Objects.equals(node, ci.getStartNode()) && pParser.isAppliedCI(ci, node)) {
             shutdownNotifier.shutdownIfNecessary();
             out.append(node.getNodeNumber() + "\n");
@@ -380,7 +380,7 @@ public class CustomInstructionApplications {
           IO.openOutputFile(foundCustomInstructionsDefinition, Charset.defaultCharset())) {
 
         // inspect all CFA edges potential candidates
-        for (CFANode node : cfa.getAllNodes()) {
+        for (CFANode node : cfa.nodes()) {
           for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
             if (edge instanceof CStatementEdge
                 && ((CStatementEdge) edge).getStatement()

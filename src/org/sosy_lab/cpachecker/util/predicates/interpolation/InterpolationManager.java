@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import com.google.common.base.Preconditions;
@@ -600,10 +601,8 @@ public final class InterpolationManager {
     if (!bfmgr.isTrue(bitwiseAxioms)) {
       logger.log(
           Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE", "LAST GROUP: ", bitwiseAxioms);
-      return ImmutableList.<BooleanFormula>builderWithExpectedSize(f.size())
-          .addAll(f.subList(0, f.size() - 1))
-          .add(bfmgr.and(f.get(f.size() - 1), bitwiseAxioms))
-          .build();
+      return listAndElement(
+          f.subList(0, f.size() - 1), bfmgr.and(f.get(f.size() - 1), bitwiseAxioms));
     }
 
     return f;

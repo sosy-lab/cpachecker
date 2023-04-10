@@ -317,7 +317,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       }
 
       Multimap<CFANode, CallstackStateEqualsWrapper> result =
-          HashMultimap.create(cfa.getAllNodes().size(), cfa.getNumberOfFunctions());
+          HashMultimap.create(cfa.nodes().size(), cfa.getNumberOfFunctions());
 
       for (AbstractState targetState : AbstractStates.getTargetStates(reached)) {
         result.put(
@@ -515,10 +515,10 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
         if (residProg != null) {
           if (collectResidualProgramSizeStatistics) {
-            int residProgSize = residProg.getAllNodes().size();
-            statWriter.put("Original program size (#loc)", cfa.getAllNodes().size());
+            int residProgSize = residProg.nodes().size();
+            statWriter.put("Original program size (#loc)", cfa.nodes().size());
             statWriter.put("Generated program size (#loc)", residProgSize);
-            statWriter.put("Size increase", ((double) residProgSize / cfa.getAllNodes().size()));
+            statWriter.put("Size increase", ((double) residProgSize / cfa.nodes().size()));
           }
           if (exportPixelGraphic && exportPixelFile != null) {
             try {

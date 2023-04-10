@@ -598,7 +598,7 @@ public final class CCfaTransformer {
 
       MutableCFA newMutableCfa = createUnconnectedFunctionCfa(pOriginalCfa);
 
-      newMutableCfa.getAllFunctionHeads().forEach(CFAReversePostorder::assignIds);
+      newMutableCfa.entryNodes().forEach(CFAReversePostorder::assignIds);
 
       if (pOriginalCfa.getLoopStructure().isPresent()) {
         try {

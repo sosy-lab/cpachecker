@@ -52,11 +52,11 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
     MutableNetwork<CFANode, CFAEdge> mutableNetwork =
         NetworkBuilder.directed().allowsSelfLoops(true).build();
 
-    for (CFANode cfaNode : pCfa.getAllNodes()) {
+    for (CFANode cfaNode : pCfa.nodes()) {
       mutableNetwork.addNode(cfaNode);
     }
 
-    for (CFANode predecessor : pCfa.getAllNodes()) {
+    for (CFANode predecessor : pCfa.nodes()) {
       for (CFAEdge cfaEdge : CFAUtils.allLeavingEdges(predecessor)) {
         CFANode successor = cfaEdge.getSuccessor();
         boolean edgeAdded = mutableNetwork.addEdge(predecessor, successor, cfaEdge);

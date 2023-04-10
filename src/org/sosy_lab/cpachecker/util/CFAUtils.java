@@ -12,6 +12,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.elementAndList;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -119,6 +121,10 @@ public class CFAUtils {
   /**
    * Return an {@link Iterable} that contains all entering edges of a given CFANode, including the
    * summary edge if the node has one.
+   *
+   * <p>WARNING: Summary edges are included, so the returned {@link FluentIterable} may contain
+   * parallel edges (i.e., multiple directed edges from some node {@code u} to some node {@code v}).
+   * These edges are equal, so a set would only contain one of the parallel edges.
    */
   public static FluentIterable<CFAEdge> allEnteringEdges(final CFANode node) {
     checkNotNull(node);
@@ -181,6 +187,10 @@ public class CFAUtils {
   /**
    * Return an {@link Iterable} that contains all leaving edges of a given CFANode, including the
    * summary edge if the node as one.
+   *
+   * <p>WARNING: Summary edges are included, so the returned {@link FluentIterable} may contain
+   * parallel edges (i.e., multiple directed edges from some node {@code u} to some node {@code v}).
+   * These edges are equal, so a set would only contain one of the parallel edges.
    */
   public static FluentIterable<CFAEdge> allLeavingEdges(final CFANode node) {
     checkNotNull(node);
@@ -238,6 +248,22 @@ public class CFAUtils {
         };
       }
     };
+  }
+
+  /**
+   * Returns a {@link FluentIterable} that contains all edges of the specified CFA, including all
+   * summary edges.
+   *
+   * <p>WARNING: Summary edges are included, so the returned {@link FluentIterable} may contain
+   * parallel edges (i.e., multiple directed edges from some node {@code u} to some node {@code v}).
+   * These edges are equal, so a set would only contain one of the parallel edges.
+   *
+   * @return a {@link FluentIterable} that contains all edges of the specified CFA, including all
+   *     summary edges.
+   * @throws NullPointerException if {@code pCfa == null}
+   */
+  public static FluentIterable<CFAEdge> allEdges(CFA pCfa) {
+    return FluentIterable.from(pCfa.nodes()).transformAndConcat(CFAUtils::allLeavingEdges);
   }
 
   @SuppressWarnings("unchecked")
@@ -444,7 +470,7 @@ public class CFAUtils {
   }
 
   public static Map<Integer, CFANode> getMappingFromNodeIDsToCFANodes(CFA pCfa) {
-    return Maps.uniqueIndex(pCfa.getAllNodes(), CFANode::getNodeNumber);
+    return Maps.uniqueIndex(pCfa.nodes(), CFANode::getNodeNumber);
   }
 
   /**
@@ -544,8 +570,7 @@ public class CFAUtils {
         for (CFAEdge leavingEdge : leavingBlankEdges) {
           CFANode successor = leavingEdge.getSuccessor();
           if (!currentPath.contains(successor)) {
-            List<CFANode> newPath =
-                ImmutableList.<CFANode>builder().addAll(currentPath).add(successor).build();
+            List<CFANode> newPath = listAndElement(currentPath, successor);
             waitlist.offer(newPath);
           }
         }
@@ -565,8 +590,7 @@ public class CFAUtils {
         for (CFAEdge enteringEdge : enteringBlankEdges) {
           CFANode predecessor = enteringEdge.getPredecessor();
           if (!currentPath.contains(predecessor)) {
-            List<CFANode> newPath =
-                ImmutableList.<CFANode>builder().add(predecessor).addAll(currentPath).build();
+            List<CFANode> newPath = elementAndList(predecessor, currentPath);
             waitlist.offer(newPath);
           }
         }

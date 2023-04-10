@@ -609,7 +609,7 @@ public class CFACreator {
     // THIRD, do read-only post-processings on each single function CFA
 
     // Annotate CFA nodes with reverse postorder information for later use.
-    cfa.getAllFunctionHeads().forEach(CFAReversePostorder::assignIds);
+    cfa.entryNodes().forEach(CFAReversePostorder::assignIds);
 
     // get loop information
     // (needs post-order information)
@@ -806,19 +806,17 @@ public class CFACreator {
   /** check, whether the program contains function calls to crate a new thread. */
   private boolean isMultiThreadedProgram(MutableCFA pCfa) {
     // for all possible edges
-    for (CFANode node : pCfa.getAllNodes()) {
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-        // check for creation of new thread
-        if (edge instanceof AStatementEdge) {
-          final AStatement statement = ((AStatementEdge) edge).getStatement();
-          if (statement instanceof AFunctionCall) {
-            final AExpression functionNameExp =
-                ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-            if (functionNameExp instanceof AIdExpression) {
-              if (ThreadingTransferRelation.THREAD_START.equals(
-                  ((AIdExpression) functionNameExp).getName())) {
-                return true;
-              }
+    for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
+      // check for creation of new thread
+      if (edge instanceof AStatementEdge) {
+        final AStatement statement = ((AStatementEdge) edge).getStatement();
+        if (statement instanceof AFunctionCall) {
+          final AExpression functionNameExp =
+              ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression) {
+            if (ThreadingTransferRelation.THREAD_START.equals(
+                ((AIdExpression) functionNameExp).getName())) {
+              return true;
             }
           }
         }

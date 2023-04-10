@@ -243,7 +243,7 @@ public class CProgramScope implements Scope {
     /* Get all nodes, get all edges from nodes, get all declarations from edges,
      * assign every declaration its name.
      */
-    Collection<CFANode> nodes = pCFA.getAllNodes();
+    Collection<CFANode> nodes = pCFA.nodes();
 
     FluentIterable<CSimpleDeclaration> allDcls =
         FluentIterable.from(nodes).transformAndConcat(CProgramScope::toCSimpleDeclarations);

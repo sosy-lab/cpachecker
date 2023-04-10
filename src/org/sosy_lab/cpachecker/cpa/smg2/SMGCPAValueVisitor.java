@@ -609,8 +609,7 @@ public class SMGCPAValueVisitor
     }
 
     if (!value.isExplicitlyKnown()) {
-      return ValueAndSMGState.of(
-          castSymbolicValue(value, targetType, Optional.of(machineModel)), currentState);
+      return ValueAndSMGState.of(castSymbolicValue(value, targetType), currentState);
     }
 
     // We only use numeric/symbolic/unknown values anyway, and we can't cast unknowns
@@ -1071,12 +1070,11 @@ public class SMGCPAValueVisitor
   // ++++++++++++++++++++ Below this point casting helper methods
 
   /** Taken from the value analysis CPA and modified. Casts symbolic {@link Value}s. */
-  private Value castSymbolicValue(
-      Value pValue, Type pTargetType, Optional<MachineModel> pMachineModel) {
+  private Value castSymbolicValue(Value pValue, Type pTargetType) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
     if (pValue instanceof SymbolicValue && pTargetType instanceof CSimpleType) {
-      return factory.cast((SymbolicValue) pValue, pTargetType, pMachineModel);
+      return factory.cast((SymbolicValue) pValue, pTargetType);
     }
 
     // If the value is not symbolic, just return it.
@@ -2076,7 +2074,8 @@ public class SMGCPAValueVisitor
                 new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
                 (NumericValue) rightValue,
                 BinaryOperator.MULTIPLY,
-                evaluator.getMachineModel().getPointerEquivalentSimpleType());
+                // TODO This is just some random int type with same size, check if this is correct.
+                evaluator.getMachineModel().getPointerSizedIntType());
       } else {
         // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
         // then this is just the numeric value * 8 and then the operation.
@@ -2114,7 +2113,7 @@ public class SMGCPAValueVisitor
                 new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
                 (NumericValue) leftValue,
                 BinaryOperator.MULTIPLY,
-                evaluator.getMachineModel().getPointerEquivalentSimpleType());
+                evaluator.getMachineModel().getPointerSizedIntType());
       } else {
         // If it's a casted pointer, i.e. ((unsigned int) pointer) + 8;
         // then this is just the numeric value * 8 and then the operation.
@@ -2196,7 +2195,7 @@ public class SMGCPAValueVisitor
                 (NumericValue) distanceInBits,
                 size,
                 BinaryOperator.DIVIDE,
-                evaluator.getMachineModel().getPointerEquivalentSimpleType());
+                evaluator.getMachineModel().getPointerSizedIntType());
 
         returnBuilder.add(ValueAndSMGState.of(distance, currentState));
         continue;
@@ -2709,7 +2708,7 @@ public class SMGCPAValueVisitor
         // Don't cast pointers or values carrying location information
         return value;
       } else {
-        return castIfSymbolic(value, targetType, Optional.of(machineModel));
+        return castIfSymbolic(value, targetType);
       }
     }
 
@@ -2736,14 +2735,13 @@ public class SMGCPAValueVisitor
     return castNumeric(numericValue, type, machineModel, size);
   }
 
-  private static Value castIfSymbolic(
-      Value pValue, Type pTargetType, Optional<MachineModel> pMachineModel) {
+  private static Value castIfSymbolic(Value pValue, Type pTargetType) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
     if (pValue instanceof SymbolicValue
         && (pTargetType instanceof JSimpleType || pTargetType instanceof CSimpleType)) {
 
-      return factory.cast((SymbolicValue) pValue, pTargetType, pMachineModel);
+      return factory.cast((SymbolicValue) pValue, pTargetType);
     }
 
     // If the value is not symbolic, just return it.

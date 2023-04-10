@@ -58,9 +58,7 @@ public class SMGCPATest0 {
   public void init() throws InvalidConfigurationException {
     // We always assume lists to be head, nfo and pfo, each pointer sized.
     machineModel = MachineModel.LINUX32;
-    pointerSizeInBits =
-        BigInteger.valueOf(
-            machineModel.getSizeof(machineModel.getPointerEquivalentSimpleType()) * 8L);
+    pointerSizeInBits = BigInteger.valueOf(machineModel.getSizeofPtrInBits());
     // We expect the sizes of SLL/DLL to be hfo + nfo ( + pfo)
     sllSize = pointerSizeInBits.multiply(BigInteger.TWO);
     dllSize = pointerSizeInBits.multiply(BigInteger.valueOf(3));

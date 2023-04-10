@@ -159,11 +159,11 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
       final Set<CFANode> errorLocsOrig_reachable =
           performPreprocessing
               ? computeElementsWithPathTo(errorLocsOrig, CFAUtils::allPredecessorsOf)
-              : ImmutableSet.copyOf(cfaOrig.getAllNodes());
+              : ImmutableSet.copyOf(cfaOrig.nodes());
       final Set<CFANode> errorLocsMod_new_reachable =
           performPreprocessing
               ? computeElementsWithPathTo(errorLocsMod, CFAUtils::allPredecessorsOf)
-              : ImmutableSet.copyOf(pCfa.getAllNodes());
+              : ImmutableSet.copyOf(pCfa.nodes());
 
       helper =
           new ModificationsPropHelper(

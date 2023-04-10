@@ -281,7 +281,7 @@ class DynamicMemoryHandler {
     final Formula sizeExp =
         conv.makeCast(
             parameter.getExpressionType(),
-            conv.machineModel.getPointerDiffType(),
+            conv.machineModel.getSizeType(),
             conv.buildTerm(
                 parameter,
                 edge,

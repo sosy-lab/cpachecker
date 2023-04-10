@@ -72,7 +72,7 @@ public class InvariantStoreUtil {
   public static Collection<CFANode> getNodesAtFileLocation(FileLocation fileLocation, CFA cfa) {
 
     ImmutableSet.Builder<CFANode> result = ImmutableSet.builder();
-    for (CFANode candidate : cfa.getAllNodes()) {
+    for (CFANode candidate : cfa.nodes()) {
       if (candidate instanceof FunctionEntryNode || candidate instanceof FunctionExitNode) {
         // We only consider loop invariants
         continue;
