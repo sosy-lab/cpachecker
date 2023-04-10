@@ -189,13 +189,36 @@ class MemoryManipulationFunctionHandler {
     final CExpression processedDestination = processPointerLikeArgument(destination, true);
     final CExpression processedSource = processPointerLikeArgument(source, false);
 
+    // make sure both arguments have the same underlying sizes, otherwise, it is not possible to
+    // assign
+    // them by reinterpretation
+    final CType destinationType = typeHandler.getSimplifiedType(processedDestination);
+    final CPointerType adjustedDestinationType =
+        (CPointerType)
+            CTypes.adjustFunctionOrArrayType(destinationType);
+
+    final CType sourceType = typeHandler.getSimplifiedType(processedSource);
+    CPointerType adjustedSourceType =
+        (CPointerType)
+            CTypes.adjustFunctionOrArrayType(sourceType);
+
+    final long underlyingDestinationBitSize = typeHandler.getBitSizeof(adjustedDestinationType.getType());
+    final long underlyingSourceBitSize = typeHandler.getBitSizeof(adjustedSourceType.getType());
+
+    if (underlyingDestinationBitSize != underlyingSourceBitSize) {
+      throw new UnrecognizedCodeException(
+          String.format(
+              "Cannot assign between differently-sized elements of destination %s and source %s",
+              destinationType, sourceType),
+          edge);
+    }
+
     // compute the size in elements
     // note that this is not completely precise as it treats fractional element assignment
     // as full element assignment; however, reinterpreting to bytes would not work correctly
     // with non-byte heaps
-    final CType destinationType = processedDestination.getExpressionType().getCanonicalType();
     final CExpression sizeInElements =
-        convertSizeInBytesToSizeInElements(sizeInBytes, destinationType);
+        convertSizeInBytesToSizeInElements(sizeInBytes, adjustedDestinationType);
 
     // the memcopy just indexes the destination and source with the same index
     // i.e. lhs[i] = rhs[i] for 0 <= i < sizeInElements
