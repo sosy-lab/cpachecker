@@ -37,9 +37,11 @@ public class LocationCPA extends AbstractCPA
     super("sep", "sep", new LocationTransferRelation(pStateFactory));
     stateFactory = pStateFactory;
 
-    Optional<CFAInfo> cfaInfo = GlobalSerializationInformation.getInstance().getCFAInfo();
-    if (cfaInfo.isPresent()) {
-      cfaInfo.orElseThrow().storeLocationStateFactory(stateFactory);
+    if (GlobalSerializationInformation.hasInstance()) {
+      Optional<CFAInfo> cfaInfo = GlobalSerializationInformation.getInstance().getCFAInfo();
+      if (cfaInfo.isPresent()) {
+        cfaInfo.orElseThrow().storeLocationStateFactory(stateFactory);
+      }
     }
   }
 

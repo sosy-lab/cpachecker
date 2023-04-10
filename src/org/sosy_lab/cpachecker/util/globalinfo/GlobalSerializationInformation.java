@@ -43,6 +43,10 @@ public class GlobalSerializationInformation {
     return instance;
   }
 
+  public static boolean hasInstance() {
+    return instance != null;
+  }
+
   public static synchronized GlobalSerializationInformation getInstance() {
     if (instance == null) {
       throw new AssertionError(
