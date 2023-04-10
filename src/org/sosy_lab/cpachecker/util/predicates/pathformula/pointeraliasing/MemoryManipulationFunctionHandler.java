@@ -510,7 +510,7 @@ class MemoryManipulationFunctionHandler {
       throw new UnrecognizedCodeException(
           "Expected type to be pointer-like in byte-size to element-size conversion", edge);
     }
-    final CPointerType pointerType = (CPointerType) pointerLikeType;
+    final CPointerType pointerType = (CPointerType) adjustedPointerLikeType;
 
     // take the byte size of the underlying type
     final CType underlyingType = pointerType.getType().getCanonicalType();
