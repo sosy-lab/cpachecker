@@ -200,7 +200,7 @@ class AssignmentQuantifierHandler {
     resolvedLhsBases = pResolvedLhsBases;
     resolvedRhsBases = pResolvedRhsBases;
 
-    sizeType = conv.machineModel.getPointerEquivalentSimpleType();
+    sizeType = conv.machineModel.getPointerSizedIntType();
   }
 
   /**

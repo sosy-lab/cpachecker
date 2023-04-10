@@ -103,7 +103,7 @@ class MemoryManipulationFunctionHandler {
     errorConditions = pErrorConditions;
     regionMgr = pRegionMgr;
 
-    sizeType = conv.machineModel.getPointerEquivalentSimpleType();
+    sizeType = conv.machineModel.getPointerSizedIntType();
   }
 
   /**
@@ -387,7 +387,7 @@ class MemoryManipulationFunctionHandler {
     if (type instanceof CEnumType enumType) {
       compatibleType = enumType.getCompatibleType();
     } else if (type instanceof CPointerType) {
-      compatibleType = conv.machineModel.getPointerEquivalentSimpleType();
+      compatibleType = conv.machineModel.getPointerSizedIntType();
     }
 
     // call an appropriate function depending on the type or throw if it is unsupported

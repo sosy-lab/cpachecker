@@ -187,7 +187,7 @@ class AssignmentHandler {
 
     assignmentOptions = pAssignmentOptions;
 
-    sizeType = conv.machineModel.getPointerEquivalentSimpleType();
+    sizeType = conv.machineModel.getPointerSizedIntType();
   }
 
   /**
