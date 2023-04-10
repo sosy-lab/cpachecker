@@ -98,8 +98,8 @@ class AssignmentHandler {
       checkNotNull(lhs);
       checkNotNull(relevancyLhs);
       checkNotNull(rhs);
-      checkArgument(!lhs.containsUnresolvedModifiers());
-      checkArgument(rhs.isEmpty() || !rhs.get().containsUnresolvedModifiers());
+      checkArgument(!lhs.containsResolvedModifiers());
+      checkArgument(rhs.isEmpty() || !rhs.get().containsResolvedModifiers());
       this.lhs = lhs;
       this.relevancyLhs = relevancyLhs;
       this.rhs = rhs;

@@ -332,10 +332,9 @@ final class SliceExpression {
     return resolved;
   }
 
-  /** Returns whether there are any unresolved modifiers, i.e. slice variable index modifiers. */
-  boolean containsUnresolvedModifiers() {
-    return modifiers.stream()
-        .anyMatch(modifier -> modifier instanceof SliceVariableIndexModifier);
+  /** Returns whether there are any resolved modifiers, i.e. slice formula index modifiers. */
+  boolean containsResolvedModifiers() {
+    return modifiers.stream().anyMatch(modifier -> modifier instanceof SliceFormulaIndexModifier);
   }
 
   /** Returns the base. */
