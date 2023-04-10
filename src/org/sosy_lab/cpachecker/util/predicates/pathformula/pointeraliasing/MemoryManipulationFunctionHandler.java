@@ -56,7 +56,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * @see SliceExpression
  * @see AssignmentHandler
  */
-class MemoryFunctionHandler {
+class MemoryManipulationFunctionHandler {
 
   private final CToFormulaConverterWithPointerAliasing conv;
   private final TypeHandlerWithPointerAliasing typeHandler;
@@ -82,7 +82,7 @@ class MemoryFunctionHandler {
    * @param pConstraints Additional constraints.
    * @param pErrorConditions Additional error conditions.
    */
-  MemoryFunctionHandler(
+  MemoryManipulationFunctionHandler(
       CToFormulaConverterWithPointerAliasing pConv,
       CFAEdge pEdge,
       String pFunction,

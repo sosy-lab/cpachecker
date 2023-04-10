@@ -69,7 +69,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * @see SliceExpression
  * @see AssignmentQuantifierHandler
  * @see AssignmentFormulaHandler
- * @see MemoryFunctionHandler
+ * @see MemoryManipulationFunctionHandler
  */
 class AssignmentHandler {
 

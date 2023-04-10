@@ -731,8 +731,8 @@ class CExpressionVisitorWithPointerAliasing
         if (functionName.equals("memcpy")
             || functionName.equals("memmove")
             || functionName.equals("memset")) {
-          MemoryFunctionHandler memoryFunctionHandler =
-              new MemoryFunctionHandler(
+          MemoryManipulationFunctionHandler memoryFunctionHandler =
+              new MemoryManipulationFunctionHandler(
                   conv, edge, functionName, ssa, pts, constraints, errorConditions, regionMgr);
 
           CExpression resultExpression =
