@@ -52,7 +52,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
   private final PartitioningIOHelper ioHelper;
   private final PropertyCheckerCPA cpa;
   private final ShutdownNotifier shutdownNotifier;
-  private final CFA cfa;
+  private final CFA injectedCFA;
 
   public PartialReachedSetIOCheckingOnlyInterleavedStrategy(
       final Configuration pConfig,
@@ -60,10 +60,10 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
       final ShutdownNotifier pShutdownNotifier,
       final Path pProofFile,
       final @Nullable PropertyCheckerCPA pCpa,
-      final @Nullable CFA pCfa)
+      final @Nullable CFA pInjectedCFA)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pProofFile);
-    cfa = pCfa;
+    injectedCFA = pInjectedCFA;
     ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier);
     cpa = pCpa;
     shutdownNotifier = pShutdownNotifier;
@@ -94,7 +94,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
     Precision initPrec = pReachedSet.getPrecision(initialState);
 
     logger.log(Level.INFO, "Create reading thread");
-    Thread readingThread = new Thread(new PartitionReader(cfa, checkResult, partitionsAvailable));
+    Thread readingThread =
+        new Thread(new PartitionReader(injectedCFA, checkResult, partitionsAvailable));
     try {
       readingThread.start();
 
