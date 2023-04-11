@@ -44,7 +44,7 @@ public class SerializationInfoStorage {
     SerializationInfoStorage instance = serializationInformationThreadLocal.get();
     if (instance == null) {
       throw new AssertionError(
-          "The serialization information was not set. writeSerializationInformation() needs to be"
+          "The serialization information was not set. storeSerializationInformation() needs to be"
               + " called before (de-)serialization is started.");
     }
     return instance;
