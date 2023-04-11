@@ -28,6 +28,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -51,8 +52,10 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
   private final PartitioningIOHelper ioHelper;
   private final PropertyCheckerCPA cpa;
   private final ShutdownNotifier shutdownNotifier;
+  private final CFA cfa;
 
   public PartialReachedSetIOCheckingOnlyInterleavedStrategy(
+      final CFA pCFA,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
@@ -60,6 +63,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
       final @Nullable PropertyCheckerCPA pCpa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pProofFile);
+    cfa = pCFA;
     ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier);
     cpa = pCpa;
     shutdownNotifier = pShutdownNotifier;
@@ -90,7 +94,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
     Precision initPrec = pReachedSet.getPrecision(initialState);
 
     logger.log(Level.INFO, "Create reading thread");
-    Thread readingThread = new Thread(new PartitionReader(checkResult, partitionsAvailable));
+    Thread readingThread = new Thread(new PartitionReader(cfa, checkResult, partitionsAvailable));
     try {
       readingThread.start();
 
@@ -205,16 +209,19 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
 
     private final AtomicBoolean checkResult;
     private final Semaphore mainSemaphore;
+    private final CFA cfa;
 
-    public PartitionReader(final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked) {
+    public PartitionReader(
+        final CFA pCFA, final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked) {
       checkResult = pCheckResult;
       mainSemaphore = pPartitionChecked;
+      cfa = pCFA;
     }
 
     @Override
     @SuppressWarnings("Finally") // not really better doable without switching to Closer
     public void run() {
-      SerializationInfoStorage.storeSerializationInformation(cpa, null);
+      SerializationInfoStorage.storeSerializationInformation(cpa, cfa);
       try (ObjectInputStream o = openProofStream()) {
         ioHelper.readMetadata(o, false);
 
