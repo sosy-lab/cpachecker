@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.location;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -25,7 +24,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBA
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalSerializationInformation;
 
 public class LocationCPA extends AbstractCPA
@@ -37,12 +35,9 @@ public class LocationCPA extends AbstractCPA
     super("sep", "sep", new LocationTransferRelation(pStateFactory));
     stateFactory = pStateFactory;
 
-    if (GlobalSerializationInformation.hasInstance()) {
-      Optional<CFAInfo> cfaInfo = GlobalSerializationInformation.getInstance().getCFAInfo();
-      if (cfaInfo.isPresent()) {
-        cfaInfo.orElseThrow().storeLocationStateFactory(stateFactory);
-      }
-    }
+    GlobalSerializationInformation.getWrappedInstance()
+        .flatMap(GlobalSerializationInformation::getCFAInfo)
+        .ifPresent(cfaInfo -> cfaInfo.storeLocationStateFactory(stateFactory));
   }
 
   public static CPAFactory factory() {

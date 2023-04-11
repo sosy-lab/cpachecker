@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
@@ -17,6 +18,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalSerializationInformation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -28,16 +30,15 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
   private final FormulaManagerView formulaManagerView;
   private final PathFormulaManager pathFormulaManager;
   private final BlockNode block;
+  private final CFA cfa;
 
   public DeserializePredicateStateOperator(
-      PredicateCPA pPredicateCPA,
-      FormulaManagerView pFormulaManagerView,
-      PathFormulaManager pPathFormulaManager,
-      BlockNode pBlockNode) {
+      PredicateCPA pPredicateCPA, CFA pCFA, BlockNode pBlockNode) {
     predicateCPA = pPredicateCPA;
-    formulaManagerView = pFormulaManagerView;
-    pathFormulaManager = pPathFormulaManager;
+    formulaManagerView = predicateCPA.getSolver().getFormulaManager();
+    pathFormulaManager = pPredicateCPA.getPathFormulaManager();
     block = pBlockNode;
+    cfa = pCFA;
   }
 
   @Override
@@ -47,6 +48,7 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
             pMessage, predicateCPA.getClass(), formulaManagerView);
     SSAMap map = SSAMap.emptySSAMap();
     PointerTargetSet pts = PointerTargetSet.emptyPointerTargetSet();
+    GlobalSerializationInformation.writeSerializationInformation(predicateCPA, cfa);
     if (pMessage instanceof BlockSummaryPostConditionMessage) {
       map = ((BlockSummaryPostConditionMessage) pMessage).getSSAMap();
       pts = ((BlockSummaryPostConditionMessage) pMessage).getPointerTargetSet();
@@ -54,6 +56,7 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
       map = ((BlockSummaryErrorConditionMessage) pMessage).getSSAMap();
       pts = ((BlockSummaryErrorConditionMessage) pMessage).getPointerTargetSet();
     }
+    GlobalSerializationInformation.clear();
     return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
         PredicateOperatorUtil.getPathFormula(
             formula, pathFormulaManager, formulaManagerView, pts, map),

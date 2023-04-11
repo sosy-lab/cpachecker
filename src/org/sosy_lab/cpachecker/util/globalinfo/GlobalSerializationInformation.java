@@ -25,7 +25,9 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class GlobalSerializationInformation {
-  private static GlobalSerializationInformation instance;
+
+  private static final ThreadLocal<GlobalSerializationInformation>
+      serializationInformationThreadLocal = ThreadLocal.withInitial(() -> null);
   private CFAInfo cfaInfo;
   private final AutomatonInfo automatonInfo = new AutomatonInfo();
   private FormulaManagerView predicateFormulaManagerView;
@@ -37,20 +39,25 @@ public class GlobalSerializationInformation {
   private GlobalSerializationInformation() {}
 
   private static synchronized GlobalSerializationInformation createOrGetInstance() {
-    if (instance == null) {
-      instance = new GlobalSerializationInformation();
+    GlobalSerializationInformation instance = serializationInformationThreadLocal.get();
+    if (instance != null) {
+      return instance;
     }
+    instance = new GlobalSerializationInformation();
+    serializationInformationThreadLocal.set(instance);
     return instance;
   }
 
-  public static boolean hasInstance() {
-    return instance != null;
+  public static synchronized Optional<GlobalSerializationInformation> getWrappedInstance() {
+    return Optional.ofNullable(serializationInformationThreadLocal.get());
   }
 
   public static synchronized GlobalSerializationInformation getInstance() {
+    GlobalSerializationInformation instance = serializationInformationThreadLocal.get();
     if (instance == null) {
       throw new AssertionError(
-          "The global information was not set now (global information is null)");
+          "There is no instance of GlobalSerializationInformation (instance of"
+              + " GlobalSerializationInfo is null)");
     }
     return instance;
   }
