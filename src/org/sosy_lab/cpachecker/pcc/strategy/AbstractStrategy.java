@@ -123,7 +123,9 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           ze = new ZipEntry(ADDITIONAL_PROOFINFO_ZIPENTRY_NAME + index);
           zos.putNextEntry(ze);
           o = new ObjectOutputStream(zos);
+
           continueWriting = writeAdditionalProofStream(o);
+
           o.flush();
           zos.closeEntry();
           index++;
