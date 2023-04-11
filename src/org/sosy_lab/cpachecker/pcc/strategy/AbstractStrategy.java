@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.ValidationConfigurationConstructionFailed;
 import org.sosy_lab.cpachecker.pcc.util.ProofStatesInfoCollector;
 import org.sosy_lab.cpachecker.pcc.util.ValidationConfigurationBuilder;
-import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 @Options(prefix = "pcc")
 public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvider {
@@ -113,12 +112,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
         // TODO might also want to write used configuration to the file so that proof checker does
         // not need to get it as an argument
         // write ARG
-        SerializationInfoStorage.storeSerializationInformation(pCpa, null);
-        try {
-          writeProofToStream(o, pReached, pCpa);
-        } finally {
-          SerializationInfoStorage.clear();
-        }
+        writeProofToStream(o, pReached, pCpa);
         o.flush();
         zos.closeEntry();
 
@@ -129,12 +123,9 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           ze = new ZipEntry(ADDITIONAL_PROOFINFO_ZIPENTRY_NAME + index);
           zos.putNextEntry(ze);
           o = new ObjectOutputStream(zos);
-          SerializationInfoStorage.storeSerializationInformation(pCpa, null);
-          try {
-            continueWriting = writeAdditionalProofStream(o);
-          } finally {
-            SerializationInfoStorage.clear();
-          }
+
+          continueWriting = writeAdditionalProofStream(o);
+
           o.flush();
           zos.closeEntry();
           index++;
@@ -144,7 +135,6 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           ze = new ZipEntry(CONFIG_ZIPENTRY_NAME);
           zos.putNextEntry(ze);
           o = new ObjectOutputStream(zos);
-          SerializationInfoStorage.storeSerializationInformation(pCpa, null);
           try {
             writeConfiguration(o);
           } catch (ValidationConfigurationConstructionFailed eIC) {
@@ -153,8 +143,6 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
                 eIC,
                 "Construction of validation configuration failed. Validation configuration is"
                     + " empty.");
-          } finally {
-            SerializationInfoStorage.clear();
           }
 
           o.flush();
