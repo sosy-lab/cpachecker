@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper;
@@ -189,11 +190,12 @@ public class InvariantValidationAlgorithm implements Algorithm {
     Set<Sample> preSamples = new HashSet<>();
     Set<Sample> stepSamples = new HashSet<>();
     Set<Sample> postSamples = new HashSet<>();
+    StringJoiner vcJoiner = new StringJoiner(",\n", "[", "]");
 
     for (CFANode loopHead : cfa.getAllLoopHeads().orElseThrow()) {
       try {
         if (outputVCs) {
-          outputVerificationConditions(reachedSet, loopHead);
+          vcJoiner.add(outputVerificationConditions(reachedSet, loopHead));
         } else if (useBMC) {
           validateBMC(loopHead, preSamples, stepSamples, postSamples);
         } else {
@@ -206,15 +208,23 @@ public class InvariantValidationAlgorithm implements Algorithm {
       }
     }
 
-    writeSamplesToFile(preSamples, preCexOutFile);
-    writeSamplesToFile(stepSamples, stepCexOutFile);
-    writeSamplesToFile(postSamples, postCexOutFile);
+    if (outputVCs) {
+      try (Writer writer = IO.openOutputFile(vcFile, Charset.defaultCharset())) {
+        writer.write(vcJoiner.toString());
+      } catch (IOException e) {
+        logger.log(Level.WARNING, "Export of Verification Conditions failed");
+      }
+    } else {
+      writeSamplesToFile(preSamples, preCexOutFile);
+      writeSamplesToFile(stepSamples, stepCexOutFile);
+      writeSamplesToFile(postSamples, postCexOutFile);
+    }
 
     // TODO: Add statistics
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  private void outputVerificationConditions(ReachedSet pReachedSet, CFANode pLocation)
+  private String outputVerificationConditions(ReachedSet pReachedSet, CFANode pLocation)
       throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
     // Retrieve formula managers
     PredicateCPA predicateCPA =
@@ -234,7 +244,8 @@ public class InvariantValidationAlgorithm implements Algorithm {
     assert Iterables.size(statesAtLocation) == 1;
     SSAMap ssaBefore = SSAMap.emptySSAMap();
     for (AbstractState state : statesAtLocation) {
-      PredicateAbstractState predState = AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+      PredicateAbstractState predState =
+          AbstractStates.extractStateByType(state, PredicateAbstractState.class);
       ssaBefore = predState.getPathFormula().getSsa();
 
       for (ARGState covered : ((ARGState) state).getCoveredByThis()) {
@@ -257,7 +268,20 @@ public class InvariantValidationAlgorithm implements Algorithm {
     // Output necessary parts to build relevant formulas for different invariants
     StringBuilder output = new StringBuilder();
 
-    output.append("{\"constant-declarations\":\n\"");
+    output.append("{\"location\":{\n");
+    FileLocation fileLocation = SampleUtils.getLocationForNode(pLocation);
+    Path filename = fileLocation.getFileName();
+    int line = fileLocation.getStartingLineInOrigin();
+    // TODO: Computing column requires access to file
+    //       (e.g. by using offsets computed by InvariantStoreUtil::getLineOffsetsByFile)
+    //       but offsets are still not reliable if --preprocess is used.
+    int column = 0;
+
+    output.append(
+        "\"filename\": \"%s\",\n\"line\": %s,\n\"column\": %s},\n"
+            .formatted(filename, line, column));
+
+    output.append("\"constant-declarations\":\n\"");
     Set<Formula> variables = new HashSet<>();
     variables.addAll(fmgr.extractVariables(preconditionFulfilled).values());
     variables.addAll(fmgr.extractVariables(pathFormula.getFormula()).values());
@@ -300,11 +324,7 @@ public class InvariantValidationAlgorithm implements Algorithm {
     output.append(sj);
     output.append("}}");
 
-    try (Writer writer = IO.openOutputFile(vcFile, Charset.defaultCharset())) {
-      writer.write(output.toString());
-    } catch (IOException e) {
-      logger.log(Level.WARNING, "Export of Verification Conditions failed");
-    }
+    return output.toString();
   }
 
   private void validateSMT(

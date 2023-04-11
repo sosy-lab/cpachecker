@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.sampling;
 import com.google.common.base.Splitter;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -18,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.sampling.Sample.SampleClass;
@@ -30,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
@@ -172,5 +176,31 @@ public class SampleUtils {
 
     return pCpa.getInitialPrecision(
         pSample.getLocation(), StateSpacePartition.getDefaultPartition());
+  }
+
+  public static FileLocation getLocationForNode(CFANode pNode) {
+    Set<FileLocation> fileLocations;
+
+    if (pNode.getNumLeavingEdges() > 0) {
+      fileLocations =
+          CFAUtils.leavingEdges(pNode)
+              .transform(CFAEdge::getFileLocation)
+              .filter(fl -> fl != null && !FileLocation.DUMMY.equals(fl))
+              .toSet();
+      assert fileLocations.size() < 2 : "Node location is ambiguous";
+      if (!fileLocations.isEmpty()) {
+        return Iterables.getOnlyElement(fileLocations);
+      }
+    }
+
+    // No leaving edges or all leaving edges are missing location information
+    fileLocations =
+        CFAUtils.enteringEdges(pNode)
+            .transform(CFAEdge::getFileLocation)
+            .filter(fl -> fl != null && !FileLocation.DUMMY.equals(fl))
+            .toSet();
+    assert fileLocations.size() < 2 : "Node location is ambiguous";
+    assert fileLocations.size() == 1 : "All edges are missing location information";
+    return Iterables.getOnlyElement(fileLocations);
   }
 }

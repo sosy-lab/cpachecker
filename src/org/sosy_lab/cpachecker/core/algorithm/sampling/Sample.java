@@ -11,22 +11,18 @@ package org.sosy_lab.cpachecker.core.algorithm.sampling;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 import java.nio.file.Path;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Set;
 import java.util.StringJoiner;
 import java.util.UUID;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class Sample {
@@ -102,34 +98,15 @@ public class Sample {
     }
     sb.append(String.format("\"sampleClass\": \"%s\", ", sampleClass));
 
-    Path filename = location.getFunction().getFileLocation().getFileName();
+    FileLocation fileLocation = SampleUtils.getLocationForNode(location);
+    Path filename = fileLocation.getFileName();
     String function = location.getFunction().getOrigName();
-    int line = -1;
-    // TODO: Determining correct column likely requires access to file
+    int line = fileLocation.getStartingLineInOrigin();
+    // TODO: Computing column requires access to file
+    //       (e.g. by using offsets computed by InvariantStoreUtil::getLineOffsetsByFile)
+    //       but offsets are still not reliable if --preprocess is used.
     int column = 0;
-    Set<FileLocation> fileLocations = new HashSet<>();
-    if (location.getNumLeavingEdges() > 0) {
-      fileLocations =
-          CFAUtils.leavingEdges(location)
-              .transform(CFAEdge::getFileLocation)
-              .filter(fl -> fl != null && !FileLocation.DUMMY.equals(fl))
-              .toSet();
-      assert fileLocations.size() < 2 : "Ambiguous location for sample " + this;
-      if (!fileLocations.isEmpty()) {
-        line = fileLocations.iterator().next().getStartingLineNumber();
-      }
-    }
-    if (fileLocations.isEmpty()) {
-      // No leaving edges or all leaving edges are missing location information
-      fileLocations =
-          CFAUtils.enteringEdges(location)
-              .transform(CFAEdge::getFileLocation)
-              .filter(fl -> fl != null && !FileLocation.DUMMY.equals(fl))
-              .toSet();
-      assert fileLocations.size() == 1 : "Ambiguous location for sample " + this;
-      line = fileLocations.iterator().next().getEndingLineNumber();
-    }
-    assert line > 0;
+
     sb.append(
         String.format(
             "\"location\": {\"filename\": \"%s\", \"function\": \"%s\", \"line\": %d, \"column\":"
