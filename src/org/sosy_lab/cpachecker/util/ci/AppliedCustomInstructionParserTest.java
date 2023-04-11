@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -90,7 +89,6 @@ public class AppliedCustomInstructionParserTest {
     aciParser =
         new AppliedCustomInstructionParser(
             ShutdownNotifier.createDummy(), LogManager.createTestLogManager(), cfa);
-    GlobalInfo.getInstance().storeCFA(cfa);
     labelNodes = getLabelNodes(cfa);
   }
 
@@ -208,7 +206,6 @@ public class AppliedCustomInstructionParserTest {
             "  y = y + x;",
             "}");
 
-    GlobalInfo.getInstance().storeCFA(cfa);
     aciParser =
         new AppliedCustomInstructionParser(
             ShutdownNotifier.createDummy(), LogManager.createTestLogManager(), cfa);

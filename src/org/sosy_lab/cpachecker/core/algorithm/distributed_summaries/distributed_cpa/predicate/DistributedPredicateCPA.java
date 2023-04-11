@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
@@ -35,17 +36,14 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   private final ProceedOperator proceed;
 
   public DistributedPredicateCPA(
-      PredicateCPA pPredicateCPA, BlockNode pNode, AnalysisDirection pDirection) {
+      PredicateCPA pPredicateCPA,
+      BlockNode pNode,
+      CFA pCFA,
+      AnalysisDirection pDirection) {
     predicateCPA = pPredicateCPA;
-    serialize =
-        new SerializePredicateStateOperator(
-            predicateCPA.getSolver().getFormulaManager(), pDirection);
-    deserialize =
-        new DeserializePredicateStateOperator(
-            predicateCPA,
-            predicateCPA.getSolver().getFormulaManager(),
-            predicateCPA.getPathFormulaManager(),
-            pNode);
+    serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, pDirection);
+    deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
+
     proceed = new AlwaysProceed();
     serializePrecisionOperator =
         new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());

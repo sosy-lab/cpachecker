@@ -104,8 +104,8 @@ public class DCPAAlgorithms {
         .addEntry(
             BlockSummaryMessagePayload.PROPERTY,
             pStatus.wasPropertyChecked()
-                ? StatusPropertyChecked.CHECKED.name()
-                : StatusPropertyChecked.UNCHECKED.name())
+            ? StatusPropertyChecked.CHECKED.name()
+            : StatusPropertyChecked.UNCHECKED.name())
         .addEntry(
             BlockSummaryMessagePayload.SOUND,
             pStatus.isSound() ? StatusSoundness.SOUND.name() : StatusSoundness.UNSOUND.name())
@@ -170,8 +170,8 @@ public class DCPAAlgorithms {
               .toSet();
       final CFANode blockEnd =
           pDirection == AnalysisDirection.FORWARD
-              ? pBlockNode.getLastNode()
-              : pBlockNode.getStartNode();
+          ? pBlockNode.getLastNode()
+          : pBlockNode.getStartNode();
       blockEnds =
           prefiltered
               .filter(

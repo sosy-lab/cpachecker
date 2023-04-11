@@ -96,7 +96,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor.ToFormulaException;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -339,8 +338,6 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
       cpa = coreComponents.createCPA(cfa, spec);
 
-      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
       algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
 
       AbstractState initialState =
@@ -406,8 +403,6 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       CoreComponentsFactory coreComponents =
           new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
       cpa = coreComponents.createCPA(cfa, spec);
-
-      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
       algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
 
@@ -565,8 +560,6 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           cpa instanceof ARGCPA, "Require ARGCPA to check validity of recurrent set:");
 
       ConfigurableProgramAnalysis wrappedCPA = ((ARGCPA) cpa).getWrappedCPAs().get(0);
-
-      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
       algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
 
@@ -828,8 +821,6 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       CoreComponentsFactory coreComponents =
           new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
       cpa = coreComponents.createCPA(cfa, spec);
-
-      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
       algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
 

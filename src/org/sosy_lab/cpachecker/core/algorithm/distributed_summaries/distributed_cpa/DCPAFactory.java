@@ -44,7 +44,7 @@ public class DCPAFactory {
       AnalysisDirection pDirection,
       CFA pCFA) {
     if (pCPA instanceof PredicateCPA predicateCPA) {
-      return distribute(predicateCPA, pBlockNode, pDirection);
+      return distribute(predicateCPA, pBlockNode, pDirection, pCFA);
     }
     if (pCPA instanceof CallstackCPA callstackCPA) {
       return distribute(callstackCPA, pBlockNode, pCFA);
@@ -78,8 +78,8 @@ public class DCPAFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      PredicateCPA pPredicateCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
-    return new DistributedPredicateCPA(pPredicateCPA, pBlockNode, pDirection);
+      PredicateCPA pPredicateCPA, BlockNode pBlockNode, AnalysisDirection pDirection, CFA pCFA) {
+    return new DistributedPredicateCPA(pPredicateCPA, pBlockNode, pCFA, pDirection);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
