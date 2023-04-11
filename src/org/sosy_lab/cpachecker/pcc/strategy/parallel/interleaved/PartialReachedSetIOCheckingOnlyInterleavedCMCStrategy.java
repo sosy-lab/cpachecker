@@ -327,7 +327,12 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
           }
 
           for (int j = 0; j < ioHelper.getNumPartitions() && checkResult.get(); j++) {
-            ioHelper.readPartition(o, stats);
+            SerializationInfoStorage.storeSerializationInformation(cpas[i], cfa);
+            try {
+              ioHelper.readPartition(o, stats);
+            } finally {
+              SerializationInfoStorage.clear();
+            }
 
             if (shutdown.shouldShutdown()) {
               abortPreparation();

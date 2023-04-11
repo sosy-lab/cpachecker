@@ -199,7 +199,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
     for (int i = 0; i < threads; i++) {
       pReadingExecutor.execute(
           new ParallelPartitionReader(
-              pCheckResult, partitionsRead, nextPartitionId, this, ioHelper, stats, logger));
+              cpa, pCheckResult, partitionsRead, nextPartitionId, this, ioHelper, stats, logger));
     }
   }
 

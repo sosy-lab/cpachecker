@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.parallel.ParallelPartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningUtils;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 @Options(prefix = "pcc.parallel.io")
 public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
@@ -187,7 +188,12 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
   protected void readProofFromStream(final ObjectInputStream pIn)
       throws ClassNotFoundException, InvalidConfigurationException, IOException {
     // read metadata
-    ioHelper.readMetadata(pIn, true);
+    SerializationInfoStorage.storeSerializationInformation(cpa, null);
+    try {
+      ioHelper.readMetadata(pIn, true);
+    } finally {
+      SerializationInfoStorage.clear();
+    }
     // read partitions in parallel
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);
     try {
@@ -198,7 +204,8 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
 
       for (int i = 0; i < numThreads; i++) {
         executor.execute(
-            new ParallelPartitionReader(success, waitRead, nextId, this, ioHelper, stats, logger));
+            new ParallelPartitionReader(
+                cpa, success, waitRead, nextId, this, ioHelper, stats, logger));
       }
 
       try {

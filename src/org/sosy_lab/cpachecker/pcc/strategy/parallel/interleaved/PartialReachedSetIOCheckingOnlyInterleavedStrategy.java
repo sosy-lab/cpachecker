@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends AbstractStrategy {
 
@@ -213,6 +214,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
     @Override
     @SuppressWarnings("Finally") // not really better doable without switching to Closer
     public void run() {
+      SerializationInfoStorage.storeSerializationInformation(cpa, null);
       try (ObjectInputStream o = openProofStream()) {
         ioHelper.readMetadata(o, false);
 
@@ -231,6 +233,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
       } catch (Exception e2) {
         logger.logException(Level.SEVERE, e2, "Unexpected failure during proof reading");
         abortPreparation();
+      } finally {
+        SerializationInfoStorage.clear();
       }
     }
 
