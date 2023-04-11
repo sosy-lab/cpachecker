@@ -234,8 +234,11 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
                 unexplored,
                 (ARGState) reached.getFirstState());
         SerializationInfoStorage.storeSerializationInformation(cpas.get(i), cfa);
-        ioHelper.writeProof(pOut, reached, pCpa);
-        SerializationInfoStorage.clear();
+        try {
+          ioHelper.writeProof(pOut, reached, pCpa);
+        } finally {
+          SerializationInfoStorage.clear();
+        }
       }
     } catch (ClassCastException e) {
       logger.logDebugException(e);
@@ -305,8 +308,11 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
           cpas[i] = (PropertyCheckerCPA) cpa;
           mustReadAndCheckSequentially = CPAs.retrieveCPA(cpa, PredicateCPA.class) != null;
           SerializationInfoStorage.storeSerializationInformation(cpas[i], cfa);
-          ioHelper.readMetadata(o, true);
-          SerializationInfoStorage.clear();
+          try {
+            ioHelper.readMetadata(o, true);
+          } finally {
+            SerializationInfoStorage.clear();
+          }
           roots[i] = ioHelper.getRoot();
 
           if (roots[i] == null) {

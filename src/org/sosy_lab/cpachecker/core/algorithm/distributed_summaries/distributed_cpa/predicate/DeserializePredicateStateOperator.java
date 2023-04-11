@@ -49,14 +49,17 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
     SSAMap map = SSAMap.emptySSAMap();
     PointerTargetSet pts = PointerTargetSet.emptyPointerTargetSet();
     SerializationInfoStorage.storeSerializationInformation(predicateCPA, cfa);
-    if (pMessage instanceof BlockSummaryPostConditionMessage) {
-      map = ((BlockSummaryPostConditionMessage) pMessage).getSSAMap();
-      pts = ((BlockSummaryPostConditionMessage) pMessage).getPointerTargetSet();
-    } else if (pMessage instanceof BlockSummaryErrorConditionMessage) {
-      map = ((BlockSummaryErrorConditionMessage) pMessage).getSSAMap();
-      pts = ((BlockSummaryErrorConditionMessage) pMessage).getPointerTargetSet();
+    try {
+      if (pMessage instanceof BlockSummaryPostConditionMessage) {
+        map = ((BlockSummaryPostConditionMessage) pMessage).getSSAMap();
+        pts = ((BlockSummaryPostConditionMessage) pMessage).getPointerTargetSet();
+      } else if (pMessage instanceof BlockSummaryErrorConditionMessage) {
+        map = ((BlockSummaryErrorConditionMessage) pMessage).getSSAMap();
+        pts = ((BlockSummaryErrorConditionMessage) pMessage).getPointerTargetSet();
+      }
+    } finally {
+      SerializationInfoStorage.clear();
     }
-    SerializationInfoStorage.clear();
     return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
         PredicateOperatorUtil.getPathFormula(
             formula, pathFormulaManager, formulaManagerView, pts, map),

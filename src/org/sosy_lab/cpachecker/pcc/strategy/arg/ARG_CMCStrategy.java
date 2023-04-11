@@ -130,8 +130,11 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       for (int i = 0; i < historyReached.getCPAs().size(); i++) {
         SerializationInfoStorage.storeSerializationInformation(
             historyReached.getCPAs().get(i), cfa);
-        pOut.writeObject(roots[i]);
-        SerializationInfoStorage.clear();
+        try {
+          pOut.writeObject(roots[i]);
+        } finally {
+          SerializationInfoStorage.clear();
+        }
       }
     }
   }
@@ -166,8 +169,11 @@ public class ARG_CMCStrategy extends AbstractStrategy {
           logger.log(Level.FINEST, "Build CPA for reading and checking partial ARG", i);
           cpa = cpaBuilder.buildPartialCPA(i, factory);
           SerializationInfoStorage.storeSerializationInformation(cpa, cfa);
-          readARG = o.readObject();
-          SerializationInfoStorage.clear();
+          try {
+            readARG = o.readObject();
+          } finally {
+            SerializationInfoStorage.clear();
+          }
           if (!(readARG instanceof ARGState)) {
             return false;
           }
@@ -240,8 +246,11 @@ public class ARG_CMCStrategy extends AbstractStrategy {
                       logger.log(Level.FINEST, "Build CPA for correctly reading ", i);
                       cpas[i] = cpaBuilder.buildPartialCPA(i, factory);
                       SerializationInfoStorage.storeSerializationInformation(cpas[i], cfa);
-                      readARG = o.readObject();
-                      SerializationInfoStorage.clear();
+                      try {
+                        readARG = o.readObject();
+                      } finally {
+                        SerializationInfoStorage.clear();
+                      }
                       if (!(readARG instanceof ARGState)) {
                         abortPreparation();
                       }

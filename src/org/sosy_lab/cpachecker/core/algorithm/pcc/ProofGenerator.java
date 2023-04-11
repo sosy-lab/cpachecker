@@ -135,8 +135,11 @@ public class ProofGenerator {
     writingTimer.start();
 
     SerializationInfoStorage.storeSerializationInformation(pReached.getCPA(), null);
-    checkingStrategy.writeProof(reached, pReached.getCPA());
-    SerializationInfoStorage.clear();
+    try {
+      checkingStrategy.writeProof(reached, pReached.getCPA());
+    } finally {
+      SerializationInfoStorage.clear();
+    }
 
     writingTimer.stop();
     logger.log(

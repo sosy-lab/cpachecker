@@ -54,15 +54,16 @@ public class SerializePredicateStateOperator implements SerializeOperator {
       pathFormula = state.getPathFormula();
     }
     String formula = formulaManagerView.dumpFormula(pathFormula.getFormula()).toString();
+    SerializationInfoStorage.storeSerializationInformation(predicateCPA, cfa);
     String ssa;
     String pts;
     try {
-      SerializationInfoStorage.storeSerializationInformation(predicateCPA, cfa);
       ssa = SerializeUtil.serialize(pathFormula.getSsa());
       pts = SerializeUtil.serialize(state.getPathFormula().getPointerTargetSet());
-      SerializationInfoStorage.clear();
     } catch (IOException pE) {
       throw new AssertionError("Unable to serialize SSAMap " + pathFormula.getSsa());
+    } finally {
+      SerializationInfoStorage.clear();
     }
     return new BlockSummaryMessagePayload.Builder()
         .addEntry(PredicateCPA.class.getName(), formula)
