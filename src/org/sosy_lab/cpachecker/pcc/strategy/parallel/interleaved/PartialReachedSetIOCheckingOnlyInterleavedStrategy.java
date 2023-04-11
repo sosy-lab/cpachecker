@@ -55,15 +55,15 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
   private final CFA cfa;
 
   public PartialReachedSetIOCheckingOnlyInterleavedStrategy(
-      final CFA pCFA,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final Path pProofFile,
-      final @Nullable PropertyCheckerCPA pCpa)
+      final @Nullable PropertyCheckerCPA pCpa,
+      final @Nullable CFA pCfa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pProofFile);
-    cfa = pCFA;
+    cfa = pCfa;
     ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier);
     cpa = pCpa;
     shutdownNotifier = pShutdownNotifier;

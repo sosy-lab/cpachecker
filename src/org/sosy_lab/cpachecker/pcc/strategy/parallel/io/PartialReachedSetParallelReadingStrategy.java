@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -54,6 +55,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
   private final PropertyCheckerCPA cpa;
   private final ShutdownNotifier shutdownNotifier;
   private final Lock lock = new ReentrantLock();
+  private final CFA cfa;
 
   @Option(secure = true, description = "enables parallel checking of partial certificate")
   private boolean enableParallelCheck = false;
@@ -65,9 +67,11 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final Path pProofFile,
-      final @Nullable PropertyCheckerCPA pCpa)
+      final @Nullable PropertyCheckerCPA pCpa,
+      final @Nullable CFA pCFA)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pProofFile);
+    cfa = pCFA;
     pConfig.inject(this);
     ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier);
     shutdownNotifier = pShutdownNotifier;
@@ -188,10 +192,11 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
   protected void readProofFromStream(final ObjectInputStream pIn)
       throws ClassNotFoundException, InvalidConfigurationException, IOException {
     // read metadata
-    SerializationInfoStorage.storeSerializationInformation(cpa, null);
+    SerializationInfoStorage.storeSerializationInformation(cpa, cfa);
     try {
       ioHelper.readMetadata(pIn, true);
     } finally {
+      SerializationInfoStorage.clear();
       SerializationInfoStorage.clear();
     }
     // read partitions in parallel
