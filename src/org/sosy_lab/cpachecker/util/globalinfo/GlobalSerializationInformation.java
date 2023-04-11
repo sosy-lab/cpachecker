@@ -50,10 +50,6 @@ public class GlobalSerializationInformation {
     return instance;
   }
 
-  public static synchronized Optional<GlobalSerializationInformation> getWrappedInstance() {
-    return Optional.ofNullable(serializationInformationThreadLocal.get());
-  }
-
   public static synchronized GlobalSerializationInformation getInstance() {
     GlobalSerializationInformation instance = serializationInformationThreadLocal.get();
     if (instance == null) {
