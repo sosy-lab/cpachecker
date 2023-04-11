@@ -57,7 +57,7 @@ public class SerializationInfoStorage {
   public static synchronized void storeSerializationInformation(
       ConfigurableProgramAnalysis pCpa, CFA pCFA) {
     checkState(
-        serializationInformationThreadLocal.get() != null,
+        serializationInformationThreadLocal.get() == null,
         "Clear the global state before accessing this method.");
     SerializationInfoStorage info = new SerializationInfoStorage();
     serializationInformationThreadLocal.set(info);
