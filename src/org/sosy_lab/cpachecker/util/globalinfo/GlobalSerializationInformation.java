@@ -18,6 +18,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -82,18 +84,21 @@ public class GlobalSerializationInformation {
     info.cfaInfo = new CFAInfo(pCFA);
     if (pCpa != null) {
       for (ConfigurableProgramAnalysis c : CPAs.asIterable(pCpa)) {
-        if (c instanceof ControlAutomatonCPA) {
-          ((ControlAutomatonCPA) c).registerInAutomatonInfo(info.automatonInfo);
-        } else if (c instanceof ApronCPA) {
-          ApronCPA apron = (ApronCPA) c;
+        if (c instanceof ControlAutomatonCPA controlAutomatonCPA) {
+          controlAutomatonCPA.registerInAutomatonInfo(info.automatonInfo);
+        } else if (c instanceof ApronCPA apron) {
           info.apronManager = apron.getManager();
           info.apronLogger = apron.getLogger();
-        } else if (c instanceof AssumptionStorageCPA) {
+        } else if (c instanceof AssumptionStorageCPA assumptionStorageCPA) {
           // override the existing manager
-          info.assumptionFormulaManagerView = ((AssumptionStorageCPA) c).getFormulaManager();
-        } else if (c instanceof PredicateCPA) {
-          info.absManager = ((PredicateCPA) c).getAbstractionManager();
-          info.predicateFormulaManagerView = ((PredicateCPA) c).getSolver().getFormulaManager();
+          info.assumptionFormulaManagerView = assumptionStorageCPA.getFormulaManager();
+        } else if (c instanceof PredicateCPA predicateCPA) {
+          info.absManager = predicateCPA.getAbstractionManager();
+          info.predicateFormulaManagerView = predicateCPA.getSolver().getFormulaManager();
+        } else if (c instanceof LocationCPA locationCPA) {
+          info.cfaInfo.storeLocationStateFactory(locationCPA.getStateFactory());
+        } else if (c instanceof LocationCPABackwards locationCPA) {
+          info.cfaInfo.storeLocationStateFactory(locationCPA.getStateFactory());
         }
       }
     }
