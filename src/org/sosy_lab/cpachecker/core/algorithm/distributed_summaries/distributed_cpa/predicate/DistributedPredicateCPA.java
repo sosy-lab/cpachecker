@@ -36,10 +36,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   private final ProceedOperator proceed;
 
   public DistributedPredicateCPA(
-      PredicateCPA pPredicateCPA,
-      BlockNode pNode,
-      CFA pCFA,
-      AnalysisDirection pDirection) {
+      PredicateCPA pPredicateCPA, BlockNode pNode, CFA pCFA, AnalysisDirection pDirection) {
     predicateCPA = pPredicateCPA;
     serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, pDirection);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
