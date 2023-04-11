@@ -25,7 +25,7 @@ import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalSerializationInformation;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 
@@ -252,7 +252,7 @@ public final class PointerTargetSet implements Serializable {
               ? new HashMap<>()
               : new HashMap<>(Maps.transformValues(pts.targets, ArrayList::new));
       FormulaManagerView mgr =
-          GlobalSerializationInformation.getInstance().getPredicateFormulaManagerView();
+          SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       highestAllocatedAddresses =
           new ArrayList<>(
               Lists.transform(pts.highestAllocatedAddresses, mgr::dumpArbitraryFormula));
@@ -261,7 +261,7 @@ public final class PointerTargetSet implements Serializable {
 
     private Object readResolve() {
       FormulaManagerView mgr =
-          GlobalSerializationInformation.getInstance().getPredicateFormulaManagerView();
+          SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       PersistentList<Formula> highestAllocatedAddressesFormulas =
           PersistentLinkedList.copyOf(
               Lists.transform(highestAllocatedAddresses, mgr::parseArbitraryFormula));

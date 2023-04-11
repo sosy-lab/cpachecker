@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalSerializationInformation;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -142,7 +142,7 @@ public class AssumptionStorageState implements AbstractState, Serializable {
 
   private Object readResolve() {
     FormulaManagerView fManager =
-        GlobalSerializationInformation.getInstance().getAssumptionStorageFormulaManager();
+        SerializationInfoStorage.getInstance().getAssumptionStorageFormulaManager();
     return new AssumptionStorageState(
         fManager,
         fManager.getBooleanFormulaManager().makeTrue(),

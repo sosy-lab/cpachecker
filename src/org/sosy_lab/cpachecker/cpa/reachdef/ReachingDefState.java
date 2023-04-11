@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalSerializationInformation;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ReachingDefState
@@ -412,7 +412,7 @@ public class ReachingDefState
 
     private void readObject(java.io.ObjectInputStream in) throws IOException {
       int nodeNumber = in.readInt();
-      CFAInfo cfaInfo = GlobalSerializationInformation.getInstance().getCFAInfo().orElseThrow();
+      CFAInfo cfaInfo = SerializationInfoStorage.getInstance().getCFAInfo().orElseThrow();
       entry = cfaInfo.getNodeByNodeNumber(nodeNumber);
       nodeNumber = in.readInt();
       exit = cfaInfo.getNodeByNodeNumber(nodeNumber);

@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalSerializationInformation;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 /**
  * Abstract state that stores callstack information by maintaning a single-linked list of states
@@ -149,7 +149,7 @@ public class CallstackState
     in.defaultReadObject();
     int nodeNumber = in.readInt();
     callerNode =
-        GlobalSerializationInformation.getInstance()
+        SerializationInfoStorage.getInstance()
             .getCFAInfo()
             .orElseThrow()
             .getNodeByNodeNumber(nodeNumber);

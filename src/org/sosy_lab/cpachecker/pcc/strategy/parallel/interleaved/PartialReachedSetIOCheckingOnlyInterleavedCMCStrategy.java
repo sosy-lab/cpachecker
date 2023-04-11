@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.AssumptionAutomatonGenerato
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.PartialCPABuilder;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalSerializationInformation;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 // FIXME unsound strategy
 public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends AbstractStrategy {
@@ -233,9 +233,9 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
                 automatonWriter.getAllAncestorsFor(unexplored),
                 unexplored,
                 (ARGState) reached.getFirstState());
-        GlobalSerializationInformation.writeSerializationInformation(cpas.get(i), cfa);
+        SerializationInfoStorage.storeSerializationInformation(cpas.get(i), cfa);
         ioHelper.writeProof(pOut, reached, pCpa);
-        GlobalSerializationInformation.clear();
+        SerializationInfoStorage.clear();
       }
     } catch (ClassCastException e) {
       logger.logDebugException(e);
@@ -304,9 +304,9 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
           }
           cpas[i] = (PropertyCheckerCPA) cpa;
           mustReadAndCheckSequentially = CPAs.retrieveCPA(cpa, PredicateCPA.class) != null;
-          GlobalSerializationInformation.writeSerializationInformation(cpas[i], cfa);
+          SerializationInfoStorage.storeSerializationInformation(cpas[i], cfa);
           ioHelper.readMetadata(o, true);
-          GlobalSerializationInformation.clear();
+          SerializationInfoStorage.clear();
           roots[i] = ioHelper.getRoot();
 
           if (roots[i] == null) {

@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.AssumptionAutomatonGenerator;
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.PartialCPABuilder;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalSerializationInformation;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 public class ARG_CMCStrategy extends AbstractStrategy {
 
@@ -128,10 +128,10 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       pOut.writeInt(roots.length);
 
       for (int i = 0; i < historyReached.getCPAs().size(); i++) {
-        GlobalSerializationInformation.writeSerializationInformation(
+        SerializationInfoStorage.storeSerializationInformation(
             historyReached.getCPAs().get(i), cfa);
         pOut.writeObject(roots[i]);
-        GlobalSerializationInformation.clear();
+        SerializationInfoStorage.clear();
       }
     }
   }
@@ -165,9 +165,9 @@ public class ARG_CMCStrategy extends AbstractStrategy {
         for (int i = 0; i < roots.length; i++) {
           logger.log(Level.FINEST, "Build CPA for reading and checking partial ARG", i);
           cpa = cpaBuilder.buildPartialCPA(i, factory);
-          GlobalSerializationInformation.writeSerializationInformation(cpa, cfa);
+          SerializationInfoStorage.storeSerializationInformation(cpa, cfa);
           readARG = o.readObject();
-          GlobalSerializationInformation.clear();
+          SerializationInfoStorage.clear();
           if (!(readARG instanceof ARGState)) {
             return false;
           }
@@ -239,9 +239,9 @@ public class ARG_CMCStrategy extends AbstractStrategy {
                     for (int i = 0; i < roots.length && checkResult.get(); i++) {
                       logger.log(Level.FINEST, "Build CPA for correctly reading ", i);
                       cpas[i] = cpaBuilder.buildPartialCPA(i, factory);
-                      GlobalSerializationInformation.writeSerializationInformation(cpas[i], cfa);
+                      SerializationInfoStorage.storeSerializationInformation(cpas[i], cfa);
                       readARG = o.readObject();
-                      GlobalSerializationInformation.clear();
+                      SerializationInfoStorage.clear();
                       if (!(readARG instanceof ARGState)) {
                         abortPreparation();
                       }
