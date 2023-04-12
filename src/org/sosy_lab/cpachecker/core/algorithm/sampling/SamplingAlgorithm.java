@@ -12,14 +12,16 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +53,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -61,10 +62,8 @@ import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
@@ -212,6 +211,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     // Prepare generation of initial positive samples using predicate-based sampling
     Solver forwardSolver;
     Map<CFANode, ImmutableSet<BooleanFormula>> formulasForPositiveSamples;
+    Multimap<Loop, Formula> relevantVariablesPositive;
     // Build the reachedSet for the forward ARG.
     // This is always necessary to collect the relevant variables.
     try {
@@ -233,7 +233,8 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     // Collect formulas and relevant variables for each loop
     ImmutableMap.Builder<CFANode, ImmutableSet<BooleanFormula>> positiveFormulaBuilder =
         ImmutableMap.builder();
-    Map<Loop, Set<MemoryLocation>> relevantVariables = new HashMap<>();
+    ImmutableListMultimap.Builder<Loop, Formula> relevantVariableBuilder =
+        ImmutableListMultimap.builder();
     for (Loop loop : loops) {
       Set<BooleanFormula> formulasForLoop = new HashSet<>();
       for (CFANode loopHead : loop.getLoopHeads()) {
@@ -243,7 +244,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
         formulasForLoop.addAll(formulas);
       }
       try (ProverEnvironment prover =
-               forwardSolver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+          forwardSolver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
         // TODO: When using disjunction this just gives the relevant variables of one path, not
         //       necessarily all of them -> Should handle all formulas separately
         prover.push(bfmgr.or(formulasForLoop));
@@ -256,21 +257,23 @@ public class SamplingAlgorithm extends NestingAlgorithm {
         // does not matter as long as it is part of the loop (and also not in another function,
         // but this is guaranteed by LoopStructure.Loop).
         CFANode location = loop.getLoopNodes().first();
-        Sample sample =
-            SampleUtils.extractSampleFromRelevantAssignments(
-                assignments, location, SampleClass.POSITIVE);
-        relevantVariables.put(loop, sample.getVariableValues().keySet());
+        for (ValueAssignment relevantVariableAssignment :
+            SampleUtils.getRelevantAssignments(assignments, location)) {
+          relevantVariableBuilder.put(loop, relevantVariableAssignment.getKey());
+        }
       }
     }
     formulasForPositiveSamples = positiveFormulaBuilder.buildOrThrow();
+    relevantVariablesPositive = relevantVariableBuilder.build();
 
     // Prepare generation of initial negative samples using predicate-based sampling
-    Solver backwardsSolver = null;
+    Solver backwardSolver = null;
     Map<CFANode, ImmutableSet<BooleanFormula>> formulasForNegativeSamples = ImmutableMap.of();
+    Multimap<Loop, Formula> relevantVariablesNegative = null;
     if (collectNegativeSamples) {
       // Build the reachedSet for the backward ARG
       try {
-        backwardsSolver = buildReachedSet(reachedSet, initialBackwardConfig, target);
+        backwardSolver = buildReachedSet(reachedSet, initialBackwardConfig, target);
       } catch (InvalidConfigurationException e) {
         logger.log(
             Level.WARNING,
@@ -281,8 +284,8 @@ public class SamplingAlgorithm extends NestingAlgorithm {
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
       }
       ReachedSet backwardReachedSet = reachedSet.getDelegate();
-      BooleanFormulaManagerView backwardBfmgr =
-          backwardsSolver.getFormulaManager().getBooleanFormulaManager();
+      FormulaManagerView backwardFmgr = backwardSolver.getFormulaManager();
+      BooleanFormulaManagerView backwardBfmgr = backwardFmgr.getBooleanFormulaManager();
 
       ImmutableMap.Builder<CFANode, ImmutableSet<BooleanFormula>> negativeFormulaBuilder =
           ImmutableMap.builder();
@@ -294,6 +297,20 @@ public class SamplingAlgorithm extends NestingAlgorithm {
         }
       }
       formulasForNegativeSamples = negativeFormulaBuilder.buildOrThrow();
+
+      // The relevant variables are the same for positive and for negative samples, but we need to
+      // avoid using formulas from other solver contexts.
+      ImmutableListMultimap.Builder<Loop, Formula> relevantVariableTranslations =
+          ImmutableListMultimap.builder();
+      for (Loop loop : relevantVariablesPositive.keySet()) {
+        for (Formula relevantVariableFormula : relevantVariablesPositive.get(loop)) {
+          String dumped =
+              forwardSolver.getFormulaManager().dumpArbitraryFormula(relevantVariableFormula);
+          Formula translated = backwardFmgr.parseArbitraryFormula(dumped);
+          relevantVariableTranslations.put(loop, translated);
+        }
+      }
+      relevantVariablesNegative = relevantVariableTranslations.build();
     }
 
     // Continuously collect samples until shutdown is requested
@@ -312,7 +329,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
                   formulas,
                   forwardSolver,
                   loopHead,
-                  relevantVariables.get(loop),
+                  relevantVariablesPositive.get(loop),
                   constraints,
                   SampleClass.POSITIVE));
         }
@@ -328,9 +345,9 @@ public class SamplingAlgorithm extends NestingAlgorithm {
           negativeSamples.addAll(
               getSamplesForFormulas(
                   formulas,
-                  backwardsSolver,
+                  backwardSolver,
                   loopHead,
-                  relevantVariables.get(loop),
+                  relevantVariablesNegative.get(loop),
                   constraints,
                   SampleClass.NEGATIVE));
         }
@@ -360,23 +377,13 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       // Use test-based sampling to potentially find negative samples
       if (useTestBasedSampling) {
         for (Loop loop : loops) {
-          // Create variable formulas
-          Set<Formula> variableFormulas = new HashSet<>();
-          FormulaManagerView fmgr = forwardSolver.getFormulaManager();
-
-          for (MemoryLocation variable : relevantVariables.get(loop)) {
-            variableFormulas.add(
-                fmgr.makeVariable(
-                    FormulaType.getBitvectorTypeWithSize(32), variable.getQualifiedName(), 2));
-          }
-
           // Create an unknown sample
           List<ValueAssignment> model;
           try (ProverEnvironment prover =
               forwardSolver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
             model =
                 samplingStrategy.getModel(
-                    forwardSolver.getFormulaManager(), variableFormulas, prover);
+                    forwardSolver.getFormulaManager(), relevantVariablesPositive.get(loop), prover);
           }
           for (CFANode loopHead : loop.getLoopHeads()) {
             Sample unknownSample =
@@ -477,10 +484,11 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       Set<BooleanFormula> pFormulas,
       Solver pSolver,
       CFANode pLocation,
-      Set<MemoryLocation> relevantVariables,
+      Collection<Formula> relevantVariables,
       Set<NoDuplicatesConstraint> pConstraints,
       SampleClass pSampleClass)
       throws InterruptedException, SolverException {
+    assert !Iterables.isEmpty(relevantVariables);
     Set<Sample> samples = new HashSet<>();
     FormulaManagerView fmgr = pSolver.getFormulaManager();
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
@@ -505,16 +513,9 @@ public class SamplingAlgorithm extends NestingAlgorithm {
           continue;
         }
 
-        // Query solver for a random model, so we get easy access to the variable representations
-        // (this is a hack)
-        List<ValueAssignment> assignments = prover.getModelAssignments();
-        Iterable<Formula> variableFormulas =
-            FluentIterable.from(SampleUtils.getRelevantAssignments(assignments, pLocation))
-                .transform(ValueAssignment::getKey);
-
         // Collect some satisfying models
         while (collectedSamples < numInitialSamples) {
-          List<ValueAssignment> model = samplingStrategy.getModel(fmgr, variableFormulas, prover);
+          List<ValueAssignment> model = samplingStrategy.getModel(fmgr, relevantVariables, prover);
           if (model == null) {
             logger.logf(
                 Level.INFO,
@@ -530,35 +531,6 @@ public class SamplingAlgorithm extends NestingAlgorithm {
               SampleUtils.getRelevantAssignments(model, pLocation);
           Sample sample =
               SampleUtils.extractSampleFromModel(relevantAssignments, pLocation, pSampleClass);
-
-          // Add random values for missing relevant variables
-          // (since there are no constraints on them, otherwise a value would be present)
-          Set<Formula> missingRelevantVariableFormulas = new HashSet<>();
-          for (MemoryLocation relevantVariable : relevantVariables) {
-            if (!sample.getVariableValues().containsKey(relevantVariable)) {
-              missingRelevantVariableFormulas.add(
-                  fmgr.makeVariable(
-                      FormulaType.getBitvectorTypeWithSize(32),
-                      relevantVariable.getQualifiedName(),
-                      2));
-            }
-          }
-          if (!missingRelevantVariableFormulas.isEmpty()) {
-            // Create an unknown sample
-            List<ValueAssignment> tempModel;
-            try (ProverEnvironment innerProver =
-                pSolver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-              tempModel =
-                  samplingStrategy.getModel(fmgr, missingRelevantVariableFormulas, innerProver);
-            }
-            Sample tempSample =
-                SampleUtils.extractSampleFromRelevantAssignments(
-                    tempModel, pLocation, pSampleClass);
-            Map<MemoryLocation, ValueAndType> merged = new HashMap<>();
-            merged.putAll(sample.getVariableValues());
-            merged.putAll(tempSample.getVariableValues());
-            sample = new Sample(merged, sample.getLocation(), null, sample.getSampleClass());
-          }
           samples.add(sample);
 
           // Add constraint to avoid getting the same model again

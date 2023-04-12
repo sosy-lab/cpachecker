@@ -44,8 +44,6 @@ public class ConstrainedUniformSamplingStrategy implements SamplingStrategy {
 
   private long sampleUniform() {
     // Upper bound is exclusive
-    // TODO: When drawing random values take the intersection of this interval and the known valid
-    //       values for a variable (derived from formulas on solver stack)
     return random.nextLong(upperBound - lowerBound + 1) + lowerBound;
   }
 
@@ -122,8 +120,10 @@ public class ConstrainedUniformSamplingStrategy implements SamplingStrategy {
     prover.pop();
 
     prover.push(bfmgr.and(constraints));
-    assert !prover.isUnsat();
-    List<ValueAssignment> model = prover.getModelAssignments();
+    List<ValueAssignment> model = null;
+    if (!prover.isUnsat()) {
+       model = prover.getModelAssignments();
+    }
     prover.pop();
     return model;
   }
