@@ -461,6 +461,7 @@ public class ConfigurationFileChecks {
               Path.of("includes"),
               Path.of("pcc"),
               Path.of("witnessValidation.properties"),
+              Path.of("invariantValidation.properties"),
               Path.of("craigInterpolation-violationWitness.properties"),
               Path.of("wacsl.properties"),
               Path.of("importFaults.properties"),

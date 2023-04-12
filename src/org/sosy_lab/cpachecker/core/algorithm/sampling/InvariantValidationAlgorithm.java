@@ -225,7 +225,7 @@ public class InvariantValidationAlgorithm implements Algorithm {
   }
 
   private String outputVerificationConditions(ReachedSet pReachedSet, CFANode pLocation)
-      throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
+      throws CPAException, InterruptedException, InvalidConfigurationException {
     // Retrieve formula managers
     PredicateCPA predicateCPA =
         CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, InvariantValidationAlgorithm.class);
@@ -282,8 +282,7 @@ public class InvariantValidationAlgorithm implements Algorithm {
             .formatted(filename, line, column));
 
     output.append("\"constant-declarations\":\n\"");
-    Set<Formula> variables = new HashSet<>();
-    variables.addAll(fmgr.extractVariables(preconditionFulfilled).values());
+    Set<Formula> variables = new HashSet<>(fmgr.extractVariables(preconditionFulfilled).values());
     variables.addAll(fmgr.extractVariables(pathFormula.getFormula()).values());
     variables.addAll(fmgr.extractVariables(programSafe).values());
     for (Formula variable : variables) {

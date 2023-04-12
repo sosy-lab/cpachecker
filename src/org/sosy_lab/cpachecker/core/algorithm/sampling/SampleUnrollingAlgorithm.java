@@ -156,7 +156,8 @@ public class SampleUnrollingAlgorithm {
         successor = precAdjustmentResult.abstractState();
         Precision successorPrecision = precAdjustmentResult.precision();
 
-        if (sample == null && sampleClass == SampleClass.UNKNOWN) {
+        if (sample == null) {
+          assert sampleClass == SampleClass.UNKNOWN;
           nodes.put(successor, SampleTreeNode.DUMMY);
           reachedSet.add(successor, successorPrecision);
           continue;

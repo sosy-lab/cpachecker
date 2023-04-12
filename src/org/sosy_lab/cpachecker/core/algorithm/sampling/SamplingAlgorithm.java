@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -269,7 +270,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     // Prepare generation of initial negative samples using predicate-based sampling
     Solver backwardSolver = null;
     Map<CFANode, ImmutableSet<BooleanFormula>> formulasForNegativeSamples = ImmutableMap.of();
-    Multimap<Loop, Formula> relevantVariablesNegative = null;
+    Multimap<Loop, Formula> relevantVariablesNegative = ImmutableListMultimap.of();
     if (collectNegativeSamples) {
       // Build the reachedSet for the backward ARG
       try {
@@ -321,8 +322,10 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       // Collect positive samples using predicate-based sampling
       Set<Sample> positiveSamples = new HashSet<>();
       if (collectPositiveSamples) {
-        for (CFANode loopHead : formulasForPositiveSamples.keySet()) {
-          ImmutableSet<BooleanFormula> formulas = formulasForPositiveSamples.get(loopHead);
+        for (Entry<CFANode, ImmutableSet<BooleanFormula>> entry :
+            formulasForPositiveSamples.entrySet()) {
+          CFANode loopHead = entry.getKey();
+          ImmutableSet<BooleanFormula> formulas = entry.getValue();
           Loop loop = getLoopForLoopHead(loopHead, loops);
           positiveSamples.addAll(
               getSamplesForFormulas(
@@ -339,8 +342,10 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       // Collect negative sampling using predicate-based sampling
       Set<Sample> negativeSamples = new HashSet<>();
       if (collectNegativeSamples) {
-        for (CFANode loopHead : formulasForNegativeSamples.keySet()) {
-          ImmutableSet<BooleanFormula> formulas = formulasForNegativeSamples.get(loopHead);
+        for (Entry<CFANode, ImmutableSet<BooleanFormula>> entry :
+            formulasForNegativeSamples.entrySet()) {
+          CFANode loopHead = entry.getKey();
+          ImmutableSet<BooleanFormula> formulas = entry.getValue();
           Loop loop = getLoopForLoopHead(loopHead, loops);
           negativeSamples.addAll(
               getSamplesForFormulas(

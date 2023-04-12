@@ -122,7 +122,7 @@ public class ConstrainedUniformSamplingStrategy implements SamplingStrategy {
     prover.push(bfmgr.and(constraints));
     List<ValueAssignment> model = null;
     if (!prover.isUnsat()) {
-       model = prover.getModelAssignments();
+      model = prover.getModelAssignments();
     }
     prover.pop();
     return model;

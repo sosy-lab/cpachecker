@@ -722,7 +722,7 @@ abstract class AbstractBMCAlgorithm
             // Thus, any satisfying models are counterexamples to P => I.
             preconditionCounterexamples.add(
                 new PreconditionCounterexample(pCandidateInvariant, pProver.getModelAssignments()));
-          } else {
+          } else if (getIteration(state) > 1) {
             // Get any model for the previous iteration
             FluentIterable<AbstractState> previous =
                 BMCHelper.filterIteration(applicable, getIteration(state) - 2, getLoopHeads());

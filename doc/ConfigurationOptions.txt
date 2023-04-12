@@ -3934,9 +3934,6 @@ invariantStore.invariantGenerationStrategy = REACHED_SET
 # The witness from which invariants should be generated.
 invariantStore.witness = "invariantwitness.yaml"
 
-# The directory where the invariants are stored.
-invariantValidation.invDir = "invariants"
-
 # The invariant to be validated. Ignored if option
 # invariantValidation.outputVCsis enabled, but must be given otherwise.
 invariantValidation.invariant = no default value
