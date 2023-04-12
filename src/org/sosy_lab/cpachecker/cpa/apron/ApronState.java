@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -601,8 +601,8 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
 
-    logger = GlobalInfo.getInstance().getApronLogManager();
-    apronManager = GlobalInfo.getInstance().getApronManager();
+    logger = SerializationInfoStorage.getInstance().getApronLogManager();
+    apronManager = SerializationInfoStorage.getInstance().getApronManager();
 
     byte[] deserialized = new byte[in.readInt()];
     in.readFully(deserialized);

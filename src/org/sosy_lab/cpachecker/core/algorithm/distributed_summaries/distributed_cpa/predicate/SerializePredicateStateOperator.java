@@ -9,12 +9,14 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import java.io.IOException;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.SerializeUtil;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -23,11 +25,14 @@ public class SerializePredicateStateOperator implements SerializeOperator {
 
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView formulaManagerView;
+  private final CFA cfa;
+  private final PredicateCPA predicateCPA;
 
-  public SerializePredicateStateOperator(
-      PathFormulaManager pPathFormulaManager, FormulaManagerView pFormulaManagerView) {
-    pathFormulaManager = pPathFormulaManager;
-    formulaManagerView = pFormulaManagerView;
+  public SerializePredicateStateOperator(PredicateCPA pPredicateCPA, CFA pCFA) {
+    pathFormulaManager = pPredicateCPA.getPathFormulaManager();
+    formulaManagerView = pPredicateCPA.getSolver().getFormulaManager();
+    cfa = pCFA;
+    predicateCPA = pPredicateCPA;
   }
 
   @Override
@@ -49,6 +54,7 @@ public class SerializePredicateStateOperator implements SerializeOperator {
       pathFormula = state.getPathFormula();
     }
     String formula = formulaManagerView.dumpFormula(pathFormula.getFormula()).toString();
+    SerializationInfoStorage.storeSerializationInformation(predicateCPA, cfa);
     String ssa;
     String pts;
     try {
@@ -56,6 +62,8 @@ public class SerializePredicateStateOperator implements SerializeOperator {
       pts = SerializeUtil.serialize(state.getPathFormula().getPointerTargetSet());
     } catch (IOException e) {
       throw new AssertionError("Unable to serialize SSAMap " + pathFormula.getSsa());
+    } finally {
+      SerializationInfoStorage.clear();
     }
     return new BlockSummaryMessagePayload.Builder()
         .addEntry(PredicateCPA.class.getName(), formula)

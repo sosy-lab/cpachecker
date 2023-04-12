@@ -72,7 +72,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 @Options
 public class CPAchecker {
@@ -318,7 +317,6 @@ public class CPAchecker {
       stats.creationTime.start();
 
       cfa = parse(programDenotation, stats);
-      GlobalInfo.getInstance().storeCFA(cfa);
       shutdownNotifier.shutdownIfNecessary();
 
       ConfigurableProgramAnalysis cpa;
@@ -335,8 +333,6 @@ public class CPAchecker {
       if (cpa instanceof StatisticsProvider) {
         ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
       }
-
-      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
       algorithm = factory.createAlgorithm(cpa, cfa, specification);
 
