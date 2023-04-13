@@ -1372,7 +1372,7 @@ public class SMGState
                   .readValue(
                       deref.getSMGObject(),
                       thisSLL.getNextOffset(),
-                      this.memoryModel.getSizeOfPointer(),
+                      memoryModel.getSizeOfPointer(),
                       null);
 
           for (ValueAndSMGState stateAndUseless : readStatesAndUseless) {
@@ -1427,7 +1427,7 @@ public class SMGState
                   .readValue(
                       deref.getSMGObject(),
                       otherSLL.getNextOffset(),
-                      this.memoryModel.getSizeOfPointer(),
+                      memoryModel.getSizeOfPointer(),
                       null);
 
           for (ValueAndSMGState stateAndUseless : readStatesAndUseless) {
@@ -1541,7 +1541,7 @@ public class SMGState
             .getOrDefault(thisObject, PersistentSet.of())) {
       if (!exemptOffsets.contains(hve.getOffset())) {
         thisOffsetToHVEdgeMap.put(hve.getOffset(), hve);
-        if (this.memoryModel.getSmg().isPointer(hve.hasValue())) {
+        if (memoryModel.getSmg().isPointer(hve.hasValue())) {
           // Pointers are necessary!!!!
           if (otherOffsetToHVEdgeMap.get(hve.getOffset()) == null) {
             return false;

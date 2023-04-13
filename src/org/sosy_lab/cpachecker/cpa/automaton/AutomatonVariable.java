@@ -192,12 +192,12 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
         return false;
       }
       AutomatonSetVariable<?> otherVar = (AutomatonSetVariable<?>) pObj;
-      return this.set.equals(otherVar.set) && name.equals(otherVar.name);
+      return set.equals(otherVar.set) && name.equals(otherVar.name);
     }
 
     @Override
     public int hashCode() {
-      return this.set.hashCode() + name.hashCode();
+      return set.hashCode() + name.hashCode();
     }
 
     @Override

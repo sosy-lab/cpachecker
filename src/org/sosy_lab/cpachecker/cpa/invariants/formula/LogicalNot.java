@@ -23,7 +23,7 @@ public class LogicalNot<ConstantType> implements BooleanFormula<ConstantType> {
    */
   private LogicalNot(BooleanFormula<ConstantType> pToNegate) {
     Preconditions.checkNotNull(pToNegate);
-    this.negatedFormula = pToNegate;
+    negatedFormula = pToNegate;
   }
 
   /**
@@ -32,7 +32,7 @@ public class LogicalNot<ConstantType> implements BooleanFormula<ConstantType> {
    * @return the formula logically negated by this formula.
    */
   public BooleanFormula<ConstantType> getNegated() {
-    return this.negatedFormula;
+    return negatedFormula;
   }
 
   @Override

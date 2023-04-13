@@ -74,7 +74,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     pConfig.inject(this);
     booleanFormulaManager = pBooleanFormulaManager;
     numericFormulaManager = rawNumericFormulaManager;
-    this.functionManager = rawFunctionManager;
+    functionManager = rawFunctionManager;
 
     formulaType = numericFormulaManager.getFormulaType();
     bitwiseAndUfDecl = createBinaryFunction(BitwiseAndUfName);

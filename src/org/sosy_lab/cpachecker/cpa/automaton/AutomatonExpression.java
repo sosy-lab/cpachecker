@@ -148,7 +148,7 @@ interface AutomatonExpression<T> {
     }
 
     public ResultValue(String failureMessage, String failureOrigin) {
-      this.canNotEvaluate = true;
+      canNotEvaluate = true;
       this.failureMessage = failureMessage;
       this.failureOrigin = failureOrigin;
     }
@@ -158,13 +158,13 @@ interface AutomatonExpression<T> {
      */
     public ResultValue(ResultValue<?> pRes) {
       assert pRes.canNotEvaluate;
-      this.canNotEvaluate = true;
-      this.failureMessage = pRes.failureMessage;
-      this.failureOrigin = pRes.failureOrigin;
+      canNotEvaluate = true;
+      failureMessage = pRes.failureMessage;
+      failureOrigin = pRes.failureOrigin;
     }
 
     boolean canNotEvaluate() {
-      return this.canNotEvaluate;
+      return canNotEvaluate;
     }
     /** Return failure message or {@code null} if {@code cannotEvaluate() == false} */
     String getFailureMessage() {

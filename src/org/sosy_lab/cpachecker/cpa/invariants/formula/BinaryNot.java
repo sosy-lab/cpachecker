@@ -26,7 +26,7 @@ class BinaryNot<ConstantType> extends AbstractFormula<ConstantType>
    */
   private BinaryNot(NumeralFormula<ConstantType> pToFlip) {
     super(pToFlip.getTypeInfo());
-    this.flipped = pToFlip;
+    flipped = pToFlip;
   }
 
   /**
@@ -35,7 +35,7 @@ class BinaryNot<ConstantType> extends AbstractFormula<ConstantType>
    * @return the operand of the bit flip operation.
    */
   public NumeralFormula<ConstantType> getFlipped() {
-    return this.flipped;
+    return flipped;
   }
 
   @Override
