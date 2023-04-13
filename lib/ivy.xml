@@ -141,7 +141,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Policeman's Forbidden API Checker
              Useful for detecting uses of unwanted API -->
-        <dependency org="de.thetaphi" name="forbiddenapis" rev="3.2" conf="build->default" />
+        <dependency org="de.thetaphi" name="forbiddenapis" rev="3.5.1" conf="build->default" />
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
