@@ -726,6 +726,10 @@ bmc.invariantsExport = no default value
 # predicate precision(use seconds or specify a unit; 0 for infinite)
 bmc.kinduction.adaptionLimit = 0ns
 
+# Treat local predicates like function predicates of the function they are
+# in. Works only if local predicates are analyzed.
+bmc.kinduction.localAsFunction = false
+
 # get an initial precision from a predicate precision file
 bmc.kinduction.predicatePrecisionFile = no default value
 

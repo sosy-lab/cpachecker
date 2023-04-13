@@ -15,7 +15,9 @@ import com.google.common.collect.SetMultimap;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -198,35 +200,35 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
       final PredicatePrecision pPredPrec,
       final FormulaManagerView pFMgr,
       final ShutdownNotifier pConversionShutdownNotifier) throws InterruptedException {
-
+    
+    //since k-induction only works with invariants at loopheads
+    //if there are no loopheads, no invariants are needed
+    if(!cfa.getAllLoopHeads().isPresent()) return new HashSet<>();
+    
     SetMultimap<CFANode, BooleanFormula> allPreds = HashMultimap.create();
+    
+    SetMultimap<String, CFANode> loopHeadsPerFunction = HashMultimap.create();
+    for(CFANode loopHead : cfa.getAllLoopHeads().get()) {
+      loopHeadsPerFunction.put(loopHead.getFunctionName(), loopHead);
+    }
     
     pConversionShutdownNotifier.shutdownIfNecessary();
     
     // Get the whole predicate precision in the same set
     if(converterStrategy.global) {
       for (AbstractionPredicate pred : new HashSet<>(pPredPrec.getGlobalPredicates())) {
-        if(cfa.getAllLoopHeads().isPresent()) {
-          for(CFANode node : cfa.getAllLoopHeads().get()) {
-            allPreds.put(node, pred.getSymbolicAtom());
-          }
+        for(CFANode loopHead : loopHeadsPerFunction.values()) {
+          allPreds.put(loopHead, pred.getSymbolicAtom());
         }
       }
     }
     
     pConversionShutdownNotifier.shutdownIfNecessary();
-    
+
     if(converterStrategy.function) {
-      SetMultimap<String, AbstractionPredicate> functionPreds = HashMultimap.create(pPredPrec.getFunctionPredicates());
-      for (String funcName : functionPreds.keySet()) {
-        if(cfa.getAllLoopHeads().isPresent()) {
-          for(CFANode node : cfa.getAllLoopHeads().get()) {
-            if(node.getFunctionName().equals(funcName)){
-              for (AbstractionPredicate pred : functionPreds.get(funcName)) {
-                allPreds.put(node, pred.getSymbolicAtom());
-              }
-            }
-          }
+      for (Map.Entry<String, AbstractionPredicate> entry : pPredPrec.getFunctionPredicates().entries()) {
+        for(CFANode loopHead : loopHeadsPerFunction.get(entry.getKey())) {
+          allPreds.put(loopHead, entry.getValue().getSymbolicAtom());
         }
       }
     }
@@ -234,28 +236,18 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     pConversionShutdownNotifier.shutdownIfNecessary();
     
     if(converterStrategy.local) {
-      SetMultimap<CFANode, AbstractionPredicate> localPreds = HashMultimap.create(pPredPrec.getLocalPredicates());
-      for (CFANode node : localPreds.keySet()) {
+      for (Map.Entry<CFANode, AbstractionPredicate> entry : pPredPrec.getLocalPredicates().entries()) {
         if(localAsFunction) {
-          if(cfa.getAllLoopHeads().isPresent()) {
-            for(CFANode loopHead : cfa.getAllLoopHeads().get()) {
-              if(loopHead.getFunctionName().equals(node.getFunctionName())){
-                for (AbstractionPredicate pred : localPreds.get(node)) {
-                  allPreds.put(loopHead, pred.getSymbolicAtom());
-                }
-              }
-            }
+          for(CFANode loopHead : loopHeadsPerFunction.get(entry.getKey().getFunctionName())) {
+            allPreds.put(loopHead, entry.getValue().getSymbolicAtom());
           }
         } else {
-          if(node.isLoopStart()) {
-            for (AbstractionPredicate pred : localPreds.get(node)) {
-              allPreds.put(node, pred.getSymbolicAtom());
-            }
+          if(entry.getKey().isLoopStart()) {
+            allPreds.put(entry.getKey(), entry.getValue().getSymbolicAtom());
           }
         }
       }
     }
-    
     
     pConversionShutdownNotifier.shutdownIfNecessary();
     
@@ -263,10 +255,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     
     // Combine all boolean formulas per node and make invariant
     for(CFANode node : allPreds.keySet()) {
-      BooleanFormula completeFormula = pFMgr.getBooleanFormulaManager().makeTrue();
-      for (BooleanFormula formula :  allPreds.get(node)) {
-       completeFormula = pFMgr.makeAnd(completeFormula, formula);
-      }     
+      BooleanFormula completeFormula = pFMgr.makeConcat(new ArrayList<>(allPreds.get(node)));
       candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(node, completeFormula, pFMgr));
     }
     
