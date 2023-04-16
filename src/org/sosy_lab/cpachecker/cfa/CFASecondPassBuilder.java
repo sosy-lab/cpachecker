@@ -341,12 +341,6 @@ public class CFASecondPassBuilder {
   }
 
   private boolean checkReturnExpr(AFunctionCall functionCall) {
-
-    // only check for C
-    if (language != Language.C) {
-      return true;
-    }
-
     // the return value is not assigned to any variable
     if (!(functionCall instanceof AFunctionCallAssignmentStatement)) {
       return true;
