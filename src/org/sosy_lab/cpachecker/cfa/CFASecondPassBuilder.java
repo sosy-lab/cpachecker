@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -186,7 +185,7 @@ public class CFASecondPassBuilder {
     Optional<FunctionExitNode> fExitNode = fDefNode.getExitNode();
 
     // check if the non void called function have return expresssion
-    if (!checkReturnExpr(functionCall)) {
+    if (hasMissingReturnExpression(functionCall)) {
       throw new CParserException(
           "Function "
               + functionName
@@ -340,35 +339,38 @@ public class CFASecondPassBuilder {
     }
   }
 
-  private boolean checkReturnExpr(AFunctionCall functionCall) {
+  /**
+   * check whether the function is non void but missing return expression.
+   *
+   * @param functionCall The function call edge.
+   */
+  private boolean hasMissingReturnExpression(AFunctionCall functionCall) {
     // the return value is not assigned to any variable
     if (!(functionCall instanceof AFunctionCallAssignmentStatement)) {
-      return true;
+      return false;
     }
 
     String functionName = functionCall.getFunctionCallExpression().getDeclaration().getName();
-    FunctionEntryNode fDefNode = cfa.getFunctionHead(functionName);
-    Optional<FunctionExitNode> fExitNodeOption = fDefNode.getExitNode();
-    Optional<? extends AVariableDeclaration> returnVar = fDefNode.getReturnVariable();
+    FunctionEntryNode functionEntry = cfa.getFunctionHead(functionName);
 
     // void function
-    if (returnVar.isEmpty()) {
-      return true;
+    if (functionEntry.getReturnVariable().isEmpty()) {
+      return false;
     }
 
     // function do not exit
-    if (fExitNodeOption.isEmpty()) {
-      return true;
+    if (functionEntry.getExitNode().isEmpty()) {
+      return false;
     }
 
-    FunctionExitNode fExitNode = fExitNodeOption.get();
+    FunctionExitNode fExitNode = functionEntry.getExitNode().get();
     for (CFAEdge enteringEdge : CFAUtils.enteringEdges(fExitNode)) {
       if (enteringEdge instanceof BlankEdge) {
-        return false;
+        return true;
       }
     }
 
-    return true;
+    return false;
   }
 
   private boolean checkParamSizes(
