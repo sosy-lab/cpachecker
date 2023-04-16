@@ -1779,30 +1779,17 @@ class ASTConverter {
       }
       return null;
     }
-    // non void function with return expression
-    if (returnExp.isPresent()) {
-      CIdExpression lhs = new CIdExpression(loc, returnVariableDeclaration.orElseThrow());
-      CExpression rhs = returnExp.orElseThrow();
-      CAssignment returnAssignment = new CExpressionAssignmentStatement(loc, lhs, rhs);
-      return new CReturnStatement(loc, returnExp.orElseThrow(), returnAssignment);
-    }
 
     // non void function without return expression
-    CType returnType = returnVariableDeclaration.orElseThrow().getType();
-
-    // only allow return type to be int
-    if (!returnType.equals(CNumericTypes.INT)) {
-      String functionName = ((FunctionScope) scope).getCurrentFunctionName();
-      throw parseContext.parseError(
-          "Function "
-              + functionName
-              + " with return type "
-              + returnType
-              + " misses return statement",
-          s);
+    if (!returnExp.isPresent()) {
+      return null;
     }
 
-    return null;
+    // non void function with return expression
+    CIdExpression lhs = new CIdExpression(loc, returnVariableDeclaration.orElseThrow());
+    CExpression rhs = returnExp.orElseThrow();
+    CAssignment returnAssignment = new CExpressionAssignmentStatement(loc, lhs, rhs);
+    return new CReturnStatement(loc, returnExp.orElseThrow(), returnAssignment);
   }
 
   private record Declarator(CType type, IASTInitializer initializer, String name) {}
