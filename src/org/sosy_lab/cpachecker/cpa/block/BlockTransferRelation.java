@@ -17,8 +17,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockEndUtil;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFAModifier;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -34,7 +34,7 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
     CFANode node = blockState.getLocationNode();
     // block end cannot be reached directly after processing the first
     if (blockState.getType().equals(BlockStateType.INITIAL)) {
-      if (cfaEdge.getDescription().equals(BlockEndUtil.UNIQUE_DESCRIPTION)) {
+      if (cfaEdge.getDescription().equals(BlockSummaryCFAModifier.UNIQUE_DESCRIPTION)) {
         return ImmutableSet.of();
       }
     }
@@ -45,15 +45,14 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
     // CFANode in the BlockNode once => transition only over the "BlockendEdge"
     if (node.equals(getBlockEnd(blockState.getBlockNode()))
         && !blockState.getType().equals(BlockStateType.INITIAL)) {
-      if (cfaEdge.getDescription().equals(BlockEndUtil.UNIQUE_DESCRIPTION)) {
+      if (cfaEdge.getDescription().equals(BlockSummaryCFAModifier.UNIQUE_DESCRIPTION)) {
         return onTransitionToBlockEnd(successor);
       }
       return ImmutableSet.of();
     }
 
     Set<CFAEdge> intersection =
-        Sets.intersection(
-            computePossibleSuccessors(node), blockState.getBlockNode().getEdgesInBlock());
+        Sets.intersection(computePossibleSuccessors(node), blockState.getBlockNode().getEdges());
 
     if (intersection.contains(cfaEdge)
         || (cfaEdge instanceof CFunctionCallEdge callEdge
@@ -75,12 +74,10 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
   private static BlockStateType getBlockStateTypeOfLocation(
       AnalysisDirection pDirection, BlockNode pBlockNode, CFANode pNode) {
     if (pNode.equals(
-        pDirection == AnalysisDirection.FORWARD
-            ? pBlockNode.getLastNode()
-            : pBlockNode.getStartNode())) {
+        pDirection == AnalysisDirection.FORWARD ? pBlockNode.getLast() : pBlockNode.getFirst())) {
       return BlockStateType.FINAL;
     }
-    if (pNode.equals(pBlockNode.getAbstractionNode())) {
+    if (pNode.equals(pBlockNode.getAbstractionLocation())) {
       return BlockStateType.ABSTRACTION;
     }
     return BlockStateType.MID;
@@ -117,7 +114,7 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
 
     @Override
     CFANode getBlockEnd(BlockNode pNode) {
-      return pNode.getLastNode();
+      return pNode.getLast();
     }
   }
 
@@ -146,7 +143,7 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
 
     @Override
     CFANode getBlockEnd(BlockNode pNode) {
-      return pNode.getStartNode();
+      return pNode.getFirst();
     }
   }
 }

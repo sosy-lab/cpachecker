@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.AlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.AlgorithmFactory.AnalysisComponents;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DCPAFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
@@ -54,7 +54,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
     super("root-worker-" + pId, pOptions);
     checkArgument(
-        pNode.isRoot() && pNode.isEmpty() && pNode.getLastNode().equals(pNode.getStartNode()),
+        pNode.isRoot() && pNode.isEmpty() && pNode.getLast().equals(pNode.getFirst()),
         "Root node must be empty and cannot have predecessors: " + "%s",
         pNode);
     Configuration backwardConfiguration =
@@ -84,7 +84,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
     dcpa = DCPAFactory.distribute(parts.cpa(), pNode, AnalysisDirection.FORWARD, pCfa);
     topState =
         Objects.requireNonNull(parts.cpa())
-            .getInitialState(root.getLastNode(), StateSpacePartition.getDefaultPartition());
+            .getInitialState(root.getLast(), StateSpacePartition.getDefaultPartition());
   }
 
   @Override
@@ -99,7 +99,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
         }
         return ImmutableSet.of(
             BlockSummaryMessage.newResultMessage(
-                root.getId(), root.getLastNode().getNodeNumber(), Result.FALSE));
+                root.getId(), root.getLast().getNodeNumber(), Result.FALSE));
       }
       case FOUND_RESULT, ERROR -> {
         shutdown = true;
@@ -129,7 +129,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
           ImmutableSet.of(
               BlockSummaryMessage.newBlockPostCondition(
                   root.getId(),
-                  root.getLastNode().getNodeNumber(),
+                  root.getFirst().getNodeNumber(),
                   dcpa.getSerializeOperator().serialize(topState),
                   true)));
       super.run();

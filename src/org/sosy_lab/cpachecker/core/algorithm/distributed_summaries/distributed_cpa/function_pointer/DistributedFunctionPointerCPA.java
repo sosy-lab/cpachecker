@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.AlwaysProceed;
@@ -28,10 +30,14 @@ public class DistributedFunctionPointerCPA
 
   private final FunctionPointerCPA functionPointerCPA;
 
-  public DistributedFunctionPointerCPA(FunctionPointerCPA pParentCPA, BlockNode pNode) {
+  public DistributedFunctionPointerCPA(
+      FunctionPointerCPA pParentCPA,
+      BlockNode pNode,
+      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
     functionPointerCPA = pParentCPA;
     serialize = new SerializeFunctionPointerStateOperator();
-    deserialize = new DeserializeFunctionPointerStateOperator(pParentCPA, pNode);
+    deserialize =
+        new DeserializeFunctionPointerStateOperator(pParentCPA, pNode, pIntegerCFANodeMap);
     proceed = new AlwaysProceed();
   }
 

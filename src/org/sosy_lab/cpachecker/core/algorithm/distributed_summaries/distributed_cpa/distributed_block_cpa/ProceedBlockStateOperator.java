@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -30,7 +30,7 @@ public class ProceedBlockStateOperator implements ProceedOperator {
 
   @Override
   public BlockSummaryMessageProcessing proceedForward(AbstractState pState) {
-    if (Objects.equals(AbstractStates.extractLocation(pState), block.getStartNode())) {
+    if (Objects.equals(AbstractStates.extractLocation(pState), block.getFirst())) {
       return BlockSummaryMessageProcessing.proceed();
     } else {
       return BlockSummaryMessageProcessing.stop();
@@ -40,8 +40,8 @@ public class ProceedBlockStateOperator implements ProceedOperator {
   @Override
   public BlockSummaryMessageProcessing proceedBackward(AbstractState pState) {
     CFANode node = Objects.requireNonNull(AbstractStates.extractLocation(pState));
-    if (!(node.equals(block.getLastNode())
-        || (!node.equals(block.getStartNode()) && block.getNodesInBlock().contains(node)))) {
+    if (!(node.equals(block.getLast())
+        || (!node.equals(block.getFirst()) && block.getNodes().contains(node)))) {
       return BlockSummaryMessageProcessing.stop();
     }
     return BlockSummaryMessageProcessing.proceed();

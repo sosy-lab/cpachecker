@@ -18,7 +18,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -68,8 +68,8 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
           expectAnswer.merge(senderId, -1, Integer::sum);
           nodeMap
               .get(senderId)
-              .getPredecessors()
-              .forEach(b -> expectAnswer.merge(b.getId(), 1, Integer::sum));
+              .getPredecessorIds()
+              .forEach(b -> expectAnswer.merge(b, 1, Integer::sum));
         }
         return respondTo(pMessage);
       case ABSTRACTION_STATE:

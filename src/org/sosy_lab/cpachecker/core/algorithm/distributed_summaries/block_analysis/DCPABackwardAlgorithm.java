@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.AlgorithmFactory.AnalysisComponents;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithms.BlockAnalysisIntermediateResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithms.BlockAndLocation;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DCPAFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
@@ -131,7 +131,7 @@ public class DCPABackwardAlgorithm {
                         m ->
                             m.getType() == MessageType.BLOCK_POSTCONDITION
                                 || m.getType() == MessageType.ABSTRACTION_STATE)
-                    .filter(m -> m.getTargetNodeNumber() == block.getLastNode().getNodeNumber()))
+                    .filter(m -> m.getTargetNodeNumber() == block.getLast().getNodeNumber()))
             .add(
                 BlockSummaryMessage.newErrorConditionUnreachableMessage(
                     block.getId(), "forward analysis failed"))
@@ -163,14 +163,14 @@ public class DCPABackwardAlgorithm {
       payload = DCPAAlgorithms.appendStatus(status, payload);
       responses.add(
           BlockSummaryMessage.newErrorConditionMessage(
-              block.getId(), block.getStartNode().getNodeNumber(), payload, false));
+              block.getId(), block.getFirst().getNodeNumber(), payload, false));
     }
     return responses.addAll(messages).build();
   }
 
   public void addAbstractionState(BlockSummaryMessage pMessage) throws InterruptedException {
     Preconditions.checkArgument(pMessage.getType() == MessageType.ABSTRACTION_STATE);
-    if (pMessage.getTargetNodeNumber() != block.getStartNode().getNodeNumber()) {
+    if (pMessage.getTargetNodeNumber() != block.getFirst().getNodeNumber()) {
       return;
     }
     abstractionStates.put(
@@ -183,7 +183,7 @@ public class DCPABackwardAlgorithm {
     BlockSummaryMessage forwardMessage =
         BlockSummaryMessage.newBlockPostCondition(
             block.getId(),
-            block.getAbstractionNode().getNodeNumber(),
+            block.getAbstractionLocation().getNodeNumber(),
             getDCPA().getSerializeOperator().serialize(pBackwardAnalysis),
             true);
     return forwardAnalysis.getDCPA().getDeserializeOperator().deserialize(forwardMessage);

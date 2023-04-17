@@ -11,10 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
@@ -37,7 +38,10 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   private final Function<CFANode, BlockState> blockStateSupplier;
 
   public DistributedBlockCPA(
-      ConfigurableProgramAnalysis pBlockCPA, BlockNode pNode, AnalysisDirection pDirection) {
+      ConfigurableProgramAnalysis pBlockCPA,
+      BlockNode pNode,
+      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap,
+      AnalysisDirection pDirection) {
     checkArgument(
         pBlockCPA instanceof BlockCPA || pBlockCPA instanceof BlockCPABackward,
         "%s is no %s",
@@ -45,7 +49,7 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
         BlockCPA.class);
     blockCPA = pBlockCPA;
     serializeOperator = new SerializeBlockStateOperator();
-    deserializeOperator = new DeserializeBlockStateOperator(pNode, pDirection);
+    deserializeOperator = new DeserializeBlockStateOperator(pNode, pIntegerCFANodeMap, pDirection);
     proceedOperator = new ProceedBlockStateOperator(pNode, pDirection);
     blockStateSupplier =
         node -> new BlockState(node, pNode, pDirection, BlockStateType.INITIAL, Optional.empty());

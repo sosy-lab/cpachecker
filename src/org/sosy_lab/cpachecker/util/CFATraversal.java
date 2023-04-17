@@ -58,10 +58,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  */
 public class CFATraversal {
 
-  private static final Function<CFANode, Iterable<CFAEdge>> FORWARD_EDGE_SUPPLIER =
+  static final Function<CFANode, Iterable<CFAEdge>> FORWARD_EDGE_SUPPLIER =
       CFAUtils::allLeavingEdges;
 
-  private static final Function<CFANode, Iterable<CFAEdge>> BACKWARD_EDGE_SUPPLIER =
+  static final Function<CFANode, Iterable<CFAEdge>> BACKWARD_EDGE_SUPPLIER =
       CFAUtils::allEnteringEdges;
 
   // function providing the outgoing edges for a CFANode

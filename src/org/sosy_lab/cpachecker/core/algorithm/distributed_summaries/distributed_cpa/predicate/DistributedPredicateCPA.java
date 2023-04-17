@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
+import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
@@ -44,11 +46,15 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
     proceed = new AlwaysProceed();
     serializePrecisionOperator =
         new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());
+    ImmutableMap.Builder<Integer, CFANode> idToNodeMap = ImmutableMap.builder();
+    for (CFANode cfaNode : pCFA.getAllNodes()) {
+      idToNodeMap.put(cfaNode.getNodeNumber(), cfaNode);
+    }
     deserializePrecisionOperator =
         new DeserializePredicatePrecisionOperator(
             predicateCPA.getAbstractionManager(),
             predicateCPA.getSolver(),
-            pNode::getNodeWithNumber);
+            idToNodeMap.build()::get);
   }
 
   @Override

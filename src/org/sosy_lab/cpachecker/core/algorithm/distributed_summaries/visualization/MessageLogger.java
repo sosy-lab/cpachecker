@@ -8,9 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.visualization;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Path;
@@ -26,7 +25,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 
 @Options
@@ -53,16 +52,13 @@ public class MessageLogger {
 
   public synchronized void logBlockGraph() throws IOException {
     Map<String, Map<String, List<String>>> treeMap = new HashMap<>();
-    tree.getDistinctNodes()
+    tree.getNodes()
         .forEach(
             n -> {
               Map<String, List<String>> attributes = new HashMap<>();
               attributes.put("code", Splitter.on("\n").splitToList(n.getCode()));
-              attributes.put(
-                  "predecessors",
-                  transformedImmutableListCopy(n.getPredecessors(), p -> p.getId()));
-              attributes.put(
-                  "successors", transformedImmutableListCopy(n.getSuccessors(), p -> p.getId()));
+              attributes.put("predecessors", ImmutableList.copyOf(n.getPredecessorIds()));
+              attributes.put("successors", ImmutableList.copyOf(n.getSuccessorIds()));
               treeMap.put(n.getId(), attributes);
             });
     JSON.writeJSONString(treeMap, blockCFAFile);

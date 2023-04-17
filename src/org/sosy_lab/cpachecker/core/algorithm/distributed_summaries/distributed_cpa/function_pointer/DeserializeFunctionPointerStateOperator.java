@@ -9,8 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableMap;
 import java.util.List;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -23,11 +25,15 @@ public class DeserializeFunctionPointerStateOperator implements DeserializeOpera
 
   private final BlockNode block;
   private final FunctionPointerCPA functionPointerCPA;
+  private final ImmutableMap<Integer, CFANode> integerCFANodeMap;
 
   public DeserializeFunctionPointerStateOperator(
-      FunctionPointerCPA pFunctionPointerCPA, BlockNode pBlockNode) {
+      FunctionPointerCPA pFunctionPointerCPA,
+      BlockNode pBlockNode,
+      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
     block = pBlockNode;
     functionPointerCPA = pFunctionPointerCPA;
+    integerCFANodeMap = pIntegerCFANodeMap;
   }
 
   @Override
@@ -36,7 +42,7 @@ public class DeserializeFunctionPointerStateOperator implements DeserializeOpera
         pMessage.getAbstractState(functionPointerCPA.getClass()).map(Object::toString).orElse("");
     if (serialized.isBlank()) {
       return functionPointerCPA.getInitialState(
-          block.getNodeWithNumber(pMessage.getTargetNodeNumber()),
+          integerCFANodeMap.get(pMessage.getTargetNodeNumber()),
           StateSpacePartition.getDefaultPartition());
     }
     FunctionPointerState.Builder builder = FunctionPointerState.createEmptyState().createBuilder();

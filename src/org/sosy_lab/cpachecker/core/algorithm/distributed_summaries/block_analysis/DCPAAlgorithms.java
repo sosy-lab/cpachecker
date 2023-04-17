@@ -21,8 +21,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockEndUtil;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFAModifier;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver.StatusPrecise;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver.StatusPropertyChecked;
@@ -158,7 +158,7 @@ public class DCPAAlgorithms {
         BlockNode pBlockNode,
         AlgorithmStatus pStatus,
         AnalysisDirection pDirection) {
-      wasAbstracted = BlockEndUtil.hasAbstractionOccurred(pBlockNode, pReachedSet);
+      wasAbstracted = BlockSummaryCFAModifier.hasAbstractionOccurred(pBlockNode, pReachedSet);
       FluentIterable<ARGState> prefiltered =
           from(pReachedSet)
               .filter(s -> !Objects.equals(pStartState, s))
@@ -169,9 +169,7 @@ public class DCPAAlgorithms {
               .filter(s -> !Objects.equals(pStartState, s))
               .toSet();
       final CFANode blockEnd =
-          pDirection == AnalysisDirection.FORWARD
-              ? pBlockNode.getLastNode()
-              : pBlockNode.getStartNode();
+          pDirection == AnalysisDirection.FORWARD ? pBlockNode.getLast() : pBlockNode.getFirst();
       blockEnds =
           prefiltered
               .filter(

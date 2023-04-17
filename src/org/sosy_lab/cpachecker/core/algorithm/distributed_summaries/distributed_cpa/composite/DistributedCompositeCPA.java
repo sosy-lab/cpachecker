@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
@@ -47,6 +47,7 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   public DistributedCompositeCPA(
       CompositeCPA pCompositeCPA,
       BlockNode pNode,
+      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap,
       AnalysisDirection pDirection,
       ImmutableMap<
               Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
@@ -56,11 +57,13 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
     compositeCPA = pCompositeCPA;
     serialize = new SerializeCompositeStateOperator(registered, statistics);
     deserialize =
-        new DeserializeCompositeStateOperator(compositeCPA, pNode, registered, statistics);
+        new DeserializeCompositeStateOperator(
+            compositeCPA, pNode, registered, pIntegerCFANodeMap, statistics);
     proceed = new ProceedCompositeStateOperator(registered, pDirection, statistics);
     serializePrecisionOperator = new SerializeCompositePrecisionOperator(registered);
     deserializePrecisionOperator =
-        new DeserializeCompositePrecisionOperator(registered, compositeCPA, pNode);
+        new DeserializeCompositePrecisionOperator(
+            registered, compositeCPA, pIntegerCFANodeMap, pNode);
     analyses = registered;
   }
 

@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -65,7 +65,7 @@ public class AlgorithmFactory {
     Optional.ofNullable(CPAs.retrieveCPA(cpa, BlockCPABackward.class)).ifPresent(b -> b.init(node));
     Algorithm algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
     ReachedSet reached =
-        createInitialReachedSet(cpa, node.getStartNode(), coreComponents, singleLogger);
+        createInitialReachedSet(cpa, node.getFirst(), coreComponents, singleLogger);
 
     return new AnalysisComponents(algorithm, cpa, reached);
   }

@@ -1,0 +1,192 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
+
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+
+public class BlockGraph {
+
+  public static final String ROOT_ID = "root";
+  private final BlockNode root;
+  private final ImmutableSet<BlockNode> nodes;
+
+  public BlockGraph(ImmutableSet<BlockNode> pNodes) {
+    Builder<BlockNode> nodeBuilder = ImmutableSet.builder();
+    ImmutableSet<BlockNode> possibleRoots =
+        FluentIterable.from(pNodes).filter(node -> node.getId().equals(ROOT_ID)).toSet();
+    root = Iterables.getOnlyElement(possibleRoots);
+    if (!root.getPredecessorIds().isEmpty()) {
+      throw new AssertionError("Node with ID: '" + ROOT_ID + "' has predecessors.");
+    }
+    for (BlockNode node : pNodes) {
+      if (!node.equals(root)) {
+        nodeBuilder.add(node);
+      }
+    }
+    nodes = nodeBuilder.build();
+  }
+
+  public BlockNode getRoot() {
+    return root;
+  }
+
+  public ImmutableSet<BlockNode> getNodes() {
+    return nodes;
+  }
+
+  public void checkConsistency(ShutdownNotifier pShutdownNotifier) throws InterruptedException {
+    boolean foundRoot = false;
+    for (BlockNode blockNode : nodes) {
+      if (blockNode.isRoot()) {
+        if (foundRoot) {
+          throw new IllegalStateException("Only one root per BlockGraph allowed.");
+        }
+        foundRoot = true;
+      }
+      Preconditions.checkState(
+          !blockNode.getId().equals(BlockGraph.ROOT_ID)
+              || (blockNode.getPredecessorIds().isEmpty() && blockNode.isRoot()),
+          "Only root nodes should not have predecessors.");
+      Preconditions.checkState(
+          CFAUtils.existsPath(
+              blockNode.getFirst(),
+              blockNode.getLast(),
+              node -> CFAUtils.allLeavingEdges(node).toSet(),
+              pShutdownNotifier),
+          "pNodesInBlock (%s) "
+              + "must list all nodes but misses either the root node (%s) "
+              + "or the last node (%s).",
+          blockNode.getNodes(),
+          blockNode.getFirst(),
+          blockNode.getLast());
+      // block node is not root implies that there is at least one edge in the block
+      Preconditions.checkState(
+          !blockNode.getEdges().isEmpty() || blockNode.getPredecessorIds().isEmpty(),
+          "Every block needs at least one edge");
+      Preconditions.checkState(
+          isBlockNodeValid(blockNode.getFirst(), blockNode.getEdges()),
+          "BlockNodes require to have exactly one exit node.");
+      Preconditions.checkState(
+          blockNode.getPredecessorIds().containsAll(blockNode.getLoopPredecessorIds()),
+          "Found loop predecessors that are not in the set of predecessors?");
+    }
+  }
+
+  private boolean isBlockNodeValid(CFANode pStartNode, Set<CFAEdge> pEdgesInBlock) {
+    ArrayDeque<CFANode> waiting = new ArrayDeque<>();
+    waiting.push(pStartNode);
+    Set<CFANode> covered = new LinkedHashSet<>();
+    int count = 0;
+    while (!waiting.isEmpty()) {
+      CFANode curr = waiting.pop();
+      boolean hasSuccessor = false;
+      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(curr)) {
+        if (pEdgesInBlock.contains(leavingEdge)) {
+          if (covered.contains(leavingEdge.getSuccessor())) {
+            waiting.push(leavingEdge.getSuccessor());
+          }
+          hasSuccessor = true;
+        }
+      }
+      if (!hasSuccessor) {
+        count++;
+      }
+      covered.add(curr);
+    }
+    return count <= 1;
+  }
+
+  public static BlockGraph fromBlockNodesWithoutGraphInformation(
+      CFA pCFA, Collection<BlockNodeWithoutGraphInformation> pNodes) {
+    BlockNodeWithoutGraphInformation root =
+        new BlockNodeWithoutGraphInformation(
+            BlockGraph.ROOT_ID,
+            pCFA.getMainFunction(),
+            pCFA.getMainFunction(),
+            ImmutableSet.of(pCFA.getMainFunction()),
+            ImmutableSet.of());
+    Multimap<CFANode, BlockNodeWithoutGraphInformation> startNodes = ArrayListMultimap.create();
+    Multimap<CFANode, BlockNodeWithoutGraphInformation> endNodes = ArrayListMultimap.create();
+    for (BlockNodeWithoutGraphInformation blockNode : pNodes) {
+      startNodes.put(blockNode.getFirst(), blockNode);
+      endNodes.put(blockNode.getLast(), blockNode);
+    }
+    Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation> loopPredecessors =
+        findLoopPredecessors(pCFA, startNodes);
+    startNodes.put(root.getFirst(), root);
+    startNodes.put(root.getLast(), root);
+    ImmutableSet<BlockNode> blockNodes =
+        FluentIterable.from(Iterables.concat(pNodes, ImmutableSet.of(root)))
+            .transform(
+                b ->
+                    new BlockNode(
+                        b.getId(),
+                        b.getFirst(),
+                        b.getLast(),
+                        b.getNodes(),
+                        b.getEdges(),
+                        transformedImmutableSetCopy(
+                            endNodes.get(b.getFirst()), BlockNodeWithoutGraphInformation::getId),
+                        transformedImmutableSetCopy(
+                            loopPredecessors.get(b), BlockNodeWithoutGraphInformation::getId),
+                        transformedImmutableSetCopy(
+                            startNodes.get(b.getLast()), BlockNodeWithoutGraphInformation::getId)))
+            .toSet();
+
+    return new BlockGraph(blockNodes);
+  }
+
+  private static Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation>
+      findLoopPredecessors(
+          CFA pCFA, Multimap<CFANode, BlockNodeWithoutGraphInformation> pSuccessors) {
+    List<List<BlockNodeWithoutGraphInformation>> waitList = new ArrayList<>();
+    Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation> loopPredecessors =
+        ArrayListMultimap.create();
+    for (BlockNodeWithoutGraphInformation currentBlockNode :
+        pSuccessors.get(pCFA.getMainFunction())) {
+      List<BlockNodeWithoutGraphInformation> entry = new ArrayList<>();
+      entry.add(currentBlockNode);
+      waitList.add(entry);
+    }
+    while (!waitList.isEmpty()) {
+      List<BlockNodeWithoutGraphInformation> current = waitList.remove(0);
+      BlockNodeWithoutGraphInformation last = current.get(current.size() - 1);
+      CFANode lastNode = last.getLast();
+      for (BlockNodeWithoutGraphInformation currentBlockNode : pSuccessors.get(lastNode)) {
+        if (current.contains(currentBlockNode)) {
+          loopPredecessors.put(currentBlockNode, last);
+          continue;
+        }
+        List<BlockNodeWithoutGraphInformation> entry = new ArrayList<>(current);
+        entry.add(currentBlockNode);
+        waitList.add(entry);
+      }
+    }
+    return loopPredecessors;
+  }
+}

@@ -8,11 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -29,21 +30,23 @@ public class DeserializeCompositePrecisionOperator implements DeserializePrecisi
       registered;
   private final CompositeCPA compositeCPA;
   private final BlockNode block;
+  private final ImmutableMap<Integer, CFANode> integerCFANodeMap;
 
   public DeserializeCompositePrecisionOperator(
       Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
           pRegistered,
       CompositeCPA pCompositeCPA,
+      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap,
       BlockNode pBlock) {
     registered = pRegistered;
     compositeCPA = pCompositeCPA;
     block = pBlock;
+    integerCFANodeMap = pIntegerCFANodeMap;
   }
 
   @Override
   public Precision deserializePrecision(BlockSummaryMessage pMessage) {
     try {
-      CFANode location = block.getNodeWithNumber(pMessage.getTargetNodeNumber());
       List<Precision> precisions = new ArrayList<>();
       for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
         if (registered.containsKey(wrappedCPA.getClass())) {
@@ -51,7 +54,9 @@ public class DeserializeCompositePrecisionOperator implements DeserializePrecisi
           precisions.add(entry.getDeserializePrecisionOperator().deserializePrecision(pMessage));
         } else {
           precisions.add(
-              wrappedCPA.getInitialPrecision(location, StateSpacePartition.getDefaultPartition()));
+              wrappedCPA.getInitialPrecision(
+                  integerCFANodeMap.get(pMessage.getTargetNodeNumber()),
+                  StateSpacePartition.getDefaultPartition()));
         }
       }
       return new CompositePrecision(precisions);

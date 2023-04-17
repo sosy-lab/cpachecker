@@ -10,9 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -20,12 +17,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -37,23 +31,14 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CfaMetadata;
-import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.graph.FlexCfaNetwork;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaFactory;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockEndUtil;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFAModifier;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFAModifier.Modification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.CFADecomposer;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.LinearDecomposition;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeDecomposition;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryProbabilityPriorityQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.BlockSummaryStatisticType;
@@ -61,6 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.mem
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusAndResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorkerBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorkerBuilder.Components;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
@@ -74,10 +60,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -121,30 +104,18 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   public BlockSummaryAnalysis(
       Configuration pConfig,
       LogManager pLogger,
-      CFA pCfa,
+      CFA pInitialCFA,
       ShutdownManager pShutdownManager,
       Specification pSpecification)
       throws InvalidConfigurationException {
     configuration = pConfig;
     configuration.inject(this);
     logger = pLogger;
-    initialCFA = pCfa;
+    initialCFA = pInitialCFA;
     shutdownManager = pShutdownManager;
     specification = pSpecification;
     options = new BlockSummaryAnalysisOptions(configuration);
     stats = new HashMap<>();
-  }
-
-  private CFADecomposer getDecomposer() throws InvalidConfigurationException {
-    return switch (decompositionType) {
-      case BLOCK_OPERATOR -> new LinearDecomposition(configuration, shutdownManager.getNotifier());
-      case GIVEN_SIZE -> new MergeDecomposition(
-          new LinearDecomposition(configuration, shutdownManager.getNotifier()),
-          configuration,
-          shutdownManager.getNotifier());
-      case SINGLE_BLOCK -> new SingleBlockDecomposition(shutdownManager.getNotifier());
-      default -> throw new AssertionError("Unknown DecompositionType: " + decompositionType);
-    };
   }
 
   @Override
@@ -152,18 +123,31 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     logger.log(Level.INFO, "Starting block analysis...");
     try {
       // create blockGraph and reduce to relevant parts
-      CFA cfa = instrumentCFA(initialCFA);
-      CFADecomposer decomposer = getDecomposer();
-      BlockGraph blockGraph = decomposer.decompose(cfa);
-      blockGraph = blockGraph.prependDummyRoot(cfa, shutdownManager.getNotifier());
+      BlockOperator blockOperator = new BlockOperator();
+      configuration.inject(blockOperator);
+      blockOperator.setCFA(initialCFA);
+      CFADecomposer decomposer =
+          new MergeBlockNodesDecomposition(
+              n -> blockOperator.isBlockEnd(n, -1), initialCFA.getNumberOfFunctions());
+      BlockGraph blockGraph = decomposer.decompose(initialCFA);
+      blockGraph.checkConsistency(shutdownManager.getNotifier());
+      assert FluentIterable.from(blockGraph.getNodes())
+          .transformAndConcat(BlockNode::getNodes)
+          .toSet()
+          .containsAll(initialCFA.getAllNodes());
+      Modification modification =
+          BlockSummaryCFAModifier.instrumentCFA(
+              initialCFA, blockGraph, logger, shutdownManager.getNotifier());
+      CFA cfa = modification.cfa();
+      blockGraph = modification.blockGraph();
       logger.logf(
           Level.INFO,
           "Decomposed CFA in %d blocks using the %s.",
-          blockGraph.getDistinctNodes().size(),
+          blockGraph.getNodes().size(),
           decomposer.getClass().getCanonicalName());
 
       // create workers
-      Collection<BlockNode> blocks = blockGraph.getDistinctNodes();
+      Collection<BlockNode> blocks = blockGraph.getNodes();
       BlockSummaryWorkerBuilder builder =
           new BlockSummaryWorkerBuilder(
               cfa,
@@ -171,12 +155,9 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                   () -> new BlockSummaryProbabilityPriorityQueue()),
               specification);
       builder = builder.createAdditionalConnections(1);
+      builder = builder.addRootWorker(blockGraph.getRoot(), options);
       for (BlockNode distinctNode : blocks) {
-        if (distinctNode.isRoot()) {
-          builder = builder.addRootWorker(distinctNode, options);
-        } else {
-          builder = builder.addAnalysisWorker(distinctNode, options);
-        }
+        builder = builder.addAnalysisWorker(distinctNode, options);
       }
       builder = builder.addResultCollectorWorker(blocks, options);
 
@@ -202,8 +183,8 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
             new BlockSummaryObserverWorker(
                 "observer", mainThreadConnection, options, blocks.size());
         // blocks the thread until result message is received
-        Pair<AlgorithmStatus, Result> resultPair = observer.observe();
-        Result result = resultPair.getSecond();
+        StatusAndResult resultPair = observer.observe();
+        Result result = resultPair.result();
         stats.putAll(observer.getStats());
         if (result == Result.FALSE) {
           ARGState state = (ARGState) reachedSet.getFirstState();
@@ -217,7 +198,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
         } else if (result == Result.TRUE) {
           reachedSet.clear();
         }
-        return resultPair.getFirst();
+        return resultPair.status();
       }
     } catch (InvalidConfigurationException | IOException pE) {
       logger.logException(Level.SEVERE, pE, "Block analysis stopped unexpectedly.");
@@ -285,100 +266,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   private void mergeInto(Map<String, Object> pOverall, String pKey, Object pValue) {
     pOverall.merge(
         pKey, pValue, (v1, v2) -> Long.parseLong(v1.toString()) + Long.parseLong(v2.toString()));
-  }
-
-  private CFA instrumentCFA(CFA pCFA) {
-    Set<CFANode> pBlockEnds =
-        FluentIterable.from(pCFA.getAllNodes())
-            .filter(n -> n.getNumLeavingEdges() > 1 || n.getNumEnteringEdges() > 1)
-            .toSet();
-    FlexCfaNetwork cfaNetwork = FlexCfaNetwork.copy(pCFA);
-    for (CFANode blockEnd : pBlockEnds) {
-      if (blockEnd.getLeavingSummaryEdge() == null && !blockEnd.equals(pCFA.getMainFunction())) {
-        BlankEdge blockEndEdge = BlockEndUtil.getBlockEndBlankEdge(FileLocation.DUMMY, blockEnd);
-        cfaNetwork.addEdge(blockEndEdge);
-      }
-    }
-    CFA instrumented =
-        CCfaFactory.CLONER.createCfa(
-            cfaNetwork, pCFA.getMetadata(), logger, shutdownManager.getNotifier());
-    Map<CFANode, CFANode> originalInstrumentedMapping =
-        createMappingBetweenOriginalAndInstrumentedCFA(pCFA, instrumented);
-    originalInstrumentedMapping.forEach(
-        (n1, n2) -> n2.setReversePostorderId(n1.getReversePostorderId()));
-    Optional<LoopStructure> loopStructure;
-    if (pCFA.getMetadata().getLoopStructure().isPresent()) {
-      LoopStructure extracted = pCFA.getMetadata().getLoopStructure().orElseThrow();
-      if (extracted.getCount() == 0) {
-        loopStructure = Optional.of(extracted);
-      } else {
-        ImmutableListMultimap.Builder<String, Loop> loops = ImmutableListMultimap.builder();
-        for (String functionName : pCFA.getAllFunctionNames()) {
-          for (Loop loop : extracted.getLoopsForFunction(functionName)) {
-            ImmutableSet.Builder<CFANode> heads = ImmutableSet.builder();
-            for (CFANode loopHead : loop.getLoopHeads()) {
-              heads.add(originalInstrumentedMapping.get(loopHead));
-            }
-            ImmutableSet.Builder<CFANode> nodes = ImmutableSet.builder();
-            for (CFANode loopNode : loop.getLoopNodes()) {
-              nodes.add(originalInstrumentedMapping.get(loopNode));
-            }
-            loops.put(functionName, new Loop(heads.build(), nodes.build()));
-          }
-        }
-        loopStructure = Optional.of(LoopStructure.of(loops.build()));
-      }
-    } else {
-      loopStructure = Optional.empty();
-    }
-    CfaMetadata metadata = instrumented.getMetadata();
-    if (loopStructure.isPresent()) {
-      metadata = metadata.withLoopStructure(loopStructure.orElseThrow());
-    }
-    return new ImmutableCFA(
-        instrumented.getAllFunctions(), ImmutableSet.copyOf(instrumented.getAllNodes()), metadata);
-  }
-
-  private Map<CFANode, CFANode> createMappingBetweenOriginalAndInstrumentedCFA(
-      CFA pOriginal, CFA pInstrumented) {
-    record CFANodePair(CFANode start, CFANode instrumented) {}
-    ImmutableMap.Builder<CFANode, CFANode> builder = ImmutableMap.builder();
-    CFANode originalStart = pOriginal.getMainFunction();
-    CFANode instrumentedStart = pInstrumented.getMainFunction();
-    List<CFANodePair> waitlist = new ArrayList<>();
-    waitlist.add(new CFANodePair(originalStart, instrumentedStart));
-    Set<CFANodePair> covered = new LinkedHashSet<>();
-    while (!waitlist.isEmpty()) {
-      CFANodePair curr = waitlist.remove(0);
-      if (covered.contains(curr)) {
-        continue;
-      }
-      covered.add(curr);
-      builder.put(curr.start(), curr.instrumented());
-      for (CFAEdge leavingStartEdge : CFAUtils.leavingEdges(curr.start)) {
-        for (CFAEdge leavingInstrumentedEdge : CFAUtils.leavingEdges(curr.instrumented())) {
-          if (leavingInstrumentedEdge.getDescription().equals(BlockEndUtil.UNIQUE_DESCRIPTION)) {
-            continue;
-          }
-          if (virtuallyEqual(leavingStartEdge, leavingInstrumentedEdge)) {
-            waitlist.add(
-                new CFANodePair(
-                    leavingStartEdge.getSuccessor(), leavingInstrumentedEdge.getSuccessor()));
-            break;
-          }
-        }
-      }
-    }
-    return builder.buildOrThrow();
-  }
-
-  private boolean virtuallyEqual(CFAEdge pCFAEdge, CFAEdge pCFAEdge2) {
-    return pCFAEdge.getDescription().equals(pCFAEdge2.getDescription())
-        && pCFAEdge.getEdgeType().equals(pCFAEdge2.getEdgeType())
-        && pCFAEdge.getCode().equals(pCFAEdge2.getCode())
-        && pCFAEdge.getLineNumber() == pCFAEdge2.getLineNumber()
-        && pCFAEdge.getFileLocation().equals(pCFAEdge2.getFileLocation())
-        && pCFAEdge.getRawAST().equals(pCFAEdge2.getRawAST());
   }
 
   @Override

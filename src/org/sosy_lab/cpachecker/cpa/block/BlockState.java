@@ -17,7 +17,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -59,8 +59,8 @@ public class BlockState
     } else {
       targetCFANode =
           direction == AnalysisDirection.FORWARD
-              ? pTargetNode.getAbstractionNode()
-              : pTargetNode.getStartNode();
+              ? pTargetNode.getAbstractionLocation()
+              : pTargetNode.getFirst();
     }
     blockNode = pTargetNode;
     errorCondition = pErrorCondition;
@@ -115,8 +115,8 @@ public class BlockState
     if (isTarget()
         && errorCondition.isPresent()
         && direction == AnalysisDirection.FORWARD
-        && !blockNode.getLastNode().equals(blockNode.getAbstractionNode())
-        && !blockNode.getLastNode().equals(node)
+        && !blockNode.getLast().equals(blockNode.getAbstractionLocation())
+        && !blockNode.getLast().equals(node)
         && !isStartNodeOfBlock()) {
       FluentIterable<BooleanFormula> approximations =
           AbstractStates.asIterable(errorCondition.orElseThrow())
@@ -152,11 +152,11 @@ public class BlockState
 
   private boolean isLastNodeOfBlock() {
     // abstract at the real block end (last node, not artificial block end)
-    return blockNode.getLastNode().equals(node);
+    return blockNode.getLast().equals(node);
   }
 
   private boolean isStartNodeOfBlock() {
-    return blockNode.getStartNode().equals(node);
+    return blockNode.getFirst().equals(node);
   }
 
   @Override

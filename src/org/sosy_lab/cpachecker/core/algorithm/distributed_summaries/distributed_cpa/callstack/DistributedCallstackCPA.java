@@ -8,9 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack;
 
+import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.AlwaysProceed;
@@ -39,7 +40,11 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
     cfa = pCFA;
     proceed = new AlwaysProceed();
     serialize = new SerializeCallstackStateOperator();
-    deserialize = new DeserializeCallstackStateOperator(pCallstackCPA, pNode);
+    ImmutableMap.Builder<Integer, CFANode> idToNodeMap = ImmutableMap.builder();
+    for (CFANode cfaNode : pCFA.getAllNodes()) {
+      idToNodeMap.put(cfaNode.getNodeNumber(), cfaNode);
+    }
+    deserialize = new DeserializeCallstackStateOperator(pCallstackCPA, idToNodeMap.build()::get);
   }
 
   @Override

@@ -1,0 +1,79 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
+
+import com.google.common.collect.ImmutableSet;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+
+public class BlockNode extends BlockNodeWithoutGraphInformation {
+  private final ImmutableSet<String> predecessorIds;
+  private final ImmutableSet<String> loopPredecessorIds;
+  private final ImmutableSet<String> successorIds;
+  private final CFANode abstractionLocation;
+
+  public BlockNode(
+      String pId,
+      CFANode pFirst,
+      CFANode pLast,
+      ImmutableSet<CFANode> pNodes,
+      ImmutableSet<CFAEdge> pEdges,
+      ImmutableSet<String> pPredecessorIds,
+      ImmutableSet<String> pLoopPredecessorIds,
+      ImmutableSet<String> pSuccessorIds) {
+    this(
+        pId,
+        pFirst,
+        pLast,
+        pNodes,
+        pEdges,
+        pPredecessorIds,
+        pLoopPredecessorIds,
+        pSuccessorIds,
+        pLast);
+  }
+
+  public BlockNode(
+      String pId,
+      CFANode pFirst,
+      CFANode pLast,
+      ImmutableSet<CFANode> pNodes,
+      ImmutableSet<CFAEdge> pEdges,
+      ImmutableSet<String> pPredecessorIds,
+      ImmutableSet<String> pLoopPredecessorIds,
+      ImmutableSet<String> pSuccessorIds,
+      CFANode pAbstractionLocation) {
+    super(pId, pFirst, pLast, pNodes, pEdges);
+    predecessorIds = pPredecessorIds;
+    loopPredecessorIds = pLoopPredecessorIds;
+    successorIds = pSuccessorIds;
+    abstractionLocation = pAbstractionLocation;
+  }
+
+  @Override
+  public CFANode getAbstractionLocation() {
+    return abstractionLocation;
+  }
+
+  public boolean isRoot() {
+    return getPredecessorIds().isEmpty();
+  }
+
+  public ImmutableSet<String> getPredecessorIds() {
+    return predecessorIds;
+  }
+
+  public ImmutableSet<String> getLoopPredecessorIds() {
+    return loopPredecessorIds;
+  }
+
+  public ImmutableSet<String> getSuccessorIds() {
+    return successorIds;
+  }
+}

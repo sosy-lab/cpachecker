@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryResultMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Pair;
 
 public class BlockSummaryObserverWorker extends BlockSummaryWorker {
 
@@ -34,6 +33,8 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
   private final Map<String, Map<String, Object>> stats = new HashMap<>();
 
   private final int numberOfBlocks;
+
+  public record StatusAndResult(AlgorithmStatus status, Result result) {}
 
   public BlockSummaryObserverWorker(
       String pId,
@@ -66,14 +67,14 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
       }
       case STATISTICS -> {
         stats.put(pMessage.getBlockId(), ((BlockSummaryStatisticsMessage) pMessage).getStats());
-        shutdown = stats.keySet().size() == numberOfBlocks - 1;
+        shutdown = stats.keySet().size() == numberOfBlocks;
       }
       default -> throw new AssertionError("Unknown message type: " + pMessage.getType());
     }
     return ImmutableList.of();
   }
 
-  public Pair<AlgorithmStatus, Result> observe() throws CPAException {
+  public StatusAndResult observe() throws CPAException {
     super.run();
     if (errorMessage.isPresent()) {
       throw new CPAException(errorMessage.orElseThrow());
@@ -81,7 +82,7 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
     if (result.isEmpty()) {
       throw new CPAException("Analysis finished but no result is present...");
     }
-    return Pair.of(statusObserver.finish(), result.orElseThrow());
+    return new StatusAndResult(statusObserver.finish(), result.orElseThrow());
   }
 
   public Map<String, Map<String, Object>> getStats() {
