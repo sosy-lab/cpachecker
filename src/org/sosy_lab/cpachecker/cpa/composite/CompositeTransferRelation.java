@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.SummaryEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -85,7 +86,9 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       getAbstractSuccessors(compositeState, compositePrecision, results);
     } else {
       for (CFAEdge edge : locState.getOutgoingEdges()) {
-        getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
+        if (!(edge instanceof SummaryEdge)) {
+          getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
+        }
       }
     }
 

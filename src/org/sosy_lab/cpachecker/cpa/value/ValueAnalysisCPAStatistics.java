@@ -13,6 +13,7 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -25,7 +26,9 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -38,6 +41,10 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   @Option(secure = true, description = "target file to hold the exported precision")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path precisionFile = null;
+
+  @Option(secure = true, description = "target file to hold the exported summaries")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path summariesFile = null;
 
   private LongAdder iterations = new LongAdder();
   private StatCounter assumptions = new StatCounter("Number of assumptions");
@@ -79,6 +86,10 @@ public class ValueAnalysisCPAStatistics implements Statistics {
       exportPrecision(reached);
     }
 
+    if (summariesFile != null) {
+      exportSummaries(reached);
+    }
+
     writer
         .put(assumptions)
         .put(deterministicAssumptions)
@@ -98,6 +109,28 @@ public class ValueAnalysisCPAStatistics implements Statistics {
     } catch (IOException e) {
       cpa.getLogger()
           .logUserException(Level.WARNING, e, "Could not write value-analysis precision to file");
+    }
+  }
+
+  private void exportSummaries(UnmodifiableReachedSet reached) {
+    var BamCPA = (BAMCPA)((ReachedSet)reached).getCPA();
+    final Collection<ReachedSet> cachedReachedSets =
+        BamCPA.getData().getCache().getAllCachedReachedStates();
+
+    var cache = ValueAnalysisSummaryCache.getInstance();
+
+    for (var reachedSet : cachedReachedSets) {
+      cache.addSummaryForReachedSet(reachedSet);
+    }
+
+    try (Writer writer = IO.openOutputFile(summariesFile, Charset.defaultCharset())) {
+      for (var summary : cache.getSummaries()) {
+        writer.write(summary.toString());
+        writer.write("\n");
+      }
+    } catch (IOException e) {
+      cpa.getLogger()
+          .logUserException(Level.WARNING, e, "Could not write value-analysis summaries to file");
     }
   }
 

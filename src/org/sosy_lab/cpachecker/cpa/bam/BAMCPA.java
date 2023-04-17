@@ -8,17 +8,29 @@
 
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
@@ -37,8 +49,14 @@ import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCacheAggressiveImpl;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCacheImpl;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManagerImpl;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisSummaryCache;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisSummary;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.bam")
 public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofChecker {
@@ -71,6 +89,18 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
       secure = true,
       description = "Should the nested CPA-algorithm be wrapped with CEGAR within BAM?")
   private boolean useCEGAR = false;
+
+  @Option(
+      secure = true,
+      description = "get initial summaries from file")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path initialSummariesFile = null;
+
+  @Option(
+      secure = true,
+      description = "get the last revision of the program, for which the summaries were generated")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path lastRevision = null;
 
   private BAMCPA(
       ConfigurableProgramAnalysis pCpa,
@@ -109,10 +139,17 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
       factory = new CEGARAlgorithmFactory(factory, this, logger, config, pShutdownNotifier);
     }
 
+    ValueAnalysisSummaryCache.initialize(blockPartitioning);
+
     if (handleRecursiveProcedures) {
       transfer =
           new BAMTransferRelationWithFixPointForRecursion(
               config, this, pShutdownNotifier, factory, bamPccManager, searchTargetStatesOnExit());
+    } else if (initialSummariesFile != null && lastRevision != null) {
+      transfer =
+          new BAMTransferRelationWithSummaryReuse(
+              this, pShutdownNotifier, factory, bamPccManager, searchTargetStatesOnExit());
+      readSummaries(config, pCfa);
     } else {
       transfer =
           new BAMTransferRelation(
@@ -173,5 +210,91 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   public BAMMultipleCEXSubgraphComputer createBAMMultipleSubgraphComputer(
       Function<ARGState, Integer> pIdExtractor) {
     return new BAMMultipleCEXSubgraphComputer(this, pIdExtractor);
+  }
+
+  private void readSummaries(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
+    readSummariesFromFile(pCfa);
+    selectSummaries(pConfig, pCfa);
+  }
+
+  private void readSummariesFromFile(CFA pCfa) {
+    ValueAnalysisSummaryCache cache = ValueAnalysisSummaryCache.getInstance();
+    List<String> contents;
+    try {
+      contents = Files.readAllLines(initialSummariesFile, Charset.defaultCharset());
+    } catch (IOException e) {
+      logger.logUserException(
+          Level.WARNING, e, "Could not read summaries from file named " + initialSummariesFile);
+      return;
+    }
+
+    String location = null;
+    ValueAnalysisState entryState = null, exitState;
+    for (String currentLine : contents) {
+      if (currentLine.trim().isEmpty()) {
+        continue;
+      }
+
+      if (location == null) {
+        location = currentLine;
+        continue;
+      }
+
+      if (entryState == null) {
+        entryState = readState(currentLine, pCfa);
+        continue;
+      }
+
+      exitState = readState(currentLine, pCfa);
+
+      var summary = new ValueAnalysisSummary(entryState, exitState);
+      cache.add(location, summary);
+
+      location = null;
+      entryState = null;
+    }
+  }
+
+  private ValueAnalysisState readState(String line, CFA pCfa) {
+    // line format: [varName=NumericValue[number=value] (dataType), ...]
+    ValueAnalysisState state = new ValueAnalysisState(pCfa.getMachineModel());
+
+
+    var values = Splitter.on(", ")
+        .trimResults(CharMatcher.anyOf("[]"))
+        .omitEmptyStrings()
+        .splitToList(line);
+
+    for (String value : values) {
+      // value format: varName=NumericValue[number=value] (dataType)
+      var split = Splitter.on(CharMatcher.anyOf("=]")).splitToList(value);
+      var name = split.get(0);
+      var number = split.get(2);
+
+      var memLoc = MemoryLocation.fromQualifiedName(name);
+
+      state.assignConstant(memLoc, new NumericValue(Long.parseLong(number)), CNumericTypes.INT);
+    }
+
+    return state;
+  }
+
+  private void selectSummaries(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
+    if (lastRevision == null) {
+      return;
+    }
+
+    CFACreator cfaCreator = new CFACreator(pConfig, logger, shutdownNotifier);
+    try {
+      var previousCfa =
+          cfaCreator.parseFileAndCreateCFA(ImmutableList.of(lastRevision.toString()));
+
+      ValueAnalysisSummaryCache.getInstance().removeSummariesForChangedBlocks(pCfa, previousCfa);
+
+    } catch (ParserException pE) {
+      throw new InvalidConfigurationException("Parser error for lastRevision", pE);
+    } catch (InterruptedException | IOException pE) {
+      throw new AssertionError(pE);
+    }
   }
 }
