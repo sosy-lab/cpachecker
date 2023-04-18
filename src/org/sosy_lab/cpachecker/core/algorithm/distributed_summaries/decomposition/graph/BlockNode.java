@@ -61,6 +61,21 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
     return abstractionLocation;
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof BlockNode) {
+      // based on id (but ensures same class)
+      return super.equals(obj);
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    // based on id
+    return super.hashCode();
+  }
+
   public boolean isRoot() {
     return getPredecessorIds().isEmpty();
   }

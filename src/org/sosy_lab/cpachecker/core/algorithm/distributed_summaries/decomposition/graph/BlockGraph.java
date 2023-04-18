@@ -14,7 +14,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -34,20 +33,14 @@ public class BlockGraph {
   private final BlockNode root;
   private final ImmutableSet<BlockNode> nodes;
 
-  public BlockGraph(ImmutableSet<BlockNode> pNodes) {
-    ImmutableSet.Builder<BlockNode> nodeBuilder = ImmutableSet.builder();
-    ImmutableSet<BlockNode> possibleRoots =
-        FluentIterable.from(pNodes).filter(node -> node.getId().equals(ROOT_ID)).toSet();
-    root = Iterables.getOnlyElement(possibleRoots);
-    if (!root.getPredecessorIds().isEmpty()) {
-      throw new AssertionError("Node with ID: '" + ROOT_ID + "' has predecessors.");
-    }
-    for (BlockNode node : pNodes) {
-      if (!node.equals(root)) {
-        nodeBuilder.add(node);
-      }
-    }
-    nodes = nodeBuilder.build();
+  public BlockGraph(BlockNode pRoot, ImmutableSet<BlockNode> pNodes) {
+    Preconditions.checkArgument(
+        pRoot.getPredecessorIds().isEmpty(), "Node with ID: '" + ROOT_ID + "' has predecessors.");
+    Preconditions.checkArgument(
+        pNodes.stream().noneMatch(b -> b.equals(pRoot) || b.getId().equals(ROOT_ID)),
+        "Root nodes are ambiguous.");
+    nodes = pNodes;
+    root = pRoot;
   }
 
   public BlockNode getRoot() {
@@ -122,13 +115,6 @@ public class BlockGraph {
 
   public static BlockGraph fromBlockNodesWithoutGraphInformation(
       CFA pCFA, Collection<BlockNodeWithoutGraphInformation> pNodes) {
-    BlockNodeWithoutGraphInformation root =
-        new BlockNodeWithoutGraphInformation(
-            BlockGraph.ROOT_ID,
-            pCFA.getMainFunction(),
-            pCFA.getMainFunction(),
-            ImmutableSet.of(pCFA.getMainFunction()),
-            ImmutableSet.of());
     Multimap<CFANode, BlockNodeWithoutGraphInformation> startNodes = ArrayListMultimap.create();
     Multimap<CFANode, BlockNodeWithoutGraphInformation> endNodes = ArrayListMultimap.create();
     for (BlockNodeWithoutGraphInformation blockNode : pNodes) {
@@ -137,10 +123,23 @@ public class BlockGraph {
     }
     Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation> loopPredecessors =
         findLoopPredecessors(pCFA, startNodes);
+    BlockNode root =
+        new BlockNode(
+            BlockGraph.ROOT_ID,
+            pCFA.getMainFunction(),
+            pCFA.getMainFunction(),
+            ImmutableSet.of(pCFA.getMainFunction()),
+            ImmutableSet.of(),
+            ImmutableSet.of(),
+            ImmutableSet.of(),
+            FluentIterable.from(startNodes.get(pCFA.getMainFunction()))
+                .transform(BlockNodeWithoutGraphInformation::getId)
+                .filter(id -> !id.equals(ROOT_ID))
+                .toSet());
     startNodes.put(root.getFirst(), root);
-    startNodes.put(root.getLast(), root);
+    endNodes.put(root.getLast(), root);
     ImmutableSet<BlockNode> blockNodes =
-        FluentIterable.from(Iterables.concat(pNodes, ImmutableSet.of(root)))
+        FluentIterable.from(pNodes)
             .transform(
                 b ->
                     new BlockNode(
@@ -156,8 +155,7 @@ public class BlockGraph {
                         transformedImmutableSetCopy(
                             startNodes.get(b.getLast()), BlockNodeWithoutGraphInformation::getId)))
             .toSet();
-
-    return new BlockGraph(blockNodes);
+    return new BlockGraph(root, blockNodes);
   }
 
   private static Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation>

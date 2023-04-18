@@ -54,7 +54,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
         new DeserializePredicatePrecisionOperator(
             predicateCPA.getAbstractionManager(),
             predicateCPA.getSolver(),
-            idToNodeMap.build()::get);
+            idToNodeMap.buildOrThrow()::get);
   }
 
   @Override

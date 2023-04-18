@@ -160,7 +160,7 @@ public class BlockSummaryCFAModifier {
               node.getSuccessorIds(),
               abstraction));
     }
-    instrumentedBlocks.add(
+    BlockNode root =
         new BlockNode(
             BlockGraph.ROOT_ID,
             instrumentedCFA.getMainFunction(),
@@ -169,13 +169,13 @@ public class BlockSummaryCFAModifier {
             ImmutableSet.of(),
             ImmutableSet.of(),
             pBlockGraph.getRoot().getLoopPredecessorIds(),
-            pBlockGraph.getRoot().getSuccessorIds()));
+            pBlockGraph.getRoot().getSuccessorIds());
     return new Modification(
         new ImmutableCFA(
             instrumentedCFA.getAllFunctions(),
             ImmutableSet.copyOf(instrumentedCFA.getAllNodes()),
             metadata),
-        new BlockGraph(instrumentedBlocks.build()));
+        new BlockGraph(root, instrumentedBlocks.build()));
   }
 
   private static InstrumentedMapping createMappingBetweenOriginalAndInstrumentedCFA(

@@ -43,7 +43,8 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
     for (CFANode cfaNode : pCFA.getAllNodes()) {
       idToNodeMap.put(cfaNode.getNodeNumber(), cfaNode);
     }
-    deserialize = new DeserializeCallstackStateOperator(pCallstackCPA, idToNodeMap.build()::get);
+    deserialize =
+        new DeserializeCallstackStateOperator(pCallstackCPA, idToNodeMap.buildOrThrow()::get);
   }
 
   @Override
