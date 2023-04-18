@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
@@ -57,7 +58,7 @@ public class DeserializeCompositeStateOperator implements DeserializeOperator {
         } else {
           states.add(
               wrappedCPA.getInitialState(
-                  (integerCFANodeMap.get(pMessage.getTargetNodeNumber())),
+                  Objects.requireNonNull(integerCFANodeMap.get(pMessage.getTargetNodeNumber())),
                   StateSpacePartition.getDefaultPartition()));
         }
       }
