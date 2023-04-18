@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -58,12 +59,11 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
     serialize = new SerializeCompositeStateOperator(registered, statistics);
     deserialize =
         new DeserializeCompositeStateOperator(
-            compositeCPA, pNode, registered, pIntegerCFANodeMap, statistics);
+            compositeCPA, registered, pIntegerCFANodeMap, statistics);
     proceed = new ProceedCompositeStateOperator(registered, pDirection, statistics);
     serializePrecisionOperator = new SerializeCompositePrecisionOperator(registered);
     deserializePrecisionOperator =
-        new DeserializeCompositePrecisionOperator(
-            registered, compositeCPA, pIntegerCFANodeMap, pNode);
+        new DeserializeCompositePrecisionOperator(registered, compositeCPA, pIntegerCFANodeMap);
     analyses = registered;
   }
 
@@ -125,7 +125,8 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
     ImmutableList.Builder<AbstractState> initialStates = ImmutableList.builder();
     for (ConfigurableProgramAnalysis cpa : compositeCPA.getWrappedCPAs()) {
       if (analyses.containsKey(cpa.getClass())) {
-        initialStates.add(analyses.get(cpa.getClass()).getInitialState(node, partition));
+        initialStates.add(
+            Objects.requireNonNull(analyses.get(cpa.getClass())).getInitialState(node, partition));
       } else {
         initialStates.add(cpa.getInitialState(node, partition));
       }

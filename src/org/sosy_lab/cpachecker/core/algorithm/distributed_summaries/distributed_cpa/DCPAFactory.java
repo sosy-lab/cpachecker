@@ -53,10 +53,10 @@ public class DCPAFactory {
       return distribute(predicateCPA, pBlockNode, pDirection, pCFA);
     }
     if (pCPA instanceof CallstackCPA callstackCPA) {
-      return distribute(callstackCPA, pBlockNode, pCFA);
+      return distribute(callstackCPA, pCFA);
     }
     if (pCPA instanceof FunctionPointerCPA functionPointerCPA) {
-      return distribute(functionPointerCPA, pBlockNode, integerToNodeMap);
+      return distribute(functionPointerCPA, integerToNodeMap);
     }
     if (pCPA instanceof BlockCPA blockCPA) {
       return distribute(blockCPA, pBlockNode, integerToNodeMap, pDirection);
@@ -95,15 +95,13 @@ public class DCPAFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      CallstackCPA pCallstackCPA, BlockNode pBlockNode, CFA pCFA) {
-    return new DistributedCallstackCPA(pCallstackCPA, pCFA, pBlockNode);
+      CallstackCPA pCallstackCPA, CFA pCFA) {
+    return new DistributedCallstackCPA(pCallstackCPA, pCFA);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      FunctionPointerCPA pFunctionPointerCPA,
-      BlockNode pBlockNode,
-      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
-    return new DistributedFunctionPointerCPA(pFunctionPointerCPA, pBlockNode, pIntegerCFANodeMap);
+      FunctionPointerCPA pFunctionPointerCPA, ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
+    return new DistributedFunctionPointerCPA(pFunctionPointerCPA, pIntegerCFANodeMap);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

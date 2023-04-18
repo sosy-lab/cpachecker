@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -30,19 +29,16 @@ public class DeserializeCompositeStateOperator implements DeserializeOperator {
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
       registered;
   private final CompositeCPA compositeCPA;
-  private final BlockNode block;
   private final ImmutableMap<Integer, CFANode> integerCFANodeMap;
   private final BlockAnalysisStatistics stats;
 
   public DeserializeCompositeStateOperator(
       CompositeCPA pCompositeCPA,
-      BlockNode pBlockNode,
       Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
           pRegistered,
       ImmutableMap<Integer, CFANode> pIntegerCFANodeMap,
       BlockAnalysisStatistics pStats) {
     compositeCPA = pCompositeCPA;
-    block = pBlockNode;
     registered = pRegistered;
     integerCFANodeMap = pIntegerCFANodeMap;
     stats = pStats;

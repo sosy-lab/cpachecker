@@ -12,8 +12,8 @@ import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -29,18 +29,15 @@ public class DeserializeCompositePrecisionOperator implements DeserializePrecisi
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
       registered;
   private final CompositeCPA compositeCPA;
-  private final BlockNode block;
   private final ImmutableMap<Integer, CFANode> integerCFANodeMap;
 
   public DeserializeCompositePrecisionOperator(
       Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
           pRegistered,
       CompositeCPA pCompositeCPA,
-      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap,
-      BlockNode pBlock) {
+      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
     registered = pRegistered;
     compositeCPA = pCompositeCPA;
-    block = pBlock;
     integerCFANodeMap = pIntegerCFANodeMap;
   }
 
@@ -55,7 +52,7 @@ public class DeserializeCompositePrecisionOperator implements DeserializePrecisi
         } else {
           precisions.add(
               wrappedCPA.getInitialPrecision(
-                  integerCFANodeMap.get(pMessage.getTargetNodeNumber()),
+                  Objects.requireNonNull(integerCFANodeMap.get(pMessage.getTargetNodeNumber())),
                   StateSpacePartition.getDefaultPartition()));
         }
       }

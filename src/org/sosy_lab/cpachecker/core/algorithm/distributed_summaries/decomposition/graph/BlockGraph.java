@@ -14,7 +14,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
@@ -36,7 +35,7 @@ public class BlockGraph {
   private final ImmutableSet<BlockNode> nodes;
 
   public BlockGraph(ImmutableSet<BlockNode> pNodes) {
-    Builder<BlockNode> nodeBuilder = ImmutableSet.builder();
+    ImmutableSet.Builder<BlockNode> nodeBuilder = ImmutableSet.builder();
     ImmutableSet<BlockNode> possibleRoots =
         FluentIterable.from(pNodes).filter(node -> node.getId().equals(ROOT_ID)).toSet();
     root = Iterables.getOnlyElement(possibleRoots);

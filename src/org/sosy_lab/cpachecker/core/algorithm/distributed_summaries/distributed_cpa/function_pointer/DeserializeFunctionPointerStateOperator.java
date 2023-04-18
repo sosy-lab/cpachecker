@@ -12,7 +12,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -23,15 +22,11 @@ import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFun
 
 public class DeserializeFunctionPointerStateOperator implements DeserializeOperator {
 
-  private final BlockNode block;
   private final FunctionPointerCPA functionPointerCPA;
   private final ImmutableMap<Integer, CFANode> integerCFANodeMap;
 
   public DeserializeFunctionPointerStateOperator(
-      FunctionPointerCPA pFunctionPointerCPA,
-      BlockNode pBlockNode,
-      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
-    block = pBlockNode;
+      FunctionPointerCPA pFunctionPointerCPA, ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
     functionPointerCPA = pFunctionPointerCPA;
     integerCFANodeMap = pIntegerCFANodeMap;
   }

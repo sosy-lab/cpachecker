@@ -21,30 +21,12 @@ import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 /**
- * This class provides strategies for iterating through a CFA (a set of {@link CFANode}s connected
- * by {@link CFAEdge}s). Strategies differ for example in the direction (forwards/backwards), and
- * whether summary edges are recognized.
+ * This class provides a strategy for a forward depth-first-search through a CFA (a set of {@link
+ * CFANode}s connected by {@link CFAEdge}s). A given visitor sees all edges in the manner of a
+ * depth-first search. If an edge was already see, the traversal is aborted.
  *
- * <p>Instances of this class are always immutable, thread-safe and may be re-used. Thus, care must
- * be taken when calling methods of this class which return a CFATraversal instance. This never
- * mutate the instance on which they are called!
- *
- * <p>Right code: <code>
- * CFATraversal traversal = CFATraversal.allEdgesForward();
- * traversal = traversal.backwards();
- * traversal.traverse(...);
- * </code> Wrong code: <code>
- * CFATraversal traversal = CFATraversal.allEdgesForward();
- * traversal.backwards(); // WRONG!!! Has no effect!
- * traversal.traverse(...);
- * </code> For traversing the CFA, a {@link CFAVisitor} needs to be given. Several default
- * implementations are available.
- *
- * <p>Important: The instances of this class do not track a set of already visited nodes. Thus a
- * visitor may be called several times for a single node. If the visitor never specifies to stop the
- * traversal and the CFA contains loops, this will produce an infinite loop! It is strongly
- * recommended to use the {@link NodeCollectingCFAVisitor} to prevent this and visit each node only
- * once (wrap your own visitor in it).
+ * <p>Example: For the following CFA, A - B - C | | D E - F assume that A is the root, then the CFA
+ * is traversed as follows: (A, D), (A, B), (B, E), (E, F), (B, C)
  */
 public class CFAEdgeDFSTraversal {
 

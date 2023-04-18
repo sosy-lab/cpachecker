@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.AlwaysProceed;
@@ -35,7 +34,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   private final CallstackCPA callstackCPA;
   private final CFA cfa;
 
-  public DistributedCallstackCPA(CallstackCPA pCallstackCPA, CFA pCFA, BlockNode pNode) {
+  public DistributedCallstackCPA(CallstackCPA pCallstackCPA, CFA pCFA) {
     callstackCPA = pCallstackCPA;
     cfa = pCFA;
     proceed = new AlwaysProceed();

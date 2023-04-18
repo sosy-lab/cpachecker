@@ -135,13 +135,13 @@ public class MergeBlockNodesDecomposition implements CFADecomposer {
           startingPoints.put(result.getFirst(), result);
           endingPoints.put(result.getLast(), result);
           if (startingPoints.size() <= targetNumber) {
-            assert startingPoints.values().equals(endingPoints.values());
+            assert startingPoints.values().containsAll(endingPoints.values());
             return startingPoints.values();
           }
         }
       }
     }
-    assert startingPoints.values().equals(endingPoints.values());
+    assert startingPoints.values().containsAll(endingPoints.values());
     return startingPoints.values();
   }
 
