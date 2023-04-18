@@ -3697,9 +3697,6 @@ differential.variableSetMerge = false
 distributedSummaries.decompositionType = BLOCK_OPERATOR
   enum:     [BLOCK_OPERATOR, GIVEN_SIZE, SINGLE_BLOCK]
 
-# desired number of BlockNodes
-distributedSummaries.desiredNumberOfBlocks = 0
-
 # Whether to spawn util workers. Util workers listen to every message and
 # create visual output for debugging. Workers consume resources and should
 # not be used for benchmarks.
