@@ -383,16 +383,8 @@ public class ValueAnalysisTransferRelation
   @Override
   protected ValueAnalysisState handleBlankEdge(BlankEdge cfaEdge) {
     if (cfaEdge instanceof SummaryEdge) {
-     var summary = ValueAnalysisSummaryCache.getInstance().getApplicableSummary(cfaEdge.getPredecessor(), state);
-      if (summary != null) {
-        return summary.applyToState(state);
-      } else {
-        // if there is no sumary found for this state, forget everything
-        // refinement fails if null is returned here
-        for (var constant : state.getConstants()) {
-          state.forget(constant.getKey());
-        }
-      }
+      ValueAnalysisSummaryCache cache = ValueAnalysisSummaryCache.getInstance();
+      return cache.applySummaryOrForget(cfaEdge.getPredecessor(), state);
     }
 
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {

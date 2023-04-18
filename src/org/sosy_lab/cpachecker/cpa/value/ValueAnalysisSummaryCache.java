@@ -205,20 +205,7 @@ public class ValueAnalysisSummaryCache {
       }
 
       if (oldNode.isLoopStart() && newNode.isLoopStart()) {
-        var oldEdge = oldNode.getLeavingEdge(1);
-        var newEdge = newNode.getLeavingEdge(1);
-
-        if (!edgesMatch(oldEdge, newEdge)) {
-          return false;
-        }
-
-        var newSuccessor = newEdge.getSuccessor();
-        var oldSuccessor = oldEdge.getSuccessor();
-
-        impacts.put(oldNode.getFunctionName() + " " + oldEdge.getLineNumber(), currentLocation);
-
-        waitList.add(new NodePair(oldSuccessor, newSuccessor));
-        continue;
+        impacts.put(oldNode.getFunctionName() + " " + oldNode.getLeavingEdge(0).getLineNumber(), currentLocation);
       }
 
       for (int i = 0; i < newNode.getNumLeavingEdges(); i++) {
@@ -272,6 +259,26 @@ public class ValueAnalysisSummaryCache {
     return getApplicableSummary(partitioning.getBlockForCallNode(pCallNode), pEntryState);
   }
 
+  /**
+   * Apply the
+   * @param pCallNode
+   * @param pEntryState
+   * @return
+   */
+  public ValueAnalysisState applySummaryOrForget(
+      CFANode pCallNode, ValueAnalysisState pEntryState) {
+    var summary = getApplicableSummary(partitioning.getBlockForCallNode(pCallNode), pEntryState);
+    if (summary == null) {
+      var exitState = ValueAnalysisState.copyOf(pEntryState);
+      for (var constant : exitState.getConstants()) {
+        exitState.forget(constant.getKey());
+      }
+      summary = new ValueAnalysisSummary(partitioning.getBlockForCallNode(pCallNode), pEntryState, exitState);
+    }
+    var state = summary.applyToState(pEntryState);
+    return state;
+  }
+
   public ValueAnalysisSummary getApplicableSummary(Block pBlock, ValueAnalysisState pEntryState) {
     pEntryState =
         new ValueAnalysisReducer()
@@ -279,7 +286,7 @@ public class ValueAnalysisSummaryCache {
 
     var blockSummaries = summaries.get(pBlock);
     for (var summary : blockSummaries) {
-      if (pEntryState.equals(summary.getEntryState())) {
+      if (summary.isEntryState(pEntryState)) {
         return summary;
       }
     }

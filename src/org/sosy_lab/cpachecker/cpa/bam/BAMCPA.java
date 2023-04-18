@@ -273,7 +273,7 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
 
       var memLoc = MemoryLocation.fromQualifiedName(name);
 
-      state.assignConstant(memLoc, new NumericValue(Long.parseLong(number)), CNumericTypes.INT);
+      state.assignConstant(memLoc, new NumericValue(Long.parseLong(number)), null);
     }
 
     return state;
