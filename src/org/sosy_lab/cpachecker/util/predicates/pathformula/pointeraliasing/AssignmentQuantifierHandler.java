@@ -614,7 +614,8 @@ class AssignmentQuantifierHandler {
    */
   private ResolvedSlice applySliceModifiersToResolvedBase(
       final ResolvedSlice resolvedBase, final SliceExpression slice) {
-    assert (resolvedBase != null);
+    checkNotNull(resolvedBase);
+    checkNotNull(slice);
 
     ResolvedSlice resolved = resolvedBase;
 
