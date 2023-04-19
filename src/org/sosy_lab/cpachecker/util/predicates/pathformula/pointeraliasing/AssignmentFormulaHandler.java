@@ -480,13 +480,11 @@ class AssignmentFormulaHandler {
       return resolved.expression();
     }
     Formula rhsFormula = getValueFormula(resolved.type(), resolved.expression()).orElseThrow();
-    switch (conversionType) {
-      case CAST:
-        // cast rhs from rhs type to lhs type
-        Formula castRhsFormula =
-            conv.makeCast(resolved.type(), toType, rhsFormula, constraints, edge);
-        return Value.ofValue(castRhsFormula);
-      case REINTERPRET:
+    return switch (conversionType) {
+      case CAST ->
+      // cast rhs from rhs type to lhs type
+      Value.ofValue(conv.makeCast(resolved.type(), toType, rhsFormula, constraints, edge));
+      case REINTERPRET -> {
         if (toType instanceof CBitFieldType) {
           // cannot reinterpret to bit-field type
           conv.logger.logfOnce(
@@ -495,15 +493,13 @@ class AssignmentFormulaHandler {
               edge.getFileLocation(),
               resolved.type(),
               toType);
-          return Value.nondetValue();
+          yield Value.nondetValue();
+        } else {
+          // reinterpret rhs from rhs type to lhs type
+          yield Value.ofValue(conv.makeValueReinterpretation(resolved.type(), toType, rhsFormula));
         }
-
-        // reinterpret rhs from rhs type to lhs type
-        return Value.ofValue(conv.makeValueReinterpretation(resolved.type(), toType, rhsFormula));
-      default:
-        assert (false);
-    }
-    return resolved.expression();
+      }
+    };
   }
 
   /**
