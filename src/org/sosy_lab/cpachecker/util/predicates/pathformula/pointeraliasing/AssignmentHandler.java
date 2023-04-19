@@ -91,18 +91,12 @@ class AssignmentHandler {
       SliceExpression lhs,
       Optional<CLeftHandSide> relevancyLhs,
       Optional<SliceExpression> rhs) {
-    SliceAssignment(
-        SliceExpression lhs,
-        Optional<CLeftHandSide> relevancyLhs,
-        Optional<SliceExpression> rhs) {
+    SliceAssignment {
       checkNotNull(lhs);
       checkNotNull(relevancyLhs);
       checkNotNull(rhs);
       checkArgument(!lhs.containsResolvedModifiers());
       checkArgument(rhs.isEmpty() || !rhs.get().containsResolvedModifiers());
-      this.lhs = lhs;
-      this.relevancyLhs = relevancyLhs;
-      this.rhs = rhs;
     }
 
     private SliceAssignment constructCanonical() {
@@ -126,11 +120,9 @@ class AssignmentHandler {
    * be returned within the same return value.
    */
   private record PartialAssignment(PartialAssignmentLhs lhs, PartialAssignmentRhs rhs) {
-    PartialAssignment(PartialAssignmentLhs lhs, PartialAssignmentRhs rhs) {
+    PartialAssignment {
       checkNotNull(lhs);
       checkNotNull(rhs);
-      this.lhs = lhs;
-      this.rhs = rhs;
     }
   }
 

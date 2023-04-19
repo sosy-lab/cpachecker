@@ -56,11 +56,9 @@ final class SliceExpression {
   /** A helper class that tracks a resolved expression together with its corresponding C type. */
   record ResolvedSlice(Expression expression, CType type) {
 
-    ResolvedSlice(Expression expression, CType type) {
+    ResolvedSlice {
       checkNotNull(expression);
       checkIsSimplified(type);
-      this.expression = expression;
-      this.type = type;
     }
   }
 
@@ -105,9 +103,8 @@ final class SliceExpression {
   /** Represents performing a field access on a {@code CExpression}, i.e., {@code base.field}. */
   record SliceFieldAccessModifier(CCompositeTypeMemberDeclaration field)
       implements SliceModifier {
-    SliceFieldAccessModifier(CCompositeTypeMemberDeclaration field) {
+    SliceFieldAccessModifier {
       checkNotNull(field);
-      this.field = field;
     }
   }
 
@@ -116,9 +113,8 @@ final class SliceExpression {
    * is a slice variable.
    */
   record SliceVariableIndexModifier(SliceVariable index) implements SliceIndexModifier {
-    SliceVariableIndexModifier(SliceVariable index) {
+    SliceVariableIndexModifier {
       checkNotNull(index);
-      this.index = index;
     }
   }
 
@@ -127,9 +123,8 @@ final class SliceExpression {
    * is a resolved formula.
    */
   record SliceFormulaIndexModifier(Formula encodedVariable) implements SliceIndexModifier {
-    SliceFormulaIndexModifier(Formula encodedVariable) {
+    SliceFormulaIndexModifier {
       checkNotNull(encodedVariable);
-      this.encodedVariable = encodedVariable;
     }
   }
 

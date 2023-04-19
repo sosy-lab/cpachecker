@@ -88,16 +88,8 @@ class AssignmentFormulaHandler {
       AssignmentConversionType conversionType,
       boolean forceQuantifiers,
       boolean forcePointerAssignment) {
-    AssignmentOptions(
-        boolean useOldSSAIndicesIfAliased,
-        AssignmentConversionType conversionType,
-        boolean forceQuantifiers,
-        boolean forcePointerAssignment) {
+    AssignmentOptions {
       checkNotNull(conversionType);
-      this.useOldSSAIndicesIfAliased = useOldSSAIndicesIfAliased;
-      this.conversionType = conversionType;
-      this.forceQuantifiers = forceQuantifiers;
-      this.forcePointerAssignment = forcePointerAssignment;
     }
   }
 
@@ -114,11 +106,9 @@ class AssignmentFormulaHandler {
    * mapped onto left-hand side after casting/reinterpreting to targett type.
    */
   record ResolvedPartialAssignmentRhs(PartialSpan span, Optional<ResolvedSlice> actual) {
-    ResolvedPartialAssignmentRhs(PartialSpan span, Optional<ResolvedSlice> actual) {
+    ResolvedPartialAssignmentRhs {
       checkNotNull(span);
       checkNotNull(actual);
-      this.span = span;
-      this.actual = actual;
     }
   }
 

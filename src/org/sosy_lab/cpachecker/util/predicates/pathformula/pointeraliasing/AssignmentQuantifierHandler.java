@@ -89,11 +89,9 @@ class AssignmentQuantifierHandler {
    * original cast target type is lost when making partial assignments simple.
    */
   record PartialAssignmentLhs(SliceExpression actual, CType targetType) {
-    PartialAssignmentLhs(SliceExpression actual, CType targetType) {
+    PartialAssignmentLhs {
       checkNotNull(actual);
       checkNotNull(targetType);
-      this.actual = actual;
-      this.targetType = targetType;
     }
   }
 
@@ -103,11 +101,9 @@ class AssignmentQuantifierHandler {
    * left-hand side.
    */
   record PartialAssignmentRhs(PartialSpan span, Optional<SliceExpression> actual) {
-    PartialAssignmentRhs(PartialSpan span, Optional<SliceExpression> actual) {
+    PartialAssignmentRhs {
       checkNotNull(span);
       checkNotNull(actual);
-      this.span = span;
-      this.actual = actual;
     }
   }
 
