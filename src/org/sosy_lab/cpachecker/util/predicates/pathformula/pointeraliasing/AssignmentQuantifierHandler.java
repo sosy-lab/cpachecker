@@ -405,8 +405,7 @@ class AssignmentQuantifierHandler {
     // if the expression is a literal, we can get the exact slice size
     final CExpression sliceSize = variableToUnroll.getSliceSize();
     if (sliceSize instanceof CIntegerLiteralExpression literalSliceSize) {
-      final long exactSliceSize =
-          ((CIntegerLiteralExpression) sliceSize).getValue().longValueExact();
+      final long exactSliceSize = literalSliceSize.getValue().longValueExact();
       // decide whether the literal size is not longer than reasonable for instances where
       // we know the size exactly; note that the reasonable sizes may be different depending on
       // whether the slice size is a literal or not
