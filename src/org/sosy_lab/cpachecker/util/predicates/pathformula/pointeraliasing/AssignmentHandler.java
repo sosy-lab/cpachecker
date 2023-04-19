@@ -325,7 +325,7 @@ class AssignmentHandler {
     }
     IsRelevantWithHavocAbstractionVisitor havocVisitor =
         new IsRelevantWithHavocAbstractionVisitor(conv);
-    if (assignment.rhs.get().getBase().accept(havocVisitor)) {
+    if (assignment.rhs.get().base().accept(havocVisitor)) {
       // relevant
       return assignment;
     }
@@ -358,7 +358,7 @@ class AssignmentHandler {
     final CExpressionVisitorWithPointerAliasing lhsBaseVisitor =
         new CExpressionVisitorWithPointerAliasing(
             conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
-    final CRightHandSide lhsBase = assignment.lhs.getBase();
+    final CRightHandSide lhsBase = assignment.lhs.base();
     ResolvedSlice resolvedLhsBase = resolveBase(lhsBase, lhsBaseVisitor);
 
     // add initialized and used fields of LHS base to pointer-target set as essential
@@ -384,7 +384,7 @@ class AssignmentHandler {
     final SliceExpression rhs = assignment.rhs.get();
 
     // resolve RHS base using visitor
-    final CRightHandSide rhsBase = rhs.getBase();
+    final CRightHandSide rhsBase = rhs.base();
     final CExpressionVisitorWithPointerAliasing rhsBaseVisitor =
         new CExpressionVisitorWithPointerAliasing(
             conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
@@ -471,7 +471,7 @@ class AssignmentHandler {
     // e.g. with (*x).a.b[0].c.d, split into (*x).a.b[0] and .c.d
     // the head is the progenitor from which we will be assigning to span
 
-    ImmutableList<SliceModifier> lhsModifiers = assignment.lhs.actual().getModifiers();
+    ImmutableList<SliceModifier> lhsModifiers = assignment.lhs.actual().modifiers();
 
     // iterate in reverse to split to head and trailing
     List<SliceModifier> progenitorModifiers = new ArrayList<>();
@@ -491,7 +491,7 @@ class AssignmentHandler {
     // construct the progenitor lhs
     SliceExpression progenitorLhs =
         new SliceExpression(
-            assignment.lhs.actual().getBase(), ImmutableList.copyOf(progenitorModifiers));
+            assignment.lhs.actual().base(), ImmutableList.copyOf(progenitorModifiers));
 
     // compute the full bit offset from progenitor
     // the parent type of first field access is the progenitor type

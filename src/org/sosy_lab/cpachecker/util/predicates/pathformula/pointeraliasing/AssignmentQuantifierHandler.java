@@ -537,7 +537,7 @@ class AssignmentQuantifierHandler {
       final CType targetType = assignment.getKey().targetType();
 
       // resolve the LHS by getting the resolved base and resolving modifiers over it
-      final ResolvedSlice lhsResolvedBase = resolvedLhsBases.get(lhsSlice.getBase());
+      final ResolvedSlice lhsResolvedBase = resolvedLhsBases.get(lhsSlice.base());
       final ResolvedSlice lhsResolved = applySliceModifiersToResolvedBase(lhsResolvedBase, lhsSlice);
 
       // skip assignment if LHS is nondet
@@ -560,7 +560,7 @@ class AssignmentQuantifierHandler {
 
         // resolve the RHS by getting the resolved base and resolving modifiers over it
         final SliceExpression rhsSlice = rhs.actual().get();
-        final ResolvedSlice rhsResolvedBase = resolvedRhsBases.get(rhsSlice.getBase());
+        final ResolvedSlice rhsResolvedBase = resolvedRhsBases.get(rhsSlice.base());
         ResolvedSlice rhsResolved = applySliceModifiersToResolvedBase(rhsResolvedBase, rhsSlice);
 
         // after resolving rhs, the rhs resolved type may be array even if we want to do
@@ -620,12 +620,12 @@ class AssignmentQuantifierHandler {
 
     // needed for the subscript modifier
     boolean wasParameterId =
-        (slice.getBase() instanceof CIdExpression idBase)
+        (slice.base() instanceof CIdExpression idBase)
             && idBase.getDeclaration() instanceof CParameterDeclaration;
 
     // apply the modifiers now
     // TODO: deduplicate the resolution functions with CExpressionVisitorWithPointerAliasing
-    for (SliceModifier modifier : slice.getModifiers()) {
+    for (SliceModifier modifier : slice.modifiers()) {
       if (modifier instanceof SliceIndexModifier subscriptModifier) {
         resolved = applySubscriptModifier(resolved, subscriptModifier, wasParameterId);
       } else if (modifier instanceof SliceFieldAccessModifier fieldAccessModifier) {

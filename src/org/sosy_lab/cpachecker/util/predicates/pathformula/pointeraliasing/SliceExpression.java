@@ -14,7 +14,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -50,8 +49,15 @@ import org.sosy_lab.java_smt.api.Formula;
  * turned into {@link CLeftHandSide} by introducing formal assignment of (RHS) argument to (LHS)
  * parameter. It is the responsibility of user of this class to ensure that the left-hand sides
  * correspond to actual locations.
+ *
+ * <p>The base of slice expression is a {@link CRightHandSide} so that both right-hand sides and
+ * left-hand sides can be retained ({@link CLeftHandSide} extends {@link CRightHandSide}).
+ *
+ * <p>The base can be modified by multiple modifiers, which are either field access, i.e., {@code
+ * base.field}, or indexing, i.e., {@code base[i]}. The modifiers are stored left-to-right.
  */
-final class SliceExpression {
+record SliceExpression(
+    CRightHandSide base, ImmutableList<SliceExpression.SliceModifier> modifiers) {
 
   /** A helper class that tracks a resolved expression together with its corresponding C type. */
   record ResolvedSlice(Expression expression, CType type) {
@@ -128,29 +134,17 @@ final class SliceExpression {
     }
   }
 
-  /**
-   * The base of slice expression, which is a {@link CRightHandSide} so that both right-hand sides
-   * and left-hand sides can be retained ({@link CLeftHandSide} extends {@link CRightHandSide}).
-   */
-  private final CRightHandSide base;
-
-  /**
-   * The base can be modified by multiple modifiers, which are either field access, i.e., {@code
-   * base.field}, or indexing, i.e., {@code base[i]}. The modifiers are stored left-to-right.
-   */
-  private final ImmutableList<SliceModifier> modifiers;
+  /** Construct the slice expression using both the base and modifiers. */
+  SliceExpression {
+    checkNotNull(base);
+    checkNotNull(modifiers);
+  }
 
   /** Construct the slice expression using a base, with no modifiers. */
   SliceExpression(CRightHandSide base) {
-    this.base = checkNotNull(base);
-    this.modifiers = ImmutableList.of();
+    this(base, ImmutableList.of());
   }
 
-  /** Construct the slice expression using both the base and modifiers. */
-  SliceExpression(CRightHandSide base, ImmutableList<SliceModifier> pModifiers) {
-    this.base = checkNotNull(base);
-    this.modifiers = checkNotNull(pModifiers);
-  }
 
   /**
    * Return a new {@link SliceExpression} with access of the specified field as the last modifier.
@@ -331,41 +325,5 @@ final class SliceExpression {
   boolean containsResolvedModifiers() {
     return modifiers.stream().anyMatch(modifier -> modifier instanceof SliceFormulaIndexModifier);
   }
-
-  /** Returns the base. */
-  CRightHandSide getBase() {
-    return base;
-  }
-
-  /** Returns all modifiers. */
-  ImmutableList<SliceModifier> getModifiers() {
-    return modifiers;
-  }
-
-  @Override
-  public String toString() {
-    return "ArraySliceExpression [base=" + base + ", modifiers=" + modifiers + "]";
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(base, modifiers);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    SliceExpression other = (SliceExpression) obj;
-    return Objects.equals(base, other.base) && Objects.equals(modifiers, other.modifiers);
-  }
-
 
 }
