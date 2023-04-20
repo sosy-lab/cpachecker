@@ -69,31 +69,6 @@ import org.sosy_lab.java_smt.api.FormulaType;
 class AssignmentFormulaHandler {
 
   /**
-   * Determines how conversion of right-hand-side type to target type should be handled, especially
-   * if one of them is an integer and the other one is a floating-point type. Casting is used in
-   * normal assignment circumstances. Reinterpretation preserves the exact bit content; both types
-   * must have the same number of bits.
-   */
-  enum AssignmentConversionType {
-    CAST,
-    REINTERPRET
-  }
-
-  /**
-   * Local options for assignments that are to be performed. Changes the assignment behavior
-   * depending on the needs of the caller.
-   */
-  record AssignmentOptions(
-      boolean useOldSSAIndicesIfAliased,
-      AssignmentConversionType conversionType,
-      boolean forceQuantifiers,
-      boolean forcePointerAssignment) {
-    AssignmentOptions {
-      checkNotNull(conversionType);
-    }
-  }
-
-  /**
    * Determines the span of a partial assignment. The only relevant part is {@link #bitSize} bits
    * long. Its least-significant-bit offset on the left-hand side is {@link #lhsBitOffset}. On the
    * right-hand side, the offset {@link #rhsTargetBitOffset} pertains to the value after
@@ -306,7 +281,7 @@ class AssignmentFormulaHandler {
           && rhsSpan.bitSize() == lhsBitSize
           && lhsBitSize == targetBitSize) {
         return convertResolved(
-            AssignmentConversionType.REINTERPRET,
+            AssignmentOptions.ConversionType.REINTERPRET,
             lhs.type(),
             new ResolvedSlice(targetTypeRhsExpression, targetType));
       }
@@ -466,7 +441,9 @@ class AssignmentFormulaHandler {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   private Expression convertResolved(
-      AssignmentConversionType conversionType, CType toType, ResolvedSlice resolved)
+      AssignmentOptions.ConversionType conversionType,
+      CType toType,
+      ResolvedSlice resolved)
       throws UnrecognizedCodeException {
 
     // convert only if necessary, the types are already simplified

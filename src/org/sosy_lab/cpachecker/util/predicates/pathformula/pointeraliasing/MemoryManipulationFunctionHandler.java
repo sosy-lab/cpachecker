@@ -42,8 +42,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentConversionType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentOptions.ConversionType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceVariable;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -232,7 +231,7 @@ class MemoryManipulationFunctionHandler {
     AssignmentOptions assignmentOptions =
         new AssignmentOptions(
             false,
-            AssignmentConversionType.REINTERPRET,
+            AssignmentOptions.ConversionType.REINTERPRET,
             conv.options.forceQuantifiersInMemoryAssignmentFunctions(),
             false);
     AssignmentHandler assignmentHandler =
@@ -293,7 +292,7 @@ class MemoryManipulationFunctionHandler {
     AssignmentOptions assignmentOptions =
         new AssignmentOptions(
             false,
-            AssignmentConversionType.REINTERPRET,
+            ConversionType.REINTERPRET,
             conv.options.forceQuantifiersInMemoryAssignmentFunctions(),
             false);
     AssignmentHandler assignmentHandler =

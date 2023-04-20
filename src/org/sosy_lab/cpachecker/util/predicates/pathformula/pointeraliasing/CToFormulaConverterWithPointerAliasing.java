@@ -81,9 +81,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeRes
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentConversionType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.AssignmentOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.SliceAssignment;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentOptions.ConversionType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -842,7 +841,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     // perform as slice assignment
     AssignmentOptions assignmentOptions =
-        new AssignmentOptions(false, AssignmentConversionType.CAST, false, forcePointerAssignment);
+        new AssignmentOptions(false, ConversionType.CAST, false, forcePointerAssignment);
 
     SliceExpression assignmentLhs = new SliceExpression(lhs);
     SliceExpression assignmentRhs = new SliceExpression(rhs);
@@ -1016,7 +1015,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     // use old SSA indices if aliased as this is an initialization assignment,
     // no other special options
     AssignmentOptions assignmentOptions =
-        new AssignmentOptions(true, AssignmentConversionType.CAST, false, false);
+        new AssignmentOptions(true, ConversionType.CAST, false, false);
     final AssignmentHandler assignmentHandler =
         new AssignmentHandler(
             this,
