@@ -70,6 +70,11 @@ public class MicroBenchmarking implements Algorithm {
     description = "Number of iterations for each algorithm/program combination. Defaults to 10.")
   private int numExecutions = 22;
 
+  @Option(
+    secure = true,
+    description = "Number of microbenchmark iterations for JVM warmup. Defaults to 20.")
+  private int warmupIterationCount = 20;
+
   @Option(secure = true, description = "Size of rows and columns for micro benchmarking matrix")
   private int sizeMatrixRowCol = 50;
 
@@ -125,7 +130,7 @@ public class MicroBenchmarking implements Algorithm {
 
     int[][] C = new int[0][0];
 
-    for (int exec = 0; exec < numExecutions; exec++) {
+    for (int exec = 0; exec < (warmupIterationCount + numExecutions); exec++) {
       int[][] firstMatrix = generateRandomMatrix();
       int[][] secondMatrix = generateRandomMatrix();
       int m = firstMatrix.length;
@@ -147,10 +152,12 @@ public class MicroBenchmarking implements Algorithm {
       long endTime = ticker.read();
       long timeDiff = endTime - startTime;
 
-      BenchmarkExecutionRun run = new BenchmarkExecutionRun();
-      run.duration = timeDiff;
-      run.determinant = determinant(C);
-      runTimes.add(run);
+      if (exec >= warmupIterationCount) {
+        BenchmarkExecutionRun run = new BenchmarkExecutionRun();
+        run.duration = timeDiff;
+        run.determinant = determinant(C);
+        runTimes.add(run);
+      }
     }
 
     ConfigProgramExecutions obj = new ConfigProgramExecutions();
@@ -264,28 +271,28 @@ public class MicroBenchmarking implements Algorithm {
     double det = 0;
 
     if (n == 1) {
-        det = matrix[0][0];
+      det = matrix[0][0];
     } else if (n == 2) {
-        det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+      det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
     } else {
       for (int z = 0; z < n; z++) {
         int[][] m = new int[n - 1][];
-            for (int k = 0; k < n-1; k++) {
+        for (int k = 0; k < n - 1; k++) {
           m[k] = new int[n - 1];
-            }
-
-            for (int i = 1; i < n; i++) {
-              int counter = 0;
-                for (int j = 0; j < n; j++) {
-                  if (j == z) {
-                      continue;
-                    }
-                    m[i - 1][counter] = matrix[i][j];
-                    counter++;
-                }
-            }
-            det += (Math.pow(-1.0, 2.0 + z) * matrix[0][z] * determinant(m));
         }
+
+        for (int i = 1; i < n; i++) {
+          int counter = 0;
+          for (int j = 0; j < n; j++) {
+            if (j == z) {
+              continue;
+            }
+            m[i - 1][counter] = matrix[i][j];
+            counter++;
+          }
+        }
+        det += (Math.pow(-1.0, 2.0 + z) * matrix[0][z] * determinant(m));
+      }
     }
     return det;
   }
