@@ -5,6 +5,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,24 @@ public class MicroBenchmarking implements Algorithm {
 
   private static class BenchmarkExecutionRun {
     long duration;
+    double determinant;
+  }
+
+  private static class MatrixMultiplicationCell {
+    private int[] values;
+
+    public MatrixMultiplicationCell(int size) {
+      values = new int[size];
+    }
+
+    void consume(int value, int index) {
+      values[index] = value;
+    }
+
+    int sum() {
+      return Arrays.stream(values).reduce(0, (a, b) -> a + b);
+    }
+
   }
 
   private static class ConfigProgramExecutions {
@@ -48,7 +67,7 @@ public class MicroBenchmarking implements Algorithm {
 
   @Option(
     secure = true,
-      description = "Number of iterations for each algorithm/program combination. Defaults to 10.")
+    description = "Number of iterations for each algorithm/program combination. Defaults to 10.")
   private int numExecutions = 22;
 
   @Option(secure = true, description = "Size of rows and columns for micro benchmarking matrix")
@@ -98,105 +117,110 @@ public class MicroBenchmarking implements Algorithm {
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
-      logger.logf(Level.INFO, "Starting micro benchmarking");
-      TickerWithUnit ticker = Tickers.getCurrentThreadCputime();
+    logger.logf(Level.INFO, "Starting micro benchmarking");
+    TickerWithUnit ticker = Tickers.getCurrentThreadCputime();
 
-      Map<String, List<ConfigProgramExecutions>> benchmarkTimes = new HashMap<>();
-      List<BenchmarkExecutionRun> runTimes = new ArrayList<>();
+    Map<String, List<ConfigProgramExecutions>> benchmarkTimes = new HashMap<>();
+    List<BenchmarkExecutionRun> runTimes = new ArrayList<>();
 
-      int[][] firstMatrix = generateRandomMatrix();
-      int[][] secondMatrix = generateRandomMatrix();
-      int m = firstMatrix.length;
-      int n = firstMatrix[0].length;
-      int[][] C = new int[m][n];
+    int[][] firstMatrix = generateRandomMatrix();
+    int[][] secondMatrix = generateRandomMatrix();
+    int m = firstMatrix.length;
+    int n = firstMatrix[0].length;
+    int[][] C = new int[m][n];
 
-      for (int exec = 0; exec < numExecutions; exec++) {
-        long startTime = ticker.read();
+    for (int exec = 0; exec < numExecutions; exec++) {
+      long startTime = ticker.read();
 
-        for (int i = 0; i < m; i++) {
-          for (int j = 0; j < n; j++) {
-              for (int k = 0; k < secondMatrix.length; k++) {
-                C[i][j] = C[i][j] + firstMatrix[i][k] * secondMatrix[k][j];
-              }
+      for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+          MatrixMultiplicationCell cellData = new MatrixMultiplicationCell(secondMatrix.length);
+          for (int k = 0; k < secondMatrix.length; k++) {
+            int value = firstMatrix[i][k] * secondMatrix[k][j];
+            cellData.consume(value, k);
           }
-        }
-
-        long endTime = ticker.read();
-        long timeDiff = endTime - startTime;
-
-        BenchmarkExecutionRun run = new BenchmarkExecutionRun();
-        run.duration = timeDiff;
-        runTimes.add(run);
-      }
-
-      ConfigProgramExecutions obj = new ConfigProgramExecutions();
-      obj.configFileName = "";
-      obj.programFileName = "matrix-multiplication";
-      obj.runTimes = runTimes;
-      double averageRunTime = calculateAverage(obj);
-      obj.averageRunTime = averageRunTime;
-      double variance = calculateVariance(obj, averageRunTime);
-      obj.variance = variance;
-      double standardDeviation = Math.sqrt(variance);
-      obj.standardDeviation = standardDeviation;
-      benchmarkTimes.put("matrix-multiplicatioN", List.of(obj));
-
-      double totalRunTime = runTimes.stream().map(a -> a.duration).reduce(0L, (a, b) -> a + b);
-      if (baseLineRunTime > 0 && warningThreshold > 0) {
-        double upperBound = baseLineRunTime + baseLineRunTime * (warningThreshold / 10.0);
-        double lowerBound = baseLineRunTime - baseLineRunTime * (warningThreshold / 10.0);
-
-        if (totalRunTime >= upperBound) {
-          logger.log(
-              Level.WARNING,
-              "The system you're running on completed the microbenchmark more than 10% slower than the base line system!");
-        }
-
-        if (totalRunTime <= lowerBound) {
-          logger.log(
-              Level.WARNING,
-              "The system you're running on completed the microbenchmark more than 10% faster than the base line system!");
+          C[i][j] = cellData.sum();
         }
       }
 
-      if (this.outputFile != null) {
-        try (Writer writer = IO.openOutputFile(this.outputFile, Charset.defaultCharset())) {
-          benchmarkTimes.entrySet()
-              .forEach(entry -> entry.getValue().forEach(l -> {
-                try {
-                  writer.append("Config file: ");
-                  writer.append(l.configFileName + "\n");
-                  writer.append("Program file: ");
-                  writer.append(l.programFileName + "\n");
+      long endTime = ticker.read();
+      long timeDiff = endTime - startTime;
 
-                  for (BenchmarkExecutionRun run : l.runTimes) {
-                    writer.append(String.valueOf(run.duration));
-                    writer.append(';');
-                  }
-                  writer.append("\n");
+      BenchmarkExecutionRun run = new BenchmarkExecutionRun();
+      run.duration = timeDiff;
+      run.determinant = determinant(C);
+      runTimes.add(run);
+    }
 
-                  writer.append("Average run time: ");
-                  writer.append(String.valueOf(l.averageRunTime) + "\n");
+    ConfigProgramExecutions obj = new ConfigProgramExecutions();
+    obj.configFileName = "";
+    obj.programFileName = "matrix-multiplication";
+    obj.runTimes = runTimes;
+    double averageRunTime = calculateAverage(obj);
+    obj.averageRunTime = averageRunTime;
+    double variance = calculateVariance(obj, averageRunTime);
+    obj.variance = variance;
+    double standardDeviation = Math.sqrt(variance);
+    obj.standardDeviation = standardDeviation;
+    benchmarkTimes.put("matrix-multiplicatioN", List.of(obj));
 
-                  writer.append("Variance: ");
-                  writer.append(String.valueOf(l.variance) + "\n");
+    double totalRunTime = runTimes.stream().map(a -> a.duration).reduce(0L, (a, b) -> a + b);
+    if (baseLineRunTime > 0 && warningThreshold > 0) {
+      double upperBound = baseLineRunTime + baseLineRunTime * (warningThreshold / 10.0);
+      double lowerBound = baseLineRunTime - baseLineRunTime * (warningThreshold / 10.0);
 
-                  writer.append("Standard deviation: ");
-                  writer.append(String.valueOf(l.standardDeviation) + "\n");
-
-                  writer.append("\n\n");
-                } catch (IOException e) {
-                  logger.logfUserException(
-                      Level.WARNING,
-                      e,
-                      "Failed to write run time data to file.");
-                }
-              }));
-        } catch (IOException ex) {
-          logger.logUserException(Level.WARNING, ex, "Could not write CFA to dot file");
-        }
+      if (totalRunTime >= upperBound) {
+        logger.log(
+            Level.WARNING,
+            "The system you're running on completed the microbenchmark more than 10% slower than the base line system!");
       }
 
+      if (totalRunTime <= lowerBound) {
+        logger.log(
+            Level.WARNING,
+            "The system you're running on completed the microbenchmark more than 10% faster than the base line system!");
+      }
+    }
+
+    if (this.outputFile != null) {
+      try (Writer writer = IO.openOutputFile(this.outputFile, Charset.defaultCharset())) {
+        benchmarkTimes.entrySet().forEach(entry -> entry.getValue().forEach(l -> {
+          try {
+            writer.append("Config file: ");
+            writer.append(l.configFileName + "\n");
+            writer.append("Program file: ");
+            writer.append(l.programFileName + "\n");
+
+            for (BenchmarkExecutionRun run : l.runTimes) {
+              writer.append(String.valueOf(run.duration));
+              writer.append(';');
+            }
+            writer.append("\n");
+            writer.append("Calculated matrix determinants:");
+            for (BenchmarkExecutionRun run : l.runTimes) {
+              writer.append(String.valueOf(run.determinant));
+              writer.append(';');
+            }
+            writer.append("\n");
+
+            writer.append("Average run time: ");
+            writer.append(String.valueOf(l.averageRunTime) + "\n");
+
+            writer.append("Variance: ");
+            writer.append(String.valueOf(l.variance) + "\n");
+
+            writer.append("Standard deviation: ");
+            writer.append(String.valueOf(l.standardDeviation) + "\n");
+
+            writer.append("\n\n");
+          } catch (IOException e) {
+            logger.logfUserException(Level.WARNING, e, "Failed to write run time data to file.");
+          }
+        }));
+      } catch (IOException ex) {
+        logger.logUserException(Level.WARNING, ex, "Could not write CFA to dot file");
+      }
+    }
 
     return child.run(pReachedSet);
   }
@@ -232,5 +256,36 @@ public class MicroBenchmarking implements Algorithm {
     }
 
     return sum / (cpe.runTimes.size());
+  }
+
+  private double determinant(int matrix[][]) {
+    int n = matrix.length;
+    double det = 0;
+
+    if (n == 1) {
+        det = matrix[0][0];
+    } else if (n == 2) {
+        det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+    } else {
+      for (int z = 0; z < n; z++) {
+        int[][] m = new int[n - 1][];
+            for (int k = 0; k < n-1; k++) {
+          m[k] = new int[n - 1];
+            }
+
+            for (int i = 1; i < n; i++) {
+              int counter = 0;
+                for (int j = 0; j < n; j++) {
+                  if (j == z) {
+                      continue;
+                    }
+                    m[i - 1][counter] = matrix[i][j];
+                    counter++;
+                }
+            }
+            det += (Math.pow(-1.0, 2.0 + z) * matrix[0][z] * determinant(m));
+        }
+    }
+    return det;
   }
 }
