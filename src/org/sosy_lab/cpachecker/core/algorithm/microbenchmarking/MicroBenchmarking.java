@@ -30,7 +30,6 @@ public class MicroBenchmarking implements Algorithm {
 
   private static class BenchmarkExecutionRun {
     long duration;
-    int[][] resultMatrix;
   }
 
   private static class ConfigProgramExecutions {
@@ -54,6 +53,14 @@ public class MicroBenchmarking implements Algorithm {
 
   @Option(secure = true, description = "Size of rows and columns for micro benchmarking matrix")
   private int sizeMatrixRowCol = 50;
+
+  @Option(secure = true, description = "Amount of time microbenchmark run for on base line system.")
+  private long baseLineRunTime = -1;
+
+  @Option(
+    secure = true,
+    description = "Percentage which represents the threshold, compared to the base line run time, where the user gets notified..")
+  private double warningThreshold = 10;
 
   @Option(
     secure = true,
@@ -95,24 +102,21 @@ public class MicroBenchmarking implements Algorithm {
       TickerWithUnit ticker = Tickers.getCurrentThreadCputime();
 
       Map<String, List<ConfigProgramExecutions>> benchmarkTimes = new HashMap<>();
-
-
-
       List<BenchmarkExecutionRun> runTimes = new ArrayList<>();
+
+      int[][] firstMatrix = generateRandomMatrix();
+      int[][] secondMatrix = generateRandomMatrix();
+      int m = firstMatrix.length;
+      int n = firstMatrix[0].length;
+      int[][] C = new int[m][n];
+
       for (int exec = 0; exec < numExecutions; exec++) {
-
-        int[][] firstMatrix = generateRandomMatrix();
-        int[][] secondMatrix = generateRandomMatrix();
-        int m = firstMatrix.length;
-        int n = firstMatrix[0].length;
-        int[][] C = new int[m][n];
-
         long startTime = ticker.read();
 
         for (int i = 0; i < m; i++) {
           for (int j = 0; j < n; j++) {
               for (int k = 0; k < secondMatrix.length; k++) {
-                  C[i][j] += firstMatrix[i][k] * secondMatrix[k][j];
+                C[i][j] = C[i][j] + firstMatrix[i][k] * secondMatrix[k][j];
               }
           }
         }
@@ -122,9 +126,7 @@ public class MicroBenchmarking implements Algorithm {
 
         BenchmarkExecutionRun run = new BenchmarkExecutionRun();
         run.duration = timeDiff;
-        run.resultMatrix = C;
         runTimes.add(run);
-
       }
 
       ConfigProgramExecutions obj = new ConfigProgramExecutions();
@@ -138,6 +140,24 @@ public class MicroBenchmarking implements Algorithm {
       double standardDeviation = Math.sqrt(variance);
       obj.standardDeviation = standardDeviation;
       benchmarkTimes.put("matrix-multiplicatioN", List.of(obj));
+
+      double totalRunTime = runTimes.stream().map(a -> a.duration).reduce(0L, (a, b) -> a + b);
+      if (baseLineRunTime > 0 && warningThreshold > 0) {
+        double upperBound = baseLineRunTime + baseLineRunTime * (warningThreshold / 10.0);
+        double lowerBound = baseLineRunTime - baseLineRunTime * (warningThreshold / 10.0);
+
+        if (totalRunTime >= upperBound) {
+          logger.log(
+              Level.WARNING,
+              "The system you're running on completed the microbenchmark more than 10% slower than the base line system!");
+        }
+
+        if (totalRunTime <= lowerBound) {
+          logger.log(
+              Level.WARNING,
+              "The system you're running on completed the microbenchmark more than 10% faster than the base line system!");
+        }
+      }
 
       if (this.outputFile != null) {
         try (Writer writer = IO.openOutputFile(this.outputFile, Charset.defaultCharset())) {
