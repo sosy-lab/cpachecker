@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
@@ -194,9 +195,9 @@ record SliceExpression(
   SliceExpression resolveVariable(SliceVariable sliceVariable, Formula replacementFormula) {
 
     // replace variable index modifiers on the given variable by formula index modifiers
-    List<SliceModifier> newModifiers =
-        modifiers.stream()
-            .map(
+    ImmutableList<SliceModifier> newModifiers =
+        FluentIterable.from(modifiers)
+            .transform(
                 modifier ->
                     modifier instanceof SliceVariableIndexModifier quantifiedModifier
                             && quantifiedModifier.index.equals(sliceVariable)
@@ -204,7 +205,7 @@ record SliceExpression(
                         : modifier)
             .toList();
 
-    return new SliceExpression(base, ImmutableList.copyOf(newModifiers));
+    return new SliceExpression(base, newModifiers);
   }
 
   /**
