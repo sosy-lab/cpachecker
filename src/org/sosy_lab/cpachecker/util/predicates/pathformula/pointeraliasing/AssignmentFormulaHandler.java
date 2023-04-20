@@ -824,20 +824,19 @@ class AssignmentFormulaHandler {
    * @param rvalue The rvalue expression.
    * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
    * @param updatedRegions Either {@code null} or a set of updated regions.
-   * @param condition Either {@code null} or a condition which determines if the assignment is
-   *     actually done. In case of {@code null}, the assignmment is always done.
+   * @param condition A condition which determines if the assignment is actually done.
    * @return A formula for the assignment.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   private BooleanFormula makeSimpleDestructiveAssignment(
-      CType lvalueType,
+      final CType lvalueType,
       final CType pRvalueType,
       final Location lvalue,
-      Expression rvalue,
+      final Expression rvalue,
       final boolean useOldSSAIndices,
       final @Nullable Set<MemoryRegion> updatedRegions,
-      @Nullable BooleanFormula condition,
-      boolean useQuantifiers)
+      final BooleanFormula condition,
+      final boolean useQuantifiers)
       throws UnrecognizedCodeException {
     // Arrays and functions are implicitly converted to pointers
     CType rvalueType = implicitCastToPointer(pRvalueType);
@@ -875,17 +874,15 @@ class AssignmentFormulaHandler {
         result = bfmgr.makeTrue();
       }
 
-      // if we need to make the assignment conditional, add the condition
+      // add the condition
       // either the condition holds and the assignment should be done,
       // or the condition does not hold and the previous value should be copied
-      if (condition != null) {
-        final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
+      final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
         Formula oldVariable = fmgr.makeVariable(targetType, targetName, oldIndex);
 
         BooleanFormula retainmentAssignment = fmgr.assignment(newVariable, oldVariable);
 
         result = conv.bfmgr.ifThenElse(condition, result, retainmentAssignment);
-      }
 
     } else { // Aliased LHS
       MemoryRegion region = lvalue.asAliased().getMemoryRegion();
@@ -942,10 +939,10 @@ class AssignmentFormulaHandler {
         result = bfmgr.makeTrue();
       }
 
-      // if we need to make the assignment conditional, add the condition
+      // add the condition
       // either the condition holds and the assignment should be done,
       // or the condition does not hold and the previous value should be copied
-      if (!useQuantifiers && condition != null) {
+      if (!useQuantifiers) {
         BooleanFormula retainmentAssignment =
             conv.ptsMgr.makeIdentityPointerAssignment(targetName, targetType, oldIndex, newIndex);
         BooleanFormula makeNewAssignment = conv.bfmgr.and(condition, result);
@@ -971,21 +968,20 @@ class AssignmentFormulaHandler {
    * @param rvalue The rvalue expression.
    * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
    * @param updatedRegions Either {@code null} or a set of updated regions.
-   * @param condition Either {@code null} or a condition which determines if the assignment is
-   *     actually done. In case of {@code null}, the assignmment is always done.
+   * @param condition A condition which determines if the assignment is actually done.
    * @return A formula for the assignment.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   @Deprecated
   private BooleanFormula makeDestructiveArrayAssignment(
-      CArrayType lvalueArrayType,
-      CType rvalueType,
+      final CArrayType lvalueArrayType,
+      final CType rvalueType,
       final Location lvalue,
       final Expression rvalue,
       final boolean useOldSSAIndices,
-      final Set<MemoryRegion> updatedRegions,
-      @Nullable BooleanFormula condition,
-      boolean useQuantifiers)
+      final @Nullable Set<MemoryRegion> updatedRegions,
+      final BooleanFormula condition,
+      final boolean useQuantifiers)
       throws UnrecognizedCodeException {
     checkArgument(lvalue.isAliased(), "Array elements are always aliased");
     final CType lvalueElementType = lvalueArrayType.getType();
@@ -1082,21 +1078,20 @@ class AssignmentFormulaHandler {
    * @param rvalue The rvalue expression.
    * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
    * @param updatedRegions Either {@code null} or a set of updated regions.
-   * @param condition Either {@code null} or a condition which determines if the assignment is
-   *     actually done. In case of {@code null}, the assignmment is always done.
+   * @param condition A condition which determines if the assignment is actually done.
    * @return A formula for the assignment.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   @Deprecated
   private BooleanFormula makeDestructiveCompositeAssignment(
       final CCompositeType lvalueCompositeType,
-      CType rvalueType,
+      final CType rvalueType,
       final Location lvalue,
       final Expression rvalue,
       final boolean useOldSSAIndices,
-      final Set<MemoryRegion> updatedRegions,
-      @Nullable BooleanFormula condition,
-      boolean useQuantifiers)
+      final @Nullable Set<MemoryRegion> updatedRegions,
+      final BooleanFormula condition,
+      final boolean useQuantifiers)
       throws UnrecognizedCodeException {
     // There are two cases of assignment to a structure/union
     // - Initialization with a value (possibly nondet), useful for stack declarations and memset
@@ -1207,8 +1202,7 @@ class AssignmentFormulaHandler {
    * @param rvalue The rvalue expression.
    * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
    * @param updatedRegions Either {@code null} or a set of updated regions.
-   * @param condition Either {@code null} or a condition which determines if the assignment is
-   *     actually done. In case of {@code null}, the assignmment is always done.
+   * @param condition A condition which determines if the assignment is actually done.
    * @param useQuantifiers If the quantifier assignment version should be used.
    * @return A formula for the assignment.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
@@ -1221,7 +1215,7 @@ class AssignmentFormulaHandler {
       final Expression rvalue,
       final boolean useOldSSAIndices,
       final @Nullable Set<MemoryRegion> updatedRegions,
-      final @Nullable BooleanFormula condition,
+      final BooleanFormula condition,
       boolean useQuantifiers)
       throws UnrecognizedCodeException {
     checkIsSimplified(lvalueType);
