@@ -146,8 +146,11 @@ class AssignmentQuantifierHandler {
    */
   private final Map<CRightHandSide, ResolvedSlice> resolvedRhsBases;
 
-  /** Machine model pointer-equivalent size type, retained here for conciseness. */
-  private final CSimpleType sizeType;
+  /**
+   * Unsigned type capable of containing all pointer values. Used for constructing quantification
+   * conditions. Encoded quantified variables are of its formula type.
+   */
+  private final CSimpleType pointerAsUnsignedIntType;
 
   /**
    * Creates a new AssignmentQuantifierHandler.
@@ -196,7 +199,7 @@ class AssignmentQuantifierHandler {
     resolvedLhsBases = pResolvedLhsBases;
     resolvedRhsBases = pResolvedRhsBases;
 
-    sizeType = conv.machineModel.getPointerSizedIntType();
+    pointerAsUnsignedIntType = conv.machineModel.getPointerAsUnsignedIntType();
   }
 
   /**
@@ -271,15 +274,16 @@ class AssignmentQuantifierHandler {
 
     // get the variable slice size (the assignment is done for all i where 0 <= i < sliceSize)
     final CExpression sliceSize = variableToQuantify.getSliceSize();
-    // cast it to size type to get a proper formula
-    final CExpression sliceSizeCastToSizeType =
-        new CCastExpression(FileLocation.DUMMY, sizeType, sliceSize);
+    // cast it to unsigned type capable of storing all pointer values to get a proper formula
+    final CExpression sliceSizeCastToCapableType =
+        new CCastExpression(FileLocation.DUMMY, pointerAsUnsignedIntType, sliceSize);
     // visit it to get the formula
     final CExpressionVisitorWithPointerAliasing indexSizeVisitor =
         new CExpressionVisitorWithPointerAliasing(
             conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
-    final Expression sliceSizeExpression = sliceSizeCastToSizeType.accept(indexSizeVisitor);
-    final Formula sliceSizeFormula = indexSizeVisitor.asValueFormula(sliceSizeExpression, sizeType);
+    final Expression sliceSizeExpression = sliceSizeCastToCapableType.accept(indexSizeVisitor);
+    final Formula sliceSizeFormula =
+        indexSizeVisitor.asValueFormula(sliceSizeExpression, pointerAsUnsignedIntType);
 
     // TODO: should we add fields to UF from index visitor?
 
@@ -336,10 +340,8 @@ class AssignmentQuantifierHandler {
       Formula sliceSizeFormula)
       throws UnrecognizedCodeException, InterruptedException {
 
-    // the quantified variable should be of size type
-    final FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromCType(sizeType);
-    final Formula zeroFormula = conv.fmgr.makeNumber(sizeFormulaType, 0);
-    final boolean sizeTypeIsSigned = sizeType.getCanonicalType().isSigned();
+    // the encoded quantified variable should be of pointerAsUnsignedIntType
+    final FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromCType(pointerAsUnsignedIntType);
 
     // create encoded quantified variable
     final Formula encodedVariable =
@@ -355,12 +357,9 @@ class AssignmentQuantifierHandler {
 
     // create the condition for quantifier
     // the quantified variable condition holds when 0 <= index < size
-    // note that the size type may be signed, so we must do the less-or-equal constraint
+    // the formula is unsigned, we will just do an unsigned less-than comparison
     final BooleanFormula nextCondition =
-        bfmgr.and(
-            condition,
-            fmgr.makeLessOrEqual(zeroFormula, encodedVariable, sizeTypeIsSigned),
-            fmgr.makeLessThan(encodedVariable, sliceSizeFormula, sizeTypeIsSigned));
+        bfmgr.and(condition, fmgr.makeLessThan(encodedVariable, sliceSizeFormula, false));
 
     // recurse and get the assignment result
     final BooleanFormula assignmentResult =
@@ -394,10 +393,8 @@ class AssignmentQuantifierHandler {
       Formula sliceSizeFormula)
       throws UnrecognizedCodeException, InterruptedException {
 
-    // the unrolled index should be of size type
-    final FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromCType(sizeType);
-    final Formula zeroFormula = conv.fmgr.makeNumber(sizeFormulaType, 0);
-    final boolean sizeTypeSigned = sizeType.getCanonicalType().isSigned();
+    // the unrolled index should be of pointerAsUnsignedIntType
+    final FormulaType<?> sizeFormulaType = conv.getFormulaTypeFromCType(pointerAsUnsignedIntType);
 
     // limit the unrolling size to a reasonable number by default
     long unrollingSize = options.defaultArrayLength();
@@ -440,11 +437,9 @@ class AssignmentQuantifierHandler {
 
       // perform the unrolled assignments conditionally
       // the variable condition holds when 0 <= i < size
+      // the formula is unsigned, we will just do an unsigned less-than comparison
       final BooleanFormula nextCondition =
-          bfmgr.and(
-              condition,
-              fmgr.makeLessOrEqual(zeroFormula, indexFormula, sizeTypeSigned),
-              fmgr.makeLessThan(indexFormula, sliceSizeFormula, sizeTypeSigned));
+          bfmgr.and(condition, fmgr.makeLessThan(indexFormula, sliceSizeFormula, false));
 
       // resolve the quantifier in assignments
       // for every (LHS or RHS) slice, we replace it with a slice that has unresolved indexing
@@ -585,7 +580,7 @@ class AssignmentQuantifierHandler {
                   && lhsResolved.expression().isAliasedLocation()
                   && !assignmentOptions.useOldSSAIndicesIfAliased()
               ? PointerTargetPattern.forLeftHandSide(
-                  (CLeftHandSide) lhsSlice.getDummyResolvedExpression(sizeType), typeHandler, edge, pts)
+                  (CLeftHandSide) lhsSlice.getDummyResolvedExpression(), typeHandler, edge, pts)
               : null;
 
       // make the actual assignment

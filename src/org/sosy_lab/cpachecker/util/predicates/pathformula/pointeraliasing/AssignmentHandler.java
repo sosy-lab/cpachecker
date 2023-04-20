@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -140,10 +139,6 @@ class AssignmentHandler {
   /** Assignment options, used for each assignment within the constructed handler. */
   private final AssignmentOptions assignmentOptions;
 
-  /** Machine model pointer-equivalent size type, retained here for conciseness. */
-  private final CSimpleType sizeType;
-
-
   /**
    * Creates a new AssignmentHandler.
    *
@@ -178,8 +173,6 @@ class AssignmentHandler {
     regionMgr = pRegionMgr;
 
     assignmentOptions = pAssignmentOptions;
-
-    sizeType = conv.machineModel.getPointerSizedIntType();
   }
 
   /**
@@ -410,8 +403,8 @@ class AssignmentHandler {
       // the deferred memory handler does not care about actual subscript values, so we can use
       // dummy resolved expressions; it is necessary that there are no modifiers after
       // CFunctionCallExpression base in assignments
-      final CRightHandSide lhsDummy = assignment.lhs.getDummyResolvedExpression(sizeType);
-      final CRightHandSide rhsDummy = rhs.getDummyResolvedExpression(sizeType);
+      final CRightHandSide lhsDummy = assignment.lhs.getDummyResolvedExpression();
+      final CRightHandSide rhsDummy = rhs.getDummyResolvedExpression();
       CType lhsType = typeHandler.getSimplifiedType(lhsDummy);
 
       if (assignmentOptions.forcePointerAssignment()) {

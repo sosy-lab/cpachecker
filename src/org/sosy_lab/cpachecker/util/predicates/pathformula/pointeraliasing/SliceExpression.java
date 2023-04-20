@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
@@ -275,13 +276,11 @@ record SliceExpression(
    * Returns a dummy-resolved expression where each unresolved index is replaced with a zero
    * literal.
    *
-   * @param sizeType Machine pointer-equivalent size type
    * @return Dummy-resolved expression.
    * @throws IllegalStateException If the combination of base and modifiers cannot be expressed as
    *     dummy-resolved expression
    */
-  CRightHandSide getDummyResolvedExpression(CType sizeType) {
-    checkNotNull(sizeType);
+  CRightHandSide getDummyResolvedExpression() {
 
     if (modifiers.isEmpty()) {
       return base;
@@ -305,8 +304,9 @@ record SliceExpression(
                 false);
       } else {
         // subscript
+        // the index literal is zero, so it can have whichever integer type
         CIntegerLiteralExpression indexLiteral =
-            CIntegerLiteralExpression.createDummyLiteral(0, sizeType);
+            CIntegerLiteralExpression.createDummyLiteral(0, CNumericTypes.INT);
 
         CPointerType resolvedPointerType =
             (CPointerType)

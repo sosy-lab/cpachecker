@@ -68,8 +68,8 @@ class MemoryManipulationFunctionHandler {
   private final ErrorConditions errorConditions;
   private final MemoryRegionManager regionMgr;
 
-  /** Machine model pointer-equivalent size type, retained here for conciseness. */
-  private final CType sizeType;
+  /** Machine model pointer-sized integer type, retained here for conciseness. */
+  private final CType pointerSizedIntType;
 
   /**
    * Creates a new MemoryFunctionHandler.
@@ -103,7 +103,7 @@ class MemoryManipulationFunctionHandler {
     errorConditions = pErrorConditions;
     regionMgr = pRegionMgr;
 
-    sizeType = conv.machineModel.getPointerSizedIntType();
+    pointerSizedIntType = conv.machineModel.getPointerSizedIntType();
   }
 
   /**
@@ -553,36 +553,37 @@ class MemoryManipulationFunctionHandler {
       final long operationSizeInElementsAsLong =
           (sizeInBytesAsLong + elementSizeInBytes - 1) / elementSizeInBytes;
       final CExpression operationSizeInElements =
-          CIntegerLiteralExpression.createDummyLiteral(operationSizeInElementsAsLong, sizeType);
+          CIntegerLiteralExpression.createDummyLiteral(
+              operationSizeInElementsAsLong, pointerSizedIntType);
       return operationSizeInElements;
     }
 
     // not possible to compute the size in elements statically, create a non-literal expression
 
-    // cast the operation size to pointer-equivalent size type first
+    // cast the operation size to pointer-sized integer type first
     CExpression operationSizeInBytes =
-        new CCastExpression(FileLocation.DUMMY, sizeType, sizeInBytes);
+        new CCastExpression(FileLocation.DUMMY, pointerSizedIntType, sizeInBytes);
 
     // create (byte_operation_size + (element_size - 1))
     CIntegerLiteralExpression elementSizeInBytesMinusOneLiteral =
-        CIntegerLiteralExpression.createDummyLiteral(elementSizeInBytes - 1, sizeType);
+        CIntegerLiteralExpression.createDummyLiteral(elementSizeInBytes - 1, pointerSizedIntType);
     CExpression operationSizeByteCeiling =
         new CBinaryExpression(
             FileLocation.DUMMY,
-            sizeType,
-            sizeType,
+            pointerSizedIntType,
+            pointerSizedIntType,
             operationSizeInBytes,
             elementSizeInBytesMinusOneLiteral,
             BinaryOperator.PLUS);
 
     // create (byte_operation_size + element_size - 1) / element_size
     CIntegerLiteralExpression elementSizeInBytesLiteral =
-        CIntegerLiteralExpression.createDummyLiteral(elementSizeInBytes, sizeType);
+        CIntegerLiteralExpression.createDummyLiteral(elementSizeInBytes, pointerSizedIntType);
     CExpression operationSizeInElements =
         new CBinaryExpression(
             FileLocation.DUMMY,
-            sizeType,
-            sizeType,
+            pointerSizedIntType,
+            pointerSizedIntType,
             operationSizeByteCeiling,
             elementSizeInBytesLiteral,
             BinaryOperator.DIVIDE);
@@ -664,18 +665,19 @@ class MemoryManipulationFunctionHandler {
       if (lastDimensionLength instanceof CIntegerLiteralExpression literalArrayLength
           && secondLastDimensionLength
               instanceof CIntegerLiteralExpression literalUnderlyingLength) {
-        // dimension lengths are statically known, multiply them statically and
+        // dimension lengths are statically known, multiply them statically
         final long multipliedLengthAsLong =
             literalArrayLength.asLong() * literalUnderlyingLength.asLong();
         multipliedLength =
-            CIntegerLiteralExpression.createDummyLiteral(multipliedLengthAsLong, sizeType);
+            CIntegerLiteralExpression.createDummyLiteral(
+                multipliedLengthAsLong, pointerSizedIntType);
       } else if (lastDimensionLength != null && secondLastDimensionLength != null) {
         // dimension lengths are not statically known, multiply them as expressions
         multipliedLength =
             new CBinaryExpression(
                 FileLocation.DUMMY,
-                sizeType,
-                sizeType,
+                pointerSizedIntType,
+                pointerSizedIntType,
                 lastDimensionLength,
                 secondLastDimensionLength,
                 BinaryOperator.MULTIPLY);
