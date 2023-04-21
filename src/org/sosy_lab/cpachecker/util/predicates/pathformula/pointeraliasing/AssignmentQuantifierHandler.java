@@ -274,8 +274,14 @@ class AssignmentQuantifierHandler {
   private void checkAssignmentSupported(PartialAssignment assignment)
       throws UnrecognizedCodeException {
 
-    // make sure that if the destination is a bitfield, the rhs definitely sets every bit
-    // to zero or one; otherwise, behavior would be heavily implementation-defined
+    // assignment is always supported when not using BYTE_REPEAT conversion type
+    if (assignmentOptions.conversionType() != AssignmentOptions.ConversionType.BYTE_REPEAT) {
+      return;
+    }
+
+    // when using BYTE_REPEAT conversion type, make sure that if the destination is a bitfield,
+    // the rhs definitely sets every bit to zero or one; otherwise, behavior would be heavily
+    // implementation-defined
     CType fullExpressionType =
         typeHandler.simplifyType(assignment.lhs.actual.getFullExpressionType());
 
