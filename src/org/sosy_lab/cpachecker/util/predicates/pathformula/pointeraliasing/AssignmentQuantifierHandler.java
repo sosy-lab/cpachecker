@@ -106,6 +106,14 @@ class AssignmentQuantifierHandler {
     }
   }
 
+  /** A helper record storing both partial assignment left-hand side and right-hand side. */
+  record PartialAssignment(PartialAssignmentLhs lhs, PartialAssignmentRhs rhs) {
+    PartialAssignment {
+      checkNotNull(lhs);
+      checkNotNull(rhs);
+    }
+  }
+
   /** Prefix of SMT-encoded variable name, followed by variable number. */
   private static final String ENCODED_VARIABLE_PREFIX = "__quantifier_";
 

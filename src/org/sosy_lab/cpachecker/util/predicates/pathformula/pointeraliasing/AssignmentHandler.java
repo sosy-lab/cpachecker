@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.PartialSpan;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignment;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentLhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentRhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
@@ -110,17 +111,6 @@ class AssignmentHandler {
       return relevancyLhs
           .map(presentRelevancyLhs -> conv.isRelevantLeftHandSide(presentRelevancyLhs))
           .orElse(true);
-    }
-  }
-
-  /**
-   * A helper record storing both partial assignment left-hand side and right-hand side so they can
-   * be returned within the same return value.
-   */
-  private record PartialAssignment(PartialAssignmentLhs lhs, PartialAssignmentRhs rhs) {
-    PartialAssignment {
-      checkNotNull(lhs);
-      checkNotNull(rhs);
     }
   }
 
@@ -268,7 +258,7 @@ class AssignmentHandler {
     for (PartialAssignment partialAssignment : partialAssignments) {
       if (assignmentOptions.forcePointerAssignment()) {
         // actual assignment type is pointer, which is already simple
-        simpleAssignmentMultimap.put(partialAssignment.lhs, partialAssignment.rhs);
+        simpleAssignmentMultimap.put(partialAssignment.lhs(), partialAssignment.rhs());
       } else {
         generateSimplePartialAssignments(partialAssignment, simpleAssignmentMultimap);
       }
@@ -463,7 +453,7 @@ class AssignmentHandler {
     // e.g. with (*x).a.b[0].c.d, split into (*x).a.b[0] and .c.d
     // the head is the progenitor from which we will be assigning to span
 
-    ImmutableList<SliceModifier> lhsModifiers = assignment.lhs.actual().modifiers();
+    ImmutableList<SliceModifier> lhsModifiers = assignment.lhs().actual().modifiers();
 
     // iterate in reverse to split to head and trailing
     List<SliceModifier> progenitorModifiers = new ArrayList<>();
@@ -483,7 +473,7 @@ class AssignmentHandler {
     // construct the progenitor lhs
     SliceExpression progenitorLhs =
         new SliceExpression(
-            assignment.lhs.actual().base(), ImmutableList.copyOf(progenitorModifiers));
+            assignment.lhs().actual().base(), ImmutableList.copyOf(progenitorModifiers));
 
     // compute the full bit offset from progenitor
     // the parent type of first field access is the progenitor type
@@ -501,7 +491,7 @@ class AssignmentHandler {
       parentType = typeHandler.getSimplifiedType(access.field());
     }
 
-    PartialSpan originalSpan = assignment.rhs.span();
+    PartialSpan originalSpan = assignment.rhs().span();
     PartialSpan spanFromProgenitor =
         new PartialSpan(
             bitOffsetFromProgenitor + originalSpan.lhsBitOffset(),
@@ -511,8 +501,8 @@ class AssignmentHandler {
     // now construct the new progenitor assignment with lhs and span modified accordingly
     // rhs does not change, so target type does not change as well
     return new PartialAssignment(
-        new PartialAssignmentLhs(progenitorLhs, assignment.lhs.targetType()),
-        new PartialAssignmentRhs(spanFromProgenitor, assignment.rhs.actual()));
+        new PartialAssignmentLhs(progenitorLhs, assignment.lhs().targetType()),
+        new PartialAssignmentRhs(spanFromProgenitor, assignment.rhs().actual()));
   }
 
   /**
@@ -527,12 +517,13 @@ class AssignmentHandler {
       PartialAssignment assignment,
       Multimap<PartialAssignmentLhs, PartialAssignmentRhs> simpleAssignmentMultimap) {
 
-    final CType lhsType = typeHandler.simplifyType(assignment.lhs.actual().getFullExpressionType());
+    final CType lhsType =
+        typeHandler.simplifyType(assignment.lhs().actual().getFullExpressionType());
 
     // if rhs type is nondet, treat is as LHS type
     final CType rhsType =
         assignment
-            .rhs
+            .rhs()
             .actual()
             .map(rhsSlice -> typeHandler.simplifyType(rhsSlice.getFullExpressionType()))
             .orElse(lhsType);
@@ -548,7 +539,7 @@ class AssignmentHandler {
       }
     } else {
       // already simple, just add the assignment to simple assignments
-      simpleAssignmentMultimap.put(assignment.lhs, assignment.rhs);
+      simpleAssignmentMultimap.put(assignment.lhs(), assignment.rhs());
     }
   }
 
@@ -584,7 +575,7 @@ class AssignmentHandler {
       return;
     }
 
-    final PartialSpan originalSpan = assignment.rhs.span();
+    final PartialSpan originalSpan = assignment.rhs().span();
 
     if (!lhsArrayType.equals(rhsType)) {
       // we currently do not assign to array types from different types as that would ideally
@@ -614,9 +605,9 @@ class AssignmentHandler {
     // slice the assignment using a slice variable
     final SliceVariable indexVariable =
         new SliceVariable(lhsArrayType.getLength());
-    final SliceExpression elementLhs = assignment.lhs.actual().withIndex(indexVariable);
+    final SliceExpression elementLhs = assignment.lhs().actual().withIndex(indexVariable);
     final Optional<SliceExpression> elementRhs =
-        assignment.rhs.actual().map(rhsSlice -> rhsSlice.withIndex(indexVariable));
+        assignment.rhs().actual().map(rhsSlice -> rhsSlice.withIndex(indexVariable));
 
     // full span
     final CType elementType = typeHandler.simplifyType(lhsArrayType.getType());
@@ -649,11 +640,11 @@ class AssignmentHandler {
       CCompositeType lhsCompositeType,
       CType rhsType,
       CCompositeTypeMemberDeclaration lhsMember) {
-    final PartialSpan originalSpan = assignment.rhs.span();
+    final PartialSpan originalSpan = assignment.rhs().span();
 
     final long lhsMemberBitOffset = typeHandler.getBitOffset(lhsCompositeType, lhsMember);
     final long lhsMemberBitSize = typeHandler.getBitSizeof(lhsMember.getType());
-    final SliceExpression lhsMemberSlice = assignment.lhs.actual().withFieldAccess(lhsMember);
+    final SliceExpression lhsMemberSlice = assignment.lhs().actual().withFieldAccess(lhsMember);
 
     // compare LHS assignment range with member range
     final Range<Long> lhsOriginalRange =
@@ -693,7 +684,7 @@ class AssignmentHandler {
 
       // go into rhs if not nondet
       final Optional<SliceExpression> memberRhsSlice =
-          assignment.rhs.actual().map(rhsSlice -> rhsSlice.withFieldAccess(lhsMember));
+          assignment.rhs().actual().map(rhsSlice -> rhsSlice.withFieldAccess(lhsMember));
 
       final PartialAssignmentRhs memberRhs = new PartialAssignmentRhs(memberSpan, memberRhsSlice);
 
@@ -725,12 +716,12 @@ class AssignmentHandler {
             intersectionRhsBitOffset,
             memberAssignmentBitSize);
     final PartialAssignmentRhs memberRhs =
-        new PartialAssignmentRhs(memberSpan, assignment.rhs.actual());
+        new PartialAssignmentRhs(memberSpan, assignment.rhs().actual());
 
     // target type does not change
     final PartialAssignment memberAssignment =
         new PartialAssignment(
-            new PartialAssignmentLhs(lhsMemberSlice, assignment.lhs.targetType()), memberRhs);
+            new PartialAssignmentLhs(lhsMemberSlice, assignment.lhs().targetType()), memberRhs);
 
     // we now have the member assignment, generate the simple assignments from it
     generateSimplePartialAssignments(memberAssignment, simpleAssignmentMultimap);
