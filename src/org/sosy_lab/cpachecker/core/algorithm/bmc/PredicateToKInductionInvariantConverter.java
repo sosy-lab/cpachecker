@@ -14,13 +14,16 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import java.util.stream.Stream;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -115,9 +118,10 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
     config.inject(this);
-    try {
-      logger.log(Level.INFO, Runtime.getRuntime().exec("find .")); 
-    } catch (IOException e) {
+    try (Stream<Path> stream = Files.walk(Paths.get("."))) {
+      stream.filter(Files::isRegularFile)
+            .forEach((file) -> logger.log(Level.INFO, file));
+  } catch (IOException e) {
       logger.logException(Level.WARNING, e, "no runtime found.");
     }
   }
