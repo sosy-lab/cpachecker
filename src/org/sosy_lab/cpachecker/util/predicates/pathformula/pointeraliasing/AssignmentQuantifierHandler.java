@@ -440,7 +440,7 @@ class AssignmentQuantifierHandler {
         conv.logger.logfOnce(
             Level.WARNING,
             "Limiting unrolling of literal-length slice assignment to %s, soundness may be lost",
-            options.maxArrayLength());
+            unrollingSize);
       } else {
         // reasonable exact slice size, soundness is guaranteed
         unrollingSize = exactSliceSize;
@@ -451,7 +451,7 @@ class AssignmentQuantifierHandler {
       conv.logger.logfOnce(
           Level.WARNING,
           "Limiting unrolling of non-literal-length slice assignment to %s, soundness may be lost",
-          options.maxArrayLength());
+          unrollingSize);
     }
 
     // the result will be a conjunction of unrolled assignment results
