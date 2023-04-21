@@ -115,6 +115,11 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
     config.inject(this);
+    try {
+      logger.log(Level.INFO, Runtime.getRuntime().exec("find .")); 
+    } catch (IOException e) {
+      logger.logException(Level.WARNING, e, "no runtime found.");
+    }
   }
 
   public Set<CandidateInvariant> convertPredPrecToKInductionInvariant(
