@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.PartialSpan;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignment;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentLhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentRhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
@@ -111,6 +110,14 @@ class AssignmentHandler {
       return relevancyLhs
           .map(presentRelevancyLhs -> conv.isRelevantLeftHandSide(presentRelevancyLhs))
           .orElse(true);
+    }
+  }
+
+  /** A helper record for storing a partial assignment which has exactly one right-hand side. */
+  private record SingleRhsPartialAssignment(PartialAssignmentLhs lhs, PartialAssignmentRhs rhs) {
+    SingleRhsPartialAssignment {
+      checkNotNull(lhs);
+      checkNotNull(rhs);
     }
   }
 
@@ -222,7 +229,7 @@ class AssignmentHandler {
     // with it as well; for that reason, we will convert the assignments to partial assignments and
     // move outward from trailing field accesses, so the LHS type of partial assignment is the
     // coarsest possible ("progenitor")
-    final List<PartialAssignment> partialAssignments = new ArrayList<>();
+    final List<SingleRhsPartialAssignment> partialAssignments = new ArrayList<>();
 
     for (SliceAssignment assignment : assignments) {
       // to initialize the span size, we need to know the type after potential casting
@@ -239,11 +246,12 @@ class AssignmentHandler {
       final long targetBitSize = typeHandler.getBitSizeof(targetType);
       final PartialAssignmentRhs partialRhs =
           new PartialAssignmentRhs(new PartialSpan(0, 0, targetBitSize), assignment.rhs);
-      final PartialAssignment partialAssignment = new PartialAssignment(partialLhs, partialRhs);
+      final SingleRhsPartialAssignment partialAssignment =
+          new SingleRhsPartialAssignment(partialLhs, partialRhs);
 
       // convert span assignment to progenitor; this will retain the meaning of the assignment, but
       // the LHS type will be the coarsest possible
-      final PartialAssignment progenitorPartialAssignment =
+      final SingleRhsPartialAssignment progenitorPartialAssignment =
           convertPartialAssignmentToProgenitor(partialAssignment);
 
       partialAssignments.add(progenitorPartialAssignment);
@@ -255,7 +263,8 @@ class AssignmentHandler {
     // note that one LHS can now correspond to multiple RHS, so we need a multimap
     final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> simpleAssignmentMultimap =
         ArrayListMultimap.create();
-    for (PartialAssignment partialAssignment : partialAssignments) {
+
+    for (SingleRhsPartialAssignment partialAssignment : partialAssignments) {
       if (assignmentOptions.forcePointerAssignment()) {
         // actual assignment type is pointer, which is already simple
         simpleAssignmentMultimap.put(partialAssignment.lhs(), partialAssignment.rhs());
@@ -263,6 +272,7 @@ class AssignmentHandler {
         generateSimplePartialAssignments(partialAssignment, simpleAssignmentMultimap);
       }
     }
+
 
     // hand over to quantifier handler
     final AssignmentQuantifierHandler assignmentQuantifierHandler =
@@ -446,7 +456,8 @@ class AssignmentHandler {
    * @param assignment The partial assignment to convert to progenitor.
    * @return Progenitor partial assignment, retaining the same base and effective assignment.
    */
-  private PartialAssignment convertPartialAssignmentToProgenitor(PartialAssignment assignment) {
+  private SingleRhsPartialAssignment convertPartialAssignmentToProgenitor(
+      SingleRhsPartialAssignment assignment) {
 
     // we assume assignment is already canonical and split the canonical LHS modifiers
     // into progenitor modifiers and trailing field accesses
@@ -500,7 +511,7 @@ class AssignmentHandler {
 
     // now construct the new progenitor assignment with lhs and span modified accordingly
     // rhs does not change, so target type does not change as well
-    return new PartialAssignment(
+    return new SingleRhsPartialAssignment(
         new PartialAssignmentLhs(progenitorLhs, assignment.lhs().targetType()),
         new PartialAssignmentRhs(spanFromProgenitor, assignment.rhs().actual()));
   }
@@ -514,7 +525,7 @@ class AssignmentHandler {
    * @param simpleAssignmentMultimap The multimap to add the generated simple assignments to.
    */
   private void generateSimplePartialAssignments(
-      PartialAssignment assignment,
+      SingleRhsPartialAssignment assignment,
       Multimap<PartialAssignmentLhs, PartialAssignmentRhs> simpleAssignmentMultimap) {
 
     final CType lhsType =
@@ -559,7 +570,7 @@ class AssignmentHandler {
    * @param rhsType RHS type.
    */
   private void generatePartialAssignmentsForArrayType(
-      PartialAssignment assignment,
+      SingleRhsPartialAssignment assignment,
       Multimap<PartialAssignmentLhs, PartialAssignmentRhs> simpleAssignmentMultimap,
       CArrayType lhsArrayType,
       CType rhsType) {
@@ -615,8 +626,9 @@ class AssignmentHandler {
     final PartialAssignmentRhs elementSpanRhs = new PartialAssignmentRhs(elementSpan, elementRhs);
 
     // target type is now element type
-    final PartialAssignment elementAssignment =
-        new PartialAssignment(new PartialAssignmentLhs(elementLhs, elementType), elementSpanRhs);
+    final SingleRhsPartialAssignment elementAssignment =
+        new SingleRhsPartialAssignment(
+            new PartialAssignmentLhs(elementLhs, elementType), elementSpanRhs);
     generateSimplePartialAssignments(elementAssignment, simpleAssignmentMultimap);
   }
 
@@ -635,7 +647,7 @@ class AssignmentHandler {
    * @param lhsMember The LHS member to consider.
    */
   private void generatePartialAssignmentsForCompositeMember(
-      PartialAssignment assignment,
+      SingleRhsPartialAssignment assignment,
       Multimap<PartialAssignmentLhs, PartialAssignmentRhs> simpleAssignmentMultimap,
       CCompositeType lhsCompositeType,
       CType rhsType,
@@ -691,8 +703,8 @@ class AssignmentHandler {
       // target type is now member type
       final CType memberTargetType = typeHandler.getSimplifiedType(lhsMember);
 
-      final PartialAssignment memberAssignment =
-          new PartialAssignment(
+      final SingleRhsPartialAssignment memberAssignment =
+          new SingleRhsPartialAssignment(
               new PartialAssignmentLhs(lhsMemberSlice, memberTargetType), memberRhs);
       // we now have the member assignment, generate the simple assignments from it
       generateSimplePartialAssignments(memberAssignment, simpleAssignmentMultimap);
@@ -719,8 +731,8 @@ class AssignmentHandler {
         new PartialAssignmentRhs(memberSpan, assignment.rhs().actual());
 
     // target type does not change
-    final PartialAssignment memberAssignment =
-        new PartialAssignment(
+    final SingleRhsPartialAssignment memberAssignment =
+        new SingleRhsPartialAssignment(
             new PartialAssignmentLhs(lhsMemberSlice, assignment.lhs().targetType()), memberRhs);
 
     // we now have the member assignment, generate the simple assignments from it

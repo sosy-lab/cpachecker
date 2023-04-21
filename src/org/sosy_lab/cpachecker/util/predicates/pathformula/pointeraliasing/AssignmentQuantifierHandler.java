@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
 
-import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -106,11 +106,11 @@ class AssignmentQuantifierHandler {
     }
   }
 
-  /** A helper record storing both partial assignment left-hand side and right-hand side. */
-  record PartialAssignment(PartialAssignmentLhs lhs, PartialAssignmentRhs rhs) {
+  /** Stores partial assignment left-hand side and all right-hand sides. */
+  record PartialAssignment(PartialAssignmentLhs lhs, ImmutableList<PartialAssignmentRhs> rhsList) {
     PartialAssignment {
       checkNotNull(lhs);
-      checkNotNull(rhs);
+      checkNotNull(rhsList);
     }
   }
 
@@ -212,10 +212,10 @@ class AssignmentQuantifierHandler {
   /**
    * Performs simple slice assignments and returns the resulting Boolean formula.
    *
-   * @param assignmentMultimap The multimap containing the simple slice assignments. Each LHS can
-   *     have multiple partial RHS from which to assign. The full expression types of LHS and RHS
-   *     cannot be array or composite types. The multimap should preserve order of addition for
-   *     deterministic order of quantification.
+   * @param assignmentMultimap The multimap containing the simple partial slice assignments. Each
+   *     LHS can have multiple partial RHS from which to assign. The full expression types of LHS
+   *     and RHS cannot be array or composite types. The multimap should preserve order of addition
+   *     for deterministic order of quantification.
    * @return The Boolean formula describing to assignments.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If a shutdown was requested during assigning.
@@ -224,23 +224,42 @@ class AssignmentQuantifierHandler {
       final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap)
       throws UnrecognizedCodeException, InterruptedException {
 
-    // get a set of variables that we need to quantify (encode or unroll)
-    // each variable can be present in more locations, so we use a set to remove duplicates
-    // as we want to have deterministic order of quantification, we use a LinkedHashSet
-    final LinkedHashSet<SliceVariable> variablesToQuantify = new LinkedHashSet<>();
+    // the result is a conjunction of assignments
+    BooleanFormula result = bfmgr.makeTrue();
+
+    // assign each left-hand side separately
+    // we do not want to assign multiple left-hand sides at once as we would potentially need to
+    // unroll variables that only occur in one assignment, which would result in a large amount
+    // of unnecessary formula duplication
     for (Entry<PartialAssignmentLhs, Collection<PartialAssignmentRhs>> entry :
         assignmentMultimap.asMap().entrySet()) {
-      variablesToQuantify.addAll(entry.getKey().actual().getPresentVariables());
-      for (PartialAssignmentRhs rhs : entry.getValue()) {
+
+      final PartialAssignmentLhs lhs = entry.getKey();
+      final ImmutableList<PartialAssignmentRhs> rhsList = ImmutableList.copyOf(entry.getValue());
+
+      // get a set of variables that we need to quantify (encode or unroll)
+      // each variable can be present in more locations, so we use a set to remove duplicates
+      // as we want to have deterministic order of quantification, we use a LinkedHashSet
+      final LinkedHashSet<SliceVariable> variablesToQuantify = new LinkedHashSet<>();
+
+      variablesToQuantify.addAll(lhs.actual().getPresentVariables());
+      for (PartialAssignmentRhs rhs : rhsList) {
         if (rhs.actual().isPresent()) {
           variablesToQuantify.addAll(rhs.actual().get().getPresentVariables());
         }
       }
+
+      // hand over to recursive quantification
+      // initially, the condition for assignment to actually occur is true
+      final PartialAssignment assignment = new PartialAssignment(lhs, rhsList);
+      BooleanFormula assignmentResult =
+          quantifyAssignments(assignment, variablesToQuantify, bfmgr.makeTrue());
+
+      // conjunct the assignment formulas
+      result = bfmgr.and(result, assignmentResult);
     }
 
-    // hand over to recursive quantification
-    // initially, the condition for assignment to actually occur is true
-    return quantifyAssignments(assignmentMultimap, variablesToQuantify, bfmgr.makeTrue());
+    return result;
   }
 
   /**
@@ -253,7 +272,7 @@ class AssignmentQuantifierHandler {
    * instead. This is needed both for unrolling and encoding, as even with unrolling, the desired
    * variable range may not be statically known.
    *
-   * @param assignmentMultimap The multimap containing the simple slice assignments.
+   * @param assignment The simple partial slice assignment.
    * @param variablesToQuantify Remaining variables that need to be quantified.
    * @param condition Boolean formula condition for the assignment to actually occur.
    * @return The Boolean formula describing the assignments.
@@ -261,14 +280,14 @@ class AssignmentQuantifierHandler {
    * @throws InterruptedException If a shutdown was requested during assigning.
    */
   private BooleanFormula quantifyAssignments(
-      final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap,
+      final PartialAssignment assignment,
       final LinkedHashSet<SliceVariable> variablesToQuantify,
       final BooleanFormula condition)
       throws UnrecognizedCodeException, InterruptedException {
 
     if (variablesToQuantify.isEmpty()) {
       // all variables have been quantified, perform quantified assignment
-      return assignSimpleSlicesWithResolvedIndexing(assignmentMultimap, condition);
+      return assignSimpleSlicesWithResolvedIndexing(assignment, condition);
     }
 
     // not all variables have been quantified, get the variable to quantify
@@ -298,14 +317,14 @@ class AssignmentQuantifierHandler {
     // the functions are recursive and return the result of completed assignment
     if (shouldEncode()) {
       return encodeQuantifier(
-          assignmentMultimap,
+          assignment,
           nextVariablesToQuantify,
           condition,
           variableToQuantify,
           sliceSizeFormula);
     } else {
       return unrollQuantifier(
-          assignmentMultimap,
+          assignment,
           nextVariablesToQuantify,
           condition,
           variableToQuantify,
@@ -328,19 +347,19 @@ class AssignmentQuantifierHandler {
 
   /**
    * Encodes the quantifier for the given slice variable in the SMT solver theory of quantifiers and
-   * calls {@link #quantifyAssignments(Multimap, LinkedHashSet, BooleanFormula)} recursively.
+   * calls {@link #quantifyAssignments(PartialAssignment, LinkedHashSet, BooleanFormula)} recursively.
    *
-   * @param assignmentMultimap The multimap containing the simple slice assignments.
+   * @param assignment The the simple partial slice assignment to quantify.
    * @param nextVariablesToQuantify Remaining variables that need to be quantified, without the one
    *     to currently encode.
    * @param condition Boolean formula condition for the assignment to actually occur.
    * @param variableToEncode The variable to be encoded here.
    * @param sliceSizeFormula The formula for slice size. The assignment should occur iff {@code 0 <=
    *     i < sliceSizeFormula} where {@code i} is the encoded variable.
-   * @return The Boolean formula describing the assignments.
+   * @return The Boolean formula describing the assignment.
    */
   private BooleanFormula encodeQuantifier(
-      Multimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap,
+      PartialAssignment assignment,
       LinkedHashSet<SliceVariable> nextVariablesToQuantify,
       BooleanFormula condition,
       SliceVariable variableToEncode,
@@ -355,12 +374,13 @@ class AssignmentQuantifierHandler {
         fmgr.makeVariableWithoutSSAIndex(
             sizeFormulaType, ENCODED_VARIABLE_PREFIX + NEXT_ENCODED_VARIABLE_NUMBER++);
 
-    // resolve in assignments
+    // resolve the quantifier in assignment
     // for every (LHS or RHS) slice, we replace it with a slice that has unresolved indexing
     // by variableToUnroll replaced by resolved indexing by indexFormula
-    final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> nextAssignmentMultimap =
+
+    final PartialAssignment nextAssignment =
         mapAssignmentSlices(
-            assignmentMultimap, slice -> slice.resolveVariable(variableToEncode, encodedVariable));
+            assignment, slice -> slice.resolveVariable(variableToEncode, encodedVariable));
 
     // create the condition for quantifier
     // the quantified variable condition holds when 0 <= index < size
@@ -370,7 +390,7 @@ class AssignmentQuantifierHandler {
 
     // recurse and get the assignment result
     final BooleanFormula assignmentResult =
-        quantifyAssignments(nextAssignmentMultimap, nextVariablesToQuantify, nextCondition);
+        quantifyAssignments(nextAssignment, nextVariablesToQuantify, nextCondition);
 
     // add quantifier around the recursion result
     return fmgr.getQuantifiedFormulaManager().forall(encodedVariable, assignmentResult);
@@ -378,22 +398,22 @@ class AssignmentQuantifierHandler {
 
   /**
    * Unrolls the quantifier for the given slice variable in the and calls {@link
-   * #quantifyAssignments(Multimap, LinkedHashSet, BooleanFormula)} recursively.
+   * #quantifyAssignments(PartialAssignment, LinkedHashSet, BooleanFormula)} recursively.
    *
    * <p>This is unsound if the length of unrolling is not sufficient. If UFs are used, it also may
    * be unsound due to other assignments within the same aliased location not being retained.
    *
-   * @param assignmentMultimap The multimap containing the simple slice assignments.
+   * @param assignment The simple partial slice assignment to unroll.
    * @param nextVariablesToQuantify Remaining variables that need to be quantified, without the one
    *     to currently encode.
    * @param condition Boolean formula condition for the assignment to actually occur.
    * @param variableToUnroll The variable to be unrolled here.
    * @param sliceSizeFormula The formula for slice size. The assignment should occur iff {@code 0 <=
    *     i < sliceSizeFormula} where {@code i} is the unrolled variable.
-   * @return The Boolean formula describing the assignments.
+   * @return The Boolean formula describing the assignment.
    */
   private BooleanFormula unrollQuantifier(
-      Multimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap,
+      PartialAssignment assignment,
       LinkedHashSet<SliceVariable> nextVariablesToQuantify,
       BooleanFormula condition,
       SliceVariable variableToUnroll,
@@ -448,16 +468,16 @@ class AssignmentQuantifierHandler {
       final BooleanFormula nextCondition =
           bfmgr.and(condition, fmgr.makeLessThan(indexFormula, sliceSizeFormula, false));
 
-      // resolve the quantifier in assignments
+      // resolve the quantifier in assignment
       // for every (LHS or RHS) slice, we replace it with a slice that has unresolved indexing
       // by variableToUnroll replaced by resolved indexing by indexFormula
-      final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> nextAssignmentMultimap =
+      final PartialAssignment nextAssignment =
           mapAssignmentSlices(
-              assignmentMultimap, slice -> slice.resolveVariable(variableToUnroll, indexFormula));
+              assignment, slice -> slice.resolveVariable(variableToUnroll, indexFormula));
 
       // quantify recursively
       final BooleanFormula recursionResult =
-          quantifyAssignments(nextAssignmentMultimap, nextVariablesToQuantify, nextCondition);
+          quantifyAssignments(nextAssignment, nextVariablesToQuantify, nextCondition);
 
       // result is conjunction of unrolled assignment results
       result = bfmgr.and(result, recursionResult);
@@ -467,92 +487,71 @@ class AssignmentQuantifierHandler {
   }
 
   /**
-   * Apply a given function to every slice in assignment multimap.
+   * Apply a given function to every slice in partial slice assignment.
    *
    * <p>Used to replace a quantified variable in every slice with its resolved formula.
    *
-   * @param assignmentMultimap Assignment multimap.
+   * @param assignment Partial slice assignment.
    * @param sliceMappingFunction A function to apply to every {@code ArraySliceExpression} in the
-   *     multimap.
-   * @return A new multimap with the function applied, with no other changes. Preserves ordering of
-   *     {@code assignmentMultimap}.
+   *     assignment.
+   * @return Partial slice assignment with the function applied, with no other changes.
    */
-  private Multimap<PartialAssignmentLhs, PartialAssignmentRhs> mapAssignmentSlices(
-      final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap,
+  private PartialAssignment mapAssignmentSlices(
+      final PartialAssignment assignment,
       final Function<SliceExpression, SliceExpression> sliceMappingFunction) {
 
-    // LinkedHashMultimap to preserve ordering
-    final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> result = LinkedHashMultimap.create();
+    // apply the function to the LHS slice
+    final SliceExpression mappedLhsSlice =
+        sliceMappingFunction.apply(assignment.lhs.actual);
+    // construct the whole LHS
+    final PartialAssignmentLhs mappedLhs =
+        new PartialAssignmentLhs(mappedLhsSlice, assignment.lhs.targetType);
 
-    // iterate over all LHS
-    for (Entry<PartialAssignmentLhs, Collection<PartialAssignmentRhs>> assignment :
-        assignmentMultimap.asMap().entrySet()) {
-      // apply the function to the LHS slice
-      final SliceExpression mappedLhsSlice =
-          sliceMappingFunction.apply(assignment.getKey().actual());
-      // construct the whole LHS
-      final PartialAssignmentLhs mappedLhs =
-          new PartialAssignmentLhs(mappedLhsSlice, assignment.getKey().targetType());
+    ImmutableList.Builder<PartialAssignmentRhs> mappedRhsListBuilder = ImmutableList.builder();
 
-      // iterate over all RHS
-      for (PartialAssignmentRhs rhs : assignment.getValue()) {
-        // apply the function to the RHS slice if it exists
-        // (if it does not, it is taken as nondet)
-        final Optional<SliceExpression> resolvedRhsSlice =
-            rhs.actual().map(rhsSlice -> sliceMappingFunction.apply(rhsSlice));
-        // construct the whole RHS and put the result into the new multimap
-        final PartialAssignmentRhs resolvedRhs = new PartialAssignmentRhs(rhs.span(), resolvedRhsSlice);
-        result.put(mappedLhs, resolvedRhs);
-      }
+    // iterate over all RHS
+    for (PartialAssignmentRhs rhs : assignment.rhsList) {
+      // apply the function to the RHS slice if it exists
+      // (if it does not, it is taken as nondet)
+      final Optional<SliceExpression> mappedRhsSlice =
+          rhs.actual().map(rhsSlice -> sliceMappingFunction.apply(rhsSlice));
+      // construct the whole RHS and put the result into the new multimap
+      final PartialAssignmentRhs mappedRhs = new PartialAssignmentRhs(rhs.span(), mappedRhsSlice);
+      mappedRhsListBuilder.add(mappedRhs);
     }
-    return result;
+    return new PartialAssignment(mappedLhs, mappedRhsListBuilder.build());
   }
 
   /**
-   * Performs simple slice assignments and returns the resulting Boolean formula. All indexing
-   * modifiers in the assignments must be already resolved.
+   * Performs simple slice assignment and returns the resulting Boolean formula. All indexing
+   * modifiers in the assignment must be already resolved.
    *
-   * @param assignmentMultimap The multimap containing the simple slice assignments. All indexing
-   *     modifiers must be resolved.
+   * @param assignment The simple partial slice assignment. All indexing modifiers must be resolved.
    * @param condition Boolean formula condition for the assignment to actually occur.
-   * @return The Boolean formula describing the assignments.
+   * @return The Boolean formula describing the assignment.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If a shutdown was requested during assigning.
    */
   private BooleanFormula assignSimpleSlicesWithResolvedIndexing(
-      final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap,
-      final BooleanFormula condition)
+      final PartialAssignment assignment, final BooleanFormula condition)
       throws UnrecognizedCodeException, InterruptedException {
 
     // construct a formula handler
     final AssignmentFormulaHandler assignmentFormulaHandler =
         new AssignmentFormulaHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
 
-    // the result is a conjunction of assignments
-    BooleanFormula result = bfmgr.makeTrue();
 
-    // for each assignment, perform it using the formula handler and conjunct the result
-    for (Entry<PartialAssignmentLhs, Collection<PartialAssignmentRhs>> assignment :
-        assignmentMultimap.asMap().entrySet()) {
-
-      final SliceExpression lhsSlice = assignment.getKey().actual();
-      final CType targetType = assignment.getKey().targetType();
+      final SliceExpression lhsSlice = assignment.lhs.actual();
+      final CType targetType = assignment.lhs.targetType();
 
       // resolve the LHS by getting the resolved base and resolving modifiers over it
       final ResolvedSlice lhsResolvedBase = resolvedLhsBases.get(lhsSlice.base());
       final ResolvedSlice lhsResolved = applySliceModifiersToResolvedBase(lhsResolvedBase, lhsSlice);
 
-      // skip assignment if LHS is nondet
-      if (lhsResolved.expression().isNondetValue()) {
-        // should only happen when we cannot assign to aliased bitfields
-        // TODO: implement aliased bitfields
-        continue;
-      }
-
       final List<ResolvedPartialAssignmentRhs> rhsResolvedList = new ArrayList<>();
 
       // resolve each RHS and collect them into a list
-      for (PartialAssignmentRhs rhs : assignment.getValue()) {
+      for (PartialAssignmentRhs rhs : assignment.rhsList) {
 
         // make nondet RHS into nondet resolved
         if (rhs.actual().isEmpty()) {
@@ -591,20 +590,14 @@ class AssignmentQuantifierHandler {
               : null;
 
       // make the actual assignment
-      result =
-          bfmgr.and(
-              result,
-              assignmentFormulaHandler.assignResolvedSlice(
+      return assignmentFormulaHandler.assignResolvedSlice(
                   lhsResolved,
                   targetType,
                   rhsResolvedList,
                   assignmentOptions,
                   condition,
                   false,
-                  pattern));
-    }
-
-    return result;
+                  pattern);
   }
 
   /**
