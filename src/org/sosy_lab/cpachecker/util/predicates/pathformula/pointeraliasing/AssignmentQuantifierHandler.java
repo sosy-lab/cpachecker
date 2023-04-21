@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
 
 import com.google.common.collect.ImmutableList;
@@ -33,7 +34,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -252,6 +255,12 @@ class AssignmentQuantifierHandler {
       // hand over to recursive quantification
       // initially, the condition for assignment to actually occur is true
       final PartialAssignment assignment = new PartialAssignment(lhs, rhsList);
+
+      // check that the assignment is supported; this must be done with a simple partial assignment,
+      // but can be done before quantification, so we will do it here to avoid potential costs of
+      // checking multiple times after unrolling
+      checkAssignmentSupported(assignment);
+
       BooleanFormula assignmentResult =
           quantifyAssignments(assignment, variablesToQuantify, bfmgr.makeTrue());
 
@@ -260,6 +269,50 @@ class AssignmentQuantifierHandler {
     }
 
     return result;
+  }
+
+  private void checkAssignmentSupported(PartialAssignment assignment)
+      throws UnrecognizedCodeException {
+
+    // make sure that if the destination is a bitfield, the rhs definitely sets every bit
+    // to zero or one; otherwise, behavior would be heavily implementation-defined
+    CType fullExpressionType =
+        typeHandler.simplifyType(assignment.lhs.actual.getFullExpressionType());
+
+    if (fullExpressionType instanceof CBitFieldType) {
+        for (PartialAssignmentRhs rhs : assignment.rhsList) {
+          if (rhs.actual.isEmpty()) {
+            // nondet, skip
+            continue;
+          }
+        SliceExpression rhsSlice = rhs.actual.get();
+
+        // it is the caller's responsibility to ensure the rhs base is a cast to unsigned char
+        CCastExpression base = (CCastExpression) rhsSlice.base();
+        verify(
+            rhsSlice.modifiers().isEmpty()
+                && base.getCastType().equals(CNumericTypes.UNSIGNED_CHAR));
+
+        CExpression baseUnderlying = base.getOperand();
+
+        if (!(baseUnderlying instanceof CIntegerLiteralExpression)) {
+          throw new UnrecognizedCodeException(
+              "Non-literal byte repeat value not supported for bitfields", edge);
+        }
+
+        // determine the value of literal
+        final CIntegerLiteralExpression setValueLiteral = (CIntegerLiteralExpression) baseUnderlying;
+
+        // make sure it is either all-zeros or all-ones
+        int unsignedCharAllOnes =
+            conv.machineModel.getMaximalIntegerValue(CNumericTypes.UNSIGNED_CHAR).intValue();
+        final int setByte = setValueLiteral.getValue().intValue() & unsignedCharAllOnes;
+        if (setByte != 0 && setByte != unsignedCharAllOnes) {
+          throw new UnrecognizedCodeException(
+              "Only all-zeros and all-ones byte repeat values supported for bitfields", edge);
+        }
+      }
+    }
   }
 
   /**

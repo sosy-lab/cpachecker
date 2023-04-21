@@ -842,4 +842,5 @@ class AssignmentHandler {
     }
     return true;
   }
+
 }

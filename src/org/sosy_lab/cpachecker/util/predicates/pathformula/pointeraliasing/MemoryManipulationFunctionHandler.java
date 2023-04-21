@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.Verify.verify;
 
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -27,14 +26,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -42,6 +35,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentHandler.SliceAssignment;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentOptions.ConversionType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceVariable;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -282,17 +276,20 @@ class MemoryManipulationFunctionHandler {
     SliceVariable sliceIndex = new SliceVariable(sizeInElements);
     SliceExpression lhs = new SliceExpression(processedDestination).withIndex(sliceIndex);
 
-    // the assignments must be generated recursively, as we have to assign the correct value to set
-    // to every simple type
-    List<AssignmentHandler.SliceAssignment> assignments = new ArrayList<>();
-    generateMemsetAssignments(lhs, setValue, assignments);
+    // cast the value to be set to unsigned char so that byte repeat cast can be used
+    CExpression setValueAsUnsignedChar =
+        new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, setValue);
 
-    // reinterpret instead of casting in assignment to properly handle memset of floats
+    SliceAssignment assignment =
+        new SliceAssignment(
+            lhs, Optional.empty(), Optional.of(new SliceExpression(setValueAsUnsignedChar)));
+
+    // repeat the RHS set value to perfectly model the
     // force quantifiers if the option is set
     AssignmentOptions assignmentOptions =
         new AssignmentOptions(
             false,
-            ConversionType.REINTERPRET,
+            ConversionType.BYTE_REPEAT,
             conv.options.forceQuantifiersInMemoryAssignmentFunctions(),
             false);
     AssignmentHandler assignmentHandler =
@@ -308,208 +305,8 @@ class MemoryManipulationFunctionHandler {
             assignmentOptions);
 
     // assign and add as a constraint
-    BooleanFormula assignmentFormula = assignmentHandler.assign(assignments);
+    BooleanFormula assignmentFormula = assignmentHandler.assign(ImmutableList.of(assignment));
     constraints.addConstraint(assignmentFormula);
-  }
-
-  /**
-   * Generates memset assignments recursively. For each simple type, an appropriate value to set is
-   * generated.
-   *
-   * <p>The resulting assignments are in form {@code lhs[i].field = field_appropriate_set_value;}
-   *
-   * @param lhs Left-hand slice expression.
-   * @param setValue Value to set to every byte after being interpreted as unsigned char.
-   * @param assignments A mutable list of assignments that the generated assignments will be added
-   *     to.
-   * @throws UnrecognizedCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If a shutdown was requested during handling.
-   */
-  private void generateMemsetAssignments(
-      final SliceExpression lhs,
-      final CExpression setValue,
-      final List<AssignmentHandler.SliceAssignment> assignments)
-      throws UnrecognizedCodeException, InterruptedException {
-
-    final CType lhsType = lhs.getFullExpressionType();
-
-    if (lhsType instanceof CArrayType arrayType) {
-      // for arrays, generate memset assignments for all of their elements
-      // by adding a new array-length slice index to lhs
-
-      final CExpression length = arrayType.getLength();
-      if (length == null) {
-        throw new UnrecognizedCodeException(
-            "Unexpected flexible-array-member memset destination", edge);
-      }
-      final SliceVariable arrayIndex = new SliceVariable(length);
-      final SliceExpression newSlice = lhs.withIndex(arrayIndex);
-      generateMemsetAssignments(newSlice, setValue, assignments);
-
-    } else if (lhsType instanceof CCompositeType compositeUnderlyingType) {
-
-      // for structs and unions, perform recursive assignment
-      // it should not matter that there will be multiple assignments for union fields
-
-      for (CCompositeTypeMemberDeclaration member : compositeUnderlyingType.getMembers()) {
-        final SliceExpression newSlice = lhs.withFieldAccess(member);
-        generateMemsetAssignments(newSlice, setValue, assignments);
-      }
-
-    } else {
-      // the RHS slice is constructed from the value to be set to the given type
-      SliceExpression rhsSlice =
-          new SliceExpression(constructMemsetValueForType(lhsType, setValue));
-
-      // there is no indexing of rhs
-      // TODO: add relevancy checking
-      AssignmentHandler.SliceAssignment sliceAssignment =
-          new AssignmentHandler.SliceAssignment(lhs, Optional.empty(), Optional.of(rhsSlice));
-
-      assignments.add(sliceAssignment);
-    }
-  }
-
-  /**
-   * Construct an appropriate value to set to a non-array, non-composite type from memset setValue.
-   *
-   * @param type The type to construct the value for.
-   * @param setValue Value to set to every byte after being interpreted as unsigned char.
-   * @throws UnrecognizedCodeException If the C code was unrecognizable.
-   */
-  private CExpression constructMemsetValueForType(final CType type, final CExpression setValue)
-      throws UnrecognizedCodeException {
-
-    CType compatibleType = type;
-
-    // convert enums and pointers to compatible simple types
-    if (type instanceof CEnumType enumType) {
-      compatibleType = enumType.getCompatibleType();
-    } else if (type instanceof CPointerType) {
-      compatibleType = conv.machineModel.getPointerSizedIntType();
-    }
-
-    // call an appropriate function depending on the type or throw if it is unsupported
-    // notably, void is unsupported, so void* destination memset will throw
-    if (compatibleType instanceof CBitFieldType bitfieldType) {
-      return constructSetValueForBitFieldType(bitfieldType, setValue);
-    } else if (compatibleType instanceof CSimpleType simpleType) {
-      return constructSetValueForSimpleType(simpleType, setValue);
-    } else {
-      throw new UnrecognizedCodeException(
-          String.format("Could not resolve type %s to a simple type in memset handling", type),
-          edge);
-    }
-  }
-
-  /**
-   * Construct an appropriate value to set to a bitfield type from memset setValue. As bitfield
-   * representation is implementation-defined, the value is only constructed if the original value
-   * to set is definitely all-zeros or all-ones. Otherwise, the function throws.
-   *
-   * @param bitfieldType The bitfield type to construct the value for.
-   * @param setValue Value to set to every byte after being interpreted as unsigned char.
-   * @throws UnrecognizedCodeException If the value to set is not definitely all-zeros or all-ones.
-   */
-  private CExpression constructSetValueForBitFieldType(
-      final CBitFieldType bitfieldType, final CExpression setValue)
-      throws UnrecognizedCodeException {
-
-    // the bitfield representation is implementation-defined,
-    // but it is reasonable to assume that all-zeros will set it to all-zeros
-    // and all-ones will set it to all-ones
-
-    if (!(setValue instanceof CIntegerLiteralExpression)) {
-      throw new UnrecognizedCodeException(
-          "Non-literal memset value not supported for bitfields", edge);
-    }
-
-    // determine the value of literal
-    final CIntegerLiteralExpression setValueLiteral = (CIntegerLiteralExpression) setValue;
-    final int setByte = setValueLiteral.getValue().intValue() & 0xFF;
-    if (setByte != 0 && setByte != 0xFF) {
-      throw new UnrecognizedCodeException(
-          "Only all-zeros and all-ones memset values supported for bitfields", edge);
-    }
-
-    // tailor the set value expression to the base type and bitfield size
-    final CType bitfieldBaseType = bitfieldType.getType().getCanonicalType();
-    long bitValue = (setByte != 0) ? ((1L << bitfieldType.getBitFieldSize()) - 1) : 0;
-    return CIntegerLiteralExpression.createDummyLiteral(bitValue, bitfieldBaseType);
-  }
-
-  /**
-   * Construct an appropriate value to set to a simple type from memset setValue.
-   *
-   * @param simpleType The simple type to construct the value for.
-   * @param setValue Value to set to every byte after being interpreted as unsigned char.
-   * @throws UnrecognizedCodeException If the type is not assignable from an integer type.
-   */
-  private CExpression constructSetValueForSimpleType(
-      final CSimpleType simpleType, final CExpression setValue) throws UnrecognizedCodeException {
-
-    // for floating-points, create the integer type with same size
-    final long sizeInBytes = typeHandler.getSizeof(simpleType);
-    final CBasicType basicType = simpleType.getType();
-    CSimpleType integerType = simpleType;
-
-    if (basicType.isFloatingPointType()) {
-
-      // we need to construct the corresponding integer type with the same byte size
-      // as the floating-point type so that we can populate it
-
-      // TODO: integer type with the same sizeof as float should be resolved by a reverse lookup
-      // into the machine model
-      if (basicType == CBasicType.FLOAT) {
-        // we use unsigned int in the meantime
-        integerType = CNumericTypes.UNSIGNED_INT;
-      } else if (basicType == CBasicType.DOUBLE) {
-        // we use unsigned long long in the meantime
-        integerType = CNumericTypes.UNSIGNED_LONG_LONG_INT;
-      } else {
-        throw new UnrecognizedCodeException(
-            "Memset does not support destination with the used floating-point underlying type",
-            edge);
-      }
-    }
-
-    // the value to be set is specified as an unsigned byte, but the element may be larger,
-    // so we need to compose the value to be set to each element
-    // we set the expression to zero literal and then bit-or the shifted bytes containing the value
-    // to be set
-    final CExpression setValueUnsignedChar =
-        new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, setValue);
-    final CExpression setValueLowestByte =
-        new CCastExpression(FileLocation.DUMMY, integerType, setValueUnsignedChar);
-
-    CExpression setValueExpression = CIntegerLiteralExpression.createDummyLiteral(0, integerType);
-    for (long byteIndex = 0; byteIndex < sizeInBytes; ++byteIndex) {
-      // shift the byte left
-      final long bitIndex = byteIndex * conv.getBitSizeof(CNumericTypes.UNSIGNED_CHAR);
-      final CIntegerLiteralExpression bitIndexLiteral =
-          CIntegerLiteralExpression.createDummyLiteral(bitIndex, integerType);
-      final CBinaryExpression setValueShiftedByteExpression =
-          new CBinaryExpression(
-              FileLocation.DUMMY,
-              integerType,
-              integerType,
-              setValueLowestByte,
-              bitIndexLiteral,
-              BinaryOperator.SHIFT_LEFT);
-
-      // bit-or with previous formula
-      // plus could also be used
-      setValueExpression =
-          new CBinaryExpression(
-              FileLocation.DUMMY,
-              integerType,
-              integerType,
-              setValueExpression,
-              setValueShiftedByteExpression,
-              BinaryOperator.BINARY_OR);
-    }
-
-    return setValueExpression;
   }
 
   /**

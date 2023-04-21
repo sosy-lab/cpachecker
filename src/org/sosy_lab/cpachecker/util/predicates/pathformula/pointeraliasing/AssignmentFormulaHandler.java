@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.implicitCastToPointer;
@@ -34,7 +35,6 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -74,7 +75,12 @@ class AssignmentFormulaHandler {
    * right-hand side, the offset {@link #rhsTargetBitOffset} pertains to the value after
    * casting/reinterpreting to target type.
    */
-  record PartialSpan(long lhsBitOffset, long rhsTargetBitOffset, long bitSize) {}
+  record PartialSpan(long lhsBitOffset, long rhsTargetBitOffset, long bitSize) {
+    PartialSpan {
+      checkArgument(bitSize > 0);
+    }
+
+  }
 
   /**
    * Resolved right-hand side of assignment with partial span that determines how it should be
@@ -227,7 +233,7 @@ class AssignmentFormulaHandler {
    *     reintepreted before further processing.
    * @param rhsList List of partial resolved right-hand-sides.
    * @param assignmentOptions Assignment options.
-   * @return Complee right-hand-side expression to be assigned.
+   * @return Complete right-hand-side expression to be assigned.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   private Expression constructCompleteRhsExpression(
@@ -258,48 +264,62 @@ class AssignmentFormulaHandler {
 
       PartialSpan rhsSpan = rhs.span();
 
-      // if resolved RHS is nondet, treat it as a nondet value with target type
-      // this means there is now only one way to represent a nondet value
-      ResolvedSlice rhsResolved =
-          rhs.actual().orElse(new ResolvedSlice(Value.nondetValue(), targetType));
-
-      // convert RHS expression to target type
-      Expression targetTypeRhsExpression =
-          convertResolved(assignmentOptions.conversionType(), targetType, rhsResolved);
-
-      // get the RHS formula for low-level manipulation
-      Optional<Formula> rhsFormula = getValueFormula(targetType, targetTypeRhsExpression);
-      if (rhsFormula.isEmpty()) {
-        // nondet rhs part, make the whole rhs result nondeterministic
-        return Value.nondetValue();
-      }
-
-      // handle full assignments without complications: reinterpret from targetType to
-      // lhsResolved.type and return the resulting expression
-      if (rhsSpan.lhsBitOffset() == 0
-          && rhsSpan.rhsTargetBitOffset() == 0
-          && rhsSpan.bitSize() == lhsBitSize
-          && lhsBitSize == targetBitSize) {
-        return convertResolved(
-            AssignmentOptions.ConversionType.REINTERPRET,
-            lhs.type(),
-            new ResolvedSlice(targetTypeRhsExpression, targetType));
-      }
-
       // add to lhs range set
       long lhsOffset = rhsSpan.lhsBitOffset();
       long lhsAfterEnd = rhsSpan.lhsBitOffset() + rhsSpan.bitSize();
       lhsRangeSet.add(Range.closedOpen(lhsOffset, lhsAfterEnd));
 
-      // construct the partial RHS formula in a separate function
-      Formula partialRhsFormula =
-          constructPartialRhsFormula(lhsBitSize, targetType, rhsSpan, rhsFormula.get());
+      // if resolved RHS is nondet, treat it as a nondet value with target type
+      // this means there is now only one way to represent a nondet value
+      ResolvedSlice rhsResolved =
+          rhs.actual().orElse(new ResolvedSlice(Value.nondetValue(), targetType));
+
+      final Optional<Formula> partialRhsFormula;
+
+      if (assignmentOptions.conversionType() == AssignmentOptions.ConversionType.BYTE_REPEAT) {
+        // treat repeat conversion specially to avoid constructing target-type-sized bitvector
+        // we only need the LHS-sized bitvector after span extraction
+        partialRhsFormula = convertByteRepeatRhs(lhs.type(), rhs.span(), rhsResolved);
+      } else {
+        // convert RHS expression to target type
+        Expression targetTypeRhsExpression =
+            convertResolved(assignmentOptions.conversionType(), targetType, rhsResolved);
+
+        // get the RHS formula for low-level manipulation
+        Optional<Formula> rhsFormula = getValueFormula(targetType, targetTypeRhsExpression);
+        if (rhsFormula.isEmpty()) {
+          // nondet partial formula, make whole assignment nondet
+          partialRhsFormula = Optional.empty();
+        } else {
+          // handle full assignments without complications: reinterpret from targetType to
+          // lhsResolved.type and return the resulting expression
+          if (rhsSpan.lhsBitOffset() == 0
+              && rhsSpan.rhsTargetBitOffset() == 0
+              && rhsSpan.bitSize() == lhsBitSize
+              && lhsBitSize == targetBitSize) {
+            return convertResolved(
+                AssignmentOptions.ConversionType.REINTERPRET,
+                lhs.type(),
+                new ResolvedSlice(targetTypeRhsExpression, targetType));
+          }
+
+          // construct the partial RHS formula in a separate function
+          partialRhsFormula =
+              Optional.of(
+                  constructPartialRhsFormula(lhsBitSize, targetType, rhsSpan, rhsFormula.get()));
+        }
+      }
+
+      if (partialRhsFormula.isEmpty()) {
+        // nondet rhs part, make the whole rhs result nondeterministic
+        return Value.nondetValue();
+      }
 
       // bit-or with other parts, all of them are LHS-sized
       completeRhsFormula =
           (completeRhsFormula != null)
-              ? fmgr.makeOr(completeRhsFormula, partialRhsFormula)
-              : partialRhsFormula;
+              ? fmgr.makeOr(completeRhsFormula, partialRhsFormula.get())
+              : partialRhsFormula.get();
     }
 
     // completeRhsFormula now contains all partial RHS and is LHS-sized (or null)
@@ -445,38 +465,104 @@ class AssignmentFormulaHandler {
       CType toType,
       ResolvedSlice resolved)
       throws UnrecognizedCodeException {
+    // BYTE_REPEAT must be done in convertByteRepeatRhs
+    checkArgument(conversionType != AssignmentOptions.ConversionType.BYTE_REPEAT);
 
-    // convert only if necessary, the types are already simplified
-    if (toType.equals(resolved.type())) {
+    final CType fromType = resolved.type();
+
+    if (toType.equals(fromType)) {
       return resolved.expression();
     }
 
-    Optional<Formula> optionalRhsFormula = getValueFormula(resolved.type(), resolved.expression());
+    Optional<Formula> optionalRhsFormula = getValueFormula(fromType, resolved.expression());
     if (optionalRhsFormula.isEmpty()) {
       // nondeterministic RHS expression has no formula, do not convert
       return resolved.expression();
     }
-    Formula rhsFormula = getValueFormula(resolved.type(), resolved.expression()).orElseThrow();
+    Formula rhsFormula = getValueFormula(fromType, resolved.expression()).orElseThrow();
     return switch (conversionType) {
       case CAST ->
       // cast rhs from rhs type to lhs type
-      Value.ofValue(conv.makeCast(resolved.type(), toType, rhsFormula, constraints, edge));
+      Value.ofValue(conv.makeCast(fromType, toType, rhsFormula, constraints, edge));
       case REINTERPRET -> {
-        if (toType instanceof CBitFieldType) {
-          // cannot reinterpret to bit-field type
-          conv.logger.logfOnce(
-              Level.WARNING,
-              "%s: Making assignment from %s to %s nondeterministic because reinterpretation to bitfield is not supported",
-              edge.getFileLocation(),
-              resolved.type(),
-              toType);
-          yield Value.nondetValue();
-        } else {
-          // reinterpret rhs from rhs type to lhs type
-          yield Value.ofValue(conv.makeValueReinterpretation(resolved.type(), toType, rhsFormula));
+        // reinterpret rhs from rhs type to lhs type
+        final @Nullable Formula reinterpretedFormula =
+            conv.makeValueReinterpretation(resolved.type(), toType, rhsFormula);
+        // makeValueReinterpretation returns null if reintepretation was not possible, throw in that
+        // case
+        if (reinterpretedFormula == null) {
+          throw new UnrecognizedCodeException(
+              String.format(
+                  "Reinterpretation from %s to %s not supported", resolved.type(), toType),
+              edge);
         }
+        yield Value.ofValue(reinterpretedFormula);
+      }
+      default -> throw new IllegalArgumentException("Unexpected value: " + conversionType);
+      case BYTE_REPEAT -> {
+        throw new AssertionError();
       }
     };
+  }
+
+  /**
+   * Converts right-hand side byte formula to left-hand-side formula by treating the byte as
+   * infinitely repeating and selecting the correct span.
+   *
+   * <p>Note that we are skipping the target type entirely; we can do this as we are not casting.
+   *
+   * @param lhsType Left-hand-side type we are converting to.
+   * @param span Partial span to use when extracting from "infinitely-repeating" byte.
+   * @param rhs Resolved array slice containing the expression to convert and type we are converting
+   *     from.
+   * @return Formula with left-hand-side type or empty Optional if the value is nondeterministic.
+   */
+  private Optional<Formula> convertByteRepeatRhs(
+      CType lhsType, PartialSpan span, ResolvedSlice rhs) {
+
+    final CType rhsType = rhs.type();
+    Optional<Formula> rhsFormula = getValueFormula(rhsType, rhs.expression());
+    if (rhsFormula.isEmpty()) {
+      return Optional.empty();
+    }
+
+    // reinterpret as bitvector
+    final BitvectorFormulaManagerView bvmgr = conv.fmgr.getBitvectorFormulaManager();
+    final BitvectorFormula bitvectorFormula =
+        conv.makeValueReinterpretationToBitvector(rhsType, rhsFormula.get());
+
+    final long fromBitSizeof = conv.getBitSizeof(rhsType);
+    // the type which we are repeating must be byte-sized
+    // addressing would not make any sense otherwise
+    verify(fromBitSizeof == conv.machineModel.getSizeofCharInBits());
+
+    // get total starting bit offset
+    final long totalExtractBitOffset = span.lhsBitOffset - span.rhsTargetBitOffset;
+    // get starting bit offset within byte; since all RHS bytes are the same, no information is lost
+    // due to Math.floorMod, this is always non-negative
+    final long extractBitInByteOffset =
+        Math.floorMod(totalExtractBitOffset, conv.machineModel.getSizeofCharInBits());
+
+    final long minimumRepeatedBitSize = extractBitInByteOffset + span.bitSize;
+
+    // repeat rhs as necessary to get the minimum-size bitvector formula to extract from
+    long numRepeats = (minimumRepeatedBitSize / fromBitSizeof);
+    if (minimumRepeatedBitSize % fromBitSizeof != 0) {
+      numRepeats += 1;
+    }
+    BitvectorFormula repeatedFormula = bvmgr.makeBitvector(0, 0);
+    for (long i = 0; i < numRepeats; ++i) {
+      repeatedFormula = bvmgr.concat(repeatedFormula, bitvectorFormula);
+    }
+
+    final long extractLsb = extractBitInByteOffset;
+    final long extractMsb = extractBitInByteOffset + span.bitSize - 1;
+
+    final BitvectorFormula extractedFormula =
+        bvmgr.extract(repeatedFormula, (int) extractMsb, (int) extractLsb);
+
+    // convert to the actual type from bitvector type
+    return Optional.of(conv.makeValueReinterpretationFromBitvector(lhsType, extractedFormula));
   }
 
   /**
