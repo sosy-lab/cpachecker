@@ -515,7 +515,8 @@ class AssignmentFormulaHandler {
    * @param span Partial span to use when extracting from "infinitely-repeating" byte.
    * @param rhs Resolved array slice containing the expression to convert and type we are converting
    *     from.
-   * @return Formula with left-hand-side type or empty Optional if the value is nondeterministic.
+   * @return Bitvector formula with left-hand-side type size or empty Optional if the value is
+   *     nondeterministic.
    */
   private Optional<Formula> convertByteRepeatRhs(
       CType lhsType, PartialSpan span, ResolvedSlice rhs) {
@@ -561,8 +562,8 @@ class AssignmentFormulaHandler {
     final BitvectorFormula extractedFormula =
         bvmgr.extract(repeatedFormula, (int) extractMsb, (int) extractLsb);
 
-    // convert to the actual type from bitvector type
-    return Optional.of(conv.makeValueReinterpretationFromBitvector(lhsType, extractedFormula));
+    // do not convert from bitvector type
+    return Optional.of(extractedFormula);
   }
 
   /**
