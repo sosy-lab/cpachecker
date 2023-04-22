@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+
 /**
  * Local options for assignments that are to be performed. Changes the assignment behavior depending
  * on the needs of the caller.
@@ -43,14 +45,18 @@ record AssignmentOptions(
     REINTERPRET,
     /**
      * Byte repeat conversion requires byte-sized right-hand side. It fills each byte of left-hand
-     * side with the given right-hand side value. In case there are bitfields within the left-hand
-     * side, it is up to the assignment caller to ensure rhs is either all-ones or all-zeros so that
-     * the assigned bitfield value is well-known, as bitfield bit alignment is
-     * implementation-defined.
+     * side with the given right-hand side value.
      *
      * <p>In case this conversion is used, the caller must ensure that right-hand-side slice
      * expression contains no modifiers and the base is a cast to unsigned char. Otherwise, an
      * exception is thrown during assignment.
+     *
+     * <p>An {@link UnsupportedCodeException} is thrown if the full left-hand side type is void,
+     * which signifies incomplete type discovery.
+     *
+     * <p>An {@link UnsupportedCodeException} is thrown if there are bitfields within the left-hand
+     * side and it cannot be determined that rhs is either all-ones or all-zeros, so bitfield value
+     * would be heavily implementation-defined.
      *
      * <p>This assignment type is intended chiefly for the {@code memset} function.
      *

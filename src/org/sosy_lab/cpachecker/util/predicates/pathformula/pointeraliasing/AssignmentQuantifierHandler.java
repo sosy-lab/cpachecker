@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -271,6 +272,18 @@ class AssignmentQuantifierHandler {
     return result;
   }
 
+  /**
+   * Checks whether an assignment is supported.
+   *
+   * @see AssignmentOptions.ConversionType#BYTE_REPEAT
+   * @param assignment The assignment to check.
+   * @throws UnrecognizedCodeException Thrown if conversion type is {@link
+   *     AssignmentOptions.ConversionType#BYTE_REPEAT} and the full left-hand side type is void,
+   *     which signifies incomplete type discovery. Also thrown if conversion type is {@link
+   *     AssignmentOptions.ConversionType#BYTE_REPEAT} and there are bitfields within the left-hand
+   *     side and it cannot be determined that rhs is either all-ones or all-zeros, so bitfield
+   *     value would be heavily implementation-defined.
+   */
   private void checkAssignmentSupported(PartialAssignment assignment)
       throws UnrecognizedCodeException {
 
@@ -279,11 +292,16 @@ class AssignmentQuantifierHandler {
       return;
     }
 
-    // when using BYTE_REPEAT conversion type, make sure that if the destination is a bitfield,
-    // the rhs definitely sets every bit to zero or one; otherwise, behavior would be heavily
-    // implementation-defined
-    CType fullExpressionType =
+    // make sure that the full expression type is not void; this is not permitted
+    final CType fullExpressionType =
         typeHandler.simplifyType(assignment.lhs.actual.getFullExpressionType());
+
+    if (fullExpressionType instanceof CVoidType) {
+      throw new UnrecognizedCodeException("Unsupported assignment to void", edge);
+    }
+
+    // make sure that if the destination is a bitfield, the rhs definitely sets every bit to zero or
+    // one; otherwise, behavior would be heavily implementation-defined
 
     if (fullExpressionType instanceof CBitFieldType) {
         for (PartialAssignmentRhs rhs : assignment.rhsList) {
