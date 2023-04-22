@@ -185,7 +185,9 @@ public class ValueAnalysisSummaryCache {
 
   private void removeSummariesForLocation(String pLocation) {
     locationStringToSummaries.removeAll(pLocation);
-    for (var impactedLocation : impacts.get(pLocation)) {
+    var impactedLocations = impacts.get(pLocation);
+    impacts.removeAll(pLocation);
+    for (var impactedLocation : impactedLocations) {
       removeSummariesForLocation(impactedLocation);
     }
   }
@@ -259,12 +261,6 @@ public class ValueAnalysisSummaryCache {
     return getApplicableSummary(partitioning.getBlockForCallNode(pCallNode), pEntryState);
   }
 
-  /**
-   * Apply the
-   * @param pCallNode
-   * @param pEntryState
-   * @return
-   */
   public ValueAnalysisState applySummaryOrForget(
       CFANode pCallNode, ValueAnalysisState pEntryState) {
     var summary = getApplicableSummary(partitioning.getBlockForCallNode(pCallNode), pEntryState);
