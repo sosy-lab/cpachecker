@@ -236,6 +236,7 @@ abstract class AbstractBMCAlgorithm
       new CopyOnWriteArrayList<>();
   
   private @Nullable Set<CandidateInvariant> predicatePrecisionCandidates;
+  private @Nullable PredicateToKInductionInvariantConverter predToKIndInv;
 
   protected AbstractBMCAlgorithm(
       Algorithm pAlgorithm,
@@ -364,8 +365,7 @@ abstract class AbstractBMCAlgorithm
         new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, pCFA.getMachineModel());
     
     if(initialPredicatePrecisionFile != null) {
-      @SuppressWarnings("resource")
-      PredicateToKInductionInvariantConverter predToKIndInv = new PredicateToKInductionInvariantConverter(config, logger, shutdownNotifier, cfa);
+      predToKIndInv = new PredicateToKInductionInvariantConverter(config, logger, shutdownNotifier, cfa);
       predicatePrecisionCandidates = predToKIndInv.convertPredPrecToKInductionInvariant(initialPredicatePrecisionFile);
     } else {
       predicatePrecisionCandidates = null;
@@ -1016,6 +1016,9 @@ abstract class AbstractBMCAlgorithm
     pStatsCollection.add(stats);
     if (invariantGenerator instanceof StatisticsProvider) {
       ((StatisticsProvider) invariantGenerator).collectStatistics(pStatsCollection);
+    }
+    if (predToKIndInv != null) {
+      pStatsCollection.add(predToKIndInv);
     }
   }
 

@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
@@ -105,7 +106,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
   private Boolean localAsFunction = false;
 
   private final Timer conversionTime = new Timer();
-  private int numVarsAddedToPrecision = 0;
+  private int numInvariants = 0;
 
   public PredicateToKInductionInvariantConverter(
       final Configuration pConfig,
@@ -118,12 +119,6 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
     config.inject(this);
-    try (Stream<Path> stream = Files.walk(Paths.get("."))) {
-      stream.filter(Files::isRegularFile)
-            .forEach((file) -> logger.log(Level.INFO, file));
-  } catch (IOException e) {
-      logger.logException(Level.WARNING, e, "no runtime found.");
-    }
   }
 
   public Set<CandidateInvariant> convertPredPrecToKInductionInvariant(
@@ -180,7 +175,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     if (result == null) {
       return ImmutableSet.of();
     }
-    numVarsAddedToPrecision += result.size();
+    numInvariants += result.size();
     return ImmutableSet.copyOf(result);
   }
 
@@ -261,10 +256,11 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     pConversionShutdownNotifier.shutdownIfNecessary();
     
     Set<CandidateInvariant> candidates = new HashSet<>();
+    BooleanFormulaManagerView booleanFMgr = pFMgr.getBooleanFormulaManager();
     
     // Combine all boolean formulas per node and make invariant
     for(CFANode node : allPreds.keySet()) {
-      BooleanFormula completeFormula = pFMgr.makeConcat(new ArrayList<>(allPreds.get(node)));
+      BooleanFormula completeFormula = booleanFMgr.and(allPreds.get(node));
       candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(node, completeFormula, pFMgr));
     }
     
@@ -276,12 +272,12 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
   public void printStatistics(
       final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
     put(pOut, 0, "Time for adapting predicate precision", conversionTime);
-    put(pOut, 0, "Number of tracked variables added", numVarsAddedToPrecision);
+    put(pOut, 0, "Number of invariants proposed", numInvariants);
   }
 
   @Override
   public String getName() {
-    return "Predicate Precision Adapter for K-Induction Invariants";
+    return "Predicate Precision to K-Induction Invariants Converter";
   }
   
   @Override
