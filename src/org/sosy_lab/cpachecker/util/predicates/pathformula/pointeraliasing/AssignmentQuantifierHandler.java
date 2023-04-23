@@ -719,6 +719,9 @@ class AssignmentQuantifierHandler {
     final String fieldName = modifier.field().getName();
     CType fieldType = conv.typeHandler.getSimplifiedType(modifier.field());
 
+    // add field to essential fields for uninterpreted functions
+    pts.addEssentialFields(ImmutableList.of(CompositeField.of(baseType, modifier.field())));
+
     // composite types may be aliased or unaliased, resolve in both cases
     if (resolved.expression().isUnaliasedLocation()) {
       UnaliasedLocation resultLocation =
