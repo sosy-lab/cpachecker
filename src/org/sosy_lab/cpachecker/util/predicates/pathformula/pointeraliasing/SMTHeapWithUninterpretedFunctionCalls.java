@@ -35,7 +35,7 @@ class SMTHeapWithUninterpretedFunctionCalls implements SMTHeap {
       int oldIndex,
       int newIndex,
       List<SMTAddressValue<I, E>> assignments) {
-    BooleanFormula result = null;
+    BooleanFormula result = formulaManager.getBooleanFormulaManager().makeTrue();
     for (SMTAddressValue<I, E> assignment : assignments) {
       I address = assignment.address();
       E value = assignment.value();
@@ -44,16 +44,9 @@ class SMTHeapWithUninterpretedFunctionCalls implements SMTHeap {
       final Formula lhs =
           ffmgr.declareAndCallUninterpretedFunction(targetName, newIndex, targetType, address);
       final BooleanFormula assignmentFormula = formulaManager.assignment(lhs, value);
-      if (result != null) {
-        result = formulaManager.getBooleanFormulaManager().or(result, assignmentFormula);
-      } else {
-        result = assignmentFormula;
-      }
+        result = formulaManager.makeAnd(result, assignmentFormula);
     }
-    if (result != null) {
-      return result;
-    }
-    return makeIdentityPointerAssignment(targetName, pTargetType, oldIndex, newIndex);
+    return result;
   }
 
   @Override
