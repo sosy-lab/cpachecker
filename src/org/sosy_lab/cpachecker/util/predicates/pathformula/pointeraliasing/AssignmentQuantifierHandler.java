@@ -779,32 +779,21 @@ class AssignmentQuantifierHandler {
     CPointerType basePointerType = (CPointerType) CTypes.adjustFunctionOrArrayType(baseType);
     final CType elementType = typeHandler.simplifyType(basePointerType.getType());
 
-    // handle depending on type of base, normally should be only aliased
-    // as types with arrays cannot be unaliased
-    // also can be nondet due to bitfields that we do not currently handle
+    // get the base
     final Expression base = resolved.expression();
 
-    if (base.isAliasedLocation()) {
-      // normal operation
-      // compute whether the base is direct-access, base type can never be composite here
-      // see CExpressionVisitorWithPointerAliasing#dereference(CExpression, Expression)
-      // for the direct access reasoning
-      final boolean directAccess =
-          resolved.type() instanceof CArrayType && !resolvedIsFunctionParameter;
-      // subscript is the encoded modifier variable
-      final Formula subscript = resolvedModifier.encodedVariable();
-      // use addressHandler to apply subscript
-      Expression adjustedExpression =
-          addressHandler.applySubscriptOffset(baseType, base, directAccess, elementType, subscript);
-      return new ResolvedSlice(adjustedExpression, elementType);
-    } else if (base.isNondetValue()) {
-      // should only happen due to bitfields that we do not currently handle
-      // silently pass through with the new type
-      return new ResolvedSlice(Value.nondetValue(), elementType);
-    } else {
-      // should never happen
-      throw new AssertionError();
-    }
+    // compute whether the base is direct-access, base type can never be composite here
+    // see CExpressionVisitorWithPointerAliasing#dereference(CExpression, Expression)
+    // for the direct access reasoning
+    final boolean directAccess =
+        resolved.type() instanceof CArrayType && !resolvedIsFunctionParameter;
+    // subscript is the encoded modifier variable
+    final Formula subscript = resolvedModifier.encodedVariable();
+    // use addressHandler to apply subscript
+    // the differentiation based on type of expression will be handled in it
+    Expression adjustedExpression =
+        addressHandler.applySubscriptOffset(baseType, base, directAccess, elementType, subscript);
+    return new ResolvedSlice(adjustedExpression, elementType);
   }
 
 }
