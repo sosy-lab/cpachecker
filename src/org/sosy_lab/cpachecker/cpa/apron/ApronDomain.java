@@ -38,11 +38,7 @@ class ApronDomain implements AbstractDomain {
       return true;
     }
 
-    try {
-      return apronState1.isLessOrEquals(apronState2);
-    } catch (ApronException e) {
-      throw new RuntimeException("An error occured while operating with the apron library", e);
-    }
+    return apronState1.isLessOrEquals(apronState2);
   }
 
   @Override

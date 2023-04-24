@@ -13,8 +13,6 @@ import apron.Manager;
 import apron.Octagon;
 import apron.Polka;
 import apron.PolkaEq;
-import apron.SetUp;
-import org.sosy_lab.common.NativeLibraries;
 
 public class ApronManager {
 
@@ -29,17 +27,7 @@ public class ApronManager {
   private final Manager manager;
 
   public ApronManager(AbstractDomain pAbstractDomain) {
-    try {
-      SetUp.init(
-          NativeLibraries.getNativeLibraryPath().resolve("apron").toAbsolutePath().toString());
-    } catch (RuntimeException e) {
-      if ("Could not add the necessary path to java.library.path".equals(e.getMessage())) {
-        UnsatisfiedLinkError error = new UnsatisfiedLinkError();
-        error.initCause(e);
-        throw error;
-      }
-      throw e;
-    }
+    // Apron now tries to load itself statically
     manager = createManager(pAbstractDomain);
   }
 
