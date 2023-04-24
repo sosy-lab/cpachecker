@@ -1,3 +1,13 @@
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 Some information about the compiliation of the Apron domain:
 - Can be found here: https://antoinemine.github.io/Apron/doc/
 - Compile for Java (excpluding everything not needed) with: 
