@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 
@@ -19,7 +18,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalLong;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.AdaptingCExpressionVisitor;
@@ -167,6 +165,14 @@ class CExpressionVisitorWithPointerAliasing
     this.pts = pts;
     this.regionMgr = regionMgr;
     this.function = function;
+
+    addressHandler =
+        new AddressHandler(
+            cToFormulaConverter,
+            ssa,
+            constraints,
+            errorConditions,
+            regionMgr);
   }
 
   /**
@@ -179,20 +185,6 @@ class CExpressionVisitorWithPointerAliasing
   }
 
   /**
-   * Adds a constraint that both given formulae have the same base address.
-   *
-   * @param p1 The first formula.
-   * @param p2 The second formula.
-   */
-  private void addEqualBaseAddressConstraint(final Formula p1, final Formula p2) {
-    if (errorConditions.isEnabled()) {
-      // Constraint is only necessary for correct error conditions
-      constraints.addConstraint(
-          conv.fmgr.makeEqual(conv.makeBaseAddressOfTerm(p1), conv.makeBaseAddressOfTerm(p2)));
-    }
-  }
-
-  /**
    * Creates a formula for the value of an expression.
    *
    * @param e The expression.
@@ -201,24 +193,7 @@ class CExpressionVisitorWithPointerAliasing
    * @return A formula for the value.
    */
   private Formula asValueFormula(final Expression e, final CType type, final boolean isSafe) {
-    if (e.isNondetValue()) {
-      // should happen only because of bit fields that we currently do not handle
-      String nondetName = "__nondet_value_" + CTypeUtils.typeToString(type).replace(' ', '_');
-      return conv.makeNondet(nondetName, type, ssa, constraints);
-    } else if (e.isValue()) {
-      return e.asValue().getValue();
-    } else if (e.isAliasedLocation()) {
-      MemoryRegion region = e.asAliasedLocation().getMemoryRegion();
-      if (region == null) {
-        region = regionMgr.makeMemoryRegion(type);
-      }
-      return !isSafe
-          ? conv.makeDereference(
-              type, e.asAliasedLocation().getAddress(), ssa, errorConditions, region)
-          : conv.makeSafeDereference(type, e.asAliasedLocation().getAddress(), ssa, region);
-    } else { // Unaliased location
-      return conv.makeVariable(e.asUnaliasedLocation().getVariableName(), type, ssa);
-    }
+    return addressHandler.getValueFormula(e, type, isSafe);
   }
 
   /**
@@ -252,28 +227,24 @@ class CExpressionVisitorWithPointerAliasing
    * <i>ADDRESS_OF_a</i> respectively. So this function will add the additional dereference if
    * necessary.
    *
-   * @param pE the source C expression form which the resulting {@code Expression} was obtained
-   * @param pResult the {@code Expression} resulting from visiting the C expression {@code pE},
+   * @param source the source C expression form which the resulting {@code Expression} was obtained
+   * @param expression the {@code Expression} resulting from visiting the C expression {@code pE},
    *     should normally be a Location, but in case of a value the corresponding location is
    *     returned nontheless (e.g. *((int *)0) -- explicit access violation, may be used for
    *     debugging in some cases)
    * @return the result AliasedLocation of the pointed value
    */
-  private AliasedLocation dereference(final CExpression pE, final Expression pResult) {
-    final CType type = typeHandler.getSimplifiedType(pE);
-    // Filter out composites and proper (non-funcion-argument) arrays, for them the result
+  private AliasedLocation dereference(final CExpression source, final Expression expression) {
+    final CType type = typeHandler.getSimplifiedType(source);
+    // Filter out composites and proper (non-function-parameter) arrays, for them the result
     // already contains the location of the first field/element.
-    if (pResult.isAliasedLocation()
-        && (type instanceof CCompositeType
-            || (type instanceof CArrayType
-                && (!(pE instanceof CIdExpression)
-                    || !(((CIdExpression) pE).getDeclaration()
-                        instanceof CParameterDeclaration))))) {
-      return pResult.asAliasedLocation();
-    } else {
-      return AliasedLocation.ofAddress(
-          asValueFormula(pResult, CTypeUtils.implicitCastToPointer(type)));
-    }
+    boolean isFunctionParameter =
+        source instanceof CIdExpression idExpression
+            && idExpression.getDeclaration() instanceof CParameterDeclaration;
+    boolean directAddress =
+        type instanceof CCompositeType || (type instanceof CArrayType && !isFunctionParameter);
+
+    return addressHandler.applyDereference(type, expression, directAddress);
   }
 
   /**
@@ -292,11 +263,10 @@ class CExpressionVisitorWithPointerAliasing
     //    is returned (arrays as function parameters also fall into this category)
     // So we use #dereference() to resolve the ambiguity
     final CExpression arrayExpression = e.getArrayExpression();
-    final Expression base = dereference(arrayExpression, arrayExpression.accept(this));
+    final AliasedLocation base = dereference(arrayExpression, arrayExpression.accept(this));
 
-    // Now we should always have the aliased location of the first array element
-    checkArgument(base.isAliasedLocation());
-
+    // now, we should always have the aliased location of the first array element
+    // we create the subscript index by visiting the subscript expression and casting to void*
     final CType elementType = typeHandler.getSimplifiedType(e);
     final CExpression subscript = e.getSubscriptExpression();
     final CType subscriptType = typeHandler.getSimplifiedType(subscript);
@@ -308,12 +278,8 @@ class CExpressionVisitorWithPointerAliasing
             constraints,
             edge);
 
-    final Formula coeff =
-        conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
-    final Formula baseAddress = base.asAliasedLocation().getAddress();
-    final Formula address = conv.fmgr.makePlus(baseAddress, conv.fmgr.makeMultiply(coeff, index));
-    addEqualBaseAddressConstraint(baseAddress, address);
-    return AliasedLocation.ofAddress(address);
+    // we then apply the subscript to already dereferenced base
+    return addressHandler.applySubscriptOffsetToDereferencedBase(base, elementType, index);
   }
 
   /**
@@ -327,33 +293,25 @@ class CExpressionVisitorWithPointerAliasing
   public Expression visit(CFieldReference e) throws UnrecognizedCodeException {
     e = e.withExplicitPointerDereference();
 
+    // try to express as an unaliased location through a variable first
     BaseVisitor baseVisitor = new BaseVisitor(edge, pts, typeHandler);
     final Variable variable = e.accept(baseVisitor);
     if (variable != null) {
+      // return the unaliased location corresponding to variable
       final String variableName = variable.getName();
       return UnaliasedLocation.ofVariableName(variableName);
     } else {
+      // expressing as unaliased location failed, return a corresponding aliased location
       final CType fieldOwnerType = typeHandler.getSimplifiedType(e.getFieldOwner());
       if (fieldOwnerType instanceof CCompositeType) {
+        // visit the field owner to get the base aliased location
         final AliasedLocation base = e.getFieldOwner().accept(this).asAliasedLocation();
-
-        final String fieldName = e.getFieldName();
-        usedFields.add(CompositeField.of((CCompositeType) fieldOwnerType, fieldName));
-        final OptionalLong fieldOffset =
-            typeHandler.getOffset((CCompositeType) fieldOwnerType, fieldName);
-        if (!fieldOffset.isPresent()) {
-          // TODO This looses values of bit fields.
-          // If fixed remove the condition in asValueFormula and AssignmentHandler.handleAssignment
-          return Value.nondetValue();
-        }
-        final Formula offset =
-            conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset.orElseThrow());
-        final Formula address = conv.fmgr.makePlus(base.getAddress(), offset);
-        addEqualBaseAddressConstraint(base.getAddress(), address);
-        final CType fieldType = typeHandler.simplifyType(e.getExpressionType());
-        final MemoryRegion region =
-            regionMgr.makeMemoryRegion(fieldOwnerType, fieldType, fieldName);
-        return AliasedLocation.ofAddressWithRegion(address, region);
+        // make the field
+        CompositeField field = CompositeField.of((CCompositeType) fieldOwnerType, e.getFieldName());
+        // add the field to used fields for use by UF finishing assignments
+        usedFields.add(field);
+        // apply the field offset to base aliased location
+        return addressHandler.applyFieldOffset(base, field);
       } else {
         throw new UnrecognizedCodeException("Field owner of a non-composite type", edge, e);
       }
@@ -518,7 +476,7 @@ class CExpressionVisitorWithPointerAliasing
                                 "Taking address of bit fields is not allowed", e));
             final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset);
             addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base, offset));
-            addEqualBaseAddressConstraint(base, addressExpression.getAddress());
+            addressHandler.addEqualBaseAddressConstraint(base, addressExpression.getAddress());
           }
         }
 
@@ -608,10 +566,10 @@ class CExpressionVisitorWithPointerAliasing
     switch (op) {
       case PLUS:
         if (t1 instanceof CPointerType) {
-          addEqualBaseAddressConstraint(result, f1);
+          addressHandler.addEqualBaseAddressConstraint(result, f1);
         }
         if (t2 instanceof CPointerType) {
-          addEqualBaseAddressConstraint(result, f2);
+          addressHandler.addEqualBaseAddressConstraint(result, f2);
         }
         break;
       case MINUS:
@@ -979,6 +937,8 @@ class CExpressionVisitorWithPointerAliasing
   private String function;
 
   private final ExpressionToFormulaVisitor delegate;
+
+  private final AddressHandler addressHandler;
 
   private final List<CompositeField> usedFields = new ArrayList<>(1);
   private final List<CompositeField> initializedFields = new ArrayList<>();
