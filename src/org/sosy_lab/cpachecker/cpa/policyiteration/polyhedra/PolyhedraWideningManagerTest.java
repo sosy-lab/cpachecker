@@ -44,7 +44,7 @@ public class PolyhedraWideningManagerTest {
     try {
       pwm = new PolyhedraWideningManager(stats, LogManager.createTestLogManager());
     } catch (UnsatisfiedLinkError e) {
-      //assumeNoException("missing binary dependency for old apron binary", e);
+      // assumeNoException("missing binary dependency for old apron binary", e);
       throw new AssertionError(e);
     }
   }

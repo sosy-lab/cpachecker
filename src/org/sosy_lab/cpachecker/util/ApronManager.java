@@ -28,17 +28,13 @@ public class ApronManager {
   private final Manager manager;
 
   public ApronManager(AbstractDomain pAbstractDomain) {
-    try {
-      // Previously Apron added the location to the classpath using some hacky old Java code.
-      // This does not work anymore and is discouraged anyway!
-      // The loading below does only work if you add the lib/native/x86_64... folder to your local
-      // classpath
-      // TODO: fix loading of APRON
-      NativeLibraries.loadLibrary("apron");
-      NativeLibraries.loadLibrary("jgmp");
-    } catch (RuntimeException e) {
-      throw e;
-    }
+    // Previously Apron added the location to the classpath using some hacky old Java code.
+    // This does not work anymore and is discouraged anyway!
+    // The loading below does only work if you add the lib/native/x86_64... folder to your local
+    // classpath
+    // TODO: fix loading of APRON
+    NativeLibraries.loadLibrary("japron");
+    NativeLibraries.loadLibrary("jgmp");
 
     manager = createManager(pAbstractDomain);
   }
