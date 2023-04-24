@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sosy_lab.common.log.LogManager;
@@ -49,6 +50,7 @@ public class PolyhedraWideningManagerTest {
     }
   }
 
+  @Ignore
   @Test
   public void test_polyhedra() throws ApronException {
     // FIXME Tests should not rely on a user manually checking log message
