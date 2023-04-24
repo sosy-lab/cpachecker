@@ -10,9 +10,9 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assume.assumeNoException;
 
 import apron.Abstract1;
+import apron.ApronException;
 import apron.Environment;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -39,16 +39,18 @@ public class PolyhedraWideningManagerTest {
   @Before
   public void setUp() {
     PolicyIterationStatistics stats = Mockito.mock(PolicyIterationStatistics.class);
+    pwm = new PolyhedraWideningManager(stats, LogManager.createTestLogManager());
+
     try {
       pwm = new PolyhedraWideningManager(stats, LogManager.createTestLogManager());
     } catch (UnsatisfiedLinkError e) {
-      assumeNoException("missing binary dependency for old apron binary", e);
+      //assumeNoException("missing binary dependency for old apron binary", e);
       throw new AssertionError(e);
     }
   }
 
   @Test
-  public void test_polyhedra() {
+  public void test_polyhedra() throws ApronException {
     // FIXME Tests should not rely on a user manually checking log message
     // but instead use proper assertions, otherwise they are useless as regression tests.
     CIdExpression x = makeVar("x", CNumericTypes.INT);
