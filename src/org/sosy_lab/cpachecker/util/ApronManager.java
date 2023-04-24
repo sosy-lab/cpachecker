@@ -13,6 +13,7 @@ import apron.Manager;
 import apron.Octagon;
 import apron.Polka;
 import apron.PolkaEq;
+import org.sosy_lab.common.NativeLibraries;
 
 public class ApronManager {
 
@@ -27,7 +28,18 @@ public class ApronManager {
   private final Manager manager;
 
   public ApronManager(AbstractDomain pAbstractDomain) {
-    // Apron now tries to load itself statically
+    try {
+      // Previously Apron added the location to the classpath using some hacky old Java code.
+      // This does not work anymore and is discouraged anyway!
+      // The loading below does only work if you add the lib/native/x86_64... folder to your local
+      // classpath
+      // TODO: fix loading of APRON
+      NativeLibraries.loadLibrary("apron");
+      NativeLibraries.loadLibrary("jgmp");
+    } catch (RuntimeException e) {
+      throw e;
+    }
+
     manager = createManager(pAbstractDomain);
   }
 
