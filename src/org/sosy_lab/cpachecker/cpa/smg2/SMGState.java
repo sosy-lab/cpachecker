@@ -1005,31 +1005,6 @@ public class SMGState
     return true;
   }
 
-  private boolean checkEqualHeapValidity(SMGState pOther) {
-    // Check equal validity for heap objects, or we can't determine mem-leaks later on
-    if (memoryModel.getHeapObjects().size() > pOther.memoryModel.getHeapObjects().size()) {
-      return false;
-    } else {
-      // Check that the heap objects are equal in validity
-      for (SMGObject heapObjThis : memoryModel.getHeapObjects()) {
-        if (pOther.memoryModel.getHeapObjects().contains(heapObjThis)
-            && (pOther.memoryModel.getSmg().isValid(heapObjThis)
-                != memoryModel.getSmg().isValid(heapObjThis))) {
-          return false;
-        }
-      }
-      // Check that there are no SMGObjects that could be pruned in this, but not in other
-      SPCAndSMGObjects newHeapAndUnreachablesThis = memoryModel.copyAndPruneUnreachable();
-      SPCAndSMGObjects newHeapAndUnreachablesOther = pOther.memoryModel.copyAndPruneUnreachable();
-      if (!newHeapAndUnreachablesOther
-          .getSMGObjects()
-          .containsAll(newHeapAndUnreachablesThis.getSMGObjects())) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   private boolean checkEqualityOfMemoryForTwoStates(
       SMGState pOther, EqualityCache<Value> equalityCache) throws SMGException {
     // We check the tolerant way; i.e. ignore all type information
@@ -1092,17 +1067,15 @@ public class SMGState
     // Check that the values of all variables (local and global) are either equal or
     // overapproximated and that the memory is equal (such that the shape of memory reachable by
     // pointers is lessOrEqual)
-    if (!checkEqualityOfMemoryForTwoStates(pOther, equalityCache)) {
-      return false;
-    }
-
-    // Check equal validity for heap objects, or we can't determine mem-leaks later on
-    return checkEqualHeapValidity(pOther);
+    // Validity is checked while checking values and the shape!
+    // There might linger some invalidated memory with no connection and that's fine.
+    return checkEqualityOfMemoryForTwoStates(pOther, equalityCache);
   }
 
   /**
    * Check the equality of values. Depending on the options symbolics are always equal or only for
-   * ids. Addresses are compared by the shape of their memory. Public for tests only!
+   * ids. Addresses are compared by the shape of their memory. This includes validity of the memory.
+   * Public for tests only!
    *
    * @param thisState state of thisValue
    * @param thisValue value in thisState
@@ -1125,7 +1098,7 @@ public class SMGState
 
   /**
    * Check the equality of values. Depending on the options symbolics are always equal or only for
-   * ids. Addresses are compared by the shape of their memory.
+   * ids. Addresses are compared by the shape of their memory. This includes validity of the memory.
    *
    * @param thisState state of thisValue
    * @param thisValue value in thisState
@@ -1211,7 +1184,21 @@ public class SMGState
   }
 
   /* Check heap equality as far as possible. This has some limitations.
-   * We just check the shape and known values/pointers. */
+   * We just check the shape and known values/pointers and validity. */
+
+  /**
+   * Check heap equality as far as possible for 2 pointers. We just check the shape and known
+   * values/pointers and validity.
+   *
+   * @param thisState {@link SMGState} for thisAddress
+   * @param thisAddress pointer in thisState
+   * @param otherState {@link SMGState} for otherAddress
+   * @param otherAddress pointer in otherState
+   * @param equalityCache current {@link EqualityCache}
+   * @param thisAlreadyCheckedPointers already checked pointers (can be expected to be equal)
+   * @return false if not equal. True else.
+   * @throws SMGException for critical errors
+   */
   private boolean isHeapEqualForTwoPointersWithTwoStates(
       SMGState thisState,
       Value thisAddress,
@@ -3700,6 +3687,7 @@ public class SMGState
     SMGPointsToEdge ptEdge = memoryModel.getSmg().getPTEdge(smgValueAddress).orElseThrow();
     // Every DLL is also a SLL
     if (ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment) {
+      // When materializing the first element is the minimal list (for 0+)
       return materializeLinkedList(smgValueAddress, ptEdge, currentState);
     }
     Preconditions.checkArgument(!(ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment));
