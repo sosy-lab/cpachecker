@@ -402,6 +402,11 @@ abstract class AbstractBMCAlgorithm
     
     AlgorithmStatus status;
 
+  //suggest candidates from predicate precision file
+    if(predicatePrecisionCandidates != null) {
+      candidateGenerator.suggestCandidates(predicatePrecisionCandidates);
+    }
+    
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       invariantGeneratorHeadStart.waitForInvariantGenerator();
 
@@ -432,10 +437,7 @@ abstract class AbstractBMCAlgorithm
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
         
-        //suggest candidates from predicate precision file
-        if(predicatePrecisionCandidates != null) {
-            candidateGenerator.suggestCandidates(predicatePrecisionCandidates);
-        }
+        
         // Perform a bounded model check on each candidate invariant
         Iterator<CandidateInvariant> candidateInvariantIterator = candidateGenerator.iterator();
         while (candidateInvariantIterator.hasNext()) {

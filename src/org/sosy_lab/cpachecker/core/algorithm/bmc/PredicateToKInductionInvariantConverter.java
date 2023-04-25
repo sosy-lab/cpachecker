@@ -39,8 +39,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionBootstrapper.InitialPredicatesOptions;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
@@ -56,6 +58,9 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "bmc.kinduction")
 public class PredicateToKInductionInvariantConverter implements Statistics, AutoCloseable {
@@ -153,7 +158,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
 
       if (!predPrec.isEmpty()) {
         logger.log(Level.INFO, "Derive k-induction invariant from given predicate precision");
-        result = convertPredPrecToKInductionInvariant(predPrec, formulaManager, conversionShutdownNotifier);
+        result = convertPredPrecToKInductionInvariant(predPrec, formulaManager, conversionShutdownNotifier, solver);
 
         conversionShutdownNotifier.shutdownIfNecessary();
 
@@ -164,7 +169,10 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
       }
     } catch (InterruptedException e) {
       logger.logException(Level.INFO, e, "Precision adaption was interrupted.");
-    } finally {
+    } catch (SolverException e) {
+      logger.logException(Level.INFO, e, "Precision adaption threw an exception.");
+    }
+    finally {
       conversionTime.stopIfRunning();
     }
 
@@ -203,7 +211,8 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
   private Set<CandidateInvariant> convertPredPrecToKInductionInvariant(
       final PredicatePrecision pPredPrec,
       final FormulaManagerView pFMgr,
-      final ShutdownNotifier pConversionShutdownNotifier) throws InterruptedException {
+      final ShutdownNotifier pConversionShutdownNotifier,
+      final Solver pSolver) throws InterruptedException, SolverException {
     
     //since k-induction only works with invariants at loopheads
     //if there are no loopheads, no invariants are needed
@@ -258,11 +267,17 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     Set<CandidateInvariant> candidates = new HashSet<>();
     BooleanFormulaManagerView booleanFMgr = pFMgr.getBooleanFormulaManager();
     
-    // Combine all boolean formulas per node and make invariant
-    for(CFANode node : allPreds.keySet()) {
-      BooleanFormula completeFormula = booleanFMgr.and(allPreds.get(node));
-      candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(node, completeFormula, pFMgr));
-    }
+      // Combine all boolean formulas per node and make invariant
+      for(CFANode node : allPreds.keySet()) {
+        BooleanFormula completeFormula = booleanFMgr.and(allPreds.get(node));
+        try (ProverEnvironment prover = pSolver.newProverEnvironment()) {
+          prover.push(completeFormula);
+          if (!prover.isUnsat()) {
+            continue;
+          }
+        }
+        candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(node, completeFormula, pFMgr));
+      }
     
     return candidates;
     
