@@ -21,11 +21,13 @@ import java.util.Queue;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -268,6 +270,23 @@ public class ValueAnalysisSummaryCache {
       statement = edge.getStatement();
     } else if (oldEdge instanceof FunctionSummaryEdge edge) {
       statement = edge.getExpression();
+    } else if (oldEdge instanceof AssumeEdge edge) {
+      if (edge.getExpression() instanceof ABinaryExpression expr) {
+        if (expr.getOperand1() instanceof AIdExpression idExpression) {
+          var location = MemoryLocation.fromQualifiedName(idExpression.getDeclaration().getQualifiedName());
+          var type = idExpression.getExpressionType();
+          if (!locationToType.containsKey(location)) {
+            locationToType.put(location, type);
+          }
+        }
+        if (expr.getOperand2() instanceof AIdExpression idExpression) {
+          var location = MemoryLocation.fromQualifiedName(idExpression.getDeclaration().getQualifiedName());
+          var type = idExpression.getExpressionType();
+          if (!locationToType.containsKey(location)) {
+            locationToType.put(location, type);
+          }
+        }
+      }
     }
 
     if (statement instanceof AAssignment assignment) {
