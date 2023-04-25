@@ -13,10 +13,10 @@ import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -243,15 +243,17 @@ class AssignmentQuantifierHandler {
       final PartialAssignmentLhs lhs = entry.getKey();
       final ImmutableList<PartialAssignmentRhs> rhsList = ImmutableList.copyOf(entry.getValue());
 
-      // get a set of variables that we need to quantify (encode or unroll)
-      // each variable can be present in more locations, so we use a set to remove duplicates
-      // as we want to have deterministic order of quantification, we use a LinkedHashSet
-      final LinkedHashSet<SliceVariable> variablesToQuantify = new LinkedHashSet<>();
+      // get the variables that we need to quantify (encode or unroll)
+      // each variable can be present at both sides, potentially even in multiple modifiers at each
+      // side, so we use a set to remove duplicates
+      // ImmutableSet also guarantees deterministic order of quantification, so there should not be
+      // problems with run-to-run variance due to different order of quantification between runs
+      final ImmutableSet.Builder<SliceVariable> variablesToQuantifyBuilder = ImmutableSet.builder();
 
-      variablesToQuantify.addAll(lhs.actual().getPresentVariables());
+      variablesToQuantifyBuilder.addAll(lhs.actual().getPresentVariables());
       for (PartialAssignmentRhs rhs : rhsList) {
         if (rhs.actual().isPresent()) {
-          variablesToQuantify.addAll(rhs.actual().get().getPresentVariables());
+          variablesToQuantifyBuilder.addAll(rhs.actual().get().getPresentVariables());
         }
       }
 
@@ -265,7 +267,8 @@ class AssignmentQuantifierHandler {
       checkAssignmentSupported(assignment);
 
       BooleanFormula assignmentResult =
-          quantifyAssignments(assignment, variablesToQuantify, bfmgr.makeTrue());
+          quantifyAssignments(
+              assignment, variablesToQuantifyBuilder.build().asList(), bfmgr.makeTrue());
 
       // conjunct the assignment formulas
       result = bfmgr.and(result, assignmentResult);
@@ -352,7 +355,8 @@ class AssignmentQuantifierHandler {
    * variable range may not be statically known.
    *
    * @param assignment The simple partial slice assignment.
-   * @param variablesToQuantify Remaining variables that need to be quantified.
+   * @param variablesToQuantify Remaining variables that need to be quantified. Each variable which
+   *     still needs to be quantified must appear in this list exactly once.
    * @param condition Boolean formula condition for the assignment to actually occur.
    * @return The Boolean formula describing the assignments.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
@@ -360,7 +364,7 @@ class AssignmentQuantifierHandler {
    */
   private BooleanFormula quantifyAssignments(
       final PartialAssignment assignment,
-      final LinkedHashSet<SliceVariable> variablesToQuantify,
+      final List<SliceVariable> variablesToQuantify,
       final BooleanFormula condition)
       throws UnrecognizedCodeException, InterruptedException {
 
@@ -372,10 +376,9 @@ class AssignmentQuantifierHandler {
     // not all variables have been quantified, get the variable to quantify
     final SliceVariable variableToQuantify = variablesToQuantify.iterator().next();
 
-    // remove the variable which will be quantified from the next variables to quantify
-    final LinkedHashSet<SliceVariable> nextVariablesToQuantify =
-        new LinkedHashSet<>(variablesToQuantify);
-    nextVariablesToQuantify.remove(variableToQuantify);
+    // make a sublist without the variable to quantify
+    final List<SliceVariable> nextVariablesToQuantify =
+        variablesToQuantify.subList(1, variablesToQuantify.size());
 
     // get the variable slice size (the assignment is done for all i where 0 <= i < sliceSize)
     final CExpression sliceSize = variableToQuantify.getSliceSize();
@@ -426,11 +429,12 @@ class AssignmentQuantifierHandler {
 
   /**
    * Encodes the quantifier for the given slice variable in the SMT solver theory of quantifiers and
-   * calls {@link #quantifyAssignments(PartialAssignment, LinkedHashSet, BooleanFormula)} recursively.
+   * calls {@link #quantifyAssignments(PartialAssignment, List, BooleanFormula)} recursively.
    *
    * @param assignment The the simple partial slice assignment to quantify.
    * @param nextVariablesToQuantify Remaining variables that need to be quantified, without the one
-   *     to currently encode.
+   *     to currently encode. Each variable which still needs to be quantified, except the one to
+   *     currently encode, must appear in this list exactly once.
    * @param condition Boolean formula condition for the assignment to actually occur.
    * @param variableToEncode The variable to be encoded here.
    * @param sliceSizeFormula The formula for slice size. The assignment should occur iff {@code 0 <=
@@ -439,7 +443,7 @@ class AssignmentQuantifierHandler {
    */
   private BooleanFormula encodeQuantifier(
       PartialAssignment assignment,
-      LinkedHashSet<SliceVariable> nextVariablesToQuantify,
+      List<SliceVariable> nextVariablesToQuantify,
       BooleanFormula condition,
       SliceVariable variableToEncode,
       Formula sliceSizeFormula)
@@ -477,14 +481,15 @@ class AssignmentQuantifierHandler {
 
   /**
    * Unrolls the quantifier for the given slice variable in the and calls {@link
-   * #quantifyAssignments(PartialAssignment, LinkedHashSet, BooleanFormula)} recursively.
+   * #quantifyAssignments(PartialAssignment, List, BooleanFormula)} recursively.
    *
    * <p>This is unsound if the length of unrolling is not sufficient. If UFs are used, it also may
    * be unsound due to other assignments within the same aliased location not being retained.
    *
    * @param assignment The simple partial slice assignment to unroll.
    * @param nextVariablesToQuantify Remaining variables that need to be quantified, without the one
-   *     to currently encode.
+   *     to currently unroll. Each variable which still needs to be quantified, except the one to
+   *     currently unroll, must appear in this list exactly once.
    * @param condition Boolean formula condition for the assignment to actually occur.
    * @param variableToUnroll The variable to be unrolled here.
    * @param sliceSizeFormula The formula for slice size. The assignment should occur iff {@code 0 <=
@@ -493,7 +498,7 @@ class AssignmentQuantifierHandler {
    */
   private BooleanFormula unrollQuantifier(
       PartialAssignment assignment,
-      LinkedHashSet<SliceVariable> nextVariablesToQuantify,
+      List<SliceVariable> nextVariablesToQuantify,
       BooleanFormula condition,
       SliceVariable variableToUnroll,
       Formula sliceSizeFormula)
