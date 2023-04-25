@@ -147,13 +147,6 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   @Option(
       secure = true,
       description =
-          "Force functions memset, memcopy, memmove to use quantifiers "
-              + "even if they are not normally used.")
-  private boolean forceQuantifiersInMemoryAssignmentFunctions = false;
-
-  @Option(
-      secure = true,
-      description =
           "Prevent functions memset, memcopy, memmove from stopping verification "
               + "if there is unrecognized code. Instead, they will just be skipped (unsound).")
   private boolean ignoreUnrecognizedCodeInMemoryAssignmentFunctions = false;
@@ -279,10 +272,6 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
 
   boolean enableMemoryAssignmentFunctions() {
     return enableMemoryAssignmentFunctions;
-  }
-
-  boolean forceQuantifiersInMemoryAssignmentFunctions() {
-    return forceQuantifiersInMemoryAssignmentFunctions;
   }
 
   boolean ignoreUnrecognizedCodeInMemoryAssignmentFunctions() {
