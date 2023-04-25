@@ -171,15 +171,17 @@ public class ValueAnalysisSummaryCache {
       } else {
         oldStartNode = pLastCfa.getFunctionHead(location);
         var startNode = pCfa.getFunctionHead(location);
-        var exitNode = startNode.getExitNode().get();
+        if (startNode != null) {
+          var exitNode = startNode.getExitNode().get();
 
-        Queue<NodePair> waitList = new ArrayDeque<>();
-        waitList.add(new NodePair(oldStartNode, startNode));
+          Queue<NodePair> waitList = new ArrayDeque<>();
+          waitList.add(new NodePair(oldStartNode, startNode));
 
-        if (blockMatches(location, waitList, exitNode)) {
-          matchFound = true;
-          for (var summary : locationStringToSummaries.get(location)) {
-            summary.setBlock(partitioning.getBlockForCallNode(startNode));
+          if (blockMatches(location, waitList, exitNode)) {
+            matchFound = true;
+            for (var summary : locationStringToSummaries.get(location)) {
+              summary.setBlock(partitioning.getBlockForCallNode(startNode));
+            }
           }
         }
       }
@@ -314,12 +316,18 @@ public class ValueAnalysisSummaryCache {
             .getVariableReducedState0(pEntryState, pBlock, pBlock.getCallNode());
 
     var blockSummaries = summaries.get(pBlock);
+    ValueAnalysisSummary applicableSummary = null;
+
     for (var summary : blockSummaries) {
-      if (summary.getEntryState().equals(pEntryState)) {
-        return summary;
+      if (pEntryState.isLessOrEqual(summary.getEntryState())) {
+        if (applicableSummary == null) {
+          applicableSummary = summary;
+        } else if (summary.getEntryState().isLessOrEqual(applicableSummary.getEntryState())) {
+          applicableSummary = summary;
+        }
       }
     }
 
-    return null;
+    return applicableSummary;
   }
 }
