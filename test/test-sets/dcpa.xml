@@ -12,12 +12,13 @@ SPDX-License-Identifier: Apache-2.0
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="8">
-
-	<rundefinition name="PredicateAnalysis">
+	
+  <rundefinition name="DCPA">
 		<option name="-heap">13000M</option>
 		<option name="-noout"/>
 		<option name="-benchmark"/>
-		<option name="-predicateAnalysis"/>
+		<option name="-predicateAnalysis-block"/>
+	  	<option name="-distributedSummaries.decompositionType">MERGE_DECOMPOSITION</option>
 
 		<tasks name="ReachSafety-BitVectors">
 		  <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
@@ -32,24 +33,25 @@ SPDX-License-Identifier: Apache-2.0
 		  <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
 		</tasks>
 	</rundefinition>
-	
-  <rundefinition name="DCPA">
+
+	<rundefinition name="DCPASingle">
 		<option name="-heap">13000M</option>
 		<option name="-noout"/>
 		<option name="-benchmark"/>
 		<option name="-predicateAnalysis-block"/>
+		<option name="-distributedSummaries.decompositionType">NO_DECOMPOSITION</option>
 
 		<tasks name="ReachSafety-BitVectors">
-		  <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
-		  <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+			<includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
+			<propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
 		</tasks>
 		<tasks name="ReachSafety-ControlFlow">
-		  <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
-		  <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+			<includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+			<propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
 		</tasks>
 		<tasks name="ReachSafety-Loops">
-		  <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
-		  <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+			<includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+			<propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
 		</tasks>
 	</rundefinition>
 
