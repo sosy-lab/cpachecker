@@ -577,7 +577,7 @@ class AssignmentHandler {
 
     final @Nullable CExpression lhsArrayLength = lhsArrayType.getLength();
     if (lhsArrayLength == null) {
-      // TODO: add flexible array member assignment, tracking the length from malloc
+      // we currently do not assign to flexible array members as it is complex to implement
       conv.logger.logfOnce(
           Level.WARNING,
           "%s: Ignoring assignment to flexible array member %s as they are not well-supported",
@@ -590,8 +590,7 @@ class AssignmentHandler {
 
     if (!lhsArrayType.equals(rhsType)) {
       // we currently do not assign to array types from different types as that would ideally
-      // require spans
-      // to support quantification, which would be problematic
+      // require spans to support quantification, which would be problematic
       // it should be only required for cases of unions containing arrays
       conv.logger.logfOnce(
           Level.WARNING,
