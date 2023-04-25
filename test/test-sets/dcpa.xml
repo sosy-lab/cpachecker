@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="8">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="4">
 	
   <rundefinition name="DCPA">
 		<option name="-heap">13000M</option>
@@ -21,19 +21,91 @@ SPDX-License-Identifier: Apache-2.0
 		<option name="-predicateAnalysis-block"/>
 	  	<option name="-setprop">distributedSummaries.decompositionType=MERGE_DECOMPOSITION</option>
 
-		<tasks name="ReachSafety-BitVectors">
-		  <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
-		  <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-		</tasks>
-		<tasks name="ReachSafety-ControlFlow">
-		  <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
-		  <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-		</tasks>
-		<tasks name="ReachSafety-Loops">
-		  <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
-		  <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-		</tasks>
-	</rundefinition>
+	  <tasks name="ReachSafety-Arrays">
+		  <includesfile>../sv-benchmarks/c/ReachSafety-Arrays.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+	  <tasks name="ReachSafety-BitVectors">
+		  <includesfile>../sv-benchmarks/c/ReachSafety-BitVectors.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+	  <tasks name="ReachSafety-ControlFlow">
+		  <includesfile>../sv-benchmarks/c/ReachSafety-ControlFlow.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+	  <tasks name="ReachSafety-ECA">
+		  <includesfile>../sv-benchmarks/c/ReachSafety-ECA.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+	  <tasks name="ReachSafety-Floats">
+		  <includesfile>../sv-benchmarks/c/ReachSafety-Floats.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+	  <tasks name="ReachSafety-Heap">
+		  <includesfile>../sv-benchmarks/c/ReachSafety-Heap.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+	  <tasks name="ReachSafety-Loops">
+		  <includesfile>../sv-benchmarks/c/ReachSafety-Loops.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+	  <tasks name="ReachSafety-ProductLines">
+		  <includesfile>../sv-benchmarks/c/ReachSafety-ProductLines.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+	  <tasks name="ReachSafety-Recursive">
+		  <includesfile>../sv-benchmarks/c/ReachSafety-Recursive.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+	  <tasks name="ReachSafety-Sequentialized">
+		  <includesfile>../sv-benchmarks/c/ReachSafety-Sequentialized.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+	  <tasks name="ReachSafety-XCSP">
+		  <includesfile>../sv-benchmarks/c/ReachSafety-XCSP.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+	  <tasks name="ReachSafety-Combinations">
+		  <includesfile>../sv-benchmarks/c/ReachSafety-Combinations.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+	  <tasks name="ReachSafety-Hardware">
+		  <includesfile>../sv-benchmarks/c/ReachSafety-Hardware.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+
+	  <tasks name="ConcurrencySafety-Main">
+		  <includesfile>../sv-benchmarks/c/ConcurrencySafety-Main.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+
+	  <tasks name="SoftwareSystems-AWS-C-Common-ReachSafety">
+		  <includesfile>../sv-benchmarks/c/SoftwareSystems-AWS-C-Common-ReachSafety.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+	  <tasks name="SoftwareSystems-BusyBox-ReachSafety">
+		  <includesfile>../sv-benchmarks/c/SoftwareSystems-BusyBox-ReachSafety.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+	  <tasks name="SoftwareSystems-coreutils-ReachSafety">
+		  <includesfile>../sv-benchmarks/c/SoftwareSystems-coreutils-ReachSafety.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+	  <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">
+		  <includesfile>../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+		  <excludesfile>../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64Large-ReachSafety.set</excludesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+	  <tasks name="SoftwareSystems-DeviceDriversLinux64Large-ReachSafety">
+		  <includesfile>../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64Large-ReachSafety.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+	  <tasks name="SoftwareSystems-uthash-ReachSafety">
+		  <includesfile>../sv-benchmarks/c/SoftwareSystems-uthash-ReachSafety.set</includesfile>
+		  <propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+	  </tasks>
+
+  </rundefinition>
 
 	<rundefinition name="DCPASingle">
 		<option name="-heap">13000M</option>
@@ -42,18 +114,88 @@ SPDX-License-Identifier: Apache-2.0
 		<option name="-disable-java-assertions"/>
 		<option name="-predicateAnalysis-block"/>
 		<option name="-setprop">distributedSummaries.decompositionType=NO_DECOMPOSITION</option>
-
+		<tasks name="ReachSafety-Arrays">
+			<includesfile>../sv-benchmarks/c/ReachSafety-Arrays.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+		</tasks>
 		<tasks name="ReachSafety-BitVectors">
-			<includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
-			<propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+			<includesfile>../sv-benchmarks/c/ReachSafety-BitVectors.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
 		</tasks>
 		<tasks name="ReachSafety-ControlFlow">
-			<includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
-			<propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+			<includesfile>../sv-benchmarks/c/ReachSafety-ControlFlow.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+		</tasks>
+		<tasks name="ReachSafety-ECA">
+			<includesfile>../sv-benchmarks/c/ReachSafety-ECA.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+		</tasks>
+		<tasks name="ReachSafety-Floats">
+			<includesfile>../sv-benchmarks/c/ReachSafety-Floats.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+		</tasks>
+		<tasks name="ReachSafety-Heap">
+			<includesfile>../sv-benchmarks/c/ReachSafety-Heap.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
 		</tasks>
 		<tasks name="ReachSafety-Loops">
-			<includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
-			<propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+			<includesfile>../sv-benchmarks/c/ReachSafety-Loops.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+		</tasks>
+		<tasks name="ReachSafety-ProductLines">
+			<includesfile>../sv-benchmarks/c/ReachSafety-ProductLines.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+		</tasks>
+		<tasks name="ReachSafety-Recursive">
+			<includesfile>../sv-benchmarks/c/ReachSafety-Recursive.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+		</tasks>
+		<tasks name="ReachSafety-Sequentialized">
+			<includesfile>../sv-benchmarks/c/ReachSafety-Sequentialized.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+		</tasks>
+		<tasks name="ReachSafety-XCSP">
+			<includesfile>../sv-benchmarks/c/ReachSafety-XCSP.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+		</tasks>
+		<tasks name="ReachSafety-Combinations">
+			<includesfile>../sv-benchmarks/c/ReachSafety-Combinations.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+		</tasks>
+		<tasks name="ReachSafety-Hardware">
+			<includesfile>../sv-benchmarks/c/ReachSafety-Hardware.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+		</tasks>
+
+		<tasks name="ConcurrencySafety-Main">
+			<includesfile>../sv-benchmarks/c/ConcurrencySafety-Main.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+		</tasks>
+
+		<tasks name="SoftwareSystems-AWS-C-Common-ReachSafety">
+			<includesfile>../sv-benchmarks/c/SoftwareSystems-AWS-C-Common-ReachSafety.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+		</tasks>
+		<tasks name="SoftwareSystems-BusyBox-ReachSafety">
+			<includesfile>../sv-benchmarks/c/SoftwareSystems-BusyBox-ReachSafety.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+		</tasks>
+		<tasks name="SoftwareSystems-coreutils-ReachSafety">
+			<includesfile>../sv-benchmarks/c/SoftwareSystems-coreutils-ReachSafety.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+		</tasks>
+		<tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">
+			<includesfile>../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+			<excludesfile>../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64Large-ReachSafety.set</excludesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+		</tasks>
+		<tasks name="SoftwareSystems-DeviceDriversLinux64Large-ReachSafety">
+			<includesfile>../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64Large-ReachSafety.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+		</tasks>
+		<tasks name="SoftwareSystems-uthash-ReachSafety">
+			<includesfile>../sv-benchmarks/c/SoftwareSystems-uthash-ReachSafety.set</includesfile>
+			<propertyfile>../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
 		</tasks>
 	</rundefinition>
 
@@ -61,7 +203,6 @@ SPDX-License-Identifier: Apache-2.0
     <column title="total">time for CPAchecker</column>
     <column title="reached">Size of reached set</column>
     <column title="targets">Number of target states</column>
-    <column title="sat check time">Time for final sat check</column>
-    <column title="assertions check time">Time for bounding assertions check</column>
+    <column title="blocks">Number of blocks</column>
   </columns>
 </benchmark>

@@ -267,6 +267,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               BlockSummaryStatisticType.valueOf(stringObjectEntry.getKey()).getName(),
               convert(stringObjectEntry.getKey(), stringObjectEntry.getValue().toString()));
     }
+    writer.put("Number of blocks", numberWorkers.getMaxValue());
   }
 
   private String convert(String pKey, String pNumber) {
