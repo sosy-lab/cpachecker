@@ -3689,13 +3689,13 @@ differential.stopOnPointers = false
 # pairs. Set cpa.automaton.deleteDoubleEdges as well!
 differential.variableSetMerge = false
 
-# Allows to set the algorithm for decomposing the CFA. BLOCK_OPERATOR creates
-# blocks from each merge/branching point to the next merge/branching point.
-# GIVEN_SIZE merges blocks obtained by BLOCK_OPERATOR until
-# distributedSummaries.desiredNumberOfBlocks blocks are present. SINGLE_BLOCK
-# creates one block around the complete CFA.
-distributedSummaries.decompositionType = BLOCK_OPERATOR
-  enum:     [BLOCK_OPERATOR, GIVEN_SIZE, SINGLE_BLOCK]
+# Allows to set the algorithm for decomposing the CFA. LINEAR_DECOMPOSITION
+# creates blocks from each merge/branching point to the next merge/branching
+# point. MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION.
+# The final number of blocks should converge to the number of functions in
+# the program. NO_DECOMPOSITION creates one block around the CFA.
+distributedSummaries.decompositionType = LINEAR_DECOMPOSITION
+  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, NO_DECOMPOSITION]
 
 # Whether to spawn util workers. Util workers listen to every message and
 # create visual output for debugging. Workers consume resources and should

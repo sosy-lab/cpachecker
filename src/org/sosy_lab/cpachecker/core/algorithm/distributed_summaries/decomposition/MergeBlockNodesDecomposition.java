@@ -28,12 +28,12 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 public class MergeBlockNodesDecomposition implements CFADecomposer {
 
   private final Predicate<CFANode> isBlockEnd;
-  private final int targetNumber;
+  private final long targetNumber;
   private int id;
 
   private record BlockScope(CFANode start, CFANode last) {}
 
-  public MergeBlockNodesDecomposition(Predicate<CFANode> pIsBlockEnd, int pTargetNumber) {
+  public MergeBlockNodesDecomposition(Predicate<CFANode> pIsBlockEnd, long pTargetNumber) {
     isBlockEnd = pIsBlockEnd;
     targetNumber = pTargetNumber;
   }

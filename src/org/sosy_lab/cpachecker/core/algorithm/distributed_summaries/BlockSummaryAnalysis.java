@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -30,14 +31,17 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFAModifier;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFAModifier.Modification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.CFADecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryProbabilityPriorityQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.BlockSummaryStatisticType;
@@ -80,12 +84,12 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
 
   @Option(
       description =
-          "Allows to set the algorithm for decomposing the CFA. BLOCK_OPERATOR creates blocks from"
-              + " each merge/branching point to the next merge/branching point. GIVEN_SIZE merges"
-              + " blocks obtained by BLOCK_OPERATOR until"
-              + " distributedSummaries.desiredNumberOfBlocks blocks are present. SINGLE_BLOCK"
-              + " creates one block around the complete CFA.")
-  private DecompositionType decompositionType = DecompositionType.BLOCK_OPERATOR;
+          "Allows to set the algorithm for decomposing the CFA. LINEAR_DECOMPOSITION creates blocks"
+              + " from each merge/branching point to the next merge/branching point."
+              + " MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION. The final"
+              + " number of blocks should converge to the number of functions in the program."
+              + " NO_DECOMPOSITION creates one block around the CFA.")
+  private DecompositionType decompositionType = DecompositionType.LINEAR_DECOMPOSITION;
 
   @Option(
       description =
@@ -95,9 +99,9 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   private boolean spawnUtilWorkers = true;
 
   private enum DecompositionType {
-    BLOCK_OPERATOR,
-    GIVEN_SIZE,
-    SINGLE_BLOCK
+    LINEAR_DECOMPOSITION,
+    MERGE_DECOMPOSITION,
+    NO_DECOMPOSITION
   }
 
   public BlockSummaryAnalysis(
@@ -117,22 +121,31 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     stats = new HashMap<>();
   }
 
+  private CFADecomposer getDecomposer() throws InvalidConfigurationException {
+    BlockOperator blockOperator = new BlockOperator();
+    configuration.inject(blockOperator);
+    blockOperator.setCFA(initialCFA);
+    Predicate<CFANode> isBlockEnd = n -> blockOperator.isBlockEnd(n, -1);
+    return switch (decompositionType) {
+      case LINEAR_DECOMPOSITION -> new LinearBlockNodeDecomposition(isBlockEnd);
+      case MERGE_DECOMPOSITION -> {
+        long numberOfRealFunctions =
+            initialCFA.getAllFunctionNames().stream()
+                .filter(name -> !name.startsWith("__") && name.equals("reach_error"))
+                .toList()
+                .size();
+        yield new MergeBlockNodesDecomposition(isBlockEnd, numberOfRealFunctions - 1);
+      }
+      case NO_DECOMPOSITION -> new SingleBlockDecomposition();
+    };
+  }
+
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "Starting block analysis...");
     try {
       // create blockGraph and reduce to relevant parts
-      BlockOperator blockOperator = new BlockOperator();
-      configuration.inject(blockOperator);
-      blockOperator.setCFA(initialCFA);
-      long numberOfRealFunctions =
-          initialCFA.getAllFunctionNames().stream()
-              .filter(name -> !name.startsWith("__") && name.equals("reach_error"))
-              .toList()
-              .size();
-      CFADecomposer decomposer =
-          new MergeBlockNodesDecomposition(
-              n -> blockOperator.isBlockEnd(n, -1), (int) numberOfRealFunctions - 1);
+      CFADecomposer decomposer = getDecomposer();
       BlockGraph blockGraph = decomposer.decompose(initialCFA);
       blockGraph.checkConsistency(shutdownManager.getNotifier(), initialCFA);
       Modification modification =
