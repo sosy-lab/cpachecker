@@ -175,7 +175,8 @@ def visualize_blocks(
     g = nx.DiGraph()
     block_logs = parse_jsons(block_structure_file)
     for key in block_logs:
-        code = "\n".join(c for c in block_logs[key]["code"] if c)
+        code_parts = [c.replace('"', "'") for c in block_logs[key]["code"]]
+        code = "\n".join(c for c in code_parts if c)
         label = key + ":\n" + code if code else key
         g.add_node(key, shape="box", label=f'"{label}"')
     for key in block_logs:
