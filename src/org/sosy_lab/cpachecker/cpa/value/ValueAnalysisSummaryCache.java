@@ -14,20 +14,29 @@ import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ValueAnalysisSummaryCache {
 
@@ -52,23 +61,28 @@ public class ValueAnalysisSummaryCache {
     return cache;
   }
 
-  public void addSummaryForReachedSet(ReachedSet pReachedSet) {
+  public void addSummaryForReachedSet(ReachedSet pReachedSet, BAMCache pBAMCache) {
 
     // do not generate a summary, if the block is not fully analyzed
     if (pReachedSet.hasWaitingState()) return;
 
     var entryState = pReachedSet.getFirstState();
-    var exitState = pReachedSet.getLastState();
 
     var entryNode = AbstractStates.extractLocation(entryState);
     var block = partitioning.getBlockForCallNode(entryNode);
 
+    var bamEntry = pBAMCache.get(entryState, pReachedSet.getPrecision(entryState), block);
+
+    if (bamEntry.getExitStates().size() != 1) return;
+
+    var exitState = Iterables.getOnlyElement(bamEntry.getExitStates());
+
     var entryValueState = AbstractStates.extractStateByType(entryState, ValueAnalysisState.class);
     var exitValueState = AbstractStates.extractStateByType(exitState, ValueAnalysisState.class);
+    var precision =
+        VariableTrackingPrecision.joinVariableTrackingPrecisionsInReachedSet(pReachedSet);
 
-    var newSummary = new ValueAnalysisSummary(block, entryValueState, exitValueState);
-
-    if (!summaries.containsKey(block)) summaries.put(block, newSummary);
+    var newSummary = new ValueAnalysisSummary(block, entryValueState, exitValueState, precision);
 
     var blockSummaries = summaries.get(block);
 
@@ -180,12 +194,13 @@ public class ValueAnalysisSummaryCache {
 
     for (var summary : locationStringToSummaries.values()) {
       summaries.put(summary.getBlock(), summary);
+      summary.assignTypes(locationToType);
     }
   }
 
   private void removeSummariesForLocation(String pLocation) {
     locationStringToSummaries.removeAll(pLocation);
-    var impactedLocations = impacts.get(pLocation);
+    var impactedLocations = impacts.get(pLocation).stream().toList();
     impacts.removeAll(pLocation);
     for (var impactedLocation : impactedLocations) {
       removeSummariesForLocation(impactedLocation);
@@ -243,7 +258,26 @@ public class ValueAnalysisSummaryCache {
         && newNode.getNumLeavingEdges() == oldNode.getNumLeavingEdges();
   }
 
+  private HashMap<MemoryLocation, Type> locationToType = new HashMap<>();
+
   private boolean edgesMatch(CFAEdge oldEdge, CFAEdge newEdge) {
+    AStatement statement = null;
+    if (oldEdge instanceof AStatementEdge edge) {
+      statement = edge.getStatement();
+    } else if (oldEdge instanceof FunctionSummaryEdge edge) {
+      statement = edge.getExpression();
+    }
+
+    if (statement instanceof AAssignment assignment) {
+      if (assignment.getLeftHandSide() instanceof AIdExpression idExpression) {
+        var location = MemoryLocation.fromQualifiedName(idExpression.getDeclaration().getQualifiedName());
+        var type = idExpression.getExpressionType();
+        if (!locationToType.containsKey(location)) {
+          locationToType.put(location, type);
+        }
+      }
+    }
+
     return oldEdge.getRawStatement().equals(newEdge.getRawStatement())
         && oldEdge.getEdgeType().equals(newEdge.getEdgeType());
   }
@@ -269,10 +303,9 @@ public class ValueAnalysisSummaryCache {
       for (var constant : exitState.getConstants()) {
         exitState.forget(constant.getKey());
       }
-      summary = new ValueAnalysisSummary(partitioning.getBlockForCallNode(pCallNode), pEntryState, exitState);
+      summary = new ValueAnalysisSummary(partitioning.getBlockForCallNode(pCallNode), pEntryState, exitState, null);
     }
-    var state = summary.applyToState(pEntryState);
-    return state;
+    return summary.applyToState(pEntryState);
   }
 
   public ValueAnalysisSummary getApplicableSummary(Block pBlock, ValueAnalysisState pEntryState) {
@@ -282,7 +315,7 @@ public class ValueAnalysisSummaryCache {
 
     var blockSummaries = summaries.get(pBlock);
     for (var summary : blockSummaries) {
-      if (summary.isEntryState(pEntryState)) {
+      if (summary.getEntryState().equals(pEntryState)) {
         return summary;
       }
     }

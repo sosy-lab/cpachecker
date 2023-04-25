@@ -11,17 +11,12 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -31,12 +26,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
-import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.value.SummaryEdge;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisSummaryCache;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -46,7 +38,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
 /**
@@ -62,23 +53,27 @@ public final class BAMBasedRefinerWithSummaryReuse extends AbstractARGBasedRefin
   private final StrongestPostOperator<ValueAnalysisState> strongestPostOp;
   private final VariableTrackingPrecision precision;
   private final ValueAnalysisState initialState;
+  private final AbstractBAMCPA bamCpa;
 
   private BAMBasedRefinerWithSummaryReuse(
       BAMBasedRefiner pBAMBasedRefiner,
       ARGBasedRefiner pRefiner,
       ARGCPA pArgCpa,
       LogManager pLogger,
-      VariableTrackingPrecision pPrecision,
       final CFA pCfa,
-      final Configuration config)
+      final Configuration pConfig,
+      AbstractBAMCPA pBAMCPA)
       throws InvalidConfigurationException {
     super(pRefiner, pArgCpa, pLogger);
 
-    strongestPostOp = new ValueAnalysisStrongestPostOperator(pLogger, config, pCfa);
+    bamCpa = pBAMCPA;
+    strongestPostOp = new ValueAnalysisStrongestPostOperator(pLogger, pConfig, pCfa);
 
     initialState = new ValueAnalysisState(pCfa.getMachineModel());
     BamBasedRefiner = pBAMBasedRefiner;
-    precision = pPrecision;
+    precision =
+        VariableTrackingPrecision.createStaticPrecision(
+            pConfig, pCfa.getVarClassification(), ValueAnalysisCPA.class);
   }
 
   /**
@@ -106,12 +101,8 @@ public final class BAMBasedRefinerWithSummaryReuse extends AbstractARGBasedRefin
     final Configuration config = valueAnalysisCpa.getConfiguration();
     final CFA cfa = valueAnalysisCpa.getCFA();
 
-    var precision =
-        VariableTrackingPrecision.createStaticPrecision(
-            config, cfa.getVarClassification(), ValueAnalysisCPA.class);
-
     return new BAMBasedRefinerWithSummaryReuse(
-        bamBasedRefiner, pRefiner, argCpa, logger, precision, cfa, config);
+        bamBasedRefiner, pRefiner, argCpa, logger, cfa, config, bamCpa);
   }
 
   @Override
@@ -130,7 +121,9 @@ public final class BAMBasedRefinerWithSummaryReuse extends AbstractARGBasedRefin
       int firstHoleIndex = getFirstHoleIndex(path);
 
       while (firstHoleIndex != -1 && !isInfeasible) {
-        path = expandHole(path, firstHoleIndex);
+        expandHole(
+            pMainReachedSet, path.asStatesList().get(firstHoleIndex).getWrappedState(), path);
+        path = BamBasedRefiner.computePath(pLastElement, pMainReachedSet);
         isInfeasible = isInfeasible(path);
         firstHoleIndex = getFirstHoleIndex(path);
       }
@@ -156,7 +149,8 @@ public final class BAMBasedRefinerWithSummaryReuse extends AbstractARGBasedRefin
         var state = iterator.getAbstractState();
         var node = AbstractStates.extractLocation(state);
         var valueState = AbstractStates.extractStateByType(state, ValueAnalysisState.class);
-        var summary = ValueAnalysisSummaryCache.getInstance().getApplicableSummary(node, valueState);
+        var summary =
+            ValueAnalysisSummaryCache.getInstance().getApplicableSummary(node, valueState);
         if (summary != null) {
           maybeNext = Optional.of(summary.applyToState(next));
         } else {
@@ -176,85 +170,10 @@ public final class BAMBasedRefinerWithSummaryReuse extends AbstractARGBasedRefin
     return false;
   }
 
-  private ARGPath expandHole(ARGPath pPath, int holeIndex)
+  private void expandHole(ARGReachedSet reachedSet, AbstractState state, ARGPath path)
       throws CPAException, InterruptedException {
-    var holeStart = pPath.asStatesList().get(holeIndex);
-    var holeEnd = pPath.asStatesList().get(holeIndex + 1);
-
-    var edge = pPath.getInnerEdges().get(holeIndex);
-    var currentNode = edge.getPredecessor();
-    var returnNode = edge.getSuccessor();
-
-    var callStack = new ArrayDeque<ValueAnalysisState>();
-
-    var calls = new ArrayDeque<CFANode>();
-
-    var waitList = new ArrayDeque<BackwardARGState>();
-    edge = currentNode.getLeavingEdge(0);
-    waitList.add(expandEdge((BackwardARGState) holeStart, edge, callStack, pPath).get());
-
-    while (!waitList.isEmpty()) {
-      var argState = waitList.remove();
-      currentNode = AbstractStates.extractLocation(argState);
-
-      for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
-        edge = currentNode.getLeavingEdge(i);
-
-        if (edge instanceof FunctionCallEdge callEdge) {
-          var ExitNode = callEdge.getSummaryEdge().getSuccessor();
-          calls.push(ExitNode);
-        }
-
-        if (edge instanceof FunctionReturnEdge) {
-          if (!edge.getSuccessor().equals(calls.peek())) {
-            continue;
-          } else {
-            calls.pop();
-          }
-        }
-
-        var maybeNext = expandEdge(argState, edge, callStack, pPath);
-
-        if (maybeNext.isPresent()) {
-          var suc = edge.getSuccessor();
-
-          if (suc.equals(returnNode)) {
-            holeEnd.removeParent(holeStart);
-            holeEnd.addParent(argState);
-            return ARGUtils.getOnePathTo(pPath.getLastState());
-          } else {
-            waitList.add(maybeNext.get());
-          }
-        }
-      }
-    }
-
-    return pPath;
-  }
-
-  private Optional<BackwardARGState> expandEdge(
-      BackwardARGState state, CFAEdge edge, Deque<ValueAnalysisState> callstack, ARGPath path)
-      throws CPAException, InterruptedException {
-    ValueAnalysisState currentState =
-        AbstractStates.extractStateByType(state, ValueAnalysisState.class);
-
-    var maybeNext = strongestPostOp.step(currentState, edge, precision, callstack, path);
-
-    if (maybeNext.isPresent()) {
-      var suc = edge.getSuccessor();
-
-      var locationState =
-          GlobalInfo.getInstance().getCFAInfo().get().getLocationStateFactory().getState(suc);
-      var valueState = maybeNext.get();
-      var states = new ArrayList<AbstractState>();
-      states.add(locationState);
-      states.add(valueState);
-      var newArgState =
-          new BackwardARGState(new ARGState(new CompositeState(states), state.getARGState()));
-      newArgState.addParent(state);
-      return Optional.of(newArgState);
-    }
-    return Optional.empty();
+    ((BAMTransferRelationWithSummaryReuse) bamCpa.getTransferRelation())
+        .expandHole(reachedSet, state, path);
   }
 
   private int getFirstHoleIndex(ARGPath pPath) {
@@ -268,4 +187,3 @@ public final class BAMBasedRefinerWithSummaryReuse extends AbstractARGBasedRefin
     return -1;
   }
 }
-

@@ -272,7 +272,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
    * @return Set of reduced pairs of abstract states associated with the exit of the block and the
    *     reached-set they belong to.
    */
-  private Pair<Collection<AbstractState>, ReachedSet> getReducedResult(
+  protected Pair<Collection<AbstractState>, ReachedSet> getReducedResult(
       final AbstractState initialState,
       final AbstractState reducedInitialState,
       final Precision reducedInitialPrecision,

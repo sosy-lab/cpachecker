@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.value;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ValueAnalysisSummary {
@@ -19,18 +22,24 @@ public class ValueAnalysisSummary {
   private Block block;
   private final ValueAnalysisState entryValueState;
   private final ValueAnalysisState exitValueState;
+  private final VariableTrackingPrecision precision;
 
   public ValueAnalysisSummary(
-      Block pBlock, ValueAnalysisState pEntryValueState, ValueAnalysisState pExitValueState) {
+      Block pBlock,
+      ValueAnalysisState pEntryValueState,
+      ValueAnalysisState pExitValueState,
+      VariableTrackingPrecision pPrecision) {
     block = pBlock;
     entryValueState = pEntryValueState;
     exitValueState = pExitValueState;
+    precision = pPrecision;
   }
 
   public ValueAnalysisSummary(
-      ValueAnalysisState pEntryValueState, ValueAnalysisState pExitValueState) {
+      ValueAnalysisState pEntryValueState, ValueAnalysisState pExitValueState, VariableTrackingPrecision pPrecision) {
     entryValueState = pEntryValueState;
     exitValueState = pExitValueState;
+    precision = pPrecision;
   }
 
   public ValueAnalysisState getEntryState() {
@@ -47,21 +56,25 @@ public class ValueAnalysisSummary {
 
   public void setBlock(Block pBlock) {
     block = pBlock;
+  }
 
-    // also add the type of the parameters and return var to the summary
-    if (pBlock.getCallNode() instanceof FunctionEntryNode pEntryNode) {
-      for (var parameter : pEntryNode.getFunction().getParameters()) {
-        var location = MemoryLocation.fromQualifiedName(parameter.getQualifiedName());
-        var type = parameter.getType();
-        assignType(location, type);
-      }
+  public VariableTrackingPrecision getPrecision() {
+    return precision;
+  }
 
-      if (pEntryNode.getReturnVariable().isPresent()) {
-        var returnVar = pEntryNode.getReturnVariable().get();
-        var returnVarLocation = MemoryLocation.fromQualifiedName(returnVar.getQualifiedName());
-        var returnType = returnVar.getType();
-        assignType(returnVarLocation, returnType);
+  public void assignTypes(HashMap<MemoryLocation, Type> pLocationToType) {
+    var trackedLocations = new HashSet<>(entryValueState.getTrackedMemoryLocations());
+    trackedLocations.addAll(exitValueState.getTrackedMemoryLocations());
+    for (var trackedLocation : trackedLocations) {
+      if (pLocationToType.containsKey(trackedLocation)) {
+        assignType(trackedLocation, pLocationToType.get(trackedLocation));
       }
+    }
+    if (block.getCallNode() instanceof FunctionEntryNode entryNode && entryNode.getReturnVariable().isPresent()) {
+      var returnVar = entryNode.getReturnVariable().orElseThrow();
+      var location = MemoryLocation.fromQualifiedName(returnVar.getQualifiedName());
+      var type = returnVar.getType();
+      assignType(location, type);
     }
   }
 
@@ -74,23 +87,6 @@ public class ValueAnalysisSummary {
       var value = exitValueState.getValueFor(pLocation);
       exitValueState.assignConstant(pLocation, value, pType);
     }
-  }
-
-  public boolean isEntryState(ValueAnalysisState state) {
-    if (state.getSize() != entryValueState.getSize())
-      return false;
-
-    // add type information, if still missing
-    for (var x : entryValueState.getConstants()) {
-      var location = x.getKey();
-      var type = x.getValue().getType();
-      if (type == null && state.contains(location)) {
-        type = state.getTypeForMemoryLocation(location);
-        assignType(location, type);
-      }
-    }
-
-    return entryValueState.equals(state);
   }
 
   public ValueAnalysisState applyToState(ValueAnalysisState pEntryState) {
@@ -118,6 +114,7 @@ public class ValueAnalysisSummary {
       str += " " + EntryNode.getLeavingEdge(0).getLineNumber();
     }
 
+    str += "\n" + precision.toString();
     str += "\n" + entryValueState.toDOTLabel() + "\n";
     str += exitValueState.toDOTLabel() + "\n";
 

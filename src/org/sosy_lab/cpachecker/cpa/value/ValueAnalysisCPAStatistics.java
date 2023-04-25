@@ -114,13 +114,14 @@ public class ValueAnalysisCPAStatistics implements Statistics {
 
   private void exportSummaries(UnmodifiableReachedSet reached) {
     var BamCPA = (BAMCPA)((ReachedSet)reached).getCPA();
+    var BamCache = BamCPA.getData().getCache();
     final Collection<ReachedSet> cachedReachedSets =
         BamCPA.getData().getCache().getAllCachedReachedStates();
 
     var cache = ValueAnalysisSummaryCache.getInstance();
 
     for (var reachedSet : cachedReachedSets) {
-      cache.addSummaryForReachedSet(reachedSet);
+      cache.addSummaryForReachedSet(reachedSet, BamCache);
     }
 
     try (Writer writer = IO.openOutputFile(summariesFile, Charset.defaultCharset())) {

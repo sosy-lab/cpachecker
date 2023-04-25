@@ -12,7 +12,9 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -30,11 +32,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -213,11 +216,12 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   }
 
   private void readSummaries(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
-    readSummariesFromFile(pCfa);
-    selectSummaries(pConfig, pCfa);
+    if (readSummariesFromFile(pConfig, pCfa))
+      selectSummaries(pConfig, pCfa);
   }
 
-  private void readSummariesFromFile(CFA pCfa) {
+  private boolean readSummariesFromFile(Configuration pConfig, CFA pCfa)
+      throws InvalidConfigurationException {
     ValueAnalysisSummaryCache cache = ValueAnalysisSummaryCache.getInstance();
     List<String> contents;
     try {
@@ -225,10 +229,11 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
     } catch (IOException e) {
       logger.logUserException(
           Level.WARNING, e, "Could not read summaries from file named " + initialSummariesFile);
-      return;
+      return false;
     }
 
     String location = null;
+    VariableTrackingPrecision precision = null;
     ValueAnalysisState entryState = null, exitState;
     for (String currentLine : contents) {
       if (currentLine.trim().isEmpty()) {
@@ -240,6 +245,21 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
         continue;
       }
 
+      if (precision == null) {
+        var variables = Splitter.on(", ").trimResults(CharMatcher.anyOf("[]")).splitToList(currentLine);
+        Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
+        var locations = variables.stream().map(name -> MemoryLocation.fromQualifiedName(name)).toList();
+        mapping.putAll(pCfa.getMainFunction(), locations);
+
+        precision = VariableTrackingPrecision.createRefineablePrecision(
+            pConfig,
+            VariableTrackingPrecision.createStaticPrecision(
+                pConfig, pCfa.getVarClassification(), getClass()));
+
+        precision = precision.withIncrement(mapping);
+        continue;
+      }
+
       if (entryState == null) {
         entryState = readState(currentLine, pCfa);
         continue;
@@ -247,12 +267,14 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
 
       exitState = readState(currentLine, pCfa);
 
-      var summary = new ValueAnalysisSummary(entryState, exitState);
+      var summary = new ValueAnalysisSummary(entryState, exitState, precision);
       cache.add(location, summary);
 
       location = null;
       entryState = null;
+      precision = null;
     }
+    return true;
   }
 
   private ValueAnalysisState readState(String line, CFA pCfa) {
