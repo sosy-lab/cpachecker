@@ -40,18 +40,20 @@ SPDX-License-Identifier: Apache-2.0
 		<option name="-benchmark"/>
 		<option name="-predicateAnalysisBackward"/>
 		<option name="-disable-java-assertions"/>
+		<option name="-setprop">backwardSpecification=config/specification/sv-comp-reachability.spc</option>
+		<option name="-setprop">analysis.initialStatesFor=TARGET</option>
 
 		<tasks name="ReachSafety-BitVectors">
 			<includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
-			<propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+			<propertyfile>config/specification/MainEntry.spc</propertyfile>
 		</tasks>
 		<tasks name="ReachSafety-ControlFlow">
 			<includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
-			<propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+			<propertyfile>config/specification/MainEntry.spc</propertyfile>
 		</tasks>
 		<tasks name="ReachSafety-Loops">
 			<includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
-			<propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+			<propertyfile>config/specification/MainEntry.spc</propertyfile>
 		</tasks>
 	</rundefinition>
 
