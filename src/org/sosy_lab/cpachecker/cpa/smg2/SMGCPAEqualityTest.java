@@ -12,14 +12,19 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
+import java.util.List;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 
@@ -463,5 +468,119 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
                   EqualityCache.<Value>of()))
           .isFalse();
     }
+  }
+
+  /**
+   * We have a list, we check the next components' existence, then we move the current pointer to
+   * the next and free the prev segment. The resulting list should be covered by the previous.
+   */
+  @Test
+  public void testFreeLoopEquality()
+      throws InvalidConfigurationException, CPAException, InterruptedException {
+    Value[] pointersConcreteDifferentList = buildConcreteList(true, dllSize, listLength);
+    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
+    currentState = absFinder.findAndAbstractLists();
+    // "free" list except for last segment
+    // We explicitly deref the current segment and read the next pointer beforehand
+    SMGCPAExportOptions exportOptions = new SMGCPAExportOptions(null, SMGExportLevel.NEVER);
+    SMGCPAExpressionEvaluator evaluator =
+        new SMGCPAExpressionEvaluator(machineModel, logger, exportOptions, smgOptions);
+    Value lastNextPointer = null;
+    for (int i = 0; i < listLength; i++) {
+      List<SMGStateAndOptionalSMGObjectAndOffset> deref =
+          currentState.dereferencePointer(pointersConcreteDifferentList[i]);
+      // Should only be 1 list element
+      assertThat(deref).hasSize(1);
+      currentState = deref.get(0).getSMGState();
+      assertThat(deref.get(0).hasSMGObjectAndOffset()).isTrue();
+      assertThat(deref.get(0).getOffsetForObject()).isEqualTo(BigInteger.ZERO);
+      SMGObject curr = deref.get(0).getSMGObject();
+      List<ValueAndSMGState> readNexts =
+          evaluator.readValueWithPointerDereference(
+              currentState, pointersConcreteDifferentList[i], nfo, pointerSizeInBits, null);
+      ValueAndSMGState readNext;
+      if (i < listLength - 1) {
+        // Should only be 1 list element
+        assertThat(readNexts).hasSize(1);
+        readNext = readNexts.get(0);
+      } else {
+        assertThat(readNexts).hasSize(2);
+        readNext = readNexts.get(1);
+      }
+      // We read the next pointer pointing to an abstracted list, hence this list was materialized
+
+      currentState = readNext.getState();
+      Value readPointer = readNext.getValue();
+      if (i + 1 < listLength) {
+        assertThat(readPointer).isEqualTo(pointersConcreteDifferentList[i + 1]);
+      } else {
+        lastNextPointer = readPointer;
+      }
+      SMGObject notAbstractedListObj =
+          currentState
+              .dereferencePointerWithoutMaterilization(readPointer)
+              .orElseThrow()
+              .getSMGObject();
+      assertThat(notAbstractedListObj.isSLL()).isFalse();
+      assertThat(currentState.getMemoryModel().isObjectValid(notAbstractedListObj)).isTrue();
+      // Free current list segment
+      List<SMGState> newStatesAfterFree =
+          currentState.free(pointersConcreteDifferentList[i], null, null);
+      assertThat(newStatesAfterFree).hasSize(1);
+      currentState = newStatesAfterFree.get(0);
+      notAbstractedListObj =
+          currentState
+              .dereferencePointerWithoutMaterilization(readPointer)
+              .orElseThrow()
+              .getSMGObject();
+      assertThat(currentState.getMemoryModel().isObjectValid(notAbstractedListObj)).isTrue();
+      notAbstractedListObj =
+          currentState
+              .dereferencePointerWithoutMaterilization(pointersConcreteDifferentList[i])
+              .orElseThrow()
+              .getSMGObject();
+      assertThat(currentState.getMemoryModel().isObjectValid(notAbstractedListObj)).isFalse();
+    }
+    // Now we save the state for later
+    SMGState stateW1Left = currentState;
+    // Now read the next pointer (last), throw away the extra state, save pointer to new segment
+    // and free current pointer
+    // confirm that the last one is correct first
+    List<SMGStateAndOptionalSMGObjectAndOffset> deref =
+        currentState.dereferencePointer(lastNextPointer);
+    // Should only be 1 list element
+    assertThat(deref).hasSize(1);
+    currentState = deref.get(0).getSMGState();
+    assertThat(deref.get(0).hasSMGObjectAndOffset()).isTrue();
+    assertThat(deref.get(0).getOffsetForObject()).isEqualTo(BigInteger.ZERO);
+    List<ValueAndSMGState> readNextsInLast =
+        evaluator.readValueWithPointerDereference(
+            currentState, lastNextPointer, nfo, pointerSizeInBits, null);
+    // Should only be 1 list element
+    assertThat(readNextsInLast).hasSize(2);
+    // When materializing, the first element is the minimal element, confirm that the value is 0
+    assertThat(readNextsInLast.get(0).getValue().isNumericValue()).isTrue();
+    assertThat(readNextsInLast.get(0).getValue().asNumericValue().bigIntegerValue())
+        .isEqualTo(BigInteger.ZERO);
+    // Confirm that the other is materialized correctly
+    currentState = readNextsInLast.get(1).getState();
+    Value readNextPointer = readNextsInLast.get(1).getValue();
+    SMGObject materializedList =
+        currentState
+            .dereferencePointerWithoutMaterilization(readNextPointer)
+            .orElseThrow()
+            .getSMGObject();
+    assertThat(materializedList.isSLL()).isFalse();
+    ValueAndSMGState pointerToZeroPlus =
+        currentState.readValueWithoutMaterialization(
+            materializedList, nfo, pointerSizeInBits, null);
+    assertThat(currentState.getMemoryModel().pointsToZeroPlus(pointerToZeroPlus.getValue()))
+        .isTrue();
+    // Now we free the list element from before
+    List<SMGState> freeList = currentState.free(lastNextPointer, null, null);
+    assertThat(freeList).hasSize(1);
+    currentState = freeList.get(0);
+    // Compare the 2 states from before and now
+    assertThat(currentState.isLessOrEqual(stateW1Left)).isTrue();
   }
 }
