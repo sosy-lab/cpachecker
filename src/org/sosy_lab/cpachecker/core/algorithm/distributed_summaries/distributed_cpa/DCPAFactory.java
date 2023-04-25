@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -28,6 +29,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class DCPAFactory {
 
@@ -44,16 +46,13 @@ public class DCPAFactory {
       BlockNode pBlockNode,
       AnalysisDirection pDirection,
       CFA pCFA) {
-    ImmutableMap.Builder<Integer, CFANode> nodeBuilder = ImmutableMap.builder();
-    for (CFANode cfaNode : pCFA.getAllNodes()) {
-      nodeBuilder.put(cfaNode.getNodeNumber(), cfaNode);
-    }
-    ImmutableMap<Integer, CFANode> integerToNodeMap = nodeBuilder.buildOrThrow();
+    ImmutableMap<Integer, CFANode> integerToNodeMap =
+        ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
     if (pCPA instanceof PredicateCPA predicateCPA) {
       return distribute(predicateCPA, pBlockNode, pDirection, pCFA);
     }
     if (pCPA instanceof CallstackCPA callstackCPA) {
-      return distribute(callstackCPA, pCFA);
+      return distribute(callstackCPA, pCFA, integerToNodeMap);
     }
     if (pCPA instanceof FunctionPointerCPA functionPointerCPA) {
       return distribute(functionPointerCPA, integerToNodeMap);
@@ -95,8 +94,8 @@ public class DCPAFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      CallstackCPA pCallstackCPA, CFA pCFA) {
-    return new DistributedCallstackCPA(pCallstackCPA, pCFA);
+      CallstackCPA pCallstackCPA, CFA pCFA, Map<Integer, CFANode> pIdToNodeMap) {
+    return new DistributedCallstackCPA(pCallstackCPA, pCFA, pIdToNodeMap);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

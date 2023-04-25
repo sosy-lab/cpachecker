@@ -76,6 +76,28 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
     return super.hashCode();
   }
 
+  @Override
+  public String toString() {
+    return "BlockNode{"
+        + "id="
+        + getId()
+        + ", first="
+        + getFirst()
+        + ", last="
+        + getLast()
+        + ", pred="
+        + predecessorIds
+        + ", succ="
+        + successorIds
+        + ", loopPred="
+        + loopPredecessorIds
+        + ", code="
+        + getCode()
+        + ", nodes="
+        + getNodes()
+        + '}';
+  }
+
   public boolean isRoot() {
     return getPredecessorIds().isEmpty();
   }

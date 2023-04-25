@@ -13,18 +13,21 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.Tarjan;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BlockGraph {
@@ -51,14 +54,11 @@ public class BlockGraph {
     return nodes;
   }
 
-  public void checkConsistency(ShutdownNotifier pShutdownNotifier) throws InterruptedException {
-    boolean foundRoot = false;
+  public void checkConsistency(ShutdownNotifier pShutdownNotifier, CFA pCFA)
+      throws InterruptedException {
     for (BlockNode blockNode : nodes) {
       if (blockNode.isRoot()) {
-        if (foundRoot) {
-          throw new IllegalStateException("Only one root per BlockGraph allowed.");
-        }
-        foundRoot = true;
+        throw new IllegalStateException("Only one root per BlockGraph allowed.");
       }
       Preconditions.checkState(
           !blockNode.getId().equals(BlockGraph.ROOT_ID)
@@ -114,15 +114,13 @@ public class BlockGraph {
   }
 
   public static BlockGraph fromBlockNodesWithoutGraphInformation(
-      CFA pCFA, Collection<BlockNodeWithoutGraphInformation> pNodes) {
+      CFA pCFA, Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
     Multimap<CFANode, BlockNodeWithoutGraphInformation> startNodes = ArrayListMultimap.create();
     Multimap<CFANode, BlockNodeWithoutGraphInformation> endNodes = ArrayListMultimap.create();
     for (BlockNodeWithoutGraphInformation blockNode : pNodes) {
       startNodes.put(blockNode.getFirst(), blockNode);
       endNodes.put(blockNode.getLast(), blockNode);
     }
-    Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation> loopPredecessors =
-        findLoopPredecessors(pCFA, startNodes);
     BlockNode root =
         new BlockNode(
             BlockGraph.ROOT_ID,
@@ -136,6 +134,10 @@ public class BlockGraph {
                 .transform(BlockNodeWithoutGraphInformation::getId)
                 .filter(id -> !id.equals(ROOT_ID))
                 .toSet());
+
+    Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation> loopPredecessors =
+        findLoopPredecessors(root, pNodes);
+
     startNodes.put(root.getFirst(), root);
     endNodes.put(root.getLast(), root);
     ImmutableSet<BlockNode> blockNodes =
@@ -150,8 +152,14 @@ public class BlockGraph {
                         b.getEdges(),
                         transformedImmutableSetCopy(
                             endNodes.get(b.getFirst()), BlockNodeWithoutGraphInformation::getId),
-                        transformedImmutableSetCopy(
-                            loopPredecessors.get(b), BlockNodeWithoutGraphInformation::getId),
+                        Sets.intersection(
+                                transformedImmutableSetCopy(
+                                    endNodes.get(b.getFirst()),
+                                    BlockNodeWithoutGraphInformation::getId),
+                                transformedImmutableSetCopy(
+                                    loopPredecessors.get(b),
+                                    BlockNodeWithoutGraphInformation::getId))
+                            .immutableCopy(),
                         transformedImmutableSetCopy(
                             startNodes.get(b.getLast()), BlockNodeWithoutGraphInformation::getId)))
             .toSet();
@@ -160,30 +168,30 @@ public class BlockGraph {
 
   private static Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation>
       findLoopPredecessors(
-          CFA pCFA, Multimap<CFANode, BlockNodeWithoutGraphInformation> pSuccessors) {
-    List<List<BlockNodeWithoutGraphInformation>> waitList = new ArrayList<>();
-    Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation> loopPredecessors =
+          BlockNodeWithoutGraphInformation pRoot,
+          Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
+    Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation> predecessors =
         ArrayListMultimap.create();
-    for (BlockNodeWithoutGraphInformation currentBlockNode :
-        pSuccessors.get(pCFA.getMainFunction())) {
-      List<BlockNodeWithoutGraphInformation> entry = new ArrayList<>();
-      entry.add(currentBlockNode);
-      waitList.add(entry);
-    }
-    while (!waitList.isEmpty()) {
-      List<BlockNodeWithoutGraphInformation> current = waitList.remove(0);
-      BlockNodeWithoutGraphInformation last = current.get(current.size() - 1);
-      CFANode lastNode = last.getLast();
-      for (BlockNodeWithoutGraphInformation currentBlockNode : pSuccessors.get(lastNode)) {
-        if (current.contains(currentBlockNode)) {
-          loopPredecessors.put(currentBlockNode, last);
-          continue;
-        }
-        List<BlockNodeWithoutGraphInformation> entry = new ArrayList<>(current);
-        entry.add(currentBlockNode);
-        waitList.add(entry);
+    Multimap<CFANode, BlockNodeWithoutGraphInformation> startNodeToBlockNodes =
+        ArrayListMultimap.create();
+    pNodes.forEach(p -> startNodeToBlockNodes.put(p.getFirst(), p));
+    ImmutableList<ImmutableList<BlockNodeWithoutGraphInformation>> stronglyConnected =
+        Tarjan.performTarjanAlgorithm(pRoot, n -> startNodeToBlockNodes.get(n.getLast()));
+    for (List<BlockNodeWithoutGraphInformation> connections : stronglyConnected) {
+      for (BlockNodeWithoutGraphInformation connection : connections) {
+        predecessors.putAll(connection, connections);
       }
     }
-    return loopPredecessors;
+    return predecessors;
+  }
+
+  @Override
+  public String toString() {
+    return "BlockGraph{"
+        + "rootNode="
+        + root.getFirst()
+        + ", nodes="
+        + nodes.stream().map(BlockNode::getId).collect(Collectors.joining(", "))
+        + '}';
   }
 }

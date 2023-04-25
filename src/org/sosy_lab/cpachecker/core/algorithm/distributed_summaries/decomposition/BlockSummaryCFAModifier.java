@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -45,9 +46,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class BlockSummaryCFAModifier {
 
-  private record InstrumentedMapping(
-      Map<CFANode, CFANode> mapping, Map<CFANode, CFANode> abstractionNodes) {}
-
   public record Modification(CFA cfa, BlockGraph blockGraph) {}
 
   public static final String UNIQUE_DESCRIPTION = "<<distributed-block-summary-block-end>>";
@@ -72,6 +70,9 @@ public class BlockSummaryCFAModifier {
 
   public static Modification instrumentCFA(
       CFA pCFA, BlockGraph pBlockGraph, LogManager pLogger, ShutdownNotifier pNotifier) {
+    if (pBlockGraph.getNodes().size() == 1) {
+      return new Modification(pCFA, pBlockGraph);
+    }
     FlexCfaNetwork cfaNetwork = FlexCfaNetwork.copy(pCFA);
     ImmutableSet<CFANode> blockEnds =
         transformedImmutableSetCopy(pBlockGraph.getNodes(), n -> n.getLast());
@@ -91,10 +92,9 @@ public class BlockSummaryCFAModifier {
     }
     CFA instrumentedCFA =
         CCfaFactory.CLONER.createCfa(cfaNetwork, pCFA.getMetadata(), pLogger, pNotifier);
-    InstrumentedMapping mapping =
+    MappingInformation mapping =
         createMappingBetweenOriginalAndInstrumentedCFA(pCFA, instrumentedCFA);
-    Map<CFANode, CFANode> originalInstrumentedMapping = mapping.mapping();
-    Map<CFANode, CFANode> blockAbstractionEnds = mapping.abstractionNodes();
+    Map<CFANode, CFANode> originalInstrumentedMapping = mapping.originalToInstrumentedNodes();
     originalInstrumentedMapping.forEach(
         (n1, n2) -> n2.setReversePostorderId(n1.getReversePostorderId()));
     Optional<LoopStructure> loopStructure;
@@ -126,93 +126,158 @@ public class BlockSummaryCFAModifier {
     if (loopStructure.isPresent()) {
       metadata = metadata.withLoopStructure(loopStructure.orElseThrow());
     }
-    ImmutableSet.Builder<BlockNode> instrumentedBlocks = ImmutableSet.builder();
-    for (BlockNode node : pBlockGraph.getNodes()) {
-      ImmutableSet.Builder<CFANode> instrumentedCFANodes = ImmutableSet.builder();
-      for (CFANode cfaNode : node.getNodes()) {
-        instrumentedCFANodes.add(originalInstrumentedMapping.get(cfaNode));
-      }
-      CFANode abstraction = blockAbstractionEnds.get(node.getLast());
-      abstraction =
-          abstraction == null ? originalInstrumentedMapping.get(node.getLast()) : abstraction;
-      instrumentedCFANodes.add(abstraction);
-      ImmutableSet.Builder<CFAEdge> instrumentedCFAEdges = ImmutableSet.builder();
-      for (CFAEdge edge : node.getEdges()) {
-        CFANode predecessor = originalInstrumentedMapping.get(edge.getPredecessor());
-        for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(predecessor)) {
-          if (leavingEdge
-              .getSuccessor()
-              .equals(originalInstrumentedMapping.get(edge.getSuccessor()))) {
-            instrumentedCFAEdges.add(leavingEdge);
-            continue;
-          }
-        }
-      }
-      instrumentedBlocks.add(
-          new BlockNode(
-              node.getId(),
-              originalInstrumentedMapping.get(node.getFirst()),
-              originalInstrumentedMapping.get(node.getLast()),
-              instrumentedCFANodes.build(),
-              instrumentedCFAEdges.build(),
-              node.getPredecessorIds(),
-              node.getLoopPredecessorIds(),
-              node.getSuccessorIds(),
-              abstraction));
-    }
-    BlockNode root =
-        new BlockNode(
-            BlockGraph.ROOT_ID,
-            instrumentedCFA.getMainFunction(),
-            instrumentedCFA.getMainFunction(),
-            ImmutableSet.of(instrumentedCFA.getMainFunction()),
-            ImmutableSet.of(),
-            ImmutableSet.of(),
-            pBlockGraph.getRoot().getLoopPredecessorIds(),
-            pBlockGraph.getRoot().getSuccessorIds());
     return new Modification(
         new ImmutableCFA(
             instrumentedCFA.getAllFunctions(),
             ImmutableSet.copyOf(instrumentedCFA.getAllNodes()),
             metadata),
-        new BlockGraph(root, instrumentedBlocks.build()));
+        adaptBlockGraph(pBlockGraph, pCFA.getMainFunction(), mapping));
   }
 
-  private static InstrumentedMapping createMappingBetweenOriginalAndInstrumentedCFA(
-      CFA pOriginal, CFA pInstrumented) {
-    record CFANodePair(CFANode start, CFANode instrumented) {}
-    ImmutableMap.Builder<CFANode, CFANode> builder = ImmutableMap.builder();
-    CFANode originalStart = pOriginal.getMainFunction();
-    CFANode instrumentedStart = pInstrumented.getMainFunction();
-    List<CFANodePair> waitlist = new ArrayList<>();
-    waitlist.add(new CFANodePair(originalStart, instrumentedStart));
-    Set<CFANodePair> covered = new LinkedHashSet<>();
-    ImmutableMap.Builder<CFANode, CFANode> blockEndToAbstractionBuilder = ImmutableMap.builder();
-    while (!waitlist.isEmpty()) {
-      CFANodePair curr = waitlist.remove(0);
-      if (covered.contains(curr)) {
-        continue;
-      }
-      covered.add(curr);
-      builder.put(curr.start(), curr.instrumented());
-      for (CFAEdge leavingStartEdge : CFAUtils.leavingEdges(curr.start)) {
-        for (CFAEdge leavingInstrumentedEdge : CFAUtils.leavingEdges(curr.instrumented())) {
-          if (leavingInstrumentedEdge.getDescription().equals(UNIQUE_DESCRIPTION)) {
-            blockEndToAbstractionBuilder.put(
-                leavingInstrumentedEdge.getPredecessor(), leavingInstrumentedEdge.getSuccessor());
-            continue;
-          }
-          if (virtuallyEqual(leavingStartEdge, leavingInstrumentedEdge)) {
-            waitlist.add(
-                new CFANodePair(
-                    leavingStartEdge.getSuccessor(), leavingInstrumentedEdge.getSuccessor()));
-            break;
-          }
+  private static BlockGraph adaptBlockGraph(
+      BlockGraph pBlockGraph,
+      CFANode pNewMainFunctionNode,
+      MappingInformation pMappingInformation) {
+    Map<CFANode, CFANode> originalInstrumentedNodes =
+        pMappingInformation.originalToInstrumentedNodes();
+    Map<CFAEdge, CFAEdge> originalInstrumentedEdges =
+        pMappingInformation.originalToInstrumentedEdges();
+    Map<CFANode, CFAEdge> blockAbstractionEnds = pMappingInformation.abstractionEdges();
+    ImmutableSet.Builder<BlockNode> instrumentedBlocks = ImmutableSet.builder();
+    for (BlockNode block : pBlockGraph.getNodes()) {
+      CFAEdge abstractionEdge = blockAbstractionEnds.get(block.getLast());
+      ImmutableSet.Builder<CFANode> nodeBuilder = ImmutableSet.builder();
+      for (CFANode node : block.getNodes()) {
+        // null in case of unreachable node
+        CFANode instrumentedNode = originalInstrumentedNodes.get(node);
+        if (instrumentedNode != null) {
+          nodeBuilder.add(instrumentedNode);
         }
       }
+      ImmutableSet.Builder<CFAEdge> edgeBuilder = ImmutableSet.builder();
+      for (CFAEdge edge : block.getEdges()) {
+        edgeBuilder.add(originalInstrumentedEdges.get(edge));
+      }
+      CFANode abstraction = block.getLast();
+      if (abstractionEdge != null) {
+        edgeBuilder.add(abstractionEdge);
+        abstraction = abstractionEdge.getSuccessor();
+        nodeBuilder.add(abstraction);
+      }
+      instrumentedBlocks.add(
+          new BlockNode(
+              block.getId(),
+              originalInstrumentedNodes.get(block.getFirst()),
+              originalInstrumentedNodes.get(block.getLast()),
+              nodeBuilder.build(),
+              edgeBuilder.build(),
+              block.getPredecessorIds(),
+              block.getLoopPredecessorIds(),
+              block.getSuccessorIds(),
+              abstraction));
     }
-    return new InstrumentedMapping(
-        builder.buildOrThrow(), blockEndToAbstractionBuilder.buildOrThrow());
+    BlockNode root =
+        new BlockNode(
+            BlockGraph.ROOT_ID,
+            pNewMainFunctionNode,
+            pNewMainFunctionNode,
+            ImmutableSet.of(pNewMainFunctionNode),
+            ImmutableSet.of(),
+            ImmutableSet.of(),
+            pBlockGraph.getRoot().getLoopPredecessorIds(),
+            pBlockGraph.getRoot().getSuccessorIds());
+    return new BlockGraph(root, instrumentedBlocks.build());
+  }
+
+  private record MappingInformation(
+      Map<CFANode, CFANode> originalToInstrumentedNodes,
+      Map<CFAEdge, CFAEdge> originalToInstrumentedEdges,
+      Map<CFANode, CFAEdge> abstractionEdges) {}
+
+  private static MappingInformation createMappingBetweenOriginalAndInstrumentedCFA(
+      CFA pOriginal, CFA pInstrumented) {
+    record NodePair(CFANode n1, CFANode n2) {}
+
+    Set<CFANode> covered = new LinkedHashSet<>();
+    ImmutableMap.Builder<CFANode, CFAEdge> originalToAbstractionInstrumented =
+        ImmutableMap.builder();
+    ImmutableMap.Builder<CFAEdge, CFAEdge> originalToInstrumentedEdges = ImmutableMap.builder();
+    ImmutableMap.Builder<CFANode, CFANode> originalToInstrumentedNodes = ImmutableMap.builder();
+
+    List<NodePair> waitlist = new ArrayList<>();
+    waitlist.add(new NodePair(pOriginal.getMainFunction(), pInstrumented.getMainFunction()));
+    originalToInstrumentedNodes.put(pOriginal.getMainFunction(), pInstrumented.getMainFunction());
+    while (!waitlist.isEmpty()) {
+      NodePair pair = waitlist.remove(0);
+      CFANode originalNode = pair.n1();
+      if (covered.contains(originalNode)) {
+        continue;
+      }
+      covered.add(originalNode);
+      CFANode instrumentedNode = pair.n2();
+      FluentIterable<CFAEdge> instrumentedOutgoing = CFAUtils.allLeavingEdges(instrumentedNode);
+      FluentIterable<CFAEdge> abstractionEdges =
+          instrumentedOutgoing.filter(e -> e.getDescription().equals(UNIQUE_DESCRIPTION));
+      assertOrFail(
+          abstractionEdges.size() <= 1, "Cannot have more than one abstraction edge per node.");
+      int outgoing = instrumentedNode.getNumLeavingEdges() - abstractionEdges.size();
+      assertOrFail(
+          originalNode.getNumLeavingEdges() == outgoing, "Number of leaving edges does not match.");
+      assertOrFail(
+          originalNode.getNumEnteringEdges() == instrumentedNode.getNumEnteringEdges(),
+          "Number of entering edges does not match.");
+      abstractionEdges.forEach(edge -> originalToAbstractionInstrumented.put(originalNode, edge));
+      FluentIterable<CFAEdge> originalOutgoing = CFAUtils.allLeavingEdges(originalNode);
+      Set<CFAEdge> foundCorrespondingEdges = new LinkedHashSet<>();
+      for (CFAEdge cfaEdge : originalOutgoing) {
+        CFAEdge corresponding = findCorrespondingEdge(cfaEdge, instrumentedOutgoing);
+        assertOrFail(
+            !foundCorrespondingEdges.contains(corresponding), "Corresponding edge already covered");
+        originalToInstrumentedNodes.put(cfaEdge.getSuccessor(), corresponding.getSuccessor());
+        originalToInstrumentedEdges.put(cfaEdge, corresponding);
+        waitlist.add(new NodePair(cfaEdge.getSuccessor(), corresponding.getSuccessor()));
+        foundCorrespondingEdges.add(corresponding);
+      }
+      assertOrFail(
+          foundCorrespondingEdges.size() == instrumentedOutgoing.size() - abstractionEdges.size(),
+          "Missing mapping to instrumented edges");
+    }
+
+    return new MappingInformation(
+        originalToInstrumentedNodes.buildKeepingLast(),
+        originalToInstrumentedEdges.buildOrThrow(),
+        originalToAbstractionInstrumented.buildOrThrow());
+  }
+
+  private static CFAEdge findCorrespondingEdge(CFAEdge edge, Iterable<CFAEdge> edges) {
+    for (CFAEdge cfaEdge : edges) {
+      if (virtuallyEqual(edge, cfaEdge)) {
+        return cfaEdge;
+      }
+    }
+    throw new AssertionError("No matching edge found");
+  }
+
+  private static void assertOrFail(boolean condition, String message) {
+    if (!condition) {
+      throw new AssertionError(message);
+    }
+  }
+
+  private static boolean virtuallyEqual(CFANode pCFANode, CFANode pCFANode2) {
+    for (CFAEdge original : CFAUtils.allLeavingEdges(pCFANode)) {
+      boolean foundMatch = false;
+      for (CFAEdge instrumented : CFAUtils.allLeavingEdges(pCFANode2)) {
+        if (virtuallyEqual(original, instrumented)) {
+          foundMatch = true;
+          break;
+        }
+      }
+      if (!foundMatch) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private static boolean virtuallyEqual(CFAEdge pCFAEdge, CFAEdge pCFAEdge2) {

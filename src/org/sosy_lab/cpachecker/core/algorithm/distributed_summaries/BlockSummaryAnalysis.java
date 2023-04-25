@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import java.io.IOException;
@@ -126,15 +125,16 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       BlockOperator blockOperator = new BlockOperator();
       configuration.inject(blockOperator);
       blockOperator.setCFA(initialCFA);
+      long numberOfRealFunctions =
+          initialCFA.getAllFunctionNames().stream()
+              .filter(name -> !name.startsWith("__") && name.equals("reach_error"))
+              .toList()
+              .size();
       CFADecomposer decomposer =
           new MergeBlockNodesDecomposition(
-              n -> blockOperator.isBlockEnd(n, -1), initialCFA.getNumberOfFunctions());
+              n -> blockOperator.isBlockEnd(n, -1), (int) numberOfRealFunctions - 1);
       BlockGraph blockGraph = decomposer.decompose(initialCFA);
-      blockGraph.checkConsistency(shutdownManager.getNotifier());
-      assert FluentIterable.from(blockGraph.getNodes())
-          .transformAndConcat(BlockNode::getNodes)
-          .toSet()
-          .containsAll(initialCFA.getAllNodes());
+      blockGraph.checkConsistency(shutdownManager.getNotifier(), initialCFA);
       Modification modification =
           BlockSummaryCFAModifier.instrumentCFA(
               initialCFA, blockGraph, logger, shutdownManager.getNotifier());

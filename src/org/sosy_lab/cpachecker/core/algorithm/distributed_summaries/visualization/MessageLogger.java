@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.visualizati
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Path;
@@ -52,7 +53,7 @@ public class MessageLogger {
 
   public synchronized void logBlockGraph() throws IOException {
     Map<String, Map<String, List<String>>> treeMap = new HashMap<>();
-    tree.getNodes()
+    Iterables.concat(tree.getNodes(), ImmutableList.of(tree.getRoot()))
         .forEach(
             n -> {
               Map<String, List<String>> attributes = new HashMap<>();

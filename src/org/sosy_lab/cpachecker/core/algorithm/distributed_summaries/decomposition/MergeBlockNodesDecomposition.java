@@ -40,12 +40,13 @@ public class MergeBlockNodesDecomposition implements CFADecomposer {
 
   @Override
   public BlockGraph decompose(CFA cfa) throws InterruptedException {
+    if (targetNumber <= 1) {
+      return new SingleBlockDecomposition().decompose(cfa);
+    }
     LinearBlockNodeDecomposition linearBlockNodeDecomposition =
         new LinearBlockNodeDecomposition(isBlockEnd);
-    Collection<BlockNodeWithoutGraphInformation> nodes =
-        FluentIterable.from(linearBlockNodeDecomposition.decompose(cfa).getNodes())
-            .filter(BlockNodeWithoutGraphInformation.class)
-            .toSet();
+    Collection<? extends BlockNodeWithoutGraphInformation> nodes =
+        linearBlockNodeDecomposition.decompose(cfa).getNodes();
     while (nodes.size() > targetNumber) {
       int sizeBefore = nodes.size();
       nodes = mergeHorizontally(nodes);
@@ -66,7 +67,7 @@ public class MergeBlockNodesDecomposition implements CFADecomposer {
   }
 
   private Collection<BlockNodeWithoutGraphInformation> mergeSubsumption(
-      Collection<BlockNodeWithoutGraphInformation> pNodes) {
+      Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
     Set<BlockNodeWithoutGraphInformation> available = new LinkedHashSet<>(pNodes);
     for (BlockNodeWithoutGraphInformation node1 : pNodes) {
       for (BlockNodeWithoutGraphInformation node2 : pNodes) {
@@ -74,8 +75,7 @@ public class MergeBlockNodesDecomposition implements CFADecomposer {
           // already merged
           continue;
         }
-        if (node1.getNodes().contains(node2.getFirst())
-            && node1.getNodes().contains(node2.getLast())) {
+        if (node1.getFirst().equals(node2.getFirst()) && node1.getFirst().equals(node2.getLast())) {
           BlockNodeWithoutGraphInformation merged = mergeSubsumedBlocks(node1, node2);
           available.remove(node1);
           available.remove(node2);
@@ -90,7 +90,7 @@ public class MergeBlockNodesDecomposition implements CFADecomposer {
   }
 
   private Collection<BlockNodeWithoutGraphInformation> mergeHorizontally(
-      Collection<BlockNodeWithoutGraphInformation> pNodes) {
+      Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
     Multimap<BlockScope, BlockNodeWithoutGraphInformation> blockScopes = ArrayListMultimap.create();
     pNodes.forEach(n -> blockScopes.put(new BlockScope(n.getFirst(), n.getLast()), n));
     for (BlockScope blockScope : ImmutableSet.copyOf(blockScopes.keySet())) {
@@ -108,7 +108,7 @@ public class MergeBlockNodesDecomposition implements CFADecomposer {
   }
 
   private Collection<BlockNodeWithoutGraphInformation> mergeVertically(
-      Collection<BlockNodeWithoutGraphInformation> pNodes) {
+      Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
     Multimap<CFANode, BlockNodeWithoutGraphInformation> startingPoints = ArrayListMultimap.create();
     Multimap<CFANode, BlockNodeWithoutGraphInformation> endingPoints = ArrayListMultimap.create();
     pNodes.forEach(
@@ -151,7 +151,7 @@ public class MergeBlockNodesDecomposition implements CFADecomposer {
         pOuter.getNodes().contains(pInner.getFirst())
             && pOuter.getNodes().contains(pInner.getLast()));
     return new BlockNodeWithoutGraphInformation(
-        "MH" + id++,
+        "MS" + id++,
         pOuter.getFirst(),
         pOuter.getLast(),
         ImmutableSet.<CFANode>builder().addAll(pOuter.getNodes()).addAll(pInner.getNodes()).build(),

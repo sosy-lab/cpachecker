@@ -86,7 +86,11 @@ public class BlockNodeWithoutGraphInformation {
         codeLines.append(leavingEdge.getCode()).append("\n");
       }
     }
-    return codeLines.toString();
+    String codeExtraLine = codeLines.toString();
+    if (codeExtraLine.isBlank()) {
+      return "";
+    }
+    return codeExtraLine.substring(0, codeExtraLine.length() - 1);
   }
 
   @Override
@@ -104,6 +108,7 @@ public class BlockNodeWithoutGraphInformation {
 
   @Override
   public String toString() {
+    String niceCode = code.isBlank() ? "" : "code=" + code;
     return "BlockNodeWithoutGraphInformation["
         + "id="
         + id
@@ -117,8 +122,7 @@ public class BlockNodeWithoutGraphInformation {
         + "nodes="
         + nodes
         + ", "
-        + "code="
-        + code
+        + niceCode
         + ']';
   }
 }
