@@ -23,6 +23,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -239,10 +241,16 @@ class MemoryManipulationFunctionHandler {
             regionMgr,
             assignmentOptions);
 
+    // for relevancy checking, we need a CLeftHandSide expression; we construct a dummy dereference,
+    // which, for relevancy checking purposes, describes assignment to the first element of destination
+    final CType destinationElementType = typeHandler.simplifyType(adjustedDestinationType.getType());
+    final CLeftHandSide lhsForRelevancyChecking =
+        new CPointerExpression(FileLocation.DUMMY, destinationElementType, processedDestination);
+
     // construct the slice assignment
-    // TODO: add relevancy checking
     AssignmentHandler.SliceAssignment sliceAssignment =
-        new AssignmentHandler.SliceAssignment(lhs, Optional.empty(), Optional.of(rhs));
+        new AssignmentHandler.SliceAssignment(
+            lhs, Optional.of(lhsForRelevancyChecking), Optional.of(rhs));
 
     // assign and add as a constraint
     BooleanFormula assignmentFormula = assignmentHandler.assign(ImmutableList.of(sliceAssignment));
@@ -279,9 +287,22 @@ class MemoryManipulationFunctionHandler {
     CExpression setValueAsUnsignedChar =
         new CCastExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_CHAR, setValue);
 
+    // for relevancy checking, we need a CLeftHandSide expression; we construct a dummy dereference,
+    // which, for relevancy checking purposes, describes assignment to the first element of
+    // destination
+    final CPointerType adjustedDestinationType =
+        (CPointerType) CTypes.adjustFunctionOrArrayType(destinationType);
+    final CType destinationElementType =
+        typeHandler.simplifyType(adjustedDestinationType.getType());
+    final CLeftHandSide lhsForRelevancyChecking =
+        new CPointerExpression(FileLocation.DUMMY, destinationElementType, processedDestination);
+
+    // create the assignment
     SliceAssignment assignment =
         new SliceAssignment(
-            lhs, Optional.empty(), Optional.of(new SliceExpression(setValueAsUnsignedChar)));
+            lhs,
+            Optional.of(lhsForRelevancyChecking),
+            Optional.of(new SliceExpression(setValueAsUnsignedChar)));
 
     // use BYTE_REPEAT conversion type to properly assign each byte of the left-hand side to the
     // given value, force quantifiers if the option is set, leave everything else as-is
