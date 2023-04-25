@@ -12,8 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.List;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
@@ -43,13 +41,13 @@ class SMTHeapWithByteArray implements SMTHeap {
   private final BitvectorFormulaManager bfmgr;
   private final FormulaType<?> pointerType;
   private final ByteOrder endianness;
-  private final SMTHeap delegate;
+  private final SMTMultipleAssignmentHeap delegate;
 
   SMTHeapWithByteArray(
       FormulaManagerView pFormulaManager,
       FormulaType<?> pPointerType,
       MachineModel pModel,
-      SMTHeap pDelegate) {
+      SMTMultipleAssignmentHeap pDelegate) {
     formulaManager = pFormulaManager;
     pointerType = pPointerType;
     endianness = pModel.getEndianness();
@@ -63,40 +61,29 @@ class SMTHeapWithByteArray implements SMTHeap {
       FormulaType<?> pTargetType,
       int oldIndex,
       int newIndex,
-      final List<SMTAddressValue<I, E>> assignments) {
+      SMTAddressValue<I, E> assignment) {
     if (pTargetType.isFloatingPointType()) {
       // convert floating point values to be set to bitvector and call ourselves recursively
       FloatingPointType floatTargetType = (FloatingPointType) pTargetType;
       BitvectorType bvType = FormulaType.getBitvectorTypeWithSize(floatTargetType.getTotalSize());
       FloatingPointFormulaManagerView floatMgr = formulaManager.getFloatingPointFormulaManager();
-      List<SMTAddressValue<I, BitvectorFormula>> bvAssignments = new ArrayList<>();
-      for (SMTAddressValue<I, E> assignment : assignments) {
         BitvectorFormula bvValue =
             floatMgr.toIeeeBitvector((FloatingPointFormula) assignment.value());
-        bvAssignments.add(new SMTAddressValue<>(assignment.address(), bvValue));
-      }
-      return makePointerAssignment(targetName, bvType, oldIndex, newIndex, bvAssignments);
-
+      SMTAddressValue<I, BitvectorFormula> bvAssignment =
+          new SMTAddressValue<>(assignment.address(), bvValue);
+      return makePointerAssignment(targetName, bvType, oldIndex, newIndex, bvAssignment);
     } else if (pTargetType.isBitvectorType()) {
-      // support only one assignment for simplicity, multiple assignments are only used
-      // when this heap calls underlying heaps
-      if (assignments.size() != 1) {
-        throw new UnsupportedOperationException(
-            String.format(
-                "Expected exactly one pointer assignment, but %s supplied!", assignments.size()));
-      }
-      I address = assignments.get(0).address();
-      E value = assignments.get(0).value();
-
       // handle in a tailored function
-      BitvectorType targetType = (BitvectorType) formulaManager.getFormulaType(value);
+      BitvectorType targetType = (BitvectorType) formulaManager.getFormulaType(assignment.value());
       checkArgument(pTargetType.equals(targetType));
 
-      FormulaType<I> addressType = formulaManager.getFormulaType(address);
+      FormulaType<I> addressType = formulaManager.getFormulaType(assignment.address());
       checkArgument(pointerType.equals(addressType));
 
+      SMTAddressValue<I, BitvectorFormula> bvAssignment = new SMTAddressValue<>(assignment.address(), (BitvectorFormula) assignment.value());
+
       return handleBitvectorAssignment(
-          targetName, oldIndex, newIndex, address, addressType, null, (BitvectorFormula) value);
+          targetName, oldIndex, newIndex, addressType, null, bvAssignment);
     } else {
       throw new UnsupportedOperationException(
           "ByteArray Heap encoding does not support " + pTargetType);
@@ -109,34 +96,33 @@ class SMTHeapWithByteArray implements SMTHeap {
       FormulaType<?> pTargetType,
       int oldIndex,
       int newIndex,
-      I address,
       BooleanFormula condition,
-      E value) {
+      SMTAddressValue<I, E> assignment) {
     if (pTargetType.isFloatingPointType()) {
       // convert floating point value to be set to bitvector and call ourselves recursively
       FloatingPointType floatTargetType = (FloatingPointType) pTargetType;
       BitvectorType bvType = FormulaType.getBitvectorTypeWithSize(floatTargetType.getTotalSize());
       FloatingPointFormulaManagerView floatMgr = formulaManager.getFloatingPointFormulaManager();
-      BitvectorFormula bvValue = floatMgr.toIeeeBitvector((FloatingPointFormula) value);
-      return makeQuantifiedPointerAssignment(
-          targetName, bvType, oldIndex, newIndex, address, condition, bvValue);
+      BitvectorFormula bvValue =
+          floatMgr.toIeeeBitvector((FloatingPointFormula) assignment.value());
+      SMTAddressValue<I, BitvectorFormula> bvAssignment =
+          new SMTAddressValue<>(assignment.address(), bvValue);
 
+      return makeQuantifiedPointerAssignment(
+          targetName, bvType, oldIndex, newIndex, condition, bvAssignment);
     } else if (pTargetType.isBitvectorType()) {
       // handle in a tailored function
-      BitvectorType targetType = (BitvectorType) formulaManager.getFormulaType(value);
+      BitvectorType targetType = (BitvectorType) formulaManager.getFormulaType(assignment.value());
       checkArgument(pTargetType.equals(targetType));
 
-      FormulaType<I> addressType = formulaManager.getFormulaType(address);
+      FormulaType<I> addressType = formulaManager.getFormulaType(assignment.address());
       checkArgument(pointerType.equals(addressType));
 
+      SMTAddressValue<I, BitvectorFormula> bvAssignment =
+          new SMTAddressValue<>(assignment.address(), (BitvectorFormula) assignment.value());
+
       return handleBitvectorAssignment(
-          targetName,
-          oldIndex,
-          newIndex,
-          address,
-          addressType,
-          condition,
-          (BitvectorFormula) value);
+          targetName, oldIndex, newIndex, addressType, condition, bvAssignment);
     } else {
       throw new UnsupportedOperationException(
           "ByteArray Heap encoding does not support " + pTargetType);
@@ -270,10 +256,18 @@ class SMTHeapWithByteArray implements SMTHeap {
       String targetName,
       int oldIndex,
       int newIndex,
-      I address,
       FormulaType<I> addressType,
       @Nullable BooleanFormula condition,
-      BitvectorFormula value) {
+      SMTAddressValue<I, BitvectorFormula> assignment) {
+
+    if (condition != null) {
+      // TODO: support quantified assignments with byte heap
+      throw new UnsupportedOperationException(
+          String.format("Byte heap does not support quantified assignments!"));
+    }
+
+    I address = assignment.address();
+    BitvectorFormula value = assignment.value();
 
     // since each element is represented by a certain amount of bytes and there is no overlap, there
     // is no need to obtain the old value and merge them
@@ -293,21 +287,19 @@ class SMTHeapWithByteArray implements SMTHeap {
 
     // store the value in delegate byte-by-byte
     // make just one delegate assignment so that we do not need to use multiple SSA indices
-    ImmutableList.Builder<SMTAddressValue<I, BitvectorFormula>> builder = ImmutableList.builder();
+    ImmutableList.Builder<SMTAddressValue<I, BitvectorFormula>> byteAssignmentsBuilder =
+        ImmutableList.builder();
     int byteOffset = 0;
     for (BitvectorFormula byteValue : bytes) {
       I addressWithOffset =
           formulaManager.makePlus(address, formulaManager.makeNumber(addressType, byteOffset++));
-      builder.add(new SMTAddressValue<>(addressWithOffset, byteValue));
+      byteAssignmentsBuilder.add(new SMTAddressValue<>(addressWithOffset, byteValue));
     }
 
-    if (condition != null) {
-      // TODO: support quantified assignments with byte heap
-      throw new UnsupportedOperationException(
-          String.format("Byte heap does not support quantified assignments!"));
-    }
+    // delegate
     BooleanFormula assignmentFormula =
-        delegate.makePointerAssignment(targetName, BYTE_TYPE, oldIndex, newIndex, builder.build());
+        delegate.<I, BitvectorFormula>makePointerAssignments(
+            targetName, BYTE_TYPE, oldIndex, newIndex, byteAssignmentsBuilder.build());
 
     return assignmentFormula;
   }

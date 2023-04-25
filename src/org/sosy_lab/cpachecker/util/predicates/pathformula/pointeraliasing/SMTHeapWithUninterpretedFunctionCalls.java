@@ -18,7 +18,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 /** SMT heap representation with uninterpreted function calls. */
-class SMTHeapWithUninterpretedFunctionCalls implements SMTHeap {
+class SMTHeapWithUninterpretedFunctionCalls implements SMTMultipleAssignmentHeap {
 
   private final FunctionFormulaManagerView ffmgr;
   private final FormulaManagerView formulaManager;
@@ -29,7 +29,7 @@ class SMTHeapWithUninterpretedFunctionCalls implements SMTHeap {
   }
 
   @Override
-  public <I extends Formula, E extends Formula> BooleanFormula makePointerAssignment(
+  public <I extends Formula, E extends Formula> BooleanFormula makePointerAssignments(
       String targetName,
       FormulaType<?> pTargetType,
       int oldIndex,
@@ -51,13 +51,12 @@ class SMTHeapWithUninterpretedFunctionCalls implements SMTHeap {
 
   @Override
   public <I extends Formula, E extends Formula> BooleanFormula makeQuantifiedPointerAssignment(
-      String pTargetName,
+      String targetName,
       FormulaType<?> pTargetType,
-      int pOldIndex,
-      int pNewIndex,
-      I pAddress,
-      BooleanFormula pCondition,
-      E pValue) {
+      int oldIndex,
+      int newIndex,
+      final BooleanFormula condition,
+      final SMTAddressValue<I, E> assignment) {
     // TODO: implement
     throw new UnsupportedOperationException(
         "Quantified pointer assignment not implemented for heap with uninterpreted function calls"

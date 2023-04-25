@@ -17,7 +17,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -48,6 +47,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SMTHeap.SMTAddressValue;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -989,7 +989,12 @@ class AssignmentFormulaHandler {
         if (useQuantifiers) {
           result =
               conv.ptsMgr.makeQuantifiedPointerAssignment(
-                  targetName, targetType, oldIndex, newIndex, address, condition, rhs);
+                  targetName,
+                  targetType,
+                  oldIndex,
+                  newIndex,
+                  condition,
+                  new SMTAddressValue<>(address, rhs));
         } else {
           result =
               conv.ptsMgr.makePointerAssignment(
@@ -997,7 +1002,7 @@ class AssignmentFormulaHandler {
                   targetType,
                   oldIndex,
                   newIndex,
-                  ImmutableList.of(new SMTHeap.SMTAddressValue<>(address, rhs)));
+                  new SMTHeap.SMTAddressValue<>(address, rhs));
         }
       } else {
         result = bfmgr.makeTrue();

@@ -8,12 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import java.util.List;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-/** Interface abstraction for smt heap accesses. */
+/** Interface abstraction for SMT heap accesses. */
 interface SMTHeap {
 
   record SMTAddressValue<I extends Formula, E extends Formula>(I address, E value) {}
@@ -21,16 +20,17 @@ interface SMTHeap {
   /**
    * Create a formula that represents an assignment to a value via a pointer.
    *
-   * <p>The assignments may not contain encoded quantified variables.
+   * <p>The assignment may not contain encoded quantified variables. Use {@link
+   * #makeQuantifiedPointerAssignment(String, FormulaType, int, int, BooleanFormula,
+   * SMTAddressValue)} instead if it does.
    *
    * @param targetName The name of the pointer access symbol as returned by {@link
    *     MemoryRegionManager#getPointerAccessName(MemoryRegion)}
    * @param pTargetType The formula type of the value
    * @param oldIndex The old SSA index for targetName
    * @param newIndex The new SSA index for targetName
-   * @param assignments The assignments, each one combining the address where the value should be
-   *     written and the value to write
-   * @return A formula representing assignments of the form {@code targetName@newIndex[address] =
+   * @param assignment The assignment, which may not contain encoded quantified variables
+   * @return A formula representing assignment of the form {@code targetName@newIndex[address] =
    *     value}
    */
   <I extends Formula, E extends Formula> BooleanFormula makePointerAssignment(
@@ -38,7 +38,7 @@ interface SMTHeap {
       final FormulaType<?> pTargetType,
       final int oldIndex,
       final int newIndex,
-      final List<SMTAddressValue<I, E>> assignments);
+      final SMTAddressValue<I, E> assignment);
 
   /**
    * Create a formula that represents a conditional assignment to a value via a pointer, with the
@@ -47,20 +47,20 @@ interface SMTHeap {
    *
    * <p>Since the formulas may contain encoded quantified variables, it may not be possible to
    * perform the assignment using the theory used for standard {@link #makePointerAssignment(String,
-   * FormulaType, int, int, List)}. Specifically, for the theory of arrays, it is not possible to
-   * perform a write to quantified address as the meaning would be "value is stored to one of the
-   * selected locations" instead of proper "value is stored to each address as aplicable".
+   * FormulaType, int, int, SMTAddressValue)}. Specifically, for the theory of arrays, it is not
+   * possible to perform a write to quantified address as the meaning would be "value is stored to
+   * one of the selected locations" instead of proper "value is stored to each address as
+   * aplicable".
    *
    * @param targetName The name of the pointer access symbol as returned by {@link
    *     MemoryRegionManager#getPointerAccessName(MemoryRegion)}
    * @param pTargetType The formula type of the value
    * @param oldIndex The old SSA index for targetName
    * @param newIndex The new SSA index for targetName
-   * @param address The address to assign to. May contain encoded quantified variables, therefore
-   *     actually "pointing to multiple addresses".
    * @param condition The condition upon which the value is assigned to the address, otherwise, the
    *     previous value is retained. May contain encoded quantified variables.
-   * @param value The value to assign to. May contain encoded quantified variables.
+   * @param assignment The combination of address to assign to and the value to assign. May contain
+   *     encoded quantified variables, therefore actually "pointing to multiple addresses".
    * @return A formula representing the assignments.
    */
   <I extends Formula, E extends Formula> BooleanFormula makeQuantifiedPointerAssignment(
@@ -68,9 +68,8 @@ interface SMTHeap {
       final FormulaType<?> pTargetType,
       final int oldIndex,
       final int newIndex,
-      final I address,
       final BooleanFormula condition,
-      final E value);
+      final SMTAddressValue<I, E> assignment);
 
   /**
    * Create a formula that represents an assignment from old SSA index to new SSA index without

@@ -140,7 +140,8 @@ class PointerTargetSetManager {
 
     if (pOptions.useByteArrayForHeap()) {
       // TODO: add option to use byte-level heap but with uninterpreted functions
-      SMTHeap backingHeap = new SMTHeapWithArrays(pFormulaManager, pTypeHandler.getPointerType());
+      SMTMultipleAssignmentHeap backingHeap =
+          new SMTHeapWithArrays(pFormulaManager, pTypeHandler.getPointerType());
       heap =
           new SMTHeapWithByteArray(
               pFormulaManager, pTypeHandler.getPointerType(), pConv.machineModel, backingHeap);
@@ -186,15 +187,17 @@ class PointerTargetSetManager {
   /**
    * Create a formula that represents an assignment to a value via a pointer.
    *
+   * <p>The assignment may not contain encoded quantified variables. Use {@link
+   * #makeQuantifiedPointerAssignment(String, FormulaType, int, int, BooleanFormula,
+   * SMTAddressValue)} instead if it does.
+   *
    * @param targetName The name of the pointer access symbol as returned by {@link
    *     MemoryRegionManager#getPointerAccessName(MemoryRegion)}
    * @param pTargetType The formula type of the value
    * @param oldIndex The old SSA index for targetName
    * @param newIndex The new SSA index for targetName
-   * @param address The address where the value should be written
-   * @param assignments The assignments, each one combining the address where the value should be
-   *     written and the value to write
-   * @return A formula representing assignments of the form {@code targetName@newIndex[address] =
+   * @param assignment The assignment, which may not contain encoded quantified variables
+   * @return A formula representing assignment of the form {@code targetName@newIndex[address] =
    *     value}
    */
   <I extends Formula, E extends Formula> BooleanFormula makePointerAssignment(
@@ -202,8 +205,8 @@ class PointerTargetSetManager {
       final FormulaType<?> pTargetType,
       final int oldIndex,
       final int newIndex,
-      final List<SMTAddressValue<I, E>> assignments) {
-    return heap.makePointerAssignment(targetName, pTargetType, oldIndex, newIndex, assignments);
+      final SMTAddressValue<I, E> assignment) {
+    return heap.makePointerAssignment(targetName, pTargetType, oldIndex, newIndex, assignment);
   }
 
   /**
@@ -226,16 +229,38 @@ class PointerTargetSetManager {
     return heap.makeIdentityPointerAssignment(targetName, pTargetType, oldIndex, newIndex);
   }
 
+  /**
+   * Create a formula that represents a conditional assignment to a value via a pointer, with the
+   * possibility of using quantified variables encoded in the formulas for address, condition, and
+   * value to set.
+   *
+   * <p>Since the formulas may contain encoded quantified variables, it may not be possible to
+   * perform the assignment using the theory used for standard {@link #makePointerAssignment(String,
+   * FormulaType, int, int, SMTAddressValue)}. Specifically, for the theory of arrays, it is not
+   * possible to perform a write to quantified address as the meaning would be "value is stored to
+   * one of the selected locations" instead of proper "value is stored to each address as
+   * aplicable".
+   *
+   * @param targetName The name of the pointer access symbol as returned by {@link
+   *     MemoryRegionManager#getPointerAccessName(MemoryRegion)}
+   * @param pTargetType The formula type of the value
+   * @param oldIndex The old SSA index for targetName
+   * @param newIndex The new SSA index for targetName
+   * @param condition The condition upon which the value is assigned to the address, otherwise, the
+   *     previous value is retained. May contain encoded quantified variables.
+   * @param assignment The combination of address to assign to and the value to assign. May contain
+   *     encoded quantified variables, therefore actually "pointing to multiple addresses".
+   * @return A formula representing the assignments.
+   */
   public <I extends Formula, E extends Formula> BooleanFormula makeQuantifiedPointerAssignment(
-      String pTargetName,
-      FormulaType<?> pTargetType,
-      int pOldIndex,
-      int pNewIndex,
-      I pAddress,
-      BooleanFormula pCondition,
-      E pValue) {
+      final String targetName,
+      final FormulaType<?> pTargetType,
+      final int oldIndex,
+      final int newIndex,
+      final BooleanFormula condition,
+      final SMTAddressValue<I, E> assignment) {
     return heap.makeQuantifiedPointerAssignment(
-        pTargetName, pTargetType, pOldIndex, pNewIndex, pAddress, pCondition, pValue);
+        targetName, pTargetType, oldIndex, newIndex, condition, assignment);
   }
 
   /**

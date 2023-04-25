@@ -20,7 +20,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 /** SMT heap representation with multiple arrays. */
-class SMTHeapWithArrays implements SMTHeap {
+class SMTHeapWithArrays implements SMTMultipleAssignmentHeap {
 
   private final ArrayFormulaManagerView afmgr;
   private final FormulaManagerView formulaManager;
@@ -33,7 +33,7 @@ class SMTHeapWithArrays implements SMTHeap {
   }
 
   @Override
-  public <I extends Formula, E extends Formula> BooleanFormula makePointerAssignment(
+  public <I extends Formula, E extends Formula> BooleanFormula makePointerAssignments(
       String targetName,
       FormulaType<?> pTargetType,
       int oldIndex,
@@ -82,9 +82,11 @@ class SMTHeapWithArrays implements SMTHeap {
       final FormulaType<?> pTargetType,
       final int oldIndex,
       final int newIndex,
-      final I address,
       final BooleanFormula condition,
-      final E value) {
+      final SMTAddressValue<I, E> assignment) {
+
+    I address = assignment.address();
+    E value = assignment.value();
 
     // handle the in the same fashion as if the select was an uninterpreted function
 

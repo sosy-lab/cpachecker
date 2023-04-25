@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.truth.TruthJUnit.assume;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.Arrays;
 import java.util.List;
@@ -162,11 +161,7 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
     final FormulaType<BitvectorFormula> pTargetType = FormulaType.getBitvectorTypeWithSize(length);
     final BitvectorFormula address = bvmgr.makeBitvector(model.getSizeofPtrInBits(), TEST_ADDRESS);
     return heap.makePointerAssignment(
-        targetName,
-        pTargetType,
-        index,
-        ++index,
-        ImmutableList.of(new SMTHeap.SMTAddressValue<>(address, value)));
+        targetName, pTargetType, index, ++index, new SMTHeap.SMTAddressValue<>(address, value));
   }
 
   private BooleanFormula readBitVector(int length) {
