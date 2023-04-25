@@ -393,7 +393,9 @@ class AssignmentQuantifierHandler {
     final Formula sliceSizeFormula =
         indexSizeVisitor.asValueFormula(sliceSizeExpression, pointerAsUnsignedIntType);
 
-    // TODO: should we add fields to UF from index visitor?
+    // add used fields from index visitor for UF handling
+    pts.addEssentialFields(indexSizeVisitor.getInitializedFields());
+    pts.addEssentialFields(indexSizeVisitor.getUsedFields());
 
     // decide whether to encode or unroll the quantifier
     // the functions are recursive and return the result of completed assignment
@@ -733,7 +735,7 @@ class AssignmentQuantifierHandler {
     CCompositeType baseType = (CCompositeType) resolved.type();
     CType fieldType = conv.typeHandler.getSimplifiedType(modifier.field());
 
-    // add field to essential fields for uninterpreted functions
+    // add field to essential fields for use by uninterpreted functions
     pts.addEssentialFields(ImmutableList.of(CompositeField.of(baseType, modifier.field())));
 
     // handle depending on type of base, normally should be either unaliased or aliased
