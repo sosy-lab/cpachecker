@@ -114,8 +114,7 @@ class ApronDomain implements AbstractDomain {
     }
   }
 
-  private Pair<ApronState, ApronState> getShrinkedStates(ApronState succ, ApronState reached)
-      throws ApronException {
+  private Pair<ApronState, ApronState> getShrinkedStates(ApronState succ, ApronState reached) {
     if (succ.sizeOfVariables() > reached.sizeOfVariables()) {
       Pair<ApronState, ApronState> tmp = succ.shrinkToFittingSize(reached);
       succ = tmp.getFirst();
