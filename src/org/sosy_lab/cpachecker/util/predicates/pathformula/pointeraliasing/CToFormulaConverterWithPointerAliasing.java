@@ -839,15 +839,19 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       rhs = makeCastFromArrayToPointerIfNecessary((CExpression) rhs, lhsType);
     }
 
-    // perform as slice assignment
-    AssignmentOptions assignmentOptions =
-        new AssignmentOptions(false, ConversionType.CAST, false, forcePointerAssignment);
-
+    // perform as slice assignment from LHS to RHS
     SliceExpression assignmentLhs = new SliceExpression(lhs);
     SliceExpression assignmentRhs = new SliceExpression(rhs);
     SliceAssignment assignment =
         new SliceAssignment(
             assignmentLhs, Optional.of(lhsForChecking), Optional.of(assignmentRhs));
+
+    // use normal assignment options with cast conversion, force pointer assignment if necessary,
+    // leave everything else as-is
+    AssignmentOptions assignmentOptions =
+        new AssignmentOptions.Builder(ConversionType.CAST)
+            .setForcePointerAssignment(forcePointerAssignment)
+            .build();
 
     AssignmentHandler assignmentHandler =
         new AssignmentHandler(
@@ -1012,10 +1016,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     final CIdExpression lhs = new CIdExpression(declaration.getFileLocation(), declaration);
 
-    // use old SSA indices if aliased as this is an initialization assignment,
-    // no other special options
+    // use normal assignment options with cast conversion, use old SSA indices if aliased as this is
+    // an initialization assignment, leave everything else as-is
     AssignmentOptions assignmentOptions =
-        new AssignmentOptions(true, ConversionType.CAST, false, false);
+        new AssignmentOptions.Builder(ConversionType.CAST)
+            .setUseOldSSAIndicesIfAliased(true)
+            .build();
     final AssignmentHandler assignmentHandler =
         new AssignmentHandler(
             this,

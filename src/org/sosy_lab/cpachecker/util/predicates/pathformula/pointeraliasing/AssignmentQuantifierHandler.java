@@ -421,7 +421,7 @@ class AssignmentQuantifierHandler {
     // unroll otherwise
     // note that currently, all variables within the same assignment call behave the same,
     // but this behavior can be changed in the future if necessary: the handling is ready for it
-    return options.useQuantifiersOnArrays() || assignmentOptions.forceQuantifiers();
+    return options.useQuantifiersOnArrays() || assignmentOptions.forceEncodingQuantifiers();
   }
 
   /**

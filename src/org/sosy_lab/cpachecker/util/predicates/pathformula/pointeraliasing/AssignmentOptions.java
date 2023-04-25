@@ -8,18 +8,31 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
- * Local options for assignments that are to be performed. Changes the assignment behavior depending
- * on the needs of the caller.
+ * Local options for assignments that are to be performed. They change the assignment behavior
+ * depending on the needs of the caller.
+ *
+ * <p>To create the assignment options, use {@link AssignmentOptions.Builder} for conciseness and
+ * clarity.
+ *
+ * @param conversionType How conversion of right-hand-side type to target type should be handled.
+ * @param useOldSSAIndicesIfAliased Whether old SSA indices should be reused if the left-hand side
+ *     is stored in aliased location. Intended to be used for initial assignment to a left-hand
+ *     side, but cannot be used for subsequent assignments.
+ * @param forceEncodingQuantifiers If set, quantifiers are encoded within the assignment even if
+ *     they are not globally set to be encoded. Intended to be used for enabling quantification of
+ *     some assignments while leaving others to be unrolled.
+ * @param forcePointerAssignment If set, the left-hand side is treated as a pointer; the assignment
+ *     caller is responsible for ensuring that the left-hand side type can be treated as such.
+ *     Intended to be used for function parameters which may need to be assigned as a pointer even
+ *     though their actual type is an array type.
  */
 record AssignmentOptions(
-    boolean useOldSSAIndicesIfAliased,
     AssignmentOptions.ConversionType conversionType,
-    boolean forceQuantifiers,
+    boolean useOldSSAIndicesIfAliased,
+    boolean forceEncodingQuantifiers,
     boolean forcePointerAssignment) {
 
   /**
@@ -65,7 +78,93 @@ record AssignmentOptions(
     BYTE_REPEAT
   }
 
-  AssignmentOptions {
-    checkNotNull(conversionType);
+  static final class Builder {
+    /** @see AssignmentOptions#conversionType */
+    private AssignmentOptions.ConversionType conversionType;
+
+    /** @see AssignmentOptions#useOldSSAIndicesIfAliased */
+    private boolean useOldSSAIndicesIfAliased = false;
+
+    /** @see AssignmentOptions#forceEncodingQuantifiers */
+    private boolean forceEncodingQuantifiers = false;
+
+    /** @see AssignmentOptions#forcePointerAssignment */
+    private boolean forcePointerAssignment = false;
+
+    /**
+     * Constructs an assignment options builder with the given conversion type, not setting any
+     * flags.
+     *
+     * @see AssignmentOptions
+     * @param conversionType Conversion type to be used in the assignment.
+     */
+    Builder(AssignmentOptions.ConversionType conversionType) {
+      this.conversionType = conversionType;
+    }
+
+    /**
+     * Sets whether old SSA indices should be used if the left-hand side is stored in aliased
+     * location.
+     *
+     * <p>False by default when building.
+     *
+     * @see AssignmentOptions#useOldSSAIndicesIfAliased
+     * @return This builder with the flag set to the given value.
+     */
+    Builder setUseOldSSAIndicesIfAliased(boolean value) {
+      useOldSSAIndicesIfAliased = value;
+      return this;
+    }
+
+    /**
+     * Sets whether quantifiers should be encoded in this assignment even not globally set to be
+     * encoded.
+     *
+     * <p>False by default when building.
+     *
+     * @see AssignmentOptions#forceEncodingQuantifiers
+     * @return This builder with the flag set to the given value.
+     */
+    Builder setForceEncodingQuantifiers(boolean value) {
+      forceEncodingQuantifiers = value;
+      return this;
+    }
+
+    /**
+     * Sets whether the left-hand side should be treated as a pointer even when not of pointer type.
+     * If true, the assignment caller is responsible for ensuring that the left-hand side type can
+     * be treated as such.
+     *
+     * <p>False by default when building.
+     *
+     * @see AssignmentOptions#forcePointerAssignment
+     * @return This builder with the flag set to the given value.
+     */
+    Builder setForcePointerAssignment(boolean value) {
+      forcePointerAssignment = value;
+      return this;
+    }
+
+    /**
+     * Builds assignment options using the settings in this builder.
+     *
+     * @return The built assignment options.
+     */
+    AssignmentOptions build() {
+      return new AssignmentOptions(this);
+    }
+  }
+
+  /**
+   * Constructs the assignment options using a builder.
+   *
+   * @param builder The builder to construct the assignment options from.
+   */
+  private AssignmentOptions(Builder builder) {
+    this(
+        builder.conversionType,
+        builder.useOldSSAIndicesIfAliased,
+        builder.forceEncodingQuantifiers,
+        builder.forcePointerAssignment);
   }
 }

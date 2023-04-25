@@ -220,14 +220,13 @@ class MemoryManipulationFunctionHandler {
     SliceExpression rhs = new SliceExpression(processedSource).withIndex(sliceIndex);
 
     // reinterpret instead of casting to handle differently-typed but same-element-size arrays
-    // (e.g. memmove from int* to float*)
-    // force quantifiers if the option is set
+    // (e.g. memmove from int* to float*), force quantifiers if the option is set,
+    // leave everything else as-is
     AssignmentOptions assignmentOptions =
-        new AssignmentOptions(
-            false,
-            AssignmentOptions.ConversionType.REINTERPRET,
-            conv.options.forceQuantifiersInMemoryAssignmentFunctions(),
-            false);
+        new AssignmentOptions.Builder(ConversionType.REINTERPRET)
+            .setForceEncodingQuantifiers(conv.options.forceQuantifiersInMemoryAssignmentFunctions())
+            .build();
+
     AssignmentHandler assignmentHandler =
         new AssignmentHandler(
             conv,
@@ -284,14 +283,12 @@ class MemoryManipulationFunctionHandler {
         new SliceAssignment(
             lhs, Optional.empty(), Optional.of(new SliceExpression(setValueAsUnsignedChar)));
 
-    // repeat the RHS set value to perfectly model the
-    // force quantifiers if the option is set
+    // use BYTE_REPEAT conversion type to properly assign each byte of the left-hand side to the
+    // given value, force quantifiers if the option is set, leave everything else as-is
     AssignmentOptions assignmentOptions =
-        new AssignmentOptions(
-            false,
-            ConversionType.BYTE_REPEAT,
-            conv.options.forceQuantifiersInMemoryAssignmentFunctions(),
-            false);
+        new AssignmentOptions.Builder(ConversionType.BYTE_REPEAT)
+            .setForceEncodingQuantifiers(conv.options.forceQuantifiersInMemoryAssignmentFunctions())
+            .build();
     AssignmentHandler assignmentHandler =
         new AssignmentHandler(
             conv,
