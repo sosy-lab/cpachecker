@@ -28,8 +28,7 @@ import java.util.function.Function;
 /**
  * Generic implementation of Tarjan's algorithm (doi.org/10.1137/0201010)
  *
- * @param <T> Any type with a sensible implementation of {@link Object::hashCode} and {@link
- *     Object::equals}
+ * @param <T> Any type with a sensible implementation of hashCode and equals
  */
 public class Tarjan<T> {
 
@@ -71,8 +70,7 @@ public class Tarjan<T> {
    * @param pStartNode root node from which all nodes are reachable
    * @param pSuccessors successor function to find all successors for a given node
    * @return list of an enumeration of strongly connected components
-   * @param <T> any type with a sensible implementation of {@link Object::hashCode} and {@link
-   *     Object::equals}
+   * @param <T> any type with a sensible implementation of hashCode and equals.
    */
   public static <T> ImmutableList<ImmutableList<T>> performTarjanAlgorithm(
       T pStartNode, Function<T, Iterable<T>> pSuccessors) {
