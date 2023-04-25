@@ -21,6 +21,8 @@ interface SMTHeap {
   /**
    * Create a formula that represents an assignment to a value via a pointer.
    *
+   * <p>The assignments may not contain encoded quantified variables.
+   *
    * @param targetName The name of the pointer access symbol as returned by {@link
    *     MemoryRegionManager#getPointerAccessName(MemoryRegion)}
    * @param pTargetType The formula type of the value
@@ -38,6 +40,29 @@ interface SMTHeap {
       final int newIndex,
       final List<SMTAddressValue<I, E>> assignments);
 
+  /**
+   * Create a formula that represents a conditional assignment to a value via a pointer, with the
+   * possibility of using quantified variables encoded in the formulas for address, condition, and
+   * value to set.
+   *
+   * <p>Since the formulas may contain encoded quantified variables, it may not be possible to
+   * perform the assignment using the theory used for standard {@link #makePointerAssignment(String,
+   * FormulaType, int, int, List)}. Specifically, for the theory of arrays, it is not possible to
+   * perform a write to quantified address as the meaning would be "value is stored to one of the
+   * selected locations" instead of proper "value is stored to each address as aplicable".
+   *
+   * @param targetName The name of the pointer access symbol as returned by {@link
+   *     MemoryRegionManager#getPointerAccessName(MemoryRegion)}
+   * @param pTargetType The formula type of the value
+   * @param oldIndex The old SSA index for targetName
+   * @param newIndex The new SSA index for targetName
+   * @param address The address to assign to. May contain encoded quantified variables, therefore
+   *     actually "pointing to multiple addresses".
+   * @param condition The condition upon which the value is assigned to the address, otherwise, the
+   *     previous value is retained. May contain encoded quantified variables.
+   * @param value The value to assign to. May contain encoded quantified variables.
+   * @return A formula representing the assignments.
+   */
   <I extends Formula, E extends Formula> BooleanFormula makeQuantifiedPointerAssignment(
       final String targetName,
       final FormulaType<?> pTargetType,
