@@ -476,7 +476,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    */
   @Test
   public void testFreeLoopEquality()
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws CPAException, InterruptedException {
     Value[] pointersConcreteDifferentList = buildConcreteList(true, dllSize, listLength);
     SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
     currentState = absFinder.findAndAbstractLists();
@@ -494,7 +494,6 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
       currentState = deref.get(0).getSMGState();
       assertThat(deref.get(0).hasSMGObjectAndOffset()).isTrue();
       assertThat(deref.get(0).getOffsetForObject()).isEqualTo(BigInteger.ZERO);
-      SMGObject curr = deref.get(0).getSMGObject();
       List<ValueAndSMGState> readNexts =
           evaluator.readValueWithPointerDereference(
               currentState, pointersConcreteDifferentList[i], nfo, pointerSizeInBits, null);

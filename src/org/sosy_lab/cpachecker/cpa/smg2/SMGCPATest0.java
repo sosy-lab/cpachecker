@@ -76,7 +76,7 @@ public class SMGCPATest0 {
 
   // Resets state and visitor to an empty state
   @After
-  public void resetSMGStateAndVisitor() throws InvalidConfigurationException {
+  public void resetSMGStateAndVisitor() {
     currentState = SMGState.of(machineModel, logger, smgOptions);
   }
 
