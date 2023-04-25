@@ -54,8 +54,7 @@ public class BlockGraph {
     return nodes;
   }
 
-  public void checkConsistency(ShutdownNotifier pShutdownNotifier, CFA pCFA)
-      throws InterruptedException {
+  public void checkConsistency(ShutdownNotifier pShutdownNotifier) throws InterruptedException {
     for (BlockNode blockNode : nodes) {
       if (blockNode.isRoot()) {
         throw new IllegalStateException("Only one root per BlockGraph allowed.");

@@ -147,7 +147,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       // create blockGraph and reduce to relevant parts
       CFADecomposer decomposer = getDecomposer();
       BlockGraph blockGraph = decomposer.decompose(initialCFA);
-      blockGraph.checkConsistency(shutdownManager.getNotifier(), initialCFA);
+      blockGraph.checkConsistency(shutdownManager.getNotifier());
       Modification modification =
           BlockSummaryCFAModifier.instrumentCFA(
               initialCFA, blockGraph, logger, shutdownManager.getNotifier());

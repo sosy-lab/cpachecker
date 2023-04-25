@@ -264,22 +264,6 @@ public class BlockSummaryCFAModifier {
     }
   }
 
-  private static boolean virtuallyEqual(CFANode pCFANode, CFANode pCFANode2) {
-    for (CFAEdge original : CFAUtils.allLeavingEdges(pCFANode)) {
-      boolean foundMatch = false;
-      for (CFAEdge instrumented : CFAUtils.allLeavingEdges(pCFANode2)) {
-        if (virtuallyEqual(original, instrumented)) {
-          foundMatch = true;
-          break;
-        }
-      }
-      if (!foundMatch) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   private static boolean virtuallyEqual(CFAEdge pCFAEdge, CFAEdge pCFAEdge2) {
     return pCFAEdge.getDescription().equals(pCFAEdge2.getDescription())
         && pCFAEdge.getEdgeType().equals(pCFAEdge2.getEdgeType())
