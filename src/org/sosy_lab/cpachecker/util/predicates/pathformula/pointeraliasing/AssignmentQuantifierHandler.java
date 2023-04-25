@@ -85,9 +85,9 @@ import org.sosy_lab.java_smt.api.FormulaType;
 class AssignmentQuantifierHandler {
 
   /**
-   * Left-hand side of an unresolved partial assignment. It stores both the slice expression and the
-   * target type the right-hand sides should be cast/reinterpreted to. This is necessary because the
-   * original cast target type is lost when making partial assignments simple.
+   * Left-hand side of a partial assignment. It stores both the slice expression and the target type
+   * the right-hand sides should be cast/reinterpreted to. This is necessary because the original
+   * cast target type is lost when making partial assignments simple.
    */
   record PartialAssignmentLhs(SliceExpression actual, CType targetType) {
     PartialAssignmentLhs {
@@ -97,8 +97,8 @@ class AssignmentQuantifierHandler {
   }
 
   /**
-   * Right-hand side of an unresolved partial assignment. In addition to the slice expression, it
-   * stores the span mapping the relevant part of right-hand side (after casting to target type) to
+   * Right-hand side of a partial assignment. In addition to the slice expression, it stores the
+   * span mapping the relevant part of right-hand side (after converting to target type) to
    * left-hand side.
    */
   record PartialAssignmentRhs(PartialSpan span, Optional<SliceExpression> actual) {
@@ -108,7 +108,18 @@ class AssignmentQuantifierHandler {
     }
   }
 
-  /** Stores partial assignment left-hand side and all right-hand sides. */
+  /**
+   * A partial assignment assigns to left-hand side (fully) from a number of partial right-hand
+   * sides.
+   *
+   * <p>Each partial right-hand side has a span that determines which bits of the right-hand side,
+   * after being converted to target type, correspond to which bits of left-hand side. If the
+   * partial right-hand sides do not fully cover the left-hand side bits, the left-hand side is set
+   * to nondet value.
+   *
+   * <p>The partial assignment user is responsible for making sure that all partial right-hand side
+   * bits mapping to the same left-hand side bits are the same.
+   */
   record PartialAssignment(PartialAssignmentLhs lhs, ImmutableList<PartialAssignmentRhs> rhsList) {
     PartialAssignment {
       checkNotNull(lhs);
@@ -216,7 +227,13 @@ class AssignmentQuantifierHandler {
   }
 
   /**
-   * Performs simple slice assignments and returns the resulting Boolean formula.
+   * Performs simple partial slice assignments and returns the resulting Boolean formula.
+   *
+   * <p>The partial assignments must be simple, i.e. their left-hand-side types must not be array or
+   * composite types.
+   *
+   * <p>The caller is responsible for making sure that all partial right-hand side bits mapping to
+   * the same left-hand side bits are the same.
    *
    * @param assignmentMultimap The multimap containing the simple partial slice assignments. Each
    *     LHS can have multiple partial RHS from which to assign. The full expression types of LHS

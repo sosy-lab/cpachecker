@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentFormulaHandler.PartialSpan;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignment;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentLhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentRhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
@@ -63,6 +64,17 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  *
  * <p>The entry point is {@link #assign(List)}, which takes care of everything necessary for proper
  * assignment handling.
+ *
+ * <p>This class is mostly concerned with converting slice assignments to simple partial slice
+ * assignments. Partial slice assignments allow for setting a single left-hand side from spans of
+ * bits of right-hand sides (as documented in {@link PartialAssignment}). A partial assignment is
+ * simple if its left-hand side type is not an array or a compound type. This allows for easier
+ * assignment handling later on in {@link AssignmentQuantifierHandler}.
+ *
+ * <p>The class is also responsible for union handling by conversion of assignments to partial
+ * assignments of progenitor type (i.e. type before trailing field accesses) before converting them
+ * to simple partial assignments. This can increase soundness for some cases of unions when using
+ * multiple heaps, but does not guarantee it in entirety.
  *
  * @see SliceExpression
  * @see AssignmentQuantifierHandler
