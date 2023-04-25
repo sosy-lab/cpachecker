@@ -1053,7 +1053,8 @@ public class SMGState
     }
 
     // We may not forget any errors already found
-    if (!copyAndPruneUnreachable().checkErrorEqualityForTwoStates(pOther.copyAndPruneUnreachable())) {
+    if (!copyAndPruneUnreachable()
+        .checkErrorEqualityForTwoStates(pOther.copyAndPruneUnreachable())) {
       return false;
     }
 
