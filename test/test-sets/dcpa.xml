@@ -18,7 +18,7 @@ SPDX-License-Identifier: Apache-2.0
 		<option name="-noout"/>
 		<option name="-benchmark"/>
 		<option name="-predicateAnalysis-block"/>
-	  	<option name="-distributedSummaries.decompositionType">MERGE_DECOMPOSITION</option>
+	  	<option name="-setprop">distributedSummaries.decompositionType=MERGE_DECOMPOSITION</option>
 
 		<tasks name="ReachSafety-BitVectors">
 		  <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
@@ -39,7 +39,7 @@ SPDX-License-Identifier: Apache-2.0
 		<option name="-noout"/>
 		<option name="-benchmark"/>
 		<option name="-predicateAnalysis-block"/>
-		<option name="-distributedSummaries.decompositionType">NO_DECOMPOSITION</option>
+		<option name="-setprop">distributedSummaries.decompositionType=NO_DECOMPOSITION</option>
 
 		<tasks name="ReachSafety-BitVectors">
 			<includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
