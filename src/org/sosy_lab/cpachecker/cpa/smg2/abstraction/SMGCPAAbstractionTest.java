@@ -19,7 +19,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPATest0;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager.SMGCandidate;
@@ -47,7 +46,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * the given threshold.
    */
   @Test
-  public void listNotAbstractableSLLTest() throws InvalidConfigurationException {
+  public void listNotAbstractableSLLTest() {
     resetSMGStateAndVisitor();
     // TODO: this and DLL version
   }
@@ -58,7 +57,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * abstractable.
    */
   @Test
-  public void notEqualNestedListSLLTest() throws InvalidConfigurationException {
+  public void notEqualNestedListSLLTest() {
     resetSMGStateAndVisitor();
     // TODO: this and DLL version
   }
@@ -70,7 +69,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * not equal as their subjective lengths differ for each element of the top list.
    */
   @Test
-  public void nestedListMovingPointerSLLTest() throws InvalidConfigurationException {
+  public void nestedListMovingPointerSLLTest() {
     resetSMGStateAndVisitor();
     // TODO: this and DLL version
   }
@@ -119,7 +118,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * identity.
    */
   @Test
-  public void nestedListDLLTest() throws InvalidConfigurationException {
+  public void nestedListDLLTest() {
     resetSMGStateAndVisitor();
     // TODO:
   }
@@ -130,7 +129,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * This works if we correctly check equality by shape and not pointer identity.
    */
   @Test
-  public void nestedListAbstractionSLLTest() throws InvalidConfigurationException {
+  public void nestedListAbstractionSLLTest() {
     resetSMGStateAndVisitor();
     // TODO:
   }
@@ -141,7 +140,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * This works if we correctly check equality by shape and not pointer identity.
    */
   @Test
-  public void nestedListAbstractionDLLTest() throws InvalidConfigurationException {
+  public void nestedListAbstractionDLLTest() {
     resetSMGStateAndVisitor();
     // TODO:
   }
@@ -152,7 +151,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * point to the correct segments.
    */
   @Test
-  public void correctPointerNestingSLLTest() throws InvalidConfigurationException, SMGException {
+  public void correctPointerNestingSLLTest() throws SMGException {
     int lengthOfList = 10;
     resetSMGStateAndVisitor();
     Value[] pointers = buildConcreteList(false, sllSize, lengthOfList);
@@ -174,7 +173,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * point to the correct segments.
    */
   @Test
-  public void correctPointerNestingDLLTest() throws InvalidConfigurationException, SMGException {
+  public void correctPointerNestingDLLTest() throws SMGException {
     int lengthOfList = 10;
     resetSMGStateAndVisitor();
     Value[] pointers = buildConcreteList(true, dllSize, lengthOfList);
@@ -196,8 +195,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * states added.
    */
   @Test
-  public void correctZeroPlusAbsorptionSLLTest()
-      throws InvalidConfigurationException, SMGException {
+  public void correctZeroPlusAbsorptionSLLTest() throws SMGException {
     int lengthOfList = 10;
     nfo = BigInteger.ZERO;
     sllSize = pointerSizeInBits;
@@ -229,8 +227,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * states added.
    */
   @Test
-  public void correctZeroPlusAbsorptionDLLTest()
-      throws InvalidConfigurationException, SMGException {
+  public void correctZeroPlusAbsorptionDLLTest() throws SMGException {
     int lengthOfList = 10;
     nfo = BigInteger.ZERO;
     pfo = nfo.add(pointerSizeInBits);
@@ -312,10 +309,9 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * the extension of the list.
    *
    * @throws SMGException not thrown
-   * @throws InvalidConfigurationException not thrown
    */
   @Test
-  public void zeroPlusRemovalSLLTest() throws SMGException, InvalidConfigurationException {
+  public void zeroPlusRemovalSLLTest() throws SMGException {
     // We use a small length, does not matter at all
     int sizeOfList = 3;
     resetSMGStateAndVisitor();
@@ -348,10 +344,9 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
    * the extension of the list.
    *
    * @throws SMGException not thrown
-   * @throws InvalidConfigurationException not thrown
    */
   @Test
-  public void zeroPlusRemovalDLLTest() throws SMGException, InvalidConfigurationException {
+  public void zeroPlusRemovalDLLTest() throws SMGException {
     // We use a small length, does not matter at all
     int sizeOfList = 3;
     resetSMGStateAndVisitor();
@@ -1180,7 +1175,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   @Test
-  public void basicSLLDetectionTest() throws SMGException, InvalidConfigurationException {
+  public void basicSLLDetectionTest() throws SMGException {
     // Min abstraction length before the list is abstracted
     int minAbstractionLength = 3;
     for (int i = 1; i < TEST_LIST_LENGTH; i++) {
@@ -1201,7 +1196,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   }
 
   @Test
-  public void basicDLLDetectionTest() throws SMGException, InvalidConfigurationException {
+  public void basicDLLDetectionTest() throws SMGException {
     // Min abstraction length before the list is abstracted
     int minAbstractionLength = 3;
     for (int i = 1; i < TEST_LIST_LENGTH; i++) {
@@ -1225,7 +1220,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
   @SuppressWarnings("null")
   @Test
-  public void abstractSLLTest() throws InvalidConfigurationException, SMGException {
+  public void abstractSLLTest() throws SMGException {
     // Minimum abstraction length before a list is abstracted
     int minAbstractionLength = 3;
 
@@ -1262,7 +1257,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
 
   @SuppressWarnings("null")
   @Test
-  public void abstractDLLTest() throws InvalidConfigurationException, SMGException {
+  public void abstractDLLTest() throws SMGException {
     // Min abstraction length before the list is abstracted
     int minAbstractionLength = 3;
     for (int i = 1; i < TEST_LIST_LENGTH; i++) {
@@ -1302,7 +1297,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
   // Test the minimum length needed for abstraction
   @SuppressWarnings("null")
   @Test
-  public void abstractDLLLimitTest() throws InvalidConfigurationException, SMGException {
+  public void abstractDLLLimitTest() throws SMGException {
     // Min abstraction length before the list is abstracted
     int minAbstractionLength = 3;
 

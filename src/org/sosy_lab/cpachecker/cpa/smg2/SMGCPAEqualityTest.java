@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState.EqualityCache;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
@@ -279,11 +278,9 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * abstract, should therefore not be equal.
    *
    * @throws SMGException never thrown
-   * @throws InvalidConfigurationException never thrown
    */
   @Test
-  public void abstractedListWSublistNotLessOrEqualTest()
-      throws SMGException, InvalidConfigurationException {
+  public void abstractedListWSublistNotLessOrEqualTest() throws SMGException {
     for (int i = 0; i < listLength; i++) {
       resetSMGStateAndVisitor();
       Value[] pointersAbstractedShortList = buildConcreteList(false, sllSize, listLength);
@@ -376,11 +373,9 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * that one. None should be equal.
    *
    * @throws SMGException never thrown
-   * @throws InvalidConfigurationException never thrown
    */
   @Test
-  public void abstractedListWSublistNotLessOrEqualTest2()
-      throws SMGException, InvalidConfigurationException {
+  public void abstractedListWSublistNotLessOrEqualTest2() throws SMGException {
     for (int i = 0; i < listLength; i++) {
       resetSMGStateAndVisitor();
       Value[] pointersConcreteDifferentList = buildConcreteList(false, sllSize, listLength);
@@ -475,8 +470,7 @@ public class SMGCPAEqualityTest extends SMGCPATest0 {
    * the next and free the prev segment. The resulting list should be covered by the previous.
    */
   @Test
-  public void testFreeLoopEquality()
-      throws CPAException, InterruptedException {
+  public void testFreeLoopEquality() throws CPAException, InterruptedException {
     Value[] pointersConcreteDifferentList = buildConcreteList(true, dllSize, listLength);
     SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, listLength - 1);
     currentState = absFinder.findAndAbstractLists();
