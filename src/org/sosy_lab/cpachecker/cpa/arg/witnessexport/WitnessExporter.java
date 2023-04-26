@@ -12,6 +12,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Queues;
 import java.util.Collection;
 import java.util.Deque;
@@ -198,19 +199,28 @@ public class WitnessExporter {
   protected String getInitialFileName(ARGState pRootState) {
     Deque<CFANode> worklist = Queues.newArrayDeque(AbstractStates.extractLocations(pRootState));
     Set<CFANode> visited = new HashSet<>();
+    boolean backwardARG;
+
+    CFANode l = worklist.pop();
+    backwardARG = !l.equals(cfa.getMainFunction());
+
     while (!worklist.isEmpty()) {
-      CFANode l = worklist.pop();
       visited.add(l);
-      for (CFAEdge e : CFAUtils.leavingEdges(l)) {
+      FluentIterable<CFAEdge> edges =
+          backwardARG ? CFAUtils.enteringEdges(l) : CFAUtils.leavingEdges(l);
+      for (CFAEdge e : edges) {
         Set<FileLocation> fileLocations = CFAUtils.getFileLocationsFromCfaEdge(e);
         if (!fileLocations.isEmpty()) {
           return fileLocations.iterator().next().getFileName().toString();
         }
-        if (!visited.contains(e.getSuccessor())) {
-          worklist.push(e.getSuccessor());
+        CFANode node = backwardARG ? e.getPredecessor() : e.getSuccessor();
+        if (!visited.contains(node)) {
+          worklist.push(node);
         }
       }
+      l = worklist.pop();
     }
+
 
     throw new RuntimeException("Could not determine file name based on abstract state!");
   }
