@@ -41,13 +41,10 @@ public class MergeBlockNodesDecomposition implements CFADecomposer {
   @Override
   public BlockGraph decompose(CFA cfa) throws InterruptedException {
     if (targetNumber <= 1) {
-      // return new SingleBlockDecomposition().decompose(cfa);
+      return new SingleBlockDecomposition().decompose(cfa);
     }
     LinearBlockNodeDecomposition linearBlockNodeDecomposition =
         new LinearBlockNodeDecomposition(isBlockEnd);
-    if (true) {
-      return linearBlockNodeDecomposition.decompose(cfa);
-    }
     Collection<? extends BlockNodeWithoutGraphInformation> nodes =
         linearBlockNodeDecomposition.decompose(cfa).getNodes();
     while (nodes.size() > targetNumber) {

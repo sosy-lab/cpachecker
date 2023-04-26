@@ -14,7 +14,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 /**
  * Distributed analyses use independent blocks for analyzing simultaneously. These analyses stop at
  * target locations. This class states whether an analysis reached the entry or exit node of a
- * block.
+ * block. Additionally, the {@link org.sosy_lab.cpachecker.cpa.arg.ARGStopSep} ignores target
+ * locations that exclusively contain target information of this type when checking for coverage.
  */
 public class BlockEntryReachedTargetInformation implements TargetInformation {
 
@@ -32,6 +33,9 @@ public class BlockEntryReachedTargetInformation implements TargetInformation {
 
   @Override
   public String toString() {
-    return "Reached block start at Node " + node;
+    if (abstraction) {
+      return "Reached an abstraction location at " + node;
+    }
+    return "Reached an entry point of a BlockNode at " + node;
   }
 }

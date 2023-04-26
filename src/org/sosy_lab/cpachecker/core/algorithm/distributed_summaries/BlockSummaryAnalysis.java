@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -81,7 +82,9 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
 
   private final Map<String, Object> stats;
 
-  private final StatInt numberWorkers = new StatInt(StatKind.MAX, "number of workers");
+  private final StatInt numberWorkers = new StatInt(StatKind.MAX, "Number of worker");
+  private final StatInt numberWorkersWithoutAbstraction =
+      new StatInt(StatKind.MAX, "Worker without abstraction");
 
   @Option(
       description =
@@ -157,6 +160,11 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       Modification modification =
           BlockSummaryCFAModifier.instrumentCFA(
               initialCFA, blockGraph, logger, shutdownManager.getNotifier());
+      ImmutableSet<CFANode> abstractionDeadEnds = modification.unableToAbstract();
+      numberWorkersWithoutAbstraction.setNextValue(abstractionDeadEnds.size());
+      if (!abstractionDeadEnds.isEmpty()) {
+        logger.logf(Level.INFO, "Abstraction is not possible at: %s", abstractionDeadEnds);
+      }
       CFA cfa = modification.cfa();
       blockGraph = modification.blockGraph();
       logger.logf(
@@ -273,7 +281,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               BlockSummaryStatisticType.valueOf(stringObjectEntry.getKey()).getName(),
               convert(stringObjectEntry.getKey(), stringObjectEntry.getValue().toString()));
     }
-    writer.put("Number of worker", numberWorkers.getMaxValue());
+    writer.put(numberWorkers).put(numberWorkersWithoutAbstraction);
   }
 
   private String convert(String pKey, String pNumber) {

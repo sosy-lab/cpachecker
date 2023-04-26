@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -47,7 +46,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class BlockSummaryCFAModifier {
 
-  public record Modification(CFA cfa, BlockGraph blockGraph) {}
+  public record Modification(
+      CFA cfa, BlockGraph blockGraph, ImmutableSet<CFANode> unableToAbstract) {}
 
   public static final String UNIQUE_DESCRIPTION = "<<distributed-block-summary-block-end>>";
 
@@ -72,7 +72,7 @@ public class BlockSummaryCFAModifier {
   public static Modification instrumentCFA(
       CFA pCFA, BlockGraph pBlockGraph, LogManager pLogger, ShutdownNotifier pNotifier) {
     if (pBlockGraph.getNodes().size() == 1) {
-      return new Modification(pCFA, pBlockGraph);
+      return new Modification(pCFA, pBlockGraph, ImmutableSet.of());
     }
     FlexCfaNetwork cfaNetwork = FlexCfaNetwork.copy(pCFA);
     ImmutableSet<CFANode> blockEnds =
@@ -91,12 +91,10 @@ public class BlockSummaryCFAModifier {
                 UNIQUE_DESCRIPTION);
         cfaNetwork.addEdge(blockEndEdge);
       } else {
-        unableToAbstract.add(blockEnd);
+        if (blockEnd.getLeavingSummaryEdge() != null) {
+          unableToAbstract.add(blockEnd);
+        }
       }
-    }
-    ImmutableSet<CFANode> blocked = unableToAbstract.build();
-    if (!blocked.isEmpty()) {
-      pLogger.logf(Level.INFO, "Could not instrument the following CFA node(s): %s", blocked);
     }
     CFA instrumentedCFA =
         CCfaFactory.CLONER.createCfa(cfaNetwork, pCFA.getMetadata(), pLogger, pNotifier);
@@ -146,7 +144,8 @@ public class BlockSummaryCFAModifier {
             instrumentedCFA.getAllFunctions(),
             ImmutableSet.copyOf(instrumentedCFA.getAllNodes()),
             metadata),
-        adaptBlockGraph(pBlockGraph, instrumentedCFA.getMainFunction(), mapping));
+        adaptBlockGraph(pBlockGraph, instrumentedCFA.getMainFunction(), mapping),
+        unableToAbstract.build());
   }
 
   private static BlockGraph adaptBlockGraph(
