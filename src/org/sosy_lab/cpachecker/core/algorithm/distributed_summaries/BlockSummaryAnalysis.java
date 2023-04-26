@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import java.io.IOException;
@@ -130,11 +131,16 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       case LINEAR_DECOMPOSITION -> new LinearBlockNodeDecomposition(isBlockEnd);
       case MERGE_DECOMPOSITION -> {
         long numberOfRealFunctions =
-            initialCFA.getAllFunctionNames().stream()
-                .filter(name -> !name.startsWith("__") && name.equals("reach_error"))
-                .toList()
+            FluentIterable.from(initialCFA.getAllFunctions().entrySet())
+                .filter(
+                    entry ->
+                        !entry.getKey().startsWith("__")
+                            && !entry.getKey().equals("reach_error")
+                            && entry.getValue().getNumEnteringEdges() != 0)
                 .size();
-        yield new MergeBlockNodesDecomposition(isBlockEnd, numberOfRealFunctions - 1);
+        numberOfRealFunctions =
+            Long.min(numberOfRealFunctions - 1, Runtime.getRuntime().availableProcessors());
+        yield new MergeBlockNodesDecomposition(isBlockEnd, numberOfRealFunctions);
       }
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();
     };
@@ -267,7 +273,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               BlockSummaryStatisticType.valueOf(stringObjectEntry.getKey()).getName(),
               convert(stringObjectEntry.getKey(), stringObjectEntry.getValue().toString()));
     }
-    writer.put("Number of blocks", numberWorkers.getMaxValue());
+    writer.put("Number of worker", numberWorkers.getMaxValue());
   }
 
   private String convert(String pKey, String pNumber) {

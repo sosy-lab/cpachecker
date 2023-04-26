@@ -32,10 +32,4 @@ public class BlockSummaryErrorConditionUnreachableMessage extends BlockSummaryMe
   public String getReason() {
     return reason;
   }
-
-  @Override
-  protected BlockSummaryMessage replacePayload(BlockSummaryMessagePayload pPayload) {
-    return new BlockSummaryErrorConditionUnreachableMessage(
-        getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
-  }
 }

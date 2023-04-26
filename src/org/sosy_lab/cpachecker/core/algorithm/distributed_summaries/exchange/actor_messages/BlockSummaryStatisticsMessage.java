@@ -58,12 +58,6 @@ public class BlockSummaryStatisticsMessage extends BlockSummaryMessage {
     super(MessageType.STATISTICS, pUniqueBlockId, pTargetNodeNumber, pPayload, pTimeStamp);
   }
 
-  @Override
-  protected BlockSummaryMessage replacePayload(BlockSummaryMessagePayload pPayload) {
-    return new BlockSummaryStatisticsMessage(
-        getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
-  }
-
   public Map<String, Object> getStats() {
     Object result = getPayload().get(BlockSummaryMessagePayload.STATS);
     if (!(result instanceof Map)) {

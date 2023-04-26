@@ -72,8 +72,6 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
               .forEach(b -> expectAnswer.merge(b, 1, Integer::sum));
         }
         return respondTo(pMessage);
-      case ABSTRACTION_STATE:
-        return ImmutableSet.of();
       case ERROR_CONDITION_UNREACHABLE:
         expectAnswer.merge(senderId, -1, Integer::sum);
         return respondTo(pMessage);

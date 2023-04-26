@@ -10,12 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -30,7 +27,6 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.AlgorithmFactory.AnalysisComponents;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithms.BlockAnalysisIntermediateResult;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithms.BlockAndLocation;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DCPAFactory;
@@ -57,10 +53,9 @@ public class DCPABackwardAlgorithm {
   private final Algorithm algorithm;
   private final LogManager logger;
   private final DCPAAlgorithm forwardAnalysis;
-  private final Map<BlockAndLocation, AbstractState> abstractionStates;
 
   // backward analysis variables
-  private Precision initialPrecision;
+  private final Precision initialPrecision;
 
   public DCPABackwardAlgorithm(
       LogManager pLogger,
@@ -86,7 +81,6 @@ public class DCPABackwardAlgorithm {
     dcpa = DCPAFactory.distribute(cpa, pBlock, AnalysisDirection.BACKWARD, pCFA);
     logger = pLogger;
     forwardAnalysis = pForwardAnalysis;
-    abstractionStates = new LinkedHashMap<>();
   }
 
   private AlgorithmStatus status;
@@ -127,10 +121,7 @@ public class DCPABackwardAlgorithm {
         return ImmutableSet.<BlockSummaryMessage>builder()
             .addAll(
                 FluentIterable.from(messages)
-                    .filter(
-                        m ->
-                            m.getType() == MessageType.BLOCK_POSTCONDITION
-                                || m.getType() == MessageType.ABSTRACTION_STATE)
+                    .filter(m -> m.getType() == MessageType.BLOCK_POSTCONDITION)
                     .filter(m -> m.getTargetNodeNumber() == block.getLast().getNodeNumber()))
             .add(
                 BlockSummaryMessage.newErrorConditionUnreachableMessage(
@@ -166,16 +157,6 @@ public class DCPABackwardAlgorithm {
               block.getId(), block.getFirst().getNodeNumber(), payload, false));
     }
     return responses.addAll(messages).build();
-  }
-
-  public void addAbstractionState(BlockSummaryMessage pMessage) throws InterruptedException {
-    Preconditions.checkArgument(pMessage.getType() == MessageType.ABSTRACTION_STATE);
-    if (pMessage.getTargetNodeNumber() != block.getFirst().getNodeNumber()) {
-      return;
-    }
-    abstractionStates.put(
-        new BlockAndLocation(pMessage.getBlockId(), pMessage.getTargetNodeNumber()),
-        dcpa.getDeserializeOperator().deserialize(pMessage));
   }
 
   private AbstractState translateAbstractStateToForwardAnalysis(AbstractState pBackwardAnalysis)

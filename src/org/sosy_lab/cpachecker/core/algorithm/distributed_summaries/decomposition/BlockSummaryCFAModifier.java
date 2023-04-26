@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -76,6 +77,7 @@ public class BlockSummaryCFAModifier {
     FlexCfaNetwork cfaNetwork = FlexCfaNetwork.copy(pCFA);
     ImmutableSet<CFANode> blockEnds =
         transformedImmutableSetCopy(pBlockGraph.getNodes(), n -> n.getLast());
+    ImmutableSet.Builder<CFANode> unableToAbstract = ImmutableSet.builder();
     for (CFANode blockEnd : blockEnds) {
       if (blockEnd.getLeavingSummaryEdge() == null
           && !blockEnd.equals(pCFA.getMainFunction())
@@ -88,7 +90,13 @@ public class BlockSummaryCFAModifier {
                 new CFANode(blockEnd.getFunction()),
                 UNIQUE_DESCRIPTION);
         cfaNetwork.addEdge(blockEndEdge);
+      } else {
+        unableToAbstract.add(blockEnd);
       }
+    }
+    ImmutableSet<CFANode> blocked = unableToAbstract.build();
+    if (!blocked.isEmpty()) {
+      pLogger.logf(Level.INFO, "Could not instrument the following CFA node(s): %s", blocked);
     }
     CFA instrumentedCFA =
         CCfaFactory.CLONER.createCfa(cfaNetwork, pCFA.getMetadata(), pLogger, pNotifier);
@@ -105,13 +113,20 @@ public class BlockSummaryCFAModifier {
       } else {
         ImmutableListMultimap.Builder<String, Loop> loops = ImmutableListMultimap.builder();
         for (String functionName : pCFA.getAllFunctionNames()) {
+          outer:
           for (Loop loop : extracted.getLoopsForFunction(functionName)) {
             ImmutableSet.Builder<CFANode> heads = ImmutableSet.builder();
             for (CFANode loopHead : loop.getLoopHeads()) {
+              if (!originalInstrumentedMapping.containsKey(loopHead)) {
+                continue outer;
+              }
               heads.add(originalInstrumentedMapping.get(loopHead));
             }
             ImmutableSet.Builder<CFANode> nodes = ImmutableSet.builder();
             for (CFANode loopNode : loop.getLoopNodes()) {
+              if (!originalInstrumentedMapping.containsKey(loopNode)) {
+                continue outer;
+              }
               nodes.add(originalInstrumentedMapping.get(loopNode));
             }
             loops.put(functionName, new Loop(heads.build(), nodes.build()));
@@ -131,7 +146,7 @@ public class BlockSummaryCFAModifier {
             instrumentedCFA.getAllFunctions(),
             ImmutableSet.copyOf(instrumentedCFA.getAllNodes()),
             metadata),
-        adaptBlockGraph(pBlockGraph, pCFA.getMainFunction(), mapping));
+        adaptBlockGraph(pBlockGraph, instrumentedCFA.getMainFunction(), mapping));
   }
 
   private static BlockGraph adaptBlockGraph(

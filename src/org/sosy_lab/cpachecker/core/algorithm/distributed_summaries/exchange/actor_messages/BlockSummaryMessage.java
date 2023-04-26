@@ -136,15 +136,6 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     }
   }
 
-  /**
-   * Copy this message and replace its payload with {@code pPayload}. This message remains
-   * unchanged.
-   *
-   * @param pPayload new payload
-   * @return new message that is a copy of this message with a new payload {@code pPayload}
-   */
-  protected abstract BlockSummaryMessage replacePayload(BlockSummaryMessagePayload pPayload);
-
   public static BlockSummaryMessage newBlockPostCondition(
       String pUniqueBlockId,
       int pTargetNodeNumber,
@@ -157,11 +148,6 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
             .buildPayload();
     return new BlockSummaryPostConditionMessage(
         pUniqueBlockId, pTargetNodeNumber, newPayload, Instant.now());
-  }
-
-  public static BlockSummaryMessage newAbstractionStateMessage(
-      String pId, int pTargetNodeNumber, BlockSummaryMessagePayload pPayload) {
-    return new BlockSummaryAbstractStateMessage(pId, pTargetNodeNumber, pPayload);
   }
 
   public static BlockSummaryMessage newErrorConditionMessage(
@@ -265,14 +251,13 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
 
   @Override
   public boolean equals(Object pO) {
-    if (!(pO instanceof BlockSummaryMessage)) {
-      return false;
+    if (pO instanceof BlockSummaryMessage message) {
+      return targetNodeNumber == message.targetNodeNumber
+          && Objects.equals(uniqueBlockId, message.uniqueBlockId)
+          && type == message.type
+          && Objects.equals(payload, message.payload);
     }
-    BlockSummaryMessage message = (BlockSummaryMessage) pO;
-    return targetNodeNumber == message.targetNodeNumber
-        && Objects.equals(uniqueBlockId, message.uniqueBlockId)
-        && type == message.type
-        && Objects.equals(payload, message.payload);
+    return false;
   }
 
   @Override
@@ -280,7 +265,6 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     return Objects.hash(targetNodeNumber, uniqueBlockId, type, payload);
   }
 
-  // ORDERED BY PRIORITY:
   public enum MessageType {
 
     /** Sent after analysis finished to show statistics. */
@@ -297,9 +281,6 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
      * BlockSummaryExceptionMessage}.
      */
     ERROR,
-
-    /** Represents an abstraction state. */
-    ABSTRACTION_STATE,
 
     /**
      * Messages of this type deny a previously received {@link BlockSummaryErrorConditionMessage}.

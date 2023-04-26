@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ForwardingBlockingQueue;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +26,7 @@ public class BlockSummaryProbabilityPriorityQueue
 
   private final BlockingQueue<BlockSummaryMessage> queue;
   private final List<BlockSummaryMessage> reordered;
-  private final ImmutableMap<MessageType, ReorderStrategy> probability;
+  private final ImmutableMap<MessageType, ReorderStrategy> reordering;
 
   @FunctionalInterface
   interface ReorderStrategy {
@@ -64,7 +66,7 @@ public class BlockSummaryProbabilityPriorityQueue
     reordered = new ArrayList<>();
     // necessary to avoid endless loops of ErrorCondition messages for loop structures.
     // the number is the probability within [0;1) that the messages will be processed next
-    probability =
+    reordering =
         ImmutableMap.<MessageType, ReorderStrategy>builder()
             .put(MessageType.STATISTICS, () -> true)
             .put(MessageType.ERROR, () -> true)
@@ -72,8 +74,14 @@ public class BlockSummaryProbabilityPriorityQueue
             .put(MessageType.ERROR_CONDITION_UNREACHABLE, () -> true)
             .put(MessageType.ERROR_CONDITION, new CountReorderStrategy(1, 3))
             .put(MessageType.BLOCK_POSTCONDITION, new CountReorderStrategy(1, 1))
-            .put(MessageType.ABSTRACTION_STATE, new CountReorderStrategy(9, 1))
             .buildKeepingLast();
+    if (reordering.size() != MessageType.values().length) {
+      throw new AssertionError(
+          "Forgot to add a missing message type to reorder map"
+              + Sets.difference(
+                  ImmutableSet.copyOf(MessageType.values()),
+                  ImmutableSet.copyOf(reordering.values())));
+    }
   }
 
   public BlockSummaryProbabilityPriorityQueue() {
@@ -96,7 +104,7 @@ public class BlockSummaryProbabilityPriorityQueue
     // empty pending messages (non blocking)
     while (!queue.isEmpty()) {
       BlockSummaryMessage message = queue.take();
-      if (Objects.requireNonNull(probability.getOrDefault(message.getType(), () -> true))
+      if (Objects.requireNonNull(reordering.getOrDefault(message.getType(), () -> true))
           .reorder()) {
         reordered.add(0, message);
       } else {

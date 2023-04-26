@@ -48,10 +48,4 @@ public class BlockSummaryPostConditionMessage extends BlockSummaryMessage {
   public boolean isReachable() {
     return reachable;
   }
-
-  @Override
-  protected BlockSummaryMessage replacePayload(BlockSummaryMessagePayload pPayload) {
-    return new BlockSummaryPostConditionMessage(
-        getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
-  }
 }

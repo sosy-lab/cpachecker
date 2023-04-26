@@ -90,26 +90,23 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
   @Override
   public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage)
       throws InterruptedException, SolverException {
-    switch (pMessage.getType()) {
+    return switch (pMessage.getType()) {
       case ERROR_CONDITION -> {
         AbstractState currentState = dcpa.getDeserializeOperator().deserialize(pMessage);
         BlockSummaryMessageProcessing processing = dcpa.getProceedOperator().proceed(currentState);
         if (processing.end()) {
-          return processing;
+          yield processing;
         }
-        return ImmutableSet.of(
+        yield ImmutableSet.of(
             BlockSummaryMessage.newResultMessage(
                 root.getId(), root.getLast().getNodeNumber(), Result.FALSE));
       }
       case FOUND_RESULT, ERROR -> {
         shutdown = true;
-        return ImmutableSet.of();
+        yield ImmutableSet.of();
       }
-      case STATISTICS, BLOCK_POSTCONDITION, ERROR_CONDITION_UNREACHABLE, ABSTRACTION_STATE -> {
-        return ImmutableSet.of();
-      }
-      default -> throw new AssertionError("Unknown MessageType " + pMessage.getType());
-    }
+      case STATISTICS, BLOCK_POSTCONDITION, ERROR_CONDITION_UNREACHABLE -> ImmutableSet.of();
+    };
   }
 
   @Override

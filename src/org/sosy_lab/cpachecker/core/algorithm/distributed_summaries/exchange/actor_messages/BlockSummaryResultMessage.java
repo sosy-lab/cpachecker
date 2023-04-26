@@ -28,10 +28,4 @@ public class BlockSummaryResultMessage extends BlockSummaryMessage {
   public Result getResult() {
     return result;
   }
-
-  @Override
-  protected BlockSummaryMessage replacePayload(BlockSummaryMessagePayload pPayload) {
-    return new BlockSummaryResultMessage(
-        getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
-  }
 }

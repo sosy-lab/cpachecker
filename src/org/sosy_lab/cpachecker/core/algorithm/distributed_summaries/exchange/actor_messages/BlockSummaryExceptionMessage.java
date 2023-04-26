@@ -31,10 +31,4 @@ public class BlockSummaryExceptionMessage extends BlockSummaryMessage {
   public String getErrorMessage() {
     return errorMessage;
   }
-
-  @Override
-  protected BlockSummaryMessage replacePayload(BlockSummaryMessagePayload pPayload) {
-    return new BlockSummaryExceptionMessage(
-        getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
-  }
 }

@@ -49,10 +49,4 @@ public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
   public boolean isFirst() {
     return first;
   }
-
-  @Override
-  protected BlockSummaryMessage replacePayload(BlockSummaryMessagePayload pPayload) {
-    return new BlockSummaryErrorConditionMessage(
-        getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
-  }
 }
