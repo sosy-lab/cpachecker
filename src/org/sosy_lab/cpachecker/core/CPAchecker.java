@@ -188,6 +188,17 @@ public class CPAchecker {
       description = "Maximum number of counterexamples to be created.")
   private int cexLimit = 0;
 
+  @Option(
+      secure = true,
+      name = "analysis.invertSpecifications",
+      description =
+          "for benchmarking, the argument to -spec needs to be defined in the task definitions."
+              + " However, the goal of the backwards analysis is mostly not equivalent to the"
+              + " defined specifications in the benchmark set. With this property, the argument of"
+              + " -spec will be used to find target states if analysis.initialStatesFor=TARGET. The"
+              + " backward specification will then be used to create the CPA algorithm.")
+  private boolean invertSpecifications = false;
+
   private final LogManager logger;
   private final Configuration config;
   private final ShutdownManager shutdownManager;
@@ -323,7 +334,12 @@ public class CPAchecker {
       stats.cpaCreationTime.start();
       try {
         specification =
-            Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
+            Specification.fromFiles(
+                invertSpecifications ? backwardSpecificationFiles : specificationFiles,
+                cfa,
+                config,
+                logger,
+                shutdownNotifier);
         cpa = factory.createCPA(cfa, specification);
       } finally {
         stats.cpaCreationTime.stop();
@@ -607,7 +623,11 @@ public class CPAchecker {
                 .tryGetAutomatonTargetLocations(
                     pAnalysisEntryFunction,
                     Specification.fromFiles(
-                        backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
+                        invertSpecifications ? specificationFiles : backwardSpecificationFiles,
+                        pCfa,
+                        config,
+                        logger,
+                        shutdownNotifier));
           };
       addToInitialReachedSet(initialLocations, isf, pReached, pCpa);
     }

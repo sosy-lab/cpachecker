@@ -80,7 +80,7 @@ public class BlockSummaryProbabilityPriorityQueue
           "Forgot to add a missing message type to reorder map"
               + Sets.difference(
                   ImmutableSet.copyOf(MessageType.values()),
-                  ImmutableSet.copyOf(reordering.values())));
+                  reordering.keySet()));
     }
   }
 
