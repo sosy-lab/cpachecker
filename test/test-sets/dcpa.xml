@@ -12,7 +12,7 @@ SPDX-License-Identifier: Apache-2.0
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="4">
-<require cpuModel="Intel Core i7-6700 @ 3.40 GHz"/>
+<require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz"/>
 
   <rundefinition name="DCPA">
 		<option name="-heap">13000M</option>
