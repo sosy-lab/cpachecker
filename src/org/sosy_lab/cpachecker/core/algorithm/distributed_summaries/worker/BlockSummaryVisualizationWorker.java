@@ -17,13 +17,13 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.visualization.MessageLogger;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.visualization.BlockSummaryMessageLogger;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class BlockSummaryVisualizationWorker extends BlockSummaryWorker {
 
-  private final MessageLogger messageLogger;
+  private final BlockSummaryMessageLogger messageLogger;
   private final BlockSummaryConnection connection;
   private boolean shutdown = false;
 
@@ -32,7 +32,7 @@ public class BlockSummaryVisualizationWorker extends BlockSummaryWorker {
       throws InvalidConfigurationException {
     super("visualization-worker", pOptions);
     connection = pConnection;
-    messageLogger = new MessageLogger(pTree, pOptions.getParentConfig());
+    messageLogger = new BlockSummaryMessageLogger(pTree, pOptions.getParentConfig());
     try {
       messageLogger.logBlockGraph();
     } catch (IOException pE) {

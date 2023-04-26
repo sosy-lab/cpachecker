@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 
 /** Decomposes the CFA in coherent blocks */
-public interface CFADecomposer {
+public interface BlockSummaryCFADecomposer {
 
   /**
    * Decompose a CFA into coherent subgraphs of the given CFA.

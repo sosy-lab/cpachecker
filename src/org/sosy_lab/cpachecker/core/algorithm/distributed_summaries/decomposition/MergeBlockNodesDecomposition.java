@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 
-public class MergeBlockNodesDecomposition implements CFADecomposer {
+public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
 
   private final Predicate<CFANode> isBlockEnd;
   private final long targetNumber;

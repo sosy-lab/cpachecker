@@ -36,9 +36,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFADecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFAModifier;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFAModifier.Modification;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.CFADecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -125,7 +125,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     stats = new HashMap<>();
   }
 
-  private CFADecomposer getDecomposer() throws InvalidConfigurationException {
+  private BlockSummaryCFADecomposer getDecomposer() throws InvalidConfigurationException {
     BlockOperator blockOperator = new BlockOperator();
     configuration.inject(blockOperator);
     blockOperator.setCFA(initialCFA);
@@ -154,7 +154,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     logger.log(Level.INFO, "Starting block analysis...");
     try {
       // create blockGraph and reduce to relevant parts
-      CFADecomposer decomposer = getDecomposer();
+      BlockSummaryCFADecomposer decomposer = getDecomposer();
       BlockGraph blockGraph = decomposer.decompose(initialCFA);
       blockGraph.checkConsistency(shutdownManager.getNotifier());
       Modification modification =

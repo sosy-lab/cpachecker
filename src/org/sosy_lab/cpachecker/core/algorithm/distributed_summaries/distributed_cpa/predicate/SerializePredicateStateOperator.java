@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.SerializeUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummarySerializeUtil;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -72,8 +72,8 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     String serializedSSAMap;
     String pts;
     try {
-      serializedSSAMap = SerializeUtil.serialize(ssaMap);
-      pts = SerializeUtil.serialize(state.getPathFormula().getPointerTargetSet());
+      serializedSSAMap = BlockSummarySerializeUtil.serialize(ssaMap);
+      pts = BlockSummarySerializeUtil.serialize(state.getPathFormula().getPointerTargetSet());
     } catch (IOException pE) {
       throw new AssertionError("Unable to serialize SSAMap " + state.getPathFormula().getSsa());
     } finally {

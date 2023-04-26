@@ -27,7 +27,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.Tarjan;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.StronglyConnectedComponents;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class BlockGraph {
@@ -175,7 +175,8 @@ public class BlockGraph {
         ArrayListMultimap.create();
     pNodes.forEach(p -> startNodeToBlockNodes.put(p.getFirst(), p));
     ImmutableList<ImmutableList<BlockNodeWithoutGraphInformation>> stronglyConnected =
-        Tarjan.performTarjanAlgorithm(pRoot, n -> startNodeToBlockNodes.get(n.getLast()));
+        StronglyConnectedComponents.performTarjanAlgorithm(
+            pRoot, n -> startNodeToBlockNodes.get(n.getLast()));
     for (List<BlockNodeWithoutGraphInformation> connections : stronglyConnected) {
       for (BlockNodeWithoutGraphInformation connection : connections) {
         predecessors.putAll(connection, connections);

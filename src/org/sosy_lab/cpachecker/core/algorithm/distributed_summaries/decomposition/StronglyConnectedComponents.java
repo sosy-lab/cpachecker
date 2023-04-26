@@ -30,7 +30,7 @@ import java.util.function.Function;
  *
  * @param <T> Any type with a sensible implementation of hashCode and equals
  */
-public class Tarjan<T> {
+public class StronglyConnectedComponents<T> {
 
   private static final int UNDEFINED_INDEX = Integer.MAX_VALUE;
   private int index = 0;
@@ -39,7 +39,7 @@ public class Tarjan<T> {
   private final Deque<Vertex<T>> stack;
   private final Set<Vertex<T>> vertices;
 
-  private Tarjan(T pStartNode, Function<T, Iterable<T>> pSuccessors) {
+  private StronglyConnectedComponents(T pStartNode, Function<T, Iterable<T>> pSuccessors) {
     stack = new ArrayDeque<>();
     successors = ArrayListMultimap.create();
     Set<Edge<T>> edges = new LinkedHashSet<>();
@@ -75,7 +75,8 @@ public class Tarjan<T> {
   public static <T> ImmutableList<ImmutableList<T>> performTarjanAlgorithm(
       T pStartNode, Function<T, Iterable<T>> pSuccessors) {
     return transformedImmutableListCopy(
-        new Tarjan<>(pStartNode, pSuccessors).findStronglyConnectedComponents(),
+        new StronglyConnectedComponents<>(pStartNode, pSuccessors)
+            .findStronglyConnectedComponents(),
         ImmutableList::copyOf);
   }
 

@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ac
 import java.time.Instant;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.SerializeUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummarySerializeUtil;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
@@ -29,7 +29,7 @@ public class BlockSummaryPostConditionMessage extends BlockSummaryMessage {
 
   public SSAMap getSSAMap() {
     if (getPayload().containsKey(BlockSummaryMessagePayload.SSA)) {
-      return SerializeUtil.deserialize(
+      return BlockSummarySerializeUtil.deserialize(
           (String) Objects.requireNonNull(getPayload().get(BlockSummaryMessagePayload.SSA)),
           SSAMap.class);
     }
@@ -38,7 +38,7 @@ public class BlockSummaryPostConditionMessage extends BlockSummaryMessage {
 
   public PointerTargetSet getPointerTargetSet() {
     if (getPayload().containsKey(BlockSummaryMessagePayload.PTS)) {
-      return SerializeUtil.deserialize(
+      return BlockSummarySerializeUtil.deserialize(
           (String) Objects.requireNonNull(getPayload().get(BlockSummaryMessagePayload.PTS)),
           PointerTargetSet.class);
     }

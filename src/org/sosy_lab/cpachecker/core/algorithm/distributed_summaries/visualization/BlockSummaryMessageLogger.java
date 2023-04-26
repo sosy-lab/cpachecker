@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 
 @Options
-public class MessageLogger {
+public class BlockSummaryMessageLogger {
 
   @Option(description = "output file for visualizing message exchange")
   @FileOption(Type.OUTPUT_DIRECTORY)
@@ -45,7 +45,7 @@ public class MessageLogger {
 
   private final int hashCode = Instant.now().hashCode();
 
-  public MessageLogger(BlockGraph pTree, Configuration pConfiguration)
+  public BlockSummaryMessageLogger(BlockGraph pTree, Configuration pConfiguration)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     tree = pTree;
