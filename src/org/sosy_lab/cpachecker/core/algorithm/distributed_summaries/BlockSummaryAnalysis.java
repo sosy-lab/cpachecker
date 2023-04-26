@@ -102,6 +102,12 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               + "Workers consume resources and should not be used for benchmarks.")
   private boolean spawnUtilWorkers = true;
 
+  @Option(
+      description =
+          "Whether to prioritize merging blocks where we cannot abstract or that start at a"
+              + " function")
+  private boolean prioritizeMerge = false;
+
   private enum DecompositionType {
     LINEAR_DECOMPOSITION,
     MERGE_DECOMPOSITION,
@@ -143,7 +149,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                 .size();
         numberOfRealFunctions =
             Long.min(numberOfRealFunctions - 1, Runtime.getRuntime().availableProcessors());
-        yield new MergeBlockNodesDecomposition(isBlockEnd, numberOfRealFunctions);
+        yield new MergeBlockNodesDecomposition(isBlockEnd, prioritizeMerge, numberOfRealFunctions);
       }
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();
     };

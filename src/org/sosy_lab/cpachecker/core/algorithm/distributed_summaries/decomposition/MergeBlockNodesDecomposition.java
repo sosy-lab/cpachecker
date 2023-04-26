@@ -14,13 +14,16 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
@@ -29,13 +32,16 @@ public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
 
   private final Predicate<CFANode> isBlockEnd;
   private final long targetNumber;
+  private final boolean prioritize;
   private int id;
 
   private record BlockScope(CFANode start, CFANode last) {}
 
-  public MergeBlockNodesDecomposition(Predicate<CFANode> pIsBlockEnd, long pTargetNumber) {
+  public MergeBlockNodesDecomposition(
+      Predicate<CFANode> pIsBlockEnd, boolean pPrioritize, long pTargetNumber) {
     isBlockEnd = pIsBlockEnd;
     targetNumber = pTargetNumber;
+    prioritize = pPrioritize;
   }
 
   @Override
@@ -111,12 +117,23 @@ public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
       Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
     Multimap<CFANode, BlockNodeWithoutGraphInformation> startingPoints = ArrayListMultimap.create();
     Multimap<CFANode, BlockNodeWithoutGraphInformation> endingPoints = ArrayListMultimap.create();
+
+    // prioritization
+    List<BlockNodeWithoutGraphInformation> prioritized = new ArrayList<>(pNodes.size());
     pNodes.forEach(
         n -> {
           startingPoints.put(n.getFirst(), n);
           endingPoints.put(n.getLast(), n);
+          // merge where we cant append an abstraction edge and where functions start
+          if (prioritize
+              && (n.getLast().getLeavingSummaryEdge() != null
+                  || n.getFirst() instanceof FunctionEntryNode)) {
+            prioritized.add(0, n);
+          } else {
+            prioritized.add(n);
+          }
         });
-    for (BlockNodeWithoutGraphInformation node : pNodes) {
+    for (BlockNodeWithoutGraphInformation node : prioritized) {
       Collection<BlockNodeWithoutGraphInformation> successors = startingPoints.get(node.getLast());
       if (successors.size() == 1) {
         BlockNodeWithoutGraphInformation uniqueSuccessor = Iterables.getOnlyElement(successors);
