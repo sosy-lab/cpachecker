@@ -693,8 +693,16 @@ public class SMGCPABuiltins {
         // C99 says that allocation functions with argument 0 can return a null-pointer (or a valid
         // pointer that may not be dereferenced but can be freed)
         // This mapping always exists
-        Value addressToZero = new NumericValue(0);
-        resultBuilder.add(ValueAndSMGState.of(addressToZero, currentState));
+        // SV-Comp expects a non-zero return pointer!
+        if (options.isMallocZeroReturnsZero()) {
+          Value addressToZero = new NumericValue(0);
+          resultBuilder.add(ValueAndSMGState.of(addressToZero, currentState));
+        } else {
+          // Some size, does not matter
+          ValueAndSMGState addressAndState =
+              evaluator.createMallocZeroMemoryAndPointer(currentState, BigInteger.ONE);
+          resultBuilder.add(addressAndState);
+        }
         continue;
       }
 

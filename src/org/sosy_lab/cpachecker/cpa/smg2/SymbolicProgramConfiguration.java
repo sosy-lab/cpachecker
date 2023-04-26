@@ -94,8 +94,17 @@ public class SymbolicProgramConfiguration {
   private final PersistentMap<SMGObject, BigInteger> memoryAddressAssumptionsMap;
   private BigInteger currentMemoryAssumptionMax = BigInteger.ZERO;
 
-  /* Map of (SMG)Objects externally allocated. The bool denotes validity, true = valid, false = invalid i.e. after free() */
+  /* Map of (SMG)Objects externally allocated.
+   * The bool denotes validity, true = valid, false = invalid i.e. after free()
+   */
   private final PersistentMap<SMGObject, Boolean> externalObjectAllocation;
+
+  /*
+   * This map remembers which SMGObjects are created using malloc(0).
+   * Reason: they are flagged as invalidated and treated as such, except for free() calls.
+   * Those are valid.
+   */
+  private final PersistentMap<SMGObject, Boolean> mallocZeroMemory;
 
   /**
    * Maps the symbolic value ranges to their abstract SMG counterparts. (SMGs use only abstract, but
@@ -115,7 +124,8 @@ public class SymbolicProgramConfiguration {
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
       ImmutableBiMap<Equivalence.Wrapper<Value>, SMGValue> pValueMapping,
       PersistentMap<String, CType> pVariableToTypeMap,
-      PersistentMap<SMGObject, BigInteger> pMemoryAddressAssumptionMap) {
+      PersistentMap<SMGObject, BigInteger> pMemoryAddressAssumptionMap,
+      PersistentMap<SMGObject, Boolean> pMallocZeroMemory) {
     globalVariableMapping = pGlobalVariableMapping;
     stackVariableMapping = pStackVariableMapping;
     smg = pSmg;
@@ -124,6 +134,7 @@ public class SymbolicProgramConfiguration {
     valueMapping = pValueMapping;
     variableToTypeMap = pVariableToTypeMap;
     memoryAddressAssumptionsMap = pMemoryAddressAssumptionMap;
+    mallocZeroMemory = pMallocZeroMemory;
   }
 
   /**
@@ -149,7 +160,8 @@ public class SymbolicProgramConfiguration {
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
       ImmutableBiMap<Equivalence.Wrapper<Value>, SMGValue> pValueMapping,
       PersistentMap<String, CType> pVariableToTypeMap,
-      PersistentMap<SMGObject, BigInteger> pMemoryAddressAssumptionMap) {
+      PersistentMap<SMGObject, BigInteger> pMemoryAddressAssumptionMap,
+      PersistentMap<SMGObject, Boolean> pMallocZeroMemory) {
     return new SymbolicProgramConfiguration(
         pSmg,
         pGlobalVariableMapping,
@@ -158,7 +170,8 @@ public class SymbolicProgramConfiguration {
         pExternalObjectAllocation,
         pValueMapping,
         pVariableToTypeMap,
-        pMemoryAddressAssumptionMap);
+        pMemoryAddressAssumptionMap,
+        pMallocZeroMemory);
   }
 
   /**
@@ -186,7 +199,8 @@ public class SymbolicProgramConfiguration {
             valueWrapper.wrap(new NumericValue(0.0)),
             SMGValue.zeroDoubleValue()),
         PathCopyingPersistentTreeMap.of(),
-        newMemoryAddressAssumptionsMap);
+        newMemoryAddressAssumptionsMap,
+        PathCopyingPersistentTreeMap.of());
   }
 
   public SymbolicProgramConfiguration copyAndRemoveHasValueEdges(
@@ -200,7 +214,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap);
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
   }
 
   /**
@@ -323,7 +338,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap.putAndCopy(pVarName, type),
-        calculateNewNumericAddressMapForNewSMGObject(pNewObject));
+        calculateNewNumericAddressMapForNewSMGObject(pNewObject),
+        mallocZeroMemory);
   }
 
   /**
@@ -364,7 +380,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap.putAndCopy(pVarName, type),
-        calculateNewNumericAddressMapForNewSMGObject(pNewObject));
+        calculateNewNumericAddressMapForNewSMGObject(pNewObject),
+        mallocZeroMemory);
   }
 
   /* Adds the local variable given to the stack with the function name given */
@@ -396,7 +413,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap.putAndCopy(pVarName, type),
-        calculateNewNumericAddressMapForNewSMGObject(pNewObject));
+        calculateNewNumericAddressMapForNewSMGObject(pNewObject),
+        mallocZeroMemory);
   }
 
   /**
@@ -431,7 +449,8 @@ public class SymbolicProgramConfiguration {
           externalObjectAllocation,
           valueMapping,
           variableToTypeMap,
-          memoryAddressAssumptionsMap);
+          memoryAddressAssumptionsMap,
+          mallocZeroMemory);
     }
     return of(
         smg.copyAndAddObject(returnObj.orElseThrow()),
@@ -442,7 +461,8 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap.putAndCopy(
             pFunctionDefinition.getQualifiedName() + "::__retval__", returnType),
-        calculateNewNumericAddressMapForNewSMGObject(returnObj.orElseThrow()));
+        calculateNewNumericAddressMapForNewSMGObject(returnObj.orElseThrow()),
+        mallocZeroMemory);
   }
 
   /**
@@ -473,7 +493,8 @@ public class SymbolicProgramConfiguration {
           externalObjectAllocation,
           valueMapping,
           variableToTypeMap.removeAndCopy(pIdentifier),
-          memoryAddressAssumptionsMap.removeAndCopy(objToRemove));
+          memoryAddressAssumptionsMap.removeAndCopy(objToRemove),
+          mallocZeroMemory);
     }
     return this;
   }
@@ -496,7 +517,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        calculateNewNumericAddressMapForNewSMGObject(pObject));
+        calculateNewNumericAddressMapForNewSMGObject(pObject),
+        mallocZeroMemory);
   }
 
   // Only to be used by materialization to copy a SMGObject
@@ -510,7 +532,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap);
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
   }
 
   // Replace the pointer behind value with a new pointer with the new SMGObject target
@@ -524,7 +547,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap);
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
   }
 
   /**
@@ -576,7 +600,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         newVariableToTypeMap,
-        newMemoryAddressAssumptionsMap);
+        newMemoryAddressAssumptionsMap,
+        mallocZeroMemory);
   }
 
   protected Set<SMGObject> getObjectsValidInOtherStackFrames() {
@@ -632,7 +657,8 @@ public class SymbolicProgramConfiguration {
             externalObjectAllocation,
             valueMapping,
             variableToTypeMap,
-            newMemoryAddressAssumptionsMap),
+            newMemoryAddressAssumptionsMap,
+            mallocZeroMemory),
         unreachableObjects);
   }
 
@@ -665,7 +691,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap.removeAndCopy(object));
+        memoryAddressAssumptionsMap.removeAndCopy(object),
+        mallocZeroMemory);
   }
 
   /** Returns {@link SMGObject} reserved for the return value of the current StackFrame. */
@@ -697,7 +724,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         builder.putAll(valueMapping).put(valueWrapper.wrap(value), smgValue).buildOrThrow(),
         variableToTypeMap,
-        memoryAddressAssumptionsMap);
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
   }
 
   /**
@@ -717,7 +745,27 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation.putAndCopy(pObject, false),
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap);
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
+  }
+
+  /**
+   * Changes the validity of a external object to valid.
+   *
+   * @param pObject the {@link SMGObject} that is externally allocated to be set to valid.
+   * @return A copy of this SPC with the validity of the external object changed.
+   */
+  public SymbolicProgramConfiguration copyAndValidateExternalAllocation(SMGObject pObject) {
+    return of(
+        smg,
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation.putAndCopy(pObject, true),
+        valueMapping,
+        variableToTypeMap,
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
   }
 
   /**
@@ -784,7 +832,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation.putAndCopy(pObject, true),
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap);
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
   }
 
   /**
@@ -803,7 +852,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap);
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
   }
 
   /**
@@ -823,7 +873,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        calculateNewNumericAddressMapForNewSMGObject(pNewObject));
+        calculateNewNumericAddressMapForNewSMGObject(pNewObject),
+        mallocZeroMemory);
   }
 
   /**
@@ -841,7 +892,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap.removeAndCopy(pNewObject));
+        memoryAddressAssumptionsMap.removeAndCopy(pNewObject),
+        mallocZeroMemory);
   }
 
   /**
@@ -1140,6 +1192,23 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
+   * This assumes that the entered {@link SMGObject} is part of the SPC!
+   * Only to be used for free of malloc(0) memory.
+   *
+   * @param pObject the {@link SMGObject} to validate.
+   * @return a new SPC with the entered object validated.
+   */
+  public SymbolicProgramConfiguration validateSMGObject(SMGObject pObject) {
+    Preconditions.checkArgument(smg.getObjects().contains(pObject));
+    SymbolicProgramConfiguration newSPC = this;
+    if (isObjectExternallyAllocated(pObject)) {
+      newSPC = copyAndValidateExternalAllocation(pObject);
+    }
+    SMG newSMG = newSPC.getSmg().copyAndValidateObject(pObject);
+    return newSPC.copyAndReplaceSMG(newSMG);
+  }
+
+  /**
    * Returns local and global variables as {@link MemoryLocation}s and their respective Values and
    * type sizes (SMGs allow reads from different types, just the size has to match). This does not
    * return any heap related memory. This does return pointers, but not the structure behind the
@@ -1283,7 +1352,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap.removeAndCopy(obj));
+        memoryAddressAssumptionsMap.removeAndCopy(obj),
+        mallocZeroMemory);
   }
 
   /**
@@ -1304,7 +1374,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap);
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
   }
 
   /**
@@ -1327,7 +1398,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap);
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
   }
 
   /**
@@ -1351,7 +1423,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap);
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
   }
 
   public SymbolicProgramConfiguration copyAndReplaceHVEdgesAt(
@@ -1364,7 +1437,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap);
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
   }
 
   public SymbolicProgramConfiguration replaceValueAtWithAndCopy(
@@ -1377,7 +1451,8 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap);
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
   }
 
   /**
@@ -1395,7 +1470,58 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        memoryAddressAssumptionsMap);
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory);
+  }
+
+  /**
+   * Checks if there is an association of the memory to malloc(0), thus checking if this allowed to
+   * be freed.
+   *
+   * @param memory the {@link SMGObject} to check if it was the result of malloc(0).
+   * @return true if the memory was the result of malloc(0). False else.
+   */
+  public boolean memoryIsResultOfMallocZero(SMGObject memory) {
+    return mallocZeroMemory.containsKey(memory) && mallocZeroMemory.get(memory);
+  }
+
+  /**
+   * Adds an association of the memory given to malloc(0), thus remembering that this is allowed to
+   * be freed.
+   *
+   * @param memory the {@link SMGObject} that was the result of malloc(0).
+   * @return a new SPC with the association added.
+   */
+  public SymbolicProgramConfiguration setMemoryAsResultOfMallocZero(SMGObject memory) {
+    return new SymbolicProgramConfiguration(
+        smg,
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory.putAndCopy(memory, true));
+  }
+
+  /**
+   * Removes the association of the memory given to malloc(0). (i.e. it was freed)
+   *
+   * @param memory the {@link SMGObject} that should no longer be associated to malloc(0).
+   * @return a new SPC with the association removed.
+   */
+  public SymbolicProgramConfiguration removeMemoryAsResultOfMallocZero(SMGObject memory) {
+    return new SymbolicProgramConfiguration(
+        smg,
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        memoryAddressAssumptionsMap,
+        mallocZeroMemory.removeAndCopy(memory));
   }
 
   @Override

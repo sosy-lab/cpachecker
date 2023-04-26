@@ -3068,6 +3068,11 @@ cpa.smg2.initialPredicatePrecisionFile = no default value
 # 'merge=JOIN'
 cpa.smg2.joinOnBlockEnd = true
 
+# If this option is enabled, a call to malloc with value zero results in a
+# return value that is equal to zero. If this option is disabled, a non-zero
+# memory section that may not be accessed but freed is returned.
+cpa.smg2.mallocZeroReturnsZero = false
+
 # Memory allocation functions
 cpa.smg2.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc", "realloc"}
 

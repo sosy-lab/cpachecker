@@ -2500,6 +2500,7 @@ public class SMGState
         continue;
       }
       SMGState currentState = maybeRegion.getSMGState();
+      SymbolicProgramConfiguration currentMemModel = currentState.getMemoryModel();
       SMGObject regionToFree = maybeRegion.getSMGObject();
       BigInteger offsetInBits = baseOffset.add(maybeRegion.getOffsetForObject());
 
@@ -2516,8 +2517,8 @@ public class SMGState
         continue;
       }
 
-      if (!memoryModel.isHeapObject(regionToFree)
-          && !memoryModel.isObjectExternallyAllocated(regionToFree)) {
+      if (!currentMemModel.isHeapObject(regionToFree)
+          && !currentMemModel.isObjectExternallyAllocated(regionToFree)) {
         // You may not free any objects not on the heap.
         // It could be that the object was on the heap but was freed before!
         returnBuilder.add(
@@ -2526,7 +2527,14 @@ public class SMGState
         continue;
       }
 
-      if (!memoryModel.isObjectValid(regionToFree)) {
+      if (currentMemModel.memoryIsResultOfMallocZero(regionToFree)) {
+        // Memory result of malloc(0), validate to free successfully
+        currentMemModel = currentMemModel.removeMemoryAsResultOfMallocZero(regionToFree);
+        currentMemModel = currentMemModel.validateSMGObject(regionToFree);
+        currentState = currentState.copyAndReplaceMemoryModel(currentMemModel);
+      }
+
+      if (!currentMemModel.isObjectValid(regionToFree)) {
         // you may not invoke free multiple times on the same object
         returnBuilder.add(
             currentState.withInvalidFree(
@@ -2535,7 +2543,7 @@ public class SMGState
       }
 
       if (offsetInBits.compareTo(BigInteger.ZERO) != 0
-          && !currentState.memoryModel.isObjectExternallyAllocated(regionToFree)) {
+          && !currentMemModel.isObjectExternallyAllocated(regionToFree)) {
         // you may not invoke free on any address that you
         // didn't get through a malloc, calloc or realloc invocation.
         // (undefined behavour, same as double free)
@@ -2549,8 +2557,7 @@ public class SMGState
       }
 
       // Perform free by invalidating the object behind the address and delete all its edges.
-      SymbolicProgramConfiguration newSPC =
-          currentState.memoryModel.invalidateSMGObject(regionToFree);
+      SymbolicProgramConfiguration newSPC = currentMemModel.invalidateSMGObject(regionToFree);
       // state in our implementation.
       // performConsistencyCheck(SMGRuntimeCheck.HALF);
       returnBuilder.add(currentState.copyAndReplaceMemoryModel(newSPC));
