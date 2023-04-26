@@ -201,14 +201,14 @@ public class WitnessExporter {
     Set<CFANode> visited = new HashSet<>();
     boolean backwardARG;
 
-    CFANode f = worklist.peekLast();
+    CFANode f = worklist.peekFirst();
     backwardARG = !f.equals(cfa.getMainFunction());
 
     while (!worklist.isEmpty()) {
       CFANode l = worklist.pop();
       visited.add(l);
       FluentIterable<CFAEdge> edges =
-          backwardARG ? CFAUtils.enteringEdges(l) : CFAUtils.leavingEdges(l);;
+          backwardARG ? CFAUtils.enteringEdges(l) : CFAUtils.leavingEdges(l);
       for (CFAEdge e : edges) {
         Set<FileLocation> fileLocations = CFAUtils.getFileLocationsFromCfaEdge(e);
         if (!fileLocations.isEmpty()) {
@@ -223,30 +223,4 @@ public class WitnessExporter {
 
     throw new RuntimeException("Could not determine file name based on abstract state!");
   }
-
-  // Deque<CFANode> worklist = Queues.newArrayDeque(AbstractStates.extractLocations(pRootState));
-  // Set<CFANode> visited = new HashSet<>();
-  // boolean backwardARG;
-  //
-  // CFANode l = worklist.pop();
-  // backwardARG = !l.equals(cfa.getMainFunction());
-  //
-  // while (!worklist.isEmpty()) {
-  // visited.add(l);
-  // FluentIterable<CFAEdge> edges = CFAUtils.leavingEdges(l);
-  // for (CFAEdge e : edges) {
-  // Set<FileLocation> fileLocations = CFAUtils.getFileLocationsFromCfaEdge(e);
-  // if (!fileLocations.isEmpty()) {
-  // return fileLocations.iterator().next().getFileName().toString();
-  // }
-  // CFANode node = e.getSuccessor();
-  // if (!visited.contains(node)) {
-  // worklist.push(node);
-  // }
-  // }
-  // l = worklist.pop();
-  // }
-  //
-  // throw new RuntimeException("Could not determine file name based on abstract state!");
-  // }
 }
