@@ -60,15 +60,14 @@ public class BlockSummaryStatisticsMessage extends BlockSummaryMessage {
 
   public Map<String, Object> getStats() {
     Object result = getPayload().get(BlockSummaryMessagePayload.STATS);
-    if (!(result instanceof Map)) {
-      throw new AssertionError("Stats have to be present");
+    if (result instanceof Map<?, ?> resultMap) {
+      ImmutableMap.Builder<String, Object> converted = ImmutableMap.builder();
+      for (Entry<?, ?> entry : resultMap.entrySet()) {
+        assert entry.getKey() instanceof String;
+        converted.put((String) entry.getKey(), entry.getValue());
+      }
+      return converted.buildOrThrow();
     }
-    Map<?, ?> resultMap = (Map<?, ?>) result;
-    ImmutableMap.Builder<String, Object> converted = ImmutableMap.builder();
-    for (Entry<?, ?> entry : resultMap.entrySet()) {
-      assert entry.getKey() instanceof String;
-      converted.put((String) entry.getKey(), entry.getValue());
-    }
-    return converted.buildOrThrow();
+    throw new AssertionError("Statistics have to be present");
   }
 }
