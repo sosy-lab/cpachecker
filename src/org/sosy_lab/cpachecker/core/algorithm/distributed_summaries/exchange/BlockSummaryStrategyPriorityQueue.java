@@ -21,7 +21,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
 
-public class BlockSummaryProbabilityPriorityQueue
+public class BlockSummaryStrategyPriorityQueue
     extends ForwardingBlockingQueue<BlockSummaryMessage> {
 
   private final BlockingQueue<BlockSummaryMessage> queue;
@@ -61,7 +61,7 @@ public class BlockSummaryProbabilityPriorityQueue
    *
    * @param pQueue the queue to forward
    */
-  private BlockSummaryProbabilityPriorityQueue(BlockingQueue<BlockSummaryMessage> pQueue) {
+  private BlockSummaryStrategyPriorityQueue(BlockingQueue<BlockSummaryMessage> pQueue) {
     queue = pQueue;
     reordered = new ArrayList<>();
     // necessary to avoid endless loops of ErrorCondition messages for loop structures.
@@ -78,13 +78,11 @@ public class BlockSummaryProbabilityPriorityQueue
     if (reordering.size() != MessageType.values().length) {
       throw new AssertionError(
           "Forgot to add a missing message type to reorder map"
-              + Sets.difference(
-                  ImmutableSet.copyOf(MessageType.values()),
-                  reordering.keySet()));
+              + Sets.difference(ImmutableSet.copyOf(MessageType.values()), reordering.keySet()));
     }
   }
 
-  public BlockSummaryProbabilityPriorityQueue() {
+  public BlockSummaryStrategyPriorityQueue() {
     this(new LinkedBlockingQueue<>());
   }
 

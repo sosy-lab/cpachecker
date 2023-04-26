@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryProbabilityPriorityQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryStrategyPriorityQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.BlockSummaryStatisticType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryBlockSummaryConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
@@ -171,7 +171,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           new BlockSummaryWorkerBuilder(
               cfa,
               new InMemoryBlockSummaryConnectionProvider(
-                  () -> new BlockSummaryProbabilityPriorityQueue()),
+                  () -> new BlockSummaryStrategyPriorityQueue()),
               specification);
       builder = builder.createAdditionalConnections(1);
       builder = builder.addRootWorker(blockGraph.getRoot(), options);
