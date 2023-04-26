@@ -1192,8 +1192,8 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * This assumes that the entered {@link SMGObject} is part of the SPC!
-   * Only to be used for free of malloc(0) memory.
+   * This assumes that the entered {@link SMGObject} is part of the SPC! Only to be used for free of
+   * malloc(0) memory.
    *
    * @param pObject the {@link SMGObject} to validate.
    * @return a new SPC with the entered object validated.
