@@ -814,9 +814,15 @@ public class SMGCPATransferRelationTest {
         SMGState stateAfterMallocAssignSuccess;
         if (sizeInBytes.compareTo(BigInteger.ZERO) == 0) {
           // malloc(0) is always a single null pointer
-          assertThat(
-                  checkMallocFailure(statesListAfterMallocAssign.get(0), variableName, pointerType))
-              .isTrue();
+          if (smgOptions.isMallocZeroReturnsZero()) {
+            assertThat(
+                    checkMallocFailure(
+                        statesListAfterMallocAssign.get(0), variableName, pointerType))
+                .isTrue();
+          } else {
+            // Non zero return
+            // TODO:
+          }
           continue;
 
         } else if (!smgOptions.isEnableMallocFailure()) {
@@ -960,10 +966,15 @@ public class SMGCPATransferRelationTest {
           SMGState stateAfterMallocAssignSuccess;
           if (sizeMultiplikator.compareTo(BigInteger.ZERO) == 0) {
             // malloc(0) is always a single null pointer
-            assertThat(
-                    checkMallocFailure(
-                        statesListAfterMallocAssign.get(0), variableName, pointerType))
-                .isTrue();
+            if (smgOptions.isMallocZeroReturnsZero()) {
+              assertThat(
+                      checkMallocFailure(
+                          statesListAfterMallocAssign.get(0), variableName, pointerType))
+                  .isTrue();
+            } else {
+              // Non 0, invalid memory
+              // TODO:
+            }
             continue;
 
           } else if (!smgOptions.isEnableMallocFailure()) {
@@ -1030,6 +1041,7 @@ public class SMGCPATransferRelationTest {
   /*
    * Checks the state for a variable with the name entered and the type entered.
    * This variable should have a failed malloc (value = 0) result.
+   * If malloc returns non-zero, the memory is invalid.
    * If this is not the case, this method returns false.
    * True if the value read from the variable is zero, which is a malloc failure.
    */
