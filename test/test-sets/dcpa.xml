@@ -203,6 +203,7 @@ SPDX-License-Identifier: Apache-2.0
     <column title="total">time for CPAchecker</column>
     <column title="reached">Size of reached set</column>
     <column title="targets">Number of target states</column>
-    <column title="blocks">Number of blocks</column>
+    <column title="worker">Number of worker</column>
+	<column title="Functions">Number of functions</column>
   </columns>
 </benchmark>
