@@ -31,7 +31,7 @@ public class MicroBenchmarking implements Algorithm {
 
   private static class BenchmarkExecutionRun {
     long duration;
-    double determinant;
+    double firstRowSum;
   }
 
   private static class MatrixMultiplicationCell {
@@ -69,11 +69,6 @@ public class MicroBenchmarking implements Algorithm {
     secure = true,
     description = "Number of iterations for each algorithm/program combination. Defaults to 10.")
   private int numExecutions = 22;
-
-  @Option(
-    secure = true,
-    description = "Number of microbenchmark iterations for JVM warmup. Defaults to 20.")
-  private int warmupIterationCount = 20;
 
   @Option(secure = true, description = "Size of rows and columns for micro benchmarking matrix")
   private int sizeMatrixRowCol = 50;
@@ -128,14 +123,13 @@ public class MicroBenchmarking implements Algorithm {
     Map<String, List<ConfigProgramExecutions>> benchmarkTimes = new HashMap<>();
     List<BenchmarkExecutionRun> runTimes = new ArrayList<>();
 
-    int[][] C = new int[0][0];
+    int[][] firstMatrix = generateRandomMatrix();
+    int[][] secondMatrix = generateRandomMatrix();
+    int m = firstMatrix.length;
+    int n = firstMatrix[0].length;
+    int[][] C = new int[m][n];
 
-    for (int exec = 0; exec < (warmupIterationCount + numExecutions); exec++) {
-      int[][] firstMatrix = generateRandomMatrix();
-      int[][] secondMatrix = generateRandomMatrix();
-      int m = firstMatrix.length;
-      int n = firstMatrix[0].length;
-      C = new int[m][n];
+    for (int exec = 0; exec < numExecutions; exec++) {
       long startTime = ticker.read();
 
       for (int i = 0; i < m; i++) {
@@ -152,12 +146,11 @@ public class MicroBenchmarking implements Algorithm {
       long endTime = ticker.read();
       long timeDiff = endTime - startTime;
 
-      if (exec >= warmupIterationCount) {
-        BenchmarkExecutionRun run = new BenchmarkExecutionRun();
-        run.duration = timeDiff;
-        run.determinant = determinant(C);
-        runTimes.add(run);
-      }
+      BenchmarkExecutionRun run = new BenchmarkExecutionRun();
+      run.duration = timeDiff;
+      run.firstRowSum = sumFirstRow(C);
+      runTimes.add(run);
+
     }
 
     ConfigProgramExecutions obj = new ConfigProgramExecutions();
@@ -174,8 +167,8 @@ public class MicroBenchmarking implements Algorithm {
 
     double totalRunTime = runTimes.stream().map(a -> a.duration).reduce(0L, (a, b) -> a + b);
     if (baseLineRunTime > 0 && warningThreshold > 0) {
-      double upperBound = baseLineRunTime + baseLineRunTime * (warningThreshold / 10.0);
-      double lowerBound = baseLineRunTime - baseLineRunTime * (warningThreshold / 10.0);
+      double upperBound = baseLineRunTime + baseLineRunTime * (warningThreshold / 100.0);
+      double lowerBound = baseLineRunTime - baseLineRunTime * (warningThreshold / 100.0);
 
       if (totalRunTime >= upperBound) {
         logger.log(
@@ -204,9 +197,9 @@ public class MicroBenchmarking implements Algorithm {
               writer.append(';');
             }
             writer.append("\n");
-            writer.append("Calculated matrix determinants:");
+            writer.append("Calculated sum of first matrix rows:");
             for (BenchmarkExecutionRun run : l.runTimes) {
-              writer.append(String.valueOf(run.determinant));
+              writer.append(String.valueOf(run.firstRowSum));
               writer.append(';');
             }
             writer.append("\n");
@@ -266,34 +259,11 @@ public class MicroBenchmarking implements Algorithm {
     return sum / (cpe.runTimes.size());
   }
 
-  private double determinant(int matrix[][]) {
-    int n = matrix.length;
-    double det = 0;
-
-    if (n == 1) {
-      det = matrix[0][0];
-    } else if (n == 2) {
-      det = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
-    } else {
-      for (int z = 0; z < n; z++) {
-        int[][] m = new int[n - 1][];
-        for (int k = 0; k < n - 1; k++) {
-          m[k] = new int[n - 1];
-        }
-
-        for (int i = 1; i < n; i++) {
-          int counter = 0;
-          for (int j = 0; j < n; j++) {
-            if (j == z) {
-              continue;
-            }
-            m[i - 1][counter] = matrix[i][j];
-            counter++;
-          }
-        }
-        det += (Math.pow(-1.0, 2.0 + z) * matrix[0][z] * determinant(m));
-      }
+  private int sumFirstRow(int[][] matrix) {
+    if (matrix.length <= 0) {
+      return 0;
     }
-    return det;
+
+    return Arrays.stream(matrix[0]).reduce(0, (a, b) -> a + b);
   }
 }
