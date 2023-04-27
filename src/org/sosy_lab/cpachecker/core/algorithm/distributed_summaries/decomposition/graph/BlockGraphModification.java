@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
@@ -33,8 +33,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
@@ -44,7 +42,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-public class BlockSummaryCFAModifier {
+public class BlockGraphModification {
 
   public record Modification(
       CFA cfa, BlockGraph blockGraph, ImmutableSet<CFANode> unableToAbstract) {}
@@ -159,7 +157,6 @@ public class BlockSummaryCFAModifier {
     Map<CFANode, CFAEdge> blockAbstractionEnds = pMappingInformation.abstractionEdges();
     ImmutableSet.Builder<BlockNode> instrumentedBlocks = ImmutableSet.builder();
     for (BlockNode block : pBlockGraph.getNodes()) {
-      CFAEdge abstractionEdge = blockAbstractionEnds.get(block.getLast());
       ImmutableSet.Builder<CFANode> nodeBuilder = ImmutableSet.builder();
       for (CFANode node : block.getNodes()) {
         // null in case of unreachable node
@@ -170,9 +167,13 @@ public class BlockSummaryCFAModifier {
       }
       ImmutableSet.Builder<CFAEdge> edgeBuilder = ImmutableSet.builder();
       for (CFAEdge edge : block.getEdges()) {
-        edgeBuilder.add(originalInstrumentedEdges.get(edge));
+        CFAEdge instrumentedEdge = originalInstrumentedEdges.get(edge);
+        if (instrumentedEdge != null) {
+          edgeBuilder.add(instrumentedEdge);
+        }
       }
-      CFANode abstraction = block.getLast();
+      CFANode abstraction = originalInstrumentedNodes.get(block.getLast());
+      CFAEdge abstractionEdge = blockAbstractionEnds.get(block.getLast());
       if (abstractionEdge != null) {
         edgeBuilder.add(abstractionEdge);
         abstraction = abstractionEdge.getSuccessor();
