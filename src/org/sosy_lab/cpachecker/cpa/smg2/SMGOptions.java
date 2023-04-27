@@ -90,7 +90,7 @@ public class SMGOptions {
       name = "memoryAllocationFunctions",
       description = "Memory allocation functions")
   private ImmutableSet<String> memoryAllocationFunctions =
-      ImmutableSet.of("malloc", "__kmalloc", "kmalloc", "realloc");
+      ImmutableSet.of("malloc", "__kmalloc", "kmalloc");
 
   @Option(
       secure = true,
