@@ -53,6 +53,9 @@ public class SerializePredicateStateOperator implements SerializeOperator {
         SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
         for (Entry<String, Formula> formulaEntry :
             formulaManagerView.extractVariables(booleanFormula).entrySet()) {
+          if (formulaEntry.getKey().contains("__VERIFIER_nondet_")) {
+            continue;
+          }
           CType variableType =
               state
                   .getAbstractionFormula()

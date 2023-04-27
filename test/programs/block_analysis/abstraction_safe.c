@@ -21,7 +21,7 @@ int __VERIFIER_nondet_int();
 int main() {
   int x = 0;
   int y = 0;
-  while (x < 10000) {
+  while (__VERIFIER_nondet_int()) {
     x++;
     y++;
   }
