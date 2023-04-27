@@ -3074,7 +3074,7 @@ cpa.smg2.joinOnBlockEnd = true
 cpa.smg2.mallocZeroReturnsZero = false
 
 # Memory allocation functions
-cpa.smg2.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc", "realloc"}
+cpa.smg2.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc"}
 
 # Size parameter of memory allocation functions
 cpa.smg2.memoryAllocationFunctionsSizeParameter = 0
