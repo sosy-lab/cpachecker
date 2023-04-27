@@ -664,7 +664,6 @@ public class SMGCPABuiltins {
       CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
 
-    String functionName = functionCall.getFunctionNameExpression().toASTString();
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (ValueAndSMGState sizeAndState : getAllocateFunctionSize(pState, cfaEdge, functionCall)) {
 
@@ -690,7 +689,7 @@ public class SMGCPABuiltins {
       SMGState currentState = sizeAndState.getState();
 
       resultBuilder.addAll(
-          handleConfigurableMemoryAllocation(functionCall, currentState, cfaEdge, sizeInBits));
+          handleConfigurableMemoryAllocation(functionCall, currentState, sizeInBits));
     }
 
     return resultBuilder.build();
@@ -698,7 +697,7 @@ public class SMGCPABuiltins {
 
   // malloc(size) w size in bits
   private ImmutableList<ValueAndSMGState> handleConfigurableMemoryAllocation(
-      CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge, BigInteger sizeInBits)
+      CFunctionCallExpression functionCall, SMGState pState, BigInteger sizeInBits)
       throws SMGException {
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     SMGState currentState = pState;
@@ -1403,16 +1402,14 @@ public class SMGCPABuiltins {
     // Handle (realloc(0, size) -> just malloc
     if (pPtrValue.isNumericValue()
         && pPtrValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
-      return handleConfigurableMemoryAllocation(functionCall, currentState, pCfaEdge, sizeInBits);
+      return handleConfigurableMemoryAllocation(functionCall, currentState, sizeInBits);
     }
 
     // Handle realloc(ptr, 0) (before C23), (C23 its just undefined beh)
     if (pSizeValue.isNumericValue() && sizeInBits.equals(BigInteger.ZERO)) {
       resultBuilder = ImmutableList.builder();
-      for (SMGState freeState : currentState.free(pPtrValue, functionCall, pCfaEdge)) {
-        for (SMGState freedState : currentState.free(pPtrValue, functionCall, pCfaEdge)) {
-          resultBuilder.add(handleAllocZero(freedState));
-        }
+      for (SMGState freedState : currentState.free(pPtrValue, functionCall, pCfaEdge)) {
+        resultBuilder.add(handleAllocZero(freedState));
       }
       return resultBuilder.build();
     }
