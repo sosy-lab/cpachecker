@@ -58,12 +58,12 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
     PointerTargetSet pts = PointerTargetSet.emptyPointerTargetSet();
     SerializationInfoStorage.storeSerializationInformation(predicateCPA, cfa);
     try {
-      if (pMessage instanceof BlockSummaryPostConditionMessage) {
-        map = ((BlockSummaryPostConditionMessage) pMessage).getSSAMap();
-        pts = ((BlockSummaryPostConditionMessage) pMessage).getPointerTargetSet();
-      } else if (pMessage instanceof BlockSummaryErrorConditionMessage) {
-        map = ((BlockSummaryErrorConditionMessage) pMessage).getSSAMap();
-        pts = ((BlockSummaryErrorConditionMessage) pMessage).getPointerTargetSet();
+      if (pMessage instanceof BlockSummaryPostConditionMessage bspcm) {
+        map = bspcm.getSSAMap();
+        pts = bspcm.getPointerTargetSet();
+      } else if (pMessage instanceof BlockSummaryErrorConditionMessage bsecm) {
+        map = bsecm.getSSAMap();
+        pts = bsecm.getPointerTargetSet();
       }
     } finally {
       SerializationInfoStorage.clear();
