@@ -3705,6 +3705,10 @@ differential.variableSetMerge = false
 distributedSummaries.decompositionType = LINEAR_DECOMPOSITION
   enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, NO_DECOMPOSITION]
 
+# Whether to prioritize merging blocks where we cannot abstract or that start
+# at a function
+distributedSummaries.prioritizeMerge = false
+
 # Whether to spawn util workers. Util workers listen to every message and
 # create visual output for debugging. Workers consume resources and should
 # not be used for benchmarks.
