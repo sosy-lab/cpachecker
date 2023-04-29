@@ -70,6 +70,11 @@ public class MicroBenchmarking implements Algorithm {
     description = "Number of iterations for each algorithm/program combination. Defaults to 10.")
   private int numExecutions = 22;
 
+  @Option(
+    secure = true,
+    description = "Number of iterations where result is discarded for warming up the JVM.")
+  private int numWarmupExecutions = 20;
+
   @Option(secure = true, description = "Size of rows and columns for micro benchmarking matrix")
   private int sizeMatrixRowCol = 50;
 
@@ -124,7 +129,7 @@ public class MicroBenchmarking implements Algorithm {
     List<BenchmarkExecutionRun> runTimes = new ArrayList<>();
 
 
-    for (int exec = 0; exec < numExecutions; exec++) {
+    for (int exec = 0; exec < (numWarmupExecutions + numExecutions); exec++) {
       int[][] firstMatrix = generateRandomMatrix();
       int[][] secondMatrix = generateRandomMatrix();
       int m = firstMatrix.length;
@@ -146,10 +151,12 @@ public class MicroBenchmarking implements Algorithm {
       long endTime = ticker.read();
       long timeDiff = endTime - startTime;
 
-      BenchmarkExecutionRun run = new BenchmarkExecutionRun();
-      run.duration = timeDiff;
-      run.firstRowSum = sumFirstRow(C);
-      runTimes.add(run);
+      if (exec >= numWarmupExecutions) {
+        BenchmarkExecutionRun run = new BenchmarkExecutionRun();
+        run.duration = timeDiff;
+        run.firstRowSum = sumFirstRow(C);
+        runTimes.add(run);
+      }
 
     }
 
