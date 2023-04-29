@@ -158,7 +158,6 @@ esac
 exec "$JAVA" \
     -XX:+PerfDisableSharedMem \
     -Djava.awt.headless=true \
-    -Djava.compiler=NONE \
     $JAVA_VM_ARGUMENTS \
     -Xss${JAVA_STACK_SIZE} \
     -Xmx${JAVA_HEAP_SIZE} \
