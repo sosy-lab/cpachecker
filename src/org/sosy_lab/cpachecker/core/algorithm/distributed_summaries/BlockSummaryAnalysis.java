@@ -21,8 +21,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -46,7 +48,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryStrategyPriorityQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryDefaultQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryPrioritizeErrorConditionQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.BlockSummaryStatisticType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryBlockSummaryConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
@@ -111,11 +115,23 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               + " function")
   private boolean prioritizeMerge = false;
 
+  @Option(
+      description =
+          "Change the queue type. ERRROR_CONDITION prioritizes the processing"
+              + " ofErrorConditionMessages. DEFAULT does not differ between PostCondition and"
+              + " ErrorCondition messages.")
+  private QueueType queue = QueueType.DEFAULT;
+
   private enum DecompositionType {
     LINEAR_DECOMPOSITION,
     MERGE_DECOMPOSITION,
     BRIDGE_DECOMPOSITION,
     NO_DECOMPOSITION
+  }
+
+  private enum QueueType {
+    ERROR_CONDITION,
+    DEFAULT
   }
 
   public BlockSummaryAnalysis(
@@ -133,6 +149,13 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     specification = pSpecification;
     options = new BlockSummaryAnalysisOptions(configuration);
     stats = new HashMap<>();
+  }
+
+  private Supplier<BlockingQueue<BlockSummaryMessage>> getQueueSupplier() {
+    return switch (queue) {
+      case ERROR_CONDITION -> () -> new BlockSummaryPrioritizeErrorConditionQueue();
+      case DEFAULT -> () -> new BlockSummaryDefaultQueue();
+    };
   }
 
   private BlockSummaryCFADecomposer getDecomposer() throws InvalidConfigurationException {
@@ -190,8 +213,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       BlockSummaryWorkerBuilder builder =
           new BlockSummaryWorkerBuilder(
                   cfa,
-                  new InMemoryBlockSummaryConnectionProvider(
-                      () -> new BlockSummaryStrategyPriorityQueue()),
+                  new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()),
                   specification)
               .createAdditionalConnections(1)
               .addRootWorker(blockGraph.getRoot(), options);

@@ -3710,6 +3710,12 @@ distributedSummaries.decompositionType = LINEAR_DECOMPOSITION
 # at a function
 distributedSummaries.prioritizeMerge = false
 
+# Change the queue type. ERRROR_CONDITION prioritizes the processing
+# ofErrorConditionMessages. DEFAULT does not differ between PostCondition and
+# ErrorCondition messages.
+distributedSummaries.queue = DEFAULT
+  enum:     [ERROR_CONDITION, DEFAULT]
+
 # Whether to spawn util workers. Util workers listen to every message and
 # create visual output for debugging. Workers consume resources and should
 # not be used for benchmarks.

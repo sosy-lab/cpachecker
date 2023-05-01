@@ -18,14 +18,14 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
 
-public class BlockSummaryStrategyPriorityQueue
+public class BlockSummaryPrioritizeErrorConditionQueue
     extends ForwardingBlockingQueue<BlockSummaryMessage> {
 
   private final BlockingQueue<BlockSummaryMessage> queue;
   private static final int TAKE_POSTCONDITION = 4;
   private int current = 0;
 
-  private final ArrayDeque<BlockSummaryMessage> highestPriority;
+  private final Deque<BlockSummaryMessage> highestPriority;
   private final Map<MessageType, ArrayDeque<BlockSummaryMessage>> next;
 
   /**
@@ -34,7 +34,7 @@ public class BlockSummaryStrategyPriorityQueue
    *
    * @param pQueue the queue to forward
    */
-  private BlockSummaryStrategyPriorityQueue(BlockingQueue<BlockSummaryMessage> pQueue) {
+  private BlockSummaryPrioritizeErrorConditionQueue(BlockingQueue<BlockSummaryMessage> pQueue) {
     queue = pQueue;
     highestPriority = new ArrayDeque<>();
     next = new LinkedHashMap<>();
@@ -42,7 +42,7 @@ public class BlockSummaryStrategyPriorityQueue
     next.put(MessageType.BLOCK_POSTCONDITION, new ArrayDeque<>());
   }
 
-  public BlockSummaryStrategyPriorityQueue() {
+  public BlockSummaryPrioritizeErrorConditionQueue() {
     this(new LinkedBlockingQueue<>());
   }
 
@@ -65,9 +65,7 @@ public class BlockSummaryStrategyPriorityQueue
       switch (message.getType()) {
         case STATISTICS, FOUND_RESULT, ERROR, ERROR_CONDITION_UNREACHABLE -> highestPriority.add(
             message);
-        case ERROR_CONDITION, BLOCK_POSTCONDITION -> {
-          next.get(message.getType()).add(message);
-        }
+        case ERROR_CONDITION, BLOCK_POSTCONDITION -> next.get(message.getType()).add(message);
       }
     }
     if (!highestPriority.isEmpty()) {
