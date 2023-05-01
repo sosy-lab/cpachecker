@@ -14,7 +14,7 @@ SPDX-License-Identifier: Apache-2.0
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="8">
 <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz"/>
 
-  <rundefinition name="DCPABridgeErrCond">
+  <rundefinition name="DCPA8BridgeErrCond">
 		<option name="-heap">13000M</option>
 		<option name="-noout"/>
 		<option name="-benchmark"/>
