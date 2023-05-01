@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -179,7 +180,21 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
             prioritizeMerge,
             numberOfRealFunctions - 1);
       }
-      case BRIDGE_DECOMPOSITION -> new BridgeDecomposition();
+      case BRIDGE_DECOMPOSITION -> {
+        long numberOfRealFunctions =
+            FluentIterable.from(initialCFA.getAllFunctions().entrySet())
+                .filter(
+                    entry ->
+                        !entry.getKey().startsWith("__")
+                            && !entry.getKey().equals("reach_error")
+                            && entry.getValue().getNumEnteringEdges() != 0)
+                .size();
+        yield new MergeBlockNodesDecomposition(
+            new BridgeDecomposition(),
+            prioritizeMerge,
+            numberOfRealFunctions,
+            Comparator.comparingInt(b -> b.getEdges().size()));
+      }
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();
     };
   }
@@ -206,7 +221,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           Level.INFO,
           "Decomposed CFA in %d blocks using the %s.",
           blockGraph.getNodes().size(),
-          decomposer.getClass().getCanonicalName());
+          decompositionType);
 
       // create workers
       Collection<BlockNode> blocks = blockGraph.getNodes();
