@@ -19,18 +19,16 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 
 public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
 
-  private final Predicate<CFANode> isBlockEnd;
+  private final BlockSummaryCFADecomposer decomposer;
   private final long targetNumber;
   private final boolean prioritize;
   private int id;
@@ -38,8 +36,8 @@ public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
   private record BlockScope(CFANode start, CFANode last) {}
 
   public MergeBlockNodesDecomposition(
-      Predicate<CFANode> pIsBlockEnd, boolean pPrioritize, long pTargetNumber) {
-    isBlockEnd = pIsBlockEnd;
+      BlockSummaryCFADecomposer pDecomposition, boolean pPrioritize, long pTargetNumber) {
+    decomposer = pDecomposition;
     targetNumber = pTargetNumber;
     prioritize = pPrioritize;
   }
@@ -49,10 +47,8 @@ public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
     if (targetNumber <= 1) {
       return new SingleBlockDecomposition().decompose(cfa);
     }
-    LinearBlockNodeDecomposition linearBlockNodeDecomposition =
-        new LinearBlockNodeDecomposition(isBlockEnd);
     Collection<? extends BlockNodeWithoutGraphInformation> nodes =
-        linearBlockNodeDecomposition.decompose(cfa).getNodes();
+        decomposer.decompose(cfa).getNodes();
     while (nodes.size() > targetNumber) {
       int sizeBefore = nodes.size();
       nodes = mergeHorizontally(nodes);

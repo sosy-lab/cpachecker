@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFADecomposer;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BridgeDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -113,6 +114,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   private enum DecompositionType {
     LINEAR_DECOMPOSITION,
     MERGE_DECOMPOSITION,
+    BRIDGE_DECOMPOSITION,
     NO_DECOMPOSITION
   }
 
@@ -150,8 +152,11 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                             && entry.getValue().getNumEnteringEdges() != 0)
                 .size();
         yield new MergeBlockNodesDecomposition(
-            isBlockEnd, prioritizeMerge, numberOfRealFunctions - 1);
+            new LinearBlockNodeDecomposition(isBlockEnd),
+            prioritizeMerge,
+            numberOfRealFunctions - 1);
       }
+      case BRIDGE_DECOMPOSITION -> new BridgeDecomposition();
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();
     };
   }
