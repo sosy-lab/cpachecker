@@ -10,8 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import java.util.Deque;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
+import java.util.ArrayDeque;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -34,20 +35,20 @@ public class BridgeDecomposition implements BlockSummaryCFADecomposer {
             CFAUtils::successorsOf,
             CFAUtils::predecessorsOf);
 
-    LinkedList<LinkedList<CFAEdge>> paths = new LinkedList<>();
+    ArrayDeque<ArrayDeque<CFAEdge>> paths = new ArrayDeque<>();
     for (CFAEdge leavingEdge : CFAUtils.leavingEdges(cfa.getMainFunction())) {
-      LinkedList<CFAEdge> initialPath = new LinkedList<>();
+      ArrayDeque<CFAEdge> initialPath = new ArrayDeque<>();
       initialPath.add(leavingEdge);
       paths.add(initialPath);
     }
     while (!paths.isEmpty()) {
-      LinkedList<CFAEdge> current = paths.removeFirst();
-      LinkedList<CFAEdge> next = new LinkedList<>(current);
+      ArrayDeque<CFAEdge> current = paths.removeFirst();
+      ArrayDeque<CFAEdge> next = new ArrayDeque<>(current);
       CFAEdge lastEdge = current.getLast();
       CFANode lastNode = lastEdge.getSuccessor();
       if (lastNode.getNumLeavingEdges() > 1) {
         blocks.add(listToBlockNode(current));
-        next = new LinkedList<>();
+        next = new ArrayDeque<>();
         while (lastNode.getNumLeavingEdges() > 1) {
           CFANode mergePoint = merge.findMergePoint(lastEdge.getSuccessor());
           blocks.add(findAllEdges(lastNode, mergePoint));
@@ -63,7 +64,7 @@ public class BridgeDecomposition implements BlockSummaryCFADecomposer {
     return BlockGraph.fromBlockNodesWithoutGraphInformation(cfa, blocks);
   }
 
-  private BlockNodeWithoutGraphInformation listToBlockNode(LinkedList<CFAEdge> pList) {
+  private BlockNodeWithoutGraphInformation listToBlockNode(ArrayDeque<CFAEdge> pList) {
     CFANode first = pList.getFirst().getPredecessor();
     CFANode last = pList.getLast().getSuccessor();
     ImmutableSet<CFAEdge> edges = ImmutableSet.copyOf(pList);
@@ -77,7 +78,7 @@ public class BridgeDecomposition implements BlockSummaryCFADecomposer {
   private BlockNodeWithoutGraphInformation findAllEdges(CFANode initial, CFANode last) {
     ImmutableSet.Builder<CFANode> nodes = ImmutableSet.builder();
     ImmutableSet.Builder<CFAEdge> edges = ImmutableSet.builder();
-    LinkedList<CFANode> toExplore = new LinkedList<>();
+    Deque<CFANode> toExplore = new ArrayDeque<>();
     toExplore.add(initial);
     while (!toExplore.isEmpty()) {
       CFANode cfaNode = toExplore.removeFirst();

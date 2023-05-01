@@ -9,8 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;
 
 import com.google.common.util.concurrent.ForwardingBlockingQueue;
+import java.util.Deque;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
+import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -21,11 +22,11 @@ public class BlockSummaryStrategyPriorityQueue
     extends ForwardingBlockingQueue<BlockSummaryMessage> {
 
   private final BlockingQueue<BlockSummaryMessage> queue;
-  private final int TAKE_POSTCONDITION = 4;
+  private final static int TAKE_POSTCONDITION = 4;
   private int current = 0;
 
-  private final LinkedList<BlockSummaryMessage> highestPriority;
-  private final Map<MessageType, LinkedList<BlockSummaryMessage>> next;
+  private final ArrayDeque<BlockSummaryMessage> highestPriority;
+  private final Map<MessageType, ArrayDeque<BlockSummaryMessage>> next;
 
   /**
    * Mimics a blocking queue but changes the blocking method <code>take</code> to prioritize
@@ -35,10 +36,10 @@ public class BlockSummaryStrategyPriorityQueue
    */
   private BlockSummaryStrategyPriorityQueue(BlockingQueue<BlockSummaryMessage> pQueue) {
     queue = pQueue;
-    highestPriority = new LinkedList<>();
+    highestPriority = new ArrayDeque<>();
     next = new LinkedHashMap<>();
-    next.put(MessageType.ERROR_CONDITION, new LinkedList<>());
-    next.put(MessageType.BLOCK_POSTCONDITION, new LinkedList<>());
+    next.put(MessageType.ERROR_CONDITION, new ArrayDeque<>());
+    next.put(MessageType.BLOCK_POSTCONDITION, new ArrayDeque<>());
   }
 
   public BlockSummaryStrategyPriorityQueue() {
@@ -72,8 +73,8 @@ public class BlockSummaryStrategyPriorityQueue
     if (!highestPriority.isEmpty()) {
       return highestPriority.removeFirst();
     }
-    LinkedList<BlockSummaryMessage> errorConditions = next.get(MessageType.ERROR_CONDITION);
-    LinkedList<BlockSummaryMessage> postConditions = next.get(MessageType.BLOCK_POSTCONDITION);
+    Deque<BlockSummaryMessage> errorConditions = next.get(MessageType.ERROR_CONDITION);
+    Deque<BlockSummaryMessage> postConditions = next.get(MessageType.BLOCK_POSTCONDITION);
     if (!errorConditions.isEmpty()) {
       if (current >= TAKE_POSTCONDITION && !postConditions.isEmpty()) {
         current = 0;
