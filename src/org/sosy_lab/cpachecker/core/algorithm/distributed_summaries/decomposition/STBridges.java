@@ -10,14 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -53,8 +49,6 @@ public class STBridges {
 
     public ImmutableList<BlockNodeWithoutGraphInformation> connectionsWithEdges(String idPrefix) {
       int id = 1;
-      ImmutableMap<CFANode, CFAEdge> cfaNodeCFAEdge =
-          Maps.uniqueIndex(bridges, e -> e.getPredecessor());
       ImmutableList.Builder<BlockNodeWithoutGraphInformation> edges = ImmutableList.builder();
       for (CFAEdge bridge : bridges) {
         edges.add(
@@ -197,15 +191,17 @@ public class STBridges {
       }
       association++;
     }
-    ImmutableList.Builder<Deque<CFANode>> sorted = ImmutableList.builder();
-    for (Integer integer :
-        FluentIterable.from(bridgeComponents.keySet())
-            .toSortedList(Comparator.comparingInt(i -> i))) {
-      sorted.add(bridgeComponents.get(integer));
-    }
-    return new BridgeComponents(bridges, sorted.build());
+    return new BridgeComponents(bridges, ImmutableList.copyOf(bridgeComponents.values()));
   }
 
+  /**
+   * Find successors of a given node.
+   * Consider flipped edges on the fly.
+   *
+   * @param pNode searches for successors of this node
+   * @param pFlipped these edges are flipped in the original CFA
+   * @return successors of <code>pNode</code>
+   */
   private static Iterable<CFANode> findFlippedSuccessors(CFANode pNode, List<CFAEdge> pFlipped) {
     ImmutableSet<CFAEdge> copy = ImmutableSet.copyOf(pFlipped);
     ImmutableSet.Builder<CFANode> successors = ImmutableSet.builder();
