@@ -3703,7 +3703,8 @@ differential.variableSetMerge = false
 # The final number of blocks should converge to the number of functions in
 # the program. NO_DECOMPOSITION creates one block around the CFA.
 distributedSummaries.decompositionType = LINEAR_DECOMPOSITION
-  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, NO_DECOMPOSITION]
+  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
+             NO_DECOMPOSITION]
 
 # Whether to prioritize merging blocks where we cannot abstract or that start
 # at a function

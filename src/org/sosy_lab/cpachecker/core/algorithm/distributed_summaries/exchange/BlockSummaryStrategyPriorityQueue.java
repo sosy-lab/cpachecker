@@ -9,9 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;
 
 import com.google.common.util.concurrent.ForwardingBlockingQueue;
+import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.LinkedHashMap;
-import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -22,7 +22,7 @@ public class BlockSummaryStrategyPriorityQueue
     extends ForwardingBlockingQueue<BlockSummaryMessage> {
 
   private final BlockingQueue<BlockSummaryMessage> queue;
-  private final static int TAKE_POSTCONDITION = 4;
+  private static final int TAKE_POSTCONDITION = 4;
   private int current = 0;
 
   private final ArrayDeque<BlockSummaryMessage> highestPriority;
