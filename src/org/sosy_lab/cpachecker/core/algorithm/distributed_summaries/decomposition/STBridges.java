@@ -195,8 +195,7 @@ public class STBridges {
   }
 
   /**
-   * Find successors of a given node.
-   * Consider flipped edges on the fly.
+   * Find successors of a given node. Consider flipped edges on the fly.
    *
    * @param pNode searches for successors of this node
    * @param pFlipped these edges are flipped in the original CFA
