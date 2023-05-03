@@ -123,6 +123,12 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               + " ErrorCondition messages.")
   private QueueType queue = QueueType.DEFAULT;
 
+  @Option(
+      description =
+          "The number of blocks is dependent by the number of functions in the program."
+              + "A tolerance of 1 means, that we subtract 1 of the total number of functions.")
+  private int tolerance = 1;
+
   private enum DecompositionType {
     LINEAR_DECOMPOSITION,
     MERGE_DECOMPOSITION,
@@ -178,7 +184,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
         yield new MergeBlockNodesDecomposition(
             new LinearBlockNodeDecomposition(isBlockEnd),
             prioritizeMerge,
-            numberOfRealFunctions - 1);
+            numberOfRealFunctions - tolerance);
       }
       case BRIDGE_DECOMPOSITION -> {
         long numberOfRealFunctions =
@@ -192,7 +198,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
         yield new MergeBlockNodesDecomposition(
             new BridgeDecomposition(),
             prioritizeMerge,
-            numberOfRealFunctions,
+            Long.max(2, numberOfRealFunctions),
             Comparator.comparingInt(b -> b.getEdges().size()));
       }
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();

@@ -3721,6 +3721,11 @@ distributedSummaries.queue = DEFAULT
 # not be used for benchmarks.
 distributedSummaries.spawnUtilWorkers = true
 
+# The number of blocks is dependent by the number of functions in the
+# program.A tolerance of 1 means, that we subtract 1 of the total number of
+# functions.
+distributedSummaries.tolerance = 1
+
 # Configuration for backward analysis in computation of distributed summaries
 distributedSummaries.worker.backwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-backward.properties"
 
