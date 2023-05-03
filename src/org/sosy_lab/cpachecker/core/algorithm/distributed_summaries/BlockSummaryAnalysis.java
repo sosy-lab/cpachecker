@@ -112,12 +112,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
 
   @Option(
       description =
-          "Whether to prioritize merging blocks where we cannot abstract or that start at a"
-              + " function")
-  private boolean prioritizeMerge = false;
-
-  @Option(
-      description =
           "Change the queue type. ERRROR_CONDITION prioritizes the processing"
               + " ofErrorConditionMessages. DEFAULT does not differ between PostCondition and"
               + " ErrorCondition messages.")
@@ -182,9 +176,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                             && entry.getValue().getNumEnteringEdges() != 0)
                 .size();
         yield new MergeBlockNodesDecomposition(
-            new LinearBlockNodeDecomposition(isBlockEnd),
-            prioritizeMerge,
-            numberOfRealFunctions - tolerance);
+            new LinearBlockNodeDecomposition(isBlockEnd), numberOfRealFunctions - tolerance);
       }
       case BRIDGE_DECOMPOSITION -> {
         long numberOfRealFunctions =
@@ -197,7 +189,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                 .size();
         yield new MergeBlockNodesDecomposition(
             new BridgeDecomposition(),
-            prioritizeMerge,
             Long.max(2, numberOfRealFunctions),
             Comparator.comparingInt(b -> b.getEdges().size()));
       }

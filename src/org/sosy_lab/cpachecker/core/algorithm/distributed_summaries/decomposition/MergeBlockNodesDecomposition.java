@@ -15,16 +15,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 
@@ -32,25 +29,22 @@ public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
 
   private final BlockSummaryCFADecomposer decomposer;
   private final long targetNumber;
-  private final boolean prioritize;
   private Comparator<BlockNodeWithoutGraphInformation> sort;
   private int id;
 
   private record BlockScope(CFANode start, CFANode last) {}
 
   public MergeBlockNodesDecomposition(
-      BlockSummaryCFADecomposer pDecomposition, boolean pPrioritize, long pTargetNumber) {
-    this(pDecomposition, pPrioritize, pTargetNumber, null);
+      BlockSummaryCFADecomposer pDecomposition, long pTargetNumber) {
+    this(pDecomposition, pTargetNumber, null);
   }
 
   public MergeBlockNodesDecomposition(
       BlockSummaryCFADecomposer pDecomposition,
-      boolean pPrioritize,
       long pTargetNumber,
       Comparator<BlockNodeWithoutGraphInformation> pSort) {
     decomposer = pDecomposition;
     targetNumber = pTargetNumber;
-    prioritize = pPrioritize;
     sort = pSort;
   }
 
@@ -133,23 +127,16 @@ public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
       Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
     Multimap<CFANode, BlockNodeWithoutGraphInformation> startingPoints = ArrayListMultimap.create();
     Multimap<CFANode, BlockNodeWithoutGraphInformation> endingPoints = ArrayListMultimap.create();
-
-    // prioritization
-    List<BlockNodeWithoutGraphInformation> prioritized = new ArrayList<>(pNodes.size());
     pNodes.forEach(
         n -> {
           startingPoints.put(n.getFirst(), n);
           endingPoints.put(n.getLast(), n);
-          // merge where we cant append an abstraction edge and where functions start
-          if (prioritize
-              && (n.getLast().getLeavingSummaryEdge() != null
-                  || n.getFirst() instanceof FunctionEntryNode)) {
-            prioritized.add(0, n);
-          } else {
-            prioritized.add(n);
-          }
         });
-    for (BlockNodeWithoutGraphInformation node : prioritized) {
+    Set<BlockNodeWithoutGraphInformation> removed = new LinkedHashSet<>();
+    for (BlockNodeWithoutGraphInformation node : pNodes) {
+      if (removed.contains(node)) {
+        continue;
+      }
       Collection<BlockNodeWithoutGraphInformation> successors = startingPoints.get(node.getLast());
       if (successors.size() == 1) {
         BlockNodeWithoutGraphInformation uniqueSuccessor = Iterables.getOnlyElement(successors);
@@ -167,6 +154,8 @@ public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
           endingPoints.remove(uniqueSuccessor.getLast(), uniqueSuccessor);
           startingPoints.put(result.getFirst(), result);
           endingPoints.put(result.getLast(), result);
+          removed.add(uniquePredecessor);
+          removed.add(uniqueSuccessor);
           if (startingPoints.size() <= targetNumber) {
             assert startingPoints.values().containsAll(endingPoints.values());
             return startingPoints.values();
