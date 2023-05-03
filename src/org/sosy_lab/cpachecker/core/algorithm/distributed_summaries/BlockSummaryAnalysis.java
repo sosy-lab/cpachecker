@@ -121,7 +121,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       description =
           "The number of blocks is dependent by the number of functions in the program."
               + "A tolerance of 1 means, that we subtract 1 of the total number of functions.")
-  private int tolerance = 1;
+  private int tolerance = 0;
 
   private enum DecompositionType {
     LINEAR_DECOMPOSITION,
