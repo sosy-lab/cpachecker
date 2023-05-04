@@ -626,6 +626,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
       pathFormula = pPathFormula;
       state = pState;
     }
+
     /**
      * Get the position of the location in the path
      *

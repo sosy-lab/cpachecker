@@ -19,6 +19,7 @@ public interface MemoryRegion {
    * @return the type of memory region
    */
   CType getType();
+
   /**
    * The function returns identifier of the region used for the name of uninterpreted functions.
    * Usually, the name contains a string representation of the type as substring.

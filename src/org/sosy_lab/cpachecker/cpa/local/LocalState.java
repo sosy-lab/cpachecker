@@ -45,6 +45,7 @@ public final class LocalState implements LatticeAbstractState<LocalState> {
       }
     }
   }
+
   // map from variable id to its type
   private final LocalState previousState;
   private final Map<AbstractIdentifier, DataType> DataInfo;

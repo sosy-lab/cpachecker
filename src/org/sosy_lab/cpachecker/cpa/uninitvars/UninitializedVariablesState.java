@@ -167,10 +167,12 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
   void addProperty(ElementProperty pProp) {
     properties.add(pProp);
   }
+
   /** Returns all properties set for this element. */
   Set<ElementProperty> getProperties() {
     return properties;
   }
+
   /** Removes all property of this element */
   void clearProperties() {
     properties.clear();

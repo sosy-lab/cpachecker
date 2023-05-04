@@ -18,6 +18,7 @@ public final class CComplexCastExpression extends AbstractExpression implements 
   private static final long serialVersionUID = -3131719369492162894L;
   private final CExpression operand;
   private final CType type;
+
   /** When isReal is false this is a cast to get the imaginary Part of the complex number */
   private final boolean isReal;
 

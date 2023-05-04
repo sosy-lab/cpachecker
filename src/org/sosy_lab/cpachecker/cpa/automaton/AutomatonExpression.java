@@ -66,6 +66,7 @@ interface AutomatonExpression<T> {
       return o instanceof StringExpression && toPrint.equals(((StringExpression) o).toPrint);
     }
   }
+
   /**
    * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the
    * query-Result.
@@ -152,6 +153,7 @@ interface AutomatonExpression<T> {
       this.failureMessage = failureMessage;
       this.failureOrigin = failureOrigin;
     }
+
     /**
      * Copies the failure messages from the passed result. This Method assumes that the parameter
      * fulfills canNotEvaluate() == true !
@@ -166,14 +168,17 @@ interface AutomatonExpression<T> {
     boolean canNotEvaluate() {
       return canNotEvaluate;
     }
+
     /** Return failure message or {@code null} if {@code cannotEvaluate() == false} */
     String getFailureMessage() {
       return failureMessage;
     }
+
     /** Return failure origin or {@code null} if {@code cannotEvaluate() == false} */
     String getFailureOrigin() {
       return failureOrigin;
     }
+
     /** Return value or {@code null} if {@code cannotEvaluate() == false} */
     resultType getValue() {
       return value;

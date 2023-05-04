@@ -519,12 +519,16 @@ public class CPABuilder {
      * cpa.location.LocationCPA)
      */
     final String name;
+
     /** The alias for this CPA instance as given by the user or inferred */
     final String alias;
+
     /** The class of this CPA (null if placeholder instance). */
     final @Nullable Class<?> cpaClass;
+
     /** Config for child CPA if the "alias.cpa" option was given. */
     final @Nullable CPAConfig child;
+
     /** Config for children CPA if the "alias.cpas" option was given. */
     ImmutableList<CPAConfig> children;
 

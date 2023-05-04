@@ -340,6 +340,7 @@ public class CounterexampleInfo extends AbstractAppender {
       out.append(System.lineSeparator());
     }
   }
+
   /**
    * Add some additional information about the counterexample.
    *
