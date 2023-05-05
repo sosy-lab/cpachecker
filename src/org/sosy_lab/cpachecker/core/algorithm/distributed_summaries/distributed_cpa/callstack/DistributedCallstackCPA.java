@@ -8,9 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.AlwaysProceed;
@@ -22,6 +26,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class DistributedCallstackCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -31,13 +36,19 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   private final DeserializeOperator deserialize;
   private final ProceedOperator proceed;
 
+  private final BlockNode blockNode;
+
   private final CallstackCPA callstackCPA;
   private final CFA cfa;
 
   public DistributedCallstackCPA(
-      CallstackCPA pCallstackCPA, CFA pCFA, Map<Integer, CFANode> pIdToNodeMap) {
+      CallstackCPA pCallstackCPA,
+      BlockNode pBlockNode,
+      CFA pCFA,
+      Map<Integer, CFANode> pIdToNodeMap) {
     callstackCPA = pCallstackCPA;
     cfa = pCFA;
+    blockNode = pBlockNode;
     proceed = new AlwaysProceed();
     serialize = new SerializeCallstackStateOperator();
     deserialize = new DeserializeCallstackStateOperator(pCallstackCPA, pIdToNodeMap::get);
@@ -46,7 +57,22 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return getCPA().getInitialState(cfa.getAllFunctions().get(node.getFunctionName()), partition);
+    ImmutableList<CFANode> cfaNodes =
+        CFAUtils.enteringEdges(blockNode.getLast())
+            .filter(
+                e ->
+                    e.getEdgeType() == CFAEdgeType.ReturnStatementEdge
+                        && e.getPredecessor()
+                            .getFunctionName()
+                            .equals(blockNode.getFirst().getFunctionName()))
+            .transform(e -> e.getSuccessor())
+            .filter(n -> n.getEnteringSummaryEdge() != null)
+            .transform(n -> n.getEnteringSummaryEdge().getPredecessor())
+            .toList();
+    if (cfaNodes.isEmpty()) {
+      return getCPA().getInitialState(node, partition);
+    }
+    return getCPA().getInitialState(Iterables.getOnlyElement(cfaNodes), partition);
   }
 
   @Override

@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFAModifier;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver.StatusPrecise;
@@ -152,7 +152,7 @@ public class DCPAAlgorithms {
         BlockNode pBlockNode,
         AlgorithmStatus pStatus,
         AnalysisDirection pDirection) {
-      wasAbstracted = BlockSummaryCFAModifier.hasAbstractionOccurred(pBlockNode, pReachedSet);
+      wasAbstracted = BlockGraphModification.hasAbstractionOccurred(pBlockNode, pReachedSet);
       FluentIterable<ARGState> prefiltered =
           from(pReachedSet)
               .filter(s -> !Objects.equals(pStartState, s))

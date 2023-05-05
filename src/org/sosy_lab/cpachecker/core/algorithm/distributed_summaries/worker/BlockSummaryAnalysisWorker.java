@@ -46,8 +46,6 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
   private final StatTimer forwardAnalysisTime = new StatTimer("Forward Analysis");
   private final StatTimer backwardAnalysisTime = new StatTimer("Backward Analysis");
-  private final StatTimer backwardAnalysisAbstractionTime =
-      new StatTimer("Backward Analysis Abstraction");
 
   /**
    * {@link BlockSummaryAnalysisWorker}s trigger forward and backward analyses to find a
@@ -113,19 +111,29 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       throws InterruptedException, CPAException, SolverException {
     switch (message.getType()) {
       case ERROR_CONDITION -> {
-        ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
-        if (((BlockSummaryErrorConditionMessage) message).isFirst()
-            && message.getBlockId().equals(block.getId())) {
-          answers.addAll(dcpaAlgorithm.reportUnreachableBlockEnd());
+        backwardAnalysisTime.start();
+        try {
+          ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
+          if (((BlockSummaryErrorConditionMessage) message).isFirst()
+              && message.getBlockId().equals(block.getId())) {
+            answers.addAll(dcpaAlgorithm.reportUnreachableBlockEnd());
+          }
+          return answers
+              .addAll(
+                  dcpaBackwardAlgorithm.runAnalysisForMessage(
+                      (BlockSummaryErrorConditionMessage) message))
+              .build();
+        } finally {
+          backwardAnalysisTime.stop();
         }
-        return answers
-            .addAll(
-                dcpaBackwardAlgorithm.runAnalysisForMessage(
-                    (BlockSummaryErrorConditionMessage) message))
-            .build();
       }
       case BLOCK_POSTCONDITION -> {
-        return dcpaAlgorithm.runAnalysisForMessage((BlockSummaryPostConditionMessage) message);
+        try {
+          forwardAnalysisTime.start();
+          return dcpaAlgorithm.runAnalysisForMessage((BlockSummaryPostConditionMessage) message);
+        } finally {
+          forwardAnalysisTime.stop();
+        }
       }
       case ERROR, FOUND_RESULT -> {
         shutdown = true;
@@ -187,9 +195,6 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
         .put(
             BlockSummaryStatisticType.BACKWARD_TIME.name(),
             backwardAnalysisTime.getConsumedTime().asNanos())
-        .put(
-            BlockSummaryStatisticType.BACKWARD_ABSTRACTION_TIME.name(),
-            backwardAnalysisAbstractionTime.getConsumedTime().asNanos())
         .put(BlockSummaryStatisticType.MESSAGES_SENT.name(), Integer.toString(getSentMessages()))
         .put(
             BlockSummaryStatisticType.MESSAGES_RECEIVED.name(),

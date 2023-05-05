@@ -207,5 +207,6 @@ SPDX-License-Identifier: Apache-2.0
     <column title="worker">Number of worker</column>
     <column title="abstraction">Worker without abstraction</column>
 	<column title="functions">Number of functions</column>
+	<column title="block size">Average number of edges in block</column>
   </columns>
 </benchmark>

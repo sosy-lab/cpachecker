@@ -16,13 +16,16 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -37,15 +40,18 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFADecomposer;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFAModifier;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFAModifier.Modification;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BridgeDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryStrategyPriorityQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryDefaultQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryPrioritizeErrorConditionQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.BlockSummaryStatisticType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryBlockSummaryConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
@@ -83,6 +89,8 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   private final Map<String, Object> stats;
 
   private final StatInt numberWorkers = new StatInt(StatKind.MAX, "Number of worker");
+  private final StatInt averageNumberOfEdges =
+      new StatInt(StatKind.AVG, "Average number of edges in block");
   private final StatInt numberWorkersWithoutAbstraction =
       new StatInt(StatKind.MAX, "Worker without abstraction");
 
@@ -104,14 +112,27 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
 
   @Option(
       description =
-          "Whether to prioritize merging blocks where we cannot abstract or that start at a"
-              + " function")
-  private boolean prioritizeMerge = false;
+          "Change the queue type. ERRROR_CONDITION prioritizes the processing"
+              + " ofErrorConditionMessages. DEFAULT does not differ between PostCondition and"
+              + " ErrorCondition messages.")
+  private QueueType queue = QueueType.DEFAULT;
+
+  @Option(
+      description =
+          "The number of blocks is dependent by the number of functions in the program."
+              + "A tolerance of 1 means, that we subtract 1 of the total number of functions.")
+  private int tolerance = 0;
 
   private enum DecompositionType {
     LINEAR_DECOMPOSITION,
     MERGE_DECOMPOSITION,
+    BRIDGE_DECOMPOSITION,
     NO_DECOMPOSITION
+  }
+
+  private enum QueueType {
+    ERROR_CONDITION,
+    DEFAULT
   }
 
   public BlockSummaryAnalysis(
@@ -131,6 +152,13 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     stats = new HashMap<>();
   }
 
+  private Supplier<BlockingQueue<BlockSummaryMessage>> getQueueSupplier() {
+    return switch (queue) {
+      case ERROR_CONDITION -> () -> new BlockSummaryPrioritizeErrorConditionQueue();
+      case DEFAULT -> () -> new BlockSummaryDefaultQueue();
+    };
+  }
+
   private BlockSummaryCFADecomposer getDecomposer() throws InvalidConfigurationException {
     BlockOperator blockOperator = new BlockOperator();
     configuration.inject(blockOperator);
@@ -147,9 +175,22 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
                             && !entry.getKey().equals("reach_error")
                             && entry.getValue().getNumEnteringEdges() != 0)
                 .size();
-        numberOfRealFunctions =
-            Long.min(numberOfRealFunctions - 1, Runtime.getRuntime().availableProcessors());
-        yield new MergeBlockNodesDecomposition(isBlockEnd, prioritizeMerge, numberOfRealFunctions);
+        yield new MergeBlockNodesDecomposition(
+            new LinearBlockNodeDecomposition(isBlockEnd), numberOfRealFunctions - tolerance);
+      }
+      case BRIDGE_DECOMPOSITION -> {
+        long numberOfRealFunctions =
+            FluentIterable.from(initialCFA.getAllFunctions().entrySet())
+                .filter(
+                    entry ->
+                        !entry.getKey().startsWith("__")
+                            && !entry.getKey().equals("reach_error")
+                            && entry.getValue().getNumEnteringEdges() != 0)
+                .size();
+        yield new MergeBlockNodesDecomposition(
+            new BridgeDecomposition(),
+            Long.max(2, numberOfRealFunctions),
+            Comparator.comparingInt(b -> b.getEdges().size()));
       }
       case NO_DECOMPOSITION -> new SingleBlockDecomposition();
     };
@@ -164,7 +205,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       BlockGraph blockGraph = decomposer.decompose(initialCFA);
       blockGraph.checkConsistency(shutdownManager.getNotifier());
       Modification modification =
-          BlockSummaryCFAModifier.instrumentCFA(
+          BlockGraphModification.instrumentCFA(
               initialCFA, blockGraph, logger, shutdownManager.getNotifier());
       ImmutableSet<CFANode> abstractionDeadEnds = modification.unableToAbstract();
       numberWorkersWithoutAbstraction.setNextValue(abstractionDeadEnds.size());
@@ -177,19 +218,19 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           Level.INFO,
           "Decomposed CFA in %d blocks using the %s.",
           blockGraph.getNodes().size(),
-          decomposer.getClass().getCanonicalName());
+          decompositionType);
 
       // create workers
       Collection<BlockNode> blocks = blockGraph.getNodes();
       BlockSummaryWorkerBuilder builder =
           new BlockSummaryWorkerBuilder(
-              cfa,
-              new InMemoryBlockSummaryConnectionProvider(
-                  () -> new BlockSummaryStrategyPriorityQueue()),
-              specification);
-      builder = builder.createAdditionalConnections(1);
-      builder = builder.addRootWorker(blockGraph.getRoot(), options);
+                  cfa,
+                  new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()),
+                  specification)
+              .createAdditionalConnections(1)
+              .addRootWorker(blockGraph.getRoot(), options);
       for (BlockNode distinctNode : blocks) {
+        averageNumberOfEdges.setNextValue(distinctNode.getEdges().size());
         builder = builder.addAnalysisWorker(distinctNode, options);
       }
       builder = builder.addResultCollectorWorker(blocks, options);
@@ -200,18 +241,17 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
 
       Components components = builder.build();
 
-      numberWorkers.setNextValue(components.getWorkers().size());
+      numberWorkers.setNextValue(components.actors().size());
 
       // run workers
-      for (BlockSummaryActor worker : components.getWorkers()) {
+      for (BlockSummaryActor worker : components.actors()) {
         Thread thread = new Thread(worker, worker.getId());
         thread.setDaemon(true);
         thread.start();
       }
 
       // listen to messages
-      try (BlockSummaryConnection mainThreadConnection =
-          components.getAdditionalConnections().get(0)) {
+      try (BlockSummaryConnection mainThreadConnection = components.connections().get(0)) {
         BlockSummaryObserverWorker observer =
             new BlockSummaryObserverWorker(
                 "observer", mainThreadConnection, options, blocks.size());
@@ -287,7 +327,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               BlockSummaryStatisticType.valueOf(stringObjectEntry.getKey()).getName(),
               convert(stringObjectEntry.getKey(), stringObjectEntry.getValue().toString()));
     }
-    writer.put(numberWorkers).put(numberWorkersWithoutAbstraction);
+    writer.put(numberWorkers).put(numberWorkersWithoutAbstraction).put(averageNumberOfEdges);
   }
 
   private String convert(String pKey, String pNumber) {

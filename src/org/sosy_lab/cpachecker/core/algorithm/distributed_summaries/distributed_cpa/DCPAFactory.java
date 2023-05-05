@@ -52,7 +52,7 @@ public class DCPAFactory {
       return distribute(predicateCPA, pBlockNode, pDirection, pCFA);
     }
     if (pCPA instanceof CallstackCPA callstackCPA) {
-      return distribute(callstackCPA, pCFA, integerToNodeMap);
+      return distribute(callstackCPA, pBlockNode, pCFA, integerToNodeMap);
     }
     if (pCPA instanceof FunctionPointerCPA functionPointerCPA) {
       return distribute(functionPointerCPA, integerToNodeMap);
@@ -94,8 +94,11 @@ public class DCPAFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      CallstackCPA pCallstackCPA, CFA pCFA, Map<Integer, CFANode> pIdToNodeMap) {
-    return new DistributedCallstackCPA(pCallstackCPA, pCFA, pIdToNodeMap);
+      CallstackCPA pCallstackCPA,
+      BlockNode pBlockNode,
+      CFA pCFA,
+      Map<Integer, CFANode> pIdToNodeMap) {
+    return new DistributedCallstackCPA(pCallstackCPA, pBlockNode, pCFA, pIdToNodeMap);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

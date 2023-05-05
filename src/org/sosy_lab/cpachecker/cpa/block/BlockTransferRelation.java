@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFAModifier;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -34,7 +34,7 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
     CFANode node = blockState.getLocationNode();
     // block end cannot be reached directly after processing the first
     if (blockState.getType().equals(BlockStateType.INITIAL)) {
-      if (cfaEdge.getDescription().equals(BlockSummaryCFAModifier.UNIQUE_DESCRIPTION)) {
+      if (cfaEdge.getDescription().equals(BlockGraphModification.UNIQUE_DESCRIPTION)) {
         return ImmutableSet.of();
       }
     }
@@ -45,7 +45,7 @@ public abstract class BlockTransferRelation extends SingleEdgeTransferRelation {
     // CFANode in the BlockNode once => transition only over the "BlockendEdge"
     if (node.equals(getBlockEnd(blockState.getBlockNode()))
         && !blockState.getType().equals(BlockStateType.INITIAL)) {
-      if (cfaEdge.getDescription().equals(BlockSummaryCFAModifier.UNIQUE_DESCRIPTION)) {
+      if (cfaEdge.getDescription().equals(BlockGraphModification.UNIQUE_DESCRIPTION)) {
         return onTransitionToBlockEnd(successor);
       }
       return ImmutableSet.of();

@@ -19,12 +19,11 @@ void __VERIFIER_assert(int cond) {
 int __VERIFIER_nondet_int();
 
 int main() {
-  int x = 0;
-  int y = 0;
-  while (__VERIFIER_nondet_int()) {
-    x++;
-    y++;
+  int n = __VERIFIER_nondet_int();
+  int r = 0;
+  for (int i = 1; i <= n; i++) {
+    r = r + 2;
   }
-  __VERIFIER_assert(x == y);
+  __VERIFIER_assert(r == 2 * n);
   return 0;
 }

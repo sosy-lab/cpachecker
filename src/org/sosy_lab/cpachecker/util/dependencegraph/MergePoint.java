@@ -20,8 +20,8 @@ import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 
 public class MergePoint<T> {
 
-  private DomTree<T> tree;
-  private SuccessorsFunction<T> actualSuccessors;
+  private final DomTree<T> tree;
+  private final SuccessorsFunction<T> actualSuccessors;
 
   /**
    * Find the first merge point of a node with two successors. E.g. find the node that represents an

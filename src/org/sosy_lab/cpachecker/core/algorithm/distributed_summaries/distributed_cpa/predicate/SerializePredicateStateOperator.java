@@ -53,6 +53,9 @@ public class SerializePredicateStateOperator implements SerializeOperator {
         SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
         for (Entry<String, Formula> formulaEntry :
             formulaManagerView.extractVariables(booleanFormula).entrySet()) {
+          if (formulaEntry.getKey().contains("__VERIFIER_nondet_")) {
+            continue;
+          }
           CType variableType =
               state
                   .getAbstractionFormula()
@@ -81,7 +84,7 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     }
     return BlockSummaryMessagePayload.builder()
         .addEntry(PredicateCPA.class.getName(), serializedFormula)
-        .addEntry("readable", booleanFormula.toString())
+        // .addEntry("readable", booleanFormula.toString())
         .addEntry(BlockSummaryMessagePayload.SSA, serializedSSAMap)
         .addEntry(BlockSummaryMessagePayload.PTS, pts)
         .buildPayload();

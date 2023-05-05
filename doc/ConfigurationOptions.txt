@@ -3703,12 +3703,24 @@ differential.variableSetMerge = false
 # The final number of blocks should converge to the number of functions in
 # the program. NO_DECOMPOSITION creates one block around the CFA.
 distributedSummaries.decompositionType = LINEAR_DECOMPOSITION
-  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, NO_DECOMPOSITION]
+  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
+             NO_DECOMPOSITION]
+
+# Change the queue type. ERRROR_CONDITION prioritizes the processing
+# ofErrorConditionMessages. DEFAULT does not differ between PostCondition and
+# ErrorCondition messages.
+distributedSummaries.queue = DEFAULT
+  enum:     [ERROR_CONDITION, DEFAULT]
 
 # Whether to spawn util workers. Util workers listen to every message and
 # create visual output for debugging. Workers consume resources and should
 # not be used for benchmarks.
 distributedSummaries.spawnUtilWorkers = true
+
+# The number of blocks is dependent by the number of functions in the
+# program.A tolerance of 1 means, that we subtract 1 of the total number of
+# functions.
+distributedSummaries.tolerance = 0
 
 # Configuration for backward analysis in computation of distributed summaries
 distributedSummaries.worker.backwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-backward.properties"

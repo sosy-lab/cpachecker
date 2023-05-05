@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,6 +25,10 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class BlockSummaryWorkerBuilder {
+
+  public record Components(
+      ImmutableList<BlockSummaryActor> actors,
+      ImmutableList<? extends BlockSummaryConnection> connections) {}
 
   private final CFA cfa;
   private final Specification specification;
@@ -42,8 +47,18 @@ public class BlockSummaryWorkerBuilder {
     workerGenerators = new ArrayList<>();
   }
 
-  private String nextId(String pAdditionalIdentifier) {
-    return "W" + workerGenerators.size() + pAdditionalIdentifier;
+  public Components build()
+      throws IOException, CPAException, InterruptedException, InvalidConfigurationException {
+    List<? extends BlockSummaryConnection> connections =
+        connectionProvider.createConnections(workerGenerators.size() + additionalConnections);
+    List<BlockSummaryWorker> worker = new ArrayList<>();
+    for (int i = 0; i < workerGenerators.size(); i++) {
+      worker.add(workerGenerators.get(i).apply(connections.get(i)));
+    }
+    List<? extends BlockSummaryConnection> excessConnections =
+        connections.subList(
+            workerGenerators.size(), workerGenerators.size() + additionalConnections);
+    return new Components(ImmutableList.copyOf(worker), ImmutableList.copyOf(excessConnections));
   }
 
   @CanIgnoreReturnValue
@@ -93,45 +108,14 @@ public class BlockSummaryWorkerBuilder {
     return this;
   }
 
-  public Components build()
-      throws IOException, CPAException, InterruptedException, InvalidConfigurationException {
-    List<? extends BlockSummaryConnection> connections =
-        connectionProvider.createConnections(workerGenerators.size() + additionalConnections);
-    List<BlockSummaryWorker> worker = new ArrayList<>(workerGenerators.size());
-    for (int i = 0; i < workerGenerators.size(); i++) {
-      worker.add(workerGenerators.get(i).apply(connections.get(i)));
-    }
-    List<? extends BlockSummaryConnection> excessConnections =
-        connections.subList(
-            workerGenerators.size(), workerGenerators.size() + additionalConnections);
-    return new Components(worker, excessConnections);
+  private String nextId(String pAdditionalIdentifier) {
+    return "W" + workerGenerators.size() + pAdditionalIdentifier;
   }
 
-  public static class Components {
-
-    private final List<BlockSummaryWorker> workers;
-    private final List<? extends BlockSummaryConnection> additionalConnections;
-
-    private Components(
-        List<BlockSummaryWorker> pWorkers,
-        List<? extends BlockSummaryConnection> pAdditionalConnections) {
-      workers = pWorkers;
-      additionalConnections = pAdditionalConnections;
-    }
-
-    public List<BlockSummaryWorker> getWorkers() {
-      return workers;
-    }
-
-    public List<? extends BlockSummaryConnection> getAdditionalConnections() {
-      return additionalConnections;
-    }
-  }
-
-  // Needed to forward exception handling to actual method and not this function.
+  // Needed to forward exception handling to actual method and not the add* functions.
   @FunctionalInterface
   private interface WorkerGenerator {
-    BlockSummaryWorker apply(BlockSummaryConnection t)
+    BlockSummaryWorker apply(BlockSummaryConnection connection)
         throws CPAException, InterruptedException, InvalidConfigurationException, IOException;
   }
 }

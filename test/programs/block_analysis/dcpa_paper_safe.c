@@ -19,9 +19,10 @@ void __VERIFIER_assert(int cond) {
 int __VERIFIER_nondet_int();
 
 int main() {
+  int n = __VERIFIER_nondet_int();
   int x = 0;
   int y = 0;
-  while (__VERIFIER_nondet_int()) {
+  while (n) {
     x++;
     y++;
   }

@@ -56,13 +56,13 @@ public class BlockGraph {
 
   public void checkConsistency(ShutdownNotifier pShutdownNotifier) throws InterruptedException {
     for (BlockNode blockNode : nodes) {
-      if (blockNode.isRoot()) {
-        throw new IllegalStateException("Only one root per BlockGraph allowed.");
-      }
+      Preconditions.checkState(
+          !blockNode.isRoot(), "Only one root node per graph allowed (%s).", blockNode);
       Preconditions.checkState(
           !blockNode.getId().equals(BlockGraph.ROOT_ID)
               || (blockNode.getPredecessorIds().isEmpty() && blockNode.isRoot()),
-          "Only root nodes should not have predecessors.");
+          "Only root nodes should not have predecessors (%s).",
+          blockNode);
       Preconditions.checkState(
           CFAUtils.existsPath(
               blockNode.getFirst(),
@@ -78,13 +78,16 @@ public class BlockGraph {
       // block node is not root implies that there is at least one edge in the block
       Preconditions.checkState(
           !blockNode.getEdges().isEmpty() || blockNode.getPredecessorIds().isEmpty(),
-          "Every block needs at least one edge");
+          "Every block needs at least one edge (%s).",
+          blockNode);
       Preconditions.checkState(
           isBlockNodeValid(blockNode.getFirst(), blockNode.getEdges()),
-          "BlockNodes require to have exactly one exit node.");
+          "BlockNodes require to have exactly one exit node (%s).",
+          blockNode);
       Preconditions.checkState(
           blockNode.getPredecessorIds().containsAll(blockNode.getLoopPredecessorIds()),
-          "Found loop predecessors that are not in the set of predecessors?");
+          "Found loop predecessors that are not in the set of predecessors (%s).",
+          blockNode);
     }
   }
 
