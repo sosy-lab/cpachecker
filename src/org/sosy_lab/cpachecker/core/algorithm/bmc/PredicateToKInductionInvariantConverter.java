@@ -269,14 +269,11 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     
       // Combine all boolean formulas per node and make invariant
       for(CFANode node : allPreds.keySet()) {
-        BooleanFormula completeFormula = booleanFMgr.and(allPreds.get(node));
-        //try (ProverEnvironment prover = pSolver.newProverEnvironment()) {
-        //  prover.push(completeFormula);
-        //  if (!prover.isUnsat()) {
-        //    continue;
-        //  }
-        //}
-        candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(node, completeFormula, pFMgr));
+        //BooleanFormula completeFormula = booleanFMgr.and(allPreds.get(node));
+        for(BooleanFormula formula: allPreds.get(node)) {
+          candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(node, formula, pFMgr));
+        }
+        //candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(node, completeFormula, pFMgr));
       }
     
     return candidates;
