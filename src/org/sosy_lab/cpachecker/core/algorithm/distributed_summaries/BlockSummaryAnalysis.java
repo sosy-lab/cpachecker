@@ -205,8 +205,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       BlockGraph blockGraph = decomposer.decompose(initialCFA);
       blockGraph.checkConsistency(shutdownManager.getNotifier());
       Modification modification =
-          BlockGraphModification.instrumentCFA(
-              initialCFA, blockGraph, logger, shutdownManager.getNotifier());
+          BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
       ImmutableSet<CFANode> abstractionDeadEnds = modification.unableToAbstract();
       numberWorkersWithoutAbstraction.setNextValue(abstractionDeadEnds.size());
       if (!abstractionDeadEnds.isEmpty()) {

@@ -14,25 +14,29 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.TreeMultimap;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.common.ShutdownNotifier;
+import java.util.TreeMap;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.graph.FlexCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
-import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaFactory;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
@@ -67,12 +71,30 @@ public class BlockGraphModification {
     return true;
   }
 
+  private static MutableCFA createMutableCfaCopy(
+      CFA pCfa, Configuration pConfig, LogManager pLogger) {
+    // create a clone of the specified CFA (clones all CFA nodes and edges)
+    CFA clone =
+        CCfaTransformer.substituteAstNodes(pConfig, pLogger, pCfa, (cfaEdge, astNode) -> astNode);
+    // create a `MutableCFA` for the clone (contains the same CFA nodes and edges as `clone`)
+    NavigableMap<String, FunctionEntryNode> functionEntryNodes = new TreeMap<>();
+    TreeMultimap<String, CFANode> allNodes = TreeMultimap.create();
+    for (CFANode node : pCfa.nodes()) {
+      String functionName = node.getFunction().getQualifiedName();
+      allNodes.put(functionName, node);
+      if (node instanceof FunctionEntryNode) {
+        functionEntryNodes.put(functionName, (FunctionEntryNode) node);
+      }
+    }
+    return new MutableCFA(functionEntryNodes, allNodes, clone.getMetadata());
+  }
+
   public static Modification instrumentCFA(
-      CFA pCFA, BlockGraph pBlockGraph, LogManager pLogger, ShutdownNotifier pNotifier) {
+      CFA pCFA, BlockGraph pBlockGraph, Configuration pConfig, LogManager pLogger) {
     if (pBlockGraph.getNodes().size() == 1) {
       return new Modification(pCFA, pBlockGraph, ImmutableSet.of());
     }
-    FlexCfaNetwork cfaNetwork = FlexCfaNetwork.copy(pCFA);
+    MutableCFA mutableCfa = createMutableCfaCopy(pCFA, pConfig, pLogger);
     ImmutableSet<CFANode> blockEnds =
         transformedImmutableSetCopy(pBlockGraph.getNodes(), n -> n.getLast());
     ImmutableSet.Builder<CFANode> unableToAbstract = ImmutableSet.builder();
@@ -80,22 +102,20 @@ public class BlockGraphModification {
       if (blockEnd.getLeavingSummaryEdge() == null
           && !blockEnd.equals(pCFA.getMainFunction())
           && !(blockEnd instanceof CFATerminationNode)) {
+        CFANode blockEndEdgeSuccessor = new CFANode(blockEnd.getFunction());
+        mutableCfa.addNode(blockEndEdgeSuccessor);
         BlankEdge blockEndEdge =
             new BlankEdge(
-                "",
-                FileLocation.DUMMY,
-                blockEnd,
-                new CFANode(blockEnd.getFunction()),
-                UNIQUE_DESCRIPTION);
-        cfaNetwork.addEdge(blockEndEdge);
+                "", FileLocation.DUMMY, blockEnd, blockEndEdgeSuccessor, UNIQUE_DESCRIPTION);
+        blockEnd.addLeavingEdge(blockEndEdge);
+        blockEndEdgeSuccessor.addEnteringEdge(blockEndEdge);
       } else {
         if (blockEnd.getLeavingSummaryEdge() != null) {
           unableToAbstract.add(blockEnd);
         }
       }
     }
-    CFA instrumentedCFA =
-        CCfaFactory.CLONER.createCfa(cfaNetwork, pCFA.getMetadata(), pLogger, pNotifier);
+    CFA instrumentedCFA = mutableCfa.immutableCopy();
     MappingInformation mapping =
         createMappingBetweenOriginalAndInstrumentedCFA(pCFA, instrumentedCFA);
     Map<CFANode, CFANode> originalInstrumentedMapping = mapping.originalToInstrumentedNodes();
