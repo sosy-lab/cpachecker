@@ -43,7 +43,7 @@ public abstract class AbstractSlicer implements Slicer {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
-    sliceExporter = new SliceExporter(pConfig, pLogger, pShutdownNotifier);
+    sliceExporter = new SliceExporter(pConfig, pLogger);
   }
 
   @Override
