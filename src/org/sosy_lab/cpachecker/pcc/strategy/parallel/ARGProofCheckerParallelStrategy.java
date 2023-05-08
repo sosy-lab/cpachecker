@@ -401,7 +401,8 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   private ARGState[] topologySort(Map<BAMARGBlockStartState, Pair<Integer, BitSet>> pMap) {
     ARGState[] result = new ARGState[pMap.size() + 1];
 
-    int nextPos = 0, size = 0;
+    int nextPos = 0;
+    int size = 0;
     List<BAMARGBlockStartState> consider = new ArrayList<>(pMap.keySet());
 
     while (!consider.isEmpty()) {

@@ -137,10 +137,10 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           o = new ObjectOutputStream(zos);
           try {
             writeConfiguration(o);
-          } catch (ValidationConfigurationConstructionFailed eIC) {
+          } catch (ValidationConfigurationConstructionFailed e) {
             logger.logUserException(
                 Level.WARNING,
-                eIC,
+                e,
                 "Construction of validation configuration failed. Validation configuration is"
                     + " empty.");
           }
@@ -148,10 +148,10 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           o.flush();
           zos.closeEntry();
         }
-      } catch (NotSerializableException eS) {
+      } catch (NotSerializableException e) {
         logger.logUserException(
             Level.SEVERE,
-            eS,
+            e,
             "Proof cannot be written. Class does not implement Serializable interface");
       } catch (InvalidConfigurationException e) {
         logger.logUserException(

@@ -14,18 +14,23 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.Iterators;
 import com.google.common.graph.EndpointPair;
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 /**
  * A {@link CfaNetwork} view in which all edges of the wrapped {@link CfaNetwork} are replaced
  * on-the-fly with their corresponding transformed edges.
  *
  * <p>The specified function returns the transformed edge for a given edge. The given edge and
- * transformed edge must have the same endpoints. The function is applied every time an edge is
- * accessed, so the function may be called multiple times for the same given edge.
+ * transformed edge must have the same endpoints and the transformed edge must not be a summary
+ * edge. The function is applied every time an edge is accessed, so the function may be called
+ * multiple times for the same given edge.
  */
 final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
 
@@ -34,12 +39,13 @@ final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
 
   private EdgeTransformingCfaNetwork(
       CfaNetwork pDelegate, Function<CFAEdge, CFAEdge> pEdgeTransformer) {
-    delegate = pDelegate;
-    edgeTransformer = pEdgeTransformer;
+    delegate = checkNotNull(pDelegate);
+    edgeTransformer = checkNotNull(pEdgeTransformer);
   }
 
   static CfaNetwork of(CfaNetwork pDelegate, Function<CFAEdge, CFAEdge> pEdgeTransformer) {
-    return new EdgeTransformingCfaNetwork(checkNotNull(pDelegate), checkNotNull(pEdgeTransformer));
+    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
+        new EdgeTransformingCfaNetwork(pDelegate, pEdgeTransformer));
   }
 
   private static boolean haveSameEndpoints(CFAEdge pSomeEdge, CFAEdge pOtherEdge) {
@@ -53,6 +59,11 @@ final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
         haveSameEndpoints(pEdge, transformedEdge),
         "Endpoints of original edge and transformed edge are not the same: %s and %s",
         pEdge,
+        transformedEdge);
+    checkArgument(
+        !(transformedEdge instanceof FunctionSummaryEdge),
+        "A `CfaNetwork` must not contain any summary edges, but the transformed edge is a summary"
+            + " edge: %s",
         transformedEdge);
 
     return transformedEdge;
@@ -90,5 +101,19 @@ final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
   @Override
   public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
     return delegate.incidentNodes(pEdge);
+  }
+
+  @Override
+  public FunctionEntryNode functionEntryNode(FunctionExitNode pFunctionExitNode) {
+    // The delegate may provide a more performant implementation that returns the same node as
+    // `super.functionEntryNode`.
+    return delegate.functionEntryNode(pFunctionExitNode);
+  }
+
+  @Override
+  public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
+    // The delegate may provide a more performant implementation that returns the same node as
+    // `super.functionExitNode`.
+    return delegate.functionExitNode(pFunctionEntryNode);
   }
 }

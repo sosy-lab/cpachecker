@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.refinement.Interpolant;
@@ -164,7 +164,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
                   variableToTypeMap,
                   stackFrameDeclarations)
               .getMemoryModel();
-    } catch (SMG2Exception e) {
+    } catch (SMGException e) {
       memoryModel =
           SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()));
     }

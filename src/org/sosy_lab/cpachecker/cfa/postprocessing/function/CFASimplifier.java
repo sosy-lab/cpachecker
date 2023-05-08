@@ -19,20 +19,20 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
-import org.sosy_lab.cpachecker.cfa.CfaPostProcessor;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-public class CFASimplifier implements CfaPostProcessor {
+public final class CFASimplifier {
+
+  private CFASimplifier() {}
 
   /**
    * This method takes a cfa as input and simplifies it, in the way, that Assume Edges which are not
@@ -42,7 +42,7 @@ public class CFASimplifier implements CfaPostProcessor {
    * @param cfa The cfa which should be simplified
    */
   public static void simplifyCFA(MutableCFA cfa) {
-    for (CFANode root : cfa.getAllFunctionHeads()) {
+    for (CFANode root : cfa.entryNodes()) {
       simplifyFunction(root, cfa);
     }
   }
@@ -232,7 +232,9 @@ public class CFASimplifier implements CfaPostProcessor {
   private static CFANode findEndOfBlankEdgeChain(CFANode current) {
     Set<CFANode> visitedNodes = new HashSet<>();
 
-    while (current.getNumLeavingEdges() == 1 && current.getLeavingEdge(0) instanceof BlankEdge) {
+    while (current.getNumLeavingEdges() == 1
+        && current.getLeavingEdge(0) instanceof BlankEdge
+        && !(current instanceof CFALabelNode)) {
       // if there are multiple entering edges, the end of the blank edge chain is reached
       if (current.getNumEnteringEdges() > 1) {
         break;
@@ -270,13 +272,5 @@ public class CFASimplifier implements CfaPostProcessor {
 
       toRemove = nextNode;
     }
-  }
-
-  @Override
-  public MutableCFA execute(
-      MutableCFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-    simplifyCFA(pCfa);
-
-    return pCfa;
   }
 }

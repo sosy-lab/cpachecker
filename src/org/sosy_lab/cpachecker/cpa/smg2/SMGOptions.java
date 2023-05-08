@@ -25,6 +25,16 @@ public class SMGOptions {
   @Option(
       secure = true,
       description =
+          "with this option enabled, memory addresses (pointers) are transformed into a numeric"
+              + " assumption upon casting the pointer to a number. This assumption can be returned"
+              + " to a proper pointer by casting it back. This enables numeric operations beyond"
+              + " pointer arithmetics, but loses precision for comparisons/assumptions, as the"
+              + " numeric assumption is static. May be unsound!")
+  private boolean castMemoryAddressesToNumeric = false;
+
+  @Option(
+      secure = true,
+      description =
           "with this option enabled, a check for unreachable memory occurs whenever a function"
               + " returns, and not only at the end of the main function")
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
@@ -80,7 +90,7 @@ public class SMGOptions {
       name = "memoryAllocationFunctions",
       description = "Memory allocation functions")
   private ImmutableSet<String> memoryAllocationFunctions =
-      ImmutableSet.of("malloc", "__kmalloc", "kmalloc", "realloc");
+      ImmutableSet.of("malloc", "__kmalloc", "kmalloc");
 
   @Option(
       secure = true,
@@ -249,6 +259,14 @@ public class SMGOptions {
               + "unknown memory sizes does not abort, but also does not create any memory.")
   private boolean ignoreUnknownMemoryAllocation = false;
 
+  @Option(
+      secure = true,
+      description =
+          "If this option is enabled, a call to malloc with value zero results in a return value "
+              + "that is equal to zero. If this option is disabled, a non-zero memory section"
+              + " that may not be accessed but freed is returned.")
+  private boolean mallocZeroReturnsZero = false;
+
   public enum SMGExportLevel {
     NEVER,
     LEAF,
@@ -262,6 +280,10 @@ public class SMGOptions {
 
   public boolean isIgnoreUnknownMemoryAllocation() {
     return ignoreUnknownMemoryAllocation;
+  }
+
+  public boolean isMallocZeroReturnsZero() {
+    return mallocZeroReturnsZero;
   }
 
   boolean isOptimizeBooleanVariables() {
@@ -282,6 +304,10 @@ public class SMGOptions {
 
   public boolean isEnableMallocFailure() {
     return enableMallocFailure;
+  }
+
+  public boolean isCastMemoryAddressesToNumeric() {
+    return castMemoryAddressesToNumeric;
   }
 
   public UnknownFunctionHandling getHandleUnknownFunctions() {

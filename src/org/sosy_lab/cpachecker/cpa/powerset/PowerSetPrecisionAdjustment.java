@@ -44,7 +44,8 @@ public class PowerSetPrecisionAdjustment implements PrecisionAdjustment {
     Set<AbstractState> newStates =
         Sets.newHashSetWithExpectedSize(states.getWrappedStates().size());
 
-    boolean present = false, changed = false;
+    boolean present = false;
+    boolean changed = false;
     Optional<PrecisionAdjustmentResult> wrappedRes;
 
     for (AbstractState state : states.getWrappedStates()) {

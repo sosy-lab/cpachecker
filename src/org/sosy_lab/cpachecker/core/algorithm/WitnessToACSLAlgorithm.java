@@ -106,9 +106,9 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       WitnessInvariantsExtractor invariantsExtractor =
           new WitnessInvariantsExtractor(config, logger, cfa, shutdownNotifier, witness);
       invariants = invariantsExtractor.extractInvariantsFromReachedSet();
-    } catch (InvalidConfigurationException pE) {
+    } catch (InvalidConfigurationException e) {
       throw new CPAException(
-          "Invalid Configuration while analyzing witness:\n" + pE.getMessage(), pE);
+          "Invalid Configuration while analyzing witness:\n" + e.getMessage(), e);
     }
 
     for (ExpressionTreeLocationInvariant c : invariants) {
@@ -144,8 +144,8 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       String fileContent;
       try {
         fileContent = Files.readString(file);
-      } catch (IOException pE) {
-        logger.logfUserException(Level.WARNING, pE, "Could not read file %s", file);
+      } catch (IOException e) {
+        logger.logfUserException(Level.WARNING, e, "Could not read file %s", file);
         continue;
       }
 
@@ -205,9 +205,8 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       }
       try {
         writeToFile(file, output);
-      } catch (IOException pE) {
-        logger.logfUserException(
-            Level.WARNING, pE, "Could not write annotations for file %s", file);
+      } catch (IOException e) {
+        logger.logfUserException(Level.WARNING, e, "Could not write annotations for file %s", file);
         continue;
       }
     }

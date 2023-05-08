@@ -45,9 +45,9 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
   private final int hashCode;
 
   private LeafExpression(LeafType pExpression, boolean pAssumeTruth, int pHashCode) {
-    this.expression = Objects.requireNonNull(pExpression);
-    this.assumeTruth = pAssumeTruth;
-    this.hashCode = pHashCode;
+    expression = Objects.requireNonNull(pExpression);
+    assumeTruth = pAssumeTruth;
+    hashCode = pHashCode;
   }
 
   public LeafType getExpression() {

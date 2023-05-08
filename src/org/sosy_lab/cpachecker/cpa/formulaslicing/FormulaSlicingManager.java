@@ -280,8 +280,8 @@ public class FormulaSlicingManager implements StatisticsProvider {
           inductiveUnder = ImmutableSet.of(path);
         }
       }
-    } catch (SolverException pE) {
-      throw new CPAException("Solver call failed", pE);
+    } catch (SolverException e) {
+      throw new CPAException("Solver call failed", e);
     } finally {
       statistics.inductiveWeakening.stop();
     }
@@ -338,16 +338,16 @@ public class FormulaSlicingManager implements StatisticsProvider {
 
     try {
       return solver.isUnsat(constraints, node);
-    } catch (SolverException pE) {
+    } catch (SolverException e) {
       logger.log(
           Level.FINE,
           "Got solver exception while obtaining unsat core;"
               + "Re-trying without unsat core extraction",
-          pE);
+          e);
       try {
         return solver.isUnsat(reachabilityQuery);
-      } catch (SolverException pE1) {
-        throw new CPAException("Solver error occurred", pE1);
+      } catch (SolverException e2) {
+        throw new CPAException("Solver error occurred", e2);
       }
     }
   }

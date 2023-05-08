@@ -314,7 +314,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
    */
   private String getActiveThread(final CFAEdge cfaEdge, final ThreadingState threadingState) {
     for (String id : threadingState.getThreadIds()) {
-      if (Iterables.contains(threadingState.getThreadLocation(id).getIngoingEdges(), cfaEdge)) {
+      if (Iterables.contains(threadingState.getThreadLocation(id).getIncomingEdges(), cfaEdge)) {
         return id;
       }
     }

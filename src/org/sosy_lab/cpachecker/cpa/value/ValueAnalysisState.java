@@ -204,13 +204,11 @@ public final class ValueAnalysisState
       if (pValue.isNumericValue()) {
         CIntegerLiteralExpression valueAsExpression =
             new CIntegerLiteralExpression(
-                FileLocation.DUMMY,
-                memLocType,
-                BigInteger.valueOf(pValue.asNumericValue().longValue()));
+                FileLocation.DUMMY, memLocType, pValue.asNumericValue().bigIntegerValue());
         try {
           typedValue = pValueVisitor.evaluate(valueAsExpression, memLocType);
-        } catch (UnrecognizedCodeException pE) {
-          throw new AssertionError(pE);
+        } catch (UnrecognizedCodeException e) {
+          throw new AssertionError(e);
         }
       }
       MemoryLocation currMemloc = entry.getKey();

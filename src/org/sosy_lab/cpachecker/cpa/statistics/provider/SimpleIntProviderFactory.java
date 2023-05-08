@@ -44,6 +44,7 @@ public class SimpleIntProviderFactory {
   public interface Counter<T> {
     int count(T e);
   }
+
   /**
    * Helper method to count expressions. See the other countExpressions overload for more
    * information.
@@ -556,10 +557,8 @@ public class SimpleIntProviderFactory {
       case BINARY_XOR:
       case SHIFT_LEFT:
       case SHIFT_RIGHT:
-        {
-          // TODO: check if custom overload (ie no real bitwise operation) = types are ok
-          return true;
-        }
+        // TODO: check if custom overload (ie no real bitwise operation) = types are ok
+        return true;
       default:
         break;
     }
@@ -661,10 +660,8 @@ public class SimpleIntProviderFactory {
       case MODULO:
       case MULTIPLY:
       case PLUS:
-        {
-          // TODO: check if custom overload (ie no real arithmetic operation) = types are ok
-          return true;
-        }
+        // TODO: check if custom overload (ie no real arithmetic operation) = types are ok
+        return true;
       default:
         break;
     }

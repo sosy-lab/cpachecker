@@ -30,12 +30,12 @@ SPDX-License-Identifier: Apache-2.0
         <property name="config_loc" value="build"/>
         <taskdef resource="com/puppycrawl/tools/checkstyle/ant/checkstyle-ant-task.properties" uri="antlib:com.puppycrawl.tools.checkstyle.ant" classpathref="checkstyle.lib.path"/>
 
-        <cs:checkstyle config="build/checkstyle.xml" classpathref="checkstyle.lib.path">
+        <cs:checkstyle config="build/checkstyle.xml">
             <fileset dir="${source.dir}" includes="**/*.java" excludes="**/test/*.java **/*Test.java **/*Test0.java **/*TestBase.java **/*TestSuite.java"/>
             <formatter type="${checkstyle.output}" toFile="Checkstyle.xml"/>
         </cs:checkstyle>
 
-        <cs:checkstyle config="build/checkstyle.test.xml" classpathref="checkstyle.lib.path">
+        <cs:checkstyle config="build/checkstyle.test.xml">
             <fileset dir="${source.dir}" includes="**/test/*.java **/*Test.java **/*Test0.java **/*TestBase.java **/*TestSuite.java"/>
             <formatter type="${checkstyle.output}" toFile="Checkstyle.Test.xml"/>
         </cs:checkstyle>

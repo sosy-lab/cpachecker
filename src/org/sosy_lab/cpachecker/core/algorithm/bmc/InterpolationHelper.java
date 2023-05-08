@@ -45,6 +45,9 @@ import org.sosy_lab.java_smt.api.SolverException;
  * from such ARGs.
  */
 public final class InterpolationHelper {
+
+  private InterpolationHelper() {}
+
   /**
    * A method to check whether the ARG has the required shape. The ARG must satisfy 1) no covered
    * states exist and 2) there is a unique stop state. If there are multiple stop states and the

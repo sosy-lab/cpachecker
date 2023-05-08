@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants;
 
+import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Joiner;
@@ -131,14 +132,13 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
 
   @Override
   public Set<Fault> run(FormulaContext context, TraceFormula tf)
-      throws CPAException, InterruptedException, SolverException, VerifyException,
+      throws CPAException,
+          InterruptedException,
+          SolverException,
+          VerifyException,
           InvalidConfigurationException {
     errorTrace = tf;
-    maps =
-        ImmutableList.<SSAMap>builder()
-            .add(tf.getTrace().getInitialSsaMap())
-            .addAll(tf.getTrace().toSSAMapList())
-            .build();
+    maps = elementAndList(tf.getTrace().getInitialSsaMap(), tf.getTrace().toSSAMapList());
     totalTime.start();
 
     List<BooleanFormula> interpolants = getInterpolants(context);

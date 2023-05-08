@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonSetVariable;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 class AutomatonExpressionArguments {
 
@@ -73,7 +74,7 @@ class AutomatonExpressionArguments {
     if (pAbstractStates == null) {
       abstractStates = ImmutableList.of();
     } else {
-      abstractStates = pAbstractStates;
+      abstractStates = AbstractStates.asFlatIterable(pAbstractStates).toList();
     }
     cfaEdge = pCfaEdge;
     logger = pLogger;

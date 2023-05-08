@@ -201,7 +201,7 @@ public class MachineModelSizeOfVisitorTest {
       {STRUCT_8, MODEL64, 8, "Struct_8"},
       {STRUCT_8, MODEL32, 8, "Struct_8"},
       {STRUCT_9, MODEL64, 16, "Struct_9"},
-      {STRUCT_9, MODEL32, 12, "Struct_9"}
+      {STRUCT_9, MODEL32, 12, "Struct_9"},
     };
   }
 

@@ -31,16 +31,15 @@ public class ExponentialOptimalBalancedGraphPartitioner implements BalancedGraph
     List<Integer> permutationIndices = initPermutationIndices(pGraph.getNumNodes());
 
     // compute partition for current order of nodes
-    List<Set<Integer>> currentPartitioning,
-        bestPartitioning = computePermutation(permutationIndices, pNumPartitions);
+    List<Set<Integer>> bestPartitioning = computePermutation(permutationIndices, pNumPartitions);
 
-    long currentNumCrossingEdges,
-        minNumCrossingEdges = getNumberOfPartitionCrossingEdges(pGraph, bestPartitioning);
+    long minNumCrossingEdges = getNumberOfPartitionCrossingEdges(pGraph, bestPartitioning);
 
     while (hasNextPermutation(permutationIndices)) {
       shutdown.shutdownIfNecessary();
-      currentPartitioning = computeNextPermutation(permutationIndices, pNumPartitions);
-      currentNumCrossingEdges = getNumberOfPartitionCrossingEdges(pGraph, currentPartitioning);
+      List<Set<Integer>> currentPartitioning =
+          computeNextPermutation(permutationIndices, pNumPartitions);
+      long currentNumCrossingEdges = getNumberOfPartitionCrossingEdges(pGraph, currentPartitioning);
 
       if (minNumCrossingEdges >= currentNumCrossingEdges || minNumCrossingEdges == -1) {
         bestPartitioning = currentPartitioning;

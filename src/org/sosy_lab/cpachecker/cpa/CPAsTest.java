@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cpa.slicing.SlicingCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.traceabstraction.TraceAbstractionCPA;
 import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
+import org.sosy_lab.cpachecker.cpa.witnessjoiner.WitnessJoinerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -105,6 +106,7 @@ public class CPAsTest {
     cpas.remove(FlowDependenceCPA.class);
     cpas.remove(SlicingCPA.class);
     cpas.remove(SLABCPA.class);
+    cpas.remove(WitnessJoinerCPA.class);
 
     cpas.remove(ARGReplayCPA.class); // needs ARG to be replayed
     cpas.remove(ABECPA.class); // Shouldn't be used by itself.

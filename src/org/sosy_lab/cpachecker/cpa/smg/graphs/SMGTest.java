@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import java.util.TreeMap;
 import org.junit.Before;
@@ -295,13 +296,7 @@ public class SMGTest {
     smg1.addObject(object_16b);
     assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
 
-    boolean thrown = false;
-    try {
-      smg1.addHasValueEdge(hv_edge2);
-    } catch (AssertionError pAssertionError) {
-      thrown = true;
-    }
-    assertThat(thrown).isTrue();
+    assertThrows(AssertionError.class, () -> smg1.addHasValueEdge(hv_edge2));
   }
 
   @Test

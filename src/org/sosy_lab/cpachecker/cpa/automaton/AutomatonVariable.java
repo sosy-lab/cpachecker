@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /** Represents a local variable of the automaton. So far only integer variables are supported. */
+@SuppressWarnings("checkstyle:NoClone") // should be refactored
 public abstract class AutomatonVariable implements Cloneable, Serializable {
   private static final long serialVersionUID = -6765794863680244559L;
   protected final String name;
@@ -191,12 +192,12 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
         return false;
       }
       AutomatonSetVariable<?> otherVar = (AutomatonSetVariable<?>) pObj;
-      return this.set.equals(otherVar.set) && name.equals(otherVar.name);
+      return set.equals(otherVar.set) && name.equals(otherVar.name);
     }
 
     @Override
     public int hashCode() {
-      return this.set.hashCode() + name.hashCode();
+      return set.hashCode() + name.hashCode();
     }
 
     @Override

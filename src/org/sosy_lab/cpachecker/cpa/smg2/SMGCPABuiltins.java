@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -125,8 +125,8 @@ public class SMGCPABuiltins {
 
   /**
    * Checks if the input is one of the following memory allocation methods: "malloc", "__kmalloc",
-   * "kmalloc", "realloc" and "calloc", maybe more if they are added, and returns true if it is one
-   * of those. false else.
+   * "kmalloc" and "calloc", maybe more if they are added, and returns true if it is one of those.
+   * false else.
    *
    * @param functionName name of the function to check.
    * @return true for the specified names, false else.
@@ -169,7 +169,7 @@ public class SMGCPABuiltins {
    * @return the result of the function call and the state for it. May be an error state!
    * @throws CPATransferException in case of a critical error the SMGCPA can't handle.
    */
-  public List<ValueAndSMGState> handleFunctioncall(
+  public List<ValueAndSMGState> handleFunctionCall(
       CFunctionCallExpression pFunctionCall,
       String functionName,
       SMGState pSmgState,
@@ -231,7 +231,7 @@ public class SMGCPABuiltins {
             checkedStates, state -> ValueAndSMGState.ofUnknownValue(state));
 
       case "realloc":
-        return evaluateRealloc();
+        return evaluateRealloc(cFCExpression, pState, pCfaEdge);
 
       case "__builtin_va_start":
         return evaluateVaStart(cFCExpression, pCfaEdge, pState);
@@ -313,7 +313,7 @@ public class SMGCPABuiltins {
     SMGState currentState = addressAndState.getState();
     if (addressAndState.getValue().isUnknown()) {
       // Critical error, should never happen
-      throw new SMG2Exception(
+      throw new SMGException(
           "Critical error in builtin function va_copy. The source does not reflect a valid value"
               + " when read.");
     }
@@ -323,7 +323,8 @@ public class SMGCPABuiltins {
             BigInteger.ZERO,
             sizeInBits,
             addressAndState.getValue(),
-            destIdArg.getExpressionType());
+            destIdArg.getExpressionType(),
+            pCfaEdge);
     return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
   }
 
@@ -333,7 +334,7 @@ public class SMGCPABuiltins {
   @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateVaArg(
       CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState)
-      throws SMG2Exception {
+      throws SMGException {
     // Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
     // The first argument is the va_list pointer CidExpression
     // CExpression srcArg = cFCExpression.getParameterExpressions().get(0);
@@ -344,7 +345,7 @@ public class SMGCPABuiltins {
     // Preconditions.checkArgument(srcArg instanceof CIdExpression);
     // CIdExpression srcIdArg = (CIdExpression) srcArg;
     // If the type is not compatible with the types saved in the array, behavior is undefined
-    throw new SMG2Exception(
+    throw new SMGException(
         "Feature va_arg() not finished because our parser does not like the function.");
 
     // return null;
@@ -356,7 +357,7 @@ public class SMGCPABuiltins {
    */
   @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateVaStart(
-      CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState)
+      CFunctionCallExpression cFCExpression, CFAEdge cfaEdge, SMGState pState)
       throws CPATransferException {
 
     SMGState currentState = pState;
@@ -394,7 +395,8 @@ public class SMGCPABuiltins {
     Value address = pointerAndState.getValue();
 
     List<SMGStateAndOptionalSMGObjectAndOffset> targets =
-        firstArg.accept(new SMGCPAAddressVisitor(evaluator, currentState, pCfaEdge, logger));
+        firstArg.accept(
+            new SMGCPAAddressVisitor(evaluator, currentState, cfaEdge, logger, options));
     Preconditions.checkArgument(targets.size() == 1);
     for (SMGStateAndOptionalSMGObjectAndOffset target : targets) {
       // We assume that there is only 1 valid returned target
@@ -407,7 +409,7 @@ public class SMGCPABuiltins {
 
       currentState =
           currentState.writeValueTo(
-              targetObj, offset, sizeInBitsPointer, address, firstArg.getExpressionType());
+              targetObj, offset, sizeInBitsPointer, address, firstArg.getExpressionType(), cfaEdge);
     }
 
     BigInteger offset = BigInteger.ZERO;
@@ -419,7 +421,8 @@ public class SMGCPABuiltins {
               offset,
               sizeInBitsVarArg,
               varArg,
-              SMGCPAExpressionEvaluator.getCanonicalType(secondArg));
+              SMGCPAExpressionEvaluator.getCanonicalType(secondArg),
+              cfaEdge);
       // Unlikely that someone throws an abstracted list into a var args
       Preconditions.checkArgument(writtenStates.size() == 1);
       currentState = writtenStates.get(0);
@@ -448,7 +451,7 @@ public class SMGCPABuiltins {
     for (CExpression param : cFCExpression.getParameterExpressions()) {
       if (param instanceof CPointerExpression) {
         SMGCPAValueVisitor valueVisitor =
-            new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger);
+            new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger, options);
         for (ValueAndSMGState valueAndState : param.accept(valueVisitor)) {
           // We only want error states
           currentState = valueAndState.getState();
@@ -464,7 +467,7 @@ public class SMGCPABuiltins {
    * @param calledFunctionName The name of the function to be called.
    * @param pState current {@link SMGState}.
    * @return a {@link List} of {@link ValueAndSMGState}s with either valid {@link Value}s and {@link
-   *     SMGState}s, or unknown Values and maybe error states. Depending on the the safety of the
+   *     SMGState}s, or unknown Values and maybe error states. Depending on the safety of the
    *     function/config.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
@@ -478,7 +481,6 @@ public class SMGCPABuiltins {
     switch (options.getHandleUnknownFunctions()) {
       case STRICT:
         if (!isSafeFunction(calledFunctionName)) {
-          // TODO: make this a error state
           throw new CPATransferException(
               String.format(
                   "Unknown function '%s' may be unsafe. See the"
@@ -488,12 +490,11 @@ public class SMGCPABuiltins {
         // fallthrough for safe functions
         // $FALL-THROUGH$
       case ASSUME_SAFE:
+      case ASSUME_EXTERNAL_ALLOCATED:
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
         return Collections3.transformedImmutableListCopy(
             checkedStates, state -> ValueAndSMGState.ofUnknownValue(state));
-      case ASSUME_EXTERNAL_ALLOCATED:
-        return Collections.singletonList(ValueAndSMGState.ofUnknownValue(pState));
       default:
         throw new UnsupportedOperationException(
             "Unhandled function in cpa.smg2.SMGCPABuiltins.handleUnknownFunction(): "
@@ -640,7 +641,7 @@ public class SMGCPABuiltins {
           functionName + " argument #" + pParameterNumber + " not found.", cfaEdge, functionCall);
     }
 
-    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
+    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger, options);
     return vv.evaluate(expr, SMGCPAExpressionEvaluator.getCanonicalType(functionCall));
   }
 
@@ -663,7 +664,6 @@ public class SMGCPABuiltins {
       CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
 
-    String functionName = functionCall.getFunctionNameExpression().toASTString();
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (ValueAndSMGState sizeAndState : getAllocateFunctionSize(pState, cfaEdge, functionCall)) {
 
@@ -678,7 +678,7 @@ public class SMGCPABuiltins {
           continue;
         } else {
 
-          throw new SMG2Exception(
+          throw new SMGException(
               "An allocation function was called with a symbolic size. This is not supported"
                   + " currently by the SMG2 analysis. Try GuessSizeOfUnknownMemorySize.");
         }
@@ -688,40 +688,61 @@ public class SMGCPABuiltins {
           sizeValue.asNumericValue().bigIntegerValue().multiply(BigInteger.valueOf(8));
       SMGState currentState = sizeAndState.getState();
 
-      if (sizeInBits.compareTo(BigInteger.ZERO) == 0) {
-        // C99 says that allocation functions with argument 0 can return a null-pointer (or a valid
-        // pointer that may not be accessed but can be freed)
-        // This mapping always exists
-        Value addressToZero = new NumericValue(0);
-        resultBuilder.add(ValueAndSMGState.of(addressToZero, currentState));
-        continue;
-      }
-
-      // Create a new memory region with the specified size and use the pointer to its beginning
-      // from now on
-      ValueAndSMGState addressAndState =
-          evaluator.createHeapMemoryAndPointer(currentState, sizeInBits);
-      Value addressToNewRegion = addressAndState.getValue();
-      SMGState stateWithNewHeap = addressAndState.getState();
-
-      if (options.getZeroingMemoryAllocation().contains(functionName)) {
-        // Since this is newly created memory get(0) is fine
-        stateWithNewHeap =
-            stateWithNewHeap
-                .writeToZero(addressToNewRegion, functionCall.getExpressionType())
-                .get(0);
-      }
-      resultBuilder.add(ValueAndSMGState.of(addressToNewRegion, stateWithNewHeap));
-
-      // If malloc can fail (and fails) it simply returns a pointer to 0 (C also sets errno)
-      if (options.isEnableMallocFailure()) {
-        // This mapping always exists
-        Value addressToZero = new NumericValue(0);
-        resultBuilder.add(ValueAndSMGState.of(addressToZero, currentState));
-      }
+      resultBuilder.addAll(
+          handleConfigurableMemoryAllocation(functionCall, currentState, sizeInBits));
     }
 
     return resultBuilder.build();
+  }
+
+  // malloc(size) w size in bits
+  private ImmutableList<ValueAndSMGState> handleConfigurableMemoryAllocation(
+      CFunctionCallExpression functionCall, SMGState pState, BigInteger sizeInBits)
+      throws SMGException {
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    SMGState currentState = pState;
+    String functionName = functionCall.getFunctionNameExpression().toASTString();
+
+    if (sizeInBits.compareTo(BigInteger.ZERO) == 0) {
+      resultBuilder.add(handleAllocZero(currentState));
+      return resultBuilder.build();
+    }
+
+    // Create a new memory region with the specified size and use the pointer to its beginning
+    // from now on
+    ValueAndSMGState addressAndState =
+        evaluator.createHeapMemoryAndPointer(currentState, sizeInBits);
+    Value addressToNewRegion = addressAndState.getValue();
+    SMGState stateWithNewHeap = addressAndState.getState();
+
+    if (options.getZeroingMemoryAllocation().contains(functionName)) {
+      // Since this is newly created memory get(0) is fine
+      stateWithNewHeap =
+          stateWithNewHeap.writeToZero(addressToNewRegion, functionCall.getExpressionType()).get(0);
+    }
+    resultBuilder.add(ValueAndSMGState.of(addressToNewRegion, stateWithNewHeap));
+
+    // If malloc can fail (and fails) it simply returns a pointer to 0 (C also sets errno)
+    if (options.isEnableMallocFailure()) {
+      // This mapping always exists
+      Value addressToZero = new NumericValue(0);
+      resultBuilder.add(ValueAndSMGState.of(addressToZero, currentState));
+    }
+    return resultBuilder.build();
+  }
+
+  private ValueAndSMGState handleAllocZero(SMGState currentState) {
+    // C99 says that allocation functions with argument 0 can return a null-pointer (or a valid
+    // pointer that may not be dereferenced but can be freed)
+    // This mapping always exists
+    // SV-Comp expects a non-zero return pointer!
+    if (options.isMallocZeroReturnsZero()) {
+      Value addressToZero = new NumericValue(0);
+      return ValueAndSMGState.of(addressToZero, currentState);
+    } else {
+      // Some size, does not matter
+      return evaluator.createMallocZeroMemoryAndPointer(currentState, BigInteger.ONE);
+    }
   }
 
   /**
@@ -890,7 +911,8 @@ public class SMGCPABuiltins {
                   bufferOffsetInBits,
                   sizeOfCharInBits.multiply(BigInteger.valueOf(count)),
                   charValue,
-                  CNumericTypes.CHAR)
+                  CNumericTypes.CHAR,
+                  cfaEdge)
               .get(0);
     } else {
       // Write each char on its own
@@ -902,7 +924,8 @@ public class SMGCPABuiltins {
                     bufferOffsetInBits.add(BigInteger.valueOf(c).multiply(sizeOfCharInBits)),
                     sizeOfCharInBits,
                     charValue,
-                    CNumericTypes.CHAR)
+                    CNumericTypes.CHAR,
+                    cfaEdge)
                 .get(0);
       }
     }
@@ -922,8 +945,8 @@ public class SMGCPABuiltins {
   // TODO all functions are external in C, do we even need this?
   @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateExternalAllocation(
-      CFunctionCallExpression pFunctionCall, SMGState pState) throws SMG2Exception {
-    throw new SMG2Exception("evaluateExternalAllocation in SMGBUILTINS");
+      CFunctionCallExpression pFunctionCall, SMGState pState) throws SMGException {
+    throw new SMGException("evaluateExternalAllocation in SMGBUILTINS");
     /*
     String functionName = pFunctionCall.getFunctionNameExpression().toASTString();
 
@@ -1168,14 +1191,14 @@ public class SMGCPABuiltins {
    * @return {@link ValueAndSMGState} with either the targetAddress pointer expression and the state
    *     in which the copy was successful, or a unknown value and maybe a error state if something
    *     went wrong, i.e. invalid/read/write.
-   * @throws SMG2Exception in case of critical errors when materilizing memory
+   * @throws SMGException in case of critical errors when materilizing memory
    */
   private List<ValueAndSMGState> evaluateMemcpy(
       SMGState pState,
       AddressExpression targetAddress,
       AddressExpression sourceAddress,
       Value numOfBytesValue)
-      throws SMG2Exception {
+      throws SMGException {
 
     Preconditions.checkArgument(numOfBytesValue instanceof NumericValue);
     long numOfBytes = numOfBytesValue.asNumericValue().bigIntegerValue().longValue();
@@ -1309,19 +1332,112 @@ public class SMGCPABuiltins {
     return resultBuilder.build();
   }
 
-  // TODO:
   private List<ValueAndSMGState> evaluateRealloc(
-      //      CFunctionCallExpression functionCall,
-      //      SMGState pState,
-      //      CFAEdge cfaEdge,
-      //      SMGTransferRelationKind kind)
-      ) throws CPATransferException {
-    //      List<ValueAndSMGState> result = new ArrayList<>();
-    //      evaluateAlloca();
-    //      evaluateMemcpy();
-    //      evaluateFree();
-    // TODO: this
-    throw new CPATransferException("Unhandled realloc function");
+      CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
+      throws CPATransferException {
+
+    if (functionCall.getParameterExpressions().size() != 2) {
+      throw new UnrecognizedCodeException(
+          functionCall.getFunctionNameExpression().toASTString() + " needs 2 argument.",
+          cfaEdge,
+          functionCall);
+    }
+
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+
+    SMGCPAValueVisitor valueVisitor =
+        new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger, options);
+
+    for (ValueAndSMGState argumentOneAndState :
+        functionCall.getParameterExpressions().get(0).accept(valueVisitor)) {
+      for (ValueAndSMGState argumentTwoAndState :
+          getAllocateFunctionParameter(1, functionCall, argumentOneAndState.getState(), cfaEdge)) {
+
+        resultBuilder.addAll(
+            evaluateReallocWParameters(
+                argumentTwoAndState.getState(),
+                argumentOneAndState.getValue(),
+                argumentTwoAndState.getValue(),
+                SMGCPAExpressionEvaluator.getCanonicalType(functionCall.getExpressionType()),
+                cfaEdge,
+                functionCall));
+      }
+    }
+
+    return resultBuilder.build();
+  }
+
+  /**
+   * Evaluates realloc(ptr, size); If the size is smaller than the current memory size, every
+   * HV-Edge (value) outside the bounds is deleted. If the size is 0, we free the pointer and call
+   * malloc(0) and return the pointer. If the ptr is null, we call malloc(size). We always return
+   * new memory (new pointer to new memory) and free the old if it exists.
+   *
+   * @param pState current {@link SMGState}
+   * @param pSizeValue size in byte
+   * @param pCanonicalReturnType canonical return type (we know its void*)
+   * @param pCfaEdge current cfa edge
+   * @return list of points to new memory and its states
+   */
+  private Collection<ValueAndSMGState> evaluateReallocWParameters(
+      SMGState pState,
+      Value pPtrValue,
+      Value pSizeValue,
+      CType pCanonicalReturnType,
+      CFAEdge pCfaEdge,
+      CFunctionCallExpression functionCall)
+      throws SMGException {
+
+    if (!pState.getMemoryModel().isPointer(pPtrValue)) {
+      // undefined beh
+      return ImmutableList.of(ValueAndSMGState.of(pPtrValue, pState));
+    } else if (!pSizeValue.isNumericValue()) {
+      return ImmutableList.of(ValueAndSMGState.of(pPtrValue, pState));
+    }
+
+    SMGState currentState = pState;
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+    BigInteger sizeInBits =
+        pSizeValue.asNumericValue().bigIntegerValue().multiply(BigInteger.valueOf(8));
+    // Handle (realloc(0, size) -> just malloc
+    if (pPtrValue.isNumericValue()
+        && pPtrValue.asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
+      return handleConfigurableMemoryAllocation(functionCall, currentState, sizeInBits);
+    }
+
+    // Handle realloc(ptr, 0) (before C23), (C23 its just undefined beh)
+    if (pSizeValue.isNumericValue() && sizeInBits.equals(BigInteger.ZERO)) {
+      resultBuilder = ImmutableList.builder();
+      for (SMGState freedState : currentState.free(pPtrValue, functionCall, pCfaEdge)) {
+        resultBuilder.add(handleAllocZero(freedState));
+      }
+      return resultBuilder.build();
+    }
+
+    for (SMGStateAndOptionalSMGObjectAndOffset oldObj :
+        currentState.dereferencePointer(pPtrValue)) {
+      currentState = oldObj.getSMGState();
+      // Malloc new memory
+      ValueAndSMGState addressAndState =
+          evaluator.createHeapMemoryAndPointer(currentState, sizeInBits);
+      Value addressToNewRegion = addressAndState.getValue();
+      // New mem can not materialize, hence length 1
+      SMGObject newMemory =
+          currentState.dereferencePointer(addressToNewRegion).get(0).getSMGObject();
+      currentState = addressAndState.getState();
+      // free old memory
+      currentState =
+          currentState.copySMGObjectContentToSMGObject(
+              oldObj.getSMGObject(),
+              oldObj.getOffsetForObject(),
+              newMemory,
+              BigInteger.ZERO,
+              sizeInBits);
+      for (SMGState freedState : currentState.free(pPtrValue, functionCall, pCfaEdge)) {
+        resultBuilder.add(ValueAndSMGState.of(addressToNewRegion, freedState));
+      }
+    }
+    return resultBuilder.build();
   }
 
   // TODO: strlen

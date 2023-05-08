@@ -73,6 +73,7 @@ public final class SMGPredicateRelation {
           .result();
     }
   }
+
   /** The Multimap is used as Bi-Map, i.e. each pair (K,V) is also inserted as pair (V,K). */
   private PersistentMultimap<SMGValuesPair, SymbolicRelation> smgValuesRelation =
       PersistentMultimap.of();

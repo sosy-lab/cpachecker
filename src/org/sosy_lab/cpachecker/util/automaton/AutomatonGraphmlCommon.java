@@ -102,7 +102,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
-public class AutomatonGraphmlCommon {
+public final class AutomatonGraphmlCommon {
+
+  private AutomatonGraphmlCommon() {}
 
   private static final String CPACHECKER_TMP_PREFIX = "__CPACHECKER_TMP";
   public static final String SINK_NODE_ID = "sink";
@@ -864,7 +866,7 @@ public class AutomatonGraphmlCommon {
             AAssignment assignment = null;
             if (successorEdge instanceof FunctionCallEdge functionCallEdge) {
               FunctionSummaryEdge summaryEdge = functionCallEdge.getSummaryEdge();
-              AFunctionCall functionCall = summaryEdge.getExpression();
+              AFunctionCall functionCall = functionCallEdge.getFunctionCall();
               if (functionCall instanceof AAssignment) {
                 assignment = (AAssignment) functionCall;
                 successorEdge = summaryEdge;

@@ -10,8 +10,7 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import java.util.ArrayList;
+import com.google.common.collect.Lists;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -50,10 +48,7 @@ final class ForeignDefUseData {
   public static ForeignDefUseData extract(
       CFA pCfa, EdgeDefUseData.Extractor pDefUseExtractor, GlobalPointerState pPointerState) {
 
-    List<CFAEdge> edges = new ArrayList<>();
-    for (CFANode node : pCfa.getAllNodes()) {
-      Iterables.addAll(edges, CFAUtils.allLeavingEdges(node));
-    }
+    List<CFAEdge> edges = Lists.newArrayList(CFAUtils.allEdges(pCfa));
 
     Map<AFunctionDeclaration, Set<AFunctionDeclaration>> calledFunctions = new HashMap<>();
     for (CFAEdge edge : edges) {

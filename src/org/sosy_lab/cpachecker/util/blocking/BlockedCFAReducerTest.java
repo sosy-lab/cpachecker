@@ -205,7 +205,8 @@ public class BlockedCFAReducerTest {
     funct.addEdge(n25, n26);
     funct.addEdge(n26, exitNode);
 
-    boolean sequenceApplied, choiceApplied;
+    boolean sequenceApplied;
+    boolean choiceApplied;
     do {
       Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
       assertCfaIsEmpty(inlinedCfa);
@@ -233,7 +234,8 @@ public class BlockedCFAReducerTest {
     funct.addEdge(n6, n4);
     funct.addEdge(n4, exitNode);
 
-    boolean sequenceApplied, choiceApplied;
+    boolean sequenceApplied;
+    boolean choiceApplied;
     do {
       Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
       assertCfaIsEmpty(inlinedCfa);
@@ -263,7 +265,8 @@ public class BlockedCFAReducerTest {
     funct.addEdge(n4, n10);
     funct.addEdge(n10, exitNode);
 
-    boolean sequenceApplied, choiceApplied;
+    boolean sequenceApplied;
+    boolean choiceApplied;
     do {
       Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = funct.getInlinedCfa();
       assertCfaIsEmpty(inlinedCfa);

@@ -85,7 +85,7 @@ public class InputTransferRelation extends SingleEdgeTransferRelation {
         AExpression functionNameExpression = callExpression.getFunctionNameExpression();
         if (functionNameExpression instanceof AIdExpression functionIdExpression) {
           String functionName = functionIdExpression.getName();
-          FunctionEntryNode functionEntryNode = cfa.getAllFunctions().get(functionName);
+          FunctionEntryNode functionEntryNode = cfa.getFunctionHead(functionName);
           if (functionEntryNode == null) {
             // External function
             return InputState.forInputs(ImmutableSet.of(lhsVariable, functionName));

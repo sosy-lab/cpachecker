@@ -18,6 +18,7 @@ package org.sosy_lab.cpachecker.cpa.statistics;
 public interface StatisticsProvider {
   /** The name of the metric this provider provides. */
   String getPropertyName();
+
   /** The type of merging this provider is configured for */
   String getMergeType();
 

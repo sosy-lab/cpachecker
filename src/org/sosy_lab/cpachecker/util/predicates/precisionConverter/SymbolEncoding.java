@@ -112,7 +112,7 @@ public class SymbolEncoding {
 
   /** create symbol encoding with information about symbol from variables of the CFA */
   public SymbolEncoding(CFA pCfa) {
-    decls = getAllDeclarations(pCfa.getAllNodes());
+    decls = getAllDeclarations(pCfa.nodes());
     machineModel = pCfa.getMachineModel();
 
     encodedSymbols.put("true", new Type<FormulaType<?>>(FormulaType.BooleanType));
@@ -250,13 +250,13 @@ public class SymbolEncoding {
     private final ImmutableList<T> parameterTypes;
 
     public Type(T pReturnType, ImmutableList<T> pParameterTypes) {
-      this.returnType = pReturnType;
-      this.parameterTypes = pParameterTypes;
+      returnType = pReturnType;
+      parameterTypes = pParameterTypes;
     }
 
     public Type(T pReturnType) {
-      this.returnType = pReturnType;
-      this.parameterTypes = ImmutableList.of();
+      returnType = pReturnType;
+      parameterTypes = ImmutableList.of();
     }
 
     public T getReturnType() {
@@ -268,7 +268,7 @@ public class SymbolEncoding {
     }
 
     public void setSigness(boolean pSigned) {
-      this.signed = pSigned;
+      signed = pSigned;
     }
 
     public boolean isSigned() {

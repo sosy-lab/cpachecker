@@ -1297,6 +1297,9 @@ cpa.arg.export.code.header = true
 # this file
 cpa.arg.export.code.metadataOutput = no default value
 
+# when enabled also write invariant true to correctness-witness automata
+cpa.arg.exportTrueInvariants = false
+
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
 
@@ -1360,6 +1363,13 @@ cpa.arg.witness.exportAssumptions = true
 
 # Verification witness: Include function calls and function returns?
 cpa.arg.witness.exportFunctionCallsAndReturns = true
+
+# Export invariants in correctness witness also if location was not explored
+cpa.arg.witness.exportInvariantsForNonExploredStates = true
+
+# Export witness that is a combination of multiple (partial) correctness
+# witnesses, do not export default invariants
+cpa.arg.witness.exportJointWitnesses = false
 
 # Verification witness: Include the (starting) line numbers of the operations
 # on the transitions?
@@ -1725,9 +1735,6 @@ cpa.dca.refiner.dotExport = false
 # replaced by the automaton name.
 cpa.dca.refiner.dotExportFile = "%s.dot"
 
-# If set to true, all infeasible dummy states will be kept in the ARG.
-cpa.dca.refiner.keepInfeasibleStates = false
-
 # The max amount of refinements for the trace abstraction algorithm. Setting
 # it to 0 leads to an analysis of the ARG without executing any refinements.
 # This is used for debugging purposes.
@@ -2067,6 +2074,9 @@ cpa.predicate.abstraction.simplify = false
 # What to use for storing abstractions
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, FORMULA]
+
+# Export abstraction formulas as (way more readable) expressions.
+cpa.predicate.abstractions.asExpressions = false
 
 # Export one abstraction formula for each abstraction state into a file?
 cpa.predicate.abstractions.export = true
@@ -2991,6 +3001,14 @@ cpa.smg2.assignEqualityAssumptions = true
 # Treat symbolic values as unknowns and assign new concrete values to them.
 cpa.smg2.assignSymbolicValues = true
 
+# with this option enabled, memory addresses (pointers) are transformed into
+# a numeric assumption upon casting the pointer to a number. This assumption
+# can be returned to a proper pointer by casting it back. This enables
+# numeric operations beyond pointer arithmetics, but loses precision for
+# comparisons/assumptions, as the numeric assumption is static. May be
+# unsound!
+cpa.smg2.castMemoryAddressesToNumeric = false
+
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
 cpa.smg2.checkForMemLeaksAtEveryFrameDrop = true
@@ -3061,8 +3079,13 @@ cpa.smg2.initialPredicatePrecisionFile = no default value
 # 'merge=JOIN'
 cpa.smg2.joinOnBlockEnd = true
 
+# If this option is enabled, a call to malloc with value zero results in a
+# return value that is equal to zero. If this option is disabled, a non-zero
+# memory section that may not be accessed but freed is returned.
+cpa.smg2.mallocZeroReturnsZero = false
+
 # Memory allocation functions
-cpa.smg2.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc", "realloc"}
+cpa.smg2.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc"}
 
 # Size parameter of memory allocation functions
 cpa.smg2.memoryAllocationFunctionsSizeParameter = 0
@@ -4927,6 +4950,9 @@ witness.strictChecking = true
 # neccessary.This option is intended to be used with an ISA (c.f. option
 # witness.invariantsSpecificationAutomaton)
 witness.useInvariantsAsAssumptions = true
+
+# extend name of each witness automaton with a unique id
+witness.useUniqueName = false
 
 # Validate program using invariants from ACSL annotations.
 witness.validation.correctness.acsl = false

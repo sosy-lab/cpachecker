@@ -28,6 +28,7 @@ public final class PolicyIntermediateState extends PolicyState {
   private final PolicyAbstractedState startingAbstraction;
 
   private @Nullable transient ImmutableList<ValueAssignment> counterexample = null;
+
   /** Meta-information for determining the coverage. */
   private @Nullable transient PolicyIntermediateState mergedInto = null;
 

@@ -433,12 +433,11 @@ public class TestCaseExporter {
 
   private List<String> mutateInputValues(final List<String> origInputs) {
     List<String> newInput = new ArrayList<>(origInputs);
-    double prob, origVal;
     int val;
     for (int i = 0; i < newInput.size(); i++) {
       try {
-        origVal = Double.parseDouble(newInput.get(i));
-        prob = randomGen.nextDouble();
+        double origVal = Double.parseDouble(newInput.get(i));
+        double prob = randomGen.nextDouble();
         if (prob < 0.02) {
           val = Integer.MIN_VALUE; // MIN
         } else if (prob < 0.04) {

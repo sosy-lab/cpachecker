@@ -888,13 +888,8 @@ public class OctagonTransferRelation
 
   @Override
   protected Set<OctagonState> handleFunctionReturnEdge(
-      CFunctionReturnEdge cfaEdge,
-      CFunctionSummaryEdge fnkCall,
-      CFunctionCall summaryExpr,
-      String callerFunctionName)
+      CFunctionReturnEdge cfaEdge, CFunctionCall exprOnSummary, String callerFunctionName)
       throws CPATransferException {
-    CFunctionCall exprOnSummary = fnkCall.getExpression();
-
     String calledFunctionName = cfaEdge.getPredecessor().getFunctionName();
 
     // expression is an assignment operation, e.g. a = g(b);
@@ -914,7 +909,7 @@ public class OctagonTransferRelation
           state.getVariableIndexFor(
               MemoryLocation.forLocalVariable(
                   calledFunctionName,
-                  fnkCall.getFunctionEntry().getReturnVariable().orElseThrow().getName()));
+                  cfaEdge.getFunctionEntry().getReturnVariable().orElseThrow().getName()));
 
       if (returnVarIndex == -1) {
         state = state.forget(assignedVarName);
