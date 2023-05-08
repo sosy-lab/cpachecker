@@ -151,7 +151,7 @@ public class STBridges {
   public static BridgeComponents computeBridges(CFA pCFA) {
     Map<CFANode, Integer> comp = new LinkedHashMap<>();
     FunctionExitNode exitNode = pCFA.getMainFunction().getExitNode().orElseThrow();
-    for (CFANode node : pCFA.getAllNodes()) {
+    for (CFANode node : pCFA.nodes()) {
       comp.put(node, 0);
     }
     List<CFAEdge> path = findPathFromMainToExit(pCFA);

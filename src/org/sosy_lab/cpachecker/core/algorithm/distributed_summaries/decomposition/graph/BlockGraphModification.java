@@ -140,7 +140,7 @@ public class BlockGraphModification {
     return new Modification(
         new ImmutableCFA(
             instrumentedCFA.getAllFunctions(),
-            ImmutableSet.copyOf(instrumentedCFA.getAllNodes()),
+            ImmutableSet.copyOf(instrumentedCFA.nodes()),
             metadata),
         adaptBlockGraph(pBlockGraph, instrumentedCFA.getMainFunction(), mapping),
         unableToAbstract.build());
