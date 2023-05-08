@@ -18,6 +18,8 @@ import java.util.Base64;
 
 public class BlockSummarySerializeUtil {
 
+  private BlockSummarySerializeUtil() {}
+
   public static <T extends Serializable> String serialize(T pObject) throws IOException {
     try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
         ObjectOutputStream out = new ObjectOutputStream(bos)) {

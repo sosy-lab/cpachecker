@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class BlockGraphModification {
 
+  private BlockGraphModification() {}
+
   public record Modification(
       CFA cfa, BlockGraph blockGraph, ImmutableSet<CFANode> unableToAbstract) {}
 
