@@ -344,7 +344,8 @@ public class ConstraintSystem {
 
     for (ComplexConstraint cc : cConstr) {
 
-      String srcStr, destStr;
+      String srcStr;
+      String destStr;
 
       if (cc.isSubDerefed()) {
 

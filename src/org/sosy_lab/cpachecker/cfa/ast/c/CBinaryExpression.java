@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CBinaryExpression extends ABinaryExpression implements CExpression {
@@ -27,6 +30,11 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
       final BinaryOperator pOperator) {
     super(pFileLocation, pExpressionType, pOperand1, pOperand2, pOperator);
     calculationType = pCalculationType;
+    checkArgument(
+        pOperator.isLogicalOperator()
+            || pOperator == BinaryOperator.PLUS
+            || pOperator == BinaryOperator.MINUS
+            || !(calculationType.getCanonicalType() instanceof CPointerType));
   }
 
   @Override

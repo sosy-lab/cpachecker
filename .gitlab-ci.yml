@@ -12,7 +12,7 @@ variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: 16c07156f0dabdb1a9cb3c98206b7df680b0a4f3
+  REFASTER_REPO_REVISION: 31cd8ffc4966957e156665dbba76679ade5bb5c9
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
   REFASTER_VERSION: 2.18.0
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
@@ -233,9 +233,9 @@ check-format-python:
   needs: []
   image: python
   before_script:
-    - pip install black
+    - pip install 'black[jupyter]<2024'
   script:
-    - black . --check --diff --include='contrib/.*\.py'
+    - black . --check --diff
   <<: *pip-cache
 
 flake8:

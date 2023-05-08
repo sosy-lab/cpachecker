@@ -129,7 +129,7 @@ public class InvariantExportAlgorithm implements Algorithm {
     logger.log(Level.INFO, "Checking for invariants to export ...");
     ExpressionTreeSupplier supplier = getCurrentSupplier();
     ImmutableSet.Builder<InvariantWitness> witnesses = ImmutableSet.builder();
-    for (CFANode node : cfa.getAllNodes()) {
+    for (CFANode node : cfa.nodes()) {
       ExpressionTree<Object> invariant = supplier.getInvariantFor(node);
 
       if (invariant.equals(ExpressionTrees.getTrue())) {

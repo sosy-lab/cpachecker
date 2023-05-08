@@ -161,13 +161,11 @@ public class ExpressionToFormulaVisitor
 
     final boolean signed;
     if (calculationType instanceof CSimpleType) {
-      // this only gives the right value for "signed" because calculationType was determined using
-      // getCanonicalType, which e.g. converts a CNumericType.INT into a CNumericType.SIGNED_INT:
       signed = conv.machineModel.isSigned((CSimpleType) calculationType);
-    } else if (calculationType instanceof CPointerType) {
-      // pointers can also be signed if the machine model represents them using a signed type:
-      signed = conv.machineModel.getPointerEquivalentSimpleType().getCanonicalType().isSigned();
     } else {
+      // For pointers: happens only for additions/subtractions (for which signedness is irrelevant)
+      // and comparisons. GCC implements pointer comparisons as unsigned.
+      // For other types like structs signedness should be irrelevant as well.
       signed = false;
     }
 
@@ -399,12 +397,7 @@ public class ExpressionToFormulaVisitor
     if (idExp.getDeclaration() instanceof CEnumerator) {
       CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
       CType t = idExp.getExpressionType();
-      if (enumerator.hasValue()) {
-        return mgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
-      } else {
-        // We don't know the value here, but we know it is constant.
-        return conv.makeConstant(enumerator.getName(), t);
-      }
+      return mgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
     }
 
     return conv.makeVariable(

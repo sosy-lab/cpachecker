@@ -98,9 +98,7 @@ public class TestTargetCPA extends AbstractCPA {
         int predNum = Integer.parseInt(components.get(0));
         int edgeID = Integer.parseInt(components.get(1));
         Optional<CFANode> pred =
-            pCfa.getAllNodes().stream()
-                .filter(node -> (node.getNodeNumber() == predNum))
-                .findFirst();
+            pCfa.nodes().stream().filter(node -> (node.getNodeNumber() == predNum)).findFirst();
         if (pred.isPresent()) {
           for (CFAEdge edge : CFAUtils.allLeavingEdges(pred.orElseThrow())) {
             if (System.identityHashCode(edge) == edgeID) {

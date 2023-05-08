@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
@@ -95,6 +96,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.cpa.acsl.ACSLState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition.Scope;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
@@ -1760,6 +1762,20 @@ class WitnessFactory implements EdgeAppender {
   }
 
   private boolean exportInvariant(CFAEdge pEdge, Optional<Collection<ARGState>> pFromState) {
+    if (!witnessOptions.exportInvariantsForNonExploredStates() && !pFromState.isPresent()) {
+      return false;
+    }
+
+    return exportInvariant0(pEdge, pFromState)
+        && (!witnessOptions.exportJointWitnesses()
+            || (pFromState.isPresent()
+                && from(pFromState.orElseThrow())
+                    .transformAndConcat(argState -> AbstractStates.asIterable(argState))
+                    .filter(AutomatonState.class)
+                    .anyMatch(state -> !state.hasDefaultCandidateInvariants())));
+  }
+
+  private boolean exportInvariant0(CFAEdge pEdge, Optional<Collection<ARGState>> pFromState) {
     if (pFromState.isPresent()
         && pFromState.orElseThrow().stream()
             .map(AbstractStates.toState(PredicateAbstractState.class))
@@ -1829,7 +1845,7 @@ class WitnessFactory implements EdgeAppender {
       for (CFAEdge enteringEdge : CFAUtils.enteringEdges(currentNode).filter(epsilonEdge)) {
         CFANode predecessor = enteringEdge.getPredecessor();
         if (visited.add(predecessor)) {
-          waitlist.push(ImmutableList.<CFANode>builder().addAll(current).add(predecessor).build());
+          waitlist.push(listAndElement(current, predecessor));
           // isFirst = false;
         }
       }

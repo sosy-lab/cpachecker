@@ -27,6 +27,7 @@ public class WeightedGraph implements Iterable<WeightedNode> {
   private final int numNodes;
   private int totalNodeWeight;
   private final WeightedNode[] nodes;
+
   /** store for each node its out- and incoming edges (each edge is stored twice) */
   private final Map<Integer, Set<WeightedEdge>> outgoingEdges;
 
@@ -321,8 +322,8 @@ public class WeightedGraph implements Iterable<WeightedNode> {
    * Generates a partitioning, in which each node has its own partition. If there are more
    * partitions needed, than nodes in graph exist, empty partitions are added
    *
-   * @param numPartitions number of Partitions to be at least created. if numNodes<numPartitions==>
-   *     empty partitions necessary
+   * @param numPartitions number of Partitions to be at least created. if {@code
+   *     numNodes<numPartitions} ==> empty partitions necessary
    * @return A partitioning consisting of numNodes partitions
    */
   public List<Set<Integer>> getNodesSeperatelyPartitioned(int numPartitions) {

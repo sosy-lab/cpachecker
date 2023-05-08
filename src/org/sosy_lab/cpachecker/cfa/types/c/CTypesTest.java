@@ -113,13 +113,13 @@ public class CTypesTest {
         new Object[] {new CArrayType(false, false, CONSTANT_ARRAY, VAR_N), true, false, -1},
         new Object[] {new CArrayType(false, false, VARIABLE_ARRAY, TWO), true, false, -1},
         new Object[] {
-          new CElaboratedType(false, false, ComplexTypeKind.ENUM, "e", "e", null), true, true, 4
+          new CElaboratedType(false, false, ComplexTypeKind.ENUM, "e", "e", null), true, true, 4,
         },
         new Object[] {
           new CElaboratedType(false, false, ComplexTypeKind.STRUCT, "s", "s", null),
           false,
           false,
-          -1
+          -1,
         },
         new Object[] {simpleStruct, true, true, 4},
         new Object[] {arrayStruct, true, true, 8},

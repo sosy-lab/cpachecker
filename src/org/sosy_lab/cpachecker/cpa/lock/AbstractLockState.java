@@ -26,6 +26,7 @@ public abstract class AbstractLockState
     implements LatticeAbstractState<AbstractLockState>, CompatibleState {
 
   protected final AbstractLockState toRestore;
+
   // if we need restore state, we save it here
   // Used for function annotations like annotate.function_name.restore
   protected AbstractLockState() {

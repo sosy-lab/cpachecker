@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.apron.refiner;
 
-import apron.ApronException;
 import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.Collection;
@@ -135,11 +134,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
     // only with apron states, this is more precise than only using the value analysis
     // refinement
     OctagonAnalysisFeasibilityChecker apronChecker;
-    try {
-      apronChecker = createApronFeasibilityChecker(pErrorPath);
-    } catch (ApronException e) {
-      throw new RuntimeException("An error occurred while operating with the apron library", e);
-    }
+    apronChecker = createApronFeasibilityChecker(pErrorPath);
     if (!apronChecker.isFeasible()) {
       if (performApronAnalysisRefinement(reached, apronChecker)) {
         existsExplicitApronRefinement = true;
@@ -292,7 +287,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
 
   /** Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision. */
   private OctagonAnalysisFeasibilityChecker createApronFeasibilityChecker(ARGPath path)
-      throws CPAException, ApronException, InterruptedException {
+      throws CPAException, InterruptedException {
     try {
       OctagonAnalysisFeasibilityChecker checker;
 

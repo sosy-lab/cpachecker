@@ -43,12 +43,7 @@ public class ComplexConstraint extends Constraint {
 
   @Override
   public boolean equals(Object other) {
-
-    if (super.equals(other) && isSubDerefed == ((ComplexConstraint) other).isSubDerefed) {
-      return true;
-    } else {
-      return false;
-    }
+    return super.equals(other) && isSubDerefed == ((ComplexConstraint) other).isSubDerefed;
   }
 
   @Override

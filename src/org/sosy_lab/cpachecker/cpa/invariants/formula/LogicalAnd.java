@@ -25,8 +25,8 @@ public class LogicalAnd<ConstantType> implements BooleanFormula<ConstantType> {
    */
   private LogicalAnd(
       BooleanFormula<ConstantType> pOperand1, BooleanFormula<ConstantType> pOperand2) {
-    this.operand1 = pOperand1;
-    this.operand2 = pOperand2;
+    operand1 = pOperand1;
+    operand2 = pOperand2;
   }
 
   public BooleanFormula<ConstantType> getOperand1() {

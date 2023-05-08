@@ -141,8 +141,7 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
 
     @Override
     public CType visit(final CEnumType t) {
-      // refactor once #348 was improved
-      return t.getEnumerators().get(0).getType().accept(CachingCanonizingCTypeVisitor.this);
+      return t.getCompatibleType().accept(CachingCanonizingCTypeVisitor.this);
     }
 
     @Override

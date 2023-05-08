@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
@@ -32,7 +33,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 public final class SubstitutingCAstNodeVisitor
     extends AbstractTransformingCAstNodeVisitor<NoException> {
 
-  private final Function<CAstNode, CAstNode> substitution;
+  private final Function<CAstNode, @Nullable CAstNode> substitution;
 
   /**
    * Creates a {@code SubstitutingCAstNodeVisitor} instance for a specified substitution.
@@ -43,7 +44,7 @@ public final class SubstitutingCAstNodeVisitor
    *     and its children are recursively visited and check for substitution.
    * @throws NullPointerException if {@code pSubstitution == null}
    */
-  public SubstitutingCAstNodeVisitor(Function<CAstNode, CAstNode> pSubstitution) {
+  public SubstitutingCAstNodeVisitor(Function<CAstNode, @Nullable CAstNode> pSubstitution) {
     substitution = checkNotNull(pSubstitution);
   }
 

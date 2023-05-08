@@ -68,15 +68,14 @@ public class TestTargetReductionSpanningSet {
     } catch (IOException e) {
     }*/
 
-    DomTree<CFANode>
-        domTree =
-            DomTree.forGraph(
-                CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf, entryExit.getFirst()),
-        inverseDomTree =
-            entryExit.getSecond() != null
-                ? DomTree.forGraph(
-                    CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf, entryExit.getSecond())
-                : null;
+    DomTree<CFANode> domTree =
+        DomTree.forGraph(
+            CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf, entryExit.getFirst());
+    DomTree<CFANode> inverseDomTree =
+        entryExit.getSecond() != null
+            ? DomTree.forGraph(
+                CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf, entryExit.getSecond())
+            : null;
 
     for (CFAEdge targetPred : pTargets) {
       for (CFAEdge targetSucc : pTargets) {
@@ -86,7 +85,8 @@ public class TestTargetReductionSpanningSet {
         // TODO currently only approximation via dominator trees on nodes, not on edges
         if (targetPred.getSuccessor().getNumEnteringEdges() == 1
             && targetSucc.getSuccessor().getNumEnteringEdges() == 1
-            && (domTree.isAncestorOf( // pred is ancestor/dominator of succ
+            // pred is ancestor/dominator of succ
+            && (domTree.isAncestorOf(
                     targetToCopy.get(targetPred).getSuccessor(),
                     targetToCopy.get(targetSucc).getSuccessor())
                 || (inverseDomTree != null
@@ -109,7 +109,7 @@ public class TestTargetReductionSpanningSet {
   private ImmutableSet<Collection<CFAEdgeNode>> computeStronglyConnectedComponents(
       final ImmutableSet<CFAEdgeNode> nodes) {
     ImmutableSet.Builder<Collection<CFAEdgeNode>> componentsBuilder = ImmutableSet.builder();
-    Deque<CFAEdgeNode> componentElems, ordered = new ArrayDeque<>(nodes.size());
+    Deque<CFAEdgeNode> ordered = new ArrayDeque<>(nodes.size());
 
     Set<CFAEdgeNode> visited = Sets.newHashSetWithExpectedSize(nodes.size());
     for (CFAEdgeNode node : nodes) {
@@ -118,7 +118,7 @@ public class TestTargetReductionSpanningSet {
 
     visited = Sets.newHashSetWithExpectedSize(nodes.size());
     for (CFAEdgeNode node : ordered) {
-      componentElems = new ArrayDeque<>();
+      Deque<CFAEdgeNode> componentElems = new ArrayDeque<>();
       dfs(node, true, visited, componentElems);
       if (!componentElems.isEmpty()) {
         componentsBuilder.add(componentElems);
@@ -189,7 +189,8 @@ public class TestTargetReductionSpanningSet {
       Preconditions.checkArgument(!pComponent.isEmpty());
       CFAEdgeNode superNode = new CFAEdgeNode(pComponent.iterator().next().representativeTarget);
 
-      Set<CFAEdgeNode> newPred = new HashSet<>(), newSucc = new HashSet<>();
+      Set<CFAEdgeNode> newPred = new HashSet<>();
+      Set<CFAEdgeNode> newSucc = new HashSet<>();
       for (CFAEdgeNode elem : pComponent) {
         newPred.addAll(elem.predecessors);
         newSucc.addAll(elem.successors);

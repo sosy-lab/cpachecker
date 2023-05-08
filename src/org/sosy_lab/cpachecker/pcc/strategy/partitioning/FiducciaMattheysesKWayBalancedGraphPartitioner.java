@@ -99,6 +99,7 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner
     removeEmptyPartitions(partitioning);
     return partitioning;
   }
+
   /**
    * Method to remove all empty partitions from the partitioning. Empty partitions may slow down
    * proof checking phase.

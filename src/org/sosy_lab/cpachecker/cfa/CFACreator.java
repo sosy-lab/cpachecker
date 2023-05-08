@@ -100,7 +100,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.CfaToCExporter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
-import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
 /**
@@ -576,7 +575,7 @@ public class CFACreator {
     assert mainFunction != null;
 
     CfaMetadata cfaMetadata =
-        CfaMetadata.of(
+        CfaMetadata.forMandatoryAttributes(
             machineModel,
             language,
             pParseResult.getFileNames(),
@@ -610,7 +609,7 @@ public class CFACreator {
     // THIRD, do read-only post-processings on each single function CFA
 
     // Annotate CFA nodes with reverse postorder information for later use.
-    cfa.getAllFunctionHeads().forEach(CFAReversePostorder::assignIds);
+    cfa.entryNodes().forEach(CFAReversePostorder::assignIds);
 
     // get loop information
     // (needs post-order information)
@@ -636,34 +635,27 @@ public class CFACreator {
     // the cfa should not be modified after this line.
 
     // Get information about variables, needed for some analysis.
-    final Optional<VariableClassification> varClassification;
     if (language == Language.C) {
       try {
         VariableClassificationBuilder builder = new VariableClassificationBuilder(config, logger);
-        varClassification = Optional.of(builder.build(cfa));
+        cfa.setVariableClassification(builder.build(cfa));
         builder.collectStatistics(stats.statisticsCollection);
       } catch (UnrecognizedCodeException e) {
         throw new CParserException(e);
       }
-    } else {
-      varClassification = Optional.empty();
     }
 
     // create the live variables if the variable classification is present
-    if (findLiveVariables && (varClassification.isPresent() || cfa.getLanguage() != Language.C)) {
+    if (findLiveVariables
+        && (cfa.getVarClassification().isPresent() || cfa.getLanguage() != Language.C)) {
       cfa.setLiveVariables(
           LiveVariables.create(
-              varClassification,
-              pParseResult.getGlobalDeclarations(),
-              cfa,
-              logger,
-              shutdownNotifier,
-              config));
+              pParseResult.getGlobalDeclarations(), cfa, logger, shutdownNotifier, config));
     }
 
     stats.processingTime.stop();
 
-    final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
+    final ImmutableCFA immutableCFA = cfa.immutableCopy();
 
     if (pParseResult instanceof ParseResultWithCommentLocations withCommentLocations) {
       commentPositions.addAll(withCommentLocations.getCommentLocations());
@@ -814,19 +806,17 @@ public class CFACreator {
   /** check, whether the program contains function calls to crate a new thread. */
   private boolean isMultiThreadedProgram(MutableCFA pCfa) {
     // for all possible edges
-    for (CFANode node : pCfa.getAllNodes()) {
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-        // check for creation of new thread
-        if (edge instanceof AStatementEdge) {
-          final AStatement statement = ((AStatementEdge) edge).getStatement();
-          if (statement instanceof AFunctionCall) {
-            final AExpression functionNameExp =
-                ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-            if (functionNameExp instanceof AIdExpression) {
-              if (ThreadingTransferRelation.THREAD_START.equals(
-                  ((AIdExpression) functionNameExp).getName())) {
-                return true;
-              }
+    for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
+      // check for creation of new thread
+      if (edge instanceof AStatementEdge) {
+        final AStatement statement = ((AStatementEdge) edge).getStatement();
+        if (statement instanceof AFunctionCall) {
+          final AExpression functionNameExp =
+              ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression) {
+            if (ThreadingTransferRelation.THREAD_START.equals(
+                ((AIdExpression) functionNameExp).getName())) {
+              return true;
             }
           }
         }

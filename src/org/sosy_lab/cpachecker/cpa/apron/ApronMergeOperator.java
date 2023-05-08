@@ -53,18 +53,18 @@ public class ApronMergeOperator {
     }
   }
 
-  private ApronMergeOperator(ApronDomain domain, Configuration config)
+  private ApronMergeOperator(ApronDomain pDomain, Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
-    this.domain = domain;
+    this.domain = pDomain;
   }
 
   @Options(prefix = "cpa.apron.mergeop")
   class ApronMergeJoinOperator extends ApronMergeOperator implements MergeOperator {
 
-    private ApronMergeJoinOperator(ApronDomain domain, Configuration config)
+    private ApronMergeJoinOperator(ApronDomain pDomain, Configuration config)
         throws InvalidConfigurationException {
-      super(domain, config);
+      super(pDomain, config);
     }
 
     @Override
@@ -82,9 +82,9 @@ public class ApronMergeOperator {
   @Options(prefix = "cpa.apron.mergeop")
   class ApronMergeWideningOperator extends ApronMergeOperator implements MergeOperator {
 
-    private ApronMergeWideningOperator(ApronDomain domain, Configuration config)
+    private ApronMergeWideningOperator(ApronDomain pDomain, Configuration config)
         throws InvalidConfigurationException {
-      super(domain, config);
+      super(pDomain, config);
     }
 
     @Override

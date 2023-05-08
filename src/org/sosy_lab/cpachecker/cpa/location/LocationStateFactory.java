@@ -43,7 +43,7 @@ public class LocationStateFactory {
     locationType = checkNotNull(pLocationType);
 
     ImmutableSortedSet<CFANode> allNodes;
-    Collection<CFANode> tmpNodes = pCfa.getAllNodes();
+    Collection<CFANode> tmpNodes = pCfa.nodes();
     if (tmpNodes instanceof ImmutableSortedSet) {
       allNodes = (ImmutableSortedSet<CFANode>) tmpNodes;
     } else {

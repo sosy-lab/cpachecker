@@ -142,8 +142,7 @@ public class ReferencedVariablesCollector {
           }
           for (CExpression parameter :
               functionCallEdge
-                  .getSummaryEdge()
-                  .getExpression()
+                  .getFunctionCall()
                   .getFunctionCallExpression()
                   .getParameterExpressions()) {
             Set<String> vars = collectVars(parameter);

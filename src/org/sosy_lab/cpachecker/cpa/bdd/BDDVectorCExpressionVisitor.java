@@ -309,11 +309,7 @@ public class BDDVectorCExpressionVisitor
   public Region[] visit(CIdExpression idExp) {
     if (idExp.getDeclaration() instanceof CEnumerator) {
       CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
-      if (enumerator.hasValue()) {
-        return bvmgr.makeNumber(enumerator.getValue(), getSize(idExp.getExpressionType()));
-      } else {
-        return null;
-      }
+      return bvmgr.makeNumber(enumerator.getValue(), getSize(idExp.getExpressionType()));
     }
 
     return predMgr.createPredicate(

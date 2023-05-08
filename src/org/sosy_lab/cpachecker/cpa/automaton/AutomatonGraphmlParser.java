@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
@@ -57,6 +59,7 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -75,7 +78,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
@@ -139,6 +141,8 @@ public class AutomatonGraphmlParser {
   private static final String DISTANCE_TO_VIOLATION = "__DISTANCE_TO_VIOLATION";
 
   public static final String WITNESS_AUTOMATON_NAME = "WitnessAutomaton";
+
+  public static final UniqueIdGenerator idGen = new UniqueIdGenerator();
 
   @Option(
       secure = true,
@@ -224,6 +228,9 @@ public class AutomatonGraphmlParser {
               + " neccessary.This option is intended to be used with an ISA (c.f. option"
               + " witness.invariantsSpecificationAutomaton)")
   private boolean useInvariantsAsAssumptions = true;
+
+  @Option(secure = true, description = "extend name of each witness automaton with a unique id")
+  private boolean useUniqueName = false;
 
   private Scope scope;
   private final LogManager logger;
@@ -1036,6 +1043,9 @@ public class AutomatonGraphmlParser {
     if (nameAttribute != null) {
       automatonName += "_" + nameAttribute.getTextContent();
     }
+    if (useUniqueName) {
+      automatonName += "_" + idGen.getFreshId();
+    }
 
     Map<String, GraphMLState> states = new LinkedHashMap<>();
     Multimap<GraphMLState, GraphMLTransition> enteringTransitions = LinkedHashMultimap.create();
@@ -1804,14 +1814,15 @@ public class AutomatonGraphmlParser {
         new AutomatonTransition.Builder(pTriggers, pTargetState.getId())
             .withAssertions(
                 pLeadsToViolationNode
-                    ? ImmutableList.<AutomatonBoolExpr>builder()
-                        .addAll(pAssertions)
-                        .add(createViolationAssertion())
-                        .build()
+                    ? listAndElement(pAssertions, createViolationAssertion())
                     : pAssertions)
             .withAssumptions(pAssumptions)
             .withCandidateInvariants(pCandidateInvariants)
             .withActions(pActions);
+
+    if (!pTargetState.getInvariants().isEmpty()) {
+      builder.withNonDefaultCandidateInvariants();
+    }
     if (pLeadsToViolationNode) {
       return new TargetInformationCopyingAutomatonTransition(builder);
     }
@@ -1875,14 +1886,12 @@ public class AutomatonGraphmlParser {
     if (optimizeISA) {
       List<CFAEdge> stateChangingEdges = new ArrayList<>();
       List<CFAEdge> nonStateChangingEdges = new ArrayList<>();
-      for (CFANode node : cfa.getAllNodes()) {
-        for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-          if (EnumSet.of(CFAEdgeType.BlankEdge, CFAEdgeType.AssumeEdge)
-              .contains(edge.getEdgeType())) {
-            nonStateChangingEdges.add(edge);
-          } else {
-            stateChangingEdges.add(edge);
-          }
+      for (CFAEdge edge : cfa.edges()) {
+        if (EnumSet.of(CFAEdgeType.BlankEdge, CFAEdgeType.AssumeEdge)
+            .contains(edge.getEdgeType())) {
+          nonStateChangingEdges.add(edge);
+        } else {
+          stateChangingEdges.add(edge);
         }
       }
       AutomatonBoolExpr changingTransition =
@@ -2244,6 +2253,7 @@ public class AutomatonGraphmlParser {
     return message;
   }
 
+  @FunctionalInterface
   private interface InputHandler<T, E extends Throwable> {
 
     T handleInput(InputStream pInputStream) throws E, IOException, InterruptedException;

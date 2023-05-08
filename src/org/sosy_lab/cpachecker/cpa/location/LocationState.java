@@ -53,11 +53,11 @@ public class LocationState
 
     @Override
     public Iterable<CFAEdge> getOutgoingEdges() {
-      return super.getIngoingEdges();
+      return super.getIncomingEdges();
     }
 
     @Override
-    public Iterable<CFAEdge> getIngoingEdges() {
+    public Iterable<CFAEdge> getIncomingEdges() {
       return super.getOutgoingEdges();
     }
   }
@@ -86,7 +86,7 @@ public class LocationState
   }
 
   @Override
-  public Iterable<CFAEdge> getIngoingEdges() {
+  public Iterable<CFAEdge> getIncomingEdges() {
     if (followFunctionCalls) {
       return enteringEdges(locationNode);
 

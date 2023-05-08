@@ -33,10 +33,10 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final CachingCanonizingCTypeVisitor canonizingVisitor =
       new CachingCanonizingCTypeVisitor(
-          /*ignoreConst=*/ true, /*ignoreVolatile=*/ true, /*ignoreSignedness=*/ false);
+          /* ignoreConst= */ true, /* ignoreVolatile= */ true, /* ignoreSignedness= */ false);
   private final CachingCanonizingCTypeVisitor canonizingVisitorWithoutSignedness =
       new CachingCanonizingCTypeVisitor(
-          /*ignoreConst=*/ true, /*ignoreVolatile=*/ true, /*ignoreSignedness=*/ true);
+          /* ignoreConst= */ true, /* ignoreVolatile= */ true, /* ignoreSignedness= */ true);
 
   private final IdentityHashMap<CType, String> pointerNameCache = new IdentityHashMap<>();
 

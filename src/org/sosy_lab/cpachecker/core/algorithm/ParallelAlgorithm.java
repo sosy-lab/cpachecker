@@ -196,6 +196,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  @SuppressWarnings("checkstyle:IllegalThrows")
   private void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
       throws InterruptedException, Error, CPAException {
 

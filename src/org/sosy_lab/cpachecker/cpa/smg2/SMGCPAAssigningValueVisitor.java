@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -53,7 +53,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       boolean pTruthValue,
       SMGOptions pOptions,
       Collection<String> booleanVariables) {
-    super(pEvaluator, currentState, edge, pLogger);
+    super(pEvaluator, currentState, edge, pLogger, pOptions);
     booleans = booleanVariables;
     truthValue = pTruthValue;
     options = pOptions;
@@ -74,11 +74,13 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     ImmutableList.Builder<ValueAndSMGState> finalValueAndStateBuilder = ImmutableList.builder();
 
     for (ValueAndSMGState leftValueAndState :
-        lVarInBinaryExp.accept(new SMGCPAValueVisitor(evaluator, initialState, edge, logger))) {
+        lVarInBinaryExp.accept(
+            new SMGCPAValueVisitor(evaluator, initialState, edge, logger, options))) {
       Value leftValue = leftValueAndState.getValue();
       for (ValueAndSMGState rightValueAndState :
           rVarInBinaryExp.accept(
-              new SMGCPAValueVisitor(evaluator, leftValueAndState.getState(), edge, logger))) {
+              new SMGCPAValueVisitor(
+                  evaluator, leftValueAndState.getState(), edge, logger, options))) {
         Value rightValue = rightValueAndState.getValue();
         SMGState currentState = rightValueAndState.getState();
 
@@ -86,21 +88,21 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         if (isEqualityAssumption(binaryOperator)) {
           currentState =
               handleEqualityAssumption(
-                  lVarInBinaryExp, leftValue, rVarInBinaryExp, rightValue, currentState);
+                  lVarInBinaryExp, leftValue, rVarInBinaryExp, rightValue, currentState, edge);
         }
 
         // !(a == b) case
         if (isNonEqualityAssumption(binaryOperator)) {
           currentState =
               handleInEqualityAssumption(
-                  lVarInBinaryExp, leftValue, rVarInBinaryExp, rightValue, currentState);
+                  lVarInBinaryExp, leftValue, rVarInBinaryExp, rightValue, currentState, edge);
         }
 
         // TODO: AND, OR ?
 
         // The states are set such that now we get the values we want in the value visitor
         finalValueAndStateBuilder.addAll(
-            pE.accept(new SMGCPAValueVisitor(evaluator, currentState, edge, logger)));
+            pE.accept(new SMGCPAValueVisitor(evaluator, currentState, edge, logger, options)));
       }
     }
 
@@ -113,7 +115,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       Value leftValue,
       CExpression rVarInBinaryExp,
       Value rightValue,
-      SMGState currentState)
+      SMGState currentState,
+      CFAEdge edge)
       throws CPATransferException {
     SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
     SMGState initialState = super.getInitialVisitorState();
@@ -139,15 +142,22 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
         if (isAssignable(leftHandSideAssignments)) {
 
-          CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
-          BigInteger size = evaluator.getBitSizeof(currentState, type);
+          CType lType = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
+          BigInteger size = evaluator.getBitSizeof(currentState, lType);
+          if (!SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp).equals(lType)) {
+            // Cast first
+            ValueAndSMGState newRightValueAndState = castCValue(rightValue, lType, currentState);
+            rightValue = newRightValueAndState.getValue();
+            currentState = newRightValueAndState.getState();
+          }
           currentState =
               currentState.writeValueTo(
                   leftHandSideAssignment.getSMGObject(),
                   leftHandSideAssignment.getOffsetForObject(),
                   size,
                   rightValue,
-                  type);
+                  lType,
+                  edge);
 
         } else if (isEligibleForAssignment(rightValue)
             && leftValue.isExplicitlyKnown()
@@ -162,15 +172,24 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
           if (isAssignable(rightHandSideAssignments)) {
 
-            CType type = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
-            BigInteger size = evaluator.getBitSizeof(currentState, type);
+            CType rType = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
+            BigInteger size = evaluator.getBitSizeof(currentState, rType);
+
+            if (!SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp).equals(rType)) {
+              // Cast first
+              ValueAndSMGState newRightValueAndState = castCValue(leftValue, rType, currentState);
+              leftValue = newRightValueAndState.getValue();
+              currentState = newRightValueAndState.getState();
+            }
+
             currentState =
                 currentState.writeValueTo(
                     rightHandSideAssignment.getSMGObject(),
                     rightHandSideAssignment.getOffsetForObject(),
                     size,
                     leftValue,
-                    type);
+                    rType,
+                    edge);
           }
         }
       }
@@ -186,7 +205,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       Value leftValue,
       CExpression rVarInBinaryExp,
       Value rightValue,
-      SMGState currentState)
+      SMGState currentState,
+      CFAEdge edge)
       throws CPATransferException {
 
     SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
@@ -215,7 +235,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                   leftHandSideAssignment.getOffsetForObject(),
                   size,
                   new NumericValue(1L),
-                  type);
+                  type,
+                  edge);
         }
       }
     }
@@ -244,7 +265,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                   rightHandSideAssignment.getOffsetForObject(),
                   size,
                   new NumericValue(1L),
-                  type);
+                  type,
+                  edge);
         }
       }
     }
@@ -329,7 +351,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               super.getInitialVisitorEvaluator(),
               currentState,
               super.getInitialVisitorCFAEdge(),
-              super.getInitialVisitorLogger());
+              super.getInitialVisitorLogger(),
+              options);
       // The exception is only thrown if an invalid statement is detected i.e. usage of undeclared
       // variable. Invalid input like constants are returned as empty optional
       return expression.accept(av);
@@ -369,9 +392,9 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
    *
    * @param expr {@link CExpression} you want the qualified name for.
    * @return the qualified name of the variable expression.
-   * @throws SMG2Exception in case of a critical error.
+   * @throws SMGException in case of a critical error.
    */
-  private String getExtendedQualifiedName(CExpression expr) throws SMG2Exception {
+  private String getExtendedQualifiedName(CExpression expr) throws SMGException {
     if (expr instanceof CIdExpression) {
       return ((CIdExpression) expr).getName();
     } else if (expr instanceof CArraySubscriptExpression) {
@@ -382,7 +405,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     } else if (expr instanceof CPointerExpression) {
       return expr.toQualifiedASTString();
     }
-    throw new SMG2Exception("Internal error when getting the qualified name of a CExpression.");
+    throw new SMGException("Internal error when getting the qualified name of a CExpression.");
   }
 
   /**

@@ -554,7 +554,9 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
    */
   private boolean findInvariantPartOfPathFormulaWithWeakening(
       final CFANode pLocation, final PathFormula pBlockFormula, ShutdownNotifier pInvariantShutdown)
-      throws SolverException, InterruptedException, CPATransferException,
+      throws SolverException,
+          InterruptedException,
+          CPATransferException,
           InvalidConfigurationException {
     assert semiCNFConverter != null;
 

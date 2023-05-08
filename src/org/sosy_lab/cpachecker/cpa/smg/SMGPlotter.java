@@ -359,7 +359,8 @@ public final class SMGPlotter {
       SMGValue v1,
       SMGValue v2,
       PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
-    String toNodeStr, toNode;
+    String toNodeStr;
+    String toNode;
     if (v2.isZero()) {
       final String newLabel = newNullLabel();
       toNode = newLabel;

@@ -144,18 +144,45 @@ We use javac, the Eclipse Java Compiler,
 for findings bugs in the source, and we keep CPAchecker
 free of warnings from all these tools.
 You can run them all at once (plus the unit tests) with `ant all-checks`.
+There is one additional check (Refaster) that is not included
+because it needs additional setup, cf. below.
 
-Our [BuildBot](https://buildbot.sosy-lab.org/cpachecker/)
+Our [CI](https://gitlab.com/sosy-lab/software/cpachecker/-/pipelines)
 will also execute these checks and send mails to the developer list
 (cf. [`Mailing.md`](Mailing.md), please apply for membership if you commit to CPAchecker).
 
 If any of these tools or the unit tests find a problem,
 please fix them as soon as possible (ideally before committing).
 
-The BuildBot also executes integration tests with thousands of CPAchecker runs
-in various configurations on every commit and checks for regression.
+Additionally, our [BuildBot](https://buildbot.sosy-lab.org/cpachecker/)
+executes integration tests with thousands of CPAchecker runs
+in various configurations on every commit to `trunk` and checks for regression.
 All major projects and configurations within CPAchecker should be part of this test suite.
 Please refer to [`Test.md`](Test.md) for more information.
+
+Refaster Setup
+--------------
+(Note that the current version of Refaster has trouble with Java 17
+ and is not expected to work with our full rule set.)
+
+[Refaster](https://errorprone.info/docs/refaster) is a way to extend Google Error Prone
+with custom rules, and we have a [collection of such rules](https://gitlab.com/sosy-lab/software/refaster).
+To apply them to CPAchecker, the following setup is required:
+- Checkout rule repository with `git clone https://gitlab.com/sosy-lab/software/refaster.git` to some directory.
+- Add the following line to `build.properties` in the CPAchecker project directory:
+  ```
+  refaster.rule.file=/PATH_TO_YOUR_REFASTER_RULES_CHECKOUT/rule.refaster
+  ```
+- Then from time to time update the rules checkout
+  (the desired revision can be seen with `grep REFASTER_REPO_REVISION .gitlab-ci.yml` in the CPAchecker directory)
+  and compile the rules with the following command in the rules directory:
+  ```
+  ant build-refaster-rule -Drefaster.source.pattern=**/*.java -Derrorprone.version=ERROR_PRONE_VERSION
+  ```
+  (The desired Error Prone version can be seen with `grep REFASTER_VERSION .gitlab-ci.yml` in the CPAchecker directory.)
+
+Now you can execute the rules with `ant refaster`
+and an `error-prone.patch` file with the result will be created if there are recommendations.
 
 
 Debugging

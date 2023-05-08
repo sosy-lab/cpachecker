@@ -219,12 +219,11 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
             MultimapBuilder.treeKeys().arrayListValues().build();
 
         List<AbstractionPredicate> predicates = new ArrayList<>();
-        // get atom predicates from invariant
         if (options.splitIntoAtoms) {
+          // get atom predicates from invariant
           predicates.addAll(splitToPredicates(invariant));
-        }
-        // get predicate from invariant
-        else {
+        } else {
+          // get predicate from invariant
           predicates.add(
               abstractionManager.makePredicate(
                   invariant.getFormula(formulaManagerView, pathFormulaManager, null)));

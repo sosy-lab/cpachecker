@@ -1572,7 +1572,7 @@ class ASTConverter {
     if (!matchingImportDeclaration.isPresent()) {
       try {
         cls = Class.forName("java.lang." + pClassName);
-      } catch (ClassNotFoundException pE) {
+      } catch (ClassNotFoundException e) {
         return Optional.empty();
       }
     } else {
@@ -1580,7 +1580,7 @@ class ASTConverter {
         cls =
             Class.forName(
                 matchingImportDeclaration.orElseThrow().getName().getFullyQualifiedName());
-      } catch (ClassNotFoundException pE) {
+      } catch (ClassNotFoundException e) {
         return Optional.empty();
       }
     }
@@ -1682,7 +1682,7 @@ class ASTConverter {
               Optional.of(
                   Class.forName(
                       matchingImportDeclaration.orElseThrow().getName().getFullyQualifiedName()));
-        } catch (ClassNotFoundException pE) {
+        } catch (ClassNotFoundException e) {
           cls = Optional.empty();
         }
       }
@@ -1690,7 +1690,7 @@ class ASTConverter {
         try {
           cls = Optional.of(Class.forName(jTypeName));
 
-        } catch (ClassNotFoundException pE) {
+        } catch (ClassNotFoundException e) {
           cls = Optional.empty();
         }
       }
@@ -1699,7 +1699,7 @@ class ASTConverter {
           final String className = "java.lang." + jTypeName;
           cls = Optional.of(Class.forName(className));
 
-        } catch (ClassNotFoundException pE) {
+        } catch (ClassNotFoundException e) {
 
           cls = Optional.empty();
         }

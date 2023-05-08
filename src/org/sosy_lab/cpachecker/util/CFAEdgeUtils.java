@@ -96,7 +96,7 @@ public final class CFAEdgeUtils {
         return assignment.getRightHandSide();
       }
     } else if (pEdge instanceof CFunctionCallEdge functionCallEdge) {
-      CFunctionCall functionCall = functionCallEdge.getSummaryEdge().getExpression();
+      CFunctionCall functionCall = functionCallEdge.getFunctionCall();
       if (functionCall instanceof CFunctionCallAssignmentStatement assignment) {
         return assignment.getRightHandSide();
       }
