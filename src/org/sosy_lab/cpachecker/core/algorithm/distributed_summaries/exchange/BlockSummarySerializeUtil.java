@@ -32,9 +32,9 @@ public class BlockSummarySerializeUtil {
             new ByteArrayInputStream(Base64.getDecoder().decode(pSerialize));
         ObjectInputStream in = new ObjectInputStream(bis)) {
       return pClass.cast(in.readObject());
-    } catch (IOException | ClassNotFoundException pE) {
+    } catch (IOException | ClassNotFoundException e) {
       // in no scenario deserializing a message should cause exceptions
-      throw new AssertionError(pE);
+      throw new AssertionError(e);
     }
   }
 }

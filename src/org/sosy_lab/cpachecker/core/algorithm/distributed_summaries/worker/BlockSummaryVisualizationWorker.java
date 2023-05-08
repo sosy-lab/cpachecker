@@ -35,11 +35,11 @@ public class BlockSummaryVisualizationWorker extends BlockSummaryWorker {
     messageLogger = new BlockSummaryMessageLogger(pTree, pOptions.getParentConfig());
     try {
       messageLogger.logBlockGraph();
-    } catch (IOException pE) {
+    } catch (IOException e) {
       getLogger()
           .logException(
               Level.WARNING,
-              pE,
+              e,
               "VisualizationWorker failed to log the BlockTree. "
                   + "The visualization might contain old data or will not work. "
                   + "However, the analysis continues normally.");

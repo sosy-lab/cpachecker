@@ -77,7 +77,7 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     try {
       serializedSSAMap = BlockSummarySerializeUtil.serialize(ssaMap);
       pts = BlockSummarySerializeUtil.serialize(state.getPathFormula().getPointerTargetSet());
-    } catch (IOException pE) {
+    } catch (IOException e) {
       throw new AssertionError("Unable to serialize SSAMap " + state.getPathFormula().getSsa());
     } finally {
       SerializationInfoStorage.clear();

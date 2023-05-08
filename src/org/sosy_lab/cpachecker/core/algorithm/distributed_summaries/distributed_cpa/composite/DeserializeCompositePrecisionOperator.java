@@ -57,8 +57,8 @@ public class DeserializeCompositePrecisionOperator implements DeserializePrecisi
         }
       }
       return new CompositePrecision(precisions);
-    } catch (InterruptedException pE) {
-      throw new AssertionError(pE);
+    } catch (InterruptedException e) {
+      throw new AssertionError(e);
     }
   }
 }
