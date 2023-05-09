@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -68,8 +69,37 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private Timer stopTimer = new Timer();
     private Timer addTimer = new Timer();
     private Timer forcedCoveringTimer = new Timer();
+    
+    private class iterationCount {
+      private int currentIterations = 0;
+      private List<TimeSpan> iterationTimestamps = new ArrayList<>();
+      
+      public int get() {
+        return currentIterations;
+      }
+      
+      public void next() {
+        //iterationTimestamps.add(System.nanoTime());
+        iterationTimestamps.add(totalTimer.getSumTime());
+        currentIterations++;
+      }
+      
+      public List<TimeSpan> getTimestamps() {
+        return iterationTimestamps;
+      }
+      
+      private String getReadableTimestamps() {
+        String readableTimestamps = "";
+        readableTimestamps += iterationTimestamps.get(0).formatAs(TimeUnit.SECONDS);
+        for (TimeSpan timestamp : iterationTimestamps.subList(1,iterationTimestamps.size())) {
+          readableTimestamps += "," + timestamp.formatAs(TimeUnit.SECONDS); 
+        }
+        return readableTimestamps;
+      }
+    }
 
-    private int countIterations = 0;
+    private iterationCount countIterations = new iterationCount();
+    //private int countIterations = 0;
     private int maxWaitlistSize = 0;
     private long countWaitlistSize = 0;
     private int countSuccessors = 0;
@@ -125,14 +155,15 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
-      out.println("Number of iterations:            " + countIterations);
-      if (countIterations == 0) {
+      out.println("Number of iterations:            " + countIterations.get());
+      if (countIterations.get() == 0) {
         // Statistics not relevant, prevent division by zero
         return;
       }
+      out.println("Iteration Timestamps: " + countIterations.getReadableTimestamps());
 
       out.println("Max size of waitlist:            " + maxWaitlistSize);
-      out.println("Average size of waitlist:        " + countWaitlistSize / countIterations);
+      out.println("Average size of waitlist:        " + countWaitlistSize / countIterations.get());
       StatisticsWriter w = StatisticsWriter.writingStatisticsTo(out);
       for (AbstractStatValue c : reachedSetStatistics.values()) {
         w.put(c);
@@ -282,7 +313,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       //Hack to try IterationCountLimit
         if(iterationCountLimit >= 0) {
           IterationCountLimit limit = new IterationCountLimit(iterationCountLimit);
-          final long currentValue = stats.countIterations;
+          final long currentValue = stats.countIterations.get();
           if (limit.isExceeded(currentValue)) {
             //updateCurrentValuesOfAllLimits();
             String reason = String.format("The %s has elapsed.", limit.getName());
@@ -292,7 +323,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         }
       shutdownNotifier.shutdownIfNecessary();
       
-      stats.countIterations++;
+      stats.countIterations.next();
 
       // Pick next state using strategy
       // BFS, DFS or top sort according to the configuration
