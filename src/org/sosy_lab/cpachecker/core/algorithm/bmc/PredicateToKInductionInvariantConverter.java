@@ -14,16 +14,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import java.util.stream.Stream;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -39,10 +35,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecisionBootstrapper.InitialPredicatesOptions;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
@@ -51,16 +45,11 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.ProverEnvironment;
-import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
-import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "bmc.kinduction")
 public class PredicateToKInductionInvariantConverter implements Statistics, AutoCloseable {
@@ -158,7 +147,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
 
       if (!predPrec.isEmpty()) {
         logger.log(Level.INFO, "Derive k-induction invariant from given predicate precision");
-        result = convertPredPrecToKInductionInvariant(predPrec, formulaManager, conversionShutdownNotifier, solver);
+        result = convertPredPrecToKInductionInvariant(predPrec, formulaManager, conversionShutdownNotifier);
 
         conversionShutdownNotifier.shutdownIfNecessary();
 
@@ -169,8 +158,6 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
       }
     } catch (InterruptedException e) {
       logger.logException(Level.INFO, e, "Precision adaption was interrupted.");
-    } catch (SolverException e) {
-      logger.logException(Level.INFO, e, "Precision adaption threw an exception.");
     }
     finally {
       conversionTime.stopIfRunning();
@@ -211,15 +198,15 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
   private Set<CandidateInvariant> convertPredPrecToKInductionInvariant(
       final PredicatePrecision pPredPrec,
       final FormulaManagerView pFMgr,
-      final ShutdownNotifier pConversionShutdownNotifier,
-      final Solver pSolver) throws InterruptedException, SolverException {
+      final ShutdownNotifier pConversionShutdownNotifier) throws InterruptedException {
     
-    //since k-induction only works with invariants at loopheads
-    //if there are no loopheads, no invariants are needed
+    //since k-induction only works with invariants at loop heads
+    //if there are no loop heads, no invariants are needed
     if(!cfa.getAllLoopHeads().isPresent()) return new HashSet<>();
     
-    SetMultimap<CFANode, BooleanFormula> allPreds = HashMultimap.create();
+    Set<CandidateInvariant> candidates = new HashSet<>();
     
+    //sort loop heads for easier access later on
     SetMultimap<String, CFANode> loopHeadsPerFunction = HashMultimap.create();
     for(CFANode loopHead : cfa.getAllLoopHeads().get()) {
       loopHeadsPerFunction.put(loopHead.getFunctionName(), loopHead);
@@ -227,11 +214,12 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     
     pConversionShutdownNotifier.shutdownIfNecessary();
     
-    // Get the whole predicate precision in the same set
+    // Get all candidate invariants in the same set
     if(converterStrategy.global) {
       for (AbstractionPredicate pred : new HashSet<>(pPredPrec.getGlobalPredicates())) {
         for(CFANode loopHead : loopHeadsPerFunction.values()) {
-          allPreds.put(loopHead, pred.getSymbolicAtom());
+          candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(
+              loopHead, pred.getSymbolicAtom(), pFMgr));
         }
       }
     }
@@ -241,7 +229,8 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     if(converterStrategy.function) {
       for (Map.Entry<String, AbstractionPredicate> entry : pPredPrec.getFunctionPredicates().entries()) {
         for(CFANode loopHead : loopHeadsPerFunction.get(entry.getKey())) {
-          allPreds.put(loopHead, entry.getValue().getSymbolicAtom());
+          candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(
+              loopHead, entry.getValue().getSymbolicAtom(), pFMgr));
         }
       }
     }
@@ -252,29 +241,19 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
       for (Map.Entry<CFANode, AbstractionPredicate> entry : pPredPrec.getLocalPredicates().entries()) {
         if(localAsFunction) {
           for(CFANode loopHead : loopHeadsPerFunction.get(entry.getKey().getFunctionName())) {
-            allPreds.put(loopHead, entry.getValue().getSymbolicAtom());
+            candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(
+                loopHead, entry.getValue().getSymbolicAtom(), pFMgr));
           }
         } else {
           if(entry.getKey().isLoopStart()) {
-            allPreds.put(entry.getKey(), entry.getValue().getSymbolicAtom());
+            candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(
+                entry.getKey(), entry.getValue().getSymbolicAtom(), pFMgr));
           }
         }
       }
     }
     
     pConversionShutdownNotifier.shutdownIfNecessary();
-    
-    Set<CandidateInvariant> candidates = new HashSet<>();
-    BooleanFormulaManagerView booleanFMgr = pFMgr.getBooleanFormulaManager();
-    
-      // Combine all boolean formulas per node and make invariant
-      for(CFANode node : allPreds.keySet()) {
-        //BooleanFormula completeFormula = booleanFMgr.and(allPreds.get(node));
-        for(BooleanFormula formula: allPreds.get(node)) {
-          candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(node, formula, pFMgr));
-        }
-        //candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(node, completeFormula, pFMgr));
-      }
     
     return candidates;
     

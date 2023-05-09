@@ -402,7 +402,7 @@ abstract class AbstractBMCAlgorithm
     
     AlgorithmStatus status;
 
-  //suggest candidates from predicate precision file
+    //suggest candidates from predicate precision file
     if(predicatePrecisionCandidates != null) {
       candidateGenerator.suggestCandidates(predicatePrecisionCandidates);
     }
