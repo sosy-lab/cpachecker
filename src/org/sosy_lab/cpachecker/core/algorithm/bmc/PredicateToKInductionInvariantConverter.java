@@ -83,7 +83,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
       secure = true,
       name = "strategy",
       description = "which strategy to use to convert predicate precision to k-induction invariant")
-  private PredicateConverterStrategy converterStrategy = PredicateConverterStrategy.ALL;
+  private PredicateConverterStrategy converterStrategy = PredicateConverterStrategy.GLOBAL_AND_FUNCTION;
 
   @Option(
       secure = true,
@@ -97,7 +97,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
       secure = true,
       name = "localAsFunction",
       description = "Treat local predicates like function predicates of the function they are in. Works only if local predicates are analyzed.")
-  private Boolean localAsFunction = false;
+  private Boolean localAsFunction = true;
 
   private final Timer conversionTime = new Timer();
   private int numInvariants = 0;
@@ -130,7 +130,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
       conversionShutdownNotifier = shutdownNotifier;
     }
 
-    Set<CandidateInvariant> result = null;
+    Set<CandidateInvariant> candidates = null;
 
     conversionTime.start();
     try (Solver solver = Solver.create(config, logger, conversionShutdownNotifier)) {
@@ -147,7 +147,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
 
       if (!predPrec.isEmpty()) {
         logger.log(Level.INFO, "Derive k-induction invariant from given predicate precision");
-        result = convertPredPrecToKInductionInvariant(predPrec, formulaManager, conversionShutdownNotifier);
+        candidates = convertPredPrecToKInductionInvariant(predPrec, formulaManager, conversionShutdownNotifier);
 
         conversionShutdownNotifier.shutdownIfNecessary();
 
@@ -167,11 +167,11 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
       limitChecker.cancel();
     }
 
-    if (result == null) {
+    if (candidates == null) {
       return ImmutableSet.of();
     }
-    numInvariants += result.size();
-    return ImmutableSet.copyOf(result);
+    numInvariants += candidates.size();
+    return ImmutableSet.copyOf(candidates);
   }
 
   private PredicatePrecision parsePredPrecFile(
