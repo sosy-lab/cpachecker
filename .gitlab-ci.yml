@@ -309,8 +309,6 @@ spotbugs:
 
 refaster:
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
-  # https://github.com/google/error-prone/issues/3553 needs to be fixed for Java 17
-  allow_failure: true
 
 
 # Disable Java 11 jobs
