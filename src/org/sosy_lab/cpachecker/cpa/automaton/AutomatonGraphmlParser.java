@@ -1721,10 +1721,8 @@ public class AutomatonGraphmlParser {
 
       if (checkProgramHash) {
         for (Path programFile : cfa.getFileNames()) {
-          String actualProgramHash =
-              AutomatonGraphmlCommon.computeSha1Hash(programFile).toLowerCase();
-          String actualSha256Programhash =
-              AutomatonGraphmlCommon.computeHash(programFile).toLowerCase();
+          String actualProgramHash = AutomatonGraphmlCommon.computeSha1Hash(programFile);
+          String actualSha256Programhash = AutomatonGraphmlCommon.computeHash(programFile);
           if (!programHashes.contains(actualProgramHash)
               && !programHashes.contains(actualSha256Programhash)) {
             throw new WitnessParseException(
