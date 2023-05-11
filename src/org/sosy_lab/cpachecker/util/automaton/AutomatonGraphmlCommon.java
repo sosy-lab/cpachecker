@@ -14,8 +14,10 @@ import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
@@ -35,7 +37,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -238,13 +239,8 @@ public final class AutomatonGraphmlCommon {
       key = pKey;
     }
 
-    private static final Map<String, NodeFlag> stringToFlagMap = new HashMap<>();
-
-    static {
-      for (NodeFlag f : NodeFlag.values()) {
-        stringToFlagMap.put(f.key.id, f);
-      }
-    }
+    private static final ImmutableMap<String, NodeFlag> stringToFlagMap =
+        Maps.uniqueIndex(Arrays.asList(NodeFlag.values()), flag -> flag.key.id);
 
     public static NodeFlag getNodeFlagByKey(final String key) {
       return stringToFlagMap.get(key);
