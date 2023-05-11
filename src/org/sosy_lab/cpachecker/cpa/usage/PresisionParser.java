@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import java.io.BufferedReader;
@@ -75,7 +76,7 @@ public class PresisionParser {
             continue;
           }
           GeneralIdentifier id = parseId(localSet);
-          DataType type = DataType.valueOf(localSet.get(3).toUpperCase());
+          DataType type = DataType.valueOf(Ascii.toUpperCase(localSet.get(3)));
           info.put(id, type);
         }
       }

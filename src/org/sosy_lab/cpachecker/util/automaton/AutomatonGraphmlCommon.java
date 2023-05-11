@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.automaton;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
@@ -216,11 +217,11 @@ public final class AutomatonGraphmlCommon {
 
     @Override
     public String toString() {
-      return name().toLowerCase();
+      return Ascii.toLowerCase(name());
     }
 
     public static ElementType parse(String pElementType) {
-      return ElementType.valueOf(pElementType.toUpperCase());
+      return ElementType.valueOf(Ascii.toUpperCase(pElementType));
     }
   }
 
@@ -300,7 +301,7 @@ public final class AutomatonGraphmlCommon {
     }
 
     public static NodeType fromString(String nodeTypeString) {
-      return valueOf(nodeTypeString.trim().toLowerCase());
+      return valueOf(Ascii.toLowerCase(nodeTypeString.trim()));
     }
   }
 
@@ -565,7 +566,7 @@ public final class AutomatonGraphmlCommon {
       } else if (decl instanceof CTypeDeclaration) {
         return true;
       } else if (decl instanceof CVariableDeclaration varDecl) {
-        if (varDecl.getName().toUpperCase().startsWith(CPACHECKER_TMP_PREFIX)) {
+        if (Ascii.toUpperCase(varDecl.getName()).startsWith(CPACHECKER_TMP_PREFIX)) {
           return true; // Dirty hack; would be better if these edges had no file location
         }
         if (isSplitDeclaration(edge)) {
@@ -579,7 +580,7 @@ public final class AutomatonGraphmlCommon {
       if (statement instanceof AExpressionStatement expressionStatement) {
         AExpression expression = expressionStatement.getExpression();
         if ((expression instanceof AIdExpression idExpression)
-            && idExpression.getName().toUpperCase().startsWith(CPACHECKER_TMP_PREFIX)) {
+            && Ascii.toUpperCase(idExpression.getName()).startsWith(CPACHECKER_TMP_PREFIX)) {
           return true;
         }
       } else {
@@ -601,7 +602,7 @@ public final class AutomatonGraphmlCommon {
       return false;
     }
     AIdExpression idExpression = (AIdExpression) lhs;
-    if (!idExpression.getName().toUpperCase().startsWith(CPACHECKER_TMP_PREFIX)) {
+    if (!Ascii.toUpperCase(idExpression.getName()).startsWith(CPACHECKER_TMP_PREFIX)) {
       return false;
     }
     FluentIterable<CFAEdge> successorEdges = CFAUtils.leavingEdges(statementEdge.getSuccessor());
@@ -996,7 +997,7 @@ public final class AutomatonGraphmlCommon {
       return false;
     }
     AIdExpression idExpression = (AIdExpression) lhs;
-    if (!idExpression.getName().toUpperCase().startsWith(CPACHECKER_TMP_PREFIX)) {
+    if (!Ascii.toUpperCase(idExpression.getName()).startsWith(CPACHECKER_TMP_PREFIX)) {
       return false;
     }
     ALiteralExpression value = (ALiteralExpression) rhs;

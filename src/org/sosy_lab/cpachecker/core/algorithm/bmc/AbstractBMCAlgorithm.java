@@ -15,6 +15,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterAncestors;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -879,7 +880,7 @@ abstract class AbstractBMCAlgorithm
         Solver solverForPathChecker = solver;
         PathFormulaManager pmgrForPathChecker = pmgr;
 
-        if (solverForPathChecker.getVersion().toLowerCase().contains("smtinterpol")) {
+        if (Ascii.toLowerCase(solverForPathChecker.getVersion()).contains("smtinterpol")) {
           // SMTInterpol does not support reusing the same solver
           solverForPathChecker = Solver.create(config, logger, shutdownNotifier);
           FormulaManagerView formulaManager = solverForPathChecker.getFormulaManager();
