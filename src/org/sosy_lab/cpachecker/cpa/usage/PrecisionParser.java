@@ -31,11 +31,11 @@ import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralLocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralStructureFieldIdentifier;
 
-public class PresisionParser {
+public class PrecisionParser {
   private CFA cfa;
   private final LogManager logger;
 
-  PresisionParser(CFA pCfa, LogManager l) {
+  PrecisionParser(CFA pCfa, LogManager l) {
     cfa = pCfa;
     logger = l;
   }
@@ -119,7 +119,7 @@ public class PresisionParser {
       Map<GeneralIdentifier, DataType> info) {
     if (node != null && info != null) {
       if (map.containsKey(node)) {
-        logger.log(Level.WARNING, "Node " + node + " is already in presision");
+        logger.log(Level.WARNING, "Node " + node + " is already in precision");
       } else {
         map.put(node, info);
       }
