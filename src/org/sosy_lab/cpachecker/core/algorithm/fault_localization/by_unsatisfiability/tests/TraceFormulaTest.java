@@ -53,7 +53,7 @@ public class TraceFormulaTest {
 
     public static boolean containsKey(String keyString) {
       for (LogKeys key : values()) {
-        if (key.toString().toLowerCase().equals(keyString)) {
+        if (key.toString().equalsIgnoreCase(keyString)) {
           return true;
         }
       }
