@@ -390,7 +390,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private enum InvariantsInjectionStrategy {
     REFINE_FP_CHECK,
-    REFINE_ITP
+    REFINE_ITP,
+    REFINE_PROPERTY
   }
 
   /** The wrapper class to store the options to utilize auxiliary invariants. */
@@ -829,16 +830,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (!loopBoundMgr.performIMCAtCurrentIteration()) {
       return false;
     }
-    logger.log(Level.FINE, "Computing fixed points by interpolation (IMC)");
-    logger.log(Level.ALL, "The SSA map is", formulas.getPrefixSsaMap());
-    BooleanFormula currentImage = formulas.getPrefixFormula();
 
-    ImmutableList<BooleanFormula> loops = formulas.getLoopFormulas();
-    // suffix formula: T(S1, S2) && T(S1, S2) && ... && T(Sn-1, Sn) && ~P(Sn)
-    BooleanFormula suffixFormula =
-        bfmgr.and(
-            bfmgr.and(loops.subList(1, formulas.getNumLoops())), formulas.getAssertionFormula());
-
+    // Examine aux. invariant
     if (!bfmgr.isTrue(loopInv) && !lastInductiveAuxInv.equals(loopInv)) {
       logger.log(Level.ALL, "The new auxiliary loop-head invariant is", loopInv);
       if (formulas.checkInductivenessOf(solver, loopInv)) {
@@ -854,8 +847,29 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         logger.log(Level.FINE, "The new auxiliary loop-head invariant is not inductive");
       }
     }
-
     final boolean isLoopInvTrivial = bfmgr.isTrue(lastInductiveAuxInv);
+
+    logger.log(Level.FINE, "Computing fixed points by interpolation (IMC)");
+    logger.log(Level.ALL, "The SSA map is", formulas.getPrefixSsaMap());
+    BooleanFormula currentImage = formulas.getPrefixFormula();
+
+    ImmutableList<BooleanFormula> loops = formulas.getLoopFormulas();
+    // suffix formula: T(S1, S2) && T(S1, S2) && ... && T(Sn-1, Sn)
+    BooleanFormula suffixFormula = bfmgr.and(loops.subList(1, formulas.getNumLoops()));
+    //  assertion = negated property ~P(Sn)
+    BooleanFormula assertionFormula = formulas.getAssertionFormula();
+    // refine property (assertion) with invariant
+    if (!isLoopInvTrivial
+        && invariantsOptions.injectionStrategy == InvariantsInjectionStrategy.REFINE_PROPERTY) {
+      assertionFormula =
+          bfmgr.or(
+              assertionFormula,
+              fmgr.instantiate(
+                  bfmgr.not(lastInductiveAuxInv),
+                  formulas.getSsaMapOfLoop(formulas.getNumLoops() - 1)));
+    }
+    suffixFormula = bfmgr.and(suffixFormula, assertionFormula);
+
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(ImmutableList.of(currentImage, loops.get(0), suffixFormula));
     assert interpolants.isPresent();
@@ -892,7 +906,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       // Step 2: IMC fixed point check strengthened by non-trivial external invariant
       if (!isLoopInvTrivial
-          && invariantsOptions.injectionStrategy != InvariantsInjectionStrategy.REFINE_ITP
+          && invariantsOptions.injectionStrategy == InvariantsInjectionStrategy.REFINE_FP_CHECK
           && solver.implies(
               bfmgr.and(
                   interpolant, fmgr.instantiate(lastInductiveAuxInv, formulas.getPrefixSsaMap())),
