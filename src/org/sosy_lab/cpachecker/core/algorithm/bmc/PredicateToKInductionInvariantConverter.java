@@ -83,7 +83,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
       secure = true,
       name = "strategy",
       description = "which strategy to use to convert predicate precision to k-induction invariant")
-  private PredicateConverterStrategy converterStrategy = PredicateConverterStrategy.GLOBAL_AND_FUNCTION;
+  private PredicateConverterStrategy converterStrategy = PredicateConverterStrategy.GLOBAL;
 
   @Option(
       secure = true,
@@ -96,7 +96,7 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
   @Option(
       secure = true,
       name = "localAsFunction",
-      description = "Treat local predicates like function predicates of the function they are in. Works only if local predicates are analyzed.")
+      description = "Treat local predicates like function predicates of the function they are in. Comes only into play if local predicates are analyzed.")
   private Boolean localAsFunction = true;
 
   private final Timer conversionTime = new Timer();
@@ -202,13 +202,15 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     
     //since k-induction only works with invariants at loop heads
     //if there are no loop heads, no invariants are needed
-    if(!cfa.getAllLoopHeads().isPresent()) return new HashSet<>();
+    if(!cfa.getAllLoopHeads().isPresent()) {
+      return new HashSet<>();
+    }
     
     Set<CandidateInvariant> candidates = new HashSet<>();
     
     //sort loop heads for easier access later on
     SetMultimap<String, CFANode> loopHeadsPerFunction = HashMultimap.create();
-    for(CFANode loopHead : cfa.getAllLoopHeads().get()) {
+    for(CFANode loopHead : cfa.getAllLoopHeads().orElseThrow()) {
       loopHeadsPerFunction.put(loopHead.getFunctionName(), loopHead);
     }
     
