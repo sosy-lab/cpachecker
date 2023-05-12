@@ -389,9 +389,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private enum InvariantsInjectionStrategy {
-    AT_FIXED_POINT_CHECK,
-    ITP_REFINEMENT,
-    ITP_REFINEMENT_WITH_FALLBACK
+    REFINE_FP_CHECK,
+    REFINE_ITP
   }
 
   /** The wrapper class to store the options to utilize auxiliary invariants. */
@@ -400,16 +399,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     @Option(
         secure = true,
         description = "toggle which strategy is used for injecting auxiliary invariants")
-    private InvariantsInjectionStrategy injectionStrategy =
-        InvariantsInjectionStrategy.ITP_REFINEMENT_WITH_FALLBACK;
+    private InvariantsInjectionStrategy injectionStrategy = InvariantsInjectionStrategy.REFINE_ITP;
 
     private InvariantsOptions(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
-    }
-
-    private boolean asInterpolantRefiner() {
-      return injectionStrategy == InvariantsInjectionStrategy.ITP_REFINEMENT
-          || injectionStrategy == InvariantsInjectionStrategy.ITP_REFINEMENT_WITH_FALLBACK;
     }
   }
 
@@ -515,7 +508,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       stats.numOfIMCInnerIterations = 0;
     }
     if (invariantGeneratorForBMC.isRunning()) {
-      if (invariantsOptions.asInterpolantRefiner() && fixedPointComputeStrategy.isISMCEnabled()) {
+      if (invariantsOptions.injectionStrategy == InvariantsInjectionStrategy.REFINE_ITP
+          && fixedPointComputeStrategy.isISMCEnabled()) {
         logger.log(
             Level.WARNING,
             "Interpolant refinement by auxiliary invariants is not supported in ISMC");
@@ -881,10 +875,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       BooleanFormula interpolant = interpolants.orElseThrow().get(1);
       logger.log(Level.ALL, "The interpolant is", interpolant);
       interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), formulas.getPrefixSsaMap());
-      BooleanFormula interpolantCopy = interpolant;
       logger.log(Level.ALL, "After changing SSA", interpolant);
       // Refine the interpolant when possible
-      if (!isLoopInvTrivial && invariantsOptions.asInterpolantRefiner()) {
+      if (!isLoopInvTrivial
+          && invariantsOptions.injectionStrategy == InvariantsInjectionStrategy.REFINE_ITP) {
         interpolant =
             bfmgr.and(
                 interpolant, fmgr.instantiate(lastInductiveAuxInv, formulas.getPrefixSsaMap()));
@@ -898,7 +892,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       // Step 2: IMC fixed point check strengthened by non-trivial external invariant
       if (!isLoopInvTrivial
-          && !invariantsOptions.asInterpolantRefiner()
+          && invariantsOptions.injectionStrategy != InvariantsInjectionStrategy.REFINE_ITP
           && solver.implies(
               bfmgr.and(
                   interpolant, fmgr.instantiate(lastInductiveAuxInv, formulas.getPrefixSsaMap())),
@@ -908,22 +902,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         return true;
       }
       currentImage = bfmgr.or(currentImage, interpolant);
-      try {
-        interpolants =
-            itpMgr.interpolate(ImmutableList.of(interpolant, loops.get(0), suffixFormula));
-      } catch (RefinementFailedException e) {
-        if (invariantsOptions.injectionStrategy
-                == InvariantsInjectionStrategy.ITP_REFINEMENT_WITH_FALLBACK
-            && !isLoopInvTrivial) {
-          logger.logDebugException(e);
-          logger.log(Level.INFO, "Falling back to interpolation without auxiliary invariants");
-          invariantsOptions.injectionStrategy = InvariantsInjectionStrategy.AT_FIXED_POINT_CHECK;
-          interpolants =
-              itpMgr.interpolate(ImmutableList.of(interpolantCopy, loops.get(0), suffixFormula));
-        } else {
-          throw e;
-        }
-      }
+      interpolants = itpMgr.interpolate(ImmutableList.of(interpolant, loops.get(0), suffixFormula));
     }
     logger.log(
         Level.FINE,

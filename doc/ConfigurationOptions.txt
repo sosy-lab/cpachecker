@@ -3867,8 +3867,8 @@ imc.fixedPointComputeStrategy = ITP
 imc.impactLikeCovering = false
 
 # toggle which strategy is used for injecting auxiliary invariants
-imc.invariants.injectionStrategy = ITP_REFINEMENT_WITH_FALLBACK
-  enum:     [AT_FIXED_POINT_CHECK, ITP_REFINEMENT, ITP_REFINEMENT_WITH_FALLBACK]
+imc.invariants.injectionStrategy = REFINE_ITP
+  enum:     [REFINE_FP_CHECK, REFINE_ITP]
 
 # toggle the strategy to determine the next loop iteration
 # to execute BMC phase of IMC or ISMC
