@@ -27,6 +27,7 @@ public class WeightedGraph implements Iterable<WeightedNode> {
   private final int numNodes;
   private int totalNodeWeight;
   private final WeightedNode[] nodes;
+
   /** store for each node its out- and incoming edges (each edge is stored twice) */
   private final Map<Integer, Set<WeightedEdge>> outgoingEdges;
 

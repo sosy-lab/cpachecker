@@ -164,6 +164,7 @@ public class SMG implements UnmodifiableSMG {
     errorPredicate.removeValue(pValue);
     assert !hv_edges.filter(SMGEdgeHasValueFilter.valueFilter(pValue)).iterator().hasNext();
   }
+
   /**
    * Remove pObj from the SMG. This method does not remove any edges leading from/to the removed
    * object.
@@ -257,6 +258,7 @@ public class SMG implements UnmodifiableSMG {
     // TODO: add values check
     hv_edges = hv_edges.addEdgesForObject(pEdgesSet);
   }
+
   /**
    * Remove pEdge Has-Value edge from the SMG.
    *

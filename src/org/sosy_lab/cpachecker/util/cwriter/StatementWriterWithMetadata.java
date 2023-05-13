@@ -35,6 +35,7 @@ public class StatementWriterWithMetadata extends StatementWriter
 
   final AppendableWithLineCounter countingAppendable;
   private final Writer metadataOutput;
+
   /** Whether the current metadata has already written an entry. True if yes, false otherwise. */
   private boolean entryWritten = false;
 

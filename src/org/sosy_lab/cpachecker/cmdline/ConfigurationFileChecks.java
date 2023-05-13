@@ -16,6 +16,7 @@ import static com.google.common.truth.TruthJUnit.assume;
 import static java.lang.Boolean.parseBoolean;
 import static org.junit.Assume.assumeNoException;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -409,7 +410,7 @@ public class ConfigurationFileChecks {
       } else {
         assertThat(spec).endsWith("specification/overflow.spc");
       }
-    } else if (basePath.toString().toLowerCase().contains("datarace")) {
+    } else if (Ascii.toLowerCase(basePath.toString()).contains("datarace")) {
       if (isSvcompConfig) {
         assertThat(spec).endsWith("specification/sv-comp-datarace.spc");
       } else {

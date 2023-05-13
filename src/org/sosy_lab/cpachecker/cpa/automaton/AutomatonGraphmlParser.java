@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
@@ -123,7 +124,7 @@ public class AutomatonGraphmlParser {
   private static final GraphMLTransition.GraphMLThread DEFAULT_THREAD =
       GraphMLTransition.createThread(0, "__CPAchecker_default_thread");
 
-  private static final String THREAD_ID_VAR_NAME = KeyDef.THREADID.toString().toUpperCase();
+  private static final String THREAD_ID_VAR_NAME = Ascii.toUpperCase(KeyDef.THREADID.toString());
 
   private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
       "The witness file must describe exactly one witness automaton.";
@@ -1684,7 +1685,7 @@ public class AutomatonGraphmlParser {
       Set<String> programHashes =
           FluentIterable.from(pProgramHashes)
               .transform(String::trim)
-              .transform(String::toLowerCase)
+              .transform(Ascii::toLowerCase)
               .toSet();
       List<String> invalidHashes = new ArrayList<>(programHashes.size());
       for (String programHashInWitness : programHashes) {
@@ -1721,10 +1722,8 @@ public class AutomatonGraphmlParser {
 
       if (checkProgramHash) {
         for (Path programFile : cfa.getFileNames()) {
-          String actualProgramHash =
-              AutomatonGraphmlCommon.computeSha1Hash(programFile).toLowerCase();
-          String actualSha256Programhash =
-              AutomatonGraphmlCommon.computeHash(programFile).toLowerCase();
+          String actualProgramHash = AutomatonGraphmlCommon.computeSha1Hash(programFile);
+          String actualSha256Programhash = AutomatonGraphmlCommon.computeHash(programFile);
           if (!programHashes.contains(actualProgramHash)
               && !programHashes.contains(actualSha256Programhash)) {
             throw new WitnessParseException(

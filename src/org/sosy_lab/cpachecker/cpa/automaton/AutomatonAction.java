@@ -46,6 +46,7 @@ abstract class AutomatonAction {
   boolean canExecuteOn(AutomatonExpressionArguments pArgs) throws CPATransferException {
     return true;
   }
+
   // abstract void execute(AutomatonExpressionArguments pArgs);
 
   /** Logs a String when executed. */

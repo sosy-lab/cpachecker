@@ -34,9 +34,11 @@ public class BlockWaitlist implements Waitlist {
 
   private static class Block {
     public static final String ENTRY_BLOCK_NAME = "entry_block_main";
+
     // function name which is the basis for the block
     @SuppressWarnings("unused")
     private String name;
+
     // current number of used resources
     private int countResources;
     // saved number of resources when limit is reached
@@ -47,6 +49,7 @@ public class BlockWaitlist implements Waitlist {
     private Waitlist mainWaitlist;
     // is it a block for entry function
     private boolean isEntryBlock;
+
     // previous block in the list
 
     Block(BKey key, WaitlistFactory factory, BlockConfiguration pLimits) {

@@ -19,7 +19,7 @@ public class BooleanConstant<ConstantType> implements BooleanFormula<ConstantTyp
   private final boolean value;
 
   private BooleanConstant(boolean pValue) {
-    this.value = pValue;
+    value = pValue;
   }
 
   boolean getValue() {
@@ -30,10 +30,10 @@ public class BooleanConstant<ConstantType> implements BooleanFormula<ConstantTyp
   public boolean equals(Object pOther) {
     assert (this == pOther
             && pOther instanceof BooleanConstant
-            && this.value == ((BooleanConstant<?>) pOther).value)
+            && value == ((BooleanConstant<?>) pOther).value)
         || (this != pOther
             && (!(pOther instanceof BooleanConstant)
-                || this.value != ((BooleanConstant<?>) pOther).value));
+                || value != ((BooleanConstant<?>) pOther).value));
     return this == pOther;
   }
 

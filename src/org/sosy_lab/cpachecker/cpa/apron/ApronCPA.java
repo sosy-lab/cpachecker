@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.apron;
 
-import apron.ApronException;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -106,30 +105,32 @@ public final class ApronCPA implements ProofCheckerCPA, StatisticsProvider {
   private final CFA cfa;
   private final ApronManager apronManager;
 
-  private ApronCPA(Configuration config, LogManager log, ShutdownNotifier shutdownNotifier, CFA cfa)
+  private ApronCPA(
+      Configuration pConfig, LogManager pLog, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException, CPAException {
-    if (!cfa.getLoopStructure().isPresent()) {
+    if (!pCfa.getLoopStructure().isPresent()) {
       throw new CPAException("ApronCPA cannot work without loop-structure information in CFA.");
     }
-    config.inject(this);
-    logger = log;
+    pConfig.inject(this);
+    logger = pLog;
     ApronDomain apronDomain = new ApronDomain(logger);
 
     apronManager = new ApronManager(domainType);
 
     transferRelation =
-        new ApronTransferRelation(logger, cfa.getLoopStructure().orElseThrow(), splitDisequalities);
+        new ApronTransferRelation(
+            logger, pCfa.getLoopStructure().orElseThrow(), splitDisequalities);
 
-    MergeOperator apronMergeOp = ApronMergeOperator.getInstance(apronDomain, config);
+    MergeOperator apronMergeOp = ApronMergeOperator.getInstance(apronDomain, pConfig);
 
     StopOperator apronStopOp = new StopSepOperator(apronDomain);
 
     abstractDomain = apronDomain;
     mergeOperator = apronMergeOp;
     stopOperator = apronStopOp;
-    this.config = config;
-    this.shutdownNotifier = shutdownNotifier;
-    this.cfa = cfa;
+    this.config = pConfig;
+    this.shutdownNotifier = pShutdownNotifier;
+    this.cfa = pCfa;
 
     VariableTrackingPrecision tempPrecision;
     if (initialPrecisionFile != null || precisionType.equals("REFINEABLE_EMPTY")) {
@@ -176,11 +177,7 @@ public final class ApronCPA implements ProofCheckerCPA, StatisticsProvider {
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    try {
-      return new ApronState(logger, apronManager);
-    } catch (ApronException e) {
-      throw new RuntimeException("An error occured while operating with the apron library", e);
-    }
+    return new ApronState(logger, apronManager);
   }
 
   @Override

@@ -38,6 +38,7 @@ public final class JArrayCreationExpression extends AbstractExpression implement
   private static final long serialVersionUID = 8794036217601570272L;
   private final ImmutableList<JExpression> length;
   private final @Nullable JArrayInitializer initializer;
+
   // TODO Type Variables < Type { , Type } >
 
   public JArrayCreationExpression(

@@ -38,6 +38,7 @@ public class SMGCPATest0 {
   protected LogManagerWithoutDuplicates logger;
   protected SMGState currentState;
   protected SMGCPAMaterializer materializer;
+  protected SMGOptions smgOptions;
 
   protected BigInteger sllSize;
   protected BigInteger dllSize;
@@ -69,15 +70,14 @@ public class SMGCPATest0 {
 
     materializer = new SMGCPAMaterializer(logger);
 
-    currentState =
-        SMGState.of(machineModel, logger, new SMGOptions(Configuration.defaultConfiguration()));
+    smgOptions = new SMGOptions(Configuration.defaultConfiguration());
+    currentState = SMGState.of(machineModel, logger, smgOptions);
   }
 
   // Resets state and visitor to an empty state
   @After
-  public void resetSMGStateAndVisitor() throws InvalidConfigurationException {
-    currentState =
-        SMGState.of(machineModel, logger, new SMGOptions(Configuration.defaultConfiguration()));
+  public void resetSMGStateAndVisitor() {
+    currentState = SMGState.of(machineModel, logger, smgOptions);
   }
 
   /*

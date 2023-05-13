@@ -75,10 +75,10 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
       BasicProverEnvironment<T> bpe,
       FormulaManagerView pFmgr,
       UFCheckingProverOptions options) {
-    this.delegate = bpe;
-    this.logger = pLogger;
-    this.bfmgr = pFmgr.getBooleanFormulaManager();
-    this.faMgr = new FunctionApplicationManager(pFmgr, pLogger, options);
+    delegate = bpe;
+    logger = pLogger;
+    bfmgr = pFmgr.getBooleanFormulaManager();
+    faMgr = new FunctionApplicationManager(pFmgr, pLogger, options);
     this.options = options;
   }
 

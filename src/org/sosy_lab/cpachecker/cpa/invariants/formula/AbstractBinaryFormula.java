@@ -36,18 +36,18 @@ abstract class AbstractBinaryFormula<ConstantType> extends AbstractFormula<Const
     super(pOperand1.getTypeInfo());
     Preconditions.checkNotNull(pOperator);
     Preconditions.checkArgument(pOperand1.getTypeInfo().equals(pOperand2.getTypeInfo()));
-    this.operator = pOperator;
-    this.isCommutative = pIsCommutative;
-    this.operand1 = pOperand1;
-    this.operand2 = pOperand2;
+    operator = pOperator;
+    isCommutative = pIsCommutative;
+    operand1 = pOperand1;
+    operand2 = pOperand2;
   }
 
   public NumeralFormula<ConstantType> getOperand1() {
-    return this.operand1;
+    return operand1;
   }
 
   public NumeralFormula<ConstantType> getOperand2() {
-    return this.operand2;
+    return operand2;
   }
 
   @Override

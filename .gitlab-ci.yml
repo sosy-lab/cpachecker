@@ -14,7 +14,7 @@ variables:
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
   REFASTER_REPO_REVISION: 31cd8ffc4966957e156665dbba76679ade5bb5c9
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.18.0
+  REFASTER_VERSION: 2.19.1
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
   npm_config_cache: "${CI_PROJECT_DIR}/.cache/npm"
   npm_config_prefer_offline: "true"
@@ -309,8 +309,6 @@ spotbugs:
 
 refaster:
   image: ${CI_REGISTRY_IMAGE}/test:jdk-17
-  # https://github.com/google/error-prone/issues/3553 needs to be fixed for Java 17
-  allow_failure: true
 
 
 # Disable Java 11 jobs

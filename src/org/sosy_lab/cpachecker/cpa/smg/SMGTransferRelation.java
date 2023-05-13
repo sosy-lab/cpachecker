@@ -1108,6 +1108,7 @@ public class SMGTransferRelation
       return assignFieldToState(pNewState, pEdge, pNewObject, pOffset, pLValueType, expression);
     }
   }
+
   /*
    * Handle string literal expression initializer:
    * if a string initializer nested in struct type:

@@ -712,11 +712,11 @@ public class SMGCPAAbstractionManager {
     private int maximalSizeOfList;
 
     public SMGCandidate(SMGObject pObject, BigInteger pSuspectedNfo) {
-      this.object = pObject;
-      this.suspectedNfo = pSuspectedNfo;
-      this.suspectedPfo = Optional.empty();
-      this.suspectedElements = ImmutableSet.of();
-      this.maximalSizeOfList = 1;
+      object = pObject;
+      suspectedNfo = pSuspectedNfo;
+      suspectedPfo = Optional.empty();
+      suspectedElements = ImmutableSet.of();
+      maximalSizeOfList = 1;
     }
 
     private SMGCandidate(
@@ -725,11 +725,11 @@ public class SMGCPAAbstractionManager {
         Optional<BigInteger> pSuspectedPfo,
         Set<SMGObject> pSuspectedElements,
         int maxSize) {
-      this.object = pObject;
-      this.suspectedNfo = pSuspectedNfo;
-      this.suspectedPfo = pSuspectedPfo;
-      this.suspectedElements = pSuspectedElements;
-      this.maximalSizeOfList = maxSize;
+      object = pObject;
+      suspectedNfo = pSuspectedNfo;
+      suspectedPfo = pSuspectedPfo;
+      suspectedElements = pSuspectedElements;
+      maximalSizeOfList = maxSize;
     }
 
     public static SMGCandidate moveCandidateTo(
