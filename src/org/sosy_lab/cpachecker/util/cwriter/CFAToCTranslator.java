@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -447,12 +448,16 @@ public class CFAToCTranslator {
 
     switch (pCFAEdge.getEdgeType()) {
       case BlankEdge:
-        // nothing to do
-        break;
+        {
+          if (pCFAEdge.getSuccessor() instanceof FunctionExitNode) {
+            // return edge or default return edge
+            return "return;";
+          }
+          break;
+        }
       case AssumeEdge:
         // nothing to do
         break;
-
       case StatementEdge:
       case ReturnStatementEdge:
         {
