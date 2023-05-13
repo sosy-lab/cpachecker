@@ -17,6 +17,7 @@ import com.google.common.collect.Queues;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -111,7 +112,7 @@ public class WitnessExporter {
       CounterexampleInfo pCounterExample)
       throws InterruptedException {
 
-    String defaultFileName = getInitialFileName(pRootState);
+    String defaultFileName = getInitialFileName(pRootState, false);
     WitnessFactory writer =
         new WitnessFactory(
             options,
@@ -140,7 +141,7 @@ public class WitnessExporter {
       final Predicate<? super ARGState> pIsCycleHead,
       final Function<? super ARGState, ExpressionTree<Object>> toQuasiInvariant)
       throws InterruptedException {
-    String defaultFileName = getInitialFileName(pRoot);
+    String defaultFileName = getInitialFileName(pRoot, false);
     WitnessFactory writer =
         new WitnessFactory(
             options,
@@ -174,7 +175,22 @@ public class WitnessExporter {
     Preconditions.checkNotNull(pIsRelevantEdge);
     Preconditions.checkNotNull(pInvariantProvider);
 
-    String defaultFileName = getInitialFileName(pRootState);
+    boolean backwardARG = false;
+    CFANode rootNode = AbstractStates.extractLocation(pRootState);
+    Iterator<ARGState> rootChildren = pRootState.getChildren().iterator();
+
+    // Check if any child node has a leaving edge to the root node
+    outer: while (rootChildren.hasNext()) {
+      CFANode childNode = AbstractStates.extractLocation(rootChildren.next());
+      for (CFANode childSuc : CFAUtils.successorsOf(childNode)) {
+        if (childSuc.equals(rootNode)) {
+          backwardARG = true;
+          break outer;
+        }
+      }
+    }
+
+    String defaultFileName = getInitialFileName(pRootState, backwardARG);
     WitnessFactory writer =
         new WitnessFactory(
             options,
@@ -196,13 +212,9 @@ public class WitnessExporter {
         GraphBuilder.CFA_FULL);
   }
 
-  protected String getInitialFileName(ARGState pRootState) {
+  protected String getInitialFileName(ARGState pRootState, boolean backwardARG) {
     Deque<CFANode> worklist = Queues.newArrayDeque(AbstractStates.extractLocations(pRootState));
     Set<CFANode> visited = new HashSet<>();
-    boolean backwardARG;
-
-    CFANode f = worklist.peekFirst();
-    backwardARG = !f.equals(cfa.getMainFunction());
 
     while (!worklist.isEmpty()) {
       CFANode l = worklist.pop();

@@ -1140,13 +1140,13 @@ class WitnessFactory implements EdgeAppender {
   private void mergeEdges(
       final String entryStateNodeId, boolean mergeMetaInformation, Predicate<Edge> isIrrelevant)
       throws InterruptedException {
-    NavigableSet<Edge> waitlist = new TreeSet<>(leavingEdges.values());
+    NavigableSet<Edge> waitlist = new TreeSet<>(enteringEdges.values());
     while (!waitlist.isEmpty()) {
       Edge edge = waitlist.pollFirst();
       // If the edge still exists in the graph and is irrelevant, remove it
-      if (leavingEdges.get(edge.getSource()).contains(edge) && isIrrelevant.test(edge)) {
+      if (enteringEdges.get(edge.getSource()).contains(edge) && isIrrelevant.test(edge)) {
         Iterables.addAll(waitlist, mergeNodes(edge, mergeMetaInformation));
-        assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
+        assert enteringEdges.isEmpty() || enteringEdges.containsKey(entryStateNodeId);
       }
       if (mergeMetaInformation) {
         setLoopHeadInvariantIfApplicable(edge.getTarget());

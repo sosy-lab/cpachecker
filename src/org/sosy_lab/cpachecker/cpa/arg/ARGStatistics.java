@@ -187,6 +187,7 @@ public class ARGStatistics implements Statistics {
   private boolean exportAutomatonZipped = true;
 
   protected final ConfigurableProgramAnalysis cpa;
+  private final CFA cfa;
 
   private final CEXExportOptions counterexampleOptions;
   private Writer refinementGraphUnderlyingWriter = null;
@@ -204,7 +205,7 @@ public class ARGStatistics implements Statistics {
       LogManager pLogger,
       ConfigurableProgramAnalysis pCpa,
       Specification pSpecification,
-      CFA cfa)
+      CFA pCfa)
       throws InvalidConfigurationException {
     config.inject(this, ARGStatistics.class); // needed for sub-classes
 
@@ -212,6 +213,7 @@ public class ARGStatistics implements Statistics {
     argToBitmapExporter = new ARGToPixelsWriter(config);
     logger = pLogger;
     cpa = pCpa;
+    cfa = pCfa;
     assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
 
@@ -385,6 +387,22 @@ public class ARGStatistics implements Statistics {
         ARGUtils.projectARG(rootState, ARGState::getChildren, ARGUtils::isRelevantState);
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction =
         Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.of());
+
+    // CFANode rootNode = AbstractStates.extractLocation(rootState);
+    // Iterator<ARGState> rootChildren = rootState.getChildren().iterator();
+    //
+    // // Check if any child node has a leaving edge to the root node
+    // outer: while (rootChildren.hasNext()) {
+    // CFANode childNode = AbstractStates.extractLocation(rootChildren.next());
+    // for (CFANode childSuc : CFAUtils.successorsOf(childNode)) {
+    // if (childSuc.equals(rootNode)) {
+    // backwardARG = true;
+    // break outer;
+    // }
+    // }
+    // }
+
+    // assert backwardARG == true;
 
     if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
       try {
