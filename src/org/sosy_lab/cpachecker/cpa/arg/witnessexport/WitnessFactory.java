@@ -1011,7 +1011,8 @@ class WitnessFactory implements EdgeAppender {
       final Predicate<? super ARGState> pIsCyclehead,
       final Optional<Function<? super ARGState, ExpressionTree<Object>>> cycleHeadToQuasiInvariant,
       Optional<CounterexampleInfo> pCounterExample,
-      GraphBuilder pGraphBuilder)
+      GraphBuilder pGraphBuilder,
+      final boolean backwardARG)
       throws InterruptedException {
 
     // reset information in case data structures where filled before:
@@ -1101,8 +1102,8 @@ class WitnessFactory implements EdgeAppender {
 
     // Merge nodes with empty or repeated edges
     int sizeBeforeMerging = edgeToCFAEdges.size();
-    mergeEdges(entryStateNodeId, true, this::isEdgeIrrelevant);
-    mergeEdges(entryStateNodeId, false, this::isEdgeIrrelevantByFaultLocalization);
+    mergeEdges(entryStateNodeId, true, this::isEdgeIrrelevant, backwardARG);
+    mergeEdges(entryStateNodeId, false, this::isEdgeIrrelevantByFaultLocalization, backwardARG);
     int sizeAfterMerging = edgeToCFAEdges.size();
     logger.logf(
         Level.ALL,
@@ -1138,15 +1139,19 @@ class WitnessFactory implements EdgeAppender {
    * irrelevant information.
    */
   private void mergeEdges(
-      final String entryStateNodeId, boolean mergeMetaInformation, Predicate<Edge> isIrrelevant)
+      final String entryStateNodeId,
+      boolean mergeMetaInformation,
+      Predicate<Edge> isIrrelevant,
+      final boolean backwardARG)
       throws InterruptedException {
-    NavigableSet<Edge> waitlist = new TreeSet<>(enteringEdges.values());
+    Multimap<String, Edge> edges = backwardARG ? enteringEdges : leavingEdges;
+    NavigableSet<Edge> waitlist = new TreeSet<>(edges.values());
     while (!waitlist.isEmpty()) {
       Edge edge = waitlist.pollFirst();
       // If the edge still exists in the graph and is irrelevant, remove it
-      if (enteringEdges.get(edge.getSource()).contains(edge) && isIrrelevant.test(edge)) {
+      if (edges.get(edge.getSource()).contains(edge) && isIrrelevant.test(edge)) {
         Iterables.addAll(waitlist, mergeNodes(edge, mergeMetaInformation));
-        assert enteringEdges.isEmpty() || enteringEdges.containsKey(entryStateNodeId);
+        assert edges.isEmpty() || edges.containsKey(entryStateNodeId);
       }
       if (mergeMetaInformation) {
         setLoopHeadInvariantIfApplicable(edge.getTarget());

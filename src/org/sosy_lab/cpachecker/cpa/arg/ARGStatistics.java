@@ -187,7 +187,6 @@ public class ARGStatistics implements Statistics {
   private boolean exportAutomatonZipped = true;
 
   protected final ConfigurableProgramAnalysis cpa;
-  private final CFA cfa;
 
   private final CEXExportOptions counterexampleOptions;
   private Writer refinementGraphUnderlyingWriter = null;
@@ -205,7 +204,7 @@ public class ARGStatistics implements Statistics {
       LogManager pLogger,
       ConfigurableProgramAnalysis pCpa,
       Specification pSpecification,
-      CFA pCfa)
+      CFA cfa)
       throws InvalidConfigurationException {
     config.inject(this, ARGStatistics.class); // needed for sub-classes
 
@@ -213,7 +212,6 @@ public class ARGStatistics implements Statistics {
     argToBitmapExporter = new ARGToPixelsWriter(config);
     logger = pLogger;
     cpa = pCpa;
-    cfa = pCfa;
     assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
 

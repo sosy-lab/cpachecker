@@ -36,7 +36,7 @@ public class ExtendedWitnessExporter extends WitnessExporter {
       CounterexampleInfo pCounterExample)
       throws InterruptedException {
 
-    String defaultFileName = getInitialFileName(pRootState);
+    String defaultFileName = getInitialFileName(pRootState, false);
     WitnessFactory writer =
         new ExtendedWitnessFactory(
             options,
@@ -55,6 +55,7 @@ public class ExtendedWitnessExporter extends WitnessExporter {
         Predicates.alwaysFalse(),
         Optional.empty(),
         Optional.of(pCounterExample),
-        GraphBuilder.ARG_PATH);
+        GraphBuilder.ARG_PATH,
+        false);
   }
 }

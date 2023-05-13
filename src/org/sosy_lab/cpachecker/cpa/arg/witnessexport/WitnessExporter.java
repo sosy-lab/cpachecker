@@ -131,7 +131,8 @@ public class WitnessExporter {
         Predicates.alwaysFalse(),
         Optional.empty(),
         Optional.ofNullable(pCounterExample),
-        GraphBuilder.ARG_PATH);
+        GraphBuilder.ARG_PATH,
+        false);
   }
 
   public Witness generateTerminationErrorWitness(
@@ -160,7 +161,8 @@ public class WitnessExporter {
         pIsCycleHead,
         Optional.of(toQuasiInvariant),
         Optional.empty(),
-        GraphBuilder.ARG_PATH);
+        GraphBuilder.ARG_PATH,
+        false);
   }
 
   public Witness generateProofWitness(
@@ -209,10 +211,11 @@ public class WitnessExporter {
         Predicates.alwaysFalse(),
         Optional.empty(),
         Optional.empty(),
-        GraphBuilder.CFA_FULL);
+        GraphBuilder.CFA_FULL,
+        backwardARG);
   }
 
-  protected String getInitialFileName(ARGState pRootState, boolean backwardARG) {
+  protected String getInitialFileName(ARGState pRootState, final boolean backwardARG) {
     Deque<CFANode> worklist = Queues.newArrayDeque(AbstractStates.extractLocations(pRootState));
     Set<CFANode> visited = new HashSet<>();
 
