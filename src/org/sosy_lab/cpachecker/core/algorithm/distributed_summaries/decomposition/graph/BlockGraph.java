@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.base.Preconditions;
@@ -37,8 +38,10 @@ public class BlockGraph {
   private final ImmutableSet<BlockNode> nodes;
 
   public BlockGraph(BlockNode pRoot, ImmutableSet<BlockNode> pNodes) {
-    Preconditions.checkArgument(
-        pRoot.getPredecessorIds().isEmpty(), "Node with ID: '" + ROOT_ID + "' has predecessors.");
+    checkArgument(
+        pRoot.getPredecessorIds().isEmpty(),
+        "Node with ID: '" + ROOT_ID + "%s",
+        "' has predecessors.");
     Preconditions.checkArgument(
         pNodes.stream().noneMatch(b -> b.equals(pRoot) || b.getId().equals(ROOT_ID)),
         "Root nodes are ambiguous.");
@@ -143,28 +146,26 @@ public class BlockGraph {
     startNodes.put(root.getFirst(), root);
     endNodes.put(root.getLast(), root);
     ImmutableSet<BlockNode> blockNodes =
-        FluentIterable.from(pNodes)
-            .transform(
-                b ->
-                    new BlockNode(
-                        b.getId(),
-                        b.getFirst(),
-                        b.getLast(),
-                        b.getNodes(),
-                        b.getEdges(),
-                        transformedImmutableSetCopy(
-                            endNodes.get(b.getFirst()), BlockNodeWithoutGraphInformation::getId),
-                        Sets.intersection(
-                                transformedImmutableSetCopy(
-                                    endNodes.get(b.getFirst()),
-                                    BlockNodeWithoutGraphInformation::getId),
-                                transformedImmutableSetCopy(
-                                    loopPredecessors.get(b),
-                                    BlockNodeWithoutGraphInformation::getId))
-                            .immutableCopy(),
-                        transformedImmutableSetCopy(
-                            startNodes.get(b.getLast()), BlockNodeWithoutGraphInformation::getId)))
-            .toSet();
+        transformedImmutableSetCopy(
+            pNodes,
+            b ->
+                new BlockNode(
+                    b.getId(),
+                    b.getFirst(),
+                    b.getLast(),
+                    b.getNodes(),
+                    b.getEdges(),
+                    transformedImmutableSetCopy(
+                        endNodes.get(b.getFirst()), BlockNodeWithoutGraphInformation::getId),
+                    Sets.intersection(
+                            transformedImmutableSetCopy(
+                                endNodes.get(b.getFirst()),
+                                BlockNodeWithoutGraphInformation::getId),
+                            transformedImmutableSetCopy(
+                                loopPredecessors.get(b), BlockNodeWithoutGraphInformation::getId))
+                        .immutableCopy(),
+                    transformedImmutableSetCopy(
+                        startNodes.get(b.getLast()), BlockNodeWithoutGraphInformation::getId)));
     return new BlockGraph(root, blockNodes);
   }
 
