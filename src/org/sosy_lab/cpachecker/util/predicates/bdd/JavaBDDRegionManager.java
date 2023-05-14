@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
+import com.google.common.base.Ascii;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import com.google.common.primitives.ImmutableIntArray;
@@ -136,7 +137,7 @@ class JavaBDDRegionManager implements RegionManager {
     if (cacheSize == 0) {
       cacheSize = (int) (initTableSize * cacheRatio);
     }
-    factory = BDDFactory.init(bddPackage.toLowerCase(), initTableSize, cacheSize);
+    factory = BDDFactory.init(Ascii.toLowerCase(bddPackage), initTableSize, cacheSize);
 
     // register callbacks for logging
     try {

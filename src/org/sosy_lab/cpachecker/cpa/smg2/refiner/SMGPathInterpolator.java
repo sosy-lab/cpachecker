@@ -265,7 +265,7 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
                 false)
             .getUseDefStates();
 
-    /** The original call edge, importance in relation to slicing, position in abstractEdges */
+    // The original call edge, importance in relation to slicing, position in abstractEdges
     record FunctionCallInfo(FunctionCallEdge edge, boolean isImportant, int index) {}
     ArrayDeque<FunctionCallInfo> functionCalls = new ArrayDeque<>();
     List<CFAEdge> abstractEdges = new ArrayList<>(pErrorPathPrefix.getInnerEdges());

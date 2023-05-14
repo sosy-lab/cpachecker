@@ -16,6 +16,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -149,7 +150,7 @@ class WitnessFactory implements EdgeAppender {
   }
 
   private static boolean isTmpVariable(AIdExpression exp) {
-    return exp.getDeclaration().getQualifiedName().toUpperCase().contains("__CPACHECKER_TMP");
+    return Ascii.toUpperCase(exp.getDeclaration().getQualifiedName()).contains("__CPACHECKER_TMP");
   }
 
   private final WitnessOptions witnessOptions;

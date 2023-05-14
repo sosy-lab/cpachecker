@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.local;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -32,7 +33,7 @@ public final class LocalState implements LatticeAbstractState<LocalState> {
 
     @Override
     public String toString() {
-      return name().toLowerCase();
+      return Ascii.toLowerCase(name());
     }
 
     public static final DataType max(DataType d1, DataType d2) {
