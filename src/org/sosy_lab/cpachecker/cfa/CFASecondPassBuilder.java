@@ -363,7 +363,7 @@ public class CFASecondPassBuilder {
       return false;
     }
 
-    FunctionExitNode fExitNode = functionEntry.getExitNode().get();
+    FunctionExitNode fExitNode = functionEntry.getExitNode().orElseThrow();
     for (CFAEdge enteringEdge : CFAUtils.enteringEdges(fExitNode)) {
       if (enteringEdge instanceof BlankEdge) {
         return true;
