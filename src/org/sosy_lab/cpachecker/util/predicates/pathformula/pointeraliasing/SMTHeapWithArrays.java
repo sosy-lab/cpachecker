@@ -39,9 +39,16 @@ class SMTHeapWithArrays implements SMTMultipleAssignmentHeap {
       int oldIndex,
       int newIndex,
       final List<SMTAddressValue<I, E>> assignments) {
-    // as we do not have the type of I, initialize formulas within assignments
-    ArrayFormula<I, E> oldFormula = null;
-    ArrayFormula<I, E> arrayFormula = null;
+    // Unchecked casts necessary because SMTHeap is not fully generic.
+    // Made safe by checks below and by FormulaManager implementation.
+    @SuppressWarnings("unchecked")
+    ArrayFormula<I, E> oldFormula =
+        afmgr.makeArray(
+            targetName, oldIndex, (FormulaType<I>) pointerType, (FormulaType<E>) pTargetType);
+    @SuppressWarnings("unchecked")
+    ArrayFormula<I, E> arrayFormula =
+        afmgr.makeArray(
+            targetName, newIndex, (FormulaType<I>) pointerType, (FormulaType<E>) pTargetType);
     for (SMTAddressValue<I, E> assignment : assignments) {
       I address = assignment.address();
       E value = assignment.value();
@@ -63,15 +70,7 @@ class SMTHeapWithArrays implements SMTMultipleAssignmentHeap {
         targetName,
         address,
         value);
-      if (oldFormula == null) {
-        oldFormula = afmgr.makeArray(targetName, oldIndex, addressType, targetType);
-        arrayFormula = afmgr.makeArray(targetName, newIndex, addressType, targetType);
-      }
       oldFormula = afmgr.store(oldFormula, address, value);
-    }
-    if (oldFormula == null) {
-      // no assignments, make an identity pointer assignment
-      return makeIdentityPointerAssignment(targetName, pTargetType, oldIndex, newIndex);
     }
     return formulaManager.makeEqual(arrayFormula, oldFormula);
   }
