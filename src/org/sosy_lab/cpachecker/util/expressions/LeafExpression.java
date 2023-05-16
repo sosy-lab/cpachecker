@@ -27,15 +27,13 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
     if (pStatement instanceof AExpressionStatement) {
       return of(((AExpressionStatement) pStatement).getExpression());
     }
-    if (pStatement instanceof CAssignment) {
-      CAssignment assignment = (CAssignment) pStatement;
-      if (assignment.getRightHandSide() instanceof CExpression) {
-        CExpression expression = (CExpression) assignment.getRightHandSide();
-        CBinaryExpression assumeExp =
-            pBinaryExpressionBuilder.buildBinaryExpressionUnchecked(
-                assignment.getLeftHandSide(), expression, CBinaryExpression.BinaryOperator.EQUALS);
-        return of(assumeExp);
-      }
+    if ((pStatement instanceof CAssignment assignment)
+        && (assignment.getRightHandSide() instanceof CExpression)) {
+      CExpression expression = (CExpression) assignment.getRightHandSide();
+      CBinaryExpression assumeExp =
+          pBinaryExpressionBuilder.buildBinaryExpressionUnchecked(
+              assignment.getLeftHandSide(), expression, CBinaryExpression.BinaryOperator.EQUALS);
+      return of(assumeExp);
     }
     return ExpressionTrees.getTrue();
   }
@@ -47,9 +45,9 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
   private final int hashCode;
 
   private LeafExpression(LeafType pExpression, boolean pAssumeTruth, int pHashCode) {
-    this.expression = Objects.requireNonNull(pExpression);
-    this.assumeTruth = pAssumeTruth;
-    this.hashCode = pHashCode;
+    expression = Objects.requireNonNull(pExpression);
+    assumeTruth = pAssumeTruth;
+    hashCode = pHashCode;
   }
 
   public LeafType getExpression() {
@@ -118,8 +116,7 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
       }
       return assumeTruth ? ExpressionTrees.getTrue() : ExpressionTrees.getFalse();
     }
-    if (leafExpression instanceof String) {
-      String expressionString = (String) leafExpression;
+    if (leafExpression instanceof String expressionString) {
       if (expressionString.equals("0")) {
         return assumeTruth ? ExpressionTrees.getFalse() : ExpressionTrees.getTrue();
       }

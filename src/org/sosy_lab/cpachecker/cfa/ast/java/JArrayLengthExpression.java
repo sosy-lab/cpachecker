@@ -22,8 +22,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
  *    int b = a.length;
  *  </pre>
  */
-public abstract class JArrayLengthExpression extends AbstractExpression
-    implements JExpression, JAstNode, JRightHandSide {
+public abstract sealed class JArrayLengthExpression extends AbstractExpression
+    implements JExpression {
 
   private static final long serialVersionUID = 7278006181009822118L;
 
@@ -55,7 +55,7 @@ public abstract class JArrayLengthExpression extends AbstractExpression
     return v.visit(this);
   }
 
-  private static class JSubArrayLengthExpression extends JArrayLengthExpression {
+  private static final class JSubArrayLengthExpression extends JArrayLengthExpression {
     private static final long serialVersionUID = 7488687702133599086L;
     private final JArraySubscriptExpression qualifier;
 
@@ -81,7 +81,7 @@ public abstract class JArrayLengthExpression extends AbstractExpression
     }
   }
 
-  private static class JTopArrayLengthExpression extends JArrayLengthExpression {
+  private static final class JTopArrayLengthExpression extends JArrayLengthExpression {
 
     private static final long serialVersionUID = -2662310110400103416L;
     private final JIdExpression qualifier;

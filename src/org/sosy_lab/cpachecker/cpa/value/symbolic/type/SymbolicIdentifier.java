@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.primitives.Longs;
 import java.util.Objects;
@@ -53,7 +52,7 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
 
   public SymbolicIdentifier(final long pId, final MemoryLocation pRepresentedLocation) {
     id = pId;
-    representedLocation = checkNotNull(pRepresentedLocation);
+    representedLocation = pRepresentedLocation;
   }
 
   @Override

@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -106,7 +105,7 @@ public class ConstraintManager {
 
     Query q = new Query("entails", args);
 
-    logger.log(Level.FINEST, "\n * " + cn1 + "\n * entails" + "\n * " + cn2 + ")");
+    logger.log(Level.FINEST, "\n * " + cn1 + "\n * entails\n * " + cn2 + ")");
 
     boolean res = q.hasSolution();
 
@@ -280,8 +279,7 @@ public class ConstraintManager {
   public static Constraint getConstraint(ADeclarationEdge ae) {
     CDeclaration decl = (CDeclaration) ae.getDeclaration();
     Constraint ac = new Constraint();
-    if (decl instanceof CVariableDeclaration) {
-      CVariableDeclaration vdecl = (CVariableDeclaration) decl;
+    if (decl instanceof CVariableDeclaration vdecl) {
       AInitializer initializer = vdecl.getInitializer();
       String varName = vdecl.getName();
       Term lhs = CVar2PrologPrimedVar(varName);
@@ -330,14 +328,10 @@ public class ConstraintManager {
 
   public static Constraint getConstraint(FunctionReturnEdge fretEdge)
       throws UnrecognizedCodeException {
-
-    FunctionSummaryEdge summaryEdge = fretEdge.getSummaryEdge();
-    AFunctionCall exprOnSummary = summaryEdge.getExpression();
+    AFunctionCall exprOnSummary = fretEdge.getFunctionCall();
 
     // expression is an assignment operation, e.g. a = g(b);
-    if (exprOnSummary instanceof AFunctionCallAssignmentStatement) {
-      AFunctionCallAssignmentStatement assignExp =
-          ((AFunctionCallAssignmentStatement) exprOnSummary);
+    if (exprOnSummary instanceof AFunctionCallAssignmentStatement assignExp) {
       AExpression op1 = assignExp.getLeftHandSide();
 
       // we expect left hand side of the expression to be a variable
@@ -357,7 +351,7 @@ public class ConstraintManager {
       else if (op1 instanceof CArraySubscriptExpression) {
         return new Constraint();
       } else {
-        throw new UnrecognizedCodeException("on function return", summaryEdge, null);
+        throw new UnrecognizedCodeException("on function return", fretEdge, null);
       }
     }
     return new Constraint();
@@ -475,8 +469,7 @@ public class ConstraintManager {
       return ImmutableSet.of(Pair.of(CVar2PrologVar(ce.toString()), vars));
     } else if (ce instanceof CIntegerLiteralExpression) {
       return ImmutableSet.of(Pair.of(Util.textToTerm("rdiv(" + ce + ",1)"), vars));
-    } else if (ce instanceof CBinaryExpression) {
-      CBinaryExpression bexp = (CBinaryExpression) ce;
+    } else if (ce instanceof CBinaryExpression bexp) {
       Collection<Pair<Term, List<Term>>> operand1 = expressionToCLP(bexp.getOperand1());
       Collection<Pair<Term, List<Term>>> operand2 = expressionToCLP(bexp.getOperand2());
       switch (bexp.getOperator()) {
@@ -529,8 +522,7 @@ public class ConstraintManager {
       expTerm = Util.textToTerm("rdiv(" + ce + ",1)");
       Term paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, expTerm});
       return ImmutableSet.of(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm}), vars));
-    } else if (ce instanceof CBinaryExpression) {
-      CBinaryExpression bexp = (CBinaryExpression) ce;
+    } else if (ce instanceof CBinaryExpression bexp) {
       Collection<Pair<Term, List<Term>>> aexpTerms = expressionToCLP(ce);
       ImmutableCollection.Builder<Pair<Term, List<Term>>> paramAexpTerms =
           ImmutableList.builderWithExpectedSize(aexpTerms.size());

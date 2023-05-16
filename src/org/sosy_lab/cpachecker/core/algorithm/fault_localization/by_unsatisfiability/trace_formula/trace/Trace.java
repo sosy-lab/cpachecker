@@ -52,12 +52,12 @@ public class Trace extends ForwardingList<TraceAtom> {
     ENDIF
   }
 
-  private final ImmutableList<TraceAtom> entries;
+  public final ImmutableList<TraceAtom> entries;
   private final SSAMap latestSSAMap;
   private final SSAMap initialSSAMap;
   private final FormulaContext context;
 
-  private Trace(FormulaContext pContext, List<TraceAtom> pEntries) {
+  public Trace(FormulaContext pContext, List<TraceAtom> pEntries) {
     entries = ImmutableList.copyOf(pEntries);
     context = pContext;
     if (entries.isEmpty()) {
@@ -88,7 +88,8 @@ public class Trace extends ForwardingList<TraceAtom> {
           .forEach(
               (name, variable) -> {
                 Pair<String, OptionalInt> pair = FormulaManagerView.parseName(name);
-                if (Objects.requireNonNull(pair.getSecond()).isPresent()) {
+                if (Objects.requireNonNull(pair.getSecond()).isPresent()
+                    && traceAtom.ssaMap.getType(Objects.requireNonNull(pair.getFirst())) != null) {
                   minIndexMap.merge(pair.getFirst(), pair.getSecond().orElseThrow(), Integer::min);
                   typeMap.put(
                       pair.getFirst(),
@@ -178,6 +179,10 @@ public class Trace extends ForwardingList<TraceAtom> {
       }
     }
     return new Trace(context, flowSensitiveList);
+  }
+
+  public static Trace emptyTrace(FormulaContext pContext) {
+    return new Trace(pContext, ImmutableList.of());
   }
 
   /**

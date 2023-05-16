@@ -46,7 +46,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class ReachingDefUtils {
+public final class ReachingDefUtils {
+
+  private ReachingDefUtils() {}
 
   private static List<CFANode> cfaNodes;
 
@@ -210,6 +212,7 @@ public class ReachingDefUtils {
     protected MemoryLocation visitDefault(CExpression pExp) {
       return null;
     }
+
     // TODO adapt, need more
     @Override
     public MemoryLocation visit(CArraySubscriptExpression pIastArraySubscriptExpression)

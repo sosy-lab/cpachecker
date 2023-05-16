@@ -126,7 +126,7 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
             .enforceAbstraction(getLoopIterationsBeforeAbstraction());
 
     PrecisionAdjustmentResult result =
-        PrecisionAdjustmentResult.create(adjustedState, adjustedPrecision, Action.CONTINUE);
+        new PrecisionAdjustmentResult(adjustedState, adjustedPrecision, Action.CONTINUE);
 
     return Optional.of(result);
   }
@@ -187,7 +187,7 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
     }
   }
 
-  private static class IncrementalLoopIterationAdjuster implements MaxLoopIterationAdjuster {
+  private static final class IncrementalLoopIterationAdjuster implements MaxLoopIterationAdjuster {
 
     private final LoopBoundPrecisionAdjustment precisionAdjustment;
 
@@ -207,7 +207,7 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
     }
   }
 
-  private static class DoublingLoopIterationAdjuster implements MaxLoopIterationAdjuster {
+  private static final class DoublingLoopIterationAdjuster implements MaxLoopIterationAdjuster {
 
     private final LoopBoundPrecisionAdjustment precisionAdjustment;
 

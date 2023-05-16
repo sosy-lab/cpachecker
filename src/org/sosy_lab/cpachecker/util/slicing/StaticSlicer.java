@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
@@ -159,20 +158,10 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     sliceEdgesNumber.setNextValue(relevantEdges.size());
     if (programEdgesNumber.getValueCount() == 0) {
-      programEdgesNumber.setNextValue(countProgramEdges(pCfa));
+      programEdgesNumber.setNextValue(CFAUtils.allEdges(pCfa).size());
     }
 
     return slice;
-  }
-
-  private int countProgramEdges(CFA pCfa) {
-
-    int programEdgeCounter = 0;
-    for (CFANode node : pCfa.getAllNodes()) {
-      programEdgeCounter += CFAUtils.allLeavingEdges(node).size();
-    }
-
-    return programEdgeCounter;
   }
 
   private double getSliceProgramRatio() {

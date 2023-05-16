@@ -93,8 +93,7 @@ public class ThreadCreateTransformer {
         CStatement statement = ((CStatementEdge) pEdge).getStatement();
         if (statement instanceof CAssignment) {
           CRightHandSide rhs = ((CAssignment) statement).getRightHandSide();
-          if (rhs instanceof CFunctionCallExpression) {
-            CFunctionCallExpression exp = ((CFunctionCallExpression) rhs);
+          if (rhs instanceof CFunctionCallExpression exp) {
             checkFunctionExpression(pEdge, exp);
           }
         } else if (statement instanceof CFunctionCallStatement) {
@@ -132,7 +131,7 @@ public class ThreadCreateTransformer {
   public void transform(CFA cfa) {
     ThreadFinder threadVisitor = new ThreadFinder();
 
-    for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode functionStartNode : cfa.entryNodes()) {
       CFATraversal.dfs().traverseOnce(functionStartNode, threadVisitor);
     }
 

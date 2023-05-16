@@ -167,12 +167,22 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
 
   /** Utility function for step 7. Increase the level of all mapped nodes by 1. */
   private void increaseLevelOfMapped() {
-    Set<SMGNode> mappedNodes = new HashSet<>(mapping1.getMappedObjects());
-    mappedNodes.addAll(mapping1.getMappedValues());
-    mappedNodes.addAll(mapping2.getMappedObjects());
-    mappedNodes.addAll(mapping2.getMappedValues());
-    // TODO this modifies nodes, maybe it would be better to replace existing with modified copy
-    mappedNodes.forEach(node -> node.increaseLevelBy(1));
+    for (SMGObject mappedObj : mapping1.getMappedObjects()) {
+      mapping1.replaceObjectMapping(
+          mappedObj, mappedObj.withNestingLevelAndCopy(mappedObj.getNestingLevel() + 1));
+    }
+    for (SMGValue mappedVal : mapping1.getMappedValues()) {
+      mapping1.replaceValueMapping(
+          mappedVal, mappedVal.withNestingLevelAndCopy(mappedVal.getNestingLevel() + 1));
+    }
+    for (SMGObject mappedObj : mapping2.getMappedObjects()) {
+      mapping2.replaceObjectMapping(
+          mappedObj, mappedObj.withNestingLevelAndCopy(mappedObj.getNestingLevel() + 1));
+    }
+    for (SMGValue mappedVal : mapping2.getMappedValues()) {
+      mapping2.replaceValueMapping(
+          mappedVal, mappedVal.withNestingLevelAndCopy(mappedVal.getNestingLevel() + 1));
+    }
   }
 
   /**
@@ -270,10 +280,10 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
             pObj1.getNestingLevel(),
             pObj1.getSize(),
             pObj1.getOffset(),
-            pPrevOffset,
+            pHeadOffset,
             pNextOffset,
-            minLength,
-            pHeadOffset);
+            pPrevOffset,
+            minLength);
     destSMG = destSMG.copyAndAddObject(dls);
     return dls;
   }

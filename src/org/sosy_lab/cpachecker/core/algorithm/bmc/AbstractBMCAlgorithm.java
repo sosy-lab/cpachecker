@@ -15,6 +15,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterAncestors;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -573,8 +574,7 @@ abstract class AbstractBMCAlgorithm
       } else {
         sound = false;
 
-        if (candidate instanceof Obligation) {
-          Obligation obligation = (Obligation) candidate;
+        if (candidate instanceof Obligation obligation) {
           List<SymbolicCandiateInvariant> weakenings = obligation.getWeakenings();
           for (SymbolicCandiateInvariant weakening : weakenings) {
             inductionResult =
@@ -708,8 +708,7 @@ abstract class AbstractBMCAlgorithm
     }
     // Leave program formula on solver stack until error path is created
 
-    if (pReachedSet instanceof ReachedSet) {
-      ReachedSet reachedSet = (ReachedSet) pReachedSet;
+    if (pReachedSet instanceof ReachedSet reachedSet) {
       if (safe) {
         pCandidateInvariant.assumeTruth(reachedSet);
       } else if (pCandidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
@@ -901,7 +900,7 @@ abstract class AbstractBMCAlgorithm
         Solver solverForPathChecker = solver;
         PathFormulaManager pmgrForPathChecker = pmgr;
 
-        if (solverForPathChecker.getVersion().toLowerCase().contains("smtinterpol")) {
+        if (Ascii.toLowerCase(solverForPathChecker.getVersion()).contains("smtinterpol")) {
           // SMTInterpol does not support reusing the same solver
           solverForPathChecker = Solver.create(config, logger, shutdownNotifier);
           FormulaManagerView formulaManager = solverForPathChecker.getFormulaManager();
@@ -1360,8 +1359,7 @@ abstract class AbstractBMCAlgorithm
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof Obligation) {
-        Obligation other = (Obligation) pOther;
+      if (pOther instanceof Obligation other) {
         if (causingObligation == null) {
           return other.causingObligation == null
               && causingCandidateInvariant.equals(other.causingCandidateInvariant)
@@ -1433,6 +1431,7 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
+  @FunctionalInterface
   private interface InvariantGeneratorHeadStart {
 
     void waitForInvariantGenerator() throws InterruptedException;

@@ -96,7 +96,8 @@ public abstract class BinarySymbolicExpression extends SymbolicExpression {
 
   @Override
   public final int hashCode() {
-    return super.hashCode() + Objects.hash(getClass(), operand1, operand2, expressionType);
+    return super.hashCode()
+        + Objects.hash(getClass().getCanonicalName(), operand1, operand2, expressionType);
   }
 
   @Override

@@ -232,6 +232,15 @@ public class CPAMain {
 
     @Option(
         secure = true,
+        name = "datarace.config",
+        description =
+            "When checking for the data race property, "
+                + "use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path dataraceConfig = null;
+
+    @Option(
+        secure = true,
         name = "termination.config",
         description =
             "When checking for the termination property, "
@@ -312,7 +321,9 @@ public class CPAMain {
    * @return A Configuration object, the output directory, and the specification properties.
    */
   private static Config createConfiguration(String[] args)
-      throws InvalidConfigurationException, InvalidCmdlineArgumentException, IOException,
+      throws InvalidConfigurationException,
+          InvalidCmdlineArgumentException,
+          IOException,
           InterruptedException {
     // if there are some command line arguments, process them
     Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args);
@@ -431,18 +442,12 @@ public class CPAMain {
     for (String program : pPrograms) {
       Language language;
       String suffix = program.substring(program.lastIndexOf(".") + 1);
-      switch (suffix) {
-        case "ll":
-        case "bc":
-          language = Language.LLVM;
-          break;
-        case "c":
-        case "i":
-        case "h":
-        default:
-          language = Language.C;
-          break;
-      }
+      language =
+          switch (suffix) {
+            case "ll", "bc" -> Language.LLVM;
+            case "c", "i", "h" -> Language.C;
+            default -> Language.C;
+          };
       Preconditions.checkNotNull(language);
       if (frontendLanguage == null) { // first iteration
         frontendLanguage = language;
@@ -497,6 +502,13 @@ public class CPAMain {
             "Unsupported combination of properties: " + properties);
       }
       alternateConfigFile = check(options.overflowConfig, "overflows", "overflow.config");
+    } else if (properties.contains(CommonVerificationProperty.DATA_RACE)) {
+      if (properties.size() != 1) {
+        // Data race property cannot be checked with others in combination
+        throw new InvalidConfigurationException(
+            "Unsupported combination of properties: " + properties);
+      }
+      alternateConfigFile = check(options.dataraceConfig, "data races", "datarace.config");
     } else if (properties.contains(CommonVerificationProperty.TERMINATION)) {
       // Termination property cannot be checked with others in combination
       if (properties.size() != 1) {
@@ -540,6 +552,7 @@ public class CPAMain {
           .clearOption("memorysafety.config")
           .clearOption("memorycleanup.config")
           .clearOption("overflow.config")
+          .clearOption("datarace.config")
           .clearOption("termination.config")
           .clearOption("output.disable")
           .clearOption("output.path")

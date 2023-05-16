@@ -153,12 +153,14 @@ public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalanc
         pNumPartitions > 0 && wGraph != null,
         "Partitioniong must contain at least 1 partition. Graph may not be null.");
 
-    logger.log(
+    logger.logf(
         Level.FINE,
-        String.format(
-            "[best-first] Compute %d-partitioning with %.2f balance precision. %s evaluation"
-                + " function. Graph size %d",
-            pNumPartitions, balancePrecision, chosenFunction, wGraph.getNumNodes()));
+        "[best-first] Compute %d-partitioning with %.2f balance precision. %s evaluation function."
+            + " Graph size %d",
+        pNumPartitions,
+        balancePrecision,
+        chosenFunction,
+        wGraph.getNumNodes());
 
     if (pNumPartitions == 1) { // 1-partitioning easy special case (Each node in the same partition)
       return wGraph.getGraphAsOnePartition();

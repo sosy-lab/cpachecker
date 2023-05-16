@@ -12,10 +12,11 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.Ordering;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -39,19 +40,10 @@ public final class DeadLockState extends AbstractLockState {
     public int compareTo(CompatibleState pOther) {
       Preconditions.checkArgument(pOther instanceof DeadLockTreeNode);
       DeadLockTreeNode o = (DeadLockTreeNode) pOther;
-      int result = size() - o.size();
-      if (result != 0) {
-        return result;
-      }
-      Iterator<LockIdentifier> lockIterator = iterator();
-      Iterator<LockIdentifier> lockIterator2 = o.iterator();
-      while (lockIterator.hasNext()) {
-        result = lockIterator.next().compareTo(lockIterator2.next());
-        if (result != 0) {
-          return result;
-        }
-      }
-      return 0;
+      return ComparisonChain.start()
+          .compare(size(), o.size())
+          .compare(this, o, Ordering.natural().lexicographical()) // compares iterators
+          .result();
     }
 
     @Override
@@ -195,6 +187,7 @@ public final class DeadLockState extends AbstractLockState {
   }
 
   private final List<LockIdentifier> lockList;
+
   // if we need restore state, we save it here
   // Used for function annotations like annotate.function_name.restore
   @SuppressWarnings("JdkObsolete") // TODO consider replacing this with ArrayList or ArrayDeque
@@ -256,25 +249,10 @@ public final class DeadLockState extends AbstractLockState {
   @Override
   public int compareTo(CompatibleState pOther) {
     DeadLockState other = (DeadLockState) pOther;
-
-    int result = other.getSize() - getSize(); // decreasing queue
-
-    if (result != 0) {
-      return result;
-    }
-
-    Iterator<LockIdentifier> iterator1 = lockList.iterator();
-    Iterator<LockIdentifier> iterator2 = other.lockList.iterator();
-    // Sizes are equal
-    while (iterator1.hasNext()) {
-      LockIdentifier lockId1 = iterator1.next();
-      LockIdentifier lockId2 = iterator2.next();
-      result = lockId1.compareTo(lockId2);
-      if (result != 0) {
-        return result;
-      }
-    }
-    return 0;
+    return ComparisonChain.start()
+        .compare(other.getSize(), getSize()) // decreasing queue
+        .compare(lockList, other.lockList, Ordering.natural().lexicographical()) // Sizes are equal
+        .result();
   }
 
   @Override

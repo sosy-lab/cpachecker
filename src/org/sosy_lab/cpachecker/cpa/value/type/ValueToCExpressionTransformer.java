@@ -35,7 +35,7 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
   @Override
   public CExpression visit(EnumConstantValue pValue) {
     throw new UnsupportedOperationException(
-        EnumConstantValue.class.getSimpleName() + " is a Java" + " value");
+        EnumConstantValue.class.getSimpleName() + " is a Java value");
   }
 
   @Override
@@ -50,8 +50,7 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
 
   @Override
   public CExpression visit(ArrayValue pValue) {
-    throw new UnsupportedOperationException(
-        ArrayValue.class.getSimpleName() + " is a Java" + " value");
+    throw new UnsupportedOperationException(ArrayValue.class.getSimpleName() + " is a Java value");
   }
 
   @Override
@@ -68,7 +67,7 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
   @Override
   public CExpression visit(FunctionValue pValue) {
     throw new UnsupportedOperationException(
-        "Function values can't be transformed back " + "to CExpressions correctly, at the moment");
+        "Function values can't be transformed back to CExpressions correctly, at the moment");
   }
 
   @Override
@@ -84,8 +83,7 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
       }
     }
 
-    return new CIntegerLiteralExpression(
-        FileLocation.DUMMY, type, BigInteger.valueOf(pValue.longValue()));
+    return new CIntegerLiteralExpression(FileLocation.DUMMY, type, pValue.bigIntegerValue());
   }
 
   private CExpression visitFloatingValue(NumericValue pValue, CSimpleType pType) {

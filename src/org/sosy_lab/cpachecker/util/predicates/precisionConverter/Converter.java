@@ -110,17 +110,11 @@ public class Converter {
       PrecisionConverter encodePredicates, CFA cfa, LogManager logger) {
     switch (encodePredicates) {
       case INT2BV:
-        {
-          return new BVConverter(cfa, logger);
-        }
+        return new BVConverter(cfa, logger);
       case BV2INT:
-        {
-          return new IntConverter(cfa, logger);
-        }
+        return new IntConverter(cfa, logger);
       case DISABLE:
-        {
-          return null;
-        }
+        return null;
       default:
         throw new AssertionError("invalid value for option");
     }

@@ -219,7 +219,7 @@ public class UseDefRelation {
   private void updateUseDefRelation(ARGState state, CFAEdge edge) {
     switch (edge.getEdgeType()) {
       case FunctionReturnEdge:
-        AFunctionCall summaryExpr = ((FunctionReturnEdge) edge).getSummaryEdge().getExpression();
+        AFunctionCall summaryExpr = ((FunctionReturnEdge) edge).getFunctionCall();
 
         if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
           Set<ASimpleDeclaration> assignedVariables =
@@ -376,14 +376,13 @@ public class UseDefRelation {
    * initializer.
    */
   private Set<ASimpleDeclaration> getVariablesUsedForInitialization(AInitializer initializer) {
-    // e.g. .x=b or .p.x.=1  as part of struct initialization
     if (initializer instanceof CDesignatedInitializer) {
+      // e.g. .x=b or .p.x.=1  as part of struct initialization
       return getVariablesUsedForInitialization(
           ((CDesignatedInitializer) initializer).getRightHandSide());
-    }
 
-    // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
-    else if (initializer instanceof CInitializerList) {
+    } else if (initializer instanceof CInitializerList) {
+      // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
       Set<ASimpleDeclaration> readVars = new HashSet<>();
 
       for (CInitializer initializerList : ((CInitializerList) initializer).getInitializers()) {
@@ -434,8 +433,7 @@ public class UseDefRelation {
       // all variables of the right hand side are "used" afterwards
       if (assignment instanceof AExpressionAssignmentStatement) {
         rightHandSideUses = acceptAll((AExpression) assignment.getRightHandSide());
-      } else if (assignment instanceof AFunctionCallAssignmentStatement) {
-        AFunctionCallAssignmentStatement funcStmt = (AFunctionCallAssignmentStatement) assignment;
+      } else if (assignment instanceof AFunctionCallAssignmentStatement funcStmt) {
         rightHandSideUses =
             getVariablesUsedAsParameters(
                 funcStmt.getFunctionCallExpression().getParameterExpressions());

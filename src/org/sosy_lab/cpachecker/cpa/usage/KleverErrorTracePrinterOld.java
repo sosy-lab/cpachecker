@@ -15,7 +15,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -69,10 +68,8 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
   protected void printUnsafe(SingleIdentifier pId, Pair<UsageInfo, UsageInfo> pTmpPair) {
     UsageInfo firstUsage = pTmpPair.getFirst();
     UsageInfo secondUsage = pTmpPair.getSecond();
-    List<CFAEdge> firstPath, secondPath;
-
-    firstPath = getPath(firstUsage);
-    secondPath = getPath(secondUsage);
+    List<CFAEdge> firstPath = getPath(firstUsage);
+    List<CFAEdge> secondPath = getPath(secondUsage);
 
     if (firstPath == null || secondPath == null) {
       return;
@@ -117,11 +114,10 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
   }
 
   private Element printPath(UsageInfo usage, int threadId, GraphMlBuilder builder) {
-    String currentId = getId(), nextId = currentId;
+    String currentId = getId();
+    String nextId = currentId;
     SingleIdentifier pId = usage.getId();
     List<CFAEdge> path = usage.getPath();
-
-    Iterator<CFAEdge> iterator = from(path).filter(this::hasRelevantFileLocation).iterator();
 
     CFAEdge warning =
         Lists.reverse(path).stream()
@@ -143,9 +139,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
       printEdge = true;
     }
 
-    while (iterator.hasNext()) {
-      CFAEdge pEdge = iterator.next();
-
+    for (CFAEdge pEdge : from(path).filter(this::hasRelevantFileLocation)) {
       if (!printEdge
           && pEdge.getEdgeType() != CFAEdgeType.DeclarationEdge
           && pEdge.getEdgeType() != CFAEdgeType.BlankEdge) {
@@ -203,8 +197,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
       builder.addDataElementChild(result, KeyDef.FUNCTIONEXIT, out.getFunctionName());
     }
 
-    if (pEdge instanceof AssumeEdge) {
-      AssumeEdge a = (AssumeEdge) pEdge;
+    if (pEdge instanceof AssumeEdge a) {
       AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
       builder.addDataElementChild(result, KeyDef.CONTROLCASE, assumeCase.toString());
     }

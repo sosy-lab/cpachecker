@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -277,7 +278,8 @@ public class BlockedCFAReducer implements BlockComputer {
     FunctionNodeManager functionNodes = new FunctionNodeManager(functionCallSeq, cfa);
 
     ReducedNode entryNode = functionNodes.getWrapper(pFunctionNode);
-    ReducedNode exitNode = functionNodes.getWrapper(pFunctionNode.getExitNode());
+    @Nullable ReducedNode exitNode =
+        pFunctionNode.getExitNode().map(functionNodes::getWrapper).orElse(null);
     ReducedFunction result = new ReducedFunction(entryNode, exitNode);
 
     // First: Inline called functions in a summarized version.
@@ -295,10 +297,8 @@ public class BlockedCFAReducer implements BlockComputer {
         }
 
         // Depending on the type of the edge...
-        if (e instanceof CFunctionCallEdge) {
-          CFunctionCallEdge callEdge = (CFunctionCallEdge) e;
-          ReducedNode callReturnTarget =
-              functionNodes.getWrapper(callEdge.getSummaryEdge().getSuccessor());
+        if (e instanceof CFunctionCallEdge callEdge) {
+          ReducedNode callReturnTarget = functionNodes.getWrapper(callEdge.getReturnNode());
           FunctionEntryNode calledFunction = callEdge.getSuccessor();
 
           if (inliningStack.contains(calledFunction)) {
@@ -312,16 +312,15 @@ public class BlockedCFAReducer implements BlockComputer {
 
             // it is possible, that a function never returns e.g. if there is a loop
             // in the form of "labelXYZ: goto labelXYZ;"
-            // --> integrate the exit of the function to the control flow only if it has entering
-            // edges!
-            if (functionSum.getExitNode().getWrapped().getNumEnteringEdges() > 0) {
-              result.addEdge(functionSum.getExitNode(), callReturnTarget);
-            }
+            // --> integrate the exit of the function to the control flow only if it is reachable
+            functionSum
+                .getExitNode()
+                .ifPresent(funcSumExitNode -> result.addEdge(funcSumExitNode, callReturnTarget));
           }
 
           openEndpoints.add(callReturnTarget);
         } else {
-          if (Objects.equals(e.getSuccessor(), pFunctionNode.getExitNode())) {
+          if (Objects.equals(e.getSuccessor(), pFunctionNode.getExitNode().orElse(null))) {
             result.addEdge(uSn, exitNode);
           } else {
             ReducedNode vSn = functionNodes.getWrapper(e.getSuccessor());
@@ -343,7 +342,8 @@ public class BlockedCFAReducer implements BlockComputer {
   @VisibleForTesting
   void applyReductionSequences(ReducedFunction pApplyTo) {
     // Summarize the given function if the summarization-threshold is not already reached.
-    boolean sequenceApplied, choiceApplied;
+    boolean sequenceApplied;
+    boolean choiceApplied;
     do {
       sequenceApplied = applySequenceRule(pApplyTo);
       choiceApplied = applyChoiceRule(pApplyTo);

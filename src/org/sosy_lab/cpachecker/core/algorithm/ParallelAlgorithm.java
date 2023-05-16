@@ -70,7 +70,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CompoundException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.ThreadCpuTimeLimit;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -197,6 +196,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  @SuppressWarnings("checkstyle:IllegalThrows")
   private void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
       throws InterruptedException, Error, CPAException {
 
@@ -269,22 +269,22 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     final LogManager singleLogger = logger.withComponentName("Parallel analysis " + analysisNumber);
 
     if (pSingleConfigFileName.annotation().isPresent()) {
-      switch (pSingleConfigFileName.annotation().orElseThrow()) {
-        case "supply-reached":
-          supplyReached = true;
-          supplyRefinableReached = false;
-          break;
-        case "supply-reached-refinable":
-          supplyReached = false;
-          supplyRefinableReached = true;
-          break;
-        default:
-          throw new InvalidConfigurationException(
-              String.format(
-                  "Annotation %s is not valid for config %s in option"
-                      + " parallelAlgorithm.configFiles",
-                  pSingleConfigFileName.annotation(), pSingleConfigFileName.value()));
-      }
+      supplyRefinableReached =
+          switch (pSingleConfigFileName.annotation().orElseThrow()) {
+            case "supply-reached" -> {
+              supplyReached = true;
+              yield false;
+            }
+            case "supply-reached-refinable" -> {
+              supplyReached = false;
+              yield true;
+            }
+            default -> throw new InvalidConfigurationException(
+                String.format(
+                    "Annotation %s is not valid for config %s in option"
+                        + " parallelAlgorithm.configFiles",
+                    pSingleConfigFileName.annotation(), pSingleConfigFileName.value()));
+          };
     } else {
       supplyReached = false;
       supplyRefinableReached = false;
@@ -315,10 +315,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
                 null),
             terminated);
     return () -> {
-      // TODO global info will not work correctly with parallel analyses
-      // as it is a mutable singleton object
-      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
       if (algorithm instanceof ConditionAdjustmentEventSubscriber) {
         conditionAdjustmentEventSubscribers.add((ConditionAdjustmentEventSubscriber) algorithm);
       }
@@ -374,8 +370,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       ReachedSet currentReached = reached;
       AtomicReference<ReachedSet> oldReached = new AtomicReference<>();
 
-      if (algorithm instanceof ReachedSetUpdater) {
-        ReachedSetUpdater reachedSetUpdater = (ReachedSetUpdater) algorithm;
+      if (algorithm instanceof ReachedSetUpdater reachedSetUpdater) {
         reachedSetUpdater.register(
             new ReachedSetUpdateListener() {
 

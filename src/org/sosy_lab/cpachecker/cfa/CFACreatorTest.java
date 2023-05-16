@@ -11,22 +11,20 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -47,40 +45,52 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
-import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class CFACreatorTest {
 
-  @Mock JMethodEntryNode N1;
-  @Mock JMethodEntryNode N2;
-  @Mock JMethodEntryNode N3;
-  @Mock JMethodEntryNode N4;
-  @Mock JMethodEntryNode N5;
+  // Must be static final because of https://gitlab.com/sosy-lab/software/cpachecker/-/issues/263
+  private static final JClassType TEST_CLASS =
+      JClassType.valueOf(
+          "pack5.CallTests_true_assert",
+          "CallTests_true_assert",
+          VisibilityModifier.PUBLIC,
+          false,
+          false,
+          false,
+          JClassType.getTypeOfObject(),
+          ImmutableSet.of());
+
+  private JMethodEntryNode N1;
+  private JMethodEntryNode N2;
+  private JMethodEntryNode N3;
+  private JMethodEntryNode N4;
+  private JMethodEntryNode N5;
 
   private Map<String, FunctionEntryNode> cfa;
 
   @Before
   public void init() {
+    JMethodDeclaration functionDefinition1 = createFunctionDefinition("main", "String[]");
+    N1 = new JMethodEntryNode(FileLocation.DUMMY, functionDefinition1, null, Optional.empty());
 
-    MockitoAnnotations.openMocks(this);
-    JMethodDeclaration functionDefinition1 =
-        createFunctionDefinition("pack5.CallTests_true_assert", "main", "String[]");
-    when(N1.getFunctionDefinition()).thenReturn(functionDefinition1);
-    JMethodDeclaration functionDefinition2 =
-        createFunctionDefinition("pack5.CallTests_true_assert", "main2", "String[]");
-    when(N2.getFunctionDefinition()).thenReturn(functionDefinition2);
-    JMethodDeclaration functionDefinition3 =
-        createFunctionDefinition("pack5.CallTests_true_assert", "callTests_true_assert", "");
-    when(N3.getFunctionDefinition()).thenReturn(functionDefinition3);
+    JMethodDeclaration functionDefinition2 = createFunctionDefinition("main2", "String[]");
+    N2 = new JMethodEntryNode(FileLocation.DUMMY, functionDefinition2, null, Optional.empty());
+
+    JMethodDeclaration functionDefinition3 = createFunctionDefinition("callTests_true_assert", "");
+    N3 = new JMethodEntryNode(FileLocation.DUMMY, functionDefinition3, null, Optional.empty());
+
     JMethodDeclaration functionDefinition4 =
-        createFunctionDefinition("pack5.CallTests_true_assert", "callTests_true_assert", "int");
-    when(N4.getFunctionDefinition()).thenReturn(functionDefinition4);
+        createFunctionDefinition("callTests_true_assert", "int");
+    N4 = new JMethodEntryNode(FileLocation.DUMMY, functionDefinition4, null, Optional.empty());
+
     JMethodDeclaration functionDefinition5 =
-        createFunctionDefinition("pack5.CallTests_true_assert", "callTests_true_assert", "int_int");
-    when(N5.getFunctionDefinition()).thenReturn(functionDefinition5);
+        createFunctionDefinition("callTests_true_assert", "int_int");
+    N5 = new JMethodEntryNode(FileLocation.DUMMY, functionDefinition5, null, Optional.empty());
+
     cfa =
         Maps.uniqueIndex(
             ImmutableList.of(N1, N2, N3, N4, N5), node -> node.getFunctionDefinition().getName());
@@ -134,7 +144,7 @@ public class CFACreatorTest {
         TestDataTools.configurationForTest().setOption("language", "C").build();
     final CFACreator creator = createCfaCreatorForTesting(config);
     final String programSource =
-        "extern void abort() __attribute__((__noreturn__));" + "int main() { abort(); }";
+        "extern void abort() __attribute__((__noreturn__));int main() { abort(); }";
 
     final CFA created = creator.parseSourceAndCreateCFA(programSource);
 
@@ -157,7 +167,7 @@ public class CFACreatorTest {
         TestDataTools.configurationForTest().setOption("language", "C").build();
     final CFACreator creator = createCfaCreatorForTesting(config);
     final String programSource =
-        "extern void myfunc() __attribute__((__noreturn__));" + "int main() { myfunc(); }";
+        "extern void myfunc() __attribute__((__noreturn__));int main() { myfunc(); }";
 
     final CFA created = creator.parseSourceAndCreateCFA(programSource);
 
@@ -183,7 +193,7 @@ public class CFACreatorTest {
                 "cfa.nonReturningFunctions", "[]") // do not handle 'abort' as aborting function
             .build();
     final CFACreator creator = createCfaCreatorForTesting(config);
-    final String programSource = "extern void abort();" + "int main() { abort(); }";
+    final String programSource = "extern void abort();int main() { abort(); }";
 
     final CFA created = creator.parseSourceAndCreateCFA(programSource);
 
@@ -208,7 +218,7 @@ public class CFACreatorTest {
             .setOption("cfa.nonReturningFunctions", "abort") // handle 'abort' as aborting function
             .build();
     final CFACreator creator = createCfaCreatorForTesting(config);
-    final String programSource = "extern void abort();" + "int main() { abort(); }";
+    final String programSource = "extern void abort();int main() { abort(); }";
 
     final CFA created = creator.parseSourceAndCreateCFA(programSource);
 
@@ -271,14 +281,14 @@ public class CFACreatorTest {
   }
 
   private JMethodDeclaration createFunctionDefinition(
-      String classPath, String methodName, String parametersSubString) {
-    String name = classPath + "_" + methodName;
+      String methodName, String parametersSubString) {
+    String name = TEST_CLASS.getName() + "_" + methodName;
     List<String> parameters = Splitter.on('_').splitToList(parametersSubString);
     List<JParameterDeclaration> jParameterDeclarations = new ArrayList<>(parameters.size());
     for (String parameter : parameters) {
       jParameterDeclarations.add(
           new JParameterDeclaration(
-              FileLocation.DUMMY, mock(JType.class), parameter, "stub", false));
+              FileLocation.DUMMY, JSimpleType.getInt(), parameter, "stub", false));
     }
     if (!parametersSubString.isEmpty()) {
       name = name + "_" + parametersSubString;
@@ -292,21 +302,6 @@ public class CFACreatorTest {
         jParameterDeclarations,
         VisibilityModifier.PUBLIC,
         false,
-        createDeclaringClassMock(classPath));
-  }
-
-  private JClassType createDeclaringClassMock(String classPath) {
-    String simpleClassName;
-    int indexOfLastDot = classPath.lastIndexOf(".");
-    if (indexOfLastDot >= 0) {
-      simpleClassName = classPath.substring(indexOfLastDot);
-    } else {
-      simpleClassName = classPath;
-    }
-
-    JClassType declaringClass = mock(JClassType.class);
-    when(declaringClass.getName()).thenReturn(classPath);
-    when(declaringClass.getSimpleName()).thenReturn(simpleClassName);
-    return declaringClass;
+        TEST_CLASS);
   }
 }

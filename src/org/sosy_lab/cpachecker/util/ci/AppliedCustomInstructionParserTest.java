@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.ci;
 import static com.google.common.truth.Truth.assert_;
 
 import com.google.common.truth.Truth;
-import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -27,6 +26,7 @@ import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.TempFile;
+import org.sosy_lab.common.io.TempFile.DeleteOnCloseFile;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -90,7 +89,6 @@ public class AppliedCustomInstructionParserTest {
     aciParser =
         new AppliedCustomInstructionParser(
             ShutdownNotifier.createDummy(), LogManager.createTestLogManager(), cfa);
-    GlobalInfo.getInstance().storeCFA(cfa);
     labelNodes = getLabelNodes(cfa);
   }
 
@@ -186,7 +184,7 @@ public class AppliedCustomInstructionParserTest {
 
   private List<CFALabelNode> getLabelNodes(CFA pCfa) {
     List<CFALabelNode> result = new ArrayList<>();
-    for (CFANode n : pCfa.getAllNodes()) {
+    for (CFANode n : pCfa.nodes()) {
       if (n instanceof CFALabelNode) {
         result.add((CFALabelNode) n);
       }
@@ -208,39 +206,32 @@ public class AppliedCustomInstructionParserTest {
             "  y = y + x;",
             "}");
 
-    GlobalInfo.getInstance().storeCFA(cfa);
     aciParser =
         new AppliedCustomInstructionParser(
             ShutdownNotifier.createDummy(), LogManager.createTestLogManager(), cfa);
 
-    Path p = TempFile.builder().prefix("test_acis").create();
-    try (Writer file = IO.openOutputFile(p, StandardCharsets.US_ASCII)) {
-      file.append("main\n");
-      CFANode node;
-      Deque<CFANode> toVisit = new ArrayDeque<>();
-      toVisit.add(cfa.getMainFunction());
-      while (!toVisit.isEmpty()) {
-        node = toVisit.pop();
+    try (DeleteOnCloseFile p = TempFile.builder().prefix("test_acis").createDeleteOnClose();
+        DeleteOnCloseFile signatureFile =
+            TempFile.builder().prefix("ci_spec").suffix(".txt").createDeleteOnClose()) {
 
-        for (CFANode succ : CFAUtils.allSuccessorsOf(node)) {
-          toVisit.add(succ);
-          if (node.getEdgeTo(succ).getEdgeType().equals(CFAEdgeType.StatementEdge)) {
-            file.append(node.getNodeNumber() + "\n");
+      try (Writer file = IO.openOutputFile(p.toPath(), StandardCharsets.US_ASCII)) {
+        file.append("main\n");
+        CFANode node;
+        Deque<CFANode> toVisit = new ArrayDeque<>();
+        toVisit.add(cfa.getMainFunction());
+        while (!toVisit.isEmpty()) {
+          node = toVisit.pop();
+
+          for (CFANode succ : CFAUtils.allSuccessorsOf(node)) {
+            toVisit.add(succ);
+            if (node.getEdgeTo(succ).getEdgeType().equals(CFAEdgeType.StatementEdge)) {
+              file.append(node.getNodeNumber() + "\n");
+            }
           }
         }
       }
-      file.flush();
-    }
 
-    Path signatureFile = TempFile.builder().prefix("ci_spec").suffix(".txt").create();
-    try {
-      testParse(p, signatureFile);
-    } finally {
-      try {
-        java.nio.file.Files.deleteIfExists(p);
-        java.nio.file.Files.deleteIfExists(signatureFile);
-      } catch (IOException e) {
-      }
+      testParse(p.toPath(), signatureFile.toPath());
     }
   }
 

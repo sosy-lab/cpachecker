@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.types;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
@@ -72,6 +71,7 @@ public enum MachineModel {
       1, // void
       1, // bool
       4, // pointer
+      8, // malloc
       true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
       ),
@@ -105,6 +105,7 @@ public enum MachineModel {
       1, // void
       1, // bool
       8, // pointer
+      16, // malloc
       true, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
       ),
@@ -138,6 +139,7 @@ public enum MachineModel {
       1, // void
       1, // bool
       4, // pointer
+      8, // malloc
       false, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
       ),
@@ -171,6 +173,7 @@ public enum MachineModel {
       1, // void
       1, // bool
       8, // pointer
+      16, // malloc
       false, // char is signed
       ByteOrder.LITTLE_ENDIAN // endianness
       );
@@ -204,6 +207,7 @@ public enum MachineModel {
   private final int alignofVoid;
   private final int alignofBool;
   private final int alignofPtr;
+  private final int alignofMalloc;
 
   // according to ANSI C, sizeof(char) is always 1
   private final int mSizeofChar = 1;
@@ -212,7 +216,8 @@ public enum MachineModel {
 
   // a char is always a byte, but a byte doesn't have to be 8 bits
   private final int mSizeofCharInBits = 8;
-  private final CSimpleType ptrEquivalent;
+  private final CSimpleType intptr_t;
+  private final CSimpleType uintptr_t;
 
   MachineModel(
       int pSizeofShort,
@@ -235,6 +240,7 @@ public enum MachineModel {
       int pAlignofVoid,
       int pAlignofBool,
       int pAlignofPtr,
+      int pAlignofMalloc,
       boolean pDefaultCharSigned,
       ByteOrder pEndianness) {
     sizeofShort = pSizeofShort;
@@ -258,24 +264,72 @@ public enum MachineModel {
     alignofVoid = pAlignofVoid;
     alignofBool = pAlignofBool;
     alignofPtr = pAlignofPtr;
+    alignofMalloc = pAlignofMalloc;
     defaultCharSigned = pDefaultCharSigned;
     endianness = pEndianness;
 
     if (sizeofPtr == sizeofInt) {
-      ptrEquivalent = CNumericTypes.INT;
+      intptr_t = CNumericTypes.INT;
+      uintptr_t = CNumericTypes.UNSIGNED_INT;
     } else if (sizeofPtr == sizeofLongInt) {
-      ptrEquivalent = CNumericTypes.LONG_INT;
+      intptr_t = CNumericTypes.LONG_INT;
+      uintptr_t = CNumericTypes.UNSIGNED_LONG_INT;
     } else if (sizeofPtr == sizeofLongLongInt) {
-      ptrEquivalent = CNumericTypes.LONG_LONG_INT;
+      intptr_t = CNumericTypes.LONG_LONG_INT;
+      uintptr_t = CNumericTypes.UNSIGNED_LONG_LONG_INT;
     } else if (sizeofPtr == sizeofShort) {
-      ptrEquivalent = CNumericTypes.SHORT_INT;
+      intptr_t = CNumericTypes.SHORT_INT;
+      uintptr_t = CNumericTypes.UNSIGNED_SHORT_INT;
     } else {
       throw new AssertionError("No ptr-Equivalent found");
     }
   }
 
-  public CSimpleType getPointerEquivalentSimpleType() {
-    return ptrEquivalent;
+  /**
+   * This method returns an integer type with the same size as pointers.
+   *
+   * <p>The returned type happens to be signed, but this should not be interpreted in any way as a
+   * statement that pointers are signed, and callers should not rely on it. Use {@link
+   * #getPointerSizedSignedIntType()} if you do.
+   *
+   * <p>Note that often using one of the other methods such as {@link #getPointerAsIntType()} is
+   * recommended.
+   */
+  public CSimpleType getPointerSizedIntType() {
+    // On our platforms, intptr_t has the same size as pointers.
+    return intptr_t;
+  }
+
+  /**
+   * This method returns a signed integer type with the same size as pointers.
+   *
+   * <p>Of course, pointers are not really signed, but GCC does sign extension when casting from a
+   * pointer to an int (https://gcc.gnu.org/onlinedocs/gcc/Arrays-and-pointers-implementation.html),
+   * so the returned type can be conveniently used in such cast calculations.
+   */
+  public CSimpleType getPointerSizedSignedIntType() {
+    // On our platforms, intptr_t has the same size as pointers. And it is signed.
+    return intptr_t;
+  }
+
+  /**
+   * This method returns the <code>intptr_t</code> type, a signed integer type capable of
+   * representing all pointer values.
+   *
+   * <p>Note that this does not guarantee that its size is the same as the size of a pointer.
+   */
+  public CSimpleType getPointerAsIntType() {
+    return intptr_t;
+  }
+
+  /**
+   * This method returns the <code>uintptr_t</code> type, an unsigned integer type capable of
+   * representing all pointer values.
+   *
+   * <p>Note that this does not guarantee that its size is the same as the size of a pointer.
+   */
+  public CSimpleType getPointerAsUnsignedIntType() {
+    return uintptr_t;
   }
 
   /**
@@ -288,9 +342,26 @@ public enum MachineModel {
    * and its type (a signed integer type) is <code>ptrdiff_t</code> defined in the stddef.h-header.
    */
   public CSimpleType getPointerDiffType() {
-    // ptrEquivalent should not be unsigned, so canonical type is always signed
-    assert !ptrEquivalent.isUnsigned();
-    return ptrEquivalent.getCanonicalType();
+    // On our platforms, intptr_t and ptrdiff_t are the same.
+    return intptr_t;
+  }
+
+  /**
+   * This method returns the <code>size_t</code> type. This is an unsigned integer type capable of
+   * representing allocation sizes.
+   */
+  public CSimpleType getSizeType() {
+    // On our platforms, uintptr_t and size_t are the same.
+    return uintptr_t;
+  }
+
+  /**
+   * This method returns the <code>ssize_t</code> type. This is an signed integer type capable of
+   * representing allocation sizes and -1.
+   */
+  public CSimpleType getSignedSizeType() {
+    // On our platforms, intptr_t and ssize_t are the same.
+    return intptr_t;
   }
 
   /**
@@ -489,6 +560,14 @@ public enum MachineModel {
     return alignofPtr;
   }
 
+  /**
+   * Return the alignment that malloc needs to guarantee for the returned memory. Source:
+   * https://www.gnu.org/software/libc/manual/html_node/Malloc-Examples.html
+   */
+  public int getAlignofMalloc() {
+    return alignofMalloc;
+  }
+
   /** returns INT, if the type is smaller than INT, else the type itself. */
   public CType applyIntegerPromotion(CType pType) {
     checkArgument(CTypes.isIntegerType(pType), "Integer promotion cannot be applied to %s", pType);
@@ -633,9 +712,7 @@ public enum MachineModel {
 
     @Override
     public BigInteger visit(CEnumType pEnumType) throws IllegalArgumentException {
-      // We assume that all enumerator types are identical, and that there is at least one enum.
-      Preconditions.checkState(!pEnumType.getEnumerators().isEmpty());
-      return model.getSizeof(pEnumType.getEnumerators().get(0).getType());
+      return BigInteger.valueOf(model.getSizeof(pEnumType.getCompatibleType()));
     }
 
     @Override
@@ -732,10 +809,9 @@ public enum MachineModel {
         case STRUCT:
         case UNION:
           int alignof = 1;
-          int alignOfType = 0;
           // TODO: Take possible padding into account
           for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
-            alignOfType = decl.getType().accept(this);
+            int alignOfType = decl.getType().accept(this);
             alignof = Math.max(alignof, alignOfType);
           }
           return alignof;
@@ -754,7 +830,7 @@ public enum MachineModel {
       }
 
       if (pElaboratedType.getKind() == ComplexTypeKind.ENUM) {
-        return model.getSizeofInt();
+        return model.getAlignofInt();
       }
 
       throw new IllegalArgumentException(
@@ -919,29 +995,11 @@ public enum MachineModel {
         CCompositeTypeMemberDeclaration typeMember = iterator.next();
         CType type = typeMember.getType();
 
-        BigInteger fieldSizeInBits = BigInteger.valueOf(-1);
-        // If incomplete type at end of struct, just assume 0 for its size
-        // and compute its offset as usual, since it isn't affected.
-        //
-        // If incomplete and not the end of the struct, something is wrong
-        // and we return an empty Optional.
-        if (type.isIncomplete()) {
-          if (iterator.hasNext()) {
-            throw new AssertionError(
-                "unexpected incomplete type "
-                    + type
-                    + " for field "
-                    + pFieldName
-                    + " in "
-                    + pOwnerType);
-          } else {
-            // XXX: Should there be a check for CArrayType here
-            // as there was in handleSizeOfStruct or is it
-            // safe to say, that this case will not occur
-            // and if it does due to an error we already crash
-            // in the getPadding-step below?
-            fieldSizeInBits = BigInteger.ZERO;
-          }
+        final BigInteger fieldSizeInBits;
+        if (!iterator.hasNext() && typeMember.isFlexibleArrayMember()) {
+          // If incomplete type at end of struct, just assume 0 for its size
+          // and compute its offset as usual, since it isn't affected.
+          fieldSizeInBits = BigInteger.ZERO;
         } else {
           fieldSizeInBits = getSizeofInBits(type);
         }

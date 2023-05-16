@@ -15,6 +15,7 @@ public final class SMGSingleLinkedListShape implements Comparable<SMGSingleLinke
 
   /** head field offset */
   private final long hfo;
+
   /** next field offset */
   private final long nfo;
 

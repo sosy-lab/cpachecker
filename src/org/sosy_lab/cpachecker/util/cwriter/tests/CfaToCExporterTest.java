@@ -45,13 +45,13 @@ public class CfaToCExporterTest extends ToCTranslationTest {
       throws InvalidConfigurationException, IOException {
 
     super(
-        /* pTargetProgram = */ TempFile.builder()
+        /* pTargetProgram= */ TempFile.builder()
             .prefix("residual")
             .suffix(".c")
             .create()
             .toAbsolutePath(),
-        /* pVerdict = */ pVerdict,
-        /* pCheckerConfig = */ TestDataTools.configurationForTest()
+        /* pVerdict= */ pVerdict,
+        /* pCheckerConfig= */ TestDataTools.configurationForTest()
             .loadFromResource(CFAToCTranslatorTest.class, "predicateAnalysis.properties")
             .build());
 

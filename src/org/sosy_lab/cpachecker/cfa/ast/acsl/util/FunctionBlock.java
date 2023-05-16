@@ -46,7 +46,7 @@ public class FunctionBlock implements SyntacticBlock {
 
   @Override
   public FluentIterable<CFAEdge> getEnteringEdges() {
-    return CFAUtils.enteringEdges(function);
+    return CFAUtils.enteringEdges((CFANode) function);
   }
 
   @Override
@@ -56,8 +56,6 @@ public class FunctionBlock implements SyntacticBlock {
 
   @Override
   public Set<CFANode> getContainedNodes() {
-    CFATraversal traversal = CFATraversal.dfs();
-    traversal = traversal.ignoreFunctionCalls();
-    return traversal.collectNodesReachableFromTo(function, function.getExitNode());
+    return CFATraversal.dfs().ignoreFunctionCalls().collectNodesReachableFrom(function);
   }
 }

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants;
 
+import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Joiner;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -130,14 +132,13 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
 
   @Override
   public Set<Fault> run(FormulaContext context, TraceFormula tf)
-      throws CPAException, InterruptedException, SolverException, VerifyException,
+      throws CPAException,
+          InterruptedException,
+          SolverException,
+          VerifyException,
           InvalidConfigurationException {
     errorTrace = tf;
-    maps =
-        ImmutableList.<SSAMap>builder()
-            .add(tf.getTrace().getInitialSsaMap())
-            .addAll(tf.getTrace().toSSAMapList())
-            .build();
+    maps = elementAndList(tf.getTrace().getInitialSsaMap(), tf.getTrace().toSSAMapList());
     totalTime.start();
 
     List<BooleanFormula> interpolants = getInterpolants(context);
@@ -270,8 +271,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         Fault singleton = new Fault(prev);
         singleton.setIntendedIndex(i);
         faults.add(singleton);
-      } else if (errorInvariant instanceof Interval) {
-        Interval curr = (Interval) errorInvariant;
+      } else if (errorInvariant instanceof Interval curr) {
         // curr.invariant =
         // formulaContext.getSolver().getFormulaManager().uninstantiate(curr.invariant);
         TraceAtom next;
@@ -312,6 +312,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
                         .getFileLocation()
                         .getStartingLineInOrigin()));
 
+    FluentIterable.from(faults)
+        .filter(Interval.class)
+        .forEach(f -> f.addInfo(FaultInfo.justify(f.toString())));
     return faults;
   }
 
@@ -458,8 +461,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
 
     @Override
     public boolean equals(Object q) {
-      if (q instanceof Interval) {
-        Interval compare = (Interval) q;
+      if (q instanceof Interval compare) {
         return compare.start == start
             && compare.end == end
             && invariant.equals(compare.invariant)

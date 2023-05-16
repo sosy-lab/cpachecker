@@ -110,8 +110,7 @@ public class SymbolicCandiateInvariant implements CandidateInvariant {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof SymbolicCandiateInvariant) {
-      SymbolicCandiateInvariant other = (SymbolicCandiateInvariant) pOther;
+    if (pOther instanceof SymbolicCandiateInvariant other) {
       return stateFilter.equals(other.stateFilter)
           && invariant.equals(other.invariant)
           && applicableLocations.equals(other.applicableLocations);

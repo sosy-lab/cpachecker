@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -54,7 +55,7 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -103,7 +104,7 @@ public class CFASecondPassBuilder {
 
     // 1.Step: get all function calls
     final FunctionCallCollector visitor = new FunctionCallCollector();
-    for (final FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+    for (final FunctionEntryNode entryNode : cfa.entryNodes()) {
       CFATraversal.dfs().traverseOnce(entryNode, visitor);
       // No need for Traversal.ignoreFunctionCalls(), because there are no functioncall-edges.
       // They are created in the next loop.
@@ -180,7 +181,7 @@ public class CFASecondPassBuilder {
     String functionName = functionCallExpression.getDeclaration().getName();
     FileLocation fileLocation = edge.getFileLocation();
     FunctionEntryNode fDefNode = cfa.getFunctionHead(functionName);
-    FunctionExitNode fExitNode = fDefNode.getExitNode();
+    Optional<FunctionExitNode> fExitNode = fDefNode.getExitNode();
 
     // get the parameter expression
     // check if the number of function parameters are right
@@ -290,38 +291,45 @@ public class CFASecondPassBuilder {
     predecessorNode.addLeavingEdge(callEdge);
     fDefNode.addEnteringEdge(callEdge);
 
-    if (fExitNode.getNumEnteringEdges() == 0) {
+    boolean isExitNodeUnreachable =
+        fExitNode.filter(exitNode -> exitNode.getNumEnteringEdges() > 0).isEmpty();
+    if (isExitNodeUnreachable) {
       // exit node of called functions is not reachable, i.e. this function never returns
       // no need to add return edges, instead we can remove the part after this function call
 
       CFACreationUtils.removeChainOfNodesFromCFA(successorNode);
 
+      // remove exit node from entry node if it has not already been removed
+      if (fExitNode.isPresent()) {
+        fDefNode.removeExitNode();
+      }
     } else {
 
+      FunctionExitNode exitNode = fExitNode.orElseThrow();
       FunctionReturnEdge returnEdge;
 
       switch (language) {
         case C:
           returnEdge =
               new CFunctionReturnEdge(
-                  fileLocation, fExitNode, successorNode, (CFunctionSummaryEdge) calltoReturnEdge);
+                  fileLocation, exitNode, successorNode, (CFunctionSummaryEdge) calltoReturnEdge);
           break;
         case JAVA:
           returnEdge =
               new JMethodReturnEdge(
-                  fileLocation, fExitNode, successorNode, (JMethodSummaryEdge) calltoReturnEdge);
+                  fileLocation, exitNode, successorNode, (JMethodSummaryEdge) calltoReturnEdge);
           break;
         default:
           throw new AssertionError();
       }
 
-      fExitNode.addLeavingEdge(returnEdge);
+      exitNode.addLeavingEdge(returnEdge);
       successorNode.addEnteringEdge(returnEdge);
     }
   }
 
   private boolean checkParamSizes(
-      AFunctionCallExpression functionCallExpression, IAFunctionType functionType) {
+      AFunctionCallExpression functionCallExpression, AFunctionType functionType) {
     // get the parameter expression
     List<? extends AExpression> parameters = functionCallExpression.getParameterExpressions();
 
@@ -428,6 +436,14 @@ public class CFASecondPassBuilder {
       CFACreationUtils.removeChainOfNodesFromCFA(edge.getSuccessor());
       cfa.addNode(terminationNode);
       CFACreationUtils.addEdgeUnconditionallyToCFA(edgeToTermination);
+
+      // remove function exit node if it has become unreachable
+      FunctionEntryNode entryNode =
+          cfa.getFunctionHead(edge.getSuccessor().getFunction().getQualifiedName());
+      Optional<FunctionExitNode> exitNode = entryNode.getExitNode();
+      if (exitNode.isPresent() && exitNode.orElseThrow().getNumEnteringEdges() == 0) {
+        entryNode.removeExitNode();
+      }
     }
   }
 

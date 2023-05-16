@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.AlgorithmFactory.AnalysisComponents;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DCPAHandler;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
@@ -55,7 +56,6 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Triple;
 
 public abstract class BlockAnalysis implements BlockAnalyzer {
 
@@ -96,12 +96,12 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
       ShutdownManager pShutdownManager,
       BlockSummaryAnalysisOptions pOptions)
       throws CPAException, InterruptedException, InvalidConfigurationException {
-    Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
+    AnalysisComponents parts =
         AlgorithmFactory.createAlgorithm(
             pLogger, pSpecification, pCFA, pConfiguration, pShutdownManager, pBlock);
-    algorithm = parts.getFirst();
-    cpa = parts.getSecond();
-    reachedSet = parts.getThird();
+    algorithm = parts.algorithm();
+    cpa = parts.cpa();
+    reachedSet = parts.reached();
 
     status = AlgorithmStatus.SOUND_AND_PRECISE;
 
@@ -110,7 +110,7 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
 
     block = pBlock;
 
-    DCPAHandler builder = new DCPAHandler(pOptions);
+    DCPAHandler builder = new DCPAHandler(pOptions, pCFA);
     CompositeCPA compositeCPA =
         CPAs.retrieveCPAOrFail(cpa, CompositeCPA.class, BlockAnalysis.class);
     for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {

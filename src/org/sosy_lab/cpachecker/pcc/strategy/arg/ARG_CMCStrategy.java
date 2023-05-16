@@ -12,7 +12,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.file.Path;
@@ -22,7 +21,6 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import java.util.zip.ZipInputStream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -44,8 +42,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.AssumptionAutomatonGenerator;
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.PartialCPABuilder;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 public class ARG_CMCStrategy extends AbstractStrategy {
 
@@ -53,6 +50,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   private final ShutdownNotifier shutdown;
   private final PartialCPABuilder cpaBuilder;
   private final AssumptionAutomatonGenerator automatonWriter;
+  private final CFA cfa;
 
   private ARGState[] roots;
   private boolean proofKnown = false;
@@ -69,6 +67,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     // pConfig.inject(this);
     globalConfig = pConfig;
     shutdown = pShutdownNotifier;
+    cfa = pCfa;
     cpaBuilder = new PartialCPABuilder(pConfig, pLogger, pShutdownNotifier, pCfa, pSpecification);
     automatonWriter = new AssumptionAutomatonGenerator(pConfig, pLogger);
   }
@@ -129,8 +128,13 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       pOut.writeInt(roots.length);
 
       for (int i = 0; i < historyReached.getCPAs().size(); i++) {
-        GlobalInfo.getInstance().setUpInfoFromCPA(historyReached.getCPAs().get(i));
-        pOut.writeObject(roots[i]);
+        SerializationInfoStorage.storeSerializationInformation(
+            historyReached.getCPAs().get(i), cfa);
+        try {
+          pOut.writeObject(roots[i]);
+        } finally {
+          SerializationInfoStorage.clear();
+        }
       }
     }
   }
@@ -157,18 +161,19 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       List<ARGState> incompleteStates = new ArrayList<>();
       ConfigurableProgramAnalysis cpa;
 
-      Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
-      try {
-        streams = openProofStream();
-        ObjectInputStream o = streams.getThird();
+      try (ObjectInputStream o = openProofStream()) {
         o.readInt();
 
         Object readARG;
         for (int i = 0; i < roots.length; i++) {
           logger.log(Level.FINEST, "Build CPA for reading and checking partial ARG", i);
           cpa = cpaBuilder.buildPartialCPA(i, factory);
-          GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-          readARG = o.readObject();
+          SerializationInfoStorage.storeSerializationInformation(cpa, cfa);
+          try {
+            readARG = o.readObject();
+          } finally {
+            SerializationInfoStorage.clear();
+          }
           if (!(readARG instanceof ARGState)) {
             return false;
           }
@@ -209,15 +214,6 @@ public class ARG_CMCStrategy extends AbstractStrategy {
         return false;
       } finally {
         logger.log(Level.INFO, "Stop checking partial ARGs");
-        if (streams != null) {
-          try {
-            streams.getThird().close();
-            streams.getSecond().close();
-            streams.getFirst().close();
-          } catch (IOException e) {
-            throw new AssertionError(e);
-          }
-        }
       }
 
       return incompleteStates.isEmpty() && roots.length > 0;
@@ -242,18 +238,19 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
                 @Override
                 public void run() {
-                  Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
-                  try {
-                    streams = openProofStream();
-                    ObjectInputStream o = streams.getThird();
+                  try (ObjectInputStream o = openProofStream()) {
                     o.readInt();
 
                     Object readARG;
                     for (int i = 0; i < roots.length && checkResult.get(); i++) {
                       logger.log(Level.FINEST, "Build CPA for correctly reading ", i);
                       cpas[i] = cpaBuilder.buildPartialCPA(i, factory);
-                      GlobalInfo.getInstance().setUpInfoFromCPA(cpas[i]);
-                      readARG = o.readObject();
+                      SerializationInfoStorage.storeSerializationInformation(cpas[i], cfa);
+                      try {
+                        readARG = o.readObject();
+                      } finally {
+                        SerializationInfoStorage.clear();
+                      }
                       if (!(readARG instanceof ARGState)) {
                         abortPreparation();
                       }
@@ -274,16 +271,6 @@ public class ARG_CMCStrategy extends AbstractStrategy {
                     logger.logException(
                         Level.SEVERE, e2, "Unexpected failure during proof reading");
                     abortPreparation();
-                  } finally {
-                    if (streams != null) {
-                      try {
-                        streams.getThird().close();
-                        streams.getSecond().close();
-                        streams.getFirst().close();
-                      } catch (IOException e) {
-                        throw new AssertionError(e);
-                      }
-                    }
                   }
                 }
 

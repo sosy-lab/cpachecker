@@ -25,7 +25,7 @@ import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 
@@ -126,7 +126,7 @@ public final class PointerTargetSet implements Serializable {
     if (isEmpty()) {
       // Inside isEmpty(), we do not check the following the targets field.
       // so we assert here that isEmpty() implies that it is also empty.
-      assert targets.isEmpty();
+      assert targets == null || targets.isEmpty();
     }
   }
 
@@ -184,13 +184,20 @@ public final class PointerTargetSet implements Serializable {
   // This includes allocated memory regions and global/local structs/arrays.
   // The key of the map is the name of the base (without the BASE_PREFIX).
   // There are also "fake" bases in the map for variables that have their address
-  // taken somewhere but are not yet tracked.
+  // taken somewhere but are not yet tracked. These are marked with a special fake-base type.
+  // Apart from distinguishing between "fake" and real bases,
+  // the type for each base is mostly relevant for the UF-based encoding.
   private final PersistentSortedMap<String, CType> bases;
 
   // The set of "shared" fields that are accessed directly via pointers,
   // so they are represented with UFs instead of as variables.
+  // This map is only used for the UF-based encoding (not for the array-based encoding)
+  // and will be empty in the latter case.
   private final PersistentSortedMap<CompositeField, Boolean> fields;
 
+  // This is a list of allocations that have already occurred were not yet added to bases
+  // because we do not know the type of the allocation yet and hope to find out later.
+  // This is only used if revealAllocationTypeFromLhs or deferUntypedAllocations are true.
   private final PersistentList<Pair<String, DeferredAllocation>> deferredAllocations;
 
   // The complete set of tracked memory locations.
@@ -200,6 +207,8 @@ public final class PointerTargetSet implements Serializable {
   // for all values of i from this map).
   // This means that when a location is not present in this map,
   // its value is not tracked and might get lost.
+  // This map is only relevant for the UF-based encoding (not for the array-based encoding)
+  // and will be empty or null in the latter case.
   private final PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
 
   private final PersistentList<Formula> highestAllocatedAddresses;
@@ -238,8 +247,12 @@ public final class PointerTargetSet implements Serializable {
       bases = pts.bases;
       fields = pts.fields;
       deferredAllocations = new ArrayList<>(pts.deferredAllocations);
-      targets = new HashMap<>(Maps.transformValues(pts.targets, ArrayList::new));
-      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+      targets =
+          pts.targets == null
+              ? new HashMap<>()
+              : new HashMap<>(Maps.transformValues(pts.targets, ArrayList::new));
+      FormulaManagerView mgr =
+          SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       highestAllocatedAddresses =
           new ArrayList<>(
               Lists.transform(pts.highestAllocatedAddresses, mgr::dumpArbitraryFormula));
@@ -247,7 +260,8 @@ public final class PointerTargetSet implements Serializable {
     }
 
     private Object readResolve() {
-      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+      FormulaManagerView mgr =
+          SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       PersistentList<Formula> highestAllocatedAddressesFormulas =
           PersistentLinkedList.copyOf(
               Lists.transform(highestAllocatedAddresses, mgr::parseArbitraryFormula));

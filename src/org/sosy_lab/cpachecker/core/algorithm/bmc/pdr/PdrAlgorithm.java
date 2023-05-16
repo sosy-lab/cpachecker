@@ -14,6 +14,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterAncestors;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.isTrivialSelfLoop;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -1171,7 +1172,7 @@ public class PdrAlgorithm implements Algorithm {
       PathChecker pathChecker;
       try {
 
-        if (cexAnalysisSolver.getVersion().toLowerCase().contains("smtinterpol")) {
+        if (Ascii.toLowerCase(cexAnalysisSolver.getVersion()).contains("smtinterpol")) {
           // SMTInterpol does not support reusing the same solver
           cexAnalysisSolver = Solver.create(config, logger, shutdownNotifier);
           FormulaManagerView formulaManager = cexAnalysisSolver.getFormulaManager();

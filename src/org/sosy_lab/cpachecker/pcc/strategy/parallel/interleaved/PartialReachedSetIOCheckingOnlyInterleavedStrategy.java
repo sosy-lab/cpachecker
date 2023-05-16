@@ -12,7 +12,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.file.Path;
@@ -24,12 +23,12 @@ import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import java.util.zip.ZipInputStream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -46,22 +45,25 @@ import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends AbstractStrategy {
 
   private final PartitioningIOHelper ioHelper;
   private final PropertyCheckerCPA cpa;
   private final ShutdownNotifier shutdownNotifier;
+  private final CFA injectedCFA;
 
   public PartialReachedSetIOCheckingOnlyInterleavedStrategy(
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final Path pProofFile,
-      final @Nullable PropertyCheckerCPA pCpa)
+      final @Nullable PropertyCheckerCPA pCpa,
+      final @Nullable CFA pInjectedCFA)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pProofFile);
+    injectedCFA = pInjectedCFA;
     ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier);
     cpa = pCpa;
     shutdownNotifier = pShutdownNotifier;
@@ -92,7 +94,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
     Precision initPrec = pReachedSet.getPrecision(initialState);
 
     logger.log(Level.INFO, "Create reading thread");
-    Thread readingThread = new Thread(new PartitionReader(checkResult, partitionsAvailable));
+    Thread readingThread =
+        new Thread(new PartitionReader(injectedCFA, checkResult, partitionsAvailable));
     try {
       readingThread.start();
 
@@ -207,19 +210,20 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
 
     private final AtomicBoolean checkResult;
     private final Semaphore mainSemaphore;
+    private final CFA cfa;
 
-    public PartitionReader(final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked) {
+    public PartitionReader(
+        final CFA pCFA, final AtomicBoolean pCheckResult, final Semaphore pPartitionChecked) {
       checkResult = pCheckResult;
       mainSemaphore = pPartitionChecked;
+      cfa = pCFA;
     }
 
     @Override
     @SuppressWarnings("Finally") // not really better doable without switching to Closer
     public void run() {
-      Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
-      try {
-        streams = openProofStream();
-        ObjectInputStream o = streams.getThird();
+      SerializationInfoStorage.storeSerializationInformation(cpa, cfa);
+      try (ObjectInputStream o = openProofStream()) {
         ioHelper.readMetadata(o, false);
 
         for (int i = 0; i < ioHelper.getNumPartitions() && checkResult.get(); i++) {
@@ -238,15 +242,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
         logger.logException(Level.SEVERE, e2, "Unexpected failure during proof reading");
         abortPreparation();
       } finally {
-        if (streams != null) {
-          try {
-            streams.getThird().close();
-            streams.getSecond().close();
-            streams.getFirst().close();
-          } catch (IOException e) {
-            throw new AssertionError(e);
-          }
-        }
+        SerializationInfoStorage.clear();
       }
     }
 

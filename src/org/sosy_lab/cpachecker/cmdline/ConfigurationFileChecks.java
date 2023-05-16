@@ -16,6 +16,7 @@ import static com.google.common.truth.TruthJUnit.assume;
 import static java.lang.Boolean.parseBoolean;
 import static org.junit.Assume.assumeNoException;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -128,6 +129,7 @@ public class ConfigurationFileChecks {
           "memorysafety.config",
           "memorycleanup.config",
           "overflow.config",
+          "datarace.config",
           "termination.config",
           "termination.violation.witness",
           // handled by WitnessOptions when path to witness is specified with -witness
@@ -145,6 +147,7 @@ public class ConfigurationFileChecks {
           "WitnessAutomaton.cpa.automaton.treatErrorsAsTargets",
           "witness.stopNotBreakAtSinkStates",
           "witness.invariantsSpecificationAutomaton",
+          "witness.useUniqueName",
           // handled by component that is loaded lazily on demand
           "invariantGeneration.config",
           "invariantGeneration.kInduction.async",
@@ -407,6 +410,12 @@ public class ConfigurationFileChecks {
       } else {
         assertThat(spec).endsWith("specification/overflow.spc");
       }
+    } else if (Ascii.toLowerCase(basePath.toString()).contains("datarace")) {
+      if (isSvcompConfig) {
+        assertThat(spec).endsWith("specification/sv-comp-datarace.spc");
+      } else {
+        assertThat(spec).endsWith("specification/datarace.spc");
+      }
 
     } else if (cpas.contains("cpa.uninitvars.UninitializedVariablesCPA")) {
       assertThat(spec).endsWith("specification/UninitializedVariables.spc");
@@ -456,6 +465,7 @@ public class ConfigurationFileChecks {
               Path.of("witnessValidation.properties"),
               Path.of("craigInterpolation-violationWitness.properties"),
               Path.of("wacsl.properties"),
+              Path.of("importFaults.properties"),
               Path.of("distributed-block-summaries"));
     }
 

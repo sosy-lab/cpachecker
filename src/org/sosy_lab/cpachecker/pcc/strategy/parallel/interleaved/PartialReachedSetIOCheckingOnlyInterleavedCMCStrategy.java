@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.pcc.strategy.parallel.interleaved;
 
 import com.google.common.collect.Sets;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.file.Path;
@@ -19,7 +18,6 @@ import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import java.util.zip.ZipInputStream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -44,8 +42,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.AssumptionAutomatonGenerato
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.PartialCPABuilder;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 // FIXME unsound strategy
 public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends AbstractStrategy {
@@ -54,6 +51,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   private final ShutdownNotifier shutdown;
   private final PartialCPABuilder cpaBuilder;
   private final AssumptionAutomatonGenerator automatonWriter;
+
+  private final CFA cfa;
   private int numProofs;
 
   public PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy(
@@ -65,6 +64,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
       final @Nullable Specification pSpecification)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pProofFile);
+    cfa = pCFA;
     cpaBuilder = new PartialCPABuilder(pConfig, pLogger, pShutdownNotifier, pCFA, pSpecification);
     automatonWriter = new AssumptionAutomatonGenerator(pConfig, pLogger);
     config = pConfig;
@@ -218,7 +218,6 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
     try {
       ReachedSet reached;
       for (int i = 0; i < partialReachedSets.size(); i++) {
-        GlobalInfo.getInstance().setUpInfoFromCPA(cpas.get(i));
         reached = partialReachedSets.get(i);
 
         unexplored = Sets.newHashSetWithExpectedSize(reached.getWaitlist().size());
@@ -234,7 +233,12 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
                 automatonWriter.getAllAncestorsFor(unexplored),
                 unexplored,
                 (ARGState) reached.getFirstState());
-        ioHelper.writeProof(pOut, reached, pCpa);
+        SerializationInfoStorage.storeSerializationInformation(cpas.get(i), cfa);
+        try {
+          ioHelper.writeProof(pOut, reached, pCpa);
+        } finally {
+          SerializationInfoStorage.clear();
+        }
       }
     } catch (ClassCastException e) {
       logger.logDebugException(e);
@@ -252,7 +256,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   private class ProofPartReader implements Runnable {
 
     private final AtomicBoolean checkResult;
-    private final Semaphore mainSemaphore, startReading;
+    private final Semaphore mainSemaphore;
+    private final Semaphore startReading;
     private final CMCPartitioningIOHelper[] ioHelperPerProofPart;
     private final PropertyCheckerCPA[] cpas;
     private final AbstractState[] roots;
@@ -278,10 +283,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
     @Override
     @SuppressWarnings("Finally") // not really better doable without switching to Closer
     public void run() {
-      Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
-      try {
-        streams = openProofStream();
-        ObjectInputStream o = streams.getThird();
+      try (ObjectInputStream o = openProofStream()) {
         o.readInt();
 
         CMCPartitioningIOHelper ioHelper;
@@ -305,11 +307,13 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
             break;
           }
           cpas[i] = (PropertyCheckerCPA) cpa;
-          GlobalInfo.getInstance().setUpInfoFromCPA(cpas[i]);
-
           mustReadAndCheckSequentially = CPAs.retrieveCPA(cpa, PredicateCPA.class) != null;
-
-          ioHelper.readMetadata(o, true);
+          SerializationInfoStorage.storeSerializationInformation(cpas[i], cfa);
+          try {
+            ioHelper.readMetadata(o, true);
+          } finally {
+            SerializationInfoStorage.clear();
+          }
           roots[i] = ioHelper.getRoot();
 
           if (roots[i] == null) {
@@ -324,7 +328,12 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
           }
 
           for (int j = 0; j < ioHelper.getNumPartitions() && checkResult.get(); j++) {
-            ioHelper.readPartition(o, stats);
+            SerializationInfoStorage.storeSerializationInformation(cpas[i], cfa);
+            try {
+              ioHelper.readPartition(o, stats);
+            } finally {
+              SerializationInfoStorage.clear();
+            }
 
             if (shutdown.shouldShutdown()) {
               abortPreparation();
@@ -351,16 +360,6 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
       } catch (Exception e2) {
         logger.logException(Level.SEVERE, e2, "Unexpected failure during proof reading");
         abortPreparation();
-      } finally {
-        if (streams != null) {
-          try {
-            streams.getThird().close();
-            streams.getSecond().close();
-            streams.getFirst().close();
-          } catch (IOException e) {
-            throw new AssertionError(e);
-          }
-        }
       }
     }
 

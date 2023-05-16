@@ -10,7 +10,12 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 
-public interface CLeftHandSide extends CExpression, ALeftHandSide {
+public sealed interface CLeftHandSide extends CExpression, ALeftHandSide
+    permits CArraySubscriptExpression,
+        CComplexCastExpression,
+        CFieldReference,
+        CIdExpression,
+        CPointerExpression {
 
   <R, X extends Exception> R accept(CLeftHandSideVisitor<R, X> v) throws X;
 }

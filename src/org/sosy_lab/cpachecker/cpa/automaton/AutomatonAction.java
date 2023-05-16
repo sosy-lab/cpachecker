@@ -46,6 +46,7 @@ abstract class AutomatonAction {
   boolean canExecuteOn(AutomatonExpressionArguments pArgs) throws CPATransferException {
     return true;
   }
+
   // abstract void execute(AutomatonExpressionArguments pArgs);
 
   /** Logs a String when executed. */
@@ -219,11 +220,8 @@ abstract class AutomatonAction {
         return false;
       }
       for (AbstractState ae : pArgs.getAbstractStates()) {
-        if (ae instanceof AbstractQueryableState) {
-          AbstractQueryableState aqe = (AbstractQueryableState) ae;
-          if (aqe.getCPAName().equals(cpaName)) {
-            return true;
-          }
+        if ((ae instanceof AbstractQueryableState aqe) && aqe.getCPAName().equals(cpaName)) {
+          return true;
         }
       }
       return false;
@@ -248,25 +246,22 @@ abstract class AutomatonAction {
             "AutomatonActionExpr.CPAModification");
       }
       for (AbstractState ae : pArgs.getAbstractStates()) {
-        if (ae instanceof AbstractQueryableState) {
-          AbstractQueryableState aqe = (AbstractQueryableState) ae;
-          if (aqe.getCPAName().equals(cpaName)) {
-            try {
-              aqe.modifyProperty(processedModificationString);
-            } catch (InvalidQueryException e) {
-              pArgs
-                  .getLogger()
-                  .logException(
-                      Level.WARNING,
-                      e,
-                      "Automaton encountered an Exception during Query of the "
-                          + cpaName
-                          + " CPA (Element "
-                          + aqe
-                          + ") on Edge "
-                          + pArgs.getCfaEdge().getDescription());
-              return defaultResultValue; // try to carry on with the further evaluation
-            }
+        if ((ae instanceof AbstractQueryableState aqe) && aqe.getCPAName().equals(cpaName)) {
+          try {
+            aqe.modifyProperty(processedModificationString);
+          } catch (InvalidQueryException e) {
+            pArgs
+                .getLogger()
+                .logException(
+                    Level.WARNING,
+                    e,
+                    "Automaton encountered an Exception during Query of the "
+                        + cpaName
+                        + " CPA (Element "
+                        + aqe
+                        + ") on Edge "
+                        + pArgs.getCfaEdge().getDescription());
+            return defaultResultValue; // try to carry on with the further evaluation
           }
         }
       }

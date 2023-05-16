@@ -8,12 +8,15 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.errorprone.annotations.DoNotCall;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 
-public class FunctionExitNode extends CFANode {
+public final class FunctionExitNode extends CFANode {
 
   private static final long serialVersionUID = -7883542777389959334L;
   private FunctionEntryNode entryNode;
@@ -30,5 +33,40 @@ public class FunctionExitNode extends CFANode {
   public FunctionEntryNode getEntryNode() {
     checkState(entryNode != null);
     return entryNode;
+  }
+
+  @Override
+  public void addLeavingEdge(CFAEdge pLeavingEdge) {
+    checkArgument(pLeavingEdge instanceof FunctionReturnEdge);
+    super.addLeavingEdge(pLeavingEdge);
+  }
+
+  @Override
+  public FunctionReturnEdge getLeavingEdge(int pIndex) {
+    return (FunctionReturnEdge) super.getLeavingEdge(pIndex);
+  }
+
+  @Override
+  public void addEnteringSummaryEdge(FunctionSummaryEdge pEdge) {
+    throw new AssertionError("function-exit nodes cannot have summary edges");
+  }
+
+  @Override
+  public void addLeavingSummaryEdge(FunctionSummaryEdge pEdge) {
+    throw new AssertionError("function-exit nodes cannot have summary edges");
+  }
+
+  @Override
+  @Deprecated
+  @DoNotCall // safe to call but useless
+  public @Nullable FunctionSummaryEdge getEnteringSummaryEdge() {
+    return null;
+  }
+
+  @Override
+  @Deprecated
+  @DoNotCall // safe to call but useless
+  public @Nullable FunctionSummaryEdge getLeavingSummaryEdge() {
+    return null;
   }
 }

@@ -96,8 +96,8 @@ public class StateFormulaConversionManager {
       pfmgrv =
           new PathFormulaManagerImpl(
               fmgrv, configuration, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
-    } catch (InvalidConfigurationException pE) {
-      throw new UnsupportedOperationException("Could not construct path " + "formula manager", pE);
+    } catch (InvalidConfigurationException e) {
+      throw new UnsupportedOperationException("Could not construct path formula manager", e);
     }
 
     PathFormula inputPath = getPathFormula(abstractState, attachExtraInvariant);
@@ -188,11 +188,11 @@ public class StateFormulaConversionManager {
         if (solver.implies(othersConstraint, constraint)) {
           nonRedundant.remove(t);
         }
-      } catch (SolverException | InterruptedException pE) {
+      } catch (SolverException | InterruptedException e) {
         logger.logException(
             Level.WARNING,
-            pE,
-            "Failed simplifying the " + "abstraction before rendering, converting as it is.");
+            e,
+            "Failed simplifying the abstraction before rendering, converting as it is.");
         simplifyDotOutput = false;
         return dotWriter.toDOTLabel(pAbstraction);
       }

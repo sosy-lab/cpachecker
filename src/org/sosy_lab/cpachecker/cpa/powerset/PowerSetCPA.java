@@ -32,6 +32,7 @@ public class PowerSetCPA extends AbstractSingleWrapperCPA {
   }
 
   private final PowerSetDomain domain;
+
   // TODO: domain depends on current initial precision. This might be wrong!
 
   public PowerSetCPA(final ConfigurableProgramAnalysis pCpa) {

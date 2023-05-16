@@ -131,8 +131,7 @@ class SMGJoinFields {
     for (Entry<Long, Long> origEdge : origNullBlocks.entrySet()) {
       // find a null edge block that is in the modified SMG, and starts at the same offset
       Long newNullBlock = newNullBlocks.get(origEdge.getKey());
-      if ( // if there is none (meaning the block got shortened from the start)
-      newNullBlock == null
+      if (newNullBlock == null // if there is none (meaning the block got shortened from the start)
           ||
           // or the new block has different size (got shortened from the end)
           newNullBlock.longValue() != origEdge.getValue().longValue()) {

@@ -66,6 +66,7 @@ interface AutomatonExpression<T> {
       return o instanceof StringExpression && toPrint.equals(((StringExpression) o).toPrint);
     }
   }
+
   /**
    * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the
    * query-Result.
@@ -89,29 +90,26 @@ interface AutomatonExpression<T> {
       }
 
       for (AbstractState ae : pArgs.getAbstractStates()) {
-        if (ae instanceof AbstractQueryableState) {
-          AbstractQueryableState aqe = (AbstractQueryableState) ae;
-          if (aqe.getCPAName().equals(cpaName)) {
-            try {
-              Object result = aqe.evaluateProperty(modifiedQueryString);
-              return new ResultValue<>(result.toString());
-            } catch (InvalidQueryException e) {
-              pArgs
-                  .getLogger()
-                  .logException(
-                      Level.WARNING,
-                      e,
-                      "Automaton encountered an Exception during Query of the "
-                          + cpaName
-                          + " CPA on Edge "
-                          + pArgs.getCfaEdge().getDescription());
-              return new ResultValue<>(
-                  "Automaton encountered an Exception during Query of the "
-                      + cpaName
-                      + " CPA on Edge "
-                      + pArgs.getCfaEdge().getDescription(),
-                  "AutomatonExpression.CPAQuery");
-            }
+        if ((ae instanceof AbstractQueryableState aqe) && aqe.getCPAName().equals(cpaName)) {
+          try {
+            Object result = aqe.evaluateProperty(modifiedQueryString);
+            return new ResultValue<>(result.toString());
+          } catch (InvalidQueryException e) {
+            pArgs
+                .getLogger()
+                .logException(
+                    Level.WARNING,
+                    e,
+                    "Automaton encountered an Exception during Query of the "
+                        + cpaName
+                        + " CPA on Edge "
+                        + pArgs.getCfaEdge().getDescription());
+            return new ResultValue<>(
+                "Automaton encountered an Exception during Query of the "
+                    + cpaName
+                    + " CPA on Edge "
+                    + pArgs.getCfaEdge().getDescription(),
+                "AutomatonExpression.CPAQuery");
           }
         }
       }
@@ -131,8 +129,7 @@ interface AutomatonExpression<T> {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof CPAQuery) {
-        CPAQuery other = (CPAQuery) o;
+      if (o instanceof CPAQuery other) {
         return cpaName.equals(other.cpaName) && queryString.equals(other.queryString);
       }
       return false;
@@ -152,32 +149,36 @@ interface AutomatonExpression<T> {
     }
 
     public ResultValue(String failureMessage, String failureOrigin) {
-      this.canNotEvaluate = true;
+      canNotEvaluate = true;
       this.failureMessage = failureMessage;
       this.failureOrigin = failureOrigin;
     }
+
     /**
      * Copies the failure messages from the passed result. This Method assumes that the parameter
      * fulfills canNotEvaluate() == true !
      */
     public ResultValue(ResultValue<?> pRes) {
       assert pRes.canNotEvaluate;
-      this.canNotEvaluate = true;
-      this.failureMessage = pRes.failureMessage;
-      this.failureOrigin = pRes.failureOrigin;
+      canNotEvaluate = true;
+      failureMessage = pRes.failureMessage;
+      failureOrigin = pRes.failureOrigin;
     }
 
     boolean canNotEvaluate() {
-      return this.canNotEvaluate;
+      return canNotEvaluate;
     }
+
     /** Return failure message or {@code null} if {@code cannotEvaluate() == false} */
     String getFailureMessage() {
       return failureMessage;
     }
+
     /** Return failure origin or {@code null} if {@code cannotEvaluate() == false} */
     String getFailureOrigin() {
       return failureOrigin;
     }
+
     /** Return value or {@code null} if {@code cannotEvaluate() == false} */
     resultType getValue() {
       return value;

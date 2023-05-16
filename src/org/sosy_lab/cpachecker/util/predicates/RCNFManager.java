@@ -58,7 +58,7 @@ public class RCNFManager implements StatisticsProvider {
 
   @Option(
       description =
-          "Limit on the size of the resulting number of lemmas " + "from the explicit expansion",
+          "Limit on the size of the resulting number of lemmas from the explicit expansion",
       secure = true)
   private int expansionResultSizeLimit = 100;
 
@@ -147,8 +147,8 @@ public class RCNFManager implements StatisticsProvider {
         try {
           statistics.quantifierElimination.start();
           result = fmgr.getQuantifiedFormulaManager().eliminateQuantifiers(input);
-        } catch (SolverException pE) {
-          throw new UnsupportedOperationException("Unexpected solver error", pE);
+        } catch (SolverException e) {
+          throw new UnsupportedOperationException("Unexpected solver error", e);
         } finally {
           statistics.quantifierElimination.stop();
         }
@@ -360,7 +360,7 @@ public class RCNFManager implements StatisticsProvider {
     @Override
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
       printTimer(out, conversion, "RCNF conversion");
-      printTimer(out, lightQuantifierElimination, "light quantifier " + "elimination");
+      printTimer(out, lightQuantifierElimination, "light quantifier elimination");
       printTimer(out, quantifierElimination, "quantifier elimination");
     }
 
@@ -371,7 +371,7 @@ public class RCNFManager implements StatisticsProvider {
 
     private void printTimer(PrintStream out, Timer t, String name) {
       out.printf(
-          "Time spent in %s: %s (Max: %s), (Avg: %s), (#calls = %s), " + "(#cached = %d) %n",
+          "Time spent in %s: %s (Max: %s), (Avg: %s), (#calls = %s), (#cached = %d) %n",
           name,
           t.getSumTime().formatAs(TimeUnit.SECONDS),
           t.getMaxTime().formatAs(TimeUnit.SECONDS),

@@ -12,6 +12,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.elementAndList;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -22,6 +24,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.graph.Traverser;
+import com.google.errorprone.annotations.DoNotCall;
+import com.google.errorprone.annotations.InlineMe;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -70,6 +74,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -101,8 +106,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -115,6 +121,10 @@ public class CFAUtils {
   /**
    * Return an {@link Iterable} that contains all entering edges of a given CFANode, including the
    * summary edge if the node has one.
+   *
+   * <p>WARNING: Summary edges are included, so the returned {@link FluentIterable} may contain
+   * parallel edges (i.e., multiple directed edges from some node {@code u} to some node {@code v}).
+   * These edges are equal, so a set would only contain one of the parallel edges.
    */
   public static FluentIterable<CFAEdge> allEnteringEdges(final CFANode node) {
     checkNotNull(node);
@@ -177,6 +187,10 @@ public class CFAUtils {
   /**
    * Return an {@link Iterable} that contains all leaving edges of a given CFANode, including the
    * summary edge if the node as one.
+   *
+   * <p>WARNING: Summary edges are included, so the returned {@link FluentIterable} may contain
+   * parallel edges (i.e., multiple directed edges from some node {@code u} to some node {@code v}).
+   * These edges are equal, so a set would only contain one of the parallel edges.
    */
   public static FluentIterable<CFAEdge> allLeavingEdges(final CFANode node) {
     checkNotNull(node);
@@ -237,6 +251,78 @@ public class CFAUtils {
   }
 
   /**
+   * Returns a {@link FluentIterable} that contains all edges of the specified CFA, including all
+   * summary edges.
+   *
+   * <p>WARNING: Summary edges are included, so the returned {@link FluentIterable} may contain
+   * parallel edges (i.e., multiple directed edges from some node {@code u} to some node {@code v}).
+   * These edges are equal, so a set would only contain one of the parallel edges.
+   *
+   * @return a {@link FluentIterable} that contains all edges of the specified CFA, including all
+   *     summary edges.
+   * @throws NullPointerException if {@code pCfa == null}
+   */
+  public static FluentIterable<CFAEdge> allEdges(CFA pCfa) {
+    return FluentIterable.from(pCfa.nodes()).transformAndConcat(CFAUtils::allLeavingEdges);
+  }
+
+  @SuppressWarnings("unchecked")
+  public static FluentIterable<FunctionCallEdge> enteringEdges(final FunctionEntryNode node) {
+    return (FluentIterable<FunctionCallEdge>) (FluentIterable<?>) enteringEdges((CFANode) node);
+  }
+
+  @SuppressWarnings("unchecked")
+  public static FluentIterable<FunctionReturnEdge> leavingEdges(final FunctionExitNode node) {
+    return (FluentIterable<FunctionReturnEdge>) (FluentIterable<?>) leavingEdges((CFANode) node);
+  }
+
+  @Deprecated // entry nodes do not have summary edges
+  @InlineMe(
+      replacement = "CFAUtils.enteringEdges(node)",
+      imports = "org.sosy_lab.cpachecker.util.CFAUtils")
+  public static FluentIterable<FunctionCallEdge> allEnteringEdges(final FunctionEntryNode node) {
+    return enteringEdges(node);
+  }
+
+  @Deprecated // exit nodes do not have summary edges
+  @InlineMe(
+      replacement = "CFAUtils.enteringEdges(node)",
+      imports = "org.sosy_lab.cpachecker.util.CFAUtils")
+  public static FluentIterable<CFAEdge> allEnteringEdges(final FunctionExitNode node) {
+    return enteringEdges(node);
+  }
+
+  @Deprecated // entry nodes do not have summary edges
+  @InlineMe(
+      replacement = "CFAUtils.leavingEdges(node)",
+      imports = "org.sosy_lab.cpachecker.util.CFAUtils")
+  public static FluentIterable<CFAEdge> allLeavingEdges(final FunctionEntryNode node) {
+    return leavingEdges(node);
+  }
+
+  @Deprecated // exit nodes do not have summary edges
+  @InlineMe(
+      replacement = "CFAUtils.leavingEdges(node)",
+      imports = "org.sosy_lab.cpachecker.util.CFAUtils")
+  public static FluentIterable<FunctionReturnEdge> allLeavingEdges(final FunctionExitNode node) {
+    return leavingEdges(node);
+  }
+
+  @Deprecated // termination nodes do not have leaving edges
+  @DoNotCall
+  public static FluentIterable<CFAEdge> leavingEdges(
+      @SuppressWarnings("unused") final CFATerminationNode node) {
+    throw new AssertionError("useless method");
+  }
+
+  @Deprecated // termination nodes do not have leaving edges
+  @DoNotCall
+  public static FluentIterable<CFAEdge> allLeavingEdges(
+      @SuppressWarnings("unused") final CFATerminationNode node) {
+    throw new AssertionError("useless method");
+  }
+
+  /**
    * Return an {@link Iterable} that contains the predecessor nodes of a given CFANode, excluding
    * the one reachable via the summary edge (if there is one).
    */
@@ -266,6 +352,52 @@ public class CFAUtils {
    */
   public static FluentIterable<CFANode> allSuccessorsOf(final CFANode node) {
     return allLeavingEdges(node).transform(CFAEdge::getSuccessor);
+  }
+
+  @Deprecated // entry nodes do not have summary edges
+  @InlineMe(
+      replacement = "CFAUtils.predecessorsOf(node)",
+      imports = "org.sosy_lab.cpachecker.util.CFAUtils")
+  public static FluentIterable<CFANode> allPredecessorsOf(final FunctionEntryNode node) {
+    return predecessorsOf(node);
+  }
+
+  @Deprecated // exit nodes do not have summary edges
+  @InlineMe(
+      replacement = "CFAUtils.predecessorsOf(node)",
+      imports = "org.sosy_lab.cpachecker.util.CFAUtils")
+  public static FluentIterable<CFANode> allPredecessorsOf(final FunctionExitNode node) {
+    return predecessorsOf(node);
+  }
+
+  @Deprecated // entry nodes do not have summary edges
+  @InlineMe(
+      replacement = "CFAUtils.successorsOf(node)",
+      imports = "org.sosy_lab.cpachecker.util.CFAUtils")
+  public static FluentIterable<CFANode> allSuccessorsOf(final FunctionEntryNode node) {
+    return successorsOf(node);
+  }
+
+  @Deprecated // exit nodes do not have summary edges
+  @InlineMe(
+      replacement = "CFAUtils.successorsOf(node)",
+      imports = "org.sosy_lab.cpachecker.util.CFAUtils")
+  public static FluentIterable<CFANode> allSuccessorsOf(final FunctionExitNode node) {
+    return successorsOf(node);
+  }
+
+  @Deprecated // termination nodes do not have successors
+  @DoNotCall
+  public static FluentIterable<CFAEdge> successorsOf(
+      @SuppressWarnings("unused") final CFATerminationNode node) {
+    throw new AssertionError("useless method");
+  }
+
+  @Deprecated // termination nodes do not have successors
+  @DoNotCall
+  public static FluentIterable<CFAEdge> allSuccessorsOf(
+      @SuppressWarnings("unused") final CFATerminationNode node) {
+    throw new AssertionError("useless method");
   }
 
   /** Returns the other AssumeEdge (with the negated condition) of a given AssumeEdge. */
@@ -329,19 +461,16 @@ public class CFAUtils {
   }
 
   public static Collection<CFANode> getProgramSinks(
-      final CFA pCfa, final LoopStructure pLoopStructure, final FunctionEntryNode pCfaEntryNode) {
+      final LoopStructure pLoopStructure, final FunctionEntryNode pCfaEntryNode) {
     Set<CFANode> sinks = new HashSet<>();
-    CFANode cfaExitNode = pCfaEntryNode.getExitNode();
-    if (pCfa.getAllNodes().contains(cfaExitNode)) {
-      sinks.add(cfaExitNode);
-    }
+    pCfaEntryNode.getExitNode().ifPresent(sinks::add);
 
     sinks.addAll(getEndlessLoopHeads(pLoopStructure));
     return sinks;
   }
 
   public static Map<Integer, CFANode> getMappingFromNodeIDsToCFANodes(CFA pCfa) {
-    return Maps.uniqueIndex(pCfa.getAllNodes(), CFANode::getNodeNumber);
+    return Maps.uniqueIndex(pCfa.nodes(), CFANode::getNodeNumber);
   }
 
   /**
@@ -441,8 +570,7 @@ public class CFAUtils {
         for (CFAEdge leavingEdge : leavingBlankEdges) {
           CFANode successor = leavingEdge.getSuccessor();
           if (!currentPath.contains(successor)) {
-            List<CFANode> newPath =
-                ImmutableList.<CFANode>builder().addAll(currentPath).add(successor).build();
+            List<CFANode> newPath = listAndElement(currentPath, successor);
             waitlist.offer(newPath);
           }
         }
@@ -462,8 +590,7 @@ public class CFAUtils {
         for (CFAEdge enteringEdge : enteringBlankEdges) {
           CFANode predecessor = enteringEdge.getPredecessor();
           if (!currentPath.contains(predecessor)) {
-            List<CFANode> newPath =
-                ImmutableList.<CFANode>builder().add(predecessor).addAll(currentPath).build();
+            List<CFANode> newPath = elementAndList(predecessor, currentPath);
             waitlist.offer(newPath);
           }
         }
@@ -496,13 +623,6 @@ public class CFAUtils {
       case CallToReturnEdge:
         FunctionSummaryEdge fnSumEdge = (FunctionSummaryEdge) edge;
         return ImmutableSet.of(fnSumEdge.getExpression());
-
-      case FunctionCallEdge:
-        FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
-        return Iterables.concat(
-            Optionals.asSet(edge.getRawAST()),
-            getAstNodesFromCfaEdge(functionCallEdge.getSummaryEdge()));
-
       default:
         return Optionals.asSet(edge.getRawAST());
     }

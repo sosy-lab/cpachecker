@@ -50,6 +50,7 @@ public class WeightedGraphRandomIterator implements Iterator<WeightedNode> {
   public void remove() {
     throw new UnsupportedOperationException();
   }
+
   /**
    * Compute permutation of 0..n-1 to randomly iterate over an array
    *

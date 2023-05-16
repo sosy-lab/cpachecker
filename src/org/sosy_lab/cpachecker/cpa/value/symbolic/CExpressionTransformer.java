@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
-import java.util.Optional;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -293,7 +292,7 @@ public class CExpressionTransformer extends ExpressionTransformer
       return null;
 
     } else {
-      return factory.cast(operand, pIastCastExpression.getCastType(), Optional.of(machineModel));
+      return factory.cast(operand, pIastCastExpression.getCastType());
     }
   }
 

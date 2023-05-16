@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import com.google.common.base.Ascii;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -25,8 +26,7 @@ public class ACSLType {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLType) {
-      ACSLType other = (ACSLType) o;
+    if (o instanceof ACSLType other) {
       return typeName.equals(other.getTypeName());
     }
     return false;
@@ -43,7 +43,7 @@ public class ACSLType {
   }
 
   public CType toCType() {
-    switch (typeName.toLowerCase()) {
+    switch (Ascii.toLowerCase(typeName)) {
       case "_bool":
         return CNumericTypes.BOOL;
       case "char":

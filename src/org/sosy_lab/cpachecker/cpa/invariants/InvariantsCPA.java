@@ -324,7 +324,7 @@ public class InvariantsCPA
     if (options.analyzeTargetPathsOnly && determineTargetLocations) {
       relevantLocations.addAll(targetLocations);
     } else {
-      relevantLocations.addAll(cfa.getAllNodes());
+      relevantLocations.addAll(cfa.nodes());
     }
 
     // Collect relevant edges and guess that information might be interesting
@@ -430,8 +430,7 @@ public class InvariantsCPA
 
   public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption)
       throws UnrecognizedCodeException {
-    if (pAssumption instanceof CAssumeEdge) {
-      CAssumeEdge assumeEdge = (CAssumeEdge) pAssumption;
+    if (pAssumption instanceof CAssumeEdge assumeEdge) {
       MemoryLocationExtractor vne =
           new MemoryLocationExtractor(compoundIntervalManagerFactory, machineModel, pAssumption);
       ExpressionToFormulaVisitor etfv =
@@ -694,7 +693,7 @@ public class InvariantsCPA
     }
   }
 
-  private static class CompoundConditionAdjuster implements ConditionAdjuster {
+  private static final class CompoundConditionAdjuster implements ConditionAdjuster {
 
     private final InvariantsCPA cpa;
 
@@ -790,7 +789,7 @@ public class InvariantsCPA
     }
   }
 
-  private static class InterestingVariableLimitAdjuster implements ValueIncreasingAdjuster {
+  private static final class InterestingVariableLimitAdjuster implements ValueIncreasingAdjuster {
 
     private final InvariantsCPA cpa;
 
@@ -833,7 +832,7 @@ public class InvariantsCPA
     }
   }
 
-  private static class FormulaDepthAdjuster implements ValueIncreasingAdjuster {
+  private static final class FormulaDepthAdjuster implements ValueIncreasingAdjuster {
 
     private final InvariantsCPA cpa;
 
@@ -869,7 +868,7 @@ public class InvariantsCPA
     }
   }
 
-  private static class AbstractionStrategyAdjuster implements ConditionAdjuster {
+  private static final class AbstractionStrategyAdjuster implements ConditionAdjuster {
 
     private final InvariantsCPA cpa;
 

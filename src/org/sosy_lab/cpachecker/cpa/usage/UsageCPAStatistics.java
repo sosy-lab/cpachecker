@@ -69,6 +69,7 @@ public class UsageCPAStatistics implements Statistics {
   final StatTimer extractStatesTimer = new StatTimer("Time for state extraction");
   private final StatTimer printStatisticsTimer = new StatTimer("Time for printing statistics");
   private final StatTimer printUnsafesTimer = new StatTimer("Time for unsafes printing");
+
   // public final StatCounter numberOfStatesCounter = new StatCounter("Number of states");
 
   public UsageCPAStatistics(
@@ -96,20 +97,14 @@ public class UsageCPAStatistics implements Statistics {
     if (printUnsafesInCaseOfUnknown || result != Result.UNKNOWN) {
       printUnsafesTimer.start();
       try {
-        switch (outputFileType) {
-          case KLEVER:
-            errPrinter = new KleverErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
-            break;
-          case KLEVER_OLD:
-            errPrinter =
-                new KleverErrorTracePrinterOld(config, computer, cfa, logger, lockTransfer);
-            break;
-          case ETV:
-            errPrinter = new ETVErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
-            break;
-          default:
-            throw new UnsupportedOperationException("Unknown type " + outputFileType);
-        }
+        errPrinter =
+            switch (outputFileType) {
+              case KLEVER -> new KleverErrorTracePrinter(
+                  config, computer, cfa, logger, lockTransfer);
+              case KLEVER_OLD -> new KleverErrorTracePrinterOld(
+                  config, computer, cfa, logger, lockTransfer);
+              case ETV -> new ETVErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
+            };
         errPrinter.printErrorTraces(reached);
         errPrinter.printStatistics(writer);
       } catch (InvalidConfigurationException e) {

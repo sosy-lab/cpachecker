@@ -95,15 +95,11 @@ public abstract class Address {
       return (Address) pAddress;
     } else if (pAddress instanceof BigInteger) {
       return new ConcreteAddress((BigInteger) pAddress);
-    } else if (pAddress instanceof Rational) {
-      Rational rational = (Rational) pAddress;
-
+    } else if (pAddress instanceof Rational rational) {
       if (rational.isIntegral()) {
         return new ConcreteAddress(rational.getNum());
       }
-    } else if (pAddress instanceof ExtendedRational) {
-      ExtendedRational eRat = (ExtendedRational) pAddress;
-
+    } else if (pAddress instanceof ExtendedRational eRat) {
       if (eRat.isRational()) {
         Rational rat = eRat.getRational();
         if (rat.isIntegral()) {
@@ -122,21 +118,17 @@ public abstract class Address {
     } else if (pAddress instanceof Short) {
       long value = ((Short) pAddress).longValue();
       return new ConcreteAddress(BigInteger.valueOf(value));
-    } else if (pAddress instanceof Double) {
-      Double value = (Double) pAddress;
+    } else if (pAddress instanceof Double value) {
       if (DoubleMath.isMathematicalInteger(value)) {
         long dValue = value.longValue();
         return new ConcreteAddress(BigInteger.valueOf(dValue));
       }
-    } else if (pAddress instanceof Float) {
-      Float value = (Float) pAddress;
+    } else if (pAddress instanceof Float value) {
       if (DoubleMath.isMathematicalInteger(value)) {
         long dValue = value.longValue();
         return new ConcreteAddress(BigInteger.valueOf(dValue));
       }
-    } else if (pAddress instanceof BigDecimal) {
-      BigDecimal bdVal = (BigDecimal) pAddress;
-
+    } else if (pAddress instanceof BigDecimal bdVal) {
       try {
         BigInteger bigIntValue = bdVal.toBigIntegerExact();
         return new ConcreteAddress(bigIntValue);
