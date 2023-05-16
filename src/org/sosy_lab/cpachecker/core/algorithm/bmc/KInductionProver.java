@@ -93,8 +93,6 @@ import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
-
-
 /**
  * Instances of this class are used to prove the safety of a program by applying an inductive
  * approach based on k-induction.
@@ -166,7 +164,6 @@ class KInductionProver implements AutoCloseable {
 
     @SuppressWarnings("resource")
     PredicateCPA stepCasePredicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
-    
     if (pUnsatCoreGeneration) {
       prover =
           new ProverEnvironmentWithFallback(
@@ -187,7 +184,6 @@ class KInductionProver implements AutoCloseable {
     expressionTreeSupplier = ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
 
     loopHeads = ImmutableSet.copyOf(pLoopHeads);
-    
   }
 
   private InvariantSupplier getCurrentInvariantSupplier() throws InterruptedException {
@@ -893,5 +889,4 @@ class KInductionProver implements AutoCloseable {
       return TraversalProcess.CONTINUE;
     }
   }
-  
 }

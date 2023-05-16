@@ -137,7 +137,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Override
   protected CandidateGenerator getCandidateInvariants() {
-    
     if (getTargetLocations().isEmpty() || !cfa.getAllLoopHeads().isPresent()) {
       return CandidateGenerator.EMPTY_GENERATOR;
     } else {
