@@ -60,7 +60,9 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     private final boolean useLocalPreds;
 
     private PredicatePrecisionConverterStrategy(
-        final boolean pUseGlobalPreds, final boolean pUseFunctionPreds, final boolean pUseLocalPreds) {
+        final boolean pUseGlobalPreds,
+        final boolean pUseFunctionPreds,
+        final boolean pUseLocalPreds) {
       useGlobalPreds = pUseGlobalPreds;
       useFunctionPreds = pUseFunctionPreds;
       useLocalPreds = pUseLocalPreds;
@@ -129,60 +131,65 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
           Level.WARNING, e, "Could not read precision from file named " + pPredPrecFile);
     } catch (InterruptedException e) {
       logger.logException(Level.INFO, e, "Precision adaption was interrupted.");
-    }
-    finally {
+    } finally {
       conversionTime.stopIfRunning();
     }
 
-      return ImmutableSet.of();
+    return ImmutableSet.of();
   }
 
   private ImmutableSet<CandidateInvariant> convertPredPrecToKInductionInvariant(
       final PredicatePrecision pPredPrec,
       final FormulaManagerView pFMgr,
-      final ShutdownNotifier pShutdownNotifier) throws InterruptedException {
+      final ShutdownNotifier pShutdownNotifier)
+      throws InterruptedException {
 
-    //since k-induction only works with invariants at loop heads
-    //if there are no loop heads, no invariants are needed
-    if(!cfa.getAllLoopHeads().isPresent()) {
+    // since k-induction only works with invariants at loop heads
+    // if there are no loop heads, no invariants are needed
+    if (!cfa.getAllLoopHeads().isPresent()) {
       return ImmutableSet.of();
     }
 
     ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
 
-    //sort loop heads for easier access later on
+    // sort loop heads for easier access later on
     SetMultimap<String, CFANode> loopHeadsPerFunction = HashMultimap.create();
-    for(CFANode loopHead : cfa.getAllLoopHeads().orElseThrow()) {
+    for (CFANode loopHead : cfa.getAllLoopHeads().orElseThrow()) {
       loopHeadsPerFunction.put(loopHead.getFunctionName(), loopHead);
     }
 
     pShutdownNotifier.shutdownIfNecessary();
-    if(converterStrategy.useGlobalPreds) {
+    if (converterStrategy.useGlobalPreds) {
       for (AbstractionPredicate pred : pPredPrec.getGlobalPredicates()) {
         for (CFANode loopHead : cfa.getAllLoopHeads().orElseThrow()) {
-          candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(
-              loopHead, pred.getSymbolicAtom(), pFMgr));
+          candidates.add(
+              SingleLocationFormulaInvariant.makeLocationInvariant(
+                  loopHead, pred.getSymbolicAtom(), pFMgr));
         }
       }
     }
 
     pShutdownNotifier.shutdownIfNecessary();
-    if(converterStrategy.useFunctionPreds) {
-      for (Map.Entry<String, AbstractionPredicate> entry : pPredPrec.getFunctionPredicates().entries()) {
-        for(CFANode loopHead : loopHeadsPerFunction.get(entry.getKey())) {
-          candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(
-              loopHead, entry.getValue().getSymbolicAtom(), pFMgr));
+    if (converterStrategy.useFunctionPreds) {
+      for (Map.Entry<String, AbstractionPredicate> entry :
+          pPredPrec.getFunctionPredicates().entries()) {
+        for (CFANode loopHead : loopHeadsPerFunction.get(entry.getKey())) {
+          candidates.add(
+              SingleLocationFormulaInvariant.makeLocationInvariant(
+                  loopHead, entry.getValue().getSymbolicAtom(), pFMgr));
         }
       }
     }
 
     pShutdownNotifier.shutdownIfNecessary();
-    if(converterStrategy.useLocalPreds) {
-      for (Map.Entry<CFANode, AbstractionPredicate> entry : pPredPrec.getLocalPredicates().entries()) {
-          if(entry.getKey().isLoopStart()) {
-            candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(
-                entry.getKey(), entry.getValue().getSymbolicAtom(), pFMgr));
-          }
+    if (converterStrategy.useLocalPreds) {
+      for (Map.Entry<CFANode, AbstractionPredicate> entry :
+          pPredPrec.getLocalPredicates().entries()) {
+        if (entry.getKey().isLoopStart()) {
+          candidates.add(
+              SingleLocationFormulaInvariant.makeLocationInvariant(
+                  entry.getKey(), entry.getValue().getSymbolicAtom(), pFMgr));
+        }
       }
     }
 
@@ -203,7 +210,5 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
   }
 
   @Override
-  public void close(){
-
-  }
+  public void close() {}
 }

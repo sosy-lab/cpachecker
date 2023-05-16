@@ -143,7 +143,10 @@ abstract class AbstractBMCAlgorithm
         != ReachabilityState.IRRELEVANT_TO_TARGET;
   }
 
-  @Option(secure = true, description = "get an initial precision from a predicate precision file", name = "kinduction.predicatePrecisionFile")
+  @Option(
+      secure = true,
+      description = "get an initial precision from a predicate precision file",
+      name = "kinduction.predicatePrecisionFile")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
 
@@ -365,8 +368,9 @@ abstract class AbstractBMCAlgorithm
     assignmentToPathAllocator =
         new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, pCFA.getMachineModel());
 
-    if(initialPredicatePrecisionFile != null) {
-      predToKIndInv = new PredicateToKInductionInvariantConverter(config, logger, shutdownNotifier, cfa);
+    if (initialPredicatePrecisionFile != null) {
+      predToKIndInv =
+          new PredicateToKInductionInvariantConverter(config, logger, shutdownNotifier, cfa);
       predicatePrecisionCandidates =
           predToKIndInv.convertPredPrecToKInductionInvariant(
               initialPredicatePrecisionFile, solver, predCpa.getAbstractionManager());
@@ -405,8 +409,8 @@ abstract class AbstractBMCAlgorithm
 
     AlgorithmStatus status;
 
-    //suggest candidates from predicate precision file
-    if(predicatePrecisionCandidates != null) {
+    // suggest candidates from predicate precision file
+    if (predicatePrecisionCandidates != null) {
       candidateGenerator.suggestCandidates(predicatePrecisionCandidates);
     }
 
@@ -439,7 +443,6 @@ abstract class AbstractBMCAlgorithm
           TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
-
 
         // Perform a bounded model check on each candidate invariant
         Iterator<CandidateInvariant> candidateInvariantIterator = candidateGenerator.iterator();
@@ -1039,7 +1042,6 @@ abstract class AbstractBMCAlgorithm
         getLoopHeads(),
         usePropertyDirection);
   }
-
 
   /**
    * Gets the potential target locations.
