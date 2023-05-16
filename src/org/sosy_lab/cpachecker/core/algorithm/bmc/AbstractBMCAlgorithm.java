@@ -145,6 +145,13 @@ abstract class AbstractBMCAlgorithm
 
   @Option(
       secure = true,
+      description = "get candidate invariants from a predicate precision file",
+      name = "kinduction.predicatePrecisionFile")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path initialPredicatePrecisionFile = null;
+
+  @Option(
+      secure = true,
       description =
           "If BMC did not find a bug, check whether "
               + "the bounding did actually remove parts of the state space "
@@ -231,6 +238,9 @@ abstract class AbstractBMCAlgorithm
 
   private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
       new CopyOnWriteArrayList<>();
+
+  private final ImmutableSet<CandidateInvariant> predicatePrecisionCandidates;
+  private @Nullable PredicateToKInductionInvariantConverter predToKIndInv;
 
   protected AbstractBMCAlgorithm(
       Algorithm pAlgorithm,
@@ -357,6 +367,16 @@ abstract class AbstractBMCAlgorithm
     abstractionStrategy = new PredicateAbstractionStrategy(cfa.getVarClassification());
     assignmentToPathAllocator =
         new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, pCFA.getMachineModel());
+
+    if (initialPredicatePrecisionFile != null) {
+      predToKIndInv =
+          new PredicateToKInductionInvariantConverter(config, logger, shutdownNotifier, cfa);
+      predicatePrecisionCandidates =
+          predToKIndInv.convertPredPrecToKInductionInvariant(
+              initialPredicatePrecisionFile, solver, predCpa.getAbstractionManager());
+    } else {
+      predicatePrecisionCandidates = ImmutableSet.of();
+    }
   }
 
   static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
@@ -388,6 +408,11 @@ abstract class AbstractBMCAlgorithm
     }
 
     AlgorithmStatus status;
+
+    // suggest candidates from predicate precision file
+    if (!predicatePrecisionCandidates.isEmpty()) {
+      candidateGenerator.suggestCandidates(predicatePrecisionCandidates);
+    }
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       invariantGeneratorHeadStart.waitForInvariantGenerator();
@@ -997,6 +1022,9 @@ abstract class AbstractBMCAlgorithm
     pStatsCollection.add(stats);
     if (invariantGenerator instanceof StatisticsProvider) {
       ((StatisticsProvider) invariantGenerator).collectStatistics(pStatsCollection);
+    }
+    if (predToKIndInv != null) {
+      pStatsCollection.add(predToKIndInv);
     }
   }
 
