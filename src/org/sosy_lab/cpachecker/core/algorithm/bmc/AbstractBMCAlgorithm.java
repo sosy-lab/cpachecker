@@ -145,7 +145,7 @@ abstract class AbstractBMCAlgorithm
 
   @Option(
       secure = true,
-      description = "get an initial precision from a predicate precision file",
+      description = "get candidate invariants from a predicate precision file",
       name = "kinduction.predicatePrecisionFile")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
@@ -239,7 +239,7 @@ abstract class AbstractBMCAlgorithm
   private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
       new CopyOnWriteArrayList<>();
 
-  private @Nullable Set<CandidateInvariant> predicatePrecisionCandidates;
+  private final ImmutableSet<CandidateInvariant> predicatePrecisionCandidates;
   private @Nullable PredicateToKInductionInvariantConverter predToKIndInv;
 
   protected AbstractBMCAlgorithm(
@@ -375,7 +375,7 @@ abstract class AbstractBMCAlgorithm
           predToKIndInv.convertPredPrecToKInductionInvariant(
               initialPredicatePrecisionFile, solver, predCpa.getAbstractionManager());
     } else {
-      predicatePrecisionCandidates = null;
+      predicatePrecisionCandidates = ImmutableSet.of();
     }
   }
 
@@ -410,7 +410,7 @@ abstract class AbstractBMCAlgorithm
     AlgorithmStatus status;
 
     // suggest candidates from predicate precision file
-    if (predicatePrecisionCandidates != null) {
+    if (!predicatePrecisionCandidates.isEmpty()) {
       candidateGenerator.suggestCandidates(predicatePrecisionCandidates);
     }
 

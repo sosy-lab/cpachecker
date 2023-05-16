@@ -725,7 +725,7 @@ bmc.invariantGeneratorHeadStartStrategy = NONE
 # Export auxiliary invariants used for induction.
 bmc.invariantsExport = no default value
 
-# get an initial precision from a predicate precision file
+# get candidate invariants from a predicate precision file
 bmc.kinduction.predicatePrecisionFile = no default value
 
 # which strategy to use to convert predicate precision to k-induction
