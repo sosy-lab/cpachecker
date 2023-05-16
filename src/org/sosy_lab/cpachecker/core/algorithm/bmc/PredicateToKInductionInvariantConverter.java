@@ -9,26 +9,19 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -43,18 +36,17 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
-@Options(prefix = "bmc.kinduction")
+/*
+ * Instead of providing option localPredicatesInFunctionScope, use the options of
+ * InitialPredicatesOptions
+ */
+@Options(prefix = "bmc.kinduction.reuse")
 public class PredicateToKInductionInvariantConverter implements Statistics, AutoCloseable {
 
-  public enum PredicateConverterStrategy {
+  public enum PredicatePrecisionConverterStrategy {
     ALL(true, true, true),
     GLOBAL(true, false, false),
     FUNCTION(false, true, false),
@@ -62,15 +54,16 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     GLOBAL_AND_FUNCTION(true, true, false),
     GLOBAL_AND_LOCAL(true, false, true),
     FUNCTION_AND_LOCAL(false, true, true);
-    
-    private final Boolean global;
-    private final Boolean function;
-    private final Boolean local;
-    
-    private PredicateConverterStrategy(Boolean global, Boolean function, Boolean local) {
-      this.global = global;
-      this.function = function;
-      this.local = local;
+
+    private final boolean useGlobalPreds;
+    private final boolean useFunctionPreds;
+    private final boolean useLocalPreds;
+
+    private PredicatePrecisionConverterStrategy(
+        final boolean pUseGlobalPreds, final boolean pUseFunctionPreds, final boolean pUseLocalPreds) {
+      useGlobalPreds = pUseGlobalPreds;
+      useFunctionPreds = pUseFunctionPreds;
+      useLocalPreds = pUseLocalPreds;
     }
   }
 
@@ -81,26 +74,14 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
 
   @Option(
       secure = true,
-      name = "strategy",
+      name = "pred.strategy",
       description = "which strategy to use to convert predicate precision to k-induction invariant")
-  private PredicateConverterStrategy converterStrategy = PredicateConverterStrategy.GLOBAL;
-
-  @Option(
-      secure = true,
-      description =
-          "Overall timelimit for computing initial k-induction invariant from given predicate precision"
-              + "(use seconds or specify a unit; 0 for infinite)")
-  @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
-  private TimeSpan adaptionLimit = TimeSpan.ofNanos(0);
-  
-  @Option(
-      secure = true,
-      name = "localAsFunction",
-      description = "Treat local predicates like function predicates of the function they are in. Comes only into play if local predicates are analyzed.")
-  private Boolean localAsFunction = true;
+  private PredicatePrecisionConverterStrategy converterStrategy =
+      PredicatePrecisionConverterStrategy.GLOBAL;
 
   private final Timer conversionTime = new Timer();
   private int numInvariants = 0;
+  private InitialPredicatesOptions initialPredicatesOptions;
 
   public PredicateToKInductionInvariantConverter(
       final Configuration pConfig,
@@ -113,49 +94,39 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
     config.inject(this);
+    initialPredicatesOptions = new InitialPredicatesOptions();
+    config.inject(initialPredicatesOptions);
   }
 
-  public Set<CandidateInvariant> convertPredPrecToKInductionInvariant(
-      final Path pPredPrecFile) throws InvalidConfigurationException {
-    ResourceLimitChecker limitChecker = null;
-    ShutdownNotifier conversionShutdownNotifier;
-    if (!adaptionLimit.isEmpty()) {
-      ShutdownManager conversionShutdownManager =
-          ShutdownManager.createWithParent(shutdownNotifier);
-      conversionShutdownNotifier = conversionShutdownManager.getNotifier();
-      ResourceLimit limit = WalltimeLimit.fromNowOn(adaptionLimit);
-      limitChecker = new ResourceLimitChecker(conversionShutdownManager, ImmutableList.of(limit));
-      limitChecker.start();
-    } else {
-      conversionShutdownNotifier = shutdownNotifier;
-    }
-
-    Set<CandidateInvariant> candidates = null;
-
+  public ImmutableSet<CandidateInvariant> convertPredPrecToKInductionInvariant(
+      final Path pPredPrecFile,
+      final Solver pSolver,
+      final AbstractionManager pAbstractionManager) {
     conversionTime.start();
-    try (Solver solver = Solver.create(config, logger, conversionShutdownNotifier)) {
-      FormulaManagerView formulaManager = solver.getFormulaManager();
-      
-      RegionManager regionManager = new SymbolicRegionManager(solver);
-      AbstractionManager abstractionManager =
-          new AbstractionManager(regionManager, config, logger, solver);
+    try {
+      FormulaManagerView formulaManager = pSolver.getFormulaManager();
 
       PredicatePrecision predPrec =
-          parsePredPrecFile(formulaManager, abstractionManager, pPredPrecFile);
+          new PredicateMapParser(
+                  cfa, logger, formulaManager, pAbstractionManager, initialPredicatesOptions)
+              .parsePredicates(pPredPrecFile);
 
-      conversionShutdownNotifier.shutdownIfNecessary();
+      shutdownNotifier.shutdownIfNecessary();
 
       if (!predPrec.isEmpty()) {
         logger.log(Level.INFO, "Derive k-induction invariant from given predicate precision");
-        candidates = convertPredPrecToKInductionInvariant(predPrec, formulaManager, conversionShutdownNotifier);
-
-        conversionShutdownNotifier.shutdownIfNecessary();
-
+        ImmutableSet<CandidateInvariant> candidates =
+            convertPredPrecToKInductionInvariant(predPrec, formulaManager, shutdownNotifier);
+        numInvariants += candidates.size();
+        return candidates;
       } else {
         logger.log(
             Level.WARNING,
             "Provided predicate precision is empty and does not contain predicates.");
       }
+    } catch (IOException | PredicateParsingFailedException e) {
+      logger.logUserException(
+          Level.WARNING, e, "Could not read precision from file named " + pPredPrecFile);
     } catch (InterruptedException e) {
       logger.logException(Level.INFO, e, "Precision adaption was interrupted.");
     }
@@ -163,72 +134,40 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
       conversionTime.stopIfRunning();
     }
 
-    if (limitChecker != null) {
-      limitChecker.cancel();
-    }
-
-    if (candidates == null) {
       return ImmutableSet.of();
-    }
-    numInvariants += candidates.size();
-    return ImmutableSet.copyOf(candidates);
   }
 
-  private PredicatePrecision parsePredPrecFile(
-      final FormulaManagerView pFMgr,
-      final AbstractionManager abstractionManager,
-      final Path pPredPrecFile) {
-
-    // create managers for the predicate map parser for parsing the predicates from the given
-    // predicate precision file
-
-    PredicateMapParser mapParser =
-        new PredicateMapParser(
-            cfa, logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
-
-    try {
-      return mapParser.parsePredicates(pPredPrecFile);
-    } catch (IOException | PredicateParsingFailedException e) {
-      logger.logUserException(
-          Level.WARNING, e, "Could not read precision from file named " + pPredPrecFile);
-      return PredicatePrecision.empty();
-    }
-  }
-
-  private Set<CandidateInvariant> convertPredPrecToKInductionInvariant(
+  private ImmutableSet<CandidateInvariant> convertPredPrecToKInductionInvariant(
       final PredicatePrecision pPredPrec,
       final FormulaManagerView pFMgr,
-      final ShutdownNotifier pConversionShutdownNotifier) throws InterruptedException {
-    
+      final ShutdownNotifier pShutdownNotifier) throws InterruptedException {
+
     //since k-induction only works with invariants at loop heads
     //if there are no loop heads, no invariants are needed
     if(!cfa.getAllLoopHeads().isPresent()) {
-      return new HashSet<>();
+      return ImmutableSet.of();
     }
-    
-    Set<CandidateInvariant> candidates = new HashSet<>();
-    
+
+    ImmutableSet.Builder<CandidateInvariant> candidates = ImmutableSet.builder();
+
     //sort loop heads for easier access later on
     SetMultimap<String, CFANode> loopHeadsPerFunction = HashMultimap.create();
     for(CFANode loopHead : cfa.getAllLoopHeads().orElseThrow()) {
       loopHeadsPerFunction.put(loopHead.getFunctionName(), loopHead);
     }
-    
-    pConversionShutdownNotifier.shutdownIfNecessary();
-    
-    // Get all candidate invariants in the same set
-    if(converterStrategy.global) {
-      for (AbstractionPredicate pred : new HashSet<>(pPredPrec.getGlobalPredicates())) {
-        for(CFANode loopHead : loopHeadsPerFunction.values()) {
+
+    pShutdownNotifier.shutdownIfNecessary();
+    if(converterStrategy.useGlobalPreds) {
+      for (AbstractionPredicate pred : pPredPrec.getGlobalPredicates()) {
+        for (CFANode loopHead : cfa.getAllLoopHeads().orElseThrow()) {
           candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(
               loopHead, pred.getSymbolicAtom(), pFMgr));
         }
       }
     }
-    
-    pConversionShutdownNotifier.shutdownIfNecessary();
 
-    if(converterStrategy.function) {
+    pShutdownNotifier.shutdownIfNecessary();
+    if(converterStrategy.useFunctionPreds) {
       for (Map.Entry<String, AbstractionPredicate> entry : pPredPrec.getFunctionPredicates().entries()) {
         for(CFANode loopHead : loopHeadsPerFunction.get(entry.getKey())) {
           candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(
@@ -236,29 +175,19 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
         }
       }
     }
-    
-    pConversionShutdownNotifier.shutdownIfNecessary();
-    
-    if(converterStrategy.local) {
+
+    pShutdownNotifier.shutdownIfNecessary();
+    if(converterStrategy.useLocalPreds) {
       for (Map.Entry<CFANode, AbstractionPredicate> entry : pPredPrec.getLocalPredicates().entries()) {
-        if(localAsFunction) {
-          for(CFANode loopHead : loopHeadsPerFunction.get(entry.getKey().getFunctionName())) {
-            candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(
-                loopHead, entry.getValue().getSymbolicAtom(), pFMgr));
-          }
-        } else {
           if(entry.getKey().isLoopStart()) {
             candidates.add(SingleLocationFormulaInvariant.makeLocationInvariant(
                 entry.getKey(), entry.getValue().getSymbolicAtom(), pFMgr));
           }
-        }
       }
     }
-    
-    pConversionShutdownNotifier.shutdownIfNecessary();
-    
-    return candidates;
-    
+
+    pShutdownNotifier.shutdownIfNecessary();
+    return candidates.build();
   }
 
   @Override
@@ -272,9 +201,9 @@ public class PredicateToKInductionInvariantConverter implements Statistics, Auto
   public String getName() {
     return "Predicate Precision to K-Induction Invariants Converter";
   }
-  
+
   @Override
   public void close(){
-    
+
   }
 }

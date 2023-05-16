@@ -142,11 +142,11 @@ abstract class AbstractBMCAlgorithm
     return AbstractStates.extractStateByType(state, ReachabilityState.class)
         != ReachabilityState.IRRELEVANT_TO_TARGET;
   }
-  
+
   @Option(secure = true, description = "get an initial precision from a predicate precision file", name = "kinduction.predicatePrecisionFile")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
-  
+
   @Option(
       secure = true,
       description =
@@ -235,7 +235,7 @@ abstract class AbstractBMCAlgorithm
 
   private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
       new CopyOnWriteArrayList<>();
-  
+
   private @Nullable Set<CandidateInvariant> predicatePrecisionCandidates;
   private @Nullable PredicateToKInductionInvariantConverter predToKIndInv;
 
@@ -364,10 +364,12 @@ abstract class AbstractBMCAlgorithm
     abstractionStrategy = new PredicateAbstractionStrategy(cfa.getVarClassification());
     assignmentToPathAllocator =
         new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, pCFA.getMachineModel());
-    
+
     if(initialPredicatePrecisionFile != null) {
       predToKIndInv = new PredicateToKInductionInvariantConverter(config, logger, shutdownNotifier, cfa);
-      predicatePrecisionCandidates = predToKIndInv.convertPredPrecToKInductionInvariant(initialPredicatePrecisionFile);
+      predicatePrecisionCandidates =
+          predToKIndInv.convertPredPrecToKInductionInvariant(
+              initialPredicatePrecisionFile, solver, predCpa.getAbstractionManager());
     } else {
       predicatePrecisionCandidates = null;
     }
@@ -400,14 +402,14 @@ abstract class AbstractBMCAlgorithm
       reachedSet.clearWaitlist();
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
-    
+
     AlgorithmStatus status;
 
     //suggest candidates from predicate precision file
     if(predicatePrecisionCandidates != null) {
       candidateGenerator.suggestCandidates(predicatePrecisionCandidates);
     }
-    
+
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       invariantGeneratorHeadStart.waitForInvariantGenerator();
 
@@ -437,8 +439,8 @@ abstract class AbstractBMCAlgorithm
           TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
-        
-        
+
+
         // Perform a bounded model check on each candidate invariant
         Iterator<CandidateInvariant> candidateInvariantIterator = candidateGenerator.iterator();
         while (candidateInvariantIterator.hasNext()) {
@@ -1037,7 +1039,7 @@ abstract class AbstractBMCAlgorithm
         getLoopHeads(),
         usePropertyDirection);
   }
-  
+
 
   /**
    * Gets the potential target locations.
