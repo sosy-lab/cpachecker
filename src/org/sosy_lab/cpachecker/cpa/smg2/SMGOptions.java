@@ -90,7 +90,7 @@ public class SMGOptions {
       name = "memoryAllocationFunctions",
       description = "Memory allocation functions")
   private ImmutableSet<String> memoryAllocationFunctions =
-      ImmutableSet.of("malloc", "__kmalloc", "kmalloc", "realloc");
+      ImmutableSet.of("malloc", "__kmalloc", "kmalloc");
 
   @Option(
       secure = true,
@@ -259,6 +259,14 @@ public class SMGOptions {
               + "unknown memory sizes does not abort, but also does not create any memory.")
   private boolean ignoreUnknownMemoryAllocation = false;
 
+  @Option(
+      secure = true,
+      description =
+          "If this option is enabled, a call to malloc with value zero results in a return value "
+              + "that is equal to zero. If this option is disabled, a non-zero memory section"
+              + " that may not be accessed but freed is returned.")
+  private boolean mallocZeroReturnsZero = false;
+
   public enum SMGExportLevel {
     NEVER,
     LEAF,
@@ -272,6 +280,10 @@ public class SMGOptions {
 
   public boolean isIgnoreUnknownMemoryAllocation() {
     return ignoreUnknownMemoryAllocation;
+  }
+
+  public boolean isMallocZeroReturnsZero() {
+    return mallocZeroReturnsZero;
   }
 
   boolean isOptimizeBooleanVariables() {

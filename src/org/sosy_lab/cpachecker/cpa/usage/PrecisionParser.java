@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import java.io.BufferedReader;
@@ -30,11 +31,11 @@ import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralLocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralStructureFieldIdentifier;
 
-public class PresisionParser {
+public class PrecisionParser {
   private CFA cfa;
   private final LogManager logger;
 
-  PresisionParser(CFA pCfa, LogManager l) {
+  PrecisionParser(CFA pCfa, LogManager l) {
     cfa = pCfa;
     logger = l;
   }
@@ -75,7 +76,7 @@ public class PresisionParser {
             continue;
           }
           GeneralIdentifier id = parseId(localSet);
-          DataType type = DataType.valueOf(localSet.get(3).toUpperCase());
+          DataType type = DataType.valueOf(Ascii.toUpperCase(localSet.get(3)));
           info.put(id, type);
         }
       }
@@ -118,7 +119,7 @@ public class PresisionParser {
       Map<GeneralIdentifier, DataType> info) {
     if (node != null && info != null) {
       if (map.containsKey(node)) {
-        logger.log(Level.WARNING, "Node " + node + " is already in presision");
+        logger.log(Level.WARNING, "Node " + node + " is already in precision");
       } else {
         map.put(node, info);
       }

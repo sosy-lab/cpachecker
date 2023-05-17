@@ -114,6 +114,7 @@ class PointerTargetSetManager {
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final MemoryRegionManager regionMgr;
   private final SMTHeap heap;
+
   /**
    * Creates a new PointerTargetSetManager.
    *

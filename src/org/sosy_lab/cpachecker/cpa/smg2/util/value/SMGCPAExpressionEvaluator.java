@@ -292,6 +292,30 @@ public class SMGCPAExpressionEvaluator {
   }
 
   /**
+   * Creates memory with size sizeInBits. sizeInBits should not be 0! The memory is then invalidated
+   * and added to the malloc zero map.
+   *
+   * @param pInitialSmgState {@link SMGState} initial state.
+   * @param sizeInBits some non-zero size.
+   * @return {@link ValueAndSMGState} of the pointer to the memory and its state.
+   */
+  public ValueAndSMGState createMallocZeroMemoryAndPointer(
+      SMGState pInitialSmgState, BigInteger sizeInBits) {
+    SMGObjectAndSMGState newObjectAndState = pInitialSmgState.copyAndAddHeapObject(sizeInBits);
+    SMGObject newObject = newObjectAndState.getSMGObject();
+    SMGState newState = newObjectAndState.getState();
+
+    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    // New regions always have offset 0
+    SMGState finalState = newState.createAndAddPointer(addressValue, newObject, BigInteger.ZERO);
+    SymbolicProgramConfiguration newSPC =
+        finalState.getMemoryModel().setMemoryAsResultOfMallocZero(newObject);
+    newSPC = newSPC.invalidateSMGObject(newObject);
+    finalState = newState.copyAndReplaceMemoryModel(newSPC);
+    return ValueAndSMGState.of(addressValue, finalState);
+  }
+
+  /**
    * Create a new stack object with the size in bits and then create a pointer to its beginning and
    * return the state with the pointer and object + the pointer Value (address to the objects
    * beginning).

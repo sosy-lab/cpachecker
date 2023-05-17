@@ -139,6 +139,7 @@ public abstract sealed class PredicateAbstractState
 
   private static final class NonAbstractionState extends PredicateAbstractState {
     private static final long serialVersionUID = -6912172362012773999L;
+
     /** The abstract state this element was merged into. Used for fast coverage checks. */
     private transient PredicateAbstractState mergedInto = null;
 

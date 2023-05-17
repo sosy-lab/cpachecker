@@ -43,8 +43,8 @@ class Edge implements Comparable<Edge> {
     return stack;
   }
 
-  @Override
   /** comparison based on the child element */
+  @Override
   public int compareTo(Edge pO) {
     return Integer.compare(getChildState().getStateId(), pO.getChildState().getStateId());
   }

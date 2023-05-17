@@ -25,15 +25,15 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
 
   public static AutomatonVariable createAutomatonVariable(
       String pType, String pName, String... args) {
-    if (pType.toLowerCase().equals("int") || pType.toLowerCase().equals("integer")) {
+    if (pType.equalsIgnoreCase("int") || pType.equalsIgnoreCase("integer")) {
       return new AutomatonIntVariable(pName);
-    } else if (pType.toLowerCase().equals("set")) {
+    } else if (pType.equalsIgnoreCase("set")) {
       if (args.length > 0) {
         String elementType = args[0];
         AutomatonSetVariable<?> result;
-        if (elementType.toLowerCase().equals("int")) {
+        if (elementType.equalsIgnoreCase("int")) {
           result = new AutomatonSetVariable<Integer>(pName);
-        } else if (elementType.toLowerCase().equals("string")) {
+        } else if (elementType.equalsIgnoreCase("string")) {
           result = new AutomatonSetVariable<String>(pName);
         } else {
           throw new IllegalArgumentException(
@@ -44,7 +44,7 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
           if (!value.trim().isEmpty()) {
             for (String elem : Splitter.on(',').split(value)) {
               elem = elem.trim();
-              if (elementType.toLowerCase().equals("int")) {
+              if (elementType.equalsIgnoreCase("int")) {
                 try {
                   result.add(Integer.valueOf(elem));
                 } catch (NumberFormatException e) {

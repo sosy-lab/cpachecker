@@ -79,8 +79,12 @@ public class PolyhedraWideningManager {
       Environment env = generateEnvironment(ImmutableList.of(oldData, newData));
       Abstract1 abs1 = fromTemplates(env, oldData);
       Abstract1 abs2 = fromTemplates(env, newData);
-      abs2.join(manager, abs1);
-      widened = abs1.widening(manager, abs2);
+      try {
+        abs2.join(manager, abs1);
+        widened = abs1.widening(manager, abs2);
+      } catch (apron.ApronException e) {
+        throw new RuntimeException("An error occured while operating with the apron library", e);
+      }
     } finally {
       statistics.polyhedraWideningTimer.stop();
     }
@@ -109,7 +113,12 @@ public class PolyhedraWideningManager {
 
   Map<Template, Rational> toTemplates(Abstract1 abs) {
     Map<Template, Rational> out = new HashMap<>();
-    Lincons1[] values = abs.toLincons(manager);
+    Lincons1[] values;
+    try {
+      values = abs.toLincons(manager);
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
     for (Lincons1 constraint : values) {
       // We have: t + coeff >= 0.
       Rational coeff = ofCoeff(constraint.getCst());
@@ -133,8 +142,13 @@ public class PolyhedraWideningManager {
       Rational bound = e.getValue();
       values[++i] = fromTemplateBound(environment, t, bound);
     }
-    Abstract1 out = new Abstract1(manager, environment);
-    out.meet(manager, values);
+    Abstract1 out;
+    try {
+      out = new Abstract1(manager, environment);
+      out.meet(manager, values);
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
     return out;
   }
 
@@ -143,7 +157,7 @@ public class PolyhedraWideningManager {
     LinearExpression<CIdExpression> out = LinearExpression.empty();
 
     for (Linterm1 term : expr.getLinterms()) {
-      String varName = term.getVariable();
+      String varName = term.getVariable().toString();
       Rational coeff = ofCoeff(term.getCoefficient());
 
       out = out.add(LinearExpression.monomial(types.get(varName), coeff));

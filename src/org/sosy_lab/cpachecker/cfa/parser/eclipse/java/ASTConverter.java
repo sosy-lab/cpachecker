@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -1535,7 +1536,7 @@ class ASTConverter {
     String visibilityModifierString = pConstructor.toGenericString().substring(0, i);
 
     try {
-      visibilityModifier = VisibilityModifier.valueOf(visibilityModifierString.toUpperCase());
+      visibilityModifier = VisibilityModifier.valueOf(Ascii.toUpperCase(visibilityModifierString));
     } catch (IllegalArgumentException ignored) {
       visibilityModifier = VisibilityModifier.NONE;
     }

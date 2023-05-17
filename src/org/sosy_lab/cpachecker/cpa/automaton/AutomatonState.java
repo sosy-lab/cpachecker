@@ -70,7 +70,7 @@ public class AutomatonState
 
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
-      return pProperty.toLowerCase().equals("state == top");
+      return pProperty.equalsIgnoreCase("state == top");
     }
 
     @Override
@@ -98,7 +98,7 @@ public class AutomatonState
 
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
-      return pProperty.toLowerCase().equals("state == bottom");
+      return pProperty.equalsIgnoreCase("state == bottom");
     }
 
     @Override

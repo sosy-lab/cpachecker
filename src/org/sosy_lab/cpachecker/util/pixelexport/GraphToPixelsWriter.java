@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.pixelexport;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.Ascii;
 import com.google.common.primitives.ImmutableIntArray;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -102,7 +103,7 @@ public abstract class GraphToPixelsWriter<Node> {
   protected GraphToPixelsWriter(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this, GraphToPixelsWriter.class);
 
-    imageFormat = imageFormat.toLowerCase();
+    imageFormat = Ascii.toLowerCase(imageFormat);
 
     if (width == 0 || height == 0) {
       throw new InvalidConfigurationException("Width and height may not be 0");

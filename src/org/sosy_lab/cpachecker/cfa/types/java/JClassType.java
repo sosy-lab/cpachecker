@@ -304,14 +304,13 @@ public final class JClassType extends JClassOrInterfaceType {
     return isStrictFp;
   }
 
-  @Nullable
   /**
    * Returns the super type of this class type. The Super Type of the class Object is <code>null
    * </code>.
    *
    * @return the super type of this class type
    */
-  public JClassType getParentClass() {
+  public @Nullable JClassType getParentClass() {
     return superClass;
   }
 

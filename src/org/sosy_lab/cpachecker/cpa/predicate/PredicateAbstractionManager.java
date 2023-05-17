@@ -237,6 +237,7 @@ public class PredicateAbstractionManager {
       unsatisfiabilityCache.clear();
     }
   }
+
   /**
    * Compute an abstraction of the conjunction of an AbstractionFormula and a PathFormula. The
    * AbstractionFormula will be used in its instantiated form, so the indices there should match
