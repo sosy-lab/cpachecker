@@ -100,19 +100,19 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
         case LOCAL:
           constraintsPrecision =
               constraintsPrecision.withIncrement(
-                  Increment.Builder.builder().locallyTracked(pLocation, pConstraint).build());
+                  Increment.builder().locallyTracked(pLocation, pConstraint).build());
           break;
         case FUNCTION:
           constraintsPrecision =
               constraintsPrecision.withIncrement(
-                  Increment.Builder.builder()
+                  Increment.builder()
                       .functionWiseTracked(pLocation.getFunctionName(), pConstraint)
                       .build());
           break;
         case GLOBAL:
           constraintsPrecision =
               constraintsPrecision.withIncrement(
-                  Increment.Builder.builder().globallyTracked(pConstraint).build());
+                  Increment.builder().globallyTracked(pConstraint).build());
           break;
         case NONE:
           break;

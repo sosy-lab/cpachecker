@@ -54,6 +54,10 @@ public interface ConstraintsPrecision extends Precision {
       return trackedLocally;
     }
 
+    public static Builder builder() {
+      return new Builder();
+    }
+
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("ConstraintsPrecision.Increment[");

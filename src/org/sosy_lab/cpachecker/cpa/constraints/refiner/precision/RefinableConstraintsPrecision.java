@@ -172,7 +172,7 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
             cfaMultiMap.put(node, null); // null okay because constraint ignored by precision
           }
         }
-        Increment locInc = Increment.Builder.builder().locallyTracked(cfaMultiMap).build();
+        Increment locInc = Increment.builder().locallyTracked(cfaMultiMap).build();
         return LocationBasedConstraintsPrecision.getEmptyPrecision().withIncrement(locInc);
       default:
         throw new AssertionError("Unsupported precision type");
