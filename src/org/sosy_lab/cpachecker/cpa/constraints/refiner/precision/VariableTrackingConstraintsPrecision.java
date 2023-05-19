@@ -34,7 +34,7 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
     FUNCTION(2),
     GLOBAL(3);
 
-    private int order;
+    private final int order;
 
     INCREMENT_SCOPE(final int pOrder) {
       order = pOrder;
