@@ -6,8 +6,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-__uint128_t j = 0;
-
 int main() {
   __int128 i128;
   unsigned __int128 ui128;
@@ -16,7 +14,7 @@ int main() {
 
   if (((__int128)2 << 100) <= 0) goto ERROR;
 
-  j = (__uint128_t)0xFFFFFFFFFFFFFFFF + (__uint128_t)0x1000000000000000;
+  __uint128_t j = (__uint128_t)0xFFFFFFFFFFFFFFFF + (__uint128_t)0x1000000000000000;
   if ((j >> 1) != 0x87FFFFFFFFFFFFFF) goto ERROR;
 
   __uint128_t op1 = 0xFFFFFFFFFFFFFFFF;

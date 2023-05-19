@@ -10,7 +10,7 @@ int main(void) {
     int x = 10;
     //@ ensures y == 10;
     int z = x * x;
-    if (x == 10) {
+    if (x != 10) {
         ERROR: return 1;
     }
     return 0;
