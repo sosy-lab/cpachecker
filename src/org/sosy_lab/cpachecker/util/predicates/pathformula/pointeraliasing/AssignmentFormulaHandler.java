@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -78,6 +79,16 @@ class AssignmentFormulaHandler {
   record PartialSpan(long lhsBitOffset, long rhsTargetBitOffset, long bitSize) {
     PartialSpan {
       checkArgument(bitSize > 0);
+    }
+
+    /**
+     * Returns whether the span is full, i.e., starts at zero both at left-hand side
+     * and right-hand-side and its bit size equals the parameter bit size.
+     */
+    boolean isFullSpan(long fullBitSize) {
+      return lhsBitOffset == 0
+          && rhsTargetBitOffset == 0
+          && bitSize == fullBitSize;
     }
   }
 
@@ -179,8 +190,8 @@ class AssignmentFormulaHandler {
     }
 
     // construct the RHS expression
-    Expression rhsResult =
-        constructCompleteRhsExpression(lhsResolved, targetType, rhsList, assignmentOptions);
+    ResolvedSlice rhsResult =
+        resolveCompleteRhs(lhsResolved, targetType, rhsList, assignmentOptions);
 
     // determine whether it is desired to use old SSA indices because we are doing
     // an initialization assignment
@@ -195,13 +206,13 @@ class AssignmentFormulaHandler {
         useOldSSAIndices || options.useArraysForHeap() ? null : new HashSet<>();
 
     // perform the actual destructive assignment
-    // the RHS result was already made into lhs-typed in {@link constructWholeRhsExpression()}
+    // the RHS result contains both the RHS expression and RHS type
     BooleanFormula result =
         makeSimpleDestructiveAssignment(
             lhsType,
-            lhsType,
+            rhsResult.type(),
             lhsLocation,
-            rhsResult,
+            rhsResult.expression(),
             assignmentOptions.useOldSSAIndicesIfAliased()
                 && lhsResolved.expression().isAliasedLocation(),
             updatedRegions,
@@ -220,22 +231,26 @@ class AssignmentFormulaHandler {
 
   /**
    * Constructs the complete right-hand-side expression from partial resolved right-hand-sides and
-   * previous resolved left-hand-side.
+   * previous resolved left-hand-side, together with the its type to be considered.
    *
    * <p>This is done by first casting / reinterpreting (according to {@link AssignmentOptions}) each
    * partial RHS to the target type. After that, the interesting part of RHS is extracted and
    * inserted to the correct place in LHS-sized formula. Since there might be some parts of LHS that
    * do not correspond to any partial RHS, these are copied from previous LHS value.
    *
+   * <p>The resolved RHS type only differs from the resolved LHS type in the special case of a
+   * full-span array-to-pointer assignment, so that this can be detected later on and the aliased
+   * location be assigned directly without dereferencing.
+   *
    * @param lhs Resolved left-hand side.
    * @param targetType Original target type to which each partial right-hand side is cast or
    *     reintepreted before further processing.
    * @param rhsList List of partial resolved right-hand-sides.
    * @param assignmentOptions Assignment options.
-   * @return Complete right-hand-side expression to be assigned.
+   * @return Resolved right-hand-side expression to be assigned.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
-  private Expression constructCompleteRhsExpression(
+  private ResolvedSlice resolveCompleteRhs(
       ResolvedSlice lhs,
       CType targetType,
       List<ResolvedPartialAssignmentRhs> rhsList,
@@ -250,6 +265,27 @@ class AssignmentFormulaHandler {
     CType lhsType = lhs.type();
     long targetBitSize = typeHandler.getBitSizeof(targetType);
     long lhsBitSize = typeHandler.getBitSizeof(lhsType);
+
+    // handle the special case of full-span array-to-pointer assignment
+    if (lhs.type() instanceof CPointerType && rhsList.size() == 1) {
+      // we now know it is a something-to-pointer assignment
+      final ResolvedPartialAssignmentRhs rhs = rhsList.get(0);
+      final PartialSpan rhsSpan = rhs.span();
+
+      if (rhsSpan.isFullSpan(lhsBitSize)
+          && lhsBitSize == targetBitSize
+          && rhs.actual().isPresent()) {
+        // we now know it is a full-span something-to-pointer assignment
+        ResolvedSlice rhsResolvedSlice = rhs.actual().get();
+        if (rhsResolvedSlice.type() instanceof CArrayType arrayType) {
+          // OK, this is the special case, full-span array-to-pointer assignment
+          // return the RHS resolved slice, which has the array type
+          return rhsResolvedSlice;
+        }
+      }
+    }
+    // not the special case, the returned RHS type is the LHS type
+    final CType resultType = lhs.type();
 
     // track ranges of LHS which have been already filled
     RangeSet<Long> lhsRangeSet = TreeRangeSet.create();
@@ -296,10 +332,12 @@ class AssignmentFormulaHandler {
               && rhsSpan.rhsTargetBitOffset() == 0
               && rhsSpan.bitSize() == lhsBitSize
               && lhsBitSize == targetBitSize) {
-            return convertResolved(
-                AssignmentOptions.ConversionType.REINTERPRET,
-                lhs.type(),
-                new ResolvedSlice(targetTypeRhsExpression, targetType));
+            return new ResolvedSlice(
+                convertResolved(
+                    AssignmentOptions.ConversionType.REINTERPRET,
+                    lhs.type(),
+                    new ResolvedSlice(targetTypeRhsExpression, targetType)),
+                resultType);
           }
 
           // construct the partial RHS formula in a separate function
@@ -312,7 +350,7 @@ class AssignmentFormulaHandler {
 
       if (partialRhsFormula.isEmpty()) {
         // nondet rhs part, make the whole rhs result nondeterministic
-        return Value.nondetValue();
+        return new ResolvedSlice(Value.nondetValue(), resultType);
       }
 
       // bit-or with other parts, all of them are LHS-sized
@@ -338,7 +376,7 @@ class AssignmentFormulaHandler {
       if (previousLhsFormula.isEmpty()) {
         // some bits from previous LHS are retained in current RHS, but previous LHS is nondet
         // make current RHS nondet as well
-        return Value.nondetValue();
+        return new ResolvedSlice(Value.nondetValue(), resultType);
       }
 
       // reinterpret the previous LHS formula to bitvector
@@ -369,7 +407,7 @@ class AssignmentFormulaHandler {
         conv.makeValueReinterpretationFromBitvector(lhs.type(), completeRhsFormula);
 
     // return the complete RHS formula
-    return Value.ofValue(completeRhsFormula);
+    return new ResolvedSlice(Value.ofValue(completeRhsFormula), resultType);
   }
 
   /**

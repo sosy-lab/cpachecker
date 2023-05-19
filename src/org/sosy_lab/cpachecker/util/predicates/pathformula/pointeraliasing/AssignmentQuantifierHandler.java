@@ -658,14 +658,6 @@ class AssignmentQuantifierHandler {
       final ResolvedSlice rhsResolvedBase = resolvedRhsBases.get(rhsSlice.base());
       ResolvedSlice rhsResolved = applySliceModifiersToResolvedBase(rhsResolvedBase, rhsSlice);
 
-      // after resolving rhs, the rhs resolved type may be array even if we want to do
-      // pointer assignment, signified by pointer target type
-      // make rhs resolved target type into pointer in that case
-      if (targetType instanceof CPointerType) {
-        rhsResolved =
-            new ResolvedSlice(
-                rhsResolved.expression(), CTypes.adjustFunctionOrArrayType(rhsResolved.type()));
-      }
       // add resolved RHS to list
       rhsResolvedList.add(new ResolvedPartialAssignmentRhs(rhs.span(), Optional.of(rhsResolved)));
     }
