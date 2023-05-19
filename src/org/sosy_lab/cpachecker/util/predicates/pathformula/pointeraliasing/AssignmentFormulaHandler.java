@@ -433,7 +433,7 @@ class AssignmentFormulaHandler {
 
     // extract the range [lsb, msb]
     Formula extractedFormula =
-        fmgr.makeExtract(bitvectorPreviousLhsFormula, (int) (retainedMsb), (int) (retainedLsb));
+        fmgr.makeExtract(bitvectorPreviousLhsFormula, (int) retainedMsb, (int) retainedLsb);
 
     // extend back to LHS bit size
     long numExtendBits = lhsBitSize - retainedBitSize;
