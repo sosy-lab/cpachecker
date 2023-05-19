@@ -124,7 +124,8 @@ public class VariableTrackingConstraintsPrecision implements ConstraintsPrecisio
 
   private INCREMENT_SCOPE getScopeForConstraint(
       final Set<SymbolicIdentifier> symVars, final CFANode pLocation, INCREMENT_SCOPE pInitScope) {
-    INCREMENT_SCOPE varScope, resScope = pInitScope;
+    INCREMENT_SCOPE varScope;
+    INCREMENT_SCOPE resScope = pInitScope;
     boolean noVarTracked = true;
     for (SymbolicIdentifier symId : symVars) {
       varScope = getTrackedScopeForVar(symId, pLocation);
