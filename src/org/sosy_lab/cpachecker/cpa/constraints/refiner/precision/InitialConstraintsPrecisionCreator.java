@@ -15,7 +15,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision.Increment;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.RefinableConstraintsPrecision.PrecisionType;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class InitialConstraintsPrecisionCreator {
@@ -82,7 +82,7 @@ public class InitialConstraintsPrecisionCreator {
           Level.WARNING, e, "Could not read precision from file named " + pInitialPrecisionFile);
     }
 
-    Map<Integer, CFANode> idToCfaNode = createMappingForCFANodes(pCfa);
+    Map<Integer, CFANode> idToCfaNode = CFAUtils.getMappingFromNodeIDsToCFANodes(pCfa);
     final Pattern CFA_NODE_PATTERN = Pattern.compile("N([0-9][0-9]*)");
 
     CFANode location = getDefaultLocation(idToCfaNode);
@@ -131,14 +131,6 @@ public class InitialConstraintsPrecisionCreator {
 
   private CFANode getDefaultLocation(Map<Integer, CFANode> idToCfaNode) {
     return idToCfaNode.values().iterator().next();
-  }
-
-  private Map<Integer, CFANode> createMappingForCFANodes(CFA pCfa) {
-    Map<Integer, CFANode> idToNodeMap = new HashMap<>();
-    for (CFANode n : pCfa.nodes()) {
-      idToNodeMap.put(n.getNodeNumber(), n);
-    }
-    return idToNodeMap;
   }
 
   /**
