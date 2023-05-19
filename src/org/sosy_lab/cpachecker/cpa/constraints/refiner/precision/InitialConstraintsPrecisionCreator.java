@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints.refiner.precision;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -65,7 +66,8 @@ public class InitialConstraintsPrecisionCreator {
   public ConstraintsPrecision create(final PrecisionType precisionType) throws AssertionError {
     // if fromValuePrecision flags are set, create an initial constraints precision based on the
     // given value precision
-    if (cfa != null && initialPrecisionFile != null) {
+    if (initialPrecisionFile != null) {
+      Preconditions.checkNotNull(cfa);
       restoreMappingFromFile(cfa);
       return transformValueToConstraintsPrecision(precisionType);
     } else {
@@ -171,8 +173,8 @@ public class InitialConstraintsPrecisionCreator {
   }
 
   /**
-   * In case the value precsion is of type LocalizedRefinablePrecision, the scope selector will
-   * always be a location, also if the memoryLocation points on a function. Therefor it is checked
+   * In case the value precision is of type LocalizedRefinablePrecision, the scope selector will
+   * always be a location, also if the memoryLocation points on a function. Therefore it is checked
    * if the memory location is on the function stack.
    */
   private void getFunctionFromLocationValuePrecision(MemoryLocation m) {

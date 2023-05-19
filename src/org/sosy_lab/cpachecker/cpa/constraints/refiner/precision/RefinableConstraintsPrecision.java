@@ -35,9 +35,9 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
 
   private final ConstraintsPrecision delegate;
 
-  public RefinableConstraintsPrecision(final Configuration pConfig, CFA cfa)
+  public RefinableConstraintsPrecision(final Configuration pConfig, final CFA pCfa)
       throws InvalidConfigurationException {
-    delegate = new InitialConstraintsPrecisionCreator(pConfig, cfa).create(precisionType);
+    delegate = new InitialConstraintsPrecisionCreator(pConfig, pCfa).create(precisionType);
   }
 
   private RefinableConstraintsPrecision(final ConstraintsPrecision pDelegate) {
@@ -70,7 +70,9 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
 
   @Override
   public int hashCode() {
-    return delegate.hashCode();
+    int result = precisionType.hashCode();
+    result = 31 * result + delegate.hashCode();
+    return result;
   }
 
   @Override

@@ -714,7 +714,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       try {
         if (!(constrPrec instanceof RefinableConstraintsPrecision)) {
 
-          constrPrec = new RefinableConstraintsPrecision(pConfig, null);
+          constrPrec = new RefinableConstraintsPrecision(pConfig, cfa);
         }
         ConstraintsPrecision constrPrecInter;
         boolean changed = false;

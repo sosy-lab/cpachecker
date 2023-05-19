@@ -42,7 +42,8 @@ public abstract class PredicateExtractionRefiner implements Refiner {
     final Configuration config = valueAnalysisCpa.getConfiguration();
 
     valueAnalysisCpa.injectRefinablePrecision();
-    constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config, null));
+    constraintsCpa.injectRefinablePrecision(
+        new RefinableConstraintsPrecision(config, valueAnalysisCpa.getCFA()));
 
     final LogManager logger = valueAnalysisCpa.getLogger();
 

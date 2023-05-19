@@ -155,13 +155,12 @@ public class SymbolicValueAnalysisRefiner
         CPAs.retrieveCPAOrFail(pCpa, ConstraintsCPA.class, SymbolicValueAnalysisRefiner.class);
 
     final Configuration config = valueAnalysisCpa.getConfiguration();
-
-    final LogManager logger = valueAnalysisCpa.getLogger();
     final CFA cfa = valueAnalysisCpa.getCFA();
 
     valueAnalysisCpa.injectRefinablePrecision();
     constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config, cfa));
 
+    final LogManager logger = valueAnalysisCpa.getLogger();
     final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
     final ConstraintsSolver solver = constraintsCpa.getSolver();
