@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -57,11 +57,11 @@ public class LlvmTypeConverter {
     logger = pLogger;
   }
 
-  public CType getCType(final TypeRef pLlvmType) {
-      return getCType(pLlvmType, /* isUnsigned = */ false);
+  public @Nullable CType getCType(final TypeRef pLlvmType) {
+    return getCType(pLlvmType, /* isUnsigned= */ false);
   }
 
-  public CType getCType(final TypeRef pLlvmType, final boolean isUnsigned) {
+  public @Nullable CType getCType(final TypeRef pLlvmType, final boolean isUnsigned) {
     final boolean isConst = false;
     final boolean isVolatile = false;
     TypeKind typeKind = pLlvmType.getTypeKind();
@@ -100,7 +100,8 @@ public class LlvmTypeConverter {
         if (pLlvmType.getPointerAddressSpace() != 0) {
           logger.log(Level.WARNING, "Pointer address space not considered.");
         }
-        return new CPointerType(isConst, isVolatile, getCType(pLlvmType.getElementType(), isUnsigned));
+        return new CPointerType(
+            isConst, isVolatile, getCType(pLlvmType.getElementType(), isUnsigned));
 
       case Vector:
         CIntegerLiteralExpression vectorLength =
@@ -246,7 +247,7 @@ public class LlvmTypeConverter {
         if (machineModel.getSizeofDouble() * 8 == 64) {
           return getSimplestCType(CBasicType.DOUBLE, isUnsigned);
         } else if (machineModel.getSizeofLongDouble() * 8 == 64) {
-          return getSimplestCType(CBasicType.DOUBLE, isUnsigned, /* pIsLong = */ true);
+          return getSimplestCType(CBasicType.DOUBLE, isUnsigned, /* pIsLong= */ true);
 
         } else {
           throw new AssertionError(
@@ -267,11 +268,11 @@ public class LlvmTypeConverter {
   }
 
   private CType getSimplestCType(final CBasicType pBasicType, final boolean isUnsigned) {
-    return getSimplestCType(pBasicType, isUnsigned, /* pIsLong = */ false);
+    return getSimplestCType(pBasicType, isUnsigned, /* pIsLong= */ false);
   }
 
-  private CType getSimplestCType(final CBasicType pBasicType, final boolean isUnsigned,
-                                 boolean pIsLong) {
+  private CType getSimplestCType(
+      final CBasicType pBasicType, final boolean isUnsigned, boolean pIsLong) {
     final boolean isConst = false;
     final boolean isVolatile = false;
     final boolean isShort = false;

@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -54,38 +55,41 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-/** This static analyzer for edges checks whether there exists
- * read- or write-access to global variables or shared memory along edges. */
+/**
+ * This static analyzer for edges checks whether there exists read- or write-access to global
+ * variables or shared memory along edges.
+ */
 public class GlobalAccessChecker {
 
   /** cache elements, edges and their content never change. */
   private final IdentityHashMap<AAstNode, Boolean> astCache = new IdentityHashMap<>();
 
-  /** check, whether the edge might have a write- or read-access to
-   * global variables or shared memory, i.e. whether the edge might
-   * influence other threads or uses only scoped variables of the thread. */
+  /**
+   * check, whether the edge might have a write- or read-access to global variables or shared
+   * memory, i.e. whether the edge might influence other threads or uses only scoped variables of
+   * the thread.
+   */
   boolean hasGlobalAccess(CFAEdge edge) {
     switch (edge.getEdgeType()) {
-    case BlankEdge:
-      return false;
-    case AssumeEdge:
-      return hasGlobalAccess(((CAssumeEdge) edge).getExpression());
-    case StatementEdge:
-      return hasGlobalAccess(((CStatementEdge) edge).getStatement());
-    case DeclarationEdge:
-      return hasGlobalAccess(((CDeclarationEdge)edge).getDeclaration());
-    case ReturnStatementEdge:
+      case BlankEdge:
+        return false;
+      case AssumeEdge:
+        return hasGlobalAccess(((CAssumeEdge) edge).getExpression());
+      case StatementEdge:
+        return hasGlobalAccess(((CStatementEdge) edge).getStatement());
+      case DeclarationEdge:
+        return hasGlobalAccess(((CDeclarationEdge) edge).getDeclaration());
+      case ReturnStatementEdge:
         return ((CReturnStatementEdge) edge).getExpression().isPresent()
             && hasGlobalAccess(((CReturnStatementEdge) edge).getExpression().orElseThrow());
-    case FunctionCallEdge:
+      case FunctionCallEdge:
         return hasGlobalAccess(((CFunctionCallEdge) edge).getFunctionCall());
-    case FunctionReturnEdge:
-      return hasGlobalAccess(((FunctionReturnEdge) edge).getSummaryEdge().getExpression());
-    default:
-      throw new AssertionError("unexpected edge: " + edge);
+      case FunctionReturnEdge:
+        return hasGlobalAccess(((FunctionReturnEdge) edge).getFunctionCall());
+      default:
+        throw new AssertionError("unexpected edge: " + edge);
     }
   }
 
@@ -123,8 +127,7 @@ public class GlobalAccessChecker {
       if (ast instanceof CExpression) {
         return ((CExpression) ast).accept(GlobalAccessVisitor.INSTANCE);
 
-      } else if (ast instanceof CFunctionCallExpression) {
-        CFunctionCallExpression func = (CFunctionCallExpression) ast;
+      } else if (ast instanceof CFunctionCallExpression func) {
         return anyHasGlobalAccess(func.getParameterExpressions());
       }
 
@@ -136,44 +139,37 @@ public class GlobalAccessChecker {
       } else if (ast instanceof CInitializerList) {
         return anyHasGlobalAccess(((CInitializerList) ast).getInitializers());
 
-      } else if (ast instanceof CDesignatedInitializer) {
-        CDesignatedInitializer di = (CDesignatedInitializer) ast;
+      } else if (ast instanceof CDesignatedInitializer di) {
         return anyHasGlobalAccess(di.getDesignators()) || hasGlobalAccess(di.getRightHandSide());
       }
 
     } else if (ast instanceof CSimpleDeclaration) {
 
-      if (ast instanceof CVariableDeclaration) {
-        CVariableDeclaration decl = (CVariableDeclaration) ast;
+      if (ast instanceof CVariableDeclaration decl) {
         return decl.isGlobal() || hasGlobalAccess(decl.getInitializer());
 
-      } else if (ast instanceof CFunctionDeclaration) {
-        CFunctionDeclaration decl = (CFunctionDeclaration) ast;
+      } else if (ast instanceof CFunctionDeclaration decl) {
         return anyHasGlobalAccess(decl.getParameters());
 
-      } else if (ast instanceof CComplexTypeDeclaration) {
-        CComplexTypeDeclaration decl = (CComplexTypeDeclaration) ast;
+      } else if (ast instanceof CComplexTypeDeclaration decl) {
         return decl.isGlobal();
 
-      } else if (ast instanceof CTypeDefDeclaration) {
-        CTypeDefDeclaration decl = (CTypeDefDeclaration) ast;
+      } else if (ast instanceof CTypeDefDeclaration decl) {
         return decl.isGlobal();
 
       } else if (ast instanceof CParameterDeclaration) {
         return false;
 
-      } else if (ast instanceof CEnumType.CEnumerator) {
+      } else if (ast instanceof CEnumerator) {
         return false;
       }
 
     } else if (ast instanceof CStatement) {
 
-      if (ast instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement stat = (CFunctionCallAssignmentStatement) ast;
+      if (ast instanceof CFunctionCallAssignmentStatement stat) {
         return hasGlobalAccess(stat.getLeftHandSide()) || hasGlobalAccess(stat.getRightHandSide());
 
-      } else if (ast instanceof CExpressionAssignmentStatement) {
-        CExpressionAssignmentStatement stat = (CExpressionAssignmentStatement) ast;
+      } else if (ast instanceof CExpressionAssignmentStatement stat) {
         return hasGlobalAccess(stat.getLeftHandSide()) || hasGlobalAccess(stat.getRightHandSide());
 
       } else if (ast instanceof CFunctionCallStatement) {
@@ -207,12 +203,11 @@ public class GlobalAccessChecker {
   }
 
   /** returns whether there might be a read- or write-access to global variables. */
-  private static class GlobalAccessVisitor
-      extends DefaultCExpressionVisitor<Boolean, NoException>
+  private static class GlobalAccessVisitor extends DefaultCExpressionVisitor<Boolean, NoException>
       implements CRightHandSideVisitor<Boolean, NoException> {
 
     // we can use singleton, because there is no internal storage or state.
-    final static GlobalAccessVisitor INSTANCE = new GlobalAccessVisitor();
+    static final GlobalAccessVisitor INSTANCE = new GlobalAccessVisitor();
 
     @Override
     public Boolean visit(CIdExpression pE) {
@@ -222,14 +217,12 @@ public class GlobalAccessChecker {
 
     @Override
     public Boolean visit(CArraySubscriptExpression pE) {
-      return pE.getArrayExpression().accept(this)
-          || pE.getSubscriptExpression().accept(this);
+      return pE.getArrayExpression().accept(this) || pE.getSubscriptExpression().accept(this);
     }
 
     @Override
     public Boolean visit(CBinaryExpression pE) {
-      return pE.getOperand1().accept(this)
-          || pE.getOperand2().accept(this);
+      return pE.getOperand1().accept(this) || pE.getOperand2().accept(this);
     }
 
     @Override
@@ -272,7 +265,8 @@ public class GlobalAccessChecker {
 
     @Override
     protected Boolean visitDefault(CExpression pExp) {
-      // all further (inherited, not directly implemented) methods only access local data, e.g. IntegerLiteralExpression.
+      // all further (inherited, not directly implemented) methods only access local data, e.g.
+      // IntegerLiteralExpression.
       return false;
     }
   }

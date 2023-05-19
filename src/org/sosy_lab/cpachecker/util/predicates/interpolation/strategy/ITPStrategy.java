@@ -17,8 +17,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationGroup;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -54,7 +53,7 @@ public abstract class ITPStrategy {
    */
   public abstract <T> List<BooleanFormula> getInterpolants(
       final InterpolationManager.Interpolator<T> interpolator,
-      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStateAndGroupId)
+      final List<InterpolationGroup<T>> formulasWithStateAndGroupId)
       throws InterruptedException, SolverException;
 
   /**
@@ -71,12 +70,12 @@ public abstract class ITPStrategy {
    */
   public <T> void checkInterpolants(
       final Solver solver,
-      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
+      final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds,
       final List<BooleanFormula> interpolants)
       throws InterruptedException, SolverException {
 
     final List<BooleanFormula> formulas =
-        Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
+        Lists.transform(formulasWithStatesAndGroupdIds, InterpolationGroup::formula);
 
     final int n = interpolants.size();
     assert n == (formulas.size() - 1);
@@ -91,8 +90,7 @@ public abstract class ITPStrategy {
       throw new SolverException(
           String.format(
               "First interpolant '%s' is not implied by first formula '%s'.",
-              interpolants.get(0),
-              formulas.get(0)));
+              interpolants.get(0), formulas.get(0)));
     }
 
     // Check (B).
@@ -102,8 +100,7 @@ public abstract class ITPStrategy {
         throw new SolverException(
             String.format(
                 "Interpolant '%s' at index %d is not implied by previous part of the path",
-                interpolants.get(i),
-                i));
+                interpolants.get(i), i));
       }
     }
 
@@ -113,8 +110,7 @@ public abstract class ITPStrategy {
       throw new SolverException(
           String.format(
               "Last interpolant '%s' fails to prove infeasibility of the remaining path '%s'.",
-              interpolants.get(n - 1),
-              formulas.get(n)));
+              interpolants.get(n - 1), formulas.get(n)));
     }
 
     // Furthermore, check if the interpolants contains only the allowed variables
@@ -141,15 +137,13 @@ public abstract class ITPStrategy {
       Set<String> variablesInInterpolant = fmgr.extractVariableNames(interpolants.get(i));
 
       if (!allowedVariables.containsAll(variablesInInterpolant)) {
-        throw new SolverException("Interpolant " + interpolants.get(i) +
-            " contains forbidden variable(s) "
-            + Sets.difference(variablesInInterpolant, allowedVariables));
+        throw new SolverException(
+            "Interpolant "
+                + interpolants.get(i)
+                + " contains forbidden variable(s) "
+                + Sets.difference(variablesInInterpolant, allowedVariables));
       }
     }
-  }
-
-  protected static <T1, T2, T3> List<T3> projectToThird(final List<Triple<T1, T2, T3>> l) {
-    return Lists.transform(l, Triple::getThird);
   }
 
   /**

@@ -42,19 +42,24 @@ public class VariableClassification implements Serializable {
   private final Set<String> intAddVars;
   private final Set<String> intOverflowVars;
 
-  /** These sets contain all variables even ones of array, pointer or structure types.
-   *  Such variables cannot be classified even as Int, so they are only kept in these sets in order
-   *  not to break the classification of Int variables.*/
+  /**
+   * These sets contain all variables even ones of array, pointer or structure types. Such variables
+   * cannot be classified even as Int, so they are only kept in these sets in order not to break the
+   * classification of Int variables.
+   */
   // Initially contains variables used in assumes and assigned to pointer dereferences,
   // then all essential variables (by propagation)
   private final Set<String> relevantVariables;
+
   private final Set<String> addressedVariables;
 
   private final Multiset<String> assumedVariables;
   private final Multiset<String> assignedVariables;
 
-  /** Fields information doesn't take any aliasing information into account,
-   *  fields are considered per type, not per composite instance */
+  /**
+   * Fields information doesn't take any aliasing information into account, fields are considered
+   * per type, not per composite instance
+   */
   // Initially contains fields used in assumes and assigned to pointer dereferences,
   // then all essential fields (by propagation)
   private final Multimap<CCompositeType, String> relevantFields;
@@ -129,36 +134,30 @@ public class VariableClassification implements Serializable {
   }
 
   /**
-   * All variables that may be essential for reachability properties.
-   * The variables are returned as a collection of scopedNames.
-   * <p>
-   * <strong>
-   * Note: the collection includes all variables, including pointers, arrays and structures, i.e.
-   *       non-Int variables.
-   * </strong>
-   * </p>
+   * All variables that may be essential for reachability properties. The variables are returned as
+   * a collection of scopedNames.
+   *
+   * <p><strong> Note: the collection includes all variables, including pointers, arrays and
+   * structures, i.e. non-Int variables. </strong>
    */
   public Set<String> getRelevantVariables() {
     return relevantVariables;
   }
 
   /**
-   * All variables that have their addresses taken somewhere in the source code.
-   * The variables are returned as a collection of scopedNames.
-   * <p>
-   * <strong>
-   * Note: the collection includes all variables, including pointers, arrays and structures, i.e.
-   *       non-Int variables.
-   * </strong>
-   * </p>
+   * All variables that have their addresses taken somewhere in the source code. The variables are
+   * returned as a collection of scopedNames.
+   *
+   * <p><strong> Note: the collection includes all variables, including pointers, arrays and
+   * structures, i.e. non-Int variables. </strong>
    */
   public Set<String> getAddressedVariables() {
     return addressedVariables;
   }
 
   /**
-   * All fields that may be essential for reachability properties
-   * (only fields accessed explicitly through either dot (.) or arrow (->) operator count).
+   * All fields that may be essential for reachability properties (only fields accessed explicitly
+   * through either dot (.) or arrow (->) operator count).
    *
    * @return A collection of (CCompositeType, fieldName) mappings.
    */
@@ -167,8 +166,8 @@ public class VariableClassification implements Serializable {
   }
 
   /**
-   * All fields that have their addresses taken somewhere in the source code.
-   * (only fields accessed explicitly through either dot (.) or arrow (->) operator count).
+   * All fields that have their addresses taken somewhere in the source code. (only fields accessed
+   * explicitly through either dot (.) or arrow (->) operator count).
    *
    * @return A collection of (CCompositeType, fieldName) mappings.
    */
@@ -176,40 +175,45 @@ public class VariableClassification implements Serializable {
     return addressedFields;
   }
 
-  /** This function returns a collection of scoped names.
-   * This collection contains all vars, that are boolean,
-   * i.e. the value is 0 or 1. */
+  /**
+   * This function returns a collection of scoped names. This collection contains all vars, that are
+   * boolean, i.e. the value is 0 or 1.
+   */
   public Set<String> getIntBoolVars() {
     return intBoolVars;
   }
 
-  /** This function returns a collection of partitions.
-   * Each partition contains only boolean vars. */
+  /**
+   * This function returns a collection of partitions. Each partition contains only boolean vars.
+   */
   public Set<Partition> getIntBoolPartitions() {
     return intBoolPartitions;
   }
 
-  /** This function returns a collection of scoped names.
-   * This collection contains all vars, that are only assigned or compared
-   * for equality with integer values.
-   * There are NO mathematical calculations (add, sub, mult) with these vars.
-   * This collection does not contain any variable from "IntBool" or "IntAdd". */
+  /**
+   * This function returns a collection of scoped names. This collection contains all vars, that are
+   * only assigned or compared for equality with integer values. There are NO mathematical
+   * calculations (add, sub, mult) with these vars. This collection does not contain any variable
+   * from "IntBool" or "IntAdd".
+   */
   public Set<String> getIntEqualVars() {
     return intEqualVars;
   }
 
-  /** This function returns a collection of partitions.
-   * Each partition contains only vars,
-   * that are only assigned or compared for equality with integer values.
-   * This collection does not contains anypartition from "IntBool" or "IntAdd". */
+  /**
+   * This function returns a collection of partitions. Each partition contains only vars, that are
+   * only assigned or compared for equality with integer values. This collection does not contains
+   * anypartition from "IntBool" or "IntAdd".
+   */
   public Set<Partition> getIntEqualPartitions() {
     return intEqualPartitions;
   }
 
-  /** This function returns a collection of scoped names.
-   * This collection contains all vars, that are only used in simple calculations
-   * (+, -, <, >, <=, >=, ==, !=, &, &&, |, ||, ^).
-   * This collection does not contain any variable from "IntBool" or "IntEq". */
+  /**
+   * This function returns a collection of scoped names. This collection contains all vars, that are
+   * only used in simple calculations (+, -, <, >, <=, >=, ==, !=, &, &&, |, ||, ^). This collection
+   * does not contain any variable from "IntBool" or "IntEq".
+   */
   public Set<String> getIntAddVars() {
     return intAddVars;
   }
@@ -223,49 +227,51 @@ public class VariableClassification implements Serializable {
     return intOverflowVars;
   }
 
-  /** This function returns a collection of partitions.
-   * Each partition contains only vars, that are used in simple calculations.
-   * This collection does not contains anypartition from "IntBool" or "IntEq". */
+  /**
+   * This function returns a collection of partitions. Each partition contains only vars, that are
+   * used in simple calculations. This collection does not contains anypartition from "IntBool" or
+   * "IntEq".
+   */
   public Set<Partition> getIntAddPartitions() {
     return intAddPartitions;
   }
 
-  /** This function returns a collection of partitions.
-   * A partition contains all vars, that are dependent from each other. */
+  /**
+   * This function returns a collection of partitions. A partition contains all vars, that are
+   * dependent from each other.
+   */
   public Set<Partition> getPartitions() {
     return partitions;
   }
 
-  /**
-   * This method return all variables (i.e., their qualified name), that occur in an assumption.
-   */
+  /** This method return all variables (i.e., their qualified name), that occur in an assumption. */
   public Multiset<String> getAssumedVariables() {
     return assumedVariables;
   }
 
   /**
-   * This method return all variables (i.e., their qualified name), that occur
-   * as left-hand side in an assignment.
+   * This method return all variables (i.e., their qualified name), that occur as left-hand side in
+   * an assignment.
    */
   public Multiset<String> getAssignedVariables() {
     return assignedVariables;
   }
 
   /**
-   * This function returns a partition containing all vars,
-   * that are dependent from a given CFAEdge.
-   * This method cannot be used for {@link FunctionCallEdge}s,
-   * because these have multiple partitions.
+   * This function returns a partition containing all vars, that are dependent from a given CFAEdge.
+   * This method cannot be used for {@link FunctionCallEdge}s, because these have multiple
+   * partitions.
    */
   public Partition getPartitionForEdge(CFAEdge edge) {
-    checkArgument(!(edge instanceof FunctionCallEdge),
+    checkArgument(
+        !(edge instanceof FunctionCallEdge),
         "For FunctionCallEdges, use the specific methods because they have multiple partitions");
     return getPartitionForEdge(edge, 0);
   }
 
   /**
-   * This method returns a partition containing all vars,
-   * that are dependent from a specific function parameter at a given edge.
+   * This method returns a partition containing all vars, that are dependent from a specific
+   * function parameter at a given edge.
    */
   public Partition getPartitionForParameterOfEdge(FunctionCallEdge edge, int param) {
     Preconditions.checkElementIndex(param, edge.getArguments().size());
@@ -273,28 +279,27 @@ public class VariableClassification implements Serializable {
   }
 
   /**
-   * This method returns a partition containing all vars,
-   * that are dependent from a specific function return value at a given edge.
+   * This method returns a partition containing all vars, that are dependent from a specific
+   * function return value at a given edge.
    */
   public Partition getPartitionForReturnValueOfEdge(FunctionCallEdge edge) {
     return getPartitionForEdge(edge, -1);
   }
 
-  /** This function returns a partition containing all vars,
-   * that are dependent from a given CFAedge.
-   * The index is 0 for all edges, except functionCalls,
-   * where it is the position of the param.
-   * For the left-hand-side of the assignment of external functionCalls use -1. */
+  /**
+   * This function returns a partition containing all vars, that are dependent from a given CFAedge.
+   * The index is 0 for all edges, except functionCalls, where it is the position of the param. For
+   * the left-hand-side of the assignment of external functionCalls use -1.
+   */
   private Partition getPartitionForEdge(CFAEdge edge, int index) {
     checkNotNull(edge);
     return edgeToPartitions.get(edge, index);
   }
 
   /**
-   * This method computes for a set of variables (qualified names) a score,
-   * which serves as rough estimate how expensive tracking it might be to
-   * track these variables, e.g. variables with a boolean character have a
-   * lower score than variables being used as loop counters.
+   * This method computes for a set of variables (qualified names) a score, which serves as rough
+   * estimate how expensive tracking it might be to track these variables, e.g. variables with a
+   * boolean character have a lower score than variables being used as loop counters.
    *
    * @param variableNames a collection of variables (qualified names)
    * @param loopStructure the loop structure, to identify loop-counter variables
@@ -310,7 +315,7 @@ public class VariableClassification implements Serializable {
 
     checkNotNull(logger);
     checkNotNull(loopStructure);
-    if(variableNames.isEmpty()) {
+    if (variableNames.isEmpty()) {
       return UNKNOWN_VAR;
     }
 

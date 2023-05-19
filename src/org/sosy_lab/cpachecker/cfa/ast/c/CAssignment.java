@@ -10,14 +10,12 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 
-
-
-
 /**
- * Interface for all statements that contain an assignment.
- * Only sub-classes of {@link CStatement} may implement this interface.
+ * Interface for all statements that contain an assignment. Only sub-classes of {@link CStatement}
+ * may implement this interface.
  */
-public interface CAssignment extends AAssignment, CStatement {
+public sealed interface CAssignment extends AAssignment, CStatement
+    permits CExpressionAssignmentStatement, CFunctionCallAssignmentStatement {
 
   @Override
   CLeftHandSide getLeftHandSide();

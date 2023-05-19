@@ -14,25 +14,26 @@ import java.util.HashSet;
 import java.util.Set;
 
 /** Represents a local variable of the automaton. So far only integer variables are supported. */
+@SuppressWarnings("checkstyle:NoClone") // should be refactored
 public abstract class AutomatonVariable implements Cloneable, Serializable {
   private static final long serialVersionUID = -6765794863680244559L;
   protected final String name;
 
   private AutomatonVariable(String pName) {
-    this.name = pName;
+    name = pName;
   }
 
   public static AutomatonVariable createAutomatonVariable(
       String pType, String pName, String... args) {
-    if (pType.toLowerCase().equals("int") || pType.toLowerCase().equals("integer")) {
+    if (pType.equalsIgnoreCase("int") || pType.equalsIgnoreCase("integer")) {
       return new AutomatonIntVariable(pName);
-    } else if (pType.toLowerCase().equals("set")) {
+    } else if (pType.equalsIgnoreCase("set")) {
       if (args.length > 0) {
         String elementType = args[0];
         AutomatonSetVariable<?> result;
-        if (elementType.toLowerCase().equals("int")) {
+        if (elementType.equalsIgnoreCase("int")) {
           result = new AutomatonSetVariable<Integer>(pName);
-        } else if (elementType.toLowerCase().equals("string")) {
+        } else if (elementType.equalsIgnoreCase("string")) {
           result = new AutomatonSetVariable<String>(pName);
         } else {
           throw new IllegalArgumentException(
@@ -43,7 +44,7 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
           if (!value.trim().isEmpty()) {
             for (String elem : Splitter.on(',').split(value)) {
               elem = elem.trim();
-              if (elementType.toLowerCase().equals("int")) {
+              if (elementType.equalsIgnoreCase("int")) {
                 try {
                   result.add(Integer.valueOf(elem));
                 } catch (NumberFormatException e) {
@@ -114,12 +115,12 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
         return false;
       }
       AutomatonIntVariable otherVar = (AutomatonIntVariable) pObj;
-      return (this.value == otherVar.value) && this.name.equals(otherVar.name);
+      return (value == otherVar.value) && name.equals(otherVar.name);
     }
 
     @Override
     public int hashCode() {
-      return this.value + this.name.hashCode();
+      return value + name.hashCode();
     }
 
     @Override
@@ -191,12 +192,12 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
         return false;
       }
       AutomatonSetVariable<?> otherVar = (AutomatonSetVariable<?>) pObj;
-      return this.set.equals(otherVar.set) && this.name.equals(otherVar.name);
+      return set.equals(otherVar.set) && name.equals(otherVar.name);
     }
 
     @Override
     public int hashCode() {
-      return this.set.hashCode() + this.name.hashCode();
+      return set.hashCode() + name.hashCode();
     }
 
     @Override

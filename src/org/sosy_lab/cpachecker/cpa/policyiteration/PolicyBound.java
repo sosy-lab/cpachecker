@@ -16,52 +16,40 @@ import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-/**
- * Policy with a local bound.
- */
+/** Policy with a local bound. */
 public final class PolicyBound {
 
-  /**
-   * Location of an abstracted state which has caused an update.
-   */
+  /** Location of an abstracted state which has caused an update. */
   private final PolicyAbstractedState predecessor;
 
-  /**
-   * Policy formula. Has to be concave and monotone (no conjunctions in
-   * particular).
-   */
+  /** Policy formula. Has to be concave and monotone (no conjunctions in particular). */
   private final PathFormula formula;
 
-  /**
-   * Bound on the policy.
-   */
+  /** Bound on the policy. */
   private final Rational bound;
 
-  /**
-   * Set of incoming templates which may influence this bound.
-   */
+  /** Set of incoming templates which may influence this bound. */
   private final ImmutableSet<Template> dependencies;
 
-  /**
-   * Whether the bound was computed as a result of value determination
-   * computation.
-   */
+  /** Whether the bound was computed as a result of value determination computation. */
   private final boolean computedByValueDetermination;
 
   private int hashCache = 0;
 
+  private record SerializedPolicy(
+      PolicyAbstractedState from, BooleanFormula policy, PolicyAbstractedState to) {}
+
   // TODO: static fields may fall dreadfully if multiple LPI CPAs are running in parallel.
-  private static final Map<Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState>, Integer>
-      serializationMap = new HashMap<>();
+  private static final Map<SerializedPolicy, Integer> serializationMap = new HashMap<>();
   private static final UniqueIdGenerator pathCounter = new UniqueIdGenerator();
 
   private PolicyBound(
-      PathFormula pFormula, Rational pBound,
+      PathFormula pFormula,
+      Rational pBound,
       PolicyAbstractedState pPredecessor,
       Collection<Template> pDependencies,
       boolean pComputedByValueDetermination) {
@@ -80,10 +68,8 @@ public final class PolicyBound {
       PathFormula pFormula,
       Rational bound,
       PolicyAbstractedState pUpdatedFrom,
-      Collection<Template> pDependencies
-  ) {
-    return new PolicyBound(pFormula, bound, pUpdatedFrom,
-        pDependencies, false);
+      Collection<Template> pDependencies) {
+    return new PolicyBound(pFormula, bound, pUpdatedFrom, pDependencies, false);
   }
 
   PolicyBound updateValueFromValueDetermination(Rational newValue) {
@@ -100,8 +86,7 @@ public final class PolicyBound {
    * <p>Based on triple {@code from, to, policy}.
    */
   int serializePolicy(PolicyAbstractedState toState) {
-    Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState> p = Triple.of(
-        predecessor, formula.getFormula(), toState);
+    SerializedPolicy p = new SerializedPolicy(predecessor, formula.getFormula(), toState);
     Integer serialization = serializationMap.get(p);
     if (serialization == null) {
       serialization = pathCounter.getFreshId();
@@ -153,10 +138,6 @@ public final class PolicyBound {
       return false;
     }
     PolicyBound o = (PolicyBound) other;
-    return
-        predecessor.equals(o.predecessor)
-            && bound.equals(o.bound)
-            && formula.equals(o.formula);
+    return predecessor.equals(o.predecessor) && bound.equals(o.bound) && formula.equals(o.formula);
   }
 }
-

@@ -33,7 +33,7 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
     private final ResultValue<Integer> constantResult;
 
     public Constant(int pI) {
-      this.constantResult = new ResultValue<>(pI);
+      constantResult = new ResultValue<>(pI);
     }
 
     public Constant(String pI) {
@@ -78,7 +78,7 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
         // throws a NumberFormatException and this is good!
         Integer.parseInt(pId.substring(2));
       }
-      this.varId = pId;
+      varId = pId;
     }
 
     @Override
@@ -156,40 +156,37 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
       }
 
       for (AbstractState ae : pArgs.getAbstractStates()) {
-        if (ae instanceof AbstractQueryableState) {
-          AbstractQueryableState aqe = (AbstractQueryableState) ae;
-          if (aqe.getCPAName().equals(cpaName)) {
-            try {
-              Object result = aqe.evaluateProperty(modifiedQueryString);
-              if (result instanceof NumericValue) {
-                result = ((NumericValue) result).getNumber();
-              }
-              String message =
-                  String.format(
-                      "CPA-Check succeeded: ModifiedCheckString: \"%s\" CPAElement: (%s) \"%s\"",
-                      modifiedQueryString, aqe.getCPAName(), aqe);
-              if (result instanceof Integer) {
-                pArgs.getLogger().log(Level.FINER, message);
-                return new ResultValue<>((Integer) result);
-              } else if (result instanceof Long) {
-                pArgs.getLogger().log(Level.FINER, message);
-                return new ResultValue<>(((Long) result).intValue());
-              } else {
-                String failureMessage =
-                    String.format(
-                        "Automaton got a non-Numeric value during Query of the %s CPA on Edge %s.",
-                        cpaName, pArgs.getCfaEdge().getDescription());
-                pArgs.getLogger().log(Level.WARNING, failureMessage);
-                return new ResultValue<>(failureMessage, "AutomatonIntExpr.CPAQuery");
-              }
-            } catch (InvalidQueryException e) {
-              String errorMessage =
-                  String.format(
-                      "Automaton encountered an Exception during Query of the %s CPA on Edge %s.",
-                      cpaName, pArgs.getCfaEdge().getDescription());
-              pArgs.getLogger().logException(Level.WARNING, e, errorMessage);
-              return new ResultValue<>(errorMessage, "AutomatonIntExpr.CPAQuery");
+        if ((ae instanceof AbstractQueryableState aqe) && aqe.getCPAName().equals(cpaName)) {
+          try {
+            Object result = aqe.evaluateProperty(modifiedQueryString);
+            if (result instanceof NumericValue) {
+              result = ((NumericValue) result).getNumber();
             }
+            String message =
+                String.format(
+                    "CPA-Check succeeded: ModifiedCheckString: \"%s\" CPAElement: (%s) \"%s\"",
+                    modifiedQueryString, aqe.getCPAName(), aqe);
+            if (result instanceof Integer) {
+              pArgs.getLogger().log(Level.FINER, message);
+              return new ResultValue<>((Integer) result);
+            } else if (result instanceof Long) {
+              pArgs.getLogger().log(Level.FINER, message);
+              return new ResultValue<>(((Long) result).intValue());
+            } else {
+              String failureMessage =
+                  String.format(
+                      "Automaton got a non-Numeric value during Query of the %s CPA on Edge %s.",
+                      cpaName, pArgs.getCfaEdge().getDescription());
+              pArgs.getLogger().log(Level.WARNING, failureMessage);
+              return new ResultValue<>(failureMessage, "AutomatonIntExpr.CPAQuery");
+            }
+          } catch (InvalidQueryException e) {
+            String errorMessage =
+                String.format(
+                    "Automaton encountered an Exception during Query of the %s CPA on Edge %s.",
+                    cpaName, pArgs.getCfaEdge().getDescription());
+            pArgs.getLogger().logException(Level.WARNING, e, errorMessage);
+            return new ResultValue<>(errorMessage, "AutomatonIntExpr.CPAQuery");
           }
         }
       }
@@ -208,8 +205,7 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof CPAQuery) {
-        CPAQuery other = (CPAQuery) o;
+      if (o instanceof CPAQuery other) {
         return cpaName.equals(other.cpaName) && queryString.equals(other.queryString);
       }
       return false;
@@ -262,8 +258,7 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
       if (this == o) {
         return true;
       }
-      if (o instanceof BinaryAutomatonIntExpr) {
-        BinaryAutomatonIntExpr other = (BinaryAutomatonIntExpr) o;
+      if (o instanceof BinaryAutomatonIntExpr other) {
         return a.equals(other.a) && b.equals(other.b) && repr.equals(other.repr);
       }
       return false;

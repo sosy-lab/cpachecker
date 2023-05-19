@@ -138,7 +138,7 @@ final class CallGraph<P> {
       immutableNode.successors = immutableSuccessors.get(index).build();
     }
 
-    return new CallGraph<>(immutableNodes, immutableNodeMapBuilder.build());
+    return new CallGraph<>(immutableNodes, immutableNodeMapBuilder.buildOrThrow());
   }
 
   Optional<Node<P>> getNode(P pProcedure) {
@@ -296,7 +296,7 @@ final class CallGraph<P> {
 
     private enum Type {
       NON_CALL_EDGE,
-      CALL_EDGE;
+      CALL_EDGE,
     }
   }
 

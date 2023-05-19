@@ -40,7 +40,7 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
 
   private void add(UsagePoint newPoint) {
     if (!topUsages.contains(newPoint)) {
-      //Put newPoint in the right place in tree
+      // Put newPoint in the right place in tree
       Iterator<UsagePoint> iterator = topUsages.iterator();
       while (iterator.hasNext()) {
         UsagePoint point = iterator.next();
@@ -77,7 +77,7 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
   }
 
   public void remove(UsageState pUstate) {
-    //Attention! Use carefully. May not work
+    // Attention! Use carefully. May not work
     for (UsagePoint point : new TreeSet<>(usageInfoSets.keySet())) {
       UsageInfoSet uset = usageInfoSets.get(point);
       boolean b = uset.remove(pUstate);
@@ -85,8 +85,8 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
         if (uset.isEmpty()) {
           usageInfoSets.remove(point);
         }
-        //May be two usages related to the same state. This is abstractState !
-        //return;
+        // May be two usages related to the same state. This is abstractState !
+        // return;
       }
     }
   }

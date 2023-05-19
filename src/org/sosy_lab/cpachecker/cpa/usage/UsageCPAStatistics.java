@@ -37,16 +37,15 @@ public class UsageCPAStatistics implements Statistics {
   }
 
   @Option(
-    name = "outputType",
-    description = "all variables should be printed to the one file or to the different",
-    secure = true
-  )
+      name = "outputType",
+      description = "all variables should be printed to the one file or to the different",
+      secure = true)
   private OutputFileType outputFileType = OutputFileType.KLEVER;
 
   @Option(
-    name = "printUnsafesIfUnknown",
-    description = "print found unsafes in case of unknown verdict",
-    secure = true)
+      name = "printUnsafesIfUnknown",
+      description = "print found unsafes in case of unknown verdict",
+      secure = true)
   private boolean printUnsafesInCaseOfUnknown = true;
 
   /* Previous container is used when internal time limit occurs
@@ -70,6 +69,7 @@ public class UsageCPAStatistics implements Statistics {
   final StatTimer extractStatesTimer = new StatTimer("Time for state extraction");
   private final StatTimer printStatisticsTimer = new StatTimer("Time for printing statistics");
   private final StatTimer printUnsafesTimer = new StatTimer("Time for unsafes printing");
+
   // public final StatCounter numberOfStatesCounter = new StatCounter("Number of states");
 
   public UsageCPAStatistics(
@@ -88,28 +88,23 @@ public class UsageCPAStatistics implements Statistics {
       final PrintStream out, final Result result, final UnmodifiableReachedSet reached) {
 
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
-    writer.put(transferRelationTimer)
-          .put(usagePreparationTimer)
-          .put(innerAnalysisTimer)
+    writer
+        .put(transferRelationTimer)
+        .put(usagePreparationTimer)
+        .put(innerAnalysisTimer)
         .put(extractStatesTimer);
 
     if (printUnsafesInCaseOfUnknown || result != Result.UNKNOWN) {
       printUnsafesTimer.start();
       try {
-        switch (outputFileType) {
-          case KLEVER:
-            errPrinter = new KleverErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
-            break;
-          case KLEVER_OLD:
-            errPrinter =
-                new KleverErrorTracePrinterOld(config, computer, cfa, logger, lockTransfer);
-            break;
-          case ETV:
-            errPrinter = new ETVErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
-            break;
-          default:
-            throw new UnsupportedOperationException("Unknown type " + outputFileType);
-        }
+        errPrinter =
+            switch (outputFileType) {
+              case KLEVER -> new KleverErrorTracePrinter(
+                  config, computer, cfa, logger, lockTransfer);
+              case KLEVER_OLD -> new KleverErrorTracePrinterOld(
+                  config, computer, cfa, logger, lockTransfer);
+              case ETV -> new ETVErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
+            };
         errPrinter.printErrorTraces(reached);
         errPrinter.printStatistics(writer);
       } catch (InvalidConfigurationException e) {

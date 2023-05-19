@@ -7,12 +7,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * The LiveVariablesCPA is a backwards program analysis, which is aimed to find out which
- * variable is live (read as used afterwards) at which position.
- * As the information is only complete after this CPA has finished computing live variables was
- * directly added into the preprocessing of CPAchecker and can be toggled with the option
- * <b>cfa.findLiveVariables</b> by default no live variables are generated.
+ * The LiveVariablesCPA is a backwards program analysis, which is aimed to find out which variable
+ * is live (read as used afterwards) at which position. As the information is only complete after
+ * this CPA has finished computing live variables was directly added into the preprocessing of
+ * CPAchecker and can be toggled with the option <b>cfa.findLiveVariables</b> by default no live
+ * variables are generated.
  *
- * Up to now, in case of pointer aliasing this analysis is unsound.
+ * <p>Up to now, in case of pointer aliasing this analysis is unsound.
  */
 package org.sosy_lab.cpachecker.cpa.livevar;

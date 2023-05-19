@@ -31,8 +31,11 @@ public class CongruenceStatistics implements Statistics {
   }
 
   private void printTimer(PrintStream out, Timer t, String name) {
-    out.printf("Time spent in %s: %s (Max: %s), (Avg: %s), (#intervals = %s)%n",
-        name, t, t.getMaxTime().formatAs(TimeUnit.SECONDS),
+    out.printf(
+        "Time spent in %s: %s (Max: %s), (Avg: %s), (#intervals = %s)%n",
+        name,
+        t,
+        t.getMaxTime().formatAs(TimeUnit.SECONDS),
         t.getAvgTime().formatAs(TimeUnit.SECONDS),
         t.getNumberOfIntervals());
   }

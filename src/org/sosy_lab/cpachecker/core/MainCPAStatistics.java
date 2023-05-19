@@ -13,11 +13,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
@@ -82,45 +82,40 @@ class MainCPAStatistics implements Statistics {
   // Beyond this many states, we omit some statistics because they are costly.
   private static final int MAX_SIZE_FOR_REACHED_STATISTICS = 1000000;
 
-  @Option(secure=true, name="reachedSet.export",
-      description="print reached set to text file")
+  @Option(secure = true, name = "reachedSet.export", description = "print reached set to text file")
   private boolean exportReachedSet = false;
 
-  @Option(secure=true, name="reachedSet.file",
-      description="print reached set to text file")
+  @Option(secure = true, name = "reachedSet.file", description = "print reached set to text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reachedSetFile = Path.of("reached.txt");
 
-  @Option(secure=true, name="reachedSet.dot",
-      description="print reached set to graph file")
+  @Option(secure = true, name = "reachedSet.dot", description = "print reached set to graph file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reachedSetGraphDumpPath = Path.of("reached.dot");
 
-  @Option(secure=true, name="statistics.memory",
-    description="track memory usage of JVM during runtime")
+  @Option(
+      secure = true,
+      name = "statistics.memory",
+      description = "track memory usage of JVM during runtime")
   private boolean monitorMemoryUsage = true;
 
   @Option(
-    secure = true,
-    name = "cinvariants.export",
-    description = "Output an input file, with invariants embedded as assume constraints."
-  )
+      secure = true,
+      name = "cinvariants.export",
+      description = "Output an input file, with invariants embedded as assume constraints.")
   private boolean cInvariantsExport = false;
 
   @Option(
-    secure = true,
-    name = "cinvariants.prefix",
-    description =
-        "Prefix to add to an output file, which would contain assumed invariants."
-  )
+      secure = true,
+      name = "cinvariants.prefix",
+      description = "Prefix to add to an output file, which would contain assumed invariants.")
   @FileOption(Type.OUTPUT_FILE)
   private @Nullable PathTemplate cInvariantsPrefix = PathTemplate.ofFormatString("inv-%s");
 
   @Option(
-    secure = true,
-    name = "coverage.enabled",
-    description = "Compute and export information about the verification coverage?"
-  )
+      secure = true,
+      name = "coverage.enabled",
+      description = "Compute and export information about the verification coverage?")
   private boolean exportCoverage = true;
 
   @Option(secure = true, name = "coverage.file", description = "print coverage info to file")
@@ -168,15 +163,14 @@ class MainCPAStatistics implements Statistics {
       programCpuTime = ProcessCpuTime.read();
     } catch (JMException e) {
       logger.logDebugException(e, "Querying cpu time failed");
-      logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, some statistics will be missing.");
+      logger.log(
+          Level.WARNING,
+          "Your Java VM does not support measuring the cpu time, some statistics will be missing.");
       programCpuTime = -1;
-    }
-    /*
-     * Google App Engine does not allow to use classes from the package java.lang.management.
-     * Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
-     * CPAchecker from crashing in this case we catch the error and log the event.
-     */
-    catch (NoClassDefFoundError e) {
+    } catch (NoClassDefFoundError e) {
+      // Google App Engine does not allow to use classes from the package java.lang.management.
+      // Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
+      // CPAchecker from crashing in this case we catch the error and log the event.
       logger.logDebugException(e, "Querying cpu time failed");
       logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
       programCpuTime = -1;
@@ -207,13 +201,10 @@ class MainCPAStatistics implements Statistics {
       logger.logDebugException(e, "Querying cpu time failed");
       // user was already warned
       analysisCpuTime = -1;
-    }
-    /*
-     * Google App Engine does not allow to use classes from the package java.lang.management.
-     * Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
-     * CPAchecker from crashing in this case we catch the error and log the event.
-     */
-    catch (NoClassDefFoundError e) {
+    } catch (NoClassDefFoundError e) {
+      // Google App Engine does not allow to use classes from the package java.lang.management.
+      // Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
+      // CPAchecker from crashing in this case we catch the error and log the event.
       logger.logDebugException(e, "Querying cpu time failed");
       logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
       analysisCpuTime = -1;
@@ -237,13 +228,10 @@ class MainCPAStatistics implements Statistics {
     } catch (JMException e) {
       logger.logDebugException(e, "Querying cpu time failed");
       // user was already warned
-    }
-    /*
-     * Google App Engine does not allow to use classes from the package java.lang.management.
-     * Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
-     * CPAchecker from crashing in this case we catch the error and log the event.
-     */
-    catch (NoClassDefFoundError e) {
+    } catch (NoClassDefFoundError e) {
+      // Google App Engine does not allow to use classes from the package java.lang.management.
+      // Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
+      // CPAchecker from crashing in this case we catch the error and log the event.
       logger.logDebugException(e, "Querying cpu time failed");
       logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
     }
@@ -285,8 +273,8 @@ class MainCPAStatistics implements Statistics {
       try {
         printReachedSetStatistics(reached, out);
       } catch (OutOfMemoryError e) {
-        logger.logUserException(Level.WARNING, e,
-            "Out of memory while generating statistics about final reached set");
+        logger.logUserException(
+            Level.WARNING, e, "Out of memory while generating statistics about final reached set");
       }
 
       if (cExpressionInvariantExporter != null && cfa != null) {
@@ -297,11 +285,9 @@ class MainCPAStatistics implements Statistics {
               Level.WARNING,
               e,
               "Encountered IO error while generating the invariant as an output program.");
-        } catch (InterruptedException pE) {
+        } catch (InterruptedException e) {
           logger.logUserException(
-              Level.WARNING,
-              pE,
-              "Interrupted while generating the invariant as an output program");
+              Level.WARNING, e, "Interrupted while generating the invariant as an output program");
         } catch (SolverException e) {
           logger.logUserException(
               Level.WARNING,
@@ -342,8 +328,7 @@ class MainCPAStatistics implements Statistics {
         try (Writer gcovOut = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
           CoverageReportGcov.write(infosPerFile, gcovOut);
         } catch (IOException e) {
-          logger.logUserException(
-              Level.WARNING, e, "Could not write coverage information to file");
+          logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
         }
       }
     }
@@ -354,7 +339,8 @@ class MainCPAStatistics implements Statistics {
     dumpReachedSet(reached, reachedSetGraphDumpPath, true);
   }
 
-  private void dumpReachedSet(UnmodifiableReachedSet reached, Path pOutputFile, boolean writeDotFormat){
+  private void dumpReachedSet(
+      UnmodifiableReachedSet reached, Path pOutputFile, boolean writeDotFormat) {
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
     if (exportReachedSet && pOutputFile != null) {
@@ -372,8 +358,8 @@ class MainCPAStatistics implements Statistics {
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write reached set to file");
       } catch (OutOfMemoryError e) {
-        logger.logUserException(Level.WARNING, e,
-            "Could not write reached set to file due to memory problems");
+        logger.logUserException(
+            Level.WARNING, e, "Could not write reached set to file due to memory problems");
       }
     }
   }
@@ -383,20 +369,19 @@ class MainCPAStatistics implements Statistics {
     final ListMultimap<CFANode, AbstractState> locationIndex =
         Multimaps.index(pReachedSet, AbstractStates::extractLocation);
 
-    Function<CFANode, String> nodeLabelFormatter = new Function<>() {
-      @Override
-      public String apply(CFANode node) {
-        StringBuilder buf = new StringBuilder();
-        buf.append(node.getNodeNumber()).append("\n");
-        for (AbstractState state : locationIndex.get(node)) {
-          if (state instanceof Graphable) {
-            buf.append(((Graphable)state).toDOTLabel());
-          }
-        }
-        return buf.toString();
+    DOTBuilder.generateDOT(sb, cfa, node -> formatCFANodeWithStateInformation(node, locationIndex));
+  }
+
+  private static String formatCFANodeWithStateInformation(
+      CFANode node, Multimap<CFANode, AbstractState> locationMapping) {
+    StringBuilder buf = new StringBuilder();
+    buf.append(node.getNodeNumber()).append("\n");
+    for (AbstractState state : locationMapping.get(node)) {
+      if (state instanceof Graphable) {
+        buf.append(((Graphable) state).toDOTLabel());
       }
-    };
-    DOTBuilder.generateDOT(sb, cfa, nodeLabelFormatter);
+    }
+    return buf.toString();
   }
 
   private void printSubStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
@@ -420,7 +405,7 @@ class MainCPAStatistics implements Statistics {
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
     if (reached instanceof ForwardingReachedSet) {
-      reached = ((ForwardingReachedSet)reached).getDelegate();
+      reached = ((ForwardingReachedSet) reached).getDelegate();
     }
     int reachedSize = reached.size();
 
@@ -443,12 +428,11 @@ class MainCPAStatistics implements Statistics {
     CFANode mostFrequentLocation = null;
     int mostFrequentLocationCount = 0;
 
-    if (reached instanceof LocationMappedReachedSet) {
-      LocationMappedReachedSet l = (LocationMappedReachedSet)reached;
+    if (reached instanceof LocationMappedReachedSet l) {
       locations = l.getLocations();
 
       Map.Entry<Object, Collection<AbstractState>> maxPartition = l.getMaxPartition();
-      mostFrequentLocation = (CFANode)maxPartition.getKey();
+      mostFrequentLocation = (CFANode) maxPartition.getKey();
       mostFrequentLocationCount = maxPartition.getValue().size();
 
     } else {
@@ -464,28 +448,43 @@ class MainCPAStatistics implements Statistics {
 
         } else if (size == mostFrequentLocationCount) {
           // use node with smallest number to have deterministic output
-          mostFrequentLocation = Ordering.natural().min(mostFrequentLocation, location.getElement());
+          mostFrequentLocation =
+              Ordering.natural().min(mostFrequentLocation, location.getElement());
         }
       }
     }
 
     if (!locations.isEmpty()) {
       int locs = locations.size();
-      out.println("  Number of reached locations:   " + locs + " (" + StatisticsUtils.toPercent(locs, cfa.getAllNodes().size()) + ")");
+      out.println(
+          "  Number of reached locations:   "
+              + locs
+              + " ("
+              + StatisticsUtils.toPercent(locs, cfa.nodes().size())
+              + ")");
       out.println("    Avg states per location:     " + reachedSize / locs);
-      out.println("    Max states per location:     " + mostFrequentLocationCount + " (at node " + mostFrequentLocation + ")");
+      out.println(
+          "    Max states per location:     "
+              + mostFrequentLocationCount
+              + " (at node "
+              + mostFrequentLocation
+              + ")");
 
       long functions = locations.stream().map(CFANode::getFunctionName).distinct().count();
-      out.println("  Number of reached functions:   " + functions + " (" + StatisticsUtils.toPercent(functions, cfa.getNumberOfFunctions()) + ")");
+      out.println(
+          "  Number of reached functions:   "
+              + functions
+              + " ("
+              + StatisticsUtils.toPercent(functions, cfa.getNumberOfFunctions())
+              + ")");
     }
 
-    if (reached instanceof PartitionedReachedSet) {
-      PartitionedReachedSet p = (PartitionedReachedSet)reached;
+    if (reached instanceof PartitionedReachedSet p) {
       int partitions = p.getNumberOfPartitions();
       out.println("  Number of partitions:          " + partitions);
       out.println("    Avg size of partitions:      " + reachedSize / partitions);
       Map.Entry<Object, Collection<AbstractState>> maxPartition = p.getMaxPartition();
-      out.print  ("    Max size of partitions:      " + maxPartition.getValue().size());
+      out.print("    Max size of partitions:      " + maxPartition.getValue().size());
       if (maxPartition.getValue().size() > 1) {
         out.println(" (with key " + maxPartition.getKey() + ")");
       } else {
@@ -500,12 +499,12 @@ class MainCPAStatistics implements Statistics {
   private void printCfaStatistics(PrintStream out) {
     if (cfa != null) {
       StatisticsWriter.writingStatisticsTo(out)
-          .put("Number of program locations", cfa.getAllNodes().size())
+          .put("Number of program locations", cfa.nodes().size())
           .put(
               StatInt.forStream(
                   StatKind.SUM,
                   "Number of CFA edges (per node)",
-                  cfa.getAllNodes().stream().mapToInt(CFANode::getNumLeavingEdges)))
+                  cfa.nodes().stream().mapToInt(CFANode::getNumLeavingEdges)))
           .putIfPresent(
               cfa.getVarClassification(),
               "Number of relevant variables",
@@ -521,8 +520,8 @@ class MainCPAStatistics implements Statistics {
     }
   }
 
-  private void printTimeStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached,
-      Timer statisticsTime) {
+  private void printTimeStatistics(
+      PrintStream out, Result result, UnmodifiableReachedSet reached, Timer statisticsTime) {
     out.println("Time for analysis setup:      " + creationTime);
     out.println("  Time for loading CPAs:      " + cpaCreationTime);
     if (cfaCreatorStatistics != null) {
@@ -530,12 +529,16 @@ class MainCPAStatistics implements Statistics {
       StatisticsUtils.writeOutputFiles(cfaCreatorStatistics, logger, result, reached);
     }
     out.println("Time for Analysis:            " + analysisTime);
-    out.println("CPU time for analysis:        " + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));
+    out.println(
+        "CPU time for analysis:        "
+            + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));
     if (resultAnalysisTime.getNumberOfIntervals() > 0) {
       out.println("Time for analyzing result:    " + resultAnalysisTime);
     }
     out.println("Total time for CPAchecker:    " + programTime);
-    out.println("Total CPU time for CPAchecker:" + TimeSpan.ofNanos(programCpuTime).formatAs(TimeUnit.SECONDS));
+    out.println(
+        "Total CPU time for CPAchecker:"
+            + TimeSpan.ofNanos(programCpuTime).formatAs(TimeUnit.SECONDS));
     out.println("Time for statistics:          " + statisticsTime);
   }
 

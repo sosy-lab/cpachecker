@@ -7,13 +7,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * The core of CPAchecker,
- * including (in sub-packages)
- * the verification algorithms,
- * the central data structures such as reached set and waitlist,
- * and the main interfaces that are used for communication between the components.
- * This package itself contains the class CPAchecker with the central entry point
- * and some related classes.
+ * The core of CPAchecker, including (in sub-packages) the verification algorithms, the central data
+ * structures such as reached set and waitlist, and the main interfaces that are used for
+ * communication between the components. This package itself contains the class CPAchecker with the
+ * central entry point and some related classes.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault

@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -55,8 +54,8 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
   private final boolean acceptConstrained;
 
   public NondeterminismTransferRelation(CFA pCFA, boolean pAcceptConstrained) {
-    this.cfa = pCFA;
-    this.acceptConstrained = pAcceptConstrained;
+    cfa = pCFA;
+    acceptConstrained = pAcceptConstrained;
   }
 
   @Override
@@ -95,12 +94,10 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
   private static NondeterminismNonAbstractionState handleDeclaration(
       NondeterminismNonAbstractionState pState, ADeclarationEdge pEdge) {
     ADeclaration declaration = pEdge.getDeclaration();
-    if (declaration instanceof AVariableDeclaration) {
-      AVariableDeclaration variableDeclaration = (AVariableDeclaration) declaration;
-      if (variableDeclaration.getInitializer() != null) {
-        AInitializer initializer = variableDeclaration.getInitializer();
-        return handleAssignment(pState, declaration.getQualifiedName(), getVariables(initializer));
-      }
+    if ((declaration instanceof AVariableDeclaration variableDeclaration)
+        && (variableDeclaration.getInitializer() != null)) {
+      AInitializer initializer = variableDeclaration.getInitializer();
+      return handleAssignment(pState, declaration.getQualifiedName(), getVariables(initializer));
     }
     return pState;
   }
@@ -111,27 +108,22 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
     if (statement instanceof AExpressionStatement) {
       return pState;
     }
-    if (statement instanceof AAssignment) {
-      AAssignment assignment = (AAssignment) statement;
+    if (statement instanceof AAssignment assignment) {
       ALeftHandSide lhs = assignment.getLeftHandSide();
       if (!(lhs instanceof AIdExpression)) {
         // Unhandled left-hand side
         return new NondeterminismNonAbstractionState();
       }
       String lhsVariable = ((AIdExpression) lhs).getDeclaration().getQualifiedName();
-      if (assignment instanceof AExpressionAssignmentStatement) {
-        AExpressionAssignmentStatement exprAssignment = (AExpressionAssignmentStatement) assignment;
+      if (assignment instanceof AExpressionAssignmentStatement exprAssignment) {
         return handleAssignment(pState, lhsVariable, exprAssignment.getRightHandSide());
       }
-      if (assignment instanceof AFunctionCallAssignmentStatement) {
-        AFunctionCallAssignmentStatement callAssignment =
-            (AFunctionCallAssignmentStatement) assignment;
+      if (assignment instanceof AFunctionCallAssignmentStatement callAssignment) {
         AFunctionCallExpression callExpression = callAssignment.getRightHandSide();
         AExpression functionNameExpression = callExpression.getFunctionNameExpression();
-        if (functionNameExpression instanceof AIdExpression) {
-          AIdExpression functionIdExpression = (AIdExpression) functionNameExpression;
+        if (functionNameExpression instanceof AIdExpression functionIdExpression) {
           String functionName = functionIdExpression.getName();
-          FunctionEntryNode functionEntryNode = cfa.getAllFunctions().get(functionName);
+          FunctionEntryNode functionEntryNode = cfa.getFunctionHead(functionName);
           if (functionEntryNode == null) {
             // External function
             return pState.addNondetVariable(lhsVariable).addNondetVariable(functionName);
@@ -181,12 +173,8 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
 
   private static NondeterminismNonAbstractionState handleFunctionCall(
       NondeterminismNonAbstractionState pState, FunctionCallEdge pEdge) {
-    FunctionSummaryEdge summaryEdge = pEdge.getSummaryEdge();
-    if (summaryEdge == null) {
-      return pState;
-    }
     return handleFunctionCall(
-        pState, summaryEdge.getFunctionEntry().getFunctionParameters(), pEdge.getArguments());
+        pState, pEdge.getSuccessor().getFunctionParameters(), pEdge.getArguments());
   }
 
   private static NondeterminismNonAbstractionState handleFunctionCall(

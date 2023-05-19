@@ -59,10 +59,10 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Triple;
 
 @Options(prefix = "restartAlgorithm")
 public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpdater {
@@ -89,8 +89,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
       return "Restart Algorithm";
     }
 
-    private void printIntermediateStatistics(PrintStream out, Result result,
-        ReachedSet reached) {
+    private void printIntermediateStatistics(PrintStream out, Result result, ReachedSet reached) {
 
       String text = "Statistics for algorithm " + noOfAlgorithmsUsed + " of " + noOfAlgorithms;
       out.println(text);
@@ -101,8 +100,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     }
 
     @Override
-    public void printStatistics(PrintStream out, Result result,
-        UnmodifiableReachedSet reached) {
+    public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
       out.println("Number of algorithms provided:    " + noOfAlgorithms);
       out.println("Number of algorithms used:        " + noOfAlgorithmsUsed);
@@ -118,40 +116,37 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
   }
 
   @Option(
-    secure = true,
-    required = true,
-    description =
-        "List of files with configurations to use. "
-            + "A filename can be suffixed with :if-interrupted, :if-failed, and :if-terminated "
-            + "which means that this configuration will only be used if the previous configuration "
-            + "ended with a matching condition. What also can be added is :use-reached then the "
-            + "reached set of the preceding analysis is taken and provided to the next analysis."
-  )
+      secure = true,
+      required = true,
+      description =
+          "List of files with configurations to use. A filename can be suffixed with"
+              + " :if-interrupted, :if-failed, and :if-terminated which means that this"
+              + " configuration will only be used if the previous configuration ended with a"
+              + " matching condition. What also can be added is :use-reached then the reached set"
+              + " of the preceding analysis is taken and provided to the next analysis.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
 
   @Option(
-    secure = true,
-    name = "combineARGsAfterRestart",
-    description =
+      secure = true,
+      name = "combineARGsAfterRestart",
+      description =
           "combine (partial) ARGs obtained by restarts of the analysis after an unknown result with"
               + " a different configuration")
   private boolean useARGCombiningAlgorithm = false;
 
   @Option(
-    secure = true,
-    description =
-        "print the statistics of each component of the restart algorithm"
-            + " directly after the components computation is finished"
-  )
+      secure = true,
+      description =
+          "print the statistics of each component of the restart algorithm"
+              + " directly after the components computation is finished")
   private boolean printIntermediateStatistics = true;
 
   @Option(
-    secure = true,
-    description =
-        "let each component of the restart algorithm write output files"
-            + " and not only the last one that is excuted"
-  )
+      secure = true,
+      description =
+          "let each component of the restart algorithm write output files"
+              + " and not only the last one that is excuted")
   private boolean writeIntermediateOutputFiles = false;
 
   /* The option is useful for some preanalysis,
@@ -165,10 +160,8 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
    * the normal sequential composition of algorithms in a more flexible way.
    */
   @Option(
-    secure = true,
-    description =
-        "wether to start next algorithm independently from the previous result"
-  )
+      secure = true,
+      description = "wether to start next algorithm independently from the previous result")
   private boolean alwaysRestart = false;
 
   private final ShutdownRequestListener logShutdownListener;
@@ -199,7 +192,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           "Need at least one configuration for restart algorithm!");
     }
 
-    this.stats = new RestartAlgorithmStatistics(configFiles.size(), pLogger);
+    stats = new RestartAlgorithmStatistics(configFiles.size(), pLogger);
 
     logShutdownListener =
         reason ->
@@ -234,7 +227,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         "RestartAlgorithm does not support being called several times with the same reached set");
     checkArgument(!pReached.isEmpty(), "RestartAlgorithm needs non-empty reached set");
 
-    ForwardingReachedSet reached = (ForwardingReachedSet)pReached;
+    ForwardingReachedSet reached = (ForwardingReachedSet) pReached;
 
     Iterable<CFANode> initialNodes = AbstractStates.extractLocations(pReached.getFirstState());
     CFANode initialNode = Iterables.getOnlyElement(initialNodes);
@@ -268,7 +261,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
             singleConfigFileName);
 
         try {
-          Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg =
+          NestedAnalysis currentAlg =
               createNextAlgorithm(
                   singleConfigFileName,
                   initialNode,
@@ -278,9 +271,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
                   // we can only use the reached set if the last analysis terminated without
                   // exception
                   isLastReachedSetUsable ? reached.getDelegate() : null);
-          currentAlgorithm = currentAlg.getFirst();
-          currentCpa = currentAlg.getSecond();
-          currentReached = currentAlg.getThird();
+          currentAlgorithm = currentAlg.algorithm();
+          currentCpa = currentAlg.cpa();
+          currentReached = currentAlg.reached();
           provideReachedForNextAlgorithm = false; // has to be reseted
         } catch (InvalidConfigurationException e) {
           logger.logUserException(
@@ -309,7 +302,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         reached.setDelegate(currentReached);
 
         if (currentAlgorithm instanceof StatisticsProvider) {
-          ((StatisticsProvider)currentAlgorithm).collectStatistics(stats.getSubStatistics());
+          ((StatisticsProvider) currentAlgorithm).collectStatistics(stats.getSubStatistics());
         }
         shutdownNotifier.shutdownIfNecessary();
 
@@ -351,7 +344,6 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
               // sound analysis and completely finished, terminate
               return status;
             }
-
           }
           lastAnalysisTerminated = true;
           isLastReachedSetUsable = true;
@@ -359,7 +351,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         } catch (CPAException e) {
           isLastReachedSetUsable = false;
           lastAnalysisFailed = true;
-          if (e instanceof CounterexampleAnalysisFailed || e instanceof RefinementFailedException) {
+          if (e instanceof CounterexampleAnalysisFailed
+              || e instanceof RefinementFailedException
+              || e instanceof InfeasibleCounterexampleException) {
             status = status.withPrecise(false);
           }
           if (configFilesIterator.hasNext()) {
@@ -403,34 +397,26 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           foundConfig = true;
           Optional<String> condition = configFilesIterator.peek().annotation();
           if (condition.isPresent()) {
-            switch (condition.orElseThrow()) {
-            case "if-interrupted":
-              foundConfig = lastAnalysisInterrupted;
-              break;
-            case "if-failed":
-              foundConfig = lastAnalysisFailed;
-              break;
-            case "if-terminated":
-              foundConfig = lastAnalysisTerminated;
-              break;
-            case "if-recursive":
-              foundConfig = recursionFound;
-              break;
-            case "if-concurrent":
-              foundConfig = concurrencyFound;
-              break;
-              case "use-reached":
-                provideReachedForNextAlgorithm = true;
-                foundConfig = true;
-                break;
-            default:
-                logger.logf(
-                    Level.WARNING,
-                    "Ignoring invalid restart condition '%s' for file %s.",
-                    condition.orElseThrow(),
-                    configFilesIterator.peek().value());
-              foundConfig = true;
-            }
+            foundConfig =
+                switch (condition.orElseThrow()) {
+                  case "if-interrupted" -> lastAnalysisInterrupted;
+                  case "if-failed" -> lastAnalysisFailed;
+                  case "if-terminated" -> lastAnalysisTerminated;
+                  case "if-recursive" -> recursionFound;
+                  case "if-concurrent" -> concurrencyFound;
+                  case "use-reached" -> {
+                    provideReachedForNextAlgorithm = true;
+                    yield true;
+                  }
+                  default -> {
+                    logger.logf(
+                        Level.WARNING,
+                        "Ignoring invalid restart condition '%s' for file %s.",
+                        condition.orElseThrow(),
+                        configFilesIterator.peek().value());
+                    yield true;
+                  }
+                };
             if (!foundConfig) {
               logger.logf(
                   Level.INFO,
@@ -485,7 +471,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     }
   }
 
-  private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(
+  private NestedAnalysis createNextAlgorithm(
       Path singleConfigFileName,
       CFANode pInitialNode,
       CFA pCfa,
@@ -514,7 +500,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (currentAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)currentAlgorithm).collectStatistics(pStatsCollection);
+      ((StatisticsProvider) currentAlgorithm).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
   }
@@ -531,8 +517,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
   private void registerReachedSetUpdateListeners() {
     Preconditions.checkState(reachedSetUpdateListenersAdded.isEmpty());
-    if (currentAlgorithm instanceof ReachedSetUpdater) {
-      ReachedSetUpdater algorithm = (ReachedSetUpdater) currentAlgorithm;
+    if (currentAlgorithm instanceof ReachedSetUpdater algorithm) {
       for (ReachedSetUpdateListener listener : reachedSetUpdateListeners) {
         algorithm.register(listener);
         reachedSetUpdateListenersAdded.add(listener);
@@ -541,8 +526,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
   }
 
   private void unregisterReachedSetUpdateListeners() {
-    if (currentAlgorithm instanceof ReachedSetUpdater) {
-      ReachedSetUpdater algorithm = (ReachedSetUpdater) currentAlgorithm;
+    if (currentAlgorithm instanceof ReachedSetUpdater algorithm) {
       for (ReachedSetUpdateListener listener : reachedSetUpdateListenersAdded) {
         algorithm.unregister(listener);
       }

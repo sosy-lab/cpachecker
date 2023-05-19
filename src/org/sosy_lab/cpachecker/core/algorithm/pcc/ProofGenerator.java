@@ -28,17 +28,22 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options
 public class ProofGenerator {
 
-  @Option(secure=true,
+  @Option(
+      secure = true,
       name = "pcc.sliceProof",
-      description = "Make proof more abstract, remove some of the information not needed to prove the property.")
+      description =
+          "Make proof more abstract, remove some of the information not needed to prove the"
+              + " property.")
   private boolean slicingEnabled = false;
 
-  @Option(secure=true,
+  @Option(
+      secure = true,
       name = "pcc.proofFile",
       description = "file in which proof representation will be stored")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -84,13 +89,15 @@ public class ProofGenerator {
         }
       };
 
-  public ProofGenerator(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+  public ProofGenerator(
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
 
     checkingStrategy =
-        PCCStrategyBuilder.buildStrategy(pConfig, pLogger, pShutdownNotifier, file, null, null, null);
+        PCCStrategyBuilder.buildStrategy(
+            pConfig, pLogger, pShutdownNotifier, file, null, null, null);
     if (slicingEnabled) {
       slicer = new ProofSlicer(pLogger);
     } else {
@@ -101,18 +108,18 @@ public class ProofGenerator {
   public void generateProof(CPAcheckerResult pResult) {
     // check result
     if (pResult.getResult() != Result.TRUE) {
-      logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
+      logger.log(
+          Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
       return;
     }
 
-    if(pResult.getReached() == null) {
+    if (pResult.getReached() == null) {
       logger.log(Level.SEVERE, "Proof cannot be generated because reached set not available");
     }
 
     constructAndWriteProof(pResult.getReached());
 
     pResult.addProofGeneratorStatistics(proofGeneratorStats);
-
   }
 
   private void constructAndWriteProof(final ReachedSet pReached) {
@@ -127,11 +134,16 @@ public class ProofGenerator {
 
     writingTimer.start();
 
-    checkingStrategy.writeProof(reached, pReached.getCPA());
+    SerializationInfoStorage.storeSerializationInformation(pReached.getCPA(), null);
+    try {
+      checkingStrategy.writeProof(reached, pReached.getCPA());
+    } finally {
+      SerializationInfoStorage.clear();
+    }
 
     writingTimer.stop();
-    logger.log(Level.INFO, "Writing proof took " + writingTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
-
+    logger.log(
+        Level.INFO, "Writing proof took " + writingTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
   }
 
   protected Statistics generateProofUnchecked(final ReachedSet pReached) {
@@ -139,5 +151,4 @@ public class ProofGenerator {
 
     return proofGeneratorStats;
   }
-
 }

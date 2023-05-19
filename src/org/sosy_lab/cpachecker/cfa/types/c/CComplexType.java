@@ -8,23 +8,24 @@
 
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import com.google.common.base.Ascii;
 
-/**
- * Interface for types representing enums, structs, and unions.
- */
-public interface CComplexType extends CType {
+/** Interface for types representing enums, structs, and unions. */
+public sealed interface CComplexType extends CType
+    permits CCompositeType, CElaboratedType, CEnumType {
 
   ComplexTypeKind getKind();
 
   /**
    * Returns the unqualified name, e.g. for the type "struct s", this returns "s".
+   *
    * @return A name string or the empty string if the type has no name.
    */
   String getName();
 
   /**
-   * Returns the unqualified name, e.g. for the type "struct s", this returns "struct s".
-   * If the name is empty, this contains only the qualifier.
+   * Returns the unqualified name, e.g. for the type "struct s", this returns "struct s". If the
+   * name is empty, this contains only the qualifier.
    */
   String getQualifiedName();
 
@@ -36,10 +37,9 @@ public interface CComplexType extends CType {
   String getOrigName();
 
   /**
-   * Returns true if the compared objects are equal regarding the common
-   * rules for the equals method. The only difference is, that if a CComplexType
-   * is anonymous (thus, the origName is an empty string) the name comparison
-   * is left out.
+   * Returns true if the compared objects are equal regarding the common rules for the equals
+   * method. The only difference is, that if a CComplexType is anonymous (thus, the origName is an
+   * empty string) the name comparison is left out.
    */
   boolean equalsWithOrigName(Object obj);
 
@@ -49,7 +49,7 @@ public interface CComplexType extends CType {
     UNION;
 
     public String toASTString() {
-      return name().toLowerCase();
+      return Ascii.toLowerCase(name());
     }
   }
 }

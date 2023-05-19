@@ -40,7 +40,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.smg")
 public class SMGPredicateManager {
-  @Option(secure=true, name="verifyPredicates", description = "Allow SMG to check predicates")
+  @Option(secure = true, name = "verifyPredicates", description = "Allow SMG to check predicates")
   private boolean verifyPredicates = false;
 
   private final Configuration config;
@@ -52,13 +52,13 @@ public class SMGPredicateManager {
   private final Map<SMGValue, BitvectorFormula> createdValueFormulas;
   private final Map<SMGValue, SMGType> valueTypes;
 
-  public SMGPredicateManager(Configuration pConfig, LogManager pLogger, ShutdownNotifier
-      shutdownNotifier)
+  public SMGPredicateManager(
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier shutdownNotifier)
       throws InvalidConfigurationException {
     config = pConfig;
     config.inject(this);
     logger = pLogger;
-    solver = Solver.create(pConfig, pLogger,shutdownNotifier);
+    solver = Solver.create(pConfig, pLogger, shutdownNotifier);
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     efmgr = fmgr.getBitvectorFormulaManager();
@@ -92,12 +92,13 @@ public class SMGPredicateManager {
     BigInteger explicitValue = pRelation.getExplicitValue().getValue();
     SMGType symbolicSMGType = pRelation.getSymbolicSMGType();
     long explicitSize = symbolicSMGType.getCastedSize();
-    boolean isExplicitSigned = symbolicSMGType.isCastedSigned();
     BinaryOperator op = pRelation.getOperator();
 
-    BitvectorFormula explicitValueFormula = efmgr.makeBitvector(BigInteger.valueOf(explicitSize + 1).intValueExact(), explicitValue);
+    BitvectorFormula explicitValueFormula =
+        efmgr.makeBitvector(BigInteger.valueOf(explicitSize + 1).intValueExact(), explicitValue);
     BitvectorFormula explicitValueFormulaCasted =
-        efmgr.extract(explicitValueFormula, BigInteger.valueOf(explicitSize - 1).intValueExact(), 0, isExplicitSigned);
+        efmgr.extract(
+            explicitValueFormula, BigInteger.valueOf(explicitSize - 1).intValueExact(), 0);
 
     BitvectorFormula symbolicValue = getCastedValue(pRelation.getSymbolicValue(), symbolicSMGType);
     result = createBooleanFormula(symbolicValue, explicitValueFormulaCasted, op);
@@ -140,9 +141,10 @@ public class SMGPredicateManager {
     boolean isToSigned = pToSMGType.isCastedSigned();
     result = pVariableFormula;
     if (toSize > fromSize) {
-      result = efmgr.extend(result, BigInteger.valueOf(toSize - fromSize).intValueExact(), isToSigned);
+      result =
+          efmgr.extend(result, BigInteger.valueOf(toSize - fromSize).intValueExact(), isToSigned);
     } else if (toSize < fromSize) {
-      result = efmgr.extract(result, BigInteger.valueOf(toSize - 1).intValueExact(), 0, isToSigned);
+      result = efmgr.extract(result, BigInteger.valueOf(toSize - 1).intValueExact(), 0);
     } else if (isToSigned != isFromSigned) {
       result = efmgr.extend(result, 0, isToSigned);
     }
@@ -176,7 +178,7 @@ public class SMGPredicateManager {
       formulaTwo = getCastedValue(pRelation.getSecondValue(), secondValSMGType);
     }
 
-    //FIXME: require calculate cast on integer promotions
+    // FIXME: require calculate cast on integer promotions
     if (firstCastedSize > secondCastedSize) {
       formulaTwo = cast(formulaTwo, secondValSMGType, firstValSMGType);
     }
@@ -229,7 +231,9 @@ public class SMGPredicateManager {
         BooleanFormula equality =
             fmgr.makeEqual(
                 valueFormula,
-                efmgr.makeBitvector(BigInteger.valueOf(symbolicType.getCastedSize()).intValueExact(), explicitValue.getValue()));
+                efmgr.makeBitvector(
+                    BigInteger.valueOf(symbolicType.getCastedSize()).intValueExact(),
+                    explicitValue.getValue()));
         result = fmgr.makeAnd(result, equality);
       }
     }
@@ -286,11 +290,12 @@ public class SMGPredicateManager {
         } else {
           return false;
         }
-      } catch (SolverException pE) {
-        logger.log(Level.WARNING, "Solver Exception: " + pE + " on predicate " + errorPredicate);
-      } catch (InterruptedException pE) {
-        logger.log(Level.WARNING, "Solver Interrupted Exception: " + pE + " on predicate " +
-            errorPredicate);
+      } catch (SolverException e) {
+        logger.log(Level.WARNING, "Solver Exception: " + e + " on predicate " + errorPredicate);
+      } catch (InterruptedException e) {
+        logger.log(
+            Level.WARNING,
+            "Solver Interrupted Exception: " + e + " on predicate " + errorPredicate);
       }
     }
 

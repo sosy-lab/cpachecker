@@ -8,7 +8,6 @@
 
 /**
  * CPA that tracks which nodes are successors to cfa edges different in two {@link
- * org.sosy_lab.cpachecker.cfa.CFA CFAs}
- * and reports assumptions that go towards these edges.
+ * org.sosy_lab.cpachecker.cfa.CFA CFAs} and reports assumptions that go towards these edges.
  */
 package org.sosy_lab.cpachecker.cpa.modifications;

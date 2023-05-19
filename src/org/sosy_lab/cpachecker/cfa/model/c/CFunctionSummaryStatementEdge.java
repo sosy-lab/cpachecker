@@ -15,14 +15,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class CFunctionSummaryStatementEdge extends CStatementEdge implements CCfaEdge {
+public final class CFunctionSummaryStatementEdge extends CStatementEdge implements CCfaEdge {
   private static final long serialVersionUID = -5161504275097530533L;
   private final String functionName;
   private final CFunctionCall fcall;
 
-  public CFunctionSummaryStatementEdge(String pRawStatement,
-      CStatement pStatement, FileLocation pFileLocation, CFANode pPredecessor,
-      CFANode pSuccessor, CFunctionCall fcall, String functionName) {
+  public CFunctionSummaryStatementEdge(
+      String pRawStatement,
+      CStatement pStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFANode pSuccessor,
+      CFunctionCall fcall,
+      String functionName) {
     super(pRawStatement, pStatement, pFileLocation, pPredecessor, pSuccessor);
     this.functionName = checkNotNull(functionName);
     this.fcall = checkNotNull(fcall);

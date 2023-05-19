@@ -29,11 +29,9 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
     public boolean equals(final Object o) {
       if (o == this) {
         return true;
-      } else if (!(o instanceof Unknown)) {
-        return false;
-      } else {
-        return true;
       }
+
+      return o instanceof Unknown;
     }
 
     @Override
@@ -80,7 +78,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
         return false;
       } else {
         final Variable other = (Variable) o;
-        return this.scopedName.equals(other.scopedName);
+        return scopedName.equals(other.scopedName);
       }
     }
 
@@ -135,7 +133,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
         return false;
       } else {
         final Field other = (Field) o;
-        return this.composite.equals(other.composite) && this.name.equals(other.name);
+        return composite.equals(other.composite) && name.equals(other.name);
       }
     }
 
@@ -147,8 +145,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
         return 1;
       } else if (other instanceof Variable) {
         return 1;
-      } else if (other instanceof Field) {
-        final Field o = (Field) other;
+      } else if (other instanceof Field o) {
         final int result = composite.getQualifiedName().compareTo(o.composite.getQualifiedName());
         return result != 0 ? result : name.compareTo(o.name);
       } else {

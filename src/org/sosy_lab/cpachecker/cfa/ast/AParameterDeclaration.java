@@ -16,9 +16,16 @@ public abstract class AParameterDeclaration extends AbstractSimpleDeclaration {
 
   private static final long serialVersionUID = 7623251138394648617L;
 
-  protected AParameterDeclaration(FileLocation pFileLocation, Type pType, String pName) {
-    super(pFileLocation, pType, checkNotNull(pName));
+  private final Type type;
 
+  protected AParameterDeclaration(FileLocation pFileLocation, Type pType, String pName) {
+    super(pFileLocation, checkNotNull(pName));
+    type = pType;
+  }
+
+  @Override
+  public Type getType() {
+    return type;
   }
 
   @Override
@@ -49,5 +56,4 @@ public abstract class AParameterDeclaration extends AbstractSimpleDeclaration {
 
     return super.equals(obj);
   }
-
 }

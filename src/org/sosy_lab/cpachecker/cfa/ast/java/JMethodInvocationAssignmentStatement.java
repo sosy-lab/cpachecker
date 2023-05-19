@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  * JMethodInvocationAssignmentStatement and a temporary variable to simplify analysis.
  */
 public final class JMethodInvocationAssignmentStatement extends AFunctionCallAssignmentStatement
-    implements JAssignment, JStatement, JMethodOrConstructorInvocation {
+    implements JAssignment, JMethodOrConstructorInvocation {
 
   private static final long serialVersionUID = -8272890940591390982L;
 

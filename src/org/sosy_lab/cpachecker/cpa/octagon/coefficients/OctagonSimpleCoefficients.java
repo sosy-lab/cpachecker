@@ -31,7 +31,7 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
    */
   public OctagonSimpleCoefficients(int size, OctagonState oct) {
     super(size, oct);
-    coefficients = new OctagonNumericValue[size+1];
+    coefficients = new OctagonNumericValue[size + 1];
     Arrays.fill(coefficients, OctagonIntValue.ZERO);
   }
 
@@ -42,10 +42,11 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
    * @param index The index of the variable which should be set by default to a given value
    * @param value The value to which the variable should be set
    */
-  public OctagonSimpleCoefficients(int size, int index, OctagonNumericValue value, OctagonState oct) {
+  public OctagonSimpleCoefficients(
+      int size, int index, OctagonNumericValue value, OctagonState oct) {
     super(size, oct);
     Preconditions.checkArgument(index < size, "Index too big");
-    coefficients = new OctagonNumericValue[size+1];
+    coefficients = new OctagonNumericValue[size + 1];
     Arrays.fill(coefficients, OctagonIntValue.ZERO);
     coefficients[index] = value;
   }
@@ -58,25 +59,25 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
    */
   public OctagonSimpleCoefficients(int size, OctagonNumericValue value, OctagonState oct) {
     super(size, oct);
-    coefficients = new OctagonNumericValue[size+1];
+    coefficients = new OctagonNumericValue[size + 1];
     Arrays.fill(coefficients, OctagonIntValue.ZERO);
     coefficients[size] = value;
   }
 
   @Override
   public OctagonSimpleCoefficients expandToSize(int pSize, OctagonState pOct) {
-    Preconditions.checkArgument(this.size <= pSize, "new size too small");
+    Preconditions.checkArgument(size <= pSize, "new size too small");
 
-    if (this.size == pSize) {
+    if (size == pSize) {
       return this;
     }
 
     OctagonSimpleCoefficients newCoeffs = new OctagonSimpleCoefficients(pSize, pOct);
 
-    for (int i = 0; i < coefficients.length-1; i++) {
+    for (int i = 0; i < coefficients.length - 1; i++) {
       newCoeffs.coefficients[i] = coefficients[i];
     }
-    newCoeffs.coefficients[pSize] = coefficients[this.size];
+    newCoeffs.coefficients[pSize] = coefficients[size];
 
     return newCoeffs;
   }
@@ -89,15 +90,13 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
     return octCoeffs;
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
   @Override
   public IOctagonCoefficients add(IOctagonCoefficients other) {
     if (other instanceof OctagonSimpleCoefficients) {
-      return add((OctagonSimpleCoefficients)other);
+      return add((OctagonSimpleCoefficients) other);
     } else if (other instanceof OctagonIntervalCoefficients) {
-      return add((OctagonIntervalCoefficients)other);
+      return add((OctagonIntervalCoefficients) other);
     } else if (other instanceof OctagonUniversalCoefficients) {
       return OctagonUniversalCoefficients.INSTANCE;
     }
@@ -122,15 +121,13 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
     return ret;
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
   @Override
   public IOctagonCoefficients sub(IOctagonCoefficients other) {
     if (other instanceof OctagonSimpleCoefficients) {
-      return sub((OctagonSimpleCoefficients)other);
+      return sub((OctagonSimpleCoefficients) other);
     } else if (other instanceof OctagonIntervalCoefficients) {
-      return sub((OctagonIntervalCoefficients)other);
+      return sub((OctagonIntervalCoefficients) other);
     } else if (other instanceof OctagonUniversalCoefficients) {
       return OctagonUniversalCoefficients.INSTANCE;
     }
@@ -209,9 +206,9 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
   protected IOctagonCoefficients divInner(IOctagonCoefficients coeffs) {
     assert coeffs.hasOnlyOneValue();
     if (coeffs instanceof OctagonSimpleCoefficients) {
-      return divInner((OctagonSimpleCoefficients)coeffs);
+      return divInner((OctagonSimpleCoefficients) coeffs);
     } else if (coeffs instanceof OctagonIntervalCoefficients) {
-      return divInner((OctagonIntervalCoefficients)coeffs);
+      return divInner((OctagonIntervalCoefficients) coeffs);
     } else if (coeffs instanceof OctagonUniversalCoefficients) {
       return OctagonUniversalCoefficients.INSTANCE;
     }
@@ -275,15 +272,13 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
     if (index == coeffs.oct.sizeOfVariables()) {
       return div(bounds);
 
-     // this is a constant value which is in the interval [0,0]
+      // this is a constant value which is in the interval [0,0]
     } else if (index > coeffs.oct.sizeOfVariables()) {
       throw new ArithmeticException("Division by zero");
 
     } else {
       infBounds = coeffs.oct.getVariableBounds(index);
     }
-
-
 
     if (infBounds.isInfinite()) {
       return OctagonUniversalCoefficients.INSTANCE;
@@ -319,9 +314,7 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
     return ret;
   }
 
-  /**
-   * Returns the coefficient at the given index.
-   */
+  /** Returns the coefficient at the given index. */
   public OctagonNumericValue get(int index) {
     Preconditions.checkArgument(index < size, "Index too big");
     return coefficients[index];
@@ -331,9 +324,7 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
     return coefficients[size];
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
   @Override
   public boolean hasOnlyConstantValue() {
     for (int i = 0; i < coefficients.length - 1; i++) {
@@ -410,7 +401,7 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
     StringBuilder builder = new StringBuilder();
     for (int i = 0; i < coefficients.length; i++) {
       String tmp = coefficients[i].toString();
-      if (i < coefficients.length-1) {
+      if (i < coefficients.length - 1) {
         builder.append(oct.getVariableToIndexMap().inverse().get(i) + " -> " + tmp + "\n");
       } else {
         builder.append("CONSTANT_VAL -> " + tmp + "\n");
@@ -419,9 +410,7 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
     return builder.toString();
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
   @Override
   public NumArray getNumArray(OctagonManager manager) {
     NumArray arr = manager.init_num_t(coefficients.length);
@@ -434,5 +423,4 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
     }
     return arr;
   }
-
 }

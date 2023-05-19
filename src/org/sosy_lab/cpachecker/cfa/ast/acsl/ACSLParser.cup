@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.io.FileReader;
 import java.io.IOException;
@@ -23,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java_cup.runtime.ComplexSymbolFactory;
@@ -42,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 parser code {:
 
@@ -82,7 +85,8 @@ parser code {:
       CFAWithACSLAnnotations newCFA = new CFAWithACSLAnnotations(pCfa);
 
       for (String filename : files) {
-      ACSLScanner scanner = new ACSLScanner(new FileReader(filename, StandardCharsets.UTF_8));
+      ACSLScanner scanner =
+          new ACSLScanner(new FileReader(filename, StandardCharsets.UTF_8), logger);
       ImmutableList<FileLocation> orderedLocs =
           ImmutableList.sortedCopyOf(
               Comparator.comparingInt(FileLocation::getNodeOffset),
@@ -97,6 +101,13 @@ parser code {:
         Map<ACSLAnnotation, FileLocation> annotationLocations = new HashMap<>();
         for (int i = 0; i < orderedLocs.size(); i++) {
           ACSLAnnotation currentAnnotation = annotations.get(i);
+          if (currentAnnotation instanceof InvalidAnnotation) {
+            skipped++;
+            continue;
+          }
+          if (currentAnnotation.getCompletenessPredicate().equals(ACSLPredicate.getFalse())) {
+            logger.log(Level.INFO, "Encountered annotation with unsatisfied completeness predicate");
+          }
           FileLocation currentAnnotationLocation = orderedLocs.get(i);
           annotationLocations.put(currentAnnotation, currentAnnotationLocation);
           if (parser.shouldSkip(currentAnnotation, currentAnnotationLocation)) {
@@ -117,7 +128,7 @@ parser code {:
             }
           }
         }
-        logger.log(Level.INFO, "Skipped " + skipped + " of " + annotations.size() + " annotations.");
+        logger.logf(Level.INFO, "Skipped %d of %d annotations", skipped, annotations.size());
         adjustAnnotationLocations(
             initialEdges, newCFA, filename, blockStructure, annotationLocations);
         checkBehaviors(newCFA, blockStructure);
@@ -188,10 +199,11 @@ parser code {:
           .put(entry.getLeavingEdge(0), annotation.getCopyForPreState());
       // Add function contracts to function exits as well because some clauses have to be
       // evaluated in the post-state
-      FunctionExitNode exit = entry.getExitNode();
-      for (int i = 0; i < exit.getNumEnteringEdges(); i++) {
-        CFAEdge currentEdge = exit.getEnteringEdge(i);
-        cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation.getCopyForPostState());
+      Optional<FunctionExitNode> exitNode = entry.getExitNode();
+      if (exitNode.isPresent()) {
+        for (CFAEdge currentEdge : CFAUtils.enteringEdges(exitNode.orElseThrow())) {
+          cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation.getCopyForPostState());
+        }
       }
     }
 
@@ -213,10 +225,10 @@ parser code {:
       }
     } else {
       // this is a statement contract for a simple statement, e.g. x = 10;
-      for (int i = 0; i < edge.getPredecessor().getNumEnteringEdges(); i++) {
+      for (CFAEdge previousEdge : CFAUtils.enteringEdges(edge.getPredecessor())) {
         cfaWithLocs
             .getEdgesToAnnotations()
-            .put(edge.getPredecessor().getEnteringEdge(i), annotation.getCopyForPreState());
+            .put(previousEdge, annotation.getCopyForPreState());
       }
       cfaWithLocs.getEdgesToAnnotations().put(edge, annotation.getCopyForPostState());
     }
@@ -237,13 +249,12 @@ parser code {:
         if (successor.getNumLeavingEdges() == 1) {
           node = successor.getLeavingEdge(0).getSuccessor();
         }
-        for (int i = 0; i < node.getNumEnteringEdges(); i++) {
-          cfaWithLocs.getEdgesToAnnotations().put(node.getEnteringEdge(i), annotation);
+        for (CFAEdge enteringEdge : CFAUtils.enteringEdges(node)) {
+          cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
         }
       } else {
         assert edge.getDescription().equals("while") || edge.getDescription().equals("do");
-        for (int i = 0; i < successor.getNumEnteringEdges(); i++) {
-          CFAEdge currentEdge = successor.getEnteringEdge(i);
+        for (CFAEdge currentEdge : CFAUtils.enteringEdges(successor)) {
           cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
         }
       }
@@ -266,8 +277,8 @@ parser code {:
       CFAEdge next = blockStructure.getNextEdge(block, loc);
       if (next == null) {
         // assertion is at very end of block (after every leaving edge)
-        Set<CFAEdge> edges = blockStructure.getPrevEdges(block, loc);
-        if (edges.isEmpty()) {
+        Iterable<CFAEdge> edges = blockStructure.getPrevEdges(block, loc);
+        if (Iterables.isEmpty(edges)) {
           // assertion is at beginning of block -> block is empty apart from annotation
           edges = block.getEnteringEdges();
         }
@@ -276,8 +287,7 @@ parser code {:
         }
       } else {
         CFANode node = next.getPredecessor();
-        for (int i = 0; i < node.getNumEnteringEdges(); i++) {
-          CFAEdge currentEdge = node.getEnteringEdge(i);
+        for (CFAEdge currentEdge : CFAUtils.enteringEdges(node)) {
           cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
         }
       }
@@ -422,6 +432,8 @@ terminal COMPLETE_BEHAVIORS, DISJOINT_BEHAVIORS;
 terminal OLD;
 terminal RETVAL;
 terminal FORALL, EXISTS;
+terminal ANNOTATION_END;
+terminal SYNTAXERROR;
 
 non terminal List<ACSLAnnotation> annotations;
 non terminal ACSLAnnotation annotation;
@@ -471,13 +483,13 @@ precedence left TIMES, DIVIDE, MOD;
 precedence right NEG, BNEG, UPLUS, UMINUS, STAR, AMPERSAND, RPAREN;
 precedence right LBRACKET;
 
-annotations ::= annotations:as annotation:a {: assert !a.getCompletenessPredicate().equals(ACSLPredicate.getFalse());
-                                               as.add(a); RESULT = as; :}
+annotations ::= annotations:as annotation:a {: as.add(a); RESULT = as; :}
             | /* nothing */                 {: RESULT = new ArrayList<>(); :};
-annotation ::= fcontract:f {: RESULT = f; :}
-            | scontract:s           {:  RESULT = s; :}
-            | loopannotation:l {: RESULT = l; :}
-            | assertion:a {: RESULT = a; :};
+annotation ::= fcontract:f ANNOTATION_END     {: RESULT = f; :}
+            | scontract:s ANNOTATION_END      {: RESULT = s; :}
+            | loopannotation:l ANNOTATION_END {: RESULT = l; :}
+            | assertion:a ANNOTATION_END      {: RESULT = a; :}
+            | SYNTAXERROR {: RESULT = new InvalidAnnotation(); :};
 assertion ::= NEXTCONTRACT ASSERT predicate:p SEMI PRED_START                        {: RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.ASSERT, p); :}
             | NEXTCONTRACT behavior_identifiers:i ASSERT predicate:p SEMI PRED_START {: List<Behavior> enclosingBehaviors = new ArrayList<>();
                                                                                         for(String id : i) { enclosingBehaviors.add(parser.getBehavior(id)); }

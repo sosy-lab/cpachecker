@@ -57,7 +57,7 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
   private enum AlgorithmType {
     TARANTULA,
     DSTAR,
-    OCHIAI;
+    OCHIAI,
   }
 
   @Option(
@@ -138,7 +138,8 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
   }
 
   /**
-   * Gets list of corresponding faults by option which is set by variable <code>rankingAlgorithmType<code/>.
+   * Gets list of corresponding faults by option which is set by variable <code>rankingAlgorithmType
+   * </code>.
    *
    * @return list of faults.
    */
@@ -147,7 +148,8 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
   }
 
   public List<Fault> getFaultsForCex(List<Fault> pFaults, CounterexampleInfo counterexample) {
-    ImmutableSet<CFAEdge> fullPath = ImmutableSet.copyOf(counterexample.getTargetPath().getFullPath());
+    ImmutableSet<CFAEdge> fullPath =
+        ImmutableSet.copyOf(counterexample.getTargetPath().getFullPath());
     return pFaults.stream()
         .filter(f -> f.stream().anyMatch(e -> fullPath.contains(e.correspondingEdge())))
         // cf.

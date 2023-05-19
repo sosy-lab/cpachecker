@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.model.java;
 
 import java.util.List;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
@@ -17,14 +18,14 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
-public class JMethodEntryNode extends FunctionEntryNode {
+public final class JMethodEntryNode extends FunctionEntryNode {
 
   private static final long serialVersionUID = 169431882600055272L;
 
   public JMethodEntryNode(
       final FileLocation pFileLocation,
       final JMethodDeclaration pMethodDefinition,
-      final FunctionExitNode pExitNode,
+      final @Nullable FunctionExitNode pExitNode,
       final Optional<? extends JVariableDeclaration> pReturnVariable) {
 
     super(pFileLocation, pExitNode, pMethodDefinition, pReturnVariable);

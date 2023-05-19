@@ -27,7 +27,7 @@ public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
   private final Set<CFAEdge> testTargets;
 
   TestTargetTransferRelation(final Set<CFAEdge> pTestTargets) {
-    this.testTargets = pTestTargets;
+    testTargets = pTestTargets;
   }
 
   @Override

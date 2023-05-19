@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
 public class MaximalLineDistanceScoring implements FaultScoring {
 
-  private int errorLocation;
+  private final int errorLocation;
 
   /**
    * Sorts the result set by absolute distance to the error location based on the linenumber
@@ -29,12 +29,15 @@ public class MaximalLineDistanceScoring implements FaultScoring {
 
   @Override
   public RankInfo scoreFault(Fault fault) {
-    int max = fault
-        .stream()
-        .mapToInt(fc -> Math.abs(fc.correspondingEdge().getFileLocation().getStartingLineInOrigin() - errorLocation))
-        .max()
-        .orElse(0);
+    int max =
+        fault.stream()
+            .mapToInt(
+                fc ->
+                    Math.abs(
+                        fc.correspondingEdge().getFileLocation().getStartingLineInOrigin()
+                            - errorLocation))
+            .max()
+            .orElse(0);
     return FaultInfo.rankInfo("This line is " + max + " line(s) away from the error location", max);
   }
 }
-

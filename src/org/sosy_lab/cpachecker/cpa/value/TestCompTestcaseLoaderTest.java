@@ -22,7 +22,7 @@ public class TestCompTestcaseLoaderTest {
   @Test
   public void testLoadingSingleInput() throws Exception {
     // check if a test-case with a single input is loaded correctly
-    Map<Integer, String> expected = ImmutableMap.<Integer, String>builder().put(0, "2").build();
+    Map<Integer, String> expected = ImmutableMap.of(0, "2");
 
     Map<Integer, String> loadedInputs =
         TestCompTestcaseLoader.loadTestcase(new File(PREFIX + "testfile1.xml").toPath());
@@ -33,7 +33,7 @@ public class TestCompTestcaseLoaderTest {
   public void testLoadingSeveralInputs() throws Exception {
     // check if a test-case with a single input is loaded correctly
     Map<Integer, String> expected =
-        ImmutableMap.<Integer, String>builder().put(0, "1").put(1, "2").put(2, "42").build();
+        ImmutableMap.<Integer, String>builder().put(0, "1").put(1, "2").put(2, "42").buildOrThrow();
 
     Map<Integer, String> loadedInputs =
         TestCompTestcaseLoader.loadTestcase(new File(PREFIX + "testfile2.xml").toPath());
@@ -44,6 +44,4 @@ public class TestCompTestcaseLoaderTest {
   private void assertMapEquals(Map<Integer, String> pExpected, Map<Integer, String> pActual) {
     assertThat(pActual).containsExactlyEntriesIn(pExpected);
   }
-
-
 }

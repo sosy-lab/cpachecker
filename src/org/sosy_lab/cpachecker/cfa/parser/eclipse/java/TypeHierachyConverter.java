@@ -143,10 +143,10 @@ class TypeHierachyConverter {
     @SuppressWarnings("unchecked")
     ModifierBean mB = ModifierBean.getModifiers(fd.modifiers());
 
-    assert (!mB.isAbstract()) : "Field Variable has this modifier?";
-    assert (!mB.isNative()) : "Field Variable has this modifier?";
-    assert (!mB.isStrictFp()) : "Field Variable has this modifier?";
-    assert (!mB.isSynchronized()) : "Field Variable has this modifier?";
+    assert !mB.isAbstract() : "Field Variable has this modifier?";
+    assert !mB.isNative() : "Field Variable has this modifier?";
+    assert !mB.isStrictFp() : "Field Variable has this modifier?";
+    assert !mB.isSynchronized() : "Field Variable has this modifier?";
 
     @SuppressWarnings("unchecked")
     List<VariableDeclarationFragment> vdfs = fd.fragments();

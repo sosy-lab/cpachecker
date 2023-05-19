@@ -51,13 +51,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 
 /**
- * This class can traverse through an AST and log a warning for all undefined
- * identifiers which are referenced.
+ * This class can traverse through an AST and log a warning for all undefined identifiers which are
+ * referenced.
  */
-class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRuntimeException>,
-                                       CInitializerVisitor<Void, CFAGenerationRuntimeException>,
-                                       CStatementVisitor<Void, CFAGenerationRuntimeException>,
-                                       CDesignatorVisitor<Void, CFAGenerationRuntimeException> {
+class CheckBindingVisitor
+    implements CRightHandSideVisitor<Void, CFAGenerationRuntimeException>,
+        CInitializerVisitor<Void, CFAGenerationRuntimeException>,
+        CStatementVisitor<Void, CFAGenerationRuntimeException>,
+        CDesignatorVisitor<Void, CFAGenerationRuntimeException> {
 
   private final LogManager logger;
 
@@ -109,7 +110,12 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
   public Void visit(CIdExpression e) {
     if (e.getDeclaration() == null) {
       if (printedWarnings.add(e.getName())) {
-        logger.log(Level.WARNING, "Undefined identifier", e.getName(), "found, first referenced in", e.getFileLocation());
+        logger.log(
+            Level.WARNING,
+            "Undefined identifier",
+            e.getName(),
+            "found, first referenced in",
+            e.getFileLocation());
         foundUndefinedIdentifiers = true;
       }
     }
@@ -176,7 +182,12 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
       if (f.getDeclaration() == null) {
         if (!BuiltinFunctions.isBuiltinFunction(f.getName()) // GCC builtin functions
             && printedWarnings.add(f.getName())) {
-          logger.log(Level.WARNING, "Undefined function", f.getName(), "found, first called in", e.getFileLocation());
+          logger.log(
+              Level.WARNING,
+              "Undefined function",
+              f.getName(),
+              "found, first called in",
+              e.getFileLocation());
         }
       }
 

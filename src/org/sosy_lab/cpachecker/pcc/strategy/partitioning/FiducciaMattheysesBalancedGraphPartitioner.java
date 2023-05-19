@@ -8,11 +8,9 @@
 
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
-
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -29,61 +27,62 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
 
   private final LogManager logger;
 
-  @Option(secure=true, description = "Heuristic for computing an initial partitioning of proof")
-  private InitPartitioningHeuristics initialPartitioningStrategy = InitPartitioningHeuristics.RANDOM;
+  @Option(secure = true, description = "Heuristic for computing an initial partitioning of proof")
+  private InitPartitioningHeuristics initialPartitioningStrategy =
+      InitPartitioningHeuristics.RANDOM;
 
   public enum InitPartitioningHeuristics {
     RANDOM
   }
 
-  @Option(secure=true, description = "Balance criterion for pairwise optimization of partitions")
+  @Option(secure = true, description = "Balance criterion for pairwise optimization of partitions")
   private double balanceCriterion = 1.5d;
 
   private final BalancedGraphPartitioner partitioner;
 
-  public FiducciaMattheysesBalancedGraphPartitioner(Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  public FiducciaMattheysesBalancedGraphPartitioner(
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
-  shutdownNotifier = pShutdownNotifier;
+    shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
 
-    switch (initialPartitioningStrategy) {
-      // TODO support better strategies for initial partitioning
-      default: // RANDOM
-        partitioner = new RandomBalancedGraphPartitioner();
-    }
-
+    partitioner =
+        switch (initialPartitioningStrategy) {
+            // TODO support better strategies for initial partitioning
+          default -> new RandomBalancedGraphPartitioner(); // RANDOM
+        };
   }
 
   @Override
-  public List<Set<Integer>> computePartitioning(int pNumPartitions, PartialReachedSetDirectedGraph pGraph)
-      throws InterruptedException {
+  public List<Set<Integer>> computePartitioning(
+      int pNumPartitions, PartialReachedSetDirectedGraph pGraph) throws InterruptedException {
 
     // TODO insert assertions
 
-    /* Create initial partition which is going to be optimized later on */
+    // Create initial partition which is going to be optimized later on
     List<Set<Integer>> partition = partitioner.computePartitioning(pNumPartitions, pGraph);
 
-    /* Optimize partitions pairwisely with FM algorithm */
+    // Optimize partitions pairwisely with FM algorithm
     // TODO find better strategy or/and make this parallel
     long cutSizeAfter = 0;
-    for(Set<Integer> v1 : partition) {
-      for(Set<Integer> v2 : partition) {
-        if(v1 == v2) {
+    for (Set<Integer> v1 : partition) {
+      for (Set<Integer> v2 : partition) {
+        if (v1 == v2) {
           break;
         }
         shutdownNotifier.shutdownIfNecessary();
-        FiducciaMattheysesAlgorithm fm = new FiducciaMattheysesAlgorithm(balanceCriterion, v1, v2, pGraph);
+        FiducciaMattheysesAlgorithm fm =
+            new FiducciaMattheysesAlgorithm(balanceCriterion, v1, v2, pGraph);
         long gain;
         do {
           shutdownNotifier.shutdownIfNecessary();
           gain = fm.improvePartitioning();
-        } while(gain > 0);
+        } while (gain > 0);
         cutSizeAfter += pGraph.getNumEdgesBetween(v1, v2);
       }
     }
-    logger.log(Level.FINE, String.format("[FM] Computed partitioning of cut size %d", cutSizeAfter));
+    logger.log(Level.FINE, "[FM] Computed partitioning of cut size", cutSizeAfter);
     return partition;
   }
-
 }

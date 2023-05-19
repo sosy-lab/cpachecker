@@ -107,7 +107,11 @@ public class CFAToCTranslator {
       throw new InvalidConfigurationException(
           "CFA can only be written to C for C programs, at the moment");
     }
-    for (FunctionEntryNode func : pCfa.getAllFunctionHeads()) {
+
+    // the final C program may contain `abort()` statements, so we need a suitable declaration
+    globalDefinitionsList.add("extern void abort();");
+
+    for (FunctionEntryNode func : pCfa.entryNodes()) {
       translate((CFunctionEntryNode) func);
     }
 
@@ -132,7 +136,7 @@ public class CFAToCTranslator {
   private void translate(CFunctionEntryNode pEntry) throws CPAException {
     // waitlist for the edges to be processed
     Deque<NodeAndBlock> waitlist = new ArrayDeque<>();
-    Multimap<CFANode, NodeAndBlock> ingoingBlocks = HashMultimap.create();
+    Multimap<CFANode, NodeAndBlock> incomingBlocks = HashMultimap.create();
 
     FunctionDefinition f = startFunction(pEntry);
     functions.add(f);
@@ -153,7 +157,7 @@ public class CFAToCTranslator {
       } else {
         final CompoundStatement originalBlock = current.getCurrentBlock();
         final CompoundStatement currentBlock =
-            getBlockToContinueWith(currentNode, originalBlock, ingoingBlocks.get(currentNode));
+            getBlockToContinueWith(currentNode, originalBlock, incomingBlocks.get(currentNode));
         // create new NodeAndBlock because the block may have changed from the start of the loop
         if (currentBlock != originalBlock) {
           current = new NodeAndBlock(currentNode, currentBlock);
@@ -162,7 +166,7 @@ public class CFAToCTranslator {
         Collection<NodeAndBlock> nextNodes = handleNode(currentNode, currentBlock);
         for (NodeAndBlock next : nextNodes) {
           CFANode nextNode = next.getNode();
-          ingoingBlocks.put(nextNode, current);
+          incomingBlocks.put(nextNode, current);
           pushToWaitlist(waitlist, next);
         }
       }
@@ -275,7 +279,7 @@ public class CFAToCTranslator {
 
   private CFANode getSuccessorNode(CFAEdge pE) {
     if (pE.getEdgeType().equals(FunctionCallEdge)) {
-      return ((CFunctionCallEdge) pE).getSummaryEdge().getSuccessor();
+      return ((CFunctionCallEdge) pE).getReturnNode();
     } else {
       return pE.getSuccessor();
     }
@@ -325,7 +329,7 @@ public class CFAToCTranslator {
       // if there are more than one children, then this must be a branching
       assert outgoingEdges.size() == 2
           : "branches with more than two options not supported (was the program prepocessed with"
-                + " CIL?)";
+              + " CIL?)";
       for (CFAEdge edgeToChild : outgoingEdges) {
         assert edgeToChild instanceof CAssumeEdge
             : "something wrong: branch in CFA without condition: " + edgeToChild;
@@ -355,7 +359,7 @@ public class CFAToCTranslator {
         } else {
           // must be else-branch, second in list
           assert ifAndElseEdge.get(1) == currentEdge;
-          cond = "else ";
+          cond = "else";
         }
 
         // create a new block starting with this condition
@@ -445,10 +449,8 @@ public class CFAToCTranslator {
     switch (pCFAEdge.getEdgeType()) {
       case BlankEdge:
       case AssumeEdge:
-        {
-          // nothing to do
-          break;
-        }
+        // nothing to do
+        break;
 
       case StatementEdge:
       case ReturnStatementEdge:
@@ -523,16 +525,12 @@ public class CFAToCTranslator {
         }
 
       case CallToReturnEdge:
-        {
-          //          this should not have been taken
-          throw new AssertionError("CallToReturnEdge in path: " + pCFAEdge);
-        }
+        //          this should not have been taken
+        throw new AssertionError("CallToReturnEdge in path: " + pCFAEdge);
 
       default:
-        {
-          throw new AssertionError(
-              "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
-        }
+        throw new AssertionError(
+            "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
     }
 
     return "";

@@ -44,9 +44,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CPAQuery;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchCFAEdgeRegEx;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
 
-public class BuechiConverterUtils {
+public final class BuechiConverterUtils {
+
+  private BuechiConverterUtils() {}
 
   /**
    * Takes a {@link StoredAutomaton} (an automaton in HOA-format) as argument and transforms that
@@ -130,17 +133,16 @@ public class BuechiConverterUtils {
         throw new LtlParseException(
             String.format(
                 "Only 'Buchi'-acceptance is allowed, but instead the following was found: %s (%s)",
-                accName.name,
-                accName.extra.toString()));
+                accName.name, accName.extra.toString()));
       }
 
       String accCond = storedHeader.getAcceptanceCondition().toStringInfix();
       if (!accCond.equals("Inf(0)")) {
         throw new LtlParseException(
             String.format(
-                "The only allowed acceptance-condition is %s, but instead the following was found: %s",
-                "Inf(0)",
-                accCond));
+                "The only allowed acceptance-condition is %s, but instead the following was found:"
+                    + " %s",
+                "Inf(0)", accCond));
       }
 
       ImmutableSet<String> requiredProperties =
@@ -169,8 +171,7 @@ public class BuechiConverterUtils {
       if (numAccSets != 1) {
         throw new LtlParseException(
             String.format(
-                "Only one acceptance set was expected, but instead %d were found",
-                numAccSets));
+                "Only one acceptance set was expected, but instead %d were found", numAccSets));
       }
 
       try {
@@ -224,8 +225,7 @@ public class BuechiConverterUtils {
 
       } catch (InvalidAutomatonException e) {
         throw new RuntimeException(
-            "The passed storedAutomaton-parameter produces an inconsistent automaton",
-            e);
+            "The passed storedAutomaton-parameter produces an inconsistent automaton", e);
       } catch (UnrecognizedCodeException e) {
         throw new LtlParseException(e.getMessage(), e);
       }
@@ -345,8 +345,7 @@ public class BuechiConverterUtils {
         sourceAST = CParserUtils.parseSingleStatement(pExpression, parser, scope);
       } catch (InvalidAutomatonException e) {
         throw new LtlParseException(
-            String.format("Error in literal of ltl-formula: %s", e.getMessage()),
-            e);
+            String.format("Error in literal of ltl-formula: %s", e.getMessage()), e);
       }
       CExpression expression = ((CExpressionStatement) sourceAST).getExpression();
       if (expression.getExpressionType() instanceof CProblemType) {
@@ -358,8 +357,8 @@ public class BuechiConverterUtils {
       return expression;
     }
 
-    private AutomatonTransition
-        createTransition(List<AExpression> pAssumptions, String pFollowStateName) {
+    private AutomatonTransition createTransition(
+        List<AExpression> pAssumptions, String pFollowStateName) {
       return new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, pFollowStateName)
           .withAssumptions(pAssumptions)
           .build();

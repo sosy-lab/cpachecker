@@ -37,7 +37,7 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger) {
     super(pState, pFunctionName, pMachineModel, pLogger);
-    this.logger = pLogger;
+    logger = pLogger;
   }
 
   /**
@@ -62,35 +62,33 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
       LogManagerWithoutDuplicates pLogger,
       Map<Integer, String> pValuesFromFile) {
     super(pState, pFunctionName, pMachineModel, pLogger);
-    this.logger = pLogger;
-    this.numReturnedValues = pAtomicInteger;
+    logger = pLogger;
+    numReturnedValues = pAtomicInteger;
 
     valuesFromFile = pValuesFromFile;
   }
 
   @Override
   public Value evaluate(CRightHandSide pExp, CType pTargetType) throws UnrecognizedCodeException {
-    if (lastRequestSuccessful && pExp instanceof CFunctionCallExpression) {
-      CFunctionCallExpression call = (CFunctionCallExpression) pExp;
-      if (call.getFunctionNameExpression() instanceof CIdExpression
-          && ((CIdExpression) call.getFunctionNameExpression())
-              .getName()
-              .startsWith(PATERN_FOR_RANDOM)) {
+    if ((lastRequestSuccessful && pExp instanceof CFunctionCallExpression call)
+        && (call.getFunctionNameExpression() instanceof CIdExpression
+            && ((CIdExpression) call.getFunctionNameExpression())
+                .getName()
+                .startsWith(PATERN_FOR_RANDOM))) {
 
-        // We found a call to random. If available, return a new value from the predefined inputs.
-        // Otherwise, delegate to super
-        int counter = numReturnedValues.getAndIncrement();
-        if (this.valuesFromFile.containsKey(counter)) {
-          Value value = computeNumericalValue(call, valuesFromFile.get(counter));
+      // We found a call to random. If available, return a new value from the predefined inputs.
+      // Otherwise, delegate to super
+      int counter = numReturnedValues.getAndIncrement();
+      if (valuesFromFile.containsKey(counter)) {
+        Value value = computeNumericalValue(call, valuesFromFile.get(counter));
 
-          this.logger.log(
-              Level.FINER,
-              "Returning value at position %d, for statement " + pExp.toASTString() + " that is: ",
-              value);
-          return value;
-        } else {
-          lastRequestSuccessful = false;
-        }
+        logger.log(
+            Level.FINER,
+            "Returning value at position %d, for statement " + pExp.toASTString() + " that is: ",
+            value);
+        return value;
+      } else {
+        lastRequestSuccessful = false;
       }
     }
     return super.evaluate(pExp, pTargetType);
@@ -123,7 +121,7 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
       // }
 
     } else {
-      this.logger.log(Level.WARNING, "Cannot parse complex types, hence returning unknown");
+      logger.log(Level.WARNING, "Cannot parse complex types, hence returning unknown");
     }
     return new Value.UnknownValue();
   }

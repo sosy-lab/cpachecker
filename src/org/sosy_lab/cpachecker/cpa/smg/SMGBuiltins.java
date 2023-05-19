@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import static com.google.common.base.Verify.verify;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -15,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -51,6 +54,7 @@ public class SMGBuiltins {
   private final LogManager logger;
   private final SMGExportDotOption exportSMGOptions;
   private final SMGOptions options;
+  private ImmutableList<Pattern> safeUnknownFunctionCompiledPatterns;
 
   public SMGBuiltins(
       SMGRightHandSideEvaluator pExpressionEvaluator,
@@ -84,13 +88,18 @@ public class SMGBuiltins {
           // TODO: Properly model printf (dereferences and stuff)
           // TODO: General modelling system for functions which do not modify state?
           "printf",
-          "strcmp");
+          "strcmp",
+          "realloc");
 
   private void evaluateVBPlot(
       CFunctionCallExpression functionCall, UnmodifiableSMGState currentState) {
     String name = functionCall.getParameterExpressions().get(0).toASTString();
-    if(exportSMGOptions.hasExportPath() && currentState != null) {
-      SMGUtils.dumpSMGPlot(logger, currentState, functionCall.toASTString(), exportSMGOptions.getOutputFilePath(name));
+    if (exportSMGOptions.hasExportPath() && currentState != null) {
+      SMGUtils.dumpSMGPlot(
+          logger,
+          currentState,
+          functionCall.toASTString(),
+          exportSMGOptions.getOutputFilePath(name));
     }
   }
 
@@ -98,7 +107,7 @@ public class SMGBuiltins {
       CFunctionCallExpression functionCall, SMGState pSMGState, CFAEdge cfaEdge)
       throws CPATransferException {
 
-    //evaluate function: void *memset( void *buffer, int ch, size_t count );
+    // evaluate function: void *memset( void *buffer, int ch, size_t count );
 
     CExpression bufferExpr;
     CExpression chExpr;
@@ -175,15 +184,20 @@ public class SMGBuiltins {
     }
 
     int count = countValue.getAsInt();
+    // The code below relies on this, but should probably be improved to handle it.
+    verify(
+        count <= Integer.MAX_VALUE / machineModel.getSizeofCharInBits(),
+        "Type too large to be handled by SMG for memset in edge %s",
+        cfaEdge);
 
     if (ch.isUnknown()) {
       // If the symbolic value is not known create a new one.
       ch = SMGKnownSymValue.of();
     }
 
-    SMGObject bufferMemory =  bufferAddress.getObject();
+    SMGObject bufferMemory = bufferAddress.getObject();
 
-    long offset =  bufferAddress.getOffset().getAsLong();
+    long offset = bufferAddress.getOffset().getAsLong();
 
     if (ch.equals(SMGZeroValue.INSTANCE)) {
       // Create one large edge
@@ -203,7 +217,7 @@ public class SMGBuiltins {
             expressionEvaluator.writeValue(
                 currentState,
                 bufferMemory,
-                offset + (c * machineModel.getSizeofCharInBits()),
+                offset + ((long) c * machineModel.getSizeofCharInBits()),
                 CNumericTypes.SIGNED_CHAR,
                 ch,
                 cfaEdge);
@@ -222,9 +236,9 @@ public class SMGBuiltins {
     return expressionEvaluator.evaluateExpressionValue(smgState, cfaEdge, rValue);
   }
 
-  protected List<SMGExplicitValueAndState> evaluateExplicitValue(SMGState pState, CFAEdge pCfaEdge, CRightHandSide pRValue)
-      throws CPATransferException {
-     return expressionEvaluator.evaluateExplicitValue(pState, pCfaEdge, pRValue);
+  protected List<SMGExplicitValueAndState> evaluateExplicitValue(
+      SMGState pState, CFAEdge pCfaEdge, CRightHandSide pRValue) throws CPATransferException {
+    return expressionEvaluator.evaluateExplicitValue(pState, pCfaEdge, pRValue);
   }
 
   protected List<SMGAddressValueAndState> evaluateAddress(
@@ -251,6 +265,7 @@ public class SMGBuiltins {
 
     return result;
   }
+
   /**
    * The method "alloca" (or "__builtin_alloca") allocates memory from the stack. The memory is
    * automatically freed at function-exit.
@@ -300,16 +315,17 @@ public class SMGBuiltins {
             expressionEvaluator.forceExplicitValue(currentState, cfaEdge, sizeExpr);
         currentState = forcedValueAndState.getSmgState();
 
-        //Sanity check
+        // Sanity check
 
-        List<SMGExplicitValueAndState> valueAndStates = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
+        List<SMGExplicitValueAndState> valueAndStates =
+            evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
 
         if (valueAndStates.size() != 1) {
           throw new SMGInconsistentException(
               "Found abstraction where non should exist,due to the expression "
                   + sizeExpr.toASTString()
                   + "already being evaluated once in this transferrelation step.");
-         }
+        }
 
         SMGExplicitValueAndState valueAndState = valueAndStates.get(0);
 
@@ -378,7 +394,8 @@ public class SMGBuiltins {
                 cfaEdge,
                 kind)) {
 
-          SMGExplicitValue size = numValueAndState.getObject().multiply(elemSizeValueAndState.getObject());
+          SMGExplicitValue size =
+              numValueAndState.getObject().multiply(elemSizeValueAndState.getObject());
           result.add(SMGExplicitValueAndState.of(elemSizeValueAndState.getSmgState(), size));
         }
       }
@@ -421,10 +438,11 @@ public class SMGBuiltins {
           SMGExplicitValueAndState forcedValueAndState =
               expressionEvaluator.forceExplicitValue(currentState, cfaEdge, sizeExpr);
 
-          //Sanity check
+          // Sanity check
 
           currentState = forcedValueAndState.getSmgState();
-          List<SMGExplicitValueAndState> forcedvalueAndStates = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
+          List<SMGExplicitValueAndState> forcedvalueAndStates =
+              evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
 
           if (forcedvalueAndStates.size() != 1) {
             throw new SMGInconsistentException(
@@ -437,7 +455,7 @@ public class SMGBuiltins {
 
           value = resultValueAndState.getObject();
 
-          if(value.isUnknown()) {
+          if (value.isUnknown()) {
             if (kind == SMGTransferRelationKind.REFINEMENT) {
               resultValueAndState =
                   SMGExplicitValueAndState.of(currentState, SMGZeroValue.INSTANCE);
@@ -447,8 +465,7 @@ public class SMGBuiltins {
           }
         } else {
           if (kind == SMGTransferRelationKind.REFINEMENT) {
-            resultValueAndState =
-                SMGExplicitValueAndState.of(currentState, SMGZeroValue.INSTANCE);
+            resultValueAndState = SMGExplicitValueAndState.of(currentState, SMGZeroValue.INSTANCE);
           } else {
             throw new UnsupportedCodeException("Not able to compute allocation size", cfaEdge);
           }
@@ -528,7 +545,10 @@ public class SMGBuiltins {
       SMGState currentState = addressAndState.getSmgState();
 
       if (address.isUnknown()) {
-        logger.log(Level.INFO, "Free on expression ", pointerExp.toASTString(),
+        logger.log(
+            Level.INFO,
+            "Free on expression ",
+            pointerExp.toASTString(),
             " is invalid, because the target of the address could not be calculated.");
         SMGState invalidFreeState =
             currentState
@@ -543,8 +563,13 @@ public class SMGBuiltins {
       }
 
       if (address.isZero()) {
-        logger.log(Level.INFO, pFunctionCall.getFileLocation(), ":",
-            "The argument of a free invocation:", cfaEdge.getRawStatement(), "is 0");
+        logger.log(
+            Level.INFO,
+            pFunctionCall.getFileLocation(),
+            ":",
+            "The argument of a free invocation:",
+            cfaEdge.getRawStatement(),
+            "is 0");
 
       } else {
         currentState = currentState.free(address.getOffset().getAsInt(), address.getObject());
@@ -557,9 +582,11 @@ public class SMGBuiltins {
   }
 
   boolean isABuiltIn(String functionName) {
-    return (BUILTINS.contains(functionName) || isNondetBuiltin(functionName) ||
-        isConfigurableAllocationFunction(functionName) || isDeallocationFunction(functionName) ||
-        isExternalAllocationFunction(functionName));
+    return (BUILTINS.contains(functionName)
+        || isNondetBuiltin(functionName)
+        || isConfigurableAllocationFunction(functionName)
+        || isDeallocationFunction(functionName)
+        || isExternalAllocationFunction(functionName));
   }
 
   private static final String NONDET_PREFIX = "__VERIFIER_nondet_";
@@ -585,7 +612,7 @@ public class SMGBuiltins {
       CFunctionCallExpression pFunctionCall, SMGState pSmgState, CFAEdge pCfaEdge)
       throws CPATransferException {
 
-    //evaluate function: void *memcpy(void *str1, const void *str2, size_t n)
+    // evaluate function: void *memcpy(void *str1, const void *str2, size_t n)
 
     CExpression targetStr1Expr;
     CExpression sourceStr2Expr;
@@ -640,12 +667,16 @@ public class SMGBuiltins {
                 evaluateExpressionValue(currentState, pCfaEdge, sizeExpr)) {
               SMGValue symbolicValue = sizeSymbolicValueAndState.getObject();
 
-              long sourceRangeOffset = sourceObject.getOffset().getAsLong() / machineModel.getSizeofCharInBits();
-              long sourceSize = sourceObject.getObject().getSize() / machineModel.getSizeofCharInBits();
+              long sourceRangeOffset =
+                  sourceObject.getOffset().getAsLong() / machineModel.getSizeofCharInBits();
+              long sourceSize =
+                  sourceObject.getObject().getSize() / machineModel.getSizeofCharInBits();
               long availableSource = sourceSize - sourceRangeOffset;
 
-              long targetRangeOffset = targetObject.getOffset().getAsLong() / machineModel.getSizeofCharInBits();
-              long targetSize = targetObject.getObject().getSize() / machineModel.getSizeofCharInBits();
+              long targetRangeOffset =
+                  targetObject.getOffset().getAsLong() / machineModel.getSizeofCharInBits();
+              long targetSize =
+                  targetObject.getObject().getSize() / machineModel.getSizeofCharInBits();
               long availableTarget = targetSize - targetRangeOffset;
 
               if (explicitSizeValue.isUnknown() && !symbolicValue.isUnknown()) {
@@ -674,15 +705,18 @@ public class SMGBuiltins {
     return result;
   }
 
-  private SMGAddressValueAndState evaluateMemcpy(SMGState currentState, SMGAddressValue targetStr1Address,
-      SMGAddressValue sourceStr2Address, SMGExplicitValue sizeValue) throws SMGInconsistentException {
+  private SMGAddressValueAndState evaluateMemcpy(
+      SMGState currentState,
+      SMGAddressValue targetStr1Address,
+      SMGAddressValue sourceStr2Address,
+      SMGExplicitValue sizeValue)
+      throws SMGInconsistentException {
 
     /*If target is unknown, clear all values, because we don't know where memcpy was used,
      *  and mark invalid write.
      * If source is unknown, just clear all values of target, and mark invalid read.
      * If size is unknown, clear all values of target, and mark invalid write and read.*/
-    if (targetStr1Address.isUnknown() || sourceStr2Address.isUnknown()
-        || sizeValue.isUnknown()) {
+    if (targetStr1Address.isUnknown() || sourceStr2Address.isUnknown() || sizeValue.isUnknown()) {
 
       if (!currentState.isTrackPredicatesEnabled()) {
         if (sizeValue.isUnknown()) {
@@ -699,11 +733,13 @@ public class SMGBuiltins {
               currentState.withInvalidRead().withErrorDescription("Can't evaluate memcpy src");
         }
       }
-      if (!sourceStr2Address.isUnknown() && sourceStr2Address.getObject().equals(SMGNullObject.INSTANCE)) {
+      if (!sourceStr2Address.isUnknown()
+          && sourceStr2Address.getObject().equals(SMGNullObject.INSTANCE)) {
         currentState =
             currentState.withInvalidRead().withErrorDescription("Memcpy src is null pointer");
       }
-      if (!targetStr1Address.isUnknown() && targetStr1Address.getObject().equals(SMGNullObject.INSTANCE)) {
+      if (!targetStr1Address.isUnknown()
+          && targetStr1Address.getObject().equals(SMGNullObject.INSTANCE)) {
         currentState =
             currentState.withInvalidWrite().withErrorDescription("Memcpy to null pointer dst");
       }
@@ -711,7 +747,7 @@ public class SMGBuiltins {
       if (targetStr1Address.isUnknown()) {
         currentState.unknownWrite();
       } else {
-        //TODO More precise clear of values
+        // TODO More precise clear of values
         currentState.writeUnknownValueInUnknownField(targetStr1Address.getAddress().getObject());
       }
 
@@ -722,14 +758,14 @@ public class SMGBuiltins {
     SMGObject target = targetStr1Address.getObject();
 
     long sourceOffset = sourceStr2Address.getOffset().getAsLong();
-    long sourceLastCopyBitOffset = sizeValue.getAsLong() * machineModel.getSizeofCharInBits() +
-        sourceOffset;
+    long sourceLastCopyBitOffset =
+        sizeValue.getAsLong() * machineModel.getSizeofCharInBits() + sourceOffset;
     long targetOffset = targetStr1Address.getOffset().getAsLong();
 
     if (sourceLastCopyBitOffset > source.getSize()) {
       currentState = currentState.withInvalidRead().withErrorDescription("Overread on memcpy");
-    } else if (targetOffset > target.getSize() - (sizeValue.getAsLong() * machineModel
-        .getSizeofCharInBits())) {
+    } else if (targetOffset
+        > target.getSize() - (sizeValue.getAsLong() * machineModel.getSizeofCharInBits())) {
       currentState = currentState.withInvalidWrite().withErrorDescription("Overwrite on memcpy");
     } else {
       currentState.copy(source, target, sourceOffset, sourceLastCopyBitOffset, targetOffset);
@@ -924,11 +960,11 @@ public class SMGBuiltins {
       throws CPATransferException, AssertionError {
     switch (options.getHandleUnknownFunctions()) {
       case STRICT:
-        if (!options.getSafeUnknownFunctions().contains(calledFunctionName)) {
+        if (!isSafeFunction(calledFunctionName)) {
           throw new CPATransferException(
               String.format(
-                  "Unknown function '%s' may be unsafe. See the "
-                      + "cpa.smg.handleUnknownFunctions or cpa.smg.safeUnknownFunctions",
+                  "Unknown function '%s' may be unsafe. See the cpa.smg.handleUnknownFunctions or"
+                      + " cpa.smg.safeUnknownFunctionsPatterns",
                   calledFunctionName));
         }
         // $FALL-THROUGH$ // for safe functions
@@ -942,6 +978,22 @@ public class SMGBuiltins {
     }
   }
 
+  private boolean isSafeFunction(String calledFunctionName) {
+    if (safeUnknownFunctionCompiledPatterns == null) {
+      List<Pattern> list = new ArrayList<>();
+      for (String safeUnknownFunctionPattern : options.getSafeUnknownFunctionsPatterns()) {
+        list.add(Pattern.compile(safeUnknownFunctionPattern));
+      }
+      safeUnknownFunctionCompiledPatterns = ImmutableList.copyOf(list);
+    }
+    for (Pattern safeUnknownFunctionPattern : safeUnknownFunctionCompiledPatterns) {
+      if (safeUnknownFunctionPattern.matcher(calledFunctionName).matches()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public List<? extends SMGValueAndState> handleFunctioncall(
       CFunctionCallExpression pFunctionCall,
       String functionName,
@@ -952,10 +1004,27 @@ public class SMGBuiltins {
     if (isABuiltIn(functionName)) {
       if (isConfigurableAllocationFunction(functionName)) {
         return evaluateConfigurableAllocationFunction(pFunctionCall, pSmgState, pCfaEdge, pKind);
+      } else if (functionName.equals("realloc")) {
+        return evaluateRealloc();
+      } else {
+        return handleBuiltinFunctionCall(pCfaEdge, pFunctionCall, functionName, pSmgState, pKind);
       }
-      return handleBuiltinFunctionCall(pCfaEdge, pFunctionCall, functionName, pSmgState, pKind);
     } else {
       return handleUnknownFunction(pCfaEdge, pFunctionCall, functionName, pSmgState);
     }
+  }
+
+  private List<SMGAddressValueAndState> evaluateRealloc(
+      //      CFunctionCallExpression functionCall,
+      //      SMGState pState,
+      //      CFAEdge cfaEdge,
+      //      SMGTransferRelationKind kind)
+      ) throws CPATransferException {
+    //      List<SMGAddressValueAndState> result = new ArrayList<>();
+    //      evaluateAlloca();
+    //      evaluateMemcpy();
+    //      evaluateFree();
+    throw new CPATransferException("Unhandled realloc function");
+    //    return result;
   }
 }

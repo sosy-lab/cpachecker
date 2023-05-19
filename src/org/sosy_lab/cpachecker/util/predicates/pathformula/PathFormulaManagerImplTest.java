@@ -11,12 +11,9 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.TreeMultimap;
+import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.math.BigInteger;
-import java.util.NavigableMap;
 import java.util.Optional;
-import java.util.TreeMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,14 +23,11 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -54,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
@@ -84,16 +77,20 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
   private PathFormulaManager pfmgrBwd;
 
   private CDeclarationEdge x_decl;
+  private CStatementEdge assignment;
 
   private static final CType variableType = CNumericTypes.INT;
   private static final FormulaType<?> formulaType = FormulaType.getBitvectorTypeWithSize(32);
 
   @Before
   public void setup() throws Exception {
-    Configuration configBackwards = Configuration.builder()
-        .copyFrom(config)
-        .setOption("cpa.predicate.handlePointerAliasing", "false") // not yet supported by the backwards analysis
-        .build();
+    Configuration configBackwards =
+        Configuration.builder()
+            .copyFrom(config)
+            .setOption(
+                "cpa.predicate.handlePointerAliasing",
+                "false") // not yet supported by the backwards analysis
+            .build();
 
     pfmgrFwd =
         new PathFormulaManagerImpl(
@@ -114,25 +111,24 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
             MachineModel.LINUX32,
             Optional.empty(),
             AnalysisDirection.BACKWARD);
+
+    createEdges();
   }
 
-  private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() throws UnrecognizedCodeException {
-
-    CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(
-        MachineModel.LINUX32, LogManager.createTestLogManager()
-    );
+  /** Create edges for declaring <code>x</code> and for <code>x = x + 1</code>. */
+  private void createEdges() throws UnrecognizedCodeException {
+    CBinaryExpressionBuilder expressionBuilder =
+        new CBinaryExpressionBuilder(MachineModel.LINUX32, LogManager.createTestLogManager());
 
     String fName = "main";
-    NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
     CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.BOOL);
     CFunctionDeclaration fdef =
-        new CFunctionDeclaration(FileLocation.DUMMY, functionType, fName, ImmutableList.of());
+        new CFunctionDeclaration(
+            FileLocation.DUMMY, functionType, fName, ImmutableList.of(), ImmutableSet.of());
     FunctionEntryNode entryNode =
         new CFunctionEntryNode(
             FileLocation.DUMMY, fdef, new FunctionExitNode(fdef), Optional.empty());
 
-    // Edge 1: "x' = x + 1".
-    // Edge 2: "x <= 10"
     CFANode a = new CFANode(fdef);
     CFANode b = new CFANode(fdef);
 
@@ -142,108 +138,45 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
     // Declaration of the variable "X".
     // Equivalent to "int x = 0".
-    CVariableDeclaration xDeclaration = new CVariableDeclaration(
-        FileLocation.DUMMY,
-        false,
-        CStorageClass.AUTO,
-        CNumericTypes.INT,
-        "x",
-        "x",
-        "x",
-        new CInitializerExpression(
+    CVariableDeclaration xDeclaration =
+        new CVariableDeclaration(
             FileLocation.DUMMY,
-            CIntegerLiteralExpression.ZERO
-        )
-    );
+            false,
+            CStorageClass.AUTO,
+            CNumericTypes.INT,
+            "x",
+            "x",
+            "x",
+            new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO));
 
-    x_decl = new CDeclarationEdge(
-        "int x = 0",
-        FileLocation.DUMMY,
-        a,
-        b,
-        xDeclaration
-        );
+    x_decl = new CDeclarationEdge("int x = 0", FileLocation.DUMMY, a, b, xDeclaration);
 
     // x + 1
-    CExpression rhs = expressionBuilder.buildBinaryExpression(
-        new CIdExpression(
-            FileLocation.DUMMY,
-            CNumericTypes.INT,
-            "x",
-            xDeclaration
-        ),
-        CIntegerLiteralExpression.ONE, // expression B.
-        CBinaryExpression.BinaryOperator.PLUS
-    );
+    CExpression rhs =
+        expressionBuilder.buildBinaryExpression(
+            new CIdExpression(FileLocation.DUMMY, CNumericTypes.INT, "x", xDeclaration),
+            CIntegerLiteralExpression.ONE, // expression B.
+            CBinaryExpression.BinaryOperator.PLUS);
 
-    CFAEdge a_to_b = new CStatementEdge(
-        "x := x + 1",
-
-        new CExpressionAssignmentStatement(
-            FileLocation.DUMMY,
-            new CIdExpression(
+    assignment =
+        new CStatementEdge(
+            "x := x + 1",
+            new CExpressionAssignmentStatement(
                 FileLocation.DUMMY,
-                CNumericTypes.INT,
-                "x",
-                xDeclaration
-            ),
-            rhs
-        ),
-        FileLocation.DUMMY,
-        a,
-        b
-    );
-
-    // x <= 10.
-    CExpression guard = expressionBuilder.buildBinaryExpression(
-        new CIdExpression(
+                new CIdExpression(FileLocation.DUMMY, CNumericTypes.INT, "x", xDeclaration),
+                rhs),
             FileLocation.DUMMY,
-            CNumericTypes.INT,
-            "x",
-            xDeclaration
-        ),
-        intConstant(BigInteger.TEN),
-        CBinaryExpression.BinaryOperator.LESS_THAN
-    );
-
-    // OK and here we want a guard edge, right?..
-    CFAEdge b_to_a = new CStatementEdge(
-        "x <= 10"  ,
-        new CExpressionStatement(
-            FileLocation.DUMMY, guard
-        ),
-        FileLocation.DUMMY,
-        b, a
-    );
-
-    TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
-    nodes.put("main", a);
-    nodes.put("main", b);
-
-    functions.put("main", entryNode);
-
-    MutableCFA cfa =
-        new MutableCFA(
-            MachineModel.LINUX32, functions, nodes, entryNode, ImmutableList.of(), Language.C);
-    return Triple.of(a_to_b, b_to_a, cfa);
-  }
-
-  private CExpression intConstant(BigInteger constant) {
-    return new CIntegerLiteralExpression(
-        FileLocation.DUMMY, CNumericTypes.INT, constant
-    );
+            a,
+            b);
   }
 
   @Test
   public void testCustomSSAIdx() throws Exception {
-    Triple<CFAEdge, CFAEdge, MutableCFA> data = createCFA();
-    CFAEdge a_to_b = data.getFirst();
-
     int customIdx = 1337;
     SSAMap ssaMap = SSAMap.emptySSAMap().withDefault(customIdx);
     PathFormula emptyWithCustomSSA =
         pfmgrFwd.makeEmptyPathFormulaWithContext(ssaMap, PointerTargetSet.emptyPointerTargetSet());
-    PathFormula p = pfmgrFwd.makeAnd(emptyWithCustomSSA, a_to_b);
+    PathFormula p = pfmgrFwd.makeAnd(emptyWithCustomSSA, assignment);
 
     // The SSA index should be incremented by one (= DEFAULT_INCREMENT) by the edge "x := x + 1".
     assertThat(p.getSsa().getIndex("x"))
@@ -252,12 +185,9 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
   @Test
   public void testAssignmentSSABackward() throws Exception {
-    Triple<CFAEdge, CFAEdge, MutableCFA> data = createCFA();
-    CFAEdge a_to_b = data.getFirst();
-
     PathFormula pf = makePathFormulaWithCustomIndex(pfmgrBwd, "x", CNumericTypes.INT, 10);
 
-    pf = pfmgrBwd.makeAnd(pf, a_to_b);
+    pf = pfmgrBwd.makeAnd(pf, assignment);
 
     BooleanFormula expected =
         mgrv.makeEqual(
@@ -269,8 +199,6 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
   @Test
   public void testDeclarationSSABackward() throws Exception {
-    createCFA();
-
     PathFormula pf = makePathFormulaWithCustomIndex(pfmgrBwd, "x", CNumericTypes.INT, 10);
 
     pf = pfmgrBwd.makeAnd(pf, x_decl);
@@ -281,8 +209,6 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
   @Test
   public void testDeclarationSSAForward() throws Exception {
-    createCFA();
-
     PathFormula pf = makePathFormulaWithCustomIndex(pfmgrFwd, "x", CNumericTypes.INT, 10);
 
     pf = pfmgrFwd.makeAnd(pf, x_decl);
@@ -292,12 +218,9 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
   @Test
   public void testAssignmentSSAForward() throws Exception {
-    Triple<CFAEdge, CFAEdge, MutableCFA> data = createCFA();
-    CFAEdge a_to_b = data.getFirst();
-
     PathFormula pf = makePathFormulaWithCustomIndex(pfmgrFwd, "x", CNumericTypes.INT, 10);
 
-    pf = pfmgrFwd.makeAnd(pf, a_to_b);
+    pf = pfmgrFwd.makeAnd(pf, assignment);
 
     BooleanFormula expected =
         mgrv.makeEqual(

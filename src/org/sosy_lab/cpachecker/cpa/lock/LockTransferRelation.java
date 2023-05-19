@@ -88,22 +88,23 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-      StatisticsWriter w = StatisticsWriter.writingStatisticsTo(pOut)
+      StatisticsWriter w =
+          StatisticsWriter.writingStatisticsTo(pOut)
               .put(transferTimer)
               .beginLevel()
               .put(operationsTimer)
               .put(filteringTimer)
               .put(applyTimer)
               .endLevel()
-          .put(lockEffects)
-          .put(locksInState)
-          .put(locksInStateWithLocks);
+              .put(lockEffects)
+              .put(locksInState)
+              .put(locksInStateWithLocks);
 
       Precision p = pReached.getPrecision(pReached.getFirstState());
       LockPrecision lockPrecision = Precisions.extractPrecisionByType(p, LockPrecision.class);
       if (lockPrecision != null) {
         w.put("Number of considered lock operations", lockPrecision.getKeySize())
-         .put("Considered lock identifiers", lockPrecision.getValues());
+            .put("Considered lock identifiers", lockPrecision.getValues());
       }
     }
 
@@ -120,9 +121,9 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   private final LockStatistics stats;
 
   @Option(
-    name = "stopAfterLockLimit",
-    description = "stop path exploration if a lock limit is reached",
-    secure = true)
+      name = "stopAfterLockLimit",
+      description = "stop path exploration if a lock limit is reached",
+      secure = true)
   private boolean stopAfterLockLimit = false;
 
   public LockTransferRelation(Configuration config, LogManager logger)
@@ -134,7 +135,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
 
     lockDescription = parser.parseLockInfo();
     annotatedFunctions = parser.parseAnnotatedFunctions();
-    assert (annotatedFunctions != null);
+    assert annotatedFunctions != null;
 
     stats = new LockStatistics();
   }
@@ -181,8 +182,8 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  public AbstractLockState
-      applyEffects(AbstractLockState oldState, List<AbstractLockEffect> toProcess) {
+  public AbstractLockState applyEffects(
+      AbstractLockState oldState, List<AbstractLockEffect> toProcess) {
     final AbstractLockStateBuilder builder = oldState.builder();
     toProcess.forEach(e -> e.effect(builder));
     return builder.build();
@@ -231,10 +232,8 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   private List<AbstractLockEffect> handleAssumption(CAssumeEdge cfaEdge) {
     CExpression assumption = cfaEdge.getExpression();
 
-    if (assumption instanceof CBinaryExpression) {
-      CBinaryExpression binExpression = (CBinaryExpression) assumption;
-      IdentifierCreator creator =
-          new IdentifierCreator(cfaEdge.getSuccessor().getFunctionName());
+    if (assumption instanceof CBinaryExpression binExpression) {
+      IdentifierCreator creator = new IdentifierCreator(cfaEdge.getSuccessor().getFunctionName());
       AbstractIdentifier varId = creator.createIdentifier(binExpression.getOperand1(), 0);
       if (varId instanceof SingleIdentifier) {
         String varName = ((SingleIdentifier) varId).getName();
@@ -268,8 +267,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     // CFANode tmpNode = cfaEdge.getSummaryEdge().getPredecessor();
     String fName =
         cfaEdge
-            .getSummaryEdge()
-            .getExpression()
+            .getFunctionCall()
             .getFunctionCallExpression()
             .getFunctionNameExpression()
             .toASTString();
@@ -343,7 +341,9 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
 
     LockIdentifier id = uId.apply(function.getParameterExpressions());
     if (effect == AcquireLockEffect.getInstance()) {
-      effect = AcquireLockEffect.createEffectForId(id, lockDescription.getMaxLevel(uId.getName()), stopAfterLockLimit);
+      effect =
+          AcquireLockEffect.createEffectForId(
+              id, lockDescription.getMaxLevel(uId.getName()), stopAfterLockLimit);
     } else {
       effect = effect.cloneWithTarget(id);
     }
@@ -360,8 +360,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
        */
       CRightHandSide op2 = ((CAssignment) statement).getRightHandSide();
 
-      if (op2 instanceof CFunctionCallExpression) {
-        CFunctionCallExpression function = (CFunctionCallExpression) op2;
+      if (op2 instanceof CFunctionCallExpression function) {
         return handleFunctionCallExpression(function);
       } else {
         /*
@@ -385,11 +384,10 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
         }
       }
 
-    } else if (statement instanceof CFunctionCallStatement) {
+    } else if (statement instanceof CFunctionCallStatement funcStatement) {
       /*
        * queLock(que);
        */
-      CFunctionCallStatement funcStatement = (CFunctionCallStatement) statement;
       return handleFunctionCallExpression(funcStatement.getFunctionCallExpression());
     }
     // No lock-relating operations
@@ -403,8 +401,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       result.add(saveState);
     }
     result.addAll(
-        handleFunctionCallExpression(
-            callEdge.getSummaryEdge().getExpression().getFunctionCallExpression()));
+        handleFunctionCallExpression(callEdge.getFunctionCall().getFunctionCallExpression()));
     return result;
   }
 
@@ -416,7 +413,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
    * @return the verdict
    */
   public String doesChangeTheState(CFAEdge pEdge) {
-    return Joiner.on(",").join(getLockEffects(pEdge));
+    return getLockEffects(pEdge).join(Joiner.on(","));
   }
 
   public Statistics getStatistics() {

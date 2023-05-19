@@ -36,7 +36,7 @@ public class DistanceCalculationHelper {
 
   /** For the Alignments Distance Metric */
   public DistanceCalculationHelper(BooleanFormulaManagerView pBooleanFormulaManagerView) {
-    this.bfmgr = pBooleanFormulaManagerView;
+    bfmgr = pBooleanFormulaManagerView;
   }
 
   /** For the Control Flow Distance Metric */

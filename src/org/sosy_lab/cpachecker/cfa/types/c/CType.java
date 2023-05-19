@@ -22,7 +22,17 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
  * CPAchecker-specific classes.
  */
 @SuppressWarnings("serial")
-public interface CType extends Type {
+public sealed interface CType extends Type
+    permits CArrayType,
+        CBitFieldType,
+        CComplexType,
+        CFunctionType,
+        CFunctionTypeWithNames,
+        CPointerType,
+        CProblemType,
+        CSimpleType,
+        CTypedefType,
+        CVoidType {
 
   boolean isConst();
 
@@ -33,21 +43,28 @@ public interface CType extends Type {
 
   /**
    * Check whether the current type is *incomplete* as defined by the C standard in § 6.2.5 (1).
-   * Incomplete types miss some information (e.g., <code>struct s;</code>),
-   * and for example their size cannot be computed.
+   * Incomplete types miss some information (e.g., <code>struct s;</code>), and for example their
+   * size cannot be computed.
    */
   boolean isIncomplete();
 
   /**
-   * Will throw a UnsupportedOperationException
+   * Check whether the current type has *known constant size* as defined by the C standard in §
+   * 6.2.5 (23). These are types for which the size can be computed statically. Only incomplete
+   * types and variable-length arrays do not have known constant size, but GCC has a an extension
+   * that also allows such arrays in structs:
+   * https://gcc.gnu.org/onlinedocs/gcc/Variable-Length.html
    */
+  boolean hasKnownConstantSize();
+
+  /** Will throw a UnsupportedOperationException */
   @Override
   int hashCode();
 
   /**
-   * Be careful, this method compares the CType as it is to the given object,
-   * typedefs won't be resolved. If you want to compare the type without having
-   * typedefs in it use #getCanonicalType().equals()
+   * Be careful, this method compares the CType as it is to the given object, typedefs won't be
+   * resolved. If you want to compare the type without having typedefs in it use
+   * #getCanonicalType().equals()
    */
   @Override
   boolean equals(@Nullable Object obj);
@@ -59,17 +76,15 @@ public interface CType extends Type {
   CType getCanonicalType(boolean forceConst, boolean forceVolatile);
 
   /**
-   * Implements assignment compatibility for simple assignments (=)
-   * as described in the constraints of C-Standard §6.5.16.1 (1).
-   * <p>
-   * Currently the fifth of those constraints is not considered,
-   * since a {@link CType} does not expose if it is a null pointer
-   * constant.
-   * <p>
-   * Do not override this method. If you find some condition that
-   * is not met by this implementation yet but required for
-   * compliance with the standard, just add the necessary condition
-   * to this code.
+   * Implements assignment compatibility for simple assignments (=) as described in the constraints
+   * of C-Standard §6.5.16.1 (1).
+   *
+   * <p>Currently the fifth of those constraints is not considered, since a {@link CType} does not
+   * expose if it is a null pointer constant.
+   *
+   * <p>Do not override this method. If you find some condition that is not met by this
+   * implementation yet but required for compliance with the standard, just add the necessary
+   * condition to this code.
    *
    * @param pType the {@link CType} to check, if it can be assigned to <b><code>this</code></b>
    * @return if pType can be assigned to <b><code>this</code></b>
@@ -107,9 +122,8 @@ public interface CType extends Type {
       }
     }
 
-    if (rightHandSide instanceof CPointerType && leftHandSide instanceof CPointerType) {
-      CPointerType pointerLeft = (CPointerType) leftHandSide;
-      CPointerType pointerRight = (CPointerType) rightHandSide;
+    if (rightHandSide instanceof CPointerType pointerRight
+        && leftHandSide instanceof CPointerType pointerLeft) {
       CType leftPointedToType = pointerLeft.getType();
       CType rightPointedToType = pointerRight.getType();
 
@@ -127,10 +141,8 @@ public interface CType extends Type {
     }
 
     // Cf. C-Standard §6.3.2.1 (3)
-    if (leftHandSide instanceof CPointerType && rightHandSide instanceof CArrayType) {
-      CPointerType pointerLeft = (CPointerType) leftHandSide;
-      CArrayType arrayRight = (CArrayType) rightHandSide;
-
+    if (leftHandSide instanceof CPointerType pointerLeft
+        && rightHandSide instanceof CArrayType arrayRight) {
       return CTypes.areTypesCompatible(pointerLeft.getType(), arrayRight.getType());
     }
 

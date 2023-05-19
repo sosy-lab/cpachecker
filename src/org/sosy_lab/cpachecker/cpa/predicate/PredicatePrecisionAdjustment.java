@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.InfeasibleDummyState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
@@ -61,7 +60,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       PredicateCPAInvariantsManager pInvariantSupplier,
       PredicateProvider pPredicateProvider,
       PredicateStatistics pPredicateStatistics) {
-
     logger = pLogger;
     fmgr = pFmgr;
     pathFormulaManager = pPfmgr;
@@ -81,11 +79,12 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       Precision pPrecision,
       UnmodifiableReachedSet pElements,
       Function<AbstractState, AbstractState> projection,
-      AbstractState fullState) throws CPAException, InterruptedException {
+      AbstractState fullState)
+      throws CPAException, InterruptedException {
 
     totalPrecTime.start();
     try {
-      PredicateAbstractState element = (PredicateAbstractState)pElement;
+      PredicateAbstractState element = (PredicateAbstractState) pElement;
 
       // default number of locations is 1, for concurrent programs we can have multiple locations.
       // if any location wants to abstract, we compute the abstraction
@@ -98,8 +97,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
         }
       }
 
-        return Optional.of(PrecisionAdjustmentResult.create(
-            element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
+      return Optional.of(
+          new PrecisionAdjustmentResult(
+              element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
 
     } catch (SolverException e) {
       throw new CPAException("Solver Failure: " + e.getMessage(), e);
@@ -113,9 +113,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     if (predicateState.isAbstractionState()) {
       return false;
     }
-    if (predicateState instanceof InfeasibleDummyState) {
-      return false;
-    }
     if (blk.isBlockEnd(location, predicateState.getPathFormula().getLength())) {
       return true;
     }
@@ -126,9 +123,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     return false;
   }
 
-  /**
-   * Compute an abstraction.
-   */
+  /** Compute an abstraction. */
   private Optional<PrecisionAdjustmentResult> computeAbstraction(
       PredicateAbstractState element,
       PredicatePrecision precision,
@@ -150,14 +145,14 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // update/get invariants and add them, the need to be instantiated
     // (we do only update global invariants (computed by a parallelalgorithm) here
     // as everything else can only be computed during refinement)
-    this.invariants.updateGlobalInvariants();
+    invariants.updateGlobalInvariants();
 
     final List<BooleanFormula> invariantFormulas = new ArrayList<>();
     for (CFANode loc : pLocations) {
-      if (this.invariants.appendToPathFormula()) {
+      if (invariants.appendToPathFormula()) {
         BooleanFormula invariant =
             fmgr.instantiate(
-                this.invariants.getInvariantFor(
+                invariants.getInvariantFor(
                     loc, callstackWrapper, fmgr, pathFormulaManager, pathFormula),
                 pathFormula.getSsa());
         invariantFormulas.add(invariant);
@@ -201,7 +196,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     }
 
     // create new empty path formula
-    PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pathFormula);
+    PathFormula newPathFormula =
+        pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pathFormula);
 
     // initialize path formula with current invariants
     // we don't want to add trivially true invariants
@@ -210,11 +206,12 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     }
 
     PredicateAbstractState state =
-        PredicateAbstractState.mkAbstractionState(newPathFormula,
+        PredicateAbstractState.mkAbstractionState(
+            newPathFormula,
             newAbstractionFormula,
             abstractionLocations,
             element.getPreviousAbstractionState());
-    return Optional.of(PrecisionAdjustmentResult.create(
-        state, precision, PrecisionAdjustmentResult.Action.CONTINUE));
+    return Optional.of(
+        new PrecisionAdjustmentResult(state, precision, PrecisionAdjustmentResult.Action.CONTINUE));
   }
 }

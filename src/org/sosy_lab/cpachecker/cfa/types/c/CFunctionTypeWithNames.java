@@ -19,10 +19,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 
 /**
- * This is a subclass of {@link CFunctionType} that is necessary during AST
- * creation. The difference is that it also stores the names of parameters,
- * not only their types.
- * It should not be used outside the cfa package.
+ * This is a subclass of {@link CFunctionType} that is necessary during AST creation. The difference
+ * is that it also stores the names of parameters, not only their types. It should not be used
+ * outside the cfa package.
  */
 public final class CFunctionTypeWithNames extends CFunctionType implements CType {
 
@@ -32,9 +31,7 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
   private final List<CParameterDeclaration> parameters;
 
   public CFunctionTypeWithNames(
-      CType pReturnType,
-      List<CParameterDeclaration> pParameters,
-      boolean pTakesVarArgs) {
+      CType pReturnType, List<CParameterDeclaration> pParameters, boolean pTakesVarArgs) {
 
     super(
         pReturnType,
@@ -69,9 +66,9 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
   }
 
   /**
-   * Be careful, this method compares the CType as it is to the given object,
-   * typedefs won't be resolved. If you want to compare the type without having
-   * typedefs in it use #getCanonicalType().equals()
+   * Be careful, this method compares the CType as it is to the given object, typedefs won't be
+   * resolved. If you want to compare the type without having typedefs in it use
+   * #getCanonicalType().equals()
    */
   @Override
   public boolean equals(@Nullable Object obj) {

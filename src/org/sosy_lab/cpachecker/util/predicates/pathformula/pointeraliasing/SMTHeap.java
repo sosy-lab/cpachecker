@@ -35,6 +35,7 @@ interface SMTHeap {
       final int newIndex,
       final I address,
       final E value);
+
   /**
    * Make a formula that represents a pointer access.
    *

@@ -36,8 +36,7 @@ public class InputState implements AbstractState {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof InputState) {
-      InputState other = (InputState) pOther;
+    if (pOther instanceof InputState other) {
       return inputs.equals(other.inputs);
     }
     return false;
@@ -58,5 +57,4 @@ public class InputState implements AbstractState {
     }
     return new InputState(pInputs);
   }
-
 }

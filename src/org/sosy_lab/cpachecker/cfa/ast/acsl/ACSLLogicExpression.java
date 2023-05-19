@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public interface ACSLLogicExpression {
+public sealed interface ACSLLogicExpression permits ACSLBuiltin, ACSLPredicate, ACSLTerm {
 
   /**
    * Returns whether the logic expression may be used in a clause of the given type.
@@ -17,5 +17,4 @@ public interface ACSLLogicExpression {
    * @return true if the logic expression may be used in a clause of the given type, false otherwise
    */
   boolean isAllowedIn(Class<?> clauseType);
-
 }

@@ -42,11 +42,12 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 
 public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAException> {
 
-  protected final Deque<Triple<AbstractState, Precision, Block>> stack = new ArrayDeque<>();
+  record AnalysisLevel(AbstractState state, Precision precision, Block block) {}
+
+  final Deque<AnalysisLevel> stack = new ArrayDeque<>();
 
   private final AlgorithmFactory algorithmFactory;
   protected final BAMPCCManager bamPccManager;
@@ -120,13 +121,12 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
    */
   @Override
   protected Block getBlockForState(ARGState state) {
-    return stack.isEmpty() ? partitioning.getMainBlock() : stack.peek().getThird();
+    return stack.isEmpty() ? partitioning.getMainBlock() : stack.peek().block();
   }
 
   /**
-   * check if
-   * - the current node is before a function-block and
-   * - the block was entered before (and thus is part of the stack).
+   * check if - the current node is before a function-block and - the block was entered before (and
+   * thus is part of the stack).
    */
   protected boolean isRecursiveCall(final CFANode node) {
     if (!partitioning.isCallNode(node)) {
@@ -135,7 +135,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       // If only LoopBlocks are used, we can have recursive Loops, too.
 
       for (CFAEdge e : CFAUtils.leavingEdges(node).filter(CFunctionCallEdge.class)) {
-        for (Block block : Iterables.transform(stack, Triple::getThird)) {
+        for (Block block : Iterables.transform(stack, AnalysisLevel::block)) {
           if (block.getCallNodes().contains(e.getSuccessor())) {
             return true;
           }
@@ -146,11 +146,10 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
   }
 
   /**
-   * Enters a new block and performs a new analysis by recursively initiating
-   * {@link CPAAlgorithm}, or returns a cached result from {@link BAMCache}.
+   * Enters a new block and performs a new analysis by recursively initiating {@link CPAAlgorithm},
+   * or returns a cached result from {@link BAMCache}.
    *
-   * <p>Postcondition: sets the {@code currentBlock} variable to the currently
-   * processed block.
+   * <p>Postcondition: sets the {@code currentBlock} variable to the currently processed block.
    *
    * <p>Postcondition: pushes the current recursive level on the {@code stack}.
    *
@@ -164,17 +163,17 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       final AbstractState initialState, final Precision pPrecision, final CFANode node)
       throws CPAException, InterruptedException {
 
-    //Create ReachSet with node as initial element (+ add corresponding Location+CallStackElement)
-    //do an CPA analysis to get the complete reachset
-    //if lastElement is error State
+    // Create ReachSet with node as initial element (+ add corresponding Location+CallStackElement)
+    // do an CPA analysis to get the complete reachset
+    // if lastElement is error State
     // -> return lastElement and break at precision adjustment
-    //else
+    // else
     // -> compute which states refer to return nodes
     // -> return these states as successor
     // -> cache the result
 
-    final Block outerSubtree = getBlockForState((ARGState)initialState);
-    assert outerSubtree == (stack.isEmpty() ? partitioning.getMainBlock() : stack.peek().getThird());
+    final Block outerSubtree = getBlockForState((ARGState) initialState);
+    assert outerSubtree == (stack.isEmpty() ? partitioning.getMainBlock() : stack.peek().block());
     final Block innerSubtree = partitioning.getBlockForCallNode(node);
     bamPccManager.setCurrentBlock(innerSubtree);
     assert innerSubtree.getCallNodes().contains(node);
@@ -185,8 +184,8 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     final Precision reducedInitialPrecision =
         wrappedReducer.getVariableReducedPrecision(pPrecision, innerSubtree);
 
-    final Triple<AbstractState, Precision, Block> currentLevel =
-        Triple.of(reducedInitialState, reducedInitialPrecision, innerSubtree);
+    final AnalysisLevel currentLevel =
+        new AnalysisLevel(reducedInitialState, reducedInitialPrecision, innerSubtree);
     stack.push(currentLevel);
     logger.log(
         Level.FINEST,
@@ -209,7 +208,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     } finally {
       logger.log(Level.FINEST, "Finished recursive analysis of depth", stack.size());
       stats.switchBlock(innerSubtree, outerSubtree);
-      final Triple<AbstractState, Precision, Block> lastLevel = stack.pop();
+      final AnalysisLevel lastLevel = stack.pop();
       assert lastLevel.equals(currentLevel);
       bamPccManager.setCurrentBlock(outerSubtree);
     }
@@ -308,8 +307,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     } else {
       final ReachedSet cachedReached = entry.getReachedSet();
       Preconditions.checkNotNull(cachedReached);
-      @Nullable
-      final Set<AbstractState> cachedReturnStates = entry.getExitStates();
+      @Nullable final Set<AbstractState> cachedReturnStates = entry.getExitStates();
       if (isCacheHit(cachedReached, cachedReturnStates)) { // FULL HIT
         // cache hit, return element from cache
         logger.log(
@@ -412,7 +410,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
         }
       }
       if (pSearchTargetStatesOnExit) {
-        for (AbstractState targetState : Iterables.filter(reached, AbstractStates::isTargetState)) {
+        for (AbstractState targetState : AbstractStates.getTargetStates(reached)) {
           assert ((ARGState) targetState).getChildren().isEmpty();
           returnStates.add(targetState);
         }

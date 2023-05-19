@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.interfaces.pcc;
 
+import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -15,33 +16,30 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import java.util.Collection;
-
-/**
- * Interface for classes representing an analysis that can be proof checked.
- */
+/** Interface for classes representing an analysis that can be proof checked. */
 public interface ProofChecker {
   /**
-   * Checks whether the given set of abstract successors correctly over-approximates the set of concrete successors the
-   * concretisations of the given abstract state has with respect to the given CFA edge. If the given edge is <code>null</code>
-   * all CFA edges have to be considered.
+   * Checks whether the given set of abstract successors correctly over-approximates the set of
+   * concrete successors the concretisations of the given abstract state has with respect to the
+   * given CFA edge. If the given edge is <code>null</code> all CFA edges have to be considered.
+   *
    * @param state abstract state with current state
    * @param cfaEdge null or an edge of the CFA
    * @param successors list of all successors of the current state (may be empty)
-   * @return <code>true</code> if successors are valid over-approximation; <code>false</code>, otherwise.
+   * @return <code>true</code> if successors are valid over-approximation; <code>false</code>,
+   *     otherwise.
    */
   boolean areAbstractSuccessors(
-      AbstractState state,
-      CFAEdge cfaEdge,
-      Collection<? extends AbstractState> successors)
-    throws CPATransferException, InterruptedException;
+      AbstractState state, CFAEdge cfaEdge, Collection<? extends AbstractState> successors)
+      throws CPATransferException, InterruptedException;
 
   /**
-   * Checks whether the given state is covered by an other state. That is, the set of concretisations of the state
-   * has to be a subset of the set of concretisations of the other state.
+   * Checks whether the given state is covered by an other state. That is, the set of
+   * concretisations of the state has to be a subset of the set of concretisations of the other
+   * state.
    */
-  boolean isCoveredBy(AbstractState state, AbstractState otherState) throws CPAException, InterruptedException;
-
+  boolean isCoveredBy(AbstractState state, AbstractState otherState)
+      throws CPAException, InterruptedException;
 
   /** sub-interface to avoid several copies of identical code. */
   interface ProofCheckerCPA extends ConfigurableProgramAnalysis, ProofChecker {
@@ -79,5 +77,4 @@ public interface ProofChecker {
       return getAbstractDomain().isLessOrEqual(state, otherState);
     }
   }
-
 }

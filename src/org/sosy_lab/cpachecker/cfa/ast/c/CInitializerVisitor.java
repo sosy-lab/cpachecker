@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-
-
 public interface CInitializerVisitor<R, X extends Exception> {
 
   R visit(CInitializerExpression pInitializerExpression) throws X;

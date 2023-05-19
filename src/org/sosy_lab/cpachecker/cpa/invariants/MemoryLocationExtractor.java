@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -34,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
@@ -45,7 +45,8 @@ public class MemoryLocationExtractor {
 
   private final String functionName;
 
-  private final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> environment;
+  private final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>
+      environment;
 
   private final CompoundIntervalManagerFactory compoundIntervalManagerFactory;
 
@@ -62,7 +63,8 @@ public class MemoryLocationExtractor {
       final CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       final MachineModel pMachineModel,
       final CFAEdge pEdge,
-      final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+      final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>
+          pEnvironment) {
     this(pCompoundIntervalManagerFactory, pMachineModel, pEdge, false, pEnvironment);
   }
 
@@ -71,34 +73,43 @@ public class MemoryLocationExtractor {
       final MachineModel pMachineModel,
       final CFAEdge pEdge,
       final boolean pUsePredecessorFunctionName,
-      final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    this(pCompoundIntervalManagerFactory, pMachineModel, pUsePredecessorFunctionName ? pEdge.getPredecessor() : pEdge.getSuccessor(), pEnvironment);
+      final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>
+          pEnvironment) {
+    this(
+        pCompoundIntervalManagerFactory,
+        pMachineModel,
+        pUsePredecessorFunctionName ? pEdge.getPredecessor() : pEdge.getSuccessor(),
+        pEnvironment);
   }
 
   private MemoryLocationExtractor(
       final CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       final MachineModel pMachineModel,
       final CFANode pFunctionNode,
-      final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    this(pCompoundIntervalManagerFactory, pMachineModel, pFunctionNode.getFunctionName(), pEnvironment);
+      final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>
+          pEnvironment) {
+    this(
+        pCompoundIntervalManagerFactory,
+        pMachineModel,
+        pFunctionNode.getFunctionName(),
+        pEnvironment);
   }
 
   public MemoryLocationExtractor(
       final CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       final MachineModel pMachineModel,
       final String pFunctionName,
-      final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.machineModel = pMachineModel;
-    this.functionName = pFunctionName;
-    this.environment = pEnvironment;
+      final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>
+          pEnvironment) {
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    machineModel = pMachineModel;
+    functionName = pFunctionName;
+    environment = pEnvironment;
   }
 
   public MemoryLocation getMemoryLocation(AParameterDeclaration pParameterDeclaration) {
     String varName = pParameterDeclaration.getName();
-    if (pParameterDeclaration instanceof CSimpleDeclaration) {
-      CSimpleDeclaration decl = (CSimpleDeclaration) pParameterDeclaration;
-
+    if (pParameterDeclaration instanceof CSimpleDeclaration decl) {
       if (!((decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal())
           || decl instanceof CEnumerator)) {
         return scope(varName);
@@ -110,46 +121,44 @@ public class MemoryLocationExtractor {
   public MemoryLocation getMemoryLocation(AExpression pLhs) throws UnrecognizedCodeException {
     if (pLhs instanceof AIdExpression) {
       return getMemoryLocation((AIdExpression) pLhs);
-    } else if (pLhs instanceof CFieldReference) {
-      CFieldReference fieldRef = (CFieldReference) pLhs;
+    } else if (pLhs instanceof CFieldReference fieldRef) {
       String varName = fieldRef.getFieldName();
       CExpression owner = fieldRef.getFieldOwner();
       return getFieldReferenceMemoryLocation(varName, owner, fieldRef.isPointerDereference());
-    } else if (pLhs instanceof JFieldAccess) {
-      JFieldAccess fieldRef = (JFieldAccess) pLhs;
+    } else if (pLhs instanceof JFieldAccess fieldRef) {
       String varName = fieldRef.getName();
       JIdExpression owner = fieldRef.getReferencedVariable();
       return getFieldReferenceMemoryLocation(varName, owner, false);
-    } else if (pLhs instanceof CArraySubscriptExpression) {
-      CArraySubscriptExpression arraySubscript = (CArraySubscriptExpression) pLhs;
+    } else if (pLhs instanceof CArraySubscriptExpression arraySubscript) {
       CExpression subscript = arraySubscript.getSubscriptExpression();
       CExpression owner = arraySubscript.getArrayExpression();
       return getArraySubscriptMemoryLocation(owner, subscript);
-    } else if (pLhs instanceof JArraySubscriptExpression) {
-      JArraySubscriptExpression arraySubscript = (JArraySubscriptExpression) pLhs;
+    } else if (pLhs instanceof JArraySubscriptExpression arraySubscript) {
       JExpression subscript = arraySubscript.getSubscriptExpression();
       JExpression owner = arraySubscript.getArrayExpression();
       return getArraySubscriptMemoryLocation(owner, subscript);
-    } else if (pLhs instanceof CPointerExpression) {
-      CPointerExpression pe = (CPointerExpression) pLhs;
+    } else if (pLhs instanceof CPointerExpression pe) {
       if (pe.getOperand() instanceof CLeftHandSide) {
         // TODO
-        return MemoryLocation.parseExtendedQualifiedName(String.format("*(%s)", getMemoryLocation(pe.getOperand())));
+        return MemoryLocation.parseExtendedQualifiedName(
+            String.format("*(%s)", getMemoryLocation(pe.getOperand())));
       }
       // TODO
       return scope(pLhs.toString());
-    } else if (pLhs instanceof CCastExpression) {
-      CCastExpression cast = (CCastExpression) pLhs;
+    } else if (pLhs instanceof CCastExpression cast) {
       return getMemoryLocation(cast.getOperand());
-    } else if (pLhs instanceof JCastExpression) {
-      JCastExpression cast = (JCastExpression) pLhs;
+    } else if (pLhs instanceof JCastExpression cast) {
       return getMemoryLocation(cast.getOperand());
-    } else if (pLhs instanceof CUnaryExpression && ((CUnaryExpression) pLhs).getOperator() == UnaryOperator.AMPER) {
+    } else if (pLhs instanceof CUnaryExpression
+        && ((CUnaryExpression) pLhs).getOperator() == UnaryOperator.AMPER) {
       // TODO
-      return MemoryLocation.parseExtendedQualifiedName(String.format("&(%s)", getMemoryLocation(((CUnaryExpression) pLhs).getOperand())));
+      return MemoryLocation.parseExtendedQualifiedName(
+          String.format("&(%s)", getMemoryLocation(((CUnaryExpression) pLhs).getOperand())));
     } else {
       // TODO
-      return scope(pLhs.toString()); // This actually seems wrong but is currently the only way to deal with some cases of pointer arithmetics
+      // This actually seems wrong but is currently the only way to deal with some cases of pointer
+      // arithmetics
+      return scope(pLhs.toString());
     }
   }
 
@@ -167,8 +176,9 @@ public class MemoryLocationExtractor {
     return MemoryLocation.parseExtendedQualifiedName(varName);
   }
 
-  private MemoryLocation getFieldReferenceMemoryLocation(String pVarName, @Nullable AExpression pOwner,
-      boolean pIsPointerDereference) throws UnrecognizedCodeException {
+  private MemoryLocation getFieldReferenceMemoryLocation(
+      String pVarName, @Nullable AExpression pOwner, boolean pIsPointerDereference)
+      throws UnrecognizedCodeException {
     String varName = pVarName;
     if (pOwner != null) {
       varName = getMemoryLocation(pOwner) + (pIsPointerDereference ? "->" : ".") + varName;
@@ -176,34 +186,41 @@ public class MemoryLocationExtractor {
     return MemoryLocation.fromQualifiedName(varName);
   }
 
-  private MemoryLocation getArraySubscriptMemoryLocation(AExpression pOwner, AExpression pSubscript) throws UnrecognizedCodeException {
+  private MemoryLocation getArraySubscriptMemoryLocation(AExpression pOwner, AExpression pSubscript)
+      throws UnrecognizedCodeException {
 
     // TODO: calculate correct memory locations
 
-    if (pSubscript instanceof CIntegerLiteralExpression) {
-      CIntegerLiteralExpression literal = (CIntegerLiteralExpression) pSubscript;
+    if (pSubscript instanceof CIntegerLiteralExpression literal) {
       return MemoryLocation.parseExtendedQualifiedName(
           String.format("%s[%d]", getMemoryLocation(pOwner), literal.asLong()));
     }
     final CompoundInterval subscriptValue;
     ExpressionToFormulaVisitor expressionToFormulaVisitor =
-        new ExpressionToFormulaVisitor(compoundIntervalManagerFactory, machineModel, this, environment);
+        new ExpressionToFormulaVisitor(
+            compoundIntervalManagerFactory, machineModel, this, environment);
     if (pSubscript instanceof CExpression) {
       subscriptValue = evaluate(((CExpression) pSubscript).accept(expressionToFormulaVisitor));
     } else if (pSubscript instanceof JExpression) {
       subscriptValue = evaluate(((JExpression) pSubscript).accept(expressionToFormulaVisitor));
     } else {
-      subscriptValue = compoundIntervalManagerFactory.createCompoundIntervalManager(machineModel, pOwner.getExpressionType()).allPossibleValues();
+      subscriptValue =
+          compoundIntervalManagerFactory
+              .createCompoundIntervalManager(machineModel, pOwner.getExpressionType())
+              .allPossibleValues();
     }
     if (subscriptValue.isSingleton()) {
       return MemoryLocation.parseExtendedQualifiedName(
           String.format("%s[%s]", getMemoryLocation(pOwner), subscriptValue.getValue()));
     }
-    return MemoryLocation.parseExtendedQualifiedName(String.format("%s[*]", getMemoryLocation(pOwner)));
+    return MemoryLocation.parseExtendedQualifiedName(
+        String.format("%s[*]", getMemoryLocation(pOwner)));
   }
 
   private CompoundInterval evaluate(NumeralFormula<CompoundInterval> pFormula) {
-    return pFormula.accept(new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory, false), environment);
+    return pFormula.accept(
+        new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory, false),
+        environment);
   }
 
   private MemoryLocation scope(String pVar) {
@@ -221,5 +238,4 @@ public class MemoryLocationExtractor {
   public static boolean isFunctionScoped(String pScopedVariableName, String pFunction) {
     return pScopedVariableName.startsWith(pFunction + "::");
   }
-
 }

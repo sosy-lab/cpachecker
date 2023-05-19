@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonIntValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
 public class OctagonIntManager extends OctagonManager {
 
   public OctagonIntManager() {
@@ -72,18 +71,22 @@ public class OctagonIntManager extends OctagonManager {
     if (lowerInfinite && upperInfinite) {
       retVal = new OctagonInterval(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
     } else if (lowerInfinite) {
-      retVal = new OctagonInterval(new OctagonDoubleValue(Double.NEGATIVE_INFINITY),
-                               OctagonIntValue.of(J_num_get_int(upper.getArray(), 0)));
+      retVal =
+          new OctagonInterval(
+              new OctagonDoubleValue(Double.NEGATIVE_INFINITY),
+              OctagonIntValue.of(J_num_get_int(upper.getArray(), 0)));
     } else if (upperInfinite) {
-      retVal = new OctagonInterval(OctagonIntValue.of(J_num_get_int(lower.getArray(), 0) * -1),
-                               new OctagonDoubleValue(Double.POSITIVE_INFINITY));
+      retVal =
+          new OctagonInterval(
+              OctagonIntValue.of(J_num_get_int(lower.getArray(), 0) * -1),
+              new OctagonDoubleValue(Double.POSITIVE_INFINITY));
     } else {
-      retVal = new OctagonInterval(J_num_get_int(lower.getArray(), 0) * -1,
-                               J_num_get_int(upper.getArray(), 0));
+      retVal =
+          new OctagonInterval(
+              J_num_get_int(lower.getArray(), 0) * -1, J_num_get_int(upper.getArray(), 0));
     }
     J_num_clear_n(lower.getArray(), 1);
     J_num_clear_n(upper.getArray(), 1);
     return retVal;
   }
-
 }

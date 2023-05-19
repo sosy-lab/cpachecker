@@ -13,9 +13,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
-/**
- * Enum listing several possible reasons for giving up analysis at a certain point.
- */
+/** Enum listing several possible reasons for giving up analysis at a certain point. */
 public enum PreventingHeuristic {
   PATHLENGTH("PL"),
   SUCCESSORCOMPTIME("SCT"),
@@ -34,10 +32,7 @@ public enum PreventingHeuristic {
     predicateString = predicateStr;
   }
 
-  /**
-   * Returns a formula of this reason, which includes the
-   * threshold value which was exceeded.
-   */
+  /** Returns a formula of this reason, which includes the threshold value which was exceeded. */
   public BooleanFormula getFormula(FormulaManagerView fmgr, long thresholdValue) {
     IntegerFormulaManager nfmgr = fmgr.getIntegerFormulaManager();
     final IntegerFormula number = nfmgr.makeNumber(thresholdValue);

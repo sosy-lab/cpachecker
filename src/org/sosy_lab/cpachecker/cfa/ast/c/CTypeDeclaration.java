@@ -13,13 +13,12 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
- * This class represents declarations that define new types,
- * e.g.
+ * This class represents declarations that define new types, e.g.
  *
- * struct s { int i; }
- * typedef int my_int;
+ * <p>struct s { int i; } typedef int my_int;
  */
-public abstract class CTypeDeclaration extends AbstractDeclaration implements CDeclaration {
+public abstract sealed class CTypeDeclaration extends AbstractDeclaration implements CDeclaration
+    permits CComplexTypeDeclaration, CTypeDefDeclaration {
 
   private static final long serialVersionUID = -607383651501118425L;
   private final String qualifiedName;
@@ -41,7 +40,7 @@ public abstract class CTypeDeclaration extends AbstractDeclaration implements CD
 
   @Override
   public CType getType() {
-    return (CType)super.getType();
+    return (CType) super.getType();
   }
 
   @Override
@@ -63,5 +62,4 @@ public abstract class CTypeDeclaration extends AbstractDeclaration implements CD
 
     return super.equals(obj);
   }
-
 }

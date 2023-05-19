@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -27,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
@@ -35,15 +35,14 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 /**
- * This Visitor implements evaluation of simply typed expressions.
- * An expression is defined as simply typed iff it is not an
- * array type ({@link org.sosy_lab.cpachecker.cfa.types.c.CArrayType}),
- * a struct or union type ({@link org.sosy_lab.cpachecker.cfa.types.c.CComplexType}),
- * a imaginary type ({@link CImaginaryLiteralExpression}),
- * or a pointer type ({@link org.sosy_lab.cpachecker.cfa.types.c.CPointerType}).
- * The key distinction between these types and simply typed types is,
- * that a value of simply typed types can be represented as a numerical
- * value without losing information.
+ * This Visitor implements evaluation of simply typed expressions. An expression is defined as
+ * simply typed iff it is not an array type ({@link
+ * org.sosy_lab.cpachecker.cfa.types.c.CArrayType}), a struct or union type ({@link
+ * org.sosy_lab.cpachecker.cfa.types.c.CComplexType}), a imaginary type ({@link
+ * CImaginaryLiteralExpression}), or a pointer type ({@link
+ * org.sosy_lab.cpachecker.cfa.types.c.CPointerType}). The key distinction between these types and
+ * simply typed types is, that a value of simply typed types can be represented as a numerical value
+ * without losing information.
  */
 public class BDDVectorCExpressionVisitor
     extends DefaultCExpressionVisitor<Region[], UnsupportedCodeException> {
@@ -54,17 +53,22 @@ public class BDDVectorCExpressionVisitor
   protected final BitvectorManager bvmgr;
   protected final CFANode location;
 
-  /** This Visitor returns the numeral value for an expression.
+  /**
+   * This Visitor returns the numeral value for an expression.
+   *
    * @param pMachineModel where to get info about types, for casting and overflows
    */
-  protected BDDVectorCExpressionVisitor(final PredicateManager pPredMgr, final VariableTrackingPrecision pPrecision,
-                                     final BitvectorManager pBVmgr, final MachineModel pMachineModel,
-                                     final CFANode pLocation) {
-    this.predMgr = pPredMgr;
-    this.precision = pPrecision;
-    this.bvmgr = pBVmgr;
-    this.machineModel = pMachineModel;
-    this.location = pLocation;
+  protected BDDVectorCExpressionVisitor(
+      final PredicateManager pPredMgr,
+      final VariableTrackingPrecision pPrecision,
+      final BitvectorManager pBVmgr,
+      final MachineModel pMachineModel,
+      final CFANode pLocation) {
+    predMgr = pPredMgr;
+    precision = pPrecision;
+    bvmgr = pBVmgr;
+    machineModel = pMachineModel;
+    location = pLocation;
   }
 
   @Override
@@ -76,7 +80,9 @@ public class BDDVectorCExpressionVisitor
   public Region[] visit(final CBinaryExpression pE) throws UnsupportedCodeException {
     final Region[] lVal = pE.getOperand1().accept(this);
     final Region[] rVal = pE.getOperand2().accept(this);
-    if (lVal == null || rVal == null) { return null; }
+    if (lVal == null || rVal == null) {
+      return null;
+    }
     return calculateBinaryOperation(
         lVal,
         rVal,
@@ -107,7 +113,8 @@ public class BDDVectorCExpressionVisitor
     final CType calculationType = binaryExpr.getCalculationType();
 
     lVal = castCValue(lVal, lType, calculationType, bvmgr, machineModel);
-    if (binaryOperator != BinaryOperator.SHIFT_LEFT && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
+    if (binaryOperator != BinaryOperator.SHIFT_LEFT
+        && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
       /* For SHIFT-operations we do not cast the second operator.
        * We even do not need integer-promotion,
        * because the maximum SHIFT of 64 is lower than MAX_CHAR.
@@ -212,8 +219,12 @@ public class BDDVectorCExpressionVisitor
     }
   }
 
-  protected static Region booleanOperation(final Region[] l, final Region[] r, final BitvectorManager bvmgr,
-                                         final BinaryOperator op, final CType calculationType) {
+  protected static Region booleanOperation(
+      final Region[] l,
+      final Region[] r,
+      final BitvectorManager bvmgr,
+      final BinaryOperator op,
+      final CType calculationType) {
 
     boolean signed = true;
     if (calculationType instanceof CSimpleType) {
@@ -298,14 +309,15 @@ public class BDDVectorCExpressionVisitor
   public Region[] visit(CIdExpression idExp) {
     if (idExp.getDeclaration() instanceof CEnumerator) {
       CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
-      if (enumerator.hasValue()) {
-        return bvmgr.makeNumber(enumerator.getValue(), getSize(idExp.getExpressionType()));
-      } else {
-        return null;
-      }
+      return bvmgr.makeNumber(enumerator.getValue(), getSize(idExp.getExpressionType()));
     }
 
-    return predMgr.createPredicate(idExp.getDeclaration().getQualifiedName(), idExp.getExpressionType(), location, getSize(idExp.getExpressionType()), precision);
+    return predMgr.createPredicate(
+        idExp.getDeclaration().getQualifiedName(),
+        idExp.getExpressionType(),
+        location,
+        getSize(idExp.getExpressionType()),
+        precision);
   }
 
   @Override
@@ -324,7 +336,6 @@ public class BDDVectorCExpressionVisitor
     }
 
     switch (unaryOperator) {
-
       case MINUS: // -X == (0-X)
         return bvmgr.makeSub(bvmgr.makeNumber(BigInteger.ZERO, value.length), value);
 
@@ -365,12 +376,10 @@ public class BDDVectorCExpressionVisitor
   }
 
   /**
-   * This method returns the input-value, casted to match the type.
-   * If the value matches the type, it is returned unchanged.
-   * This method handles overflows and print warnings for the user.
-   * Example:
-   * This method is called, when an value of type 'integer'
-   * is assigned to a variable of type 'char'.
+   * This method returns the input-value, casted to match the type. If the value matches the type,
+   * it is returned unchanged. This method handles overflows and print warnings for the user.
+   * Example: This method is called, when an value of type 'integer' is assigned to a variable of
+   * type 'char'.
    *
    * @param value will be casted. If value is null, null is returned.
    * @param targetType value will be casted to targetType.

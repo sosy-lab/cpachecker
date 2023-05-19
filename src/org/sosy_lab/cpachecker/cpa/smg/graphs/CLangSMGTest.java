@@ -9,10 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Map;
 import org.junit.Before;
@@ -24,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -37,13 +35,15 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
 public class CLangSMGTest {
-  static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
+  private static final CFunctionType functionType =
+      CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
   public static final CFunctionDeclaration DUMMY_FUNCTION =
-      new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.of());
+      new CFunctionDeclaration(
+          FileLocation.DUMMY, functionType, "foo", ImmutableList.of(), ImmutableSet.of());
   private CLangStackFrame sf;
 
-  static private final LogManager logger = LogManager.createTestLogManager();
-  static private final CIdExpression id_expression =
+  private static final LogManager logger = LogManager.createTestLogManager();
+  private static final CIdExpression id_expression =
       new CIdExpression(FileLocation.DUMMY, null, "label", null);
 
   private static CLangSMG getNewCLangSMG64() {
@@ -74,10 +74,7 @@ public class CLangSMGTest {
     SMGEdgePointsTo pt = new SMGEdgePointsTo(val1, obj1, 0);
     SMGEdgeHasValue hv =
         new SMGEdgeHasValue(
-            smg.getMachineModel().getSizeofInBits(CNumericTypes.UNSIGNED_LONG_INT),
-            0,
-            obj2,
-            val2);
+            smg.getMachineModel().getSizeofInBits(CNumericTypes.UNSIGNED_LONG_INT), 0, obj2, val2);
 
     smg.addValue(val1);
     smg.addValue(val2);
@@ -125,7 +122,7 @@ public class CLangSMGTest {
     assertThat(heap_objs).hasSize(3);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void CLangSMGaddHeapObjectTwiceTest() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj = new SMGRegion(64, "label");
@@ -167,7 +164,7 @@ public class CLangSMGTest {
     assertThat(global_objects.values()).contains(obj2);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void CLangSMGaddGlobalObjectTwiceTest() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj = new SMGRegion(64, "label");
@@ -176,7 +173,7 @@ public class CLangSMGTest {
     smg.addGlobalObject(obj);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void CLangSMGaddGlobalObjectWithSameLabelTest() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj1 = new SMGRegion(64, "label");
@@ -210,7 +207,7 @@ public class CLangSMGTest {
     assertThat(current_frame.getVariables()).hasSize(2);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void CLangSMGaddStackObjectTwiceTest() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj1 = new SMGRegion(64, "label");
@@ -355,17 +352,13 @@ public class CLangSMGTest {
     CLangSMG smg = getNewCLangSMG64();
     SMGObject null_object = smg.getHeapObjects().iterator().next();
     SMGValue some_value = SMGKnownExpValue.valueOf(5);
-    CType type = mock(CType.class);
-    when(type.getCanonicalType()).thenReturn(type);
     SMGEdgeHasValue edge = new SMGEdgeHasValue(32, 0, null_object, some_value);
     smg.addValue(some_value);
     smg.addHasValueEdge(edge);
     assertThat(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg)).isFalse();
   }
 
-  /**
-   * Identical object in different frames is inconsistent
-   */
+  /** Identical object in different frames is inconsistent */
   @Test
   public void consistencyViolationStackNamespaceTest1() {
     CLangSMG smg = getNewCLangSMG64();
@@ -379,9 +372,7 @@ public class CLangSMGTest {
     assertThat(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg)).isFalse();
   }
 
-  /**
-   * Two objects with same label (variable name) in different frames are not inconsistent
-   */
+  /** Two objects with same label (variable name) in different frames are not inconsistent */
   @Test
   public void consistencyViolationStackNamespaceTest2() {
     CLangSMG smg = getNewCLangSMG64();

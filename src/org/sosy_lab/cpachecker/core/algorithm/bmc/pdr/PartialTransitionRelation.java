@@ -160,8 +160,7 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof PartialTransitionRelation) {
-      PartialTransitionRelation other = (PartialTransitionRelation) pOther;
+    if (pOther instanceof PartialTransitionRelation other) {
       return startLocation.equals(other.startLocation)
           && bfmgr.equals(other.bfmgr)
           && fmgr.equals(other.fmgr)
@@ -248,15 +247,12 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
             AbstractStates.filterLocations(reachedSet.getReachedSet(), relevantLocations),
             desiredK);
     currentVariables =
-        AbstractStates.projectToType(relevantStates, PredicateAbstractState.class)
-            .stream()
+        AbstractStates.projectToType(relevantStates, PredicateAbstractState.class).stream()
             .map(PartialTransitionRelation::getPathFormula)
             .flatMap(
                 pathFormula -> {
                   SSAMap ssaMap = pathFormula.getSsa();
-                  return ssaMap
-                      .allVariables()
-                      .stream()
+                  return ssaMap.allVariables().stream()
                       .filter(name -> !name.startsWith("*"))
                       .map(
                           name -> {
@@ -275,16 +271,20 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
     return currentVariables;
   }
 
-  public BooleanFormula getPredecessorAssertions(Iterable<CandidateInvariant> pPredecessorAssertions) throws CPATransferException, InterruptedException {
+  public BooleanFormula getPredecessorAssertions(
+      Iterable<CandidateInvariant> pPredecessorAssertions)
+      throws CPATransferException, InterruptedException {
     return getStateAssertions(
         pPredecessorAssertions, states -> filterIterationsUpTo(states, getDesiredK() - 1), 1);
   }
 
-  public BooleanFormula getSuccessorAssertion(CandidateInvariant pSuccessorAssertion) throws CPATransferException, InterruptedException {
+  public BooleanFormula getSuccessorAssertion(CandidateInvariant pSuccessorAssertion)
+      throws CPATransferException, InterruptedException {
     return getSuccessorAssertions(Collections.singleton(pSuccessorAssertion));
   }
 
-  public BooleanFormula getSuccessorAssertions(Iterable<CandidateInvariant> pSuccessorAssertions) throws CPATransferException, InterruptedException {
+  public BooleanFormula getSuccessorAssertions(Iterable<CandidateInvariant> pSuccessorAssertions)
+      throws CPATransferException, InterruptedException {
     return getStateAssertions(
         pSuccessorAssertions, states -> filterIteration(states, getDesiredK()), 2);
   }
@@ -296,7 +296,8 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
       throws CPATransferException, InterruptedException {
     BooleanFormula assertions = bfmgr.makeBoolean(true);
     for (CandidateInvariant assertion : pAssertions) {
-      for (CandidateInvariant conjunctivePart : CandidateInvariantCombination.getConjunctiveParts(assertion)) {
+      for (CandidateInvariant conjunctivePart :
+          CandidateInvariantCombination.getConjunctiveParts(assertion)) {
         assertions =
             bfmgr.and(assertions, getStateAssertion(conjunctivePart, pStateFilter, pDefaultIndex));
       }
@@ -485,7 +486,8 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
   }
 
   private static PathFormula getPathFormula(AbstractState pPas) {
-    PredicateAbstractState pas = AbstractStates.extractStateByType(pPas, PredicateAbstractState.class);
+    PredicateAbstractState pas =
+        AbstractStates.extractStateByType(pPas, PredicateAbstractState.class);
     return getPathFormula(pas);
   }
 

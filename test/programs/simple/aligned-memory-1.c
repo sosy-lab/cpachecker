@@ -22,7 +22,12 @@ int main() {
   }
 
   int *p = malloc(4);
-  if (((long)p) % _Alignof(long long) != 0) {
+  if (((long)p) % 8 != 0) {
+    goto ERROR;
+  }
+
+  void *q = malloc(4);
+  if (((long)q) % 8 != 0) {
     goto ERROR;
   }
 

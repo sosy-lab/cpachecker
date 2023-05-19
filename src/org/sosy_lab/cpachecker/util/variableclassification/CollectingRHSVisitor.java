@@ -42,7 +42,7 @@ final class CollectingRHSVisitor
   private final boolean addressed;
 
   private CollectingRHSVisitor(final CFA pCfa, final VariableOrField lhs, final boolean addressed) {
-    this.cfa = checkNotNull(pCfa);
+    cfa = checkNotNull(pCfa);
     this.lhs = checkNotNull(lhs);
     this.addressed = addressed;
   }
@@ -145,8 +145,7 @@ final class CollectingRHSVisitor
   public VarFieldDependencies visit(CFunctionCallExpression e) {
     VarFieldDependencies result = VarFieldDependencies.emptyDependencies();
     CExpression functionNameExpression = e.getFunctionNameExpression();
-    if (functionNameExpression instanceof CIdExpression) {
-      CIdExpression idExpression = (CIdExpression) functionNameExpression;
+    if (functionNameExpression instanceof CIdExpression idExpression) {
       if (cfa.getAllFunctionNames().contains(idExpression.getName())) {
         result = functionNameExpression.accept(this);
       }

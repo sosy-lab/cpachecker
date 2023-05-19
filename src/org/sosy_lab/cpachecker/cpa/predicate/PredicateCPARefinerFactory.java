@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -42,13 +43,16 @@ public class PredicateCPARefinerFactory {
   @Option(secure = true, description = "slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
 
-  @Option(secure = true, name="graphblockformulastrategy", description = "BlockFormulaStrategy for graph-like ARGs (e.g. Slicing Abstractions)")
+  @Option(
+      secure = true,
+      name = "graphblockformulastrategy",
+      description = "BlockFormulaStrategy for graph-like ARGs (e.g. Slicing Abstractions)")
   private boolean graphBlockFormulaStrategy = false;
 
   @Option(
-    secure = true,
-    description = "use heuristic to extract predicates from the CFA statically on first refinement"
-  )
+      secure = true,
+      description =
+          "use heuristic to extract predicates from the CFA statically on first refinement")
   private boolean performInitialStaticRefinement = false;
 
   private final PredicateCPA predicateCpa;
@@ -57,25 +61,28 @@ public class PredicateCPARefinerFactory {
 
   /**
    * Create a factory instance.
+   *
    * @param pCpa The CPA used for this whole analysis.
-   * @throws InvalidConfigurationException
-   *    If there is no PredicateCPA configured or if configuration is invalid.
+   * @throws InvalidConfigurationException If there is no PredicateCPA configured or if
+   *     configuration is invalid.
    */
   @SuppressWarnings("options")
   public PredicateCPARefinerFactory(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    predicateCpa = CPAs.retrieveCPAOrFail(checkNotNull(pCpa), PredicateCPA.class, PredicateCPARefiner.class);
+    predicateCpa =
+        CPAs.retrieveCPAOrFail(checkNotNull(pCpa), PredicateCPA.class, PredicateCPARefiner.class);
     predicateCpa.getConfiguration().inject(this);
   }
 
   /**
-   * Ensure that {@link PredicateStaticRefiner} is not used.
-   * This is mostly useful for configurations where static refinements do not make sense,
-   * or a the predicate refiner is used as a helper for other refinements and should always
-   * generate interpolants.
+   * Ensure that {@link PredicateStaticRefiner} is not used. This is mostly useful for
+   * configurations where static refinements do not make sense, or a the predicate refiner is used
+   * as a helper for other refinements and should always generate interpolants.
+   *
    * @return this
    * @throws InvalidConfigurationException If static refinements are enabled by the configuration.
    */
+  @CanIgnoreReturnValue
   public PredicateCPARefinerFactory forbidStaticRefinements() throws InvalidConfigurationException {
     if (performInitialStaticRefinement) {
       throw new InvalidConfigurationException(
@@ -87,10 +94,12 @@ public class PredicateCPARefinerFactory {
 
   /**
    * Let the refiners created by this factory instance use the given {@link BlockFormulaStrategy}.
-   * May be called only once, but does not need to be called
-   * (in this case the configuration will determine the used BlockFormulaStrategy).
+   * May be called only once, but does not need to be called (in this case the configuration will
+   * determine the used BlockFormulaStrategy).
+   *
    * @return this
    */
+  @CanIgnoreReturnValue
   public PredicateCPARefinerFactory setBlockFormulaStrategy(
       BlockFormulaStrategy pBlockFormulaStrategy) {
     checkState(blockFormulaStrategy == null);
@@ -99,8 +108,8 @@ public class PredicateCPARefinerFactory {
   }
 
   /**
-   * Create a {@link PredicateCPARefiner}.
-   * This factory can be reused afterwards.
+   * Create a {@link PredicateCPARefiner}. This factory can be reused afterwards.
+   *
    * @param pRefinementStrategy The refinement strategy to use.
    * @return A fresh instance.
    */

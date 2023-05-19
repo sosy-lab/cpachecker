@@ -19,13 +19,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
 /**
- * Precision for the {@link SlicingCPA}.
- * Contains the precision of the CPA wrapped by the SlicingCPA
- * as well a set of relevant CFA edges.
- * This set contains all CFA edges whose semantics should be considered
- * by the analysis.
+ * Precision for the {@link SlicingCPA}. Contains the precision of the CPA wrapped by the SlicingCPA
+ * as well a set of relevant CFA edges. This set contains all CFA edges whose semantics should be
+ * considered by the analysis.
  */
-public class SlicingPrecision implements WrapperPrecision  {
+public class SlicingPrecision implements WrapperPrecision {
 
   private final Precision wrappedPrec;
   private final Set<CFAEdge> relevantEdges;

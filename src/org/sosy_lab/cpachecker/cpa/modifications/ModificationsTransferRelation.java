@@ -83,7 +83,8 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
         }
 
         assert !successors.isEmpty()
-            : "List of successors should never be empty if previous state represents no modification";
+            : "List of successors should never be empty if previous state represents no"
+                + " modification";
         return successors;
       }
     }
@@ -132,8 +133,9 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
     return Optional.empty();
   }
 
-  private boolean declarationNameAlreadyExistsInOtherCFA(final boolean isOtherOrigCFA, final CDeclarationEdge pDeclEdge) {
-    if(!pDeclEdge.getDeclaration().isGlobal()) {
+  private boolean declarationNameAlreadyExistsInOtherCFA(
+      final boolean isOtherOrigCFA, final CDeclarationEdge pDeclEdge) {
+    if (!pDeclEdge.getDeclaration().isGlobal()) {
       if (containsDeclaration(
           isOtherOrigCFA
               ? funToVarsOrig.get(pDeclEdge.getSuccessor().getFunctionName())
@@ -144,7 +146,8 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return containsDeclaration(
-        isOtherOrigCFA ? funToVarsOrig.get("") : funToVarsGiven.get(""), pDeclEdge.getDeclaration().getOrigName());
+        isOtherOrigCFA ? funToVarsOrig.get("") : funToVarsGiven.get(""),
+        pDeclEdge.getDeclaration().getOrigName());
   }
 
   private boolean containsDeclaration(@Nullable final Set<String> varNames, final String varName) {
@@ -161,16 +164,14 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private boolean successorsMatch(final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
-    CFANode givenSuccessor = pEdgeInGiven.getSuccessor(),
-        originalSuccessor = pEdgeInOriginal.getSuccessor();
+    CFANode givenSuccessor = pEdgeInGiven.getSuccessor();
+    CFANode originalSuccessor = pEdgeInOriginal.getSuccessor();
     if (pEdgeInGiven.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
       nextEdge:
       for (CFAEdge enterBeforeCall :
-          CFAUtils.enteringEdges(
-              ((FunctionReturnEdge) pEdgeInGiven).getSummaryEdge().getPredecessor())) {
+          CFAUtils.enteringEdges(((FunctionReturnEdge) pEdgeInGiven).getCallNode())) {
         for (CFAEdge enterOriginalBeforeCAll :
-            CFAUtils.enteringEdges(
-                ((FunctionReturnEdge) pEdgeInOriginal).getSummaryEdge().getPredecessor())) {
+            CFAUtils.enteringEdges(((FunctionReturnEdge) pEdgeInOriginal).getCallNode())) {
           if (edgesMatch(enterBeforeCall, enterOriginalBeforeCAll)) {
             continue nextEdge;
           }

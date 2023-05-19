@@ -11,12 +11,14 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 import com.google.common.base.Predicate;
 
 /**
- * Instances of this class are visitors used to check if the visited formulae
- * contain a specified variable.
+ * Instances of this class are visitors used to check if the visited formulae contain a specified
+ * variable.
  *
  * @param <T> the type of the constants used in the visited formulae.
  */
-public class ContainsVisitor<T> implements ParameterizedNumeralFormulaVisitor<T, Predicate<? super NumeralFormula<T>>, Boolean>, ParameterizedBooleanFormulaVisitor<T, Predicate<? super NumeralFormula<T>>, Boolean> {
+public class ContainsVisitor<T>
+    implements ParameterizedNumeralFormulaVisitor<T, Predicate<? super NumeralFormula<T>>, Boolean>,
+        ParameterizedBooleanFormulaVisitor<T, Predicate<? super NumeralFormula<T>>, Boolean> {
 
   @Override
   public Boolean visit(Add<T> pAdd, Predicate<? super NumeralFormula<T>> pPredicate) {
@@ -34,8 +36,7 @@ public class ContainsVisitor<T> implements ParameterizedNumeralFormulaVisitor<T,
 
   @Override
   public Boolean visit(BinaryNot<T> pNot, Predicate<? super NumeralFormula<T>> pPredicate) {
-    return pPredicate.apply(pNot)
-        || pNot.getFlipped().accept(this, pPredicate);
+    return pPredicate.apply(pNot) || pNot.getFlipped().accept(this, pPredicate);
   }
 
   @Override
@@ -72,8 +73,7 @@ public class ContainsVisitor<T> implements ParameterizedNumeralFormulaVisitor<T,
 
   @Override
   public Boolean visit(Exclusion<T> pExclusion, Predicate<? super NumeralFormula<T>> pPredicate) {
-    return pPredicate.apply(pExclusion)
-        || pExclusion.getExcluded().accept(this, pPredicate);
+    return pPredicate.apply(pExclusion) || pExclusion.getExcluded().accept(this, pPredicate);
   }
 
   @Override
@@ -96,7 +96,8 @@ public class ContainsVisitor<T> implements ParameterizedNumeralFormulaVisitor<T,
   @Override
   public Boolean visit(Modulo<T> pModulo, Predicate<? super NumeralFormula<T>> pPredicate) {
     return pPredicate.apply(pModulo)
-        || pModulo.getNumerator().accept(this, pPredicate) || pModulo.getDenominator().accept(this, pPredicate);
+        || pModulo.getNumerator().accept(this, pPredicate)
+        || pModulo.getDenominator().accept(this, pPredicate);
   }
 
   @Override
@@ -144,8 +145,7 @@ public class ContainsVisitor<T> implements ParameterizedNumeralFormulaVisitor<T,
 
   @Override
   public Boolean visit(Cast<T> pCast, Predicate<? super NumeralFormula<T>> pPredicate) {
-    return pPredicate.apply(pCast)
-        || pCast.getCasted().accept(this, pPredicate);
+    return pPredicate.apply(pCast) || pCast.getCasted().accept(this, pPredicate);
   }
 
   @Override
@@ -154,5 +154,4 @@ public class ContainsVisitor<T> implements ParameterizedNumeralFormulaVisitor<T,
         || pIfThenElse.getPositiveCase().accept(this, pPredicate)
         || pIfThenElse.getNegativeCase().accept(this, pPredicate);
   }
-
 }

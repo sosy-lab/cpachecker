@@ -26,10 +26,9 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 /**
  * Abstraction of a C parser that creates CFAs from C code.
  *
- * A C parser should be state-less and therefore thread-safe as well as reusable.
+ * <p>A C parser should be state-less and therefore thread-safe as well as reusable.
  *
- * It may offer timing of it's operations. If present, this is not expected to
- * be thread-safe.
+ * <p>It may offer timing of it's operations. If present, this is not expected to be thread-safe.
  */
 public interface CParser extends Parser {
 
@@ -37,7 +36,7 @@ public interface CParser extends Parser {
     private final Path fileName;
 
     public FileToParse(Path pFileName) {
-      this.fileName = pFileName;
+      fileName = pFileName;
     }
 
     public Path getFileName() {
@@ -50,7 +49,7 @@ public interface CParser extends Parser {
 
     public FileContentToParse(Path pFileName, String pFileContent) {
       super(pFileName);
-      this.fileContent = pFileContent;
+      fileContent = pFileContent;
     }
 
     public String getFileContent() {
@@ -61,12 +60,13 @@ public interface CParser extends Parser {
   /**
    * Parse the content of a String into a CFA.
    *
+   * @param filename A filename that is the supposed source of this code (for relative lookups).
    * @param code The code to parse.
    * @return The CFA.
    * @throws CParserException If parser or CFA builder cannot handle the code.
    */
   @Override
-  default ParseResult parseString(String filename, String code)
+  default ParseResult parseString(Path filename, String code)
       throws CParserException, InterruptedException {
     return parseString(filename, code, new CSourceOriginMapping(), CProgramScope.empty());
   }
@@ -96,7 +96,7 @@ public interface CParser extends Parser {
    * @throws CParserException if the parser cannot handle the C code.
    */
   ParseResult parseString(
-      String pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
+      Path pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
       throws CParserException, InterruptedException;
 
   /**
@@ -145,13 +145,12 @@ public interface CParser extends Parser {
   enum Dialect {
     C99,
     GNUC,
-    ;
   }
 
   @Options(prefix = "parser")
   abstract class ParserOptions {
 
-    @Option(secure=true, description="C dialect for parser")
+    @Option(secure = true, description = "C dialect for parser")
     private Dialect dialect = Dialect.GNUC;
 
     @Option(secure = true, description = "Whether to collect ACSL annotations if present")
@@ -169,9 +168,12 @@ public interface CParser extends Parser {
   }
 
   /** Factory that tries to create a parser based on available libraries (e.g. Eclipse CDT). */
-  class Factory {
+  final class Factory {
 
-    public static ParserOptions getOptions(Configuration config) throws InvalidConfigurationException {
+    private Factory() {}
+
+    public static ParserOptions getOptions(Configuration config)
+        throws InvalidConfigurationException {
       ParserOptions result = new EclipseCParserOptions();
       config.recursiveInject(result);
       return result;

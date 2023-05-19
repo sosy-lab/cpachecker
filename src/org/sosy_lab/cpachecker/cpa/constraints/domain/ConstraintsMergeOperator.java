@@ -30,14 +30,14 @@ public class ConstraintsMergeOperator implements MergeOperator {
   }
 
   /**
-   * Merges the two given states. Weakens the second state with information of the first state.
-   * The precision is ignored.
+   * Merges the two given states. Weakens the second state with information of the first state. The
+   * precision is ignored.
    *
-   * <p><code>merge(s, s') = s'</code> if the last added constraint in <code>s</code> is not
-   * <code>!c</code>, with <code>c</code> being the last added constraint in <code>s'</code>.</p>
+   * <p><code>merge(s, s') = s'</code> if the last added constraint in <code>s</code> is not <code>
+   * !c</code>, with <code>c</code> being the last added constraint in <code>s'</code>.
    *
    * <p><code>merge(s, s') = s' \ {c}</code> if the last added constraint in <code>s</code> is
-   * <code>!c</code>, with <code>c</code> being the last added constraint in <code>s'</code>.</p>
+   * <code>!c</code>, with <code>c</code> being the last added constraint in <code>s'</code>.
    *
    * @param pState1 the state to use to weaken the second state
    * @param pState2 the state to weaken
@@ -46,10 +46,7 @@ public class ConstraintsMergeOperator implements MergeOperator {
    */
   @Override
   public AbstractState merge(
-      final AbstractState pState1,
-      final AbstractState pState2,
-      final Precision pPrecision
-  ) {
+      final AbstractState pState1, final AbstractState pState2, final Precision pPrecision) {
     assert pState1 instanceof ConstraintsState && pState2 instanceof ConstraintsState;
 
     final ConstraintsState stateToUseForWeakening = (ConstraintsState) pState1;

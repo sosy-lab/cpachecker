@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-
 class PredicateStopOperator extends StopSepOperator implements ForcedCoveringStopOperator {
 
   PredicateStopOperator(AbstractDomain pD) {
@@ -23,14 +22,15 @@ class PredicateStopOperator extends StopSepOperator implements ForcedCoveringSto
   }
 
   @Override
-  public boolean isForcedCoveringPossible(AbstractState pElement, AbstractState pReachedState,
-      Precision pPrecision) throws CPAException {
+  public boolean isForcedCoveringPossible(
+      AbstractState pElement, AbstractState pReachedState, Precision pPrecision)
+      throws CPAException {
 
     // We support forced covering, so this is always possible,
     // if we have two abstraction elements.
     // Note that this does not say that the element will actually be covered,
     // it says only that we can try to cover it.
-    return ((PredicateAbstractState)pElement).isAbstractionState()
-        && ((PredicateAbstractState)pReachedState).isAbstractionState();
+    return ((PredicateAbstractState) pElement).isAbstractionState()
+        && ((PredicateAbstractState) pReachedState).isAbstractionState();
   }
 }

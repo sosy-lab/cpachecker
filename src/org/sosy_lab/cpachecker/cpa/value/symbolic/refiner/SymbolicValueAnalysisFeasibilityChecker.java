@@ -22,10 +22,9 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityC
 import org.sosy_lab.cpachecker.util.refinement.GenericFeasibilityChecker;
 
 /**
- * Feasibility checker for value analysis handling symbolic values.
- * A composition of {@link ConstraintsTransferRelation} and {@link ValueAnalysisTransferRelation}
- * is used for checking feasibility.
- * In contrast to this approach, {@link ValueAnalysisFeasibilityChecker} only uses a
+ * Feasibility checker for value analysis handling symbolic values. A composition of {@link
+ * ConstraintsTransferRelation} and {@link ValueAnalysisTransferRelation} is used for checking
+ * feasibility. In contrast to this approach, {@link ValueAnalysisFeasibilityChecker} only uses a
  * ValueAnalysisTransferRelation and as such cannot fully handle symbolic values.
  */
 public class SymbolicValueAnalysisFeasibilityChecker
@@ -36,8 +35,8 @@ public class SymbolicValueAnalysisFeasibilityChecker
       final SymbolicStrongestPostOperator pStrongestPostOperator,
       final Configuration pConfig,
       final LogManager pLogger,
-      final CFA pCfa
-  ) throws InvalidConfigurationException {
+      final CFA pCfa)
+      throws InvalidConfigurationException {
 
     super(
         pStrongestPostOperator,

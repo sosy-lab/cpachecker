@@ -31,7 +31,8 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
   }
 
   @Override
-  public final RefinementResult performBlockRefinement(I pInput) throws CPAException, InterruptedException {
+  public final RefinementResult performBlockRefinement(I pInput)
+      throws CPAException, InterruptedException {
 
     O iteration;
 
@@ -47,7 +48,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
           return result;
         }
       }
-      //Check postponed iterations
+      // Check postponed iterations
       for (O i : postponedIterations) {
         result = iterate(i);
         if (result.isTrue()) {
@@ -69,7 +70,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
     RefinementResult result = wrappedRefiner.performBlockRefinement(iteration);
 
     if (result.isTrue()) {
-      //Finish iteration, the race is found
+      // Finish iteration, the race is found
       result.addPrecision(completePrecision);
       return result;
     }
@@ -83,8 +84,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
     return result;
   }
 
-
-  abstract protected O getNext(I pInput);
+  protected abstract O getNext(I pInput);
 
   protected void init(@SuppressWarnings("unused") I pInput) {}
 
@@ -100,9 +100,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
 
   @Override
   public final void printStatistics(StatisticsWriter pOut) {
-    StatisticsWriter writer = pOut.spacer()
-        .put(totalTimer)
-        .put(numOfIterations);
+    StatisticsWriter writer = pOut.spacer().put(totalTimer).put(numOfIterations);
 
     printDetailedStatistics(writer);
     wrappedRefiner.printStatistics(writer);
@@ -111,5 +109,4 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
   protected void postpone(O i) {
     postponedIterations.add(i);
   }
-
 }

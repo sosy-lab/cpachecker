@@ -38,7 +38,9 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
 
   @Option(
       secure = true,
-      description = "whether to use the top-down interpolation strategy or the bottom-up interpolation strategy")
+      description =
+          "whether to use the top-down interpolation strategy or the bottom-up interpolation"
+              + " strategy")
   private boolean useTopDownInterpolationStrategy = true;
 
   public static Refiner create(final ConfigurableProgramAnalysis pCpa)
@@ -83,15 +85,14 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
       final PrefixSelector pPrefixSelector,
       final Configuration pConfig,
       final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final CFA pCfa
-  ) throws InvalidConfigurationException {
+      final ShutdownNotifier pShutdownNotifier,
+      final CFA pCfa)
+      throws InvalidConfigurationException {
 
-    super(pFeasibilityChecker,
+    super(
+        pFeasibilityChecker,
         pStrongestPostOperator,
-        new SortingPathExtractor(pPrefixProvider,
-            pPrefixSelector,
-            pLogger,
-            pConfig),
+        new SortingPathExtractor(pPrefixProvider, pPrefixSelector, pLogger, pConfig),
         pPrefixProvider,
         pConfig,
         pLogger,
@@ -114,4 +115,3 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
         useTopDownInterpolationStrategy);
   }
 }
-

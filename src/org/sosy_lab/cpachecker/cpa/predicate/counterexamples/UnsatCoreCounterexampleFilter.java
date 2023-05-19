@@ -26,21 +26,23 @@ import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * A {@link CounterexampleFilter} that defines counterexamples as similar,
- * if the unsat core of their "negated paths" is the same.
- * The "negated path" of a counterexample is defined as the prefix of the path
- * until before the last AssumeEdge, and then the negation of that last AssumeEdge.
+ * A {@link CounterexampleFilter} that defines counterexamples as similar, if the unsat core of
+ * their "negated paths" is the same. The "negated path" of a counterexample is defined as the
+ * prefix of the path until before the last AssumeEdge, and then the negation of that last
+ * AssumeEdge.
  *
- * If the negated path is not infeasible, the counterexample is considered
- * relevant (because no interpolants can be computed).
+ * <p>If the negated path is not infeasible, the counterexample is considered relevant (because no
+ * interpolants can be computed).
  */
-public class UnsatCoreCounterexampleFilter extends AbstractNegatedPathCounterexampleFilter<ImmutableList<BooleanFormula>> {
+public class UnsatCoreCounterexampleFilter
+    extends AbstractNegatedPathCounterexampleFilter<ImmutableList<BooleanFormula>> {
 
   private final LogManager logger;
   private final Solver solver;
 
-  public UnsatCoreCounterexampleFilter(Configuration pConfig, LogManager pLogger,
-      ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+  public UnsatCoreCounterexampleFilter(
+      Configuration pConfig, LogManager pLogger, ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     super(pConfig, pLogger, pCpa);
     logger = pLogger;
     @SuppressWarnings("resource")
@@ -50,9 +52,11 @@ public class UnsatCoreCounterexampleFilter extends AbstractNegatedPathCounterexa
   }
 
   @Override
-  protected Optional<ImmutableList<BooleanFormula>> getCounterexampleRepresentation(List<BooleanFormula> formulas) throws InterruptedException {
+  protected Optional<ImmutableList<BooleanFormula>> getCounterexampleRepresentation(
+      List<BooleanFormula> formulas) throws InterruptedException {
 
-    try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_UNSAT_CORE)) {
+    try (ProverEnvironment thmProver =
+        solver.newProverEnvironment(ProverOptions.GENERATE_UNSAT_CORE)) {
 
       for (BooleanFormula f : formulas) {
         thmProver.push(f);
@@ -67,7 +71,10 @@ public class UnsatCoreCounterexampleFilter extends AbstractNegatedPathCounterexa
       return Optional.of(ImmutableList.copyOf(thmProver.getUnsatCore()));
 
     } catch (SolverException e) {
-      logger.logUserException(Level.WARNING, e, "Solving failed on counterexample path, cannot filter this counterexample");
+      logger.logUserException(
+          Level.WARNING,
+          e,
+          "Solving failed on counterexample path, cannot filter this counterexample");
       return Optional.empty();
     }
   }

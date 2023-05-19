@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
-//TODO this class misses a test case for two pointers
+// TODO this class misses a test case for two pointers
 public class SMGJoinValuesTest extends SMGJoinTest0 {
   private SMG smg1;
   private SMG smg2;
@@ -48,15 +48,7 @@ public class SMGJoinValuesTest extends SMGJoinTest0 {
 
     SMGJoinValues jv =
         new SMGJoinValues(
-            SMGJoinStatus.EQUAL,
-            smg1,
-            smg2,
-            smgDest,
-            mapping1,
-            mapping2,
-            value1,
-            value1,
-            0);
+            SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, value1, value1, 0);
     assertThat(jv.isDefined()).isTrue();
     assertThat(SMGJoinStatus.EQUAL).isEqualTo(jv.getStatus());
     assertThat(jv.getMapping1()).isEqualTo(new NodeMapping());
@@ -75,15 +67,7 @@ public class SMGJoinValuesTest extends SMGJoinTest0 {
 
     SMGJoinValues jv =
         new SMGJoinValues(
-            SMGJoinStatus.EQUAL,
-            smg1,
-            smg2,
-            smgDest,
-            mapping1,
-            mapping2,
-            value1,
-            value2,
-            0);
+            SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, value1, value2, 0);
     assertThat(jv.isDefined()).isTrue();
     assertThat(jv.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
     assertThat(jv.getInputSMG1()).isSameInstanceAs(smg1);
@@ -103,45 +87,21 @@ public class SMGJoinValuesTest extends SMGJoinTest0 {
     mapping1.addMapping(value1, value3);
     SMGJoinValues jv =
         new SMGJoinValues(
-            SMGJoinStatus.EQUAL,
-            smg1,
-            smg2,
-            smgDest,
-            mapping1,
-            mapping2,
-            value1,
-            value2,
-            0);
+            SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, value1, value2, 0);
     assertThat(jv.isDefined()).isFalse();
 
     mapping1 = new NodeMapping();
     mapping2.addMapping(value2, value3);
     jv =
         new SMGJoinValues(
-            SMGJoinStatus.EQUAL,
-            smg1,
-            smg2,
-            smgDest,
-            mapping1,
-            mapping2,
-            value1,
-            value2,
-            0);
+            SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, value1, value2, 0);
     assertThat(jv.isDefined()).isFalse();
 
     mapping2 = new NodeMapping();
 
     jv =
         new SMGJoinValues(
-            SMGJoinStatus.EQUAL,
-            smg1,
-            smg2,
-            smgDest,
-            mapping1,
-            mapping2,
-            value1,
-            value2,
-            0);
+            SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, value1, value2, 0);
     assertThat(jv.isDefined()).isTrue();
     assertThat(jv.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
     assertThat(jv.getInputSMG1()).isSameInstanceAs(smg1);
@@ -166,15 +126,7 @@ public class SMGJoinValuesTest extends SMGJoinTest0 {
     smg1 = smg1.copyAndAddPTEdge(pt, value1);
     SMGJoinValues jv =
         new SMGJoinValues(
-            SMGJoinStatus.EQUAL,
-            smg1,
-            smg2,
-            smgDest,
-            mapping1,
-            mapping2,
-            value1,
-            value2,
-            0);
+            SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, value1, value2, 0);
     assertThat(jv.isDefined()).isFalse();
   }
 }

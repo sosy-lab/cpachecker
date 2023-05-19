@@ -67,16 +67,10 @@ public class ConstraintsSolver {
   @Option(
       secure = true,
       description = "Whether to perform caching of constraint satisfiability results",
-      name = "cache"
-  )
+      name = "cache")
   private boolean doCaching = true;
 
-
-  @Option(
-      secure = true,
-      description = "Resolve definite assignments",
-      name = "resolveDefinites"
-  )
+  @Option(secure = true, description = "Resolve definite assignments", name = "resolveDefinites")
   private boolean resolveDefinites = true;
 
   private ConstraintsCache cache;
@@ -88,7 +82,7 @@ public class ConstraintsSolver {
   private CtoFormulaConverter converter;
   private SymbolicIdentifierLocator locator;
 
-  /** Table of id constraints set, id identifier assignment, formula * */
+  /** Table of id constraints set, id identifier assignment, formula */
   private Map<Constraint, BooleanFormula> constraintFormulas = new HashMap<>();
 
   private BooleanFormula literalForSingleAssignment;
@@ -189,13 +183,15 @@ public class ConstraintsSolver {
           }
 
           assert pConstraints.getModel().containsAll(pConstraints.getDefiniteAssignment())
-              : "Model does not imply definites: " + pConstraints.getModel() + " !=> "
-              + pConstraints.getDefiniteAssignment();
+              : "Model does not imply definites: "
+                  + pConstraints.getModel()
+                  + " !=> "
+                  + pConstraints.getDefiniteAssignment();
 
         } else {
           assert prover.isUnsat()
               : "Unsat with definite assignment, but not without. Definite assignment: "
-              + pConstraints.getDefiniteAssignment();
+                  + pConstraints.getDefiniteAssignment();
 
           cache.addUnsat(constraintsAsFormulas);
         }
@@ -210,8 +206,7 @@ public class ConstraintsSolver {
   }
 
   private BooleanFormula combineWithDefinites(
-      Collection<BooleanFormula> pConstraintsAsFormulas,
-      ConstraintsState pConstraints) {
+      Collection<BooleanFormula> pConstraintsAsFormulas, ConstraintsState pConstraints) {
 
     BooleanFormula singleConstraintFormula = booleanFormulaManager.and(pConstraintsAsFormulas);
     BooleanFormula definites = getDefAssignmentsFormula(pConstraints);
@@ -219,15 +214,12 @@ public class ConstraintsSolver {
   }
 
   private BooleanFormula getDefAssignmentsFormula(ConstraintsState pConstraints) {
-    return pConstraints.getDefiniteAssignment()
-        .stream()
+    return pConstraints.getDefiniteAssignment().stream()
         .map(ValueAssignment::getAssignmentAsFormula)
         .collect(booleanFormulaManager.toConjunction());
   }
 
-  private BooleanFormula createLiteralLabel(
-      BooleanFormula pLiteral,
-      BooleanFormula pFormula) {
+  private BooleanFormula createLiteralLabel(BooleanFormula pLiteral, BooleanFormula pFormula) {
     return booleanFormulaManager.implication(pLiteral, pFormula);
   }
 
@@ -299,8 +291,7 @@ public class ConstraintsSolver {
 
     for (ValueAssignment val : pModel) {
       if (SymbolicValues.isSymbolicTerm(val.getName())
-          && (existingDefinites.contains(val)
-          || isOnlySatisfyingAssignment(val))) {
+          && (existingDefinites.contains(val) || isOnlySatisfyingAssignment(val))) {
         newDefinites.add(val);
       }
     }
@@ -310,8 +301,7 @@ public class ConstraintsSolver {
   private boolean isOnlySatisfyingAssignment(ValueAssignment pTerm)
       throws SolverException, InterruptedException {
 
-    BooleanFormula prohibitAssignment =
-        formulaManager.makeNot(pTerm.getAssignmentAsFormula());
+    BooleanFormula prohibitAssignment = formulaManager.makeNot(pTerm.getAssignmentAsFormula());
 
     prohibitAssignment = createLiteralLabel(literalForSingleAssignment, prohibitAssignment);
     prover.push(prohibitAssignment);
@@ -327,8 +317,8 @@ public class ConstraintsSolver {
   }
 
   /**
-   * Returns the set of formulas representing all constraints of this state. If no
-   * constraints exist, this method will return an empty set.
+   * Returns the set of formulas representing all constraints of this state. If no constraints
+   * exist, this method will return an empty set.
    *
    * @return the set of formulas representing all constraints of this state
    * @throws UnrecognizedCodeException see {@link FormulaCreator#createFormula(Constraint)}
@@ -349,8 +339,7 @@ public class ConstraintsSolver {
     return formulas;
   }
 
-  private BooleanFormula createConstraintFormulas(
-      Constraint pConstraint, String pFunctionName)
+  private BooleanFormula createConstraintFormulas(Constraint pConstraint, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException {
     assert !constraintFormulas.containsKey(pConstraint)
         : "Trying to add a formula that already exists!";
@@ -362,13 +351,12 @@ public class ConstraintsSolver {
     CacheResult getCachedResult(Collection<BooleanFormula> pConstraints);
 
     void addSat(
-        Collection<BooleanFormula> pConstraints,
-        ImmutableList<ValueAssignment> pModelAssignment);
+        Collection<BooleanFormula> pConstraints, ImmutableList<ValueAssignment> pModelAssignment);
 
     void addUnsat(Collection<BooleanFormula> pConstraints);
   }
 
-  private class MatchingConstraintsCache implements ConstraintsCache {
+  private final class MatchingConstraintsCache implements ConstraintsCache {
 
     // TODO This should use an immutable data structure as key, and not Collection but List/Set
     private Map<Collection<BooleanFormula>, CacheResult> cacheMap = new HashMap<>();
@@ -393,8 +381,7 @@ public class ConstraintsSolver {
 
     @Override
     public void addSat(
-        Collection<BooleanFormula> pConstraints,
-        ImmutableList<ValueAssignment> pModelAssignment) {
+        Collection<BooleanFormula> pConstraints, ImmutableList<ValueAssignment> pModelAssignment) {
       add(pConstraints, CacheResult.getSat(pModelAssignment));
     }
 
@@ -408,7 +395,7 @@ public class ConstraintsSolver {
     }
   }
 
-  private class SupersetConstraintsCache implements ConstraintsCache {
+  private final class SupersetConstraintsCache implements ConstraintsCache {
 
     private ConstraintsCache delegate;
 
@@ -486,13 +473,11 @@ public class ConstraintsSolver {
     }
   }
 
-  private class SubsetConstraintsCache implements ConstraintsCache {
+  private final class SubsetConstraintsCache implements ConstraintsCache {
 
     private ConstraintsCache delegate;
 
-    /**
-     * Multimap that maps each constraint to all sets of constraints that it occurred in
-     */
+    /** Multimap that maps each constraint to all sets of constraints that it occurred in */
     private Multimap<BooleanFormula, Set<BooleanFormula>> constraintContainedIn =
         HashMultimap.create();
 
@@ -503,7 +488,7 @@ public class ConstraintsSolver {
     @Override
     public CacheResult getCachedResult(Collection<BooleanFormula> pConstraints) {
       CacheResult res = delegate.getCachedResult(pConstraints);
-        if (!res.isSat() && !res.isUnsat()) {
+      if (!res.isSat() && !res.isUnsat()) {
         try {
           stats.subsetLookupTime.start();
           res = getCachedResultOfSubset(pConstraints);
@@ -512,8 +497,8 @@ public class ConstraintsSolver {
           }
         } finally {
           stats.subsetLookupTime.stop();
-          }
         }
+      }
       return res;
     }
 
@@ -557,7 +542,7 @@ public class ConstraintsSolver {
     }
   }
 
-  private static class DummyCache implements ConstraintsCache {
+  private static final class DummyCache implements ConstraintsCache {
 
     @Override
     public CacheResult getCachedResult(Collection<BooleanFormula> pConstraints) {
@@ -566,8 +551,7 @@ public class ConstraintsSolver {
 
     @Override
     public void addSat(
-        Collection<BooleanFormula> pConstraints,
-        ImmutableList<ValueAssignment> pModelAssignment) {
+        Collection<BooleanFormula> pConstraints, ImmutableList<ValueAssignment> pModelAssignment) {
       // do nothing
     }
 

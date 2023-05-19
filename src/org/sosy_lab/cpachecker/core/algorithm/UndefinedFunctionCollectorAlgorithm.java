@@ -39,8 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -56,7 +55,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StandardFunctions;
 
@@ -137,14 +135,12 @@ public class UndefinedFunctionCollectorAlgorithm
   }
 
   private void collectUndefinedFunctions() throws InterruptedException {
-    for (CFANode node : cfa.getAllNodes()) {
+    for (CFAEdge edge : cfa.edges()) {
       shutdownNotifier.shutdownIfNecessary();
-      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-        if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
-          final AStatementEdge stmtEdge = (AStatementEdge) edge;
-          if (stmtEdge.getStatement() instanceof AFunctionCall) {
-            collectUndefinedFunction((AFunctionCall) stmtEdge.getStatement());
-          }
+      if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
+        final AStatementEdge stmtEdge = (AStatementEdge) edge;
+        if (stmtEdge.getStatement() instanceof AFunctionCall) {
+          collectUndefinedFunction((AFunctionCall) stmtEdge.getStatement());
         }
       }
     }
@@ -180,8 +176,7 @@ public class UndefinedFunctionCollectorAlgorithm
     pOut.println("Total undeclared functions called:        " + undeclaredFunctions.size());
     pOut.println(
         "Non-standard undeclared functions called: "
-            + undeclaredFunctions
-                .stream()
+            + undeclaredFunctions.stream()
                 .filter(name -> !allowedUndeclaredFunctionsRegexp.matcher(name).matches())
                 .count());
   }
@@ -232,7 +227,7 @@ public class UndefinedFunctionCollectorAlgorithm
     }
   }
 
-  private String getSignature(String name, IAFunctionType type) {
+  private String getSignature(String name, AFunctionType type) {
     StringBuilder res = new StringBuilder().append(name).append("(");
     int i = 0;
     for (Type pt : type.getParameters()) {
@@ -262,8 +257,7 @@ public class UndefinedFunctionCollectorAlgorithm
       buf.append(indent + "// Pointer type\n");
       prepend.append(odmFunctionDecl);
       buf.append(indent + "return (" + rt.toASTString("") + ")" + externAllocFunction + "();\n");
-    } else if (rt instanceof CSimpleType) {
-      CSimpleType ct = (CSimpleType) rt;
+    } else if (rt instanceof CSimpleType ct) {
       Pair<String, String> pair = convertType(ct);
       String nondetFunc = NONDET_FUNCTION_PREFIX + pair.getSecond();
       prepend.append(pair.getFirst() + " " + nondetFunc + "(void);\n");
@@ -278,7 +272,7 @@ public class UndefinedFunctionCollectorAlgorithm
       buf.append(indent + "// Composite type\n");
       prepend.append(odmFunctionDecl);
       // We can not use rt.toASTString(), as it produces full definition with all fields
-      buf.append(indent + rt + " *tmp" + " = (" + rt + "*)" + externAllocFunction + "();\n");
+      buf.append(indent + rt + " *tmp = (" + rt + "*)" + externAllocFunction + "();\n");
       prepend.append(ASSUME_FUNCTION_DECL);
       buf.append(indent + ASSUME_FUNCTION_NAME + "(tmp != 0);\n");
       buf.append(indent + "return *tmp;\n");

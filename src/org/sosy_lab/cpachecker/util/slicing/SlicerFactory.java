@@ -33,7 +33,7 @@ public class SlicerFactory implements StatisticsProvider {
   private enum ExtractorType {
     ALL,
     REDUCER,
-    SYNTAX;
+    SYNTAX,
   }
 
   private enum SlicingType {
@@ -49,7 +49,7 @@ public class SlicerFactory implements StatisticsProvider {
      *
      * @see IdentitySlicer
      */
-    IDENTITY
+    IDENTITY,
   }
 
   @Options(prefix = "slicing")
@@ -93,7 +93,7 @@ public class SlicerFactory implements StatisticsProvider {
 
   private CSystemDependenceGraph createDependenceGraph(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
-      throws CPAException, InvalidConfigurationException {
+      throws CPAException, InvalidConfigurationException, InterruptedException {
 
     final CSystemDependenceGraphBuilder depGraphBuilder =
         new CSystemDependenceGraphBuilder(pCfa, pConfig, pLogger, pShutdownNotifier);
@@ -111,24 +111,17 @@ public class SlicerFactory implements StatisticsProvider {
    */
   public Slicer create(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
-      throws CPAException, InvalidConfigurationException {
+      throws CPAException, InvalidConfigurationException, InterruptedException {
     SlicerOptions options = new SlicerOptions(pConfig);
 
     final SlicingCriteriaExtractor extractor;
     final ExtractorType extractorType = options.getExtractorType();
-    switch (extractorType) {
-      case ALL:
-        extractor = new AllTargetsExtractor();
-        break;
-      case REDUCER:
-        extractor = new ReducerExtractor(pConfig);
-        break;
-      case SYNTAX:
-        extractor = new SyntaxExtractor(pConfig, pCfa, pLogger, pShutdownNotifier);
-        break;
-      default:
-        throw new AssertionError("Unhandled criterion extractor type " + extractorType);
-    }
+    extractor =
+        switch (extractorType) {
+          case ALL -> new AllTargetsExtractor();
+          case REDUCER -> new ReducerExtractor(pConfig);
+          case SYNTAX -> new SyntaxExtractor(pConfig, pCfa, pLogger, pShutdownNotifier);
+        };
 
     final SlicingType slicingType = options.getSlicingType();
     switch (slicingType) {

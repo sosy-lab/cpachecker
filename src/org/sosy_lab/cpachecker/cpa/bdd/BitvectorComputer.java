@@ -75,7 +75,7 @@ class BitvectorComputer {
       }
       int M = partition.getVars().size();
       return (int) Math.ceil(Math.log(N + M) / Math.log(2));
-    } else if (type != null) {
+    } else if (type != null && type.hasKnownConstantSize()) {
       return machineModel.getSizeofInBits(type).intValueExact();
     } else {
       // we know nothing
@@ -87,8 +87,7 @@ class BitvectorComputer {
    * This function returns a bitvector, that represents the expression. The partition chooses the
    * compression of the bitvector.
    */
-  @Nullable
-  Region[] evaluateVectorExpression(
+  @Nullable Region[] evaluateVectorExpression(
       final Partition partition,
       final CExpression exp,
       CType targetType,
@@ -130,8 +129,7 @@ class BitvectorComputer {
    * This function returns a bitvector, that represents the expression. The partition chooses the
    * compression of the bitvector.
    */
-  @Nullable
-  Region[] evaluateVectorExpressionWithPointerState(
+  @Nullable Region[] evaluateVectorExpressionWithPointerState(
       final Partition partition,
       final CExpression exp,
       CType targetType,

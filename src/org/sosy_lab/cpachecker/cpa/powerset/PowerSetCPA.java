@@ -32,6 +32,7 @@ public class PowerSetCPA extends AbstractSingleWrapperCPA {
   }
 
   private final PowerSetDomain domain;
+
   // TODO: domain depends on current initial precision. This might be wrong!
 
   public PowerSetCPA(final ConfigurableProgramAnalysis pCpa) {
@@ -63,7 +64,6 @@ public class PowerSetCPA extends AbstractSingleWrapperCPA {
   public PrecisionAdjustment getPrecisionAdjustment() {
     return new PowerSetPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
   }
-
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)

@@ -162,13 +162,13 @@ public class BAMDataManagerSynchronized implements BAMDataManager {
 
   @Override
   public boolean addUncachedBlockEntry(CFANode pNode) {
-    //Not sure how the option works with ParallelBAM
+    // Not sure how the option works with ParallelBAM
     return true;
   }
 
   @Override
   public boolean isUncachedBlockEntry(CFANode pNode) {
-    //Not sure how the option works with ParallelBAM
+    // Not sure how the option works with ParallelBAM
     return false;
   }
 

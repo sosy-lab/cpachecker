@@ -38,7 +38,7 @@ public class AlgorithmContext {
     REUSEOWNANDPREDPRECISION,
     REUSECPA_OWNPRECISION,
     REUSECPA_PREDPRECISION,
-    REUSECPA_OWNANDPREDPRECISION;
+    REUSECPA_OWNANDPREDPRECISION,
   }
 
   private final Path configFile;
@@ -220,5 +220,4 @@ public class AlgorithmContext {
   public TimeSpan getTotalTimeSpent() {
     return timer.getSumTime();
   }
-
 }

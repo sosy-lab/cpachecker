@@ -61,8 +61,7 @@ interface LoopIterationState {
     @Override
     public LoopIterationState visitLoopHead(Loop pLoop) {
       Loop loop = pLoop;
-      LoopIteration storedIteration =
-          iterations.getOrDefault(loop, new LoopIteration(pLoop, 0));
+      LoopIteration storedIteration = iterations.getOrDefault(loop, new LoopIteration(pLoop, 0));
       if (loop.equals(storedIteration.getLoop())) {
         storedIteration = storedIteration.increment();
         return new UndeterminedLoopIterationState(
@@ -80,7 +79,9 @@ interface LoopIterationState {
 
     @Override
     public String toString() {
-      return String.format("Undetermined loop iteration state; at least %d iterations in some loop (%s).", maxLoopIteration, iterations);
+      return String.format(
+          "Undetermined loop iteration state; at least %d iterations in some loop (%s).",
+          maxLoopIteration, iterations);
     }
 
     @Override
@@ -88,8 +89,7 @@ interface LoopIterationState {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof UndeterminedLoopIterationState) {
-        UndeterminedLoopIterationState other = (UndeterminedLoopIterationState) pObj;
+      if (pObj instanceof UndeterminedLoopIterationState other) {
         return loopCounterAbstracted == other.loopCounterAbstracted
             && maxLoopIteration == other.maxLoopIteration
             && iterations.equals(other.iterations);
@@ -144,7 +144,7 @@ interface LoopIterationState {
       if (getMaxIterationCount() <= pLoopIterationsBeforeAbstraction) {
         return this;
       }
-      PersistentSortedMap<Loop, LoopIteration> iters = this.iterations;
+      PersistentSortedMap<Loop, LoopIteration> iters = iterations;
       for (Map.Entry<Loop, LoopIteration> entry : iters.entrySet()) {
         Loop loop = entry.getKey();
         LoopIteration oldIterationCount = entry.getValue();
@@ -152,8 +152,7 @@ interface LoopIterationState {
           iters =
               iters.putAndCopy(
                   loop,
-                  new LoopIteration(
-                      oldIterationCount.getLoop(), pLoopIterationsBeforeAbstraction));
+                  new LoopIteration(oldIterationCount.getLoop(), pLoopIterationsBeforeAbstraction));
         }
       }
       return new UndeterminedLoopIterationState(iters, pLoopIterationsBeforeAbstraction, true);
@@ -202,14 +201,11 @@ interface LoopIterationState {
         if (this == pObj) {
           return true;
         }
-        if (pObj instanceof LoopIteration) {
-          LoopIteration other = (LoopIteration) pObj;
-          return iteration == other.iteration
-              && loop.equals(other.loop);
+        if (pObj instanceof LoopIteration other) {
+          return iteration == other.iteration && loop.equals(other.loop);
         }
         return false;
       }
-
     }
   }
 
@@ -243,8 +239,7 @@ interface LoopIterationState {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof DeterminedLoopIterationState) {
-        DeterminedLoopIterationState other = (DeterminedLoopIterationState) pObj;
+      if (pObj instanceof DeterminedLoopIterationState other) {
         return loopCounterAbstracted == other.loopCounterAbstracted
             && iteration == other.iteration
             && loop.equals(other.loop);
@@ -306,7 +301,5 @@ interface LoopIterationState {
       }
       return new DeterminedLoopIterationState(loop, pLoopIterationsBeforeAbstraction, true);
     }
-
   }
-
 }

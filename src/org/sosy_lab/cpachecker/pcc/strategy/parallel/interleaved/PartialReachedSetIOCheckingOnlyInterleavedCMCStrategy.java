@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.pcc.strategy.parallel.interleaved;
 
 import com.google.common.collect.Sets;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.file.Path;
@@ -19,7 +18,6 @@ import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import java.util.zip.ZipInputStream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -44,8 +42,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.AssumptionAutomatonGenerato
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.PartialCPABuilder;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 // FIXME unsound strategy
 public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends AbstractStrategy {
@@ -54,6 +51,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   private final ShutdownNotifier shutdown;
   private final PartialCPABuilder cpaBuilder;
   private final AssumptionAutomatonGenerator automatonWriter;
+
+  private final CFA cfa;
   private int numProofs;
 
   public PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy(
@@ -65,6 +64,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
       final @Nullable Specification pSpecification)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pProofFile);
+    cfa = pCFA;
     cpaBuilder = new PartialCPABuilder(pConfig, pLogger, pShutdownNotifier, pCFA, pSpecification);
     automatonWriter = new AssumptionAutomatonGenerator(pConfig, pLogger);
     config = pConfig;
@@ -77,11 +77,13 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
       UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, InterruptedException {
     throw new InvalidConfigurationException(
-        "Interleaved proof reading and checking strategies do not  support internal PCC with result check algorithm");
+        "Interleaved proof reading and checking strategies do not  support internal PCC with result"
+            + " check algorithm");
   }
 
   @Override
-  public boolean checkCertificate(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public boolean checkCertificate(ReachedSet pReachedSet)
+      throws CPAException, InterruptedException {
     pReachedSet.popFromWaitlist();
     if (numProofs <= 0) {
       logger.log(Level.SEVERE, "No proofs provided.");
@@ -115,12 +117,12 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
 
         CMCPartitionChecker checker;
 
-        for (int i = 0; checkResult.get() && i < numProofs;) {
+        for (int i = 0; checkResult.get() && i < numProofs; ) {
           shutdown.shutdownIfNecessary();
 
           partitionsAvailable.acquire();
 
-          if(!checkResult.get()) {
+          if (!checkResult.get()) {
             return false;
           }
 
@@ -133,23 +135,28 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
             shutdown.shutdownIfNecessary();
             partitionsAvailable.acquire();
 
-            if(!checkResult.get()) {
+            if (!checkResult.get()) {
               return false;
             }
 
-            checker.checkPartition(ioHelpers[i].getPartition(j).getFirst(), ioHelpers[i].getPartition(j).getSecond(),
-                ioHelpers[i].getEdgesForPartition(j), ioHelpers[i].getSavedReachedSetSize());
+            checker.checkPartition(
+                ioHelpers[i].getPartition(j).getFirst(),
+                ioHelpers[i].getPartition(j).getSecond(),
+                ioHelpers[i].getEdgesForPartition(j),
+                ioHelpers[i].getSavedReachedSetSize());
           }
 
           // check if all external nodes are checked in different partition
           if (!checker.checkCoverageOfExternalsAndInitialState()) {
-            logger.log(Level.SEVERE,
-                "Elements which should be checked in different partition are not checked or initial state not covered");
+            logger.log(
+                Level.SEVERE,
+                "Elements which should be checked in different partition are not checked or initial"
+                    + " state not covered");
             return false;
           }
 
           // inspect safety
-          if(!cpas[i].getPropChecker().satisfiesProperty(checker.getInspectedStates())){
+          if (!cpas[i].getPropChecker().satisfiesProperty(checker.getInspectedStates())) {
             logger.log(Level.SEVERE, "Property violation in certificate found.");
             return false;
           }
@@ -157,12 +164,12 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
           checkingResult = checker.getAutomatonReconstructionInfo();
 
           i++;
-          if(i<numProofs) {
+          if (i < numProofs) {
             // write assumption automaton for next round
             automatonWriter.writeAutomaton(checkingResult.getFirst(), checkingResult.getSecond());
             automatonAvailable.release();
           } else {
-            if(!checkingResult.getSecond().isEmpty()) {
+            if (!checkingResult.getSecond().isEmpty()) {
               return false;
             }
           }
@@ -182,8 +189,11 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   protected void writeProofToStream(
       ObjectOutputStream pOut, UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
       throws IOException, InvalidConfigurationException, InterruptedException {
-    if (!(pReached instanceof HistoryForwardingReachedSet)) { throw new InvalidConfigurationException(
-        "Reached sets used by restart algorithm are not memorized. Please enable option analysis.memorizeReachedAfterRestart"); }
+    if (!(pReached instanceof HistoryForwardingReachedSet)) {
+      throw new InvalidConfigurationException(
+          "Reached sets used by restart algorithm are not memorized. Please enable option"
+              + " analysis.memorizeReachedAfterRestart");
+    }
 
     List<ReachedSet> partialReachedSets =
         ((HistoryForwardingReachedSet) pReached).getAllReachedSetsUsedAsDelegates();
@@ -208,7 +218,6 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
     try {
       ReachedSet reached;
       for (int i = 0; i < partialReachedSets.size(); i++) {
-        GlobalInfo.getInstance().setUpInfoFromCPA(cpas.get(i));
         reached = partialReachedSets.get(i);
 
         unexplored = Sets.newHashSetWithExpectedSize(reached.getWaitlist().size());
@@ -216,10 +225,21 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
           unexplored.add((ARGState) toExplore);
         }
 
-        ioHelper = new CMCPartitioningIOHelper(config, logger, shutdown,
-            automatonWriter.getAllAncestorsFor(unexplored), unexplored, (ARGState) reached.getFirstState());
-        ioHelper.writeProof(pOut, reached, pCpa);
-     }
+        ioHelper =
+            new CMCPartitioningIOHelper(
+                config,
+                logger,
+                shutdown,
+                automatonWriter.getAllAncestorsFor(unexplored),
+                unexplored,
+                (ARGState) reached.getFirstState());
+        SerializationInfoStorage.storeSerializationInformation(cpas.get(i), cfa);
+        try {
+          ioHelper.writeProof(pOut, reached, pCpa);
+        } finally {
+          SerializationInfoStorage.clear();
+        }
+      }
     } catch (ClassCastException e) {
       logger.logDebugException(e);
       logger.log(Level.SEVERE, "Stop writing proof. Not all analysis use ARG CPA as top level CPA");
@@ -227,8 +247,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   }
 
   @Override
-  protected void readProofFromStream(ObjectInputStream pIn) throws ClassNotFoundException,
-      InvalidConfigurationException, IOException {
+  protected void readProofFromStream(ObjectInputStream pIn)
+      throws ClassNotFoundException, InvalidConfigurationException, IOException {
     numProofs = pIn.readInt();
     // remaining proof parts are read interleaved, no further reading required
   }
@@ -236,14 +256,20 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   private class ProofPartReader implements Runnable {
 
     private final AtomicBoolean checkResult;
-    private final Semaphore mainSemaphore, startReading;
+    private final Semaphore mainSemaphore;
+    private final Semaphore startReading;
     private final CMCPartitioningIOHelper[] ioHelperPerProofPart;
     private final PropertyCheckerCPA[] cpas;
     private final AbstractState[] roots;
     private final ReachedSetFactory factory;
 
-    public ProofPartReader(final Semaphore pReadNext, Semaphore pPartitionsAvailable, final AtomicBoolean pCheckResult,
-        final CMCPartitioningIOHelper[] pIoHelpers, final PropertyCheckerCPA[] pCpas, final AbstractState[] pRoots,
+    public ProofPartReader(
+        final Semaphore pReadNext,
+        Semaphore pPartitionsAvailable,
+        final AtomicBoolean pCheckResult,
+        final CMCPartitioningIOHelper[] pIoHelpers,
+        final PropertyCheckerCPA[] pCpas,
+        final AbstractState[] pRoots,
         final ReachedSetFactory pFactory) {
       startReading = pReadNext;
       checkResult = pCheckResult;
@@ -257,10 +283,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
     @Override
     @SuppressWarnings("Finally") // not really better doable without switching to Closer
     public void run() {
-      Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
-      try {
-        streams = openProofStream();
-        ObjectInputStream o = streams.getThird();
+      try (ObjectInputStream o = openProofStream()) {
         o.readInt();
 
         CMCPartitioningIOHelper ioHelper;
@@ -276,32 +299,41 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
           // create config for reading and save for later checking
           cpa = cpaBuilder.buildPartialCPA(i, factory);
           if (!(cpa instanceof PropertyCheckerCPA)) {
-            logger.log(Level.SEVERE,
-                    "Conflicting configuration: Partial proofs must be checked with CPA based strategy but toplevel CPA is not a PropertyCheckerCPA as needed");
+            logger.log(
+                Level.SEVERE,
+                "Conflicting configuration: Partial proofs must be checked with CPA based strategy"
+                    + " but toplevel CPA is not a PropertyCheckerCPA as needed");
             abortPreparation();
             break;
           }
           cpas[i] = (PropertyCheckerCPA) cpa;
-          GlobalInfo.getInstance().setUpInfoFromCPA(cpas[i]);
-
           mustReadAndCheckSequentially = CPAs.retrieveCPA(cpa, PredicateCPA.class) != null;
-
-          ioHelper.readMetadata(o, true);
+          SerializationInfoStorage.storeSerializationInformation(cpas[i], cfa);
+          try {
+            ioHelper.readMetadata(o, true);
+          } finally {
+            SerializationInfoStorage.clear();
+          }
           roots[i] = ioHelper.getRoot();
 
-          if(roots[i] == null) {
+          if (roots[i] == null) {
             logger.log(Level.SEVERE, "Root node not well specified in proof.");
             abortPreparation();
             break;
           }
 
           // release for set up checking of particular, partial proof
-          if(!mustReadAndCheckSequentially) {
+          if (!mustReadAndCheckSequentially) {
             mainSemaphore.release();
           }
 
           for (int j = 0; j < ioHelper.getNumPartitions() && checkResult.get(); j++) {
-            ioHelper.readPartition(o, stats);
+            SerializationInfoStorage.storeSerializationInformation(cpas[i], cfa);
+            try {
+              ioHelper.readPartition(o, stats);
+            } finally {
+              SerializationInfoStorage.clear();
+            }
 
             if (shutdown.shouldShutdown()) {
               abortPreparation();
@@ -309,35 +341,25 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
             }
 
             // release to check partition
-            if(!mustReadAndCheckSequentially) {
+            if (!mustReadAndCheckSequentially) {
               mainSemaphore.release();
             }
           }
-          if(mustReadAndCheckSequentially) {
-            mainSemaphore.release(ioHelper.getNumPartitions()+1);
+          if (mustReadAndCheckSequentially) {
+            mainSemaphore.release(ioHelper.getNumPartitions() + 1);
           }
         }
       } catch (IOException | ClassNotFoundException e) {
         logger.logUserException(Level.SEVERE, e, "Partition reading failed. Stop checking");
         abortPreparation();
-      } catch(InterruptedException exp) {
-        if(checkResult.get()) {
+      } catch (InterruptedException exp) {
+        if (checkResult.get()) {
           logger.log(Level.SEVERE, "Unexpected interrupt. Stop checking.");
           abortPreparation();
         }
       } catch (Exception e2) {
         logger.logException(Level.SEVERE, e2, "Unexpected failure during proof reading");
         abortPreparation();
-      } finally {
-        if (streams != null) {
-          try {
-            streams.getThird().close();
-            streams.getSecond().close();
-            streams.getFirst().close();
-          } catch (IOException e) {
-            throw new AssertionError(e);
-          }
-        }
       }
     }
 
@@ -345,7 +367,5 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
       checkResult.set(false);
       mainSemaphore.release(2);
     }
-
   }
-
 }

@@ -13,17 +13,15 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 enum AlwaysTopMergeOperator implements MergeOperator {
-
   INSTANCE;
 
   @Override
-  public AbstractState merge(AbstractState pElement1,
-      AbstractState pElement2, Precision pPrecision) {
+  public AbstractState merge(
+      AbstractState pElement1, AbstractState pElement2, Precision pPrecision) {
 
     assert pElement1 == AlwaysTopState.INSTANCE;
     assert pElement2 == AlwaysTopState.INSTANCE;
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
     return AlwaysTopState.INSTANCE;
   }
-
 }

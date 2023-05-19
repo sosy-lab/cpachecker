@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
- * Adds intermediate {@link CFAEdge}s created by {@link TerminationTransferRelation}
- * during the analysis to the full path.
+ * Adds intermediate {@link CFAEdge}s created by {@link TerminationTransferRelation} during the
+ * analysis to the full path.
  */
 public class TerminationARGPath extends ARGPath {
 

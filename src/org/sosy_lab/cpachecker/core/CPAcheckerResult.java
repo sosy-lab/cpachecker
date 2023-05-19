@@ -21,9 +21,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ResultProviderReachedSet;
 
-/**
- * Class that represents the result of a CPAchecker analysis.
- */
+/** Class that represents the result of a CPAchecker analysis. */
 public class CPAcheckerResult {
 
   /** Enum for the possible outcomes of a CPAchecker analysis */
@@ -73,9 +71,7 @@ public class CPAcheckerResult {
     this(result, targetDescription, null, null, null);
   }
 
-  /**
-   * Return the result of the analysis.
-   */
+  /** Return the result of the analysis. */
   public Result getResult() {
     return result;
   }
@@ -94,9 +90,7 @@ public class CPAcheckerResult {
     return reached;
   }
 
-  /**
-   * Return the CFA.
-   */
+  /** Return the CFA. */
   public @Nullable CFA getCfa() {
     return cfa;
   }
@@ -106,8 +100,8 @@ public class CPAcheckerResult {
   }
 
   /**
-   * Write the statistics to a given PrintWriter. Additionally some output files
-   * may be written here, if configuration says so.
+   * Write the statistics to a given PrintWriter. Additionally some output files may be written
+   * here, if configuration says so.
    */
   public void printStatistics(PrintStream target) {
     if (stats != null) {

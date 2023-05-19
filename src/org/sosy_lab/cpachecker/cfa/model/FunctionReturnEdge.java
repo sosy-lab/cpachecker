@@ -8,16 +8,18 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-
 
 public class FunctionReturnEdge extends AbstractCFAEdge {
 
   private static final long serialVersionUID = 7267973320703716417L;
   private final FunctionSummaryEdge summaryEdge;
 
-  protected FunctionReturnEdge(FileLocation pFileLocation,
-      FunctionExitNode pPredecessor, CFANode pSuccessor,
+  protected FunctionReturnEdge(
+      FileLocation pFileLocation,
+      FunctionExitNode pPredecessor,
+      CFANode pSuccessor,
       FunctionSummaryEdge pSummaryEdge) {
 
     super("", pFileLocation, pPredecessor, pSuccessor);
@@ -35,8 +37,12 @@ public class FunctionReturnEdge extends AbstractCFAEdge {
 
   @Override
   public String getDescription() {
-    return "Return edge from " + getPredecessor().getFunctionName() + " to "
-        + getSuccessor().getFunctionName() + ": " + summaryEdge.getExpression();
+    return "Return edge from "
+        + getPredecessor().getFunctionName()
+        + " to "
+        + getSuccessor().getFunctionName()
+        + ": "
+        + summaryEdge.getExpression();
   }
 
   @Override
@@ -47,10 +53,19 @@ public class FunctionReturnEdge extends AbstractCFAEdge {
   @Override
   public FunctionExitNode getPredecessor() {
     // the constructor enforces that the predecessor is always a FunctionExitNode
-    return (FunctionExitNode)super.getPredecessor();
+    return (FunctionExitNode) super.getPredecessor();
   }
 
   public FunctionEntryNode getFunctionEntry() {
     return summaryEdge.getFunctionEntry();
+  }
+
+  public AFunctionCall getFunctionCall() {
+    return summaryEdge.getExpression();
+  }
+
+  /** Return the {@link CFANode} that is the call site (before the function call in the caller). */
+  public CFANode getCallNode() {
+    return summaryEdge.getPredecessor();
   }
 }

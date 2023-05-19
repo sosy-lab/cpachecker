@@ -21,19 +21,21 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public final class TestTargetReductionUtils {
 
-  private TestTargetReductionUtils() {
-  }
+  private TestTargetReductionUtils() {}
 
   public static Pair<CFANode, CFANode> buildTestGoalGraph(
       final Set<CFAEdge> pTestTargets,
@@ -49,8 +51,12 @@ public final class TestTargetReductionUtils {
 
     origCFANodeToCopyMap.put(pEntryNode, CFANode.newDummyCFANode());
     toExplore.add(pEntryNode);
-    origCFANodeToCopyMap.put(pEntryNode.getExitNode(), CFANode.newDummyCFANode(""));
-    successorNodes.add(pEntryNode.getExitNode());
+    Optional<FunctionExitNode> functionExitNode = pEntryNode.getExitNode();
+    functionExitNode.ifPresent(
+        exitNode -> {
+          origCFANodeToCopyMap.put(exitNode, CFANode.newDummyCFANode(""));
+          successorNodes.add(exitNode);
+        });
     for (CFAEdge target : pTestTargets) {
       successorNodes.add(target.getPredecessor());
       toExplore.add(target.getSuccessor());
@@ -71,9 +77,9 @@ public final class TestTargetReductionUtils {
 
     for (CFANode predecessor : toExplore) {
       if (!successorNodes.contains(predecessor)) {
-      // get next node in the queue
-      waitlist.add(predecessor);
-      visited.clear();
+        // get next node in the queue
+        waitlist.add(predecessor);
+        visited.clear();
       }
 
       while (!waitlist.isEmpty()) {
@@ -81,7 +87,8 @@ public final class TestTargetReductionUtils {
 
         for (CFAEdge leaving : CFAUtils.leavingEdges(currentNode)) {
           if (successorNodes.contains(leaving.getSuccessor())) {
-            if (!origCFANodeToCopyMap.get(predecessor)
+            if (!origCFANodeToCopyMap
+                .get(predecessor)
                 .hasEdgeTo(origCFANodeToCopyMap.get(leaving.getSuccessor()))) {
               copyAsDummyEdge(
                   origCFANodeToCopyMap.get(predecessor),
@@ -96,16 +103,18 @@ public final class TestTargetReductionUtils {
       }
     }
 
-    if (removeUnreachableTestGoalsAndIsReachExit(
-        pTestTargets,
-        pCopiedEdgeToTestTargetsMap,
-        origCFANodeToCopyMap.get(pEntryNode),
-        origCFANodeToCopyMap.get(pEntryNode.getExitNode()))) {
-      return Pair.of(
-          origCFANodeToCopyMap.get(pEntryNode), origCFANodeToCopyMap.get(pEntryNode.getExitNode()));
-    } else {
-      return Pair.of(origCFANodeToCopyMap.get(pEntryNode), null);
-    }
+    @Nullable CFANode exitNodeCopy =
+        functionExitNode
+            .filter(
+                exitNode ->
+                    removeUnreachableTestGoalsAndIsReachExit(
+                        pTestTargets,
+                        pCopiedEdgeToTestTargetsMap,
+                        origCFANodeToCopyMap.get(pEntryNode),
+                        origCFANodeToCopyMap.get(exitNode)))
+            .map(exitNode -> origCFANodeToCopyMap.get(exitNode))
+            .orElse(null);
+    return Pair.of(origCFANodeToCopyMap.get(pEntryNode), exitNodeCopy);
   }
 
   private static boolean removeUnreachableTestGoalsAndIsReachExit(
@@ -151,7 +160,7 @@ public final class TestTargetReductionUtils {
 
   public static void drawGraph(final Path pOutputfile, final CFANode pEntry) throws IOException {
     try (Writer sb = IO.openOutputFile(pOutputfile, Charset.defaultCharset())) {
-      sb.append("digraph " + "CFA" + " {\n");
+      sb.append("digraph CFA {\n");
       // define the graphic representation for all subsequent nodes
       sb.append("node [shape=\"circle\"]\n");
 
@@ -160,14 +169,14 @@ public final class TestTargetReductionUtils {
 
       visited.add(pEntry);
       waitlist.add(pEntry);
-      sb.append(pEntry.getNodeNumber() + " [shape=\"circle\"]" + "\n");
+      sb.append(pEntry.getNodeNumber() + " [shape=\"circle\"]\n");
 
       CFANode pred;
       while (!waitlist.isEmpty()) {
         pred = waitlist.poll();
         for (CFANode succ : CFAUtils.allSuccessorsOf(pred)) {
           if (visited.add(succ)) {
-            sb.append(succ.getNodeNumber() + " [shape=\"circle\"]" + "\n");
+            sb.append(succ.getNodeNumber() + " [shape=\"circle\"]\n");
             waitlist.add(succ);
           }
           sb.append(pred.getNodeNumber() + " -> " + succ.getNodeNumber() + "\n");

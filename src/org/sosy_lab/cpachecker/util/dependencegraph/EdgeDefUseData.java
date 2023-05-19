@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -57,9 +58,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public final class EdgeDefUseData {
@@ -139,9 +140,8 @@ public final class EdgeDefUseData {
 
           AAstNode astNode = optAstNode.orElseThrow();
 
-          if (astNode instanceof CAstNode) {
+          if (astNode instanceof CAstNode cAstNode) {
 
-            CAstNode cAstNode = (CAstNode) astNode;
             Collector collector = new Collector(pConsiderPointees);
             cAstNode.accept(collector);
 
@@ -202,11 +202,7 @@ public final class EdgeDefUseData {
     }
   }
 
-  private static final class EdgeDefUseDataException extends RuntimeException {
-    private static final long serialVersionUID = -2034884371415467901L;
-  }
-
-  private static class Collector implements CAstNodeVisitor<Void, EdgeDefUseDataException> {
+  private static class Collector implements CAstNodeVisitor<Void, NoException> {
 
     private final boolean considerPointees;
 
@@ -241,7 +237,7 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CArrayDesignator pArrayDesignator) throws EdgeDefUseDataException {
+    public Void visit(CArrayDesignator pArrayDesignator) {
 
       pArrayDesignator.getSubscriptExpression().accept(this);
 
@@ -249,7 +245,7 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CArrayRangeDesignator pArrayRangeDesignator) throws EdgeDefUseDataException {
+    public Void visit(CArrayRangeDesignator pArrayRangeDesignator) {
 
       pArrayRangeDesignator.getFloorExpression().accept(this);
       pArrayRangeDesignator.getCeilExpression().accept(this);
@@ -258,13 +254,12 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CFieldDesignator pFieldDesignator) throws EdgeDefUseDataException {
+    public Void visit(CFieldDesignator pFieldDesignator) {
       return null;
     }
 
     @Override
-    public Void visit(CInitializerExpression pInitializerExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CInitializerExpression pInitializerExpression) {
 
       pInitializerExpression.getExpression().accept(this);
 
@@ -272,7 +267,7 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CInitializerList pInitializerList) throws EdgeDefUseDataException {
+    public Void visit(CInitializerList pInitializerList) {
 
       for (CInitializer initializer : pInitializerList.getInitializers()) {
         initializer.accept(this);
@@ -282,8 +277,7 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CDesignatedInitializer pCStructInitializerPart)
-        throws EdgeDefUseDataException {
+    public Void visit(CDesignatedInitializer pCStructInitializerPart) {
 
       pCStructInitializerPart.getRightHandSide().accept(this);
 
@@ -295,8 +289,7 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CFunctionCallExpression pIastFunctionCallExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CFunctionCallExpression pIastFunctionCallExpression) {
 
       pIastFunctionCallExpression.getFunctionNameExpression().accept(this);
 
@@ -308,7 +301,7 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CBinaryExpression pIastBinaryExpression) throws EdgeDefUseDataException {
+    public Void visit(CBinaryExpression pIastBinaryExpression) {
 
       pIastBinaryExpression.getOperand1().accept(this);
       pIastBinaryExpression.getOperand2().accept(this);
@@ -317,7 +310,7 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CCastExpression pIastCastExpression) throws EdgeDefUseDataException {
+    public Void visit(CCastExpression pIastCastExpression) {
 
       pIastCastExpression.getOperand().accept(this);
 
@@ -325,36 +318,32 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CCharLiteralExpression pIastCharLiteralExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CCharLiteralExpression pIastCharLiteralExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CFloatLiteralExpression pIastFloatLiteralExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CStringLiteralExpression pIastStringLiteralExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CStringLiteralExpression pIastStringLiteralExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CTypeIdExpression pIastTypeIdExpression) throws EdgeDefUseDataException {
+    public Void visit(CTypeIdExpression pIastTypeIdExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CUnaryExpression pIastUnaryExpression) throws EdgeDefUseDataException {
+    public Void visit(CUnaryExpression pIastUnaryExpression) {
 
       pIastUnaryExpression.getOperand().accept(this);
 
@@ -362,20 +351,17 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CImaginaryLiteralExpression PIastLiteralExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CImaginaryLiteralExpression PIastLiteralExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CAddressOfLabelExpression pAddressOfLabelExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
 
       Mode prev = mode;
 
@@ -394,7 +380,7 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CFieldReference pIastFieldReference) throws EdgeDefUseDataException {
+    public Void visit(CFieldReference pIastFieldReference) {
 
       if (pIastFieldReference.isPointerDereference()) {
 
@@ -434,7 +420,7 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CIdExpression pIastIdExpression) throws EdgeDefUseDataException {
+    public Void visit(CIdExpression pIastIdExpression) {
 
       CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
 
@@ -450,7 +436,7 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CPointerExpression pPointerExpression) throws EdgeDefUseDataException {
+    public Void visit(CPointerExpression pPointerExpression) {
 
       Mode prev = mode;
 
@@ -468,8 +454,7 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CComplexCastExpression pComplexCastExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CComplexCastExpression pComplexCastExpression) {
 
       pComplexCastExpression.getOperand().accept(this);
 
@@ -477,7 +462,7 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CFunctionDeclaration pDecl) throws EdgeDefUseDataException {
+    public Void visit(CFunctionDeclaration pDecl) {
 
       for (CParameterDeclaration declaration : pDecl.getParameters()) {
         declaration.accept(this);
@@ -487,17 +472,17 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CComplexTypeDeclaration pDecl) throws EdgeDefUseDataException {
+    public Void visit(CComplexTypeDeclaration pDecl) {
       return null;
     }
 
     @Override
-    public Void visit(CTypeDefDeclaration pDecl) throws EdgeDefUseDataException {
+    public Void visit(CTypeDefDeclaration pDecl) {
       return null;
     }
 
     @Override
-    public Void visit(CVariableDeclaration pDecl) throws EdgeDefUseDataException {
+    public Void visit(CVariableDeclaration pDecl) {
 
       MemoryLocation memLoc = MemoryLocation.forDeclaration(pDecl);
       defs.add(memLoc);
@@ -512,21 +497,23 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CParameterDeclaration pDecl) throws EdgeDefUseDataException {
+    public Void visit(CParameterDeclaration pDecl) {
 
-      pDecl.asVariableDeclaration().accept(this);
+      // undeclared functions don't have qualified parameter names, so we ignore them
+      if (pDecl.getQualifiedName() != null) {
+        pDecl.asVariableDeclaration().accept(this);
+      }
 
       return null;
     }
 
     @Override
-    public Void visit(CEnumerator pDecl) throws EdgeDefUseDataException {
+    public Void visit(CEnumerator pDecl) {
       return null;
     }
 
     @Override
-    public Void visit(CExpressionStatement pIastExpressionStatement)
-        throws EdgeDefUseDataException {
+    public Void visit(CExpressionStatement pIastExpressionStatement) {
 
       pIastExpressionStatement.getExpression().accept(this);
 
@@ -534,8 +521,7 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement)
-        throws EdgeDefUseDataException {
+    public Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) {
 
       mode = Mode.DEF;
       pIastExpressionAssignmentStatement.getLeftHandSide().accept(this);
@@ -547,8 +533,7 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement)
-        throws EdgeDefUseDataException {
+    public Void visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) {
 
       mode = Mode.DEF;
       pIastFunctionCallAssignmentStatement.getLeftHandSide().accept(this);
@@ -560,8 +545,7 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CFunctionCallStatement pIastFunctionCallStatement)
-        throws EdgeDefUseDataException {
+    public Void visit(CFunctionCallStatement pIastFunctionCallStatement) {
 
       List<CExpression> paramExpressions =
           pIastFunctionCallStatement.getFunctionCallExpression().getParameterExpressions();
@@ -580,7 +564,7 @@ public final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CReturnStatement pNode) throws EdgeDefUseDataException {
+    public Void visit(CReturnStatement pNode) {
 
       Optional<CExpression> optExpression = pNode.getReturnValue();
 

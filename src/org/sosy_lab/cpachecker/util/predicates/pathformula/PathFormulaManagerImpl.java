@@ -8,22 +8,17 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
-import static com.google.common.collect.FluentIterable.from;
+import static com.google.common.base.Verify.verifyNotNull;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.base.Predicate;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -36,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -45,6 +39,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -67,40 +63,39 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.Model;
 
 /**
- * Class implementing the FormulaManager interface,
- * providing some commonly used stuff which is independent from specific libraries.
+ * Class implementing the FormulaManager interface, providing some commonly used stuff which is
+ * independent from specific libraries.
  *
- * This class inherits from CtoFormulaConverter to import the stuff there.
+ * <p>This class inherits from CtoFormulaConverter to import the stuff there.
  */
-@Options(prefix="cpa.predicate")
+@Options(prefix = "cpa.predicate")
 public class PathFormulaManagerImpl implements PathFormulaManager {
 
-  @Option(secure=true, description = "Handle aliasing of pointers. "
-      + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
+  @Option(
+      secure = true,
+      description =
+          "Handle aliasing of pointers. This adds disjunctions to the formulas, so be careful when"
+              + " using cartesian abstraction.")
   private boolean handlePointerAliasing = true;
 
-  @Option(secure=true, description="Call 'simplify' on generated formulas.")
+  @Option(secure = true, description = "Call 'simplify' on generated formulas.")
   private boolean simplifyGeneratedPathFormulas = false;
 
   @Option(
       secure = true,
       description =
-          "Which path-formula builder to use."
-              + "Depending on this setting additional terms are added to the path formulas,"
-              + "e.g. SYMBOLICLOCATIONS will add track the program counter symbolically with a special variable %pc")
+          "Which path-formula builder to use.Depending on this setting additional terms are added"
+              + " to the path formulas,e.g. SYMBOLICLOCATIONS will add track the program counter"
+              + " symbolically with a special variable %pc")
   private PathFormulaBuilderVariants pathFormulaBuilderVariant = PathFormulaBuilderVariants.DEFAULT;
 
   private enum PathFormulaBuilderVariants {
     DEFAULT,
     SYMBOLICLOCATIONS
   }
-
-  private static final String BRANCHING_PREDICATE_NAME = "__ART__";
-  private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
-      "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
 
   private static final String NONDET_VARIABLE = "__nondet__";
   static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
@@ -116,25 +111,38 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final ShutdownNotifier shutdownNotifier;
 
   @Option(
-    secure = true,
-    description = "add special information to formulas about non-deterministic functions"
-  )
+      secure = true,
+      description = "add special information to formulas about non-deterministic functions")
   private boolean useNondetFlags = false;
 
-  public PathFormulaManagerImpl(FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-      CFA pCfa, AnalysisDirection pDirection)
-          throws InvalidConfigurationException {
+  public PathFormulaManagerImpl(
+      FormulaManagerView pFmgr,
+      Configuration config,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa,
+      AnalysisDirection pDirection)
+      throws InvalidConfigurationException {
 
-    this(pFmgr, config, pLogger, pShutdownNotifier, pCfa.getMachineModel(),
-        pCfa.getVarClassification(), pDirection);
+    this(
+        pFmgr,
+        config,
+        pLogger,
+        pShutdownNotifier,
+        pCfa.getMachineModel(),
+        pCfa.getVarClassification(),
+        pDirection);
   }
 
-  public PathFormulaManagerImpl(FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
+  public PathFormulaManagerImpl(
+      FormulaManagerView pFmgr,
+      Configuration config,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
       MachineModel pMachineModel,
-      Optional<VariableClassification> pVariableClassification, AnalysisDirection pDirection)
-          throws InvalidConfigurationException {
+      Optional<VariableClassification> pVariableClassification,
+      AnalysisDirection pDirection)
+      throws InvalidConfigurationException {
 
     config.inject(this, PathFormulaManagerImpl.class);
 
@@ -144,12 +152,15 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     shutdownNotifier = pShutdownNotifier;
 
     if (handlePointerAliasing) {
-      final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
+      final FormulaEncodingWithPointerAliasingOptions options =
+          new FormulaEncodingWithPointerAliasingOptions(config);
       if (options.useQuantifiersOnArrays()) {
         try {
           fmgr.getQuantifiedFormulaManager();
         } catch (UnsupportedOperationException e) {
-          throw new InvalidConfigurationException("Cannot use quantifiers with current solver, either choose a different solver or disable quantifiers.");
+          throw new InvalidConfigurationException(
+              "Cannot use quantifiers with current solver, either choose a different solver or"
+                  + " disable quantifiers.");
         }
       }
       if (options.useArraysForHeap()) {
@@ -157,15 +168,24 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           fmgr.getArrayFormulaManager();
         } catch (UnsupportedOperationException e) {
           throw new InvalidConfigurationException(
-              "Cannot use arrays with current solver, either choose a different solver or disable arrays.");
+              "Cannot use arrays with current solver, either choose a different solver or disable"
+                  + " arrays.");
         }
       }
 
-      TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
+      TypeHandlerWithPointerAliasing aliasingTypeHandler =
+          new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
 
-      converter = new CToFormulaConverterWithPointerAliasing(options, fmgr,
-          pMachineModel, pVariableClassification, logger, shutdownNotifier,
-          aliasingTypeHandler, pDirection);
+      converter =
+          new CToFormulaConverterWithPointerAliasing(
+              options,
+              fmgr,
+              pMachineModel,
+              pVariableClassification,
+              logger,
+              shutdownNotifier,
+              aliasingTypeHandler,
+              pDirection);
 
       wpConverter = null;
 
@@ -194,28 +214,26 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               typeHandler,
               pDirection);
 
-      logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
+      logger.log(
+          Level.WARNING,
+          "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers"
+              + " exist.");
     }
 
-    switch (pathFormulaBuilderVariant) {
-      case DEFAULT:
-        pfbFactory = new DefaultPathFormulaBuilder.Factory();
-        break;
-      case SYMBOLICLOCATIONS:
-        pfbFactory =
-            new SymbolicLocationPathFormulaBuilder.Factory(
-                new CBinaryExpressionBuilder(pMachineModel, pLogger));
-        break;
-      default:
-        throw new InvalidConfigurationException("Invalid type of path formula builder specified!");
-    }
+    pfbFactory =
+        switch (pathFormulaBuilderVariant) {
+          case DEFAULT -> new DefaultPathFormulaBuilder.Factory();
+          case SYMBOLICLOCATIONS -> new SymbolicLocationPathFormulaBuilder.Factory(
+              new CBinaryExpressionBuilder(pMachineModel, pLogger));
+        };
 
     NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
   }
 
   @Override
-  public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula pOldFormula,
-                             final CFAEdge pEdge) throws CPATransferException, InterruptedException {
+  public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(
+      PathFormula pOldFormula, final CFAEdge pEdge)
+      throws CPATransferException, InterruptedException {
     ErrorConditions errorConditions = new ErrorConditions(bfmgr);
     PathFormula pf = makeAnd(pOldFormula, pEdge, errorConditions);
 
@@ -235,19 +253,21 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
       if (lNondetIndex != lFlagIndex) {
         if (lFlagIndex < 0) {
-          lFlagIndex = 1; // ssa indices start with 2, so next flag that is generated also uses index 2
+          lFlagIndex =
+              1; // ssa indices start with 2, so next flag that is generated also uses index 2
         }
 
         BooleanFormula edgeFormula = pf.getFormula();
 
         for (int lIndex = lFlagIndex + 1; lIndex <= lNondetIndex; lIndex++) {
           Formula nondetVar = fmgr.makeVariable(NONDET_FORMULA_TYPE, NONDET_FLAG_VARIABLE, lIndex);
-          BooleanFormula lAssignment = fmgr.assignment(nondetVar, fmgr.makeNumber(NONDET_FORMULA_TYPE, 1));
+          BooleanFormula lAssignment =
+              fmgr.assignment(nondetVar, fmgr.makeNumber(NONDET_FORMULA_TYPE, 1));
           edgeFormula = bfmgr.and(edgeFormula, lAssignment);
         }
 
         // update ssa index of nondet flag
-        //setSsaIndex(ssa, Variable.create(NONDET_FLAG_VARIABLE, getNondetType()), lNondetIndex);
+        // setSsaIndex(ssa, Variable.create(NONDET_FLAG_VARIABLE, getNondetType()), lNondetIndex);
         ssa.setIndex(NONDET_FLAG_VARIABLE, NONDET_TYPE, lNondetIndex);
 
         pf = new PathFormula(edgeFormula, ssa.build(), pf.getPointerTargetSet(), pf.getLength());
@@ -293,10 +313,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormula() {
-    return new PathFormula(bfmgr.makeTrue(),
-                           SSAMap.emptySSAMap(),
-                           PointerTargetSet.emptyPointerTargetSet(),
-                           0);
+    return new PathFormula(
+        bfmgr.makeTrue(), SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), 0);
   }
 
   @Override
@@ -311,7 +329,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeOr(final PathFormula pathFormula1, final PathFormula pathFormula2) throws InterruptedException {
+  public PathFormula makeOr(final PathFormula pathFormula1, final PathFormula pathFormula2)
+      throws InterruptedException {
 
     final BooleanFormula formula1 = pathFormula1.getFormula();
     final BooleanFormula formula2 = pathFormula2.getFormula();
@@ -322,26 +341,25 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet pts2 = pathFormula2.getPointerTargetSet();
 
     final SSAMapMerger merger =
-        new SSAMapMerger(
-            useNondetFlags,
-            fmgr,
-            converter,
-            shutdownNotifier,
-            NONDET_FORMULA_TYPE);
+        new SSAMapMerger(useNondetFlags, fmgr, converter, shutdownNotifier, NONDET_FORMULA_TYPE);
     final MergeResult<SSAMap> mergeSSAResult = merger.mergeSSAMaps(ssa1, pts1, ssa2, pts2);
-    final SSAMapBuilder newSSA = mergeSSAResult.getResult().builder();
+    final SSAMapBuilder newSSA = mergeSSAResult.result().builder();
 
     final MergeResult<PointerTargetSet> mergePtsResult =
         converter.mergePointerTargetSets(pts1, pts2, newSSA);
 
     // (?) Do not swap these two lines, that makes a huge difference in performance (?) !
-    final BooleanFormula newFormula1 = bfmgr.and(formula1,
-        bfmgr.and(mergeSSAResult.getLeftConjunct(), mergePtsResult.getLeftConjunct()));
-    final BooleanFormula newFormula2 = bfmgr.and(formula2,
-        bfmgr.and(mergeSSAResult.getRightConjunct(), mergePtsResult.getRightConjunct()));
-    final BooleanFormula newFormula = bfmgr.and(bfmgr.or(newFormula1, newFormula2),
-        bfmgr.and(mergeSSAResult.getFinalConjunct(), mergePtsResult.getFinalConjunct()));
-    final PointerTargetSet newPTS = mergePtsResult.getResult();
+    final BooleanFormula newFormula1 =
+        bfmgr.and(
+            formula1, bfmgr.and(mergeSSAResult.leftConjunct(), mergePtsResult.leftConjunct()));
+    final BooleanFormula newFormula2 =
+        bfmgr.and(
+            formula2, bfmgr.and(mergeSSAResult.rightConjunct(), mergePtsResult.rightConjunct()));
+    final BooleanFormula newFormula =
+        bfmgr.and(
+            bfmgr.or(newFormula1, newFormula2),
+            bfmgr.and(mergeSSAResult.finalConjunct(), mergePtsResult.finalConjunct()));
+    final PointerTargetSet newPTS = mergePtsResult.result();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
     PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
@@ -355,20 +373,21 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   public PointerTargetSet mergePts(
       PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMapBuilder pSSA)
       throws InterruptedException {
-    return converter.mergePointerTargetSets(pPts1, pPts2, pSSA).getResult();
+    return converter.mergePointerTargetSets(pPts1, pPts2, pSSA).result();
   }
 
   @Override
   public PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula) {
     SSAMap ssa = pPathFormula.getSsa();
-    BooleanFormula otherFormula =  fmgr.instantiate(pOtherFormula, ssa);
+    BooleanFormula otherFormula = fmgr.instantiate(pOtherFormula, ssa);
     BooleanFormula resultFormula = bfmgr.and(pPathFormula.getFormula(), otherFormula);
     final PointerTargetSet pts = pPathFormula.getPointerTargetSet();
     return new PathFormula(resultFormula, ssa, pts, pPathFormula.getLength());
   }
 
   @Override
-  public PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException {
+  public PathFormula makeFormulaForPath(List<CFAEdge> pPath)
+      throws CPATransferException, InterruptedException {
     PathFormula pathFormula = makeEmptyPathFormula();
     for (CFAEdge edge : pPath) {
       pathFormula = makeAnd(pathFormula, edge);
@@ -392,150 +411,73 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   /**
-   * Build a formula containing a predicate for all branching situations in the
-   * ARG. If a satisfying assignment is created for this formula, it can be used
-   * to find out which paths in the ARG are feasible.
+   * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.
+   * The model needs to correspond to something like a BMC query for (a subset of) the ARG. This
+   * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState,
+   * Predicate, java.util.function.BiFunction)} and takes the branching information from the model.
    *
-   * This method may be called with an empty set, in which case it does nothing
-   * and returns the formula "true".
-   *
-   * @param elementsOnPath The ARG states that should be considered.
-   * @return A formula containing a predicate for each branching.
+   * @param model The model to use for determining branching information.
+   * @param root The root of the ARG, from which the path should start.
+   * @param stateFilter Only consider the subset of ARG states that satisfy this filter.
+   * @param branchingFormulasOverride When a formula for the expression of a specific assume edge is
+   *     needed, it is first looked up in this map. If not present the formula is created on-the-fly
+   *     using the context (SSAMap etc.) from the predicate abstract state inside the {@link
+   *     ARGState} at the branching point. The caller needs to ensure that the resulting formulas
+   *     match the variables present in the model.
+   * @return A feasible path through the ARG from root, which conforms to the model.
    */
   @Override
-  public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath)
+  public ARGPath getARGPathFromModel(
+      Model model,
+      ARGState root,
+      Predicate<? super ARGState> stateFilter,
+      Map<Pair<ARGState, CFAEdge>, PathFormula> branchingFormulasOverride)
       throws CPATransferException, InterruptedException {
-    return buildBranchingFormula(elementsOnPath, ImmutableMap.of());
-  }
 
-  /**
-   * Build a formula containing a predicate for all branching situations in the
-   * ARG. If a satisfying assignment is created for this formula, it can be used
-   * to find out which paths in the ARG are feasible.
-   *
-   * This method may be called with an empty set, in which case it does nothing
-   * and returns the formula "true".
-   *
-   * @param elementsOnPath The ARG states that should be considered.
-   * @param parentFormulasOnPath TODO.
-   * @return A formula containing a predicate for each branching.
-   */
-  @Override
-  public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath, Map<Pair<ARGState,CFAEdge>, PathFormula> parentFormulasOnPath)
-      throws CPATransferException, InterruptedException {
-    // build the branching formula that will help us find the real error path
-    List<BooleanFormula> branchingFormula = new ArrayList<>();
-    for (final ARGState pathElement : elementsOnPath) {
-      final ImmutableSet<ARGState> childrenOnPath =
-          from(pathElement.getChildren()).filter(elementsOnPath::contains).toSet();
+    final class WrappingException extends RuntimeException {
+      private static final long serialVersionUID = 7106377117314217226L;
 
-      if (childrenOnPath.size() > 1) {
-        if (childrenOnPath.size() > 2) {
-          // can't create branching formula
-          if (from(childrenOnPath).anyMatch(AbstractStates::isTargetState)) {
-            // We expect this situation of one of the children is a target state created by PredicateCPA.
-            continue;
-          } else {
-            logger.log(Level.WARNING, "ARG branching with more than two outgoing edges at ARG node " + pathElement.getStateId() + ".");
-            return bfmgr.makeTrue();
-          }
-        }
-
-        FluentIterable<CFAEdge> outgoingEdges =
-            from(childrenOnPath).transform(pathElement::getEdgeToChild);
-        if (!outgoingEdges.allMatch(Predicates.instanceOf(AssumeEdge.class))) {
-          if (from(childrenOnPath).anyMatch(AbstractStates::isTargetState)) {
-            // We expect this situation of one of the children is a target state created by PredicateCPA.
-            continue;
-          } else {
-            logger.log(Level.WARNING, "ARG branching without AssumeEdge at ARG node " + pathElement.getStateId() + ".");
-            return bfmgr.makeTrue();
-          }
-        }
-
-        assert outgoingEdges.size() == 2;
-
-        // We expect there to be exactly one positive and one negative edge
-        AssumeEdge positiveEdge = null;
-        AssumeEdge negativeEdge = null;
-        for (AssumeEdge currentEdge : outgoingEdges.filter(AssumeEdge.class)) {
-          if (currentEdge.getTruthAssumption()) {
-            positiveEdge = currentEdge;
-          } else {
-            negativeEdge = currentEdge;
-          }
-        }
-        if (positiveEdge == null || negativeEdge == null) {
-          logger.log(Level.WARNING, "Ambiguous ARG branching at ARG node " + pathElement.getStateId() + ".");
-          return bfmgr.makeTrue();
-        }
-
-        BooleanFormula pred = bfmgr.makeVariable(BRANCHING_PREDICATE_NAME + pathElement.getStateId());
-
-        Pair<ARGState,CFAEdge> key = Pair.of(pathElement, positiveEdge);
-        PathFormula pf = parentFormulasOnPath.get(key);
-
-        if(pf == null) {
-          // create formula by edge, be sure to use the correct SSA indices!
-          // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
-          // it is used without PredicateCPA as well.
-          PredicateAbstractState pe = AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
-          if (pe == null) {
-            logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
-            return bfmgr.makeTrue();
-          } else {
-            pf = pe.getPathFormula();
-          }
-          pf = this.makeEmptyPathFormulaWithContextFrom(pf); // reset everything except SSAMap
-          pf = this.makeAnd(pf, positiveEdge);        // conjunct with edge
-        }
-        BooleanFormula equiv = bfmgr.equivalence(pred, pf.getFormula());
-        branchingFormula.add(equiv);
+      WrappingException(Throwable cause) {
+        super(cause);
       }
     }
-    return bfmgr.and(branchingFormula);
-  }
 
-  /**
-   * Extract the information about the branching predicates created by {@link
-   * #buildBranchingFormula(Set)} from a satisfying assignment.
-   *
-   * <p>A map is created that stores for each ARGState (using its element id as the map key) which
-   * edge was taken (the positive or the negated one).
-   *
-   * @param model A satisfying assignment that should contain values for branching predicates.
-   * @return A map from ARG state id to a boolean value indicating direction.
-   */
-  @Override
-  public ImmutableMap<Integer, Boolean> getBranchingPredicateValuesFromModel(
-      Iterable<ValueAssignment> model) {
-    // Do not use fmgr here, this fails if a separate solver is used for interpolation.
-    if (!model.iterator().hasNext()) {
-      logger.log(Level.WARNING, "No satisfying assignment given by solver!");
-      return ImmutableMap.of();
+    try {
+      return ARGUtils.getPathFromBranchingInformation(
+          root,
+          stateFilter,
+          (pathElement, positiveEdge) -> {
+            final Pair<ARGState, CFAEdge> key = Pair.of(pathElement, positiveEdge);
+            PathFormula pf = branchingFormulasOverride.get(key);
+
+            if (pf == null) {
+              // create formula by edge, be sure to use the correct SSA indices!
+              // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
+              // it is used without PredicateCPA as well.
+              PredicateAbstractState pe =
+                  AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
+              verifyNotNull(pe, "Cannot find precise error path information without PredicateCPA.");
+              try {
+                pf =
+                    this.makeAnd(
+                        makeEmptyPathFormulaWithContextFrom(pe.getPathFormula()), positiveEdge);
+              } catch (CPATransferException | InterruptedException e) {
+                throw new WrappingException(e);
+              }
+            }
+
+            return model.evaluate(pf.getFormula());
+          });
+    } catch (WrappingException e) {
+      Throwables.throwIfInstanceOf(e.getCause(), CPATransferException.class);
+      Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
+      Throwables.throwIfUnchecked(e.getCause());
+      throw e;
     }
-
-    ImmutableMap.Builder<Integer, Boolean> preds = ImmutableMap.builder();
-    for (ValueAssignment entry : model) {
-      String canonicalName = entry.getName();
-
-      if (entry.getKey() instanceof BooleanFormula) {
-        String name = BRANCHING_PREDICATE_NAME_PATTERN.matcher(canonicalName).replaceFirst("");
-        if (!name.equals(canonicalName)) {
-          // pattern matched, so it's a variable with __ART__ in it
-
-          // no NumberFormatException because of RegExp match earlier
-          Integer nodeId = Integer.parseInt(name);
-          preds.put(nodeId, (Boolean) entry.getValue()); // fails on duplicate key
-        }
-      }
-    }
-    return preds.build();
   }
 
   @Override
-  public void clearCaches() {
-  }
+  public void clearCaches() {}
 
   @Override
   public Formula expressionToFormula(PathFormula pFormula, CIdExpression expr, CFAEdge edge)
@@ -544,14 +486,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public BooleanFormula buildImplicationTestAsUnsat(PathFormula pF1, PathFormula pF2) throws InterruptedException {
+  public BooleanFormula buildImplicationTestAsUnsat(PathFormula pF1, PathFormula pF2)
+      throws InterruptedException {
     final SSAMapMerger merger =
-        new SSAMapMerger(
-            useNondetFlags,
-            fmgr,
-            converter,
-            shutdownNotifier,
-            NONDET_FORMULA_TYPE);
+        new SSAMapMerger(useNondetFlags, fmgr, converter, shutdownNotifier, NONDET_FORMULA_TYPE);
     BooleanFormula bF = pF2.getFormula();
     return bfmgr.and(
         merger.addMergeAssumptions(
@@ -560,8 +498,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public BooleanFormula addBitwiseAxiomsIfNeeded(final BooleanFormula pMainFormula
-      , final BooleanFormula pExtractionFormula) {
+  public BooleanFormula addBitwiseAxiomsIfNeeded(
+      final BooleanFormula pMainFormula, final BooleanFormula pExtractionFormula) {
     if (fmgr.useBitwiseAxioms()) {
       BooleanFormula bitwiseAxioms = fmgr.getBitwiseAxioms(pExtractionFormula);
       if (!fmgr.getBooleanFormulaManager().isTrue(bitwiseAxioms)) {

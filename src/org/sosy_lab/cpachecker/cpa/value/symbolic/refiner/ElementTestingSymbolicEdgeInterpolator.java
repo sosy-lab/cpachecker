@@ -38,21 +38,18 @@ import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Edge interpolator for
- * {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}.
- * Creates {@link SymbolicInterpolant SymbolicInterpolants} based on a combination of
- * {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA ValueAnalysisCPA} and
- * <code>ConstraintsCPA</code>.
+ * Edge interpolator for {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA
+ * ConstraintsCPA}. Creates {@link SymbolicInterpolant SymbolicInterpolants} based on a combination
+ * of {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA ValueAnalysisCPA} and <code>
+ * ConstraintsCPA</code>.
  */
-
 @Options(prefix = "cpa.value.symbolic.refinement")
-public class ElementTestingSymbolicEdgeInterpolator
-    implements SymbolicEdgeInterpolator {
+public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInterpolator {
 
   private enum RefinementStrategy {
-    /* First try to delete as many constraints as possible, then assignments */
+    // First try to delete as many constraints as possible, then assignments
     CONSTRAINTS_FIRST,
-    /* First try to delete as many assignments as possible, then constraints */
+    // First try to delete as many assignments as possible, then constraints
     VALUES_FIRST,
     /*
     Alternate between constraints-first and values-first.
@@ -60,7 +57,7 @@ public class ElementTestingSymbolicEdgeInterpolator
     In second, use VALUES_FIRST. In third, use CONSTRAINTS_FIRST again, and so on.
      */
     ALTERNATING,
-    /* Always keep all constraints and only try to delete as many assignments as possible */
+    // Always keep all constraints and only try to delete as many assignments as possible
     VALUES_ONLY
   }
 
@@ -90,8 +87,8 @@ public class ElementTestingSymbolicEdgeInterpolator
       final InterpolantManager<ForgettingCompositeState, SymbolicInterpolant> pInterpolantManager,
       final Configuration pConfig,
       final ShutdownNotifier pShutdownNotifier,
-      final CFA pCfa
-  ) throws InvalidConfigurationException {
+      final CFA pCfa)
+      throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
@@ -99,26 +96,19 @@ public class ElementTestingSymbolicEdgeInterpolator
     strongestPost = pStrongestPost;
     interpolantManager = pInterpolantManager;
     shutdownNotifier = pShutdownNotifier;
-    valuePrecision = VariableTrackingPrecision.createStaticPrecision(
+    valuePrecision =
+        VariableTrackingPrecision.createStaticPrecision(
             pConfig, pCfa.getVarClassification(), ValueAnalysisCPA.class);
     machineModel = pCfa.getMachineModel();
 
-    switch (strategy) {
-      case ALTERNATING:
-        stateReducers = ImmutableList.of(new ConstraintsFirstReducer(), new ValuesFirstReducer());
-        break;
-      case CONSTRAINTS_FIRST:
-        stateReducers = ImmutableList.of(new ConstraintsFirstReducer());
-        break;
-      case VALUES_FIRST:
-        stateReducers = ImmutableList.of(new ValuesFirstReducer());
-        break;
-      case VALUES_ONLY:
-        stateReducers = ImmutableList.of(new ValuesOnlyReducer());
-        break;
-      default:
-        throw new AssertionError("Unhandled strategy: " + strategy);
-    }
+    stateReducers =
+        switch (strategy) {
+          case ALTERNATING -> ImmutableList.of(
+              new ConstraintsFirstReducer(), new ValuesFirstReducer());
+          case CONSTRAINTS_FIRST -> ImmutableList.of(new ConstraintsFirstReducer());
+          case VALUES_FIRST -> ImmutableList.of(new ValuesFirstReducer());
+          case VALUES_ONLY -> ImmutableList.of(new ValuesOnlyReducer());
+        };
     if (avoidConstraints) {
       stateReducers =
           Collections3.transformedImmutableListCopy(stateReducers, AvoidConstraintsReducer::new);
@@ -131,8 +121,8 @@ public class ElementTestingSymbolicEdgeInterpolator
       final CFAEdge pCurrentEdge,
       final Deque<ForgettingCompositeState> pCallstack,
       final PathPosition pLocationInPath,
-      final SymbolicInterpolant pInputInterpolant
-  ) throws CPAException, InterruptedException {
+      final SymbolicInterpolant pInputInterpolant)
+      throws CPAException, InterruptedException {
 
     interpolationQueries = 0;
 
@@ -202,7 +192,7 @@ public class ElementTestingSymbolicEdgeInterpolator
         throws InterruptedException, CPAException;
   }
 
-  private class ValuesOnlyReducer implements SymbolicStateReducer {
+  private final class ValuesOnlyReducer implements SymbolicStateReducer {
 
     @Override
     public ForgettingCompositeState reduce(
@@ -226,7 +216,7 @@ public class ElementTestingSymbolicEdgeInterpolator
     }
   }
 
-  private class ConstraintsOnlyReducer implements SymbolicStateReducer {
+  private final class ConstraintsOnlyReducer implements SymbolicStateReducer {
 
     @Override
     public ForgettingCompositeState reduce(
@@ -247,7 +237,7 @@ public class ElementTestingSymbolicEdgeInterpolator
     }
   }
 
-  private class ValuesFirstReducer implements SymbolicStateReducer {
+  private final class ValuesFirstReducer implements SymbolicStateReducer {
 
     private SymbolicStateReducer valueReducer = new ValuesOnlyReducer();
     private SymbolicStateReducer constraintsReducer = new ConstraintsOnlyReducer();
@@ -260,7 +250,7 @@ public class ElementTestingSymbolicEdgeInterpolator
     }
   }
 
-  private class ConstraintsFirstReducer implements SymbolicStateReducer {
+  private final class ConstraintsFirstReducer implements SymbolicStateReducer {
 
     private SymbolicStateReducer valueReducer = new ValuesOnlyReducer();
     private SymbolicStateReducer constraintsReducer = new ConstraintsOnlyReducer();
@@ -273,7 +263,7 @@ public class ElementTestingSymbolicEdgeInterpolator
     }
   }
 
-  private class AvoidConstraintsReducer implements SymbolicStateReducer {
+  private final class AvoidConstraintsReducer implements SymbolicStateReducer {
 
     private SymbolicStateReducer delegate;
 
@@ -300,8 +290,7 @@ public class ElementTestingSymbolicEdgeInterpolator
 
     private ForgettingCompositeState removeAllConstraints(final ForgettingCompositeState pState) {
       return new ForgettingCompositeState(
-          pState.getValueState(),
-          new ConstraintsState(new HashSet<>()));
+          pState.getValueState(), new ConstraintsState(new HashSet<>()));
     }
   }
 }

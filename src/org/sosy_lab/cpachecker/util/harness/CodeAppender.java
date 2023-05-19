@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.harness;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.AbstractFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
@@ -57,20 +58,23 @@ class CodeAppender implements Appendable {
     return appendable.toString();
   }
 
-  private CodeAppender appendVectorIndexDeclaration(String pInputFunctionVectorIndexName) throws IOException {
+  @CanIgnoreReturnValue
+  private CodeAppender appendVectorIndexDeclaration(String pInputFunctionVectorIndexName)
+      throws IOException {
     appendable.append("  static unsigned int ");
     appendable.append(pInputFunctionVectorIndexName);
     appendln(" = 0;");
     return this;
   }
 
-  public CodeAppender appendDeclaration(Type pType, String pName)
-      throws IOException {
+  @CanIgnoreReturnValue
+  public CodeAppender appendDeclaration(Type pType, String pName) throws IOException {
     appendable.append(pType.toASTString(pName));
     appendln(";");
     return this;
   }
 
+  @CanIgnoreReturnValue
   public CodeAppender appendAssignment(String pRetvalName, ARightHandSide pValue)
       throws IOException {
     appendable.append(pRetvalName);
@@ -79,10 +83,12 @@ class CodeAppender implements Appendable {
     return this;
   }
 
+  @CanIgnoreReturnValue
   CodeAppender appendAssignment(String pRetvalName, TestValue pValue) throws IOException {
     return appendAssignment(pRetvalName, pValue, true);
   }
 
+  @CanIgnoreReturnValue
   private CodeAppender appendAssignment(String pRetvalName, TestValue pValue, boolean pEnclose)
       throws IOException {
     boolean hasAuxiliaryStatmenets = !pValue.getAuxiliaryStatements().isEmpty();
@@ -109,35 +115,41 @@ class CodeAppender implements Appendable {
     return this;
   }
 
+  @CanIgnoreReturnValue
   public CodeAppender appendln(String pLine) throws IOException {
     appendable.append(pLine);
     appendln();
     return this;
   }
 
+  @CanIgnoreReturnValue
   public Appendable appendln() throws IOException {
     appendable.append(System.lineSeparator());
     return this;
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CodeAppender append(CharSequence pCsq) throws IOException {
     appendable.append(pCsq);
     return this;
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CodeAppender append(char pChar) throws IOException {
     appendable.append(pChar);
     return this;
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CodeAppender append(CharSequence pCsq, int pStart, int pEnd) throws IOException {
     appendable.append(pCsq, pStart, pEnd);
     return this;
   }
 
+  @CanIgnoreReturnValue
   public CodeAppender append(TestVector pVector) throws IOException {
     for (AVariableDeclaration inputVariable : pVector.getInputVariables()) {
       InitializerTestValue inputValue = pVector.getInputValue(inputVariable);
@@ -225,14 +237,14 @@ class CodeAppender implements Appendable {
     return this;
   }
 
+  @CanIgnoreReturnValue
   public CodeAppender append(AFunctionDeclaration pInputFunction) throws IOException {
     return append(enforceParameterNames(pInputFunction).toASTString(pInputFunction.getName()));
   }
 
-  private static AFunctionType enforceParameterNames(AFunctionDeclaration pInputFunction) {
-    IAFunctionType functionType = pInputFunction.getType();
-    if (functionType instanceof CFunctionType) {
-      CFunctionType cFunctionType = (CFunctionType) functionType;
+  private static AbstractFunctionType enforceParameterNames(AFunctionDeclaration pInputFunction) {
+    AFunctionType functionType = pInputFunction.getType();
+    if (functionType instanceof CFunctionType cFunctionType) {
       return new CFunctionTypeWithNames(
           cFunctionType.getReturnType(),
           FluentIterable.from(enforceParameterNames(pInputFunction.getParameters()))
@@ -240,8 +252,7 @@ class CodeAppender implements Appendable {
               .toList(),
           functionType.takesVarArgs());
     }
-    if (functionType instanceof JMethodType) {
-      JMethodType methodType = (JMethodType) functionType;
+    if (functionType instanceof JMethodType methodType) {
       return new JMethodType(
           methodType.getReturnType(),
           FluentIterable.from(enforceParameterNames(pInputFunction.getParameters()))
@@ -269,8 +280,7 @@ class CodeAppender implements Appendable {
         if (declaration instanceof CParameterDeclaration) {
           declaration =
               new CParameterDeclaration(FileLocation.DUMMY, (CType) declaration.getType(), name);
-        } else if (declaration instanceof JParameterDeclaration) {
-          JParameterDeclaration jDecl = (JParameterDeclaration) declaration;
+        } else if (declaration instanceof JParameterDeclaration jDecl) {
           declaration =
               new JParameterDeclaration(
                   FileLocation.DUMMY,
@@ -287,5 +297,4 @@ class CodeAppender implements Appendable {
     }
     return result;
   }
-
 }

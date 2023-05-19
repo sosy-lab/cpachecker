@@ -12,10 +12,9 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
- * This interface is provided as a shortcut, so that other CPAs' strengthen
- * operator can check whether one abstract state represents some kind of
- * "target" or "error" abstract state without needing to know more about the state
- * (especially without knowing its actual type).
+ * This interface is provided as a shortcut, so that other CPAs' strengthen operator can check
+ * whether one abstract state represents some kind of "target" or "error" abstract state without
+ * needing to know more about the state (especially without knowing its actual type).
  */
 public interface Targetable {
 
@@ -30,8 +29,7 @@ public interface Targetable {
    *     available.
    * @throws IllegalStateException if {@link #isTarget()} returns false
    */
-  @NonNull
-  Set<TargetInformation> getTargetInformation() throws IllegalStateException;
+  @NonNull Set<TargetInformation> getTargetInformation() throws IllegalStateException;
 
   /**
    * This interface represents information about target states.
@@ -42,6 +40,7 @@ public interface Targetable {
    *   <li>MUST override the {@link #toString()} method to provide a human-readable description!
    *   <li>MIGHT override the {@link Object#equals(Object)} method! (and of course {@link
    *       Object#hashCode()})
+   * </ul>
    */
   interface TargetInformation {
 

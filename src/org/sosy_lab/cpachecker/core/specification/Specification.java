@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Classes;
-import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -51,9 +50,8 @@ import org.sosy_lab.cpachecker.util.ltl.LtlParser;
 import org.sosy_lab.cpachecker.util.ltl.formulas.LabelledFormula;
 
 /**
- * Class that encapsulates the specification that should be used for an analysis.
- * Most code of CPAchecker should not need to access this file,
- * because a separate CPA handles the specification,
+ * Class that encapsulates the specification that should be used for an analysis. Most code of
+ * CPAchecker should not need to access this file, because a separate CPA handles the specification,
  * though it can be necessary to pass around Specification objects for sub-analyses.
  */
 public final class Specification {
@@ -72,10 +70,11 @@ public final class Specification {
           .put(CommonVerificationProperty.VALID_MEMTRACK, "sv-comp-memorysafety")
           .put(CommonVerificationProperty.VALID_MEMCLEANUP, "sv-comp-memorycleanup")
           .put(CommonVerificationProperty.OVERFLOW, "sv-comp-overflow")
+          .put(CommonVerificationProperty.DATA_RACE, "sv-comp-datarace")
           .put(CommonVerificationProperty.DEADLOCK, "deadlock")
           .put(CommonVerificationProperty.ASSERT, "JavaAssertion")
           // .put(CommonPropertyType.TERMINATION, "none needed")
-          .build();
+          .buildOrThrow();
 
   private static Path getAutomatonForProperty(Property property) {
     String name = AUTOMATA_FOR_PROPERTIES.get(property);
@@ -129,16 +128,11 @@ public final class Specification {
     ImmutableListMultimap.Builder<Path, Automaton> specificationAutomata =
         ImmutableListMultimap.builder();
 
-    Scope scope;
-    switch (cfa.getLanguage()) {
-      case C:
-        scope = new CProgramScope(cfa, logger);
-        break;
-      default:
-        scope = DummyScope.getInstance();
-        break;
-    }
-
+    Scope scope =
+        switch (cfa.getLanguage()) {
+          case C -> new CProgramScope(cfa, logger);
+          default -> DummyScope.getInstance();
+        };
     // for deduplicating values returned by getAutomatonForProperty()
     Set<Path> handledAutomataForProperties = new HashSet<>();
 
@@ -186,7 +180,6 @@ public final class Specification {
               specificationAutomata.putAll(specFile, automata);
             }
           }
-
         }
       } else {
         List<Automaton> automata =
@@ -224,8 +217,7 @@ public final class Specification {
 
     } else if (AutomatonACSLParser.isACSLAnnotatedFile(specFile)) {
       logger.logf(Level.INFO, "Parsing CFA with ACSL annotations from file \"%s\"", specFile);
-      CFACreator cfaCreator =
-          new CFACreator(config, logger, ShutdownManager.create().getNotifier());
+      CFACreator cfaCreator = new CFACreator(config, logger, pShutdownNotifier);
       CFAWithACSLAnnotations annotatedCFA;
       try {
         annotatedCFA =
@@ -279,18 +271,24 @@ public final class Specification {
     LabelledFormula formula;
     try {
       formula = LtlParser.parseProperty(ltl);
+      return Ltl2BuechiConverter.convertFormula(
+          formula.not(),
+          cfa.getMainFunction().getFunctionName(),
+          config,
+          logger,
+          cfa.getMachineModel(),
+          scope,
+          pShutdownNotifier);
     } catch (LtlParseException e) {
       throw new InvalidConfigurationException(
           String.format("Could not parse property '%s' (%s)", ltl, e.getMessage()), e);
+    } catch (IOException e) {
+      throw new InvalidConfigurationException(
+          String.format(
+              "An exception occured during the execution of the external ltl converter tool:%n%s",
+              e.getMessage()),
+          e);
     }
-    return Ltl2BuechiConverter.convertFormula(
-        formula.not(),
-        cfa.getMainFunction().getFunctionName(),
-        config,
-        logger,
-        cfa.getMachineModel(),
-        scope,
-        pShutdownNotifier);
   }
 
   /**
@@ -377,9 +375,7 @@ public final class Specification {
   @Override
   public String toString() {
     return "Specification"
-        + pathToSpecificationAutomata
-            .values()
-            .stream()
+        + pathToSpecificationAutomata.values().stream()
             .map(Automaton::getName)
             .collect(joining(", ", "[", "]"));
   }

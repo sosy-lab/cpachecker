@@ -20,7 +20,7 @@ public class StructureIdentifier extends SingleIdentifier {
 
   public StructureIdentifier(String pNm, CType pTp, int dereference, AbstractIdentifier own) {
     super(pNm, pTp, dereference);
-    this.owner = own;
+    owner = own;
   }
 
   @Override

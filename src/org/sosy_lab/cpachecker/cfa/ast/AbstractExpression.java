@@ -11,12 +11,10 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
-*
-* Abstract class for side-effect free expressions.
-* This class is only SuperClass of all abstract Classes and their Subclasses.
-* The Interface {@link AExpression} contains all language specific
-* AST Nodes as well.
-*/
+ * Abstract class for side-effect free expressions. This class is only SuperClass of all abstract
+ * Classes and their Subclasses. The Interface {@link AExpression} contains all language specific
+ * AST Nodes as well.
+ */
 public abstract class AbstractExpression extends AbstractRightHandSide implements AExpression {
 
   private static final long serialVersionUID = 7019956361956900L;

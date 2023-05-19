@@ -12,12 +12,14 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.base.Verify.verify;
+import static org.sosy_lab.common.collect.Collections3.listAndSurroundingElements;
 
-import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -74,24 +76,16 @@ public class InterpolationAutomaton {
                 itpStates.size() + 2)
             .put(initState.getInterpolant(), initState)
             .put(finalState.getInterpolant(), finalState)
-            .putAll(
-                itpStates
-                    .stream()
-                    .collect(
-                        ImmutableMap.toImmutableMap(
-                            ItpAutomatonState::getInterpolant, Functions.identity())))
-            .build();
+            .putAll(Maps.uniqueIndex(itpStates, ItpAutomatonState::getInterpolant))
+            .buildOrThrow();
   }
 
   public Automaton createAutomaton() throws InvalidAutomatonException {
     ImmutableList<AutomatonInternalState> internalStates =
-        ImmutableList.<AutomatonInternalState>builderWithExpectedSize(itpStates.size() + 3)
-            .add(initState.buildInternalState())
-            .addAll(
-                Collections3.transformedImmutableListCopy(
-                    itpStates, ItpAutomatonState::buildInternalState))
-            .add(finalState.buildInternalState())
-            .build();
+        listAndSurroundingElements(
+            initState.buildInternalState(),
+            Lists.transform(itpStates, ItpAutomatonState::buildInternalState),
+            finalState.buildInternalState());
     return new Automaton(
         automatonName, ImmutableMap.of(), internalStates, initState.getStateName());
   }
@@ -193,8 +187,7 @@ public class InterpolationAutomaton {
       stateName = pStateName;
       interpolant = checkNotNull(pInterpolant);
       isTarget = pIsTarget;
-      targetInformation =
-          isTarget ? new StringExpression(itpAutomaton.getAutomatonName()) : null;
+      targetInformation = isTarget ? new StringExpression(itpAutomaton.getAutomatonName()) : null;
 
       boolExpressions = new HashSet<>();
       coveredExpressionsCache = new HashSet<>();

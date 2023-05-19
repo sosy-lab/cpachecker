@@ -35,8 +35,8 @@ public final class AdditionExpression extends BinarySymbolicExpression {
 
   @Override
   public AdditionExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
-    return new AdditionExpression(getOperand1(), getOperand2(), getType(), getCalculationType(),
-        pRepresentedLocation);
+    return new AdditionExpression(
+        getOperand1(), getOperand2(), getType(), getCalculationType(), pRepresentedLocation);
   }
 
   @Override

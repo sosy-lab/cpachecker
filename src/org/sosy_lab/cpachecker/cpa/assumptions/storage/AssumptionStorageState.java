@@ -13,37 +13,37 @@ import java.io.IOException;
 import java.io.Serializable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-/**
- * Abstract state for the Collector CPA. Encapsulate a
- * symbolic formula
- */
+/** Abstract state for the Collector CPA. Encapsulate a symbolic formula */
 public class AssumptionStorageState implements AbstractState, Serializable {
 
   private static final long serialVersionUID = -3738604180058424317L;
 
   // this formula provides the assumption generated from other sources than heuristics,
   // e.g. assumptions for arithmetic overflow
-  private transient final BooleanFormula assumption;
+  private final transient BooleanFormula assumption;
 
   // if a heuristic told us to stop the analysis, this formula provides the reason
   // if it is TRUE, there is no reason -> don't stop
-  private transient final BooleanFormula stopFormula;
+  private final transient BooleanFormula stopFormula;
 
-  private transient final FormulaManagerView fmgr;
+  private final transient FormulaManagerView fmgr;
 
-  // the assumption represented by this class is always the conjunction of "assumption" and "stopFormula"
+  // the assumption represented by this class is always the conjunction of "assumption" and
+  // "stopFormula"
 
-  public AssumptionStorageState(FormulaManagerView pFmgr, BooleanFormula pAssumption, BooleanFormula pStopFormula) {
+  public AssumptionStorageState(
+      FormulaManagerView pFmgr, BooleanFormula pAssumption, BooleanFormula pStopFormula) {
     assumption = Preconditions.checkNotNull(pAssumption);
     stopFormula = Preconditions.checkNotNull(pStopFormula);
     fmgr = pFmgr;
 
-    assert !fmgr.getBooleanFormulaManager().isFalse(assumption); // FALSE would mean "stop the analysis", but this should be signaled by stopFormula
+    // FALSE would mean "stop the analysis", but this should be signaled by stopFormula
+    assert !fmgr.getBooleanFormulaManager().isFalse(assumption);
   }
 
   public FormulaManagerView getFormulaManager() {
@@ -80,7 +80,12 @@ public class AssumptionStorageState implements AbstractState, Serializable {
 
   @Override
   public String toString() {
-    return (fmgr.getBooleanFormulaManager().isTrue(stopFormula) ? "" : "<STOP> ") + "assume: (" + assumption + " & " + stopFormula + ")";
+    return (fmgr.getBooleanFormulaManager().isTrue(stopFormula) ? "" : "<STOP> ")
+        + "assume: ("
+        + assumption
+        + " & "
+        + stopFormula
+        + ")";
   }
 
   public boolean isStop() {
@@ -93,22 +98,21 @@ public class AssumptionStorageState implements AbstractState, Serializable {
     // so handle these special cases separately
     final BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
     final BooleanFormula newStopFormula;
-    if (this.isStopFormulaTrue()) {
+    if (isStopFormulaTrue()) {
       newStopFormula = other.getStopFormula();
     } else if (other.isStopFormulaTrue()) {
-      newStopFormula = this.getStopFormula();
+      newStopFormula = getStopFormula();
     } else {
-      newStopFormula = bfmgr.or(this.getStopFormula(), other.getStopFormula());
+      newStopFormula = bfmgr.or(getStopFormula(), other.getStopFormula());
     }
 
     return new AssumptionStorageState(
-        fmgr, bfmgr.and(this.getAssumption(), other.getAssumption()), newStopFormula);
+        fmgr, bfmgr.and(getAssumption(), other.getAssumption()), newStopFormula);
   }
 
   @Override
   public boolean equals(Object other) {
-    if (other instanceof AssumptionStorageState) {
-      AssumptionStorageState otherElement = (AssumptionStorageState) other;
+    if (other instanceof AssumptionStorageState otherElement) {
       return assumption.equals(otherElement.assumption)
           && stopFormula.equals(otherElement.stopFormula);
     } else {
@@ -130,13 +134,15 @@ public class AssumptionStorageState implements AbstractState, Serializable {
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-    Preconditions.checkState(isAssumptionTrue() && isStopFormulaTrue(),
+    Preconditions.checkState(
+        isAssumptionTrue() && isStopFormulaTrue(),
         "Assumption and stop formula must be true for serialization to be correctly restored");
     out.defaultWriteObject();
   }
 
   private Object readResolve() {
-    FormulaManagerView fManager = GlobalInfo.getInstance().getAssumptionStorageFormulaManager();
+    FormulaManagerView fManager =
+        SerializationInfoStorage.getInstance().getAssumptionStorageFormulaManager();
     return new AssumptionStorageState(
         fManager,
         fManager.getBooleanFormulaManager().makeTrue(),

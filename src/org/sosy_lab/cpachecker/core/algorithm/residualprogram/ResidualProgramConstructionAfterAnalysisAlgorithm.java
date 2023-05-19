@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class ResidualProgramConstructionAfterAnalysisAlgorithm
     extends ResidualProgramConstructionAlgorithm implements StatisticsProvider {
 
-
   private final CFA cfa;
   private final Algorithm innerAlgorithm;
 
@@ -79,9 +78,14 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     return ass != null && ass.isStop();
   }
 
-  public ResidualProgramConstructionAfterAnalysisAlgorithm(final CFA pCfa, final Algorithm pAlgorithm,
-      final Configuration pConfig, final LogManager pLogger, final ShutdownNotifier pShutdown,
-      final Specification pSpec) throws InvalidConfigurationException {
+  public ResidualProgramConstructionAfterAnalysisAlgorithm(
+      final CFA pCfa,
+      final Algorithm pAlgorithm,
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdown,
+      final Specification pSpec)
+      throws InvalidConfigurationException {
     super(pCfa, pConfig, pLogger, pShutdown, pSpec);
 
     cfa = pCfa;
@@ -94,12 +98,14 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    Preconditions.checkArgument(pReachedSet.getFirstState() instanceof ARGState,
+    Preconditions.checkArgument(
+        pReachedSet.getFirstState() instanceof ARGState,
         "Top most abstract state must be an ARG state");
-    Preconditions.checkArgument(AbstractStates.extractLocation(pReachedSet.getFirstState()) != null,
+    Preconditions.checkArgument(
+        AbstractStates.extractLocation(pReachedSet.getFirstState()) != null,
         "Require location information to build residual program");
 
-    AlgorithmStatus status= AlgorithmStatus.SOUND_AND_PRECISE;
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     try {
       logger.log(Level.INFO, "Start analysis");
@@ -115,11 +121,13 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       return status;
     }
 
-    logger.log(Level.INFO, "Analysis incomplete, some states could not be explored. Generate residual program.");
+    logger.log(
+        Level.INFO,
+        "Analysis incomplete, some states could not be explored. Generate residual program.");
     ARGState argRoot = (ARGState) pReachedSet.getFirstState();
 
     CFANode mainFunction = AbstractStates.extractLocation(argRoot);
-    assert(mainFunction != null);
+    assert (mainFunction != null);
 
     Path assumptionAutomaton = null;
 
@@ -135,6 +143,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
               computeRelevantStates(pReachedSet),
               ImmutableSet.copyOf(pReachedSet.getWaitlist()),
               0,
+              true,
               true);
         }
       } catch (IOException e1) {
@@ -146,7 +155,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     Pair<ARGState, ReachedSet> result =
         prepareARGToConstructResidualProgram(mainFunction, assumptionAutomaton);
 
-    if(result == null || result.getFirst() == null) {
+    if (result == null || result.getFirst() == null) {
       throw new CPAException("Failed to build structure of residual program");
     }
 
@@ -155,21 +164,17 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     Set<ARGState> addPragma;
     try {
       statistic.collectPragmaPointsTimer.stop();
-      switch (getStrategy()) {
-        case COMBINATION:
-          addPragma = getAllTargetStates(result.getSecond());
-          break;
-        case SLICING:
-          addPragma = getAllTargetStatesNotFullyExplored(pReachedSet, result.getSecond());
-          break;
-        default: // CONDITION no effect
-          addPragma = null;
-      }
+      addPragma =
+          switch (getStrategy()) {
+            case COMBINATION -> getAllTargetStates(result.getSecond());
+            case SLICING -> getAllTargetStatesNotFullyExplored(pReachedSet, result.getSecond());
+            default -> null; // CONDITION no effect
+          };
     } finally {
       statistic.collectPragmaPointsTimer.stop();
     }
 
-    if(!writeResidualProgram(argRoot, addPragma)) {
+    if (!writeResidualProgram(argRoot, addPragma)) {
       throw new CPAException("Failed to write residual program.");
     }
 
@@ -207,10 +212,12 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     return uncoveredAncestors;
   }
 
-  private Set<ARGState> getAllTargetStatesNotFullyExplored(final ReachedSet pIncompleteExploration,
-      final ReachedSet pNodesOfInlinedProg) throws CPAException, InterruptedException {
-    if (AbstractStates.extractStateByType(pIncompleteExploration.getFirstState(),
-        CallstackState.class) == null) {
+  private Set<ARGState> getAllTargetStatesNotFullyExplored(
+      final ReachedSet pIncompleteExploration, final ReachedSet pNodesOfInlinedProg)
+      throws CPAException, InterruptedException {
+    if (AbstractStates.extractStateByType(
+            pIncompleteExploration.getFirstState(), CallstackState.class)
+        == null) {
       return getAllTargetStatesNotFullyExploredBasedOnLocations(
           pIncompleteExploration.getWaitlist(), pNodesOfInlinedProg);
     } else {
@@ -224,7 +231,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       throws InterruptedException {
     // overapproximating this set, considering all syntactical paths
 
-    Set<CFANode> seen = Sets.newHashSetWithExpectedSize(cfa.getAllNodes().size());
+    Set<CFANode> seen = Sets.newHashSetWithExpectedSize(cfa.nodes().size());
     Deque<CFANode> toProcess = new ArrayDeque<>();
     CFANode current;
 
@@ -248,7 +255,8 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     }
 
     return Sets.newHashSet(
-        Iterables.filter(Iterables.filter(pNodesOfInlinedProg, ARGState.class),
+        Iterables.filter(
+            Iterables.filter(pNodesOfInlinedProg, ARGState.class),
             state -> state.isTarget() && seen.contains(AbstractStates.extractLocation(state))));
   }
 
@@ -258,13 +266,14 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     // overapproximating this set, considering all syntactical paths
 
     Multimap<CFANode, CallstackStateEqualsWrapper> seen =
-        HashMultimap.create(cfa.getAllNodes().size(), cfa.getNumberOfFunctions());
+        HashMultimap.create(cfa.nodes().size(), cfa.getNumberOfFunctions());
     Deque<Pair<CFANode, CallstackState>> toProcess = new ArrayDeque<>();
-    Pair<CFANode, CallstackState> current, explored;
 
     for (AbstractState state : pUnexploredStates) {
-      current = Pair.of(AbstractStates.extractLocation(state),
-          AbstractStates.extractStateByType(state, CallstackState.class));
+      Pair<CFANode, CallstackState> current =
+          Pair.of(
+              AbstractStates.extractLocation(state),
+              AbstractStates.extractStateByType(state, CallstackState.class));
       if (seen.put(current.getFirst(), new CallstackStateEqualsWrapper(current.getSecond()))) {
         toProcess.add(current);
       }
@@ -274,25 +283,28 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     try {
       callstackCpa = new CallstackCPA(Configuration.defaultConfiguration(), logger);
     } catch (InvalidConfigurationException e) {
-      logger.log(Level.INFO,
+      logger.log(
+          Level.INFO,
           "Cannot use inlined representation to detect unexplored target states. ",
           "Use fall-back solution (less precise) and only consider locations.");
-      return getAllTargetStatesNotFullyExploredBasedOnLocations(pUnexploredStates,
-          pNodesOfInlinedProg);
+      return getAllTargetStatesNotFullyExploredBasedOnLocations(
+          pUnexploredStates, pNodesOfInlinedProg);
     }
     CallstackTransferRelation csTr = callstackCpa.getTransferRelation();
-    Collection<? extends AbstractState> csSucc;
 
     while (!toProcess.isEmpty()) {
       shutdown.shutdownIfNecessary();
-      current = toProcess.pop();
+      Pair<CFANode, CallstackState> current = toProcess.pop();
 
       for (CFAEdge leaving : CFAUtils.leavingEdges(current.getFirst())) {
-        csSucc = csTr.getAbstractSuccessorsForEdge(current.getSecond(),
-            SingletonPrecision.getInstance(), leaving);
+        Collection<? extends AbstractState> csSucc =
+            csTr.getAbstractSuccessorsForEdge(
+                current.getSecond(), SingletonPrecision.getInstance(), leaving);
         if (!csSucc.isEmpty()) {
-          explored = Pair.of(leaving.getSuccessor(), (CallstackState) csSucc.iterator().next());
-          if (seen.put(explored.getFirst(), new CallstackStateEqualsWrapper(explored.getSecond()))) {
+          Pair<CFANode, CallstackState> explored =
+              Pair.of(leaving.getSuccessor(), (CallstackState) csSucc.iterator().next());
+          if (seen.put(
+              explored.getFirst(), new CallstackStateEqualsWrapper(explored.getSecond()))) {
             toProcess.add(explored);
           }
         }
@@ -300,21 +312,23 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     }
 
     return Sets.newHashSet(
-        Iterables.filter(Iterables.filter(pNodesOfInlinedProg, ARGState.class),
-            state -> seen.get(AbstractStates.extractLocation(state))
-                .contains(new CallstackStateEqualsWrapper(
-                    AbstractStates.extractStateByType(state, CallstackState.class)))));
+        Iterables.filter(
+            Iterables.filter(pNodesOfInlinedProg, ARGState.class),
+            state ->
+                seen.get(AbstractStates.extractLocation(state))
+                    .contains(
+                        new CallstackStateEqualsWrapper(
+                            AbstractStates.extractStateByType(state, CallstackState.class)))));
   }
 
-
-  private @Nullable Pair<ARGState, ReachedSet> prepareARGToConstructResidualProgram(final CFANode mainFunction,
-      final @Nullable Path assumptionAutomaton) {
+  private @Nullable Pair<ARGState, ReachedSet> prepareARGToConstructResidualProgram(
+      final CFANode mainFunction, final @Nullable Path assumptionAutomaton) {
     try {
       ConfigurationBuilder configBuilder = Configuration.builder();
       configBuilder.setOption("cpa", "cpa.arg.ARGCPA");
       configBuilder.setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA");
-      configBuilder.setOption("CompositeCPA.cpas",
-          "cpa.location.LocationCPA,cpa.callstack.CallstackCPA");
+      configBuilder.setOption(
+          "CompositeCPA.cpas", "cpa.location.LocationCPA,cpa.callstack.CallstackCPA");
       configBuilder.setOption("cpa.automaton.breakOnTargetState", "-1");
       Configuration config = configBuilder.build();
 
@@ -323,7 +337,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
 
       Specification spec = getSpecification();
       if (usesParallelCompositionOfProgramAndCondition()) {
-        assert (assumptionAutomaton != null);
+        assert assumptionAutomaton != null;
         spec =
             spec.withAdditionalSpecificationFile(
                 ImmutableSet.of(getAssumptionGuider(), assumptionAutomaton),
@@ -335,7 +349,8 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, spec);
 
       ReachedSet reached = coreComponents.createReachedSet(cpa);
-      reached.add(cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition()),
+      reached.add(
+          cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition()),
           cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition()));
 
       Algorithm algo = CPAAlgorithm.create(cpa, logger, config, shutdown);
@@ -353,13 +368,14 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       }
 
       return Pair.of((ARGState) reached.getFirstState(), reached);
-    } catch (InvalidConfigurationException | CPAException | IllegalArgumentException
+    } catch (InvalidConfigurationException
+        | CPAException
+        | IllegalArgumentException
         | InterruptedException e1) {
       logger.log(Level.SEVERE, "Analysis to build structure of residual program failed", e1);
       return null;
     }
   }
-
 
   @Override
   protected void checkConfiguration() throws InvalidConfigurationException {

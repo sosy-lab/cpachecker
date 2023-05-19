@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import com.google.common.base.Ascii;
+
 /**
- * Enum for the possible storage classes of C declarations.
- * REGISTER is missing because it is semantically equal to AUTO.
+ * Enum for the possible storage classes of C declarations. REGISTER is missing because it is
+ * semantically equal to AUTO.
  */
 public enum CStorageClass {
-
   AUTO,
   STATIC,
   EXTERN,
@@ -24,6 +25,6 @@ public enum CStorageClass {
     if (equals(AUTO)) {
       return "";
     }
-    return name().toLowerCase() + " ";
+    return Ascii.toLowerCase(name()) + " ";
   }
 }

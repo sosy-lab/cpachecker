@@ -26,6 +26,7 @@ public abstract class AbstractLockState
     implements LatticeAbstractState<AbstractLockState>, CompatibleState {
 
   protected final AbstractLockState toRestore;
+
   // if we need restore state, we save it here
   // Used for function annotations like annotate.function_name.restore
   protected AbstractLockState() {
@@ -73,7 +74,7 @@ public abstract class AbstractLockState
   public boolean isLessOrEqual(AbstractLockState other) {
     // State is less, if it has the same locks as the other and may be some more
 
-    return from(other.getLocks()).allMatch(this.getLocks()::contains);
+    return from(other.getLocks()).allMatch(getLocks()::contains);
   }
 
   @Override

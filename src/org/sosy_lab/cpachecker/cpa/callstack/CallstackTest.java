@@ -29,8 +29,8 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
 public class CallstackTest {
 
   /**
-   * Test that CallstackCPA prevents coverage of two states inside a function
-   * if the paths of these two states entered the current function separately.
+   * Test that CallstackCPA prevents coverage of two states inside a function if the paths of these
+   * two states entered the current function separately.
    */
   @Test
   public void testCallstackPreventsUndesiredCoverage() throws Exception {
@@ -65,7 +65,8 @@ public class CallstackTest {
               .setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA")
               .setOption(
                   "CompositeCPA.cpas",
-                  "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA")
+                  "cpa.location.LocationCPA, cpa.callstack.CallstackCPA,"
+                      + " cpa.value.ValueAnalysisCPA")
               .build();
 
       TestResults result = CPATestRunner.run(config, programFile.toPath().toString());
@@ -80,10 +81,7 @@ public class CallstackTest {
 
       List<ARGState> coveredStates =
           argStates.transformAndConcat(s -> s.getCoveredByThis()).toList();
-      assert_()
-          .withMessage("exactly one covered state expected")
-          .that(coveredStates)
-          .hasSize(1);
+      assert_().withMessage("exactly one covered state expected").that(coveredStates).hasSize(1);
       CFANode coverageLocation = AbstractStates.extractLocation(coveredStates.get(0));
       assert_()
           .withMessage("expected coverage only in main")

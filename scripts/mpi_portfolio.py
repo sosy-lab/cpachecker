@@ -113,10 +113,8 @@ class MPIMain:
         try:
             opts, args = getopt.getopt(argv, "di:w", ["input="])
         except getopt.GetoptError:
-            logger.error(
-                "Unable to parse user input. Usage: %s -d -i <input>",
-                __file__,
-                exc_info=True,
+            logger.exception(
+                "Unable to parse user input. Usage: %s -d -i <input>", __file__
             )
             sys.exit(2)
 
@@ -284,7 +282,6 @@ class MPIMain:
                     stderr=subprocess.STDOUT,
                     universal_newlines=True,
                 ) as self.process:
-
                     try:
                         proc_stdout, _ = self.process.communicate()
                     except KeyboardInterrupt:

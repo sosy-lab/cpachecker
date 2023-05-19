@@ -119,7 +119,8 @@ public class ExplainTool {
       FaultContribution con = new FaultContribution(exEdge);
       contributionSet.add(con);
       hints.add(
-          FaultInfo.justify("LINE " + exEdge.getLineNumber() + ", WAS EXECUTED: " + exEdge.getCode()));
+          FaultInfo.justify(
+              "LINE " + exEdge.getLineNumber() + ", WAS EXECUTED: " + exEdge.getCode()));
     }
 
     fault = new Fault(contributionSet);

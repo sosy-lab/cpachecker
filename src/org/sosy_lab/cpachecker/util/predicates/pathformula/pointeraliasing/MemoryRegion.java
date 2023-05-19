@@ -10,18 +10,16 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-/**
- * A memory region for pointer analysis
- */
+/** A memory region for pointer analysis */
 public interface MemoryRegion {
   /**
-   * Returns the type of memory region.
-   * The type is used for historical reasons
-   * and may be deprecated in the future.
+   * Returns the type of memory region. The type is used for historical reasons and may be
+   * deprecated in the future.
    *
    * @return the type of memory region
    */
   CType getType();
+
   /**
    * The function returns identifier of the region used for the name of uninterpreted functions.
    * Usually, the name contains a string representation of the type as substring.

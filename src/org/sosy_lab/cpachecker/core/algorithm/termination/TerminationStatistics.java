@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination;
 
-import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -40,6 +39,7 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -112,19 +112,17 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class TerminationStatistics extends LassoAnalysisStatistics {
 
   @Option(
-    secure = true,
-    description =
-        "A human readable representation of the synthesized (non-)termination arguments is "
-            + "exported to this file."
-  )
+      secure = true,
+      description =
+          "A human readable representation of the synthesized (non-)termination arguments is "
+              + "exported to this file.")
   @FileOption(Type.OUTPUT_FILE)
   private Path resultFile = Path.of("terminationAnalysisResult.txt");
 
   @Option(
-    secure = true,
-    name = "violation.witness",
-    description = "Export termination counterexample to file as GraphML automaton "
-  )
+      secure = true,
+      name = "violation.witness",
+      description = "Export termination counterexample to file as GraphML automaton ")
   @FileOption(Type.OUTPUT_FILE)
   private Path violationWitness = Path.of("nontermination_witness.graphml");
 
@@ -136,10 +134,9 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   private Path violationWitnessDot = Path.of("nontermination_witness.dot");
 
   @Option(
-    secure = true,
-    name = "compressWitness",
-    description = "compress the produced violation-witness automata using GZIP compression."
-  )
+      secure = true,
+      name = "compressWitness",
+      description = "compress the produced violation-witness automata using GZIP compression.")
   private boolean compressWitness = true;
 
   private final int totalLoops;
@@ -163,10 +160,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   private @Nullable Loop nonterminatingLoop = null;
 
   public TerminationStatistics(
-      Configuration pConfig,
-      LogManager pLogger,
-      int pTotalNumberOfLoops,
-      CFA pCFA)
+      Configuration pConfig, LogManager pLogger, int pTotalNumberOfLoops, CFA pCFA)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = checkNotNull(pLogger);
@@ -262,16 +256,12 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     int safetyAnalysisRuns = safetyAnalysisRunsPerLoop.size();
     assert safetyAnalysisRuns == safetyAnalysisTime.getNumberOfIntervals();
     int maxSafetyAnalysisRuns =
-        safetyAnalysisRunsPerLoop
-            .entrySet()
-            .stream()
+        safetyAnalysisRunsPerLoop.entrySet().stream()
             .mapToInt(Multiset.Entry::getCount)
             .max()
             .orElse(0);
     String loopsWithMaxSafetyAnalysisRuns =
-        safetyAnalysisRunsPerLoop
-            .entrySet()
-            .stream()
+        safetyAnalysisRunsPerLoop.entrySet().stream()
             .filter(e -> e.getCount() == maxSafetyAnalysisRuns)
             .map(Multiset.Entry::getElement)
             .map(l -> l.getLoopHeads().toString())
@@ -302,9 +292,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     int maxLassosPerLoop =
         lassosPerLoop.entrySet().stream().mapToInt(Multiset.Entry::getCount).max().orElse(0);
     String loopsWithMaxLassos =
-        lassosPerLoop
-            .entrySet()
-            .stream()
+        lassosPerLoop.entrySet().stream()
             .filter(e -> e.getCount() == maxLassosPerLoop)
             .map(Multiset.Entry::getElement)
             .map(l -> l.getLoopHeads().toString())
@@ -377,10 +365,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     int maxTerminationArgumentsPerLoop =
         terminationArguments.asMap().values().stream().mapToInt(Collection::size).max().orElse(0);
     String loopsWithMaxTerminationArguments =
-        terminationArguments
-            .asMap()
-            .entrySet()
-            .stream()
+        terminationArguments.asMap().entrySet().stream()
             .filter(e -> e.getValue().size() == maxTerminationArgumentsPerLoop)
             .map(Entry::getKey)
             .map(l -> l.getLoopHeads().toString())
@@ -432,7 +417,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     if (resultFile != null) {
       logger.logf(FINER, "Writing result of termination analysis into %s.", resultFile);
 
-      try (Writer writer = IO.openOutputFile(resultFile, UTF_8)) {
+      try (Writer writer = IO.openOutputFile(resultFile, StandardCharsets.UTF_8)) {
         writer.append("Non-termination arguments:\n");
         for (Entry<Loop, NonTerminationArgument> nonTerminationArgument :
             nonTerminationArguments.entrySet()) {
@@ -521,7 +506,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       final ARGState newLoopStart) {
     Collection<ARGState> newStates = new HashSet<>();
     boolean first = true;
-    ARGState child, parent = newRoot;
+    ARGState parent = newRoot;
     newStates.add(newRoot);
 
     for (ARGState state : pStem.asStatesList()) {
@@ -536,7 +521,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         break;
       }
 
-      child = new ARGState(state.getWrappedState(), parent);
+      ARGState child = new ARGState(state.getWrappedState(), parent);
       parent = child;
       newStates.add(parent);
     }
@@ -556,22 +541,14 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     Deque<CFANode> waitlist = new ArrayDeque<>();
     waitlist.push(loc);
 
-    ARGState pred, succ;
-
-    CFANode locContinueLoop;
-    Pair<CFANode, CallstackState> context, newContext;
-    ARGState predFun, succFun;
-    Deque<Pair<CFANode, CallstackState>> waitlistFun;
-    Map<Pair<CFANode, CallstackState>, ARGState> contextToARGState;
-
     while (!waitlist.isEmpty()) {
       loc = waitlist.pop();
-      pred = nodeToARGState.get(loc);
-      assert (pred != null);
+      ARGState pred = nodeToARGState.get(loc);
+      assert pred != null;
 
       for (CFAEdge leave : CFAUtils.leavingEdges(loc)) {
         if (nonterminatingLoop.getLoopNodes().contains(leave.getSuccessor())) {
-          succ = nodeToARGState.get(leave.getSuccessor());
+          ARGState succ = nodeToARGState.get(leave.getSuccessor());
           if (succ == null) {
             succ = new ARGState(locFac.getState(leave.getSuccessor()), null);
             nodeToARGState.put(leave.getSuccessor(), succ);
@@ -582,32 +559,35 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
         } else if (leave instanceof FunctionCallEdge && pred.getChildren().isEmpty()) {
           // function calls are not considered to be part of the loop
-          locContinueLoop = ((FunctionCallEdge) leave).getSummaryEdge().getSuccessor();
-          contextToARGState = new HashMap<>();
-          context =
+          CFANode locContinueLoop = ((FunctionCallEdge) leave).getReturnNode();
+          Map<Pair<CFANode, CallstackState>, ARGState> contextToARGState = new HashMap<>();
+          Pair<CFANode, CallstackState> context =
               Pair.of(
                   leave.getSuccessor(),
                   new CallstackState(
                       null, leave.getSuccessor().getFunctionName(), leave.getPredecessor()));
-          waitlistFun = new ArrayDeque<>();
+          Deque<Pair<CFANode, CallstackState>> waitlistFun = new ArrayDeque<>();
           waitlistFun.push(context);
 
-          succFun = new ARGState(locFac.getState(leave.getSuccessor()), null);
+          ARGState succFun = new ARGState(locFac.getState(leave.getSuccessor()), null);
           contextToARGState.put(context, succFun);
 
           succFun.addParent(pred);
 
           while (!waitlistFun.isEmpty()) {
             context = waitlistFun.pop();
-            predFun = contextToARGState.get(context);
-            assert (predFun != null);
+            ARGState predFun = contextToARGState.get(context);
+            assert predFun != null;
 
             for (CFAEdge leaveFun : CFAUtils.leavingEdges(context.getFirst())) {
-              newContext = Pair.of(leaveFun.getSuccessor(), context.getSecond());
+              Pair<CFANode, CallstackState> newContext =
+                  Pair.of(leaveFun.getSuccessor(), context.getSecond());
 
               if (leaveFun instanceof FunctionReturnEdge) {
-                if (!context.getSecond().getCallNode()
-                    .equals(((FunctionReturnEdge) leaveFun).getSummaryEdge().getPredecessor())) {
+                if (!context
+                    .getSecond()
+                    .getCallNode()
+                    .equals(((FunctionReturnEdge) leaveFun).getCallNode())) {
                   continue; // false context
                 }
                 newContext =
@@ -645,7 +625,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             }
           }
 
-          assert (nodeToARGState.containsKey(locContinueLoop));
+          assert nodeToARGState.containsKey(locContinueLoop);
           relevantARGStates.addAll(contextToARGState.values());
         }
       }

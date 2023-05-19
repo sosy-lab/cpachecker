@@ -11,9 +11,9 @@ package org.sosy_lab.cpachecker.cpa.testtargets;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.time.Timer;
@@ -22,17 +22,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-
-
 public class TestTargetProvider implements Statistics {
-
 
   private static TestTargetProvider instance = null;
 
@@ -57,15 +53,11 @@ public class TestTargetProvider implements Statistics {
     type = pType;
     optimization = pGoalAdaption;
 
-    Predicate<CFAEdge> edgeCriterion;
-    switch (type) {
-      case FUN_CALL:
-        edgeCriterion = type.getEdgeCriterion(pTargetFun);
-        break;
-      default:
-        edgeCriterion = type.getEdgeCriterion();
-    }
-
+    Predicate<CFAEdge> edgeCriterion =
+        switch (type) {
+          case FUN_CALL -> type.getEdgeCriterion(pTargetFun);
+          default -> type.getEdgeCriterion();
+        };
     Set<CFAEdge> targets = extractEdgesByCriterion(edgeCriterion, pGoalAdaption, pCfa);
 
     if (runParallel) {
@@ -77,14 +69,8 @@ public class TestTargetProvider implements Statistics {
   }
 
   private Set<CFAEdge> extractEdgesByCriterion(
-      final Predicate<CFAEdge> criterion,
-      final TestTargetAdaption pAdaption,
-      final CFA pCfa) {
-    Set<CFAEdge> edges = new HashSet<>();
-    for (CFANode node : cfa.getAllNodes()) {
-      edges.addAll(CFAUtils.allLeavingEdges(node).filter(criterion).toSet());
-    }
-
+      final Predicate<CFAEdge> criterion, final TestTargetAdaption pAdaption, final CFA pCfa) {
+    Set<CFAEdge> edges = Sets.newLinkedHashSet(CFAUtils.allEdges(pCfa).filter(criterion));
 
     numNonOptimizedTargets = edges.size();
 
@@ -178,15 +164,15 @@ public class TestTargetProvider implements Statistics {
     pOut.println("Total time for test goal reduction:     " + optimizationTimer);
 
     if (printTargets) {
-    pOut.println("Initial test targets: ");
-    for (CFAEdge edge : initialTestTargets) {
-      pOut.println(edge.toString());
-    }
+      pOut.println("Initial test targets: ");
+      for (CFAEdge edge : initialTestTargets) {
+        pOut.println(edge.toString());
+      }
 
-    pOut.println("Test targets that have not been covered: ");
-    for (CFAEdge edge : uncoveredTargets) {
-      pOut.println(edge.toString());
-    }
+      pOut.println("Test targets that have not been covered: ");
+      for (CFAEdge edge : uncoveredTargets) {
+        pOut.println(edge.toString());
+      }
     }
   }
 }

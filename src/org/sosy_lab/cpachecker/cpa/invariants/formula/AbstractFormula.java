@@ -15,12 +15,11 @@ abstract class AbstractFormula<ConstantType> implements NumeralFormula<ConstantT
   private final TypeInfo info;
 
   protected AbstractFormula(TypeInfo pInfo) {
-    this.info = pInfo;
+    info = pInfo;
   }
 
   @Override
   public TypeInfo getTypeInfo() {
-    return this.info;
+    return info;
   }
-
 }

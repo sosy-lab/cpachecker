@@ -114,8 +114,7 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
     public TraversalProcess visitFunction(
         Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
       // ignore meta variables and variables that are not in the current scope
-      if (!pArgs
-          .stream()
+      if (!pArgs.stream()
           .map(formulaManagerView::uninstantiate)
           .flatMap(f -> formulaManagerView.extractVariableNames(f).stream())
           .allMatch(relevantVariables::contains)) {
@@ -123,8 +122,7 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
       }
 
       int argIndexes =
-          pArgs
-              .stream()
+          pArgs.stream()
               .flatMap(f -> formulaManagerView.extractFunctionNames(f).stream())
               .map(FormulaManagerView::parseName)
               .map(Pair::getSecondNotNull)

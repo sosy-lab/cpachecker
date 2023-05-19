@@ -87,7 +87,7 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
   }
 
   private Optional<CFAPathWithAdditionalInfo> mergePaths(CFAPathWithAdditionalInfo pOtherPath) {
-    if (pOtherPath.size() != this.size()) {
+    if (pOtherPath.size() != size()) {
       return Optional.empty();
     }
 
@@ -139,6 +139,6 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
     }
     // last state is ignored
 
-    return result.build();
+    return result.buildOrThrow();
   }
 }

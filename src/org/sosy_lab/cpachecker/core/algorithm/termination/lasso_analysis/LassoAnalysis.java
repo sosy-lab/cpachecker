@@ -94,61 +94,54 @@ public class LassoAnalysis {
   }
 
   @Option(
-    secure = true,
-    description =
-        "Number of non-strict supporting invariants for each Motzkin transformation "
-            + "during synthesis of termination arguments."
-  )
+      secure = true,
+      description =
+          "Number of non-strict supporting invariants for each Motzkin transformation "
+              + "during synthesis of termination arguments.")
   @IntegerOption(min = 1)
   private int nonStrictInvariants = 3;
 
   @Option(
-    secure = true,
-    description = "Number of generalized eigenvectors in the geometric nontermination argument."
-  )
+      secure = true,
+      description = "Number of generalized eigenvectors in the geometric nontermination argument.")
   @IntegerOption(min = 0)
   private int eigenvectors = 3;
 
   @Option(
-    secure = true,
-    description =
-        "Number of strict supporting invariants for each Motzkin transformation "
-            + "during synthesis of termination arguments."
-  )
+      secure = true,
+      description =
+          "Number of strict supporting invariants for each Motzkin transformation "
+              + "during synthesis of termination arguments.")
   @IntegerOption(min = 0)
   private int strictInvariants = 2;
 
   @Option(
-    name = "linear.analysisType",
-    secure = true,
-    description = "Analysis type used for synthesis of linear termination arguments."
-  )
+      name = "linear.analysisType",
+      secure = true,
+      description = "Analysis type used for synthesis of linear termination arguments.")
   private LassoAnalysisType linearAnalysisType = LassoAnalysisType.LINEAR_WITH_GUESSES;
 
   @Option(
-    name = "linear.externalSolver",
-    secure = true,
-    description =
-        "If true, an external tool is used as SMT solver instead of SMTInterpol. "
-            + "This affects only synthesis of linear termination arguments."
-  )
+      name = "linear.externalSolver",
+      secure = true,
+      description =
+          "If true, an external tool is used as SMT solver instead of SMTInterpol. "
+              + "This affects only synthesis of linear termination arguments.")
   private boolean linearExternalSolver = false;
 
   @Option(
-    secure = true,
-    name = "nonlinear.analysisType",
-    description = "Analysis type used for synthesis of non-linear termination arguments."
-  )
+      secure = true,
+      name = "nonlinear.analysisType",
+      description = "Analysis type used for synthesis of non-linear termination arguments.")
   private LassoAnalysisType nonlinearAnalysisType = LassoAnalysisType.LINEAR_WITH_GUESSES;
 
   @Option(
-    name = "nonlinear.externalSolver",
-    secure = true,
-    description =
-        "If true, an external tool is used as SMT solver instead of SMTInterpol. "
-            + "This affects only synthesis of non-linear termination arguments and "
-            + "non-termination arguments."
-  )
+      name = "nonlinear.externalSolver",
+      secure = true,
+      description =
+          "If true, an external tool is used as SMT solver instead of SMTInterpol. "
+              + "This affects only synthesis of non-linear termination arguments and "
+              + "non-termination arguments.")
   private boolean nonlinearExternalSolver = false;
 
   @Option(description = "Shell command used to call the external SMT solver.")
@@ -156,9 +149,8 @@ public class LassoAnalysis {
       NativeLibraries.getNativeLibraryPath().resolve("z3") + " -smt2 -in SMTLIB2_COMPLIANT=true ";
 
   @Option(
-    secure = true,
-    description = "Maximal number of functions used in a ranking function template."
-  )
+      secure = true,
+      description = "Maximal number of functions used in a ranking function template.")
   @IntegerOption(min = 1)
   private int maxTemplateFunctions = 3;
 
@@ -235,7 +227,7 @@ public class LassoAnalysis {
             () ->
                 solverContext
                     .newProverEnvironment(), // Eclipse compiler crashes if a method reference is
-                                             // used here.
+            // used here.
             pathFormulaManager,
             pStatistics);
     RankingRelationBuilder rankingRelationBuilder =

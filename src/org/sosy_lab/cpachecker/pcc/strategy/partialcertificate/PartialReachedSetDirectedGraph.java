@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,7 +46,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     } else {
       nodes = pNodes.clone();
       numNodes = nodes.length;
-      this.adjacencyList = buildAdjacencyList(pNodes);
+      adjacencyList = buildAdjacencyList(pNodes);
     }
   }
 
@@ -97,8 +98,8 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     return adjacencyList;
   }
 
-  public AbstractState[] getSuccessorNodesOutsideSet(final Set<Integer> pNodeSetIndices,
-      final boolean pAsARGState) {
+  public AbstractState[] getSuccessorNodesOutsideSet(
+      final Set<Integer> pNodeSetIndices, final boolean pAsARGState) {
     CollectingNodeVisitor visitor = new CollectingNodeVisitor(pAsARGState);
     visitOutsideSuccessors(pNodeSetIndices, visitor);
 
@@ -112,21 +113,22 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     return visitor.numOutside;
   }
 
-  public long getNumEdgesBetween(final Set<Integer> pSrcNodeSetIndices,
-      final Set<Integer> pDstNodeSetIndices) {
+  public long getNumEdgesBetween(
+      final Set<Integer> pSrcNodeSetIndices, final Set<Integer> pDstNodeSetIndices) {
     CountingNodeVisitor visitor = new CountingNodeVisitor();
     visitOutsideAdjacentNodes(pSrcNodeSetIndices, pDstNodeSetIndices, visitor);
 
     return visitor.numOutside;
   }
 
-  public long getNumEdgesBetween(final Integer pSrcNodeIndex,
-      final Set<Integer> pDstNodeSetIndices) {
+  public long getNumEdgesBetween(
+      final Integer pSrcNodeIndex, final Set<Integer> pDstNodeSetIndices) {
     return getNumEdgesBetween(Sets.newHashSet(pSrcNodeIndex), pDstNodeSetIndices);
   }
 
-  public AbstractState[] getSetNodes(final Set<Integer> pNodeSetIndices,
-      final boolean pAsARGState) {
+  @SuppressFBWarnings(value = "DCN_NULLPOINTER_EXCEPTION", justification = "rethrown as other type")
+  public AbstractState[] getSetNodes(
+      final Set<Integer> pNodeSetIndices, final boolean pAsARGState) {
     List<AbstractState> listRes = new ArrayList<>();
 
     try {
@@ -139,23 +141,30 @@ public class PartialReachedSetDirectedGraph implements Statistics {
         }
       }
     } catch (ArrayIndexOutOfBoundsException | NullPointerException e) {
+      // TODO better style would be to check arguments first instead of catching exceptions
+      // that could also come from other bugs.
       throw new IllegalArgumentException(
-          "Wrong index set must not be null and all indices must be within [0;" + numNodes
-              + "-1].");
+          "Wrong index set must not be null and all indices must be within [0;" + numNodes + "-1].",
+          e);
     }
     return listRes.toArray(new AbstractState[0]);
   }
 
-
   @Override
   public void printStatistics(
       final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
-    int edges = 0, maxin = 0, minin = Integer.MAX_VALUE, maxout = 0, minout = Integer.MAX_VALUE;
-    double avgin = 0, avgout = 0;
-    //store distribution of nodes over there degrees
-    final int MAX_DEG = 10; //All nodes with same or higher degrees are counted as MAX_DEG-nodes
+    int edges = 0;
+    int maxin = 0;
+    int minin = Integer.MAX_VALUE;
+    int maxout = 0;
+    int minout = Integer.MAX_VALUE;
+    double avgin = 0;
+    double avgout = 0;
+    // store distribution of nodes over there degrees
+    final int MAX_DEG = 10; // All nodes with same or higher degrees are counted as MAX_DEG-nodes
     int[] inDistribution = new int[MAX_DEG];
-    double[] normalIn = new double[MAX_DEG]; //normalized Distribution, i.e. divide any element by #nodes
+    double[] normalIn =
+        new double[MAX_DEG]; // normalized Distribution, i.e. divide any element by #nodes
     int[] outDistribution = new int[MAX_DEG];
     double[] normalOut = new double[MAX_DEG];
 
@@ -166,9 +175,9 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     for (ImmutableList<Integer> successors : adjacencyList) {
       successorSize = successors.size();
       edges += successors.size();
-      if (successorSize >= MAX_DEG) { //node with out degree higher than MAX_DEG-1
+      if (successorSize >= MAX_DEG) { // node with out degree higher than MAX_DEG-1
         outDistribution[MAX_DEG - 1]++;
-      } else { //successorSize in [0:MAX_DEG]
+      } else { // successorSize in [0:MAX_DEG]
         outDistribution[successorSize]++;
       }
       maxout = Math.max(maxout, successorSize);
@@ -177,7 +186,6 @@ public class PartialReachedSetDirectedGraph implements Statistics {
       for (Integer succ : successors) {
         indegrees[succ] = indegrees[succ] + 1;
       }
-
     }
     if (nodes.length > 0) {
       for (int a = 0; a < outDistribution.length; a++) {
@@ -189,9 +197,9 @@ public class PartialReachedSetDirectedGraph implements Statistics {
       maxin = indegrees[indegrees.length - 1];
       for (int indegree : indegrees) {
         avgin += indegree;
-        if (indegree >= MAX_DEG) { //node with in degree higher than MAX_DEG-1
+        if (indegree >= MAX_DEG) { // node with in degree higher than MAX_DEG-1
           inDistribution[MAX_DEG - 1]++;
-        } else { //predecessorSize in [0:MAX_DEG]
+        } else { // predecessorSize in [0:MAX_DEG]
           inDistribution[indegree]++;
         }
       }
@@ -204,7 +212,6 @@ public class PartialReachedSetDirectedGraph implements Statistics {
       minin = 0;
       minout = 0;
     }
-
 
     pOut.println("#nodes:         " + nodes.length);
     pOut.println("#edges:         " + edges);
@@ -225,8 +232,8 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     return null;
   }
 
-  private void visitOutsideSuccessorsOf(final int pPredecessor, final NodeVisitor pVisitor,
-      final Predicate<Integer> pMustVisit) {
+  private void visitOutsideSuccessorsOf(
+      final int pPredecessor, final NodeVisitor pVisitor, final Predicate<Integer> pMustVisit) {
     for (Integer successor : adjacencyList.get(pPredecessor)) {
       if (pMustVisit.apply(successor)) {
         pVisitor.visit(successor);
@@ -234,6 +241,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     }
   }
 
+  @SuppressFBWarnings(value = "DCN_NULLPOINTER_EXCEPTION", justification = "rethrown as other type")
   private void visitOutsideSuccessors(final Set<Integer> pNodeSet, final NodeVisitor pVisitor) {
     try {
       Predicate<Integer> isOutsideSet = pNode -> !pNodeSet.contains(pNode);
@@ -241,42 +249,43 @@ public class PartialReachedSetDirectedGraph implements Statistics {
         visitOutsideSuccessorsOf(predecessor, pVisitor, isOutsideSet);
       }
     } catch (ArrayIndexOutOfBoundsException | NullPointerException e) {
+      // TODO better style would be to check arguments first instead of catching exceptions
+      // that could also come from other bugs.
       throw new IllegalArgumentException(
-          "Wrong index set must not be null and all indices be within [0;" + numNodes
-              + "-1].");
+          "Wrong index set must not be null and all indices be within [0;" + numNodes + "-1].", e);
     }
   }
 
-  private void visitOutsideAdjacentNodes(final Set<Integer> pSrcNodeSetIndices,
+  @SuppressFBWarnings(value = "DCN_NULLPOINTER_EXCEPTION", justification = "rethrown as other type")
+  private void visitOutsideAdjacentNodes(
+      final Set<Integer> pSrcNodeSetIndices,
       final Set<Integer> pDstNodeSetIndices,
       final NodeVisitor pVisitor) {
     try {
       visitSuccessorsInOtherSet(pSrcNodeSetIndices, pDstNodeSetIndices, pVisitor);
       visitSuccessorsInOtherSet(pDstNodeSetIndices, pSrcNodeSetIndices, pVisitor);
     } catch (ArrayIndexOutOfBoundsException | NullPointerException e) {
+      // TODO better style would be to check arguments first instead of catching exceptions
+      // that could also come from other bugs.
       throw new IllegalArgumentException(
-          "Wrong index set must not be null and all indices be within [0;" + numNodes
-              + "-1].");
+          "Wrong index set must not be null and all indices be within [0;" + numNodes + "-1].", e);
     }
   }
 
-  private void visitSuccessorsInOtherSet(final Set<Integer> pNodeSet,
-      final Set<Integer> pOtherNodeSet,
-      final NodeVisitor pVisitor) {
+  private void visitSuccessorsInOtherSet(
+      final Set<Integer> pNodeSet, final Set<Integer> pOtherNodeSet, final NodeVisitor pVisitor) {
     Predicate<Integer> isInOtherSet = pOtherNodeSet::contains;
     for (int predecessor : pNodeSet) {
       visitOutsideSuccessorsOf(predecessor, pVisitor, isInOtherSet);
     }
   }
 
-
   private interface NodeVisitor {
 
     void visit(int pSuccessor);
-
   }
 
-  private class CollectingNodeVisitor implements NodeVisitor {
+  private final class CollectingNodeVisitor implements NodeVisitor {
 
     private final Set<AbstractState> setRes = new HashSet<>();
     private final boolean collectAsARGState;
@@ -295,7 +304,7 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     }
   }
 
-  private static class CountingNodeVisitor implements NodeVisitor {
+  private static final class CountingNodeVisitor implements NodeVisitor {
 
     private long numOutside = 0;
 
@@ -347,7 +356,5 @@ public class PartialReachedSetDirectedGraph implements Statistics {
       return !Objects.equals(pNode, predecessor)
           && (nodeToIndex.containsKey(pNode) || pNode.isCovered());
     }
-
   }
-
 }

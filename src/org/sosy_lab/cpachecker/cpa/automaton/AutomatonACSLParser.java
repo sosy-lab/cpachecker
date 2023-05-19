@@ -22,18 +22,17 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicateToExpressionTreeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLTermToCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -66,23 +65,19 @@ public class AutomatonACSLParser {
       String automatonName = "ACSLInvariantsAutomaton";
       String initialStateName = "VALID";
       ImmutableList.Builder<AutomatonTransition> transitions = ImmutableList.builder();
-      for (CFANode node : cfa.getAllNodes()) {
-        if (node.getNumLeavingEdges() > 0) {
-          for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
-            Collection<ACSLAnnotation> annotations = cfa.getEdgesToAnnotations().get(leavingEdge);
-            if (!annotations.isEmpty()) {
-              ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
-              List<ExpressionTree<Object>> representations = new ArrayList<>(annotations.size());
-              for (ACSLAnnotation annotation : annotations) {
-                ACSLPredicate predicate = annotation.getPredicateRepresentation();
-                representations.add(predicate.accept(visitor));
-              }
-              @SuppressWarnings("unchecked")
-              ExpressionTree<AExpression> inv =
-                  (ExpressionTree<AExpression>) (ExpressionTree<?>) factory.and(representations);
-              createLocationInvariantsTransitions(transitions, leavingEdge, inv);
-            }
+      for (CFAEdge edge : cfa.edges()) {
+        Collection<ACSLAnnotation> annotations = cfa.getEdgesToAnnotations().get(edge);
+        if (!annotations.isEmpty()) {
+          ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
+          List<ExpressionTree<Object>> representations = new ArrayList<>(annotations.size());
+          for (ACSLAnnotation annotation : annotations) {
+            ACSLPredicate predicate = annotation.getPredicateRepresentation();
+            representations.add(predicate.accept(visitor));
           }
+          @SuppressWarnings("unchecked")
+          ExpressionTree<AExpression> inv =
+              (ExpressionTree<AExpression>) (ExpressionTree<?>) factory.and(representations);
+          createLocationInvariantsTransitions(transitions, edge, inv);
         }
       }
       AutomatonInternalState state =
@@ -137,11 +132,11 @@ public class AutomatonACSLParser {
    * stay the same.
    */
   public boolean areIsomorphicCFAs(CFA other) {
-    if (cfa.getAllNodes().size() != other.getAllNodes().size()) {
+    if (cfa.nodes().size() != other.nodes().size()) {
       return false;
     }
-    Iterator<CFANode> nodes = cfa.getAllNodes().iterator();
-    Iterator<CFANode> other_nodes = other.getAllNodes().iterator();
+    Iterator<CFANode> nodes = cfa.nodes().iterator();
+    Iterator<CFANode> other_nodes = other.nodes().iterator();
     while (nodes.hasNext()) {
       CFANode node = nodes.next();
       CFANode other_node = other_nodes.next();

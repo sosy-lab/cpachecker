@@ -39,10 +39,8 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 
 /**
- * This class represents a path of cfaEdges, that contain the additional Information
- * at which edge which assignableTerm was created when this path was checked by
- * the class {@link PathChecker}.
- *
+ * This class represents a path of cfaEdges, that contain the additional Information at which edge
+ * which assignableTerm was created when this path was checked by the class {@link PathChecker}.
  */
 public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumptions> {
 
@@ -54,6 +52,10 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
 
   public static CFAPathWithAssumptions empty() {
     return new CFAPathWithAssumptions(ImmutableList.of());
+  }
+
+  public static CFAPathWithAssumptions from(ImmutableList<CFAEdgeWithAssumptions> pAssumptions) {
+    return new CFAPathWithAssumptions(pAssumptions);
   }
 
   @Override
@@ -85,7 +87,8 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
     int multiEdgeOffset = 0;
 
     while (pathIterator.hasNext()) {
-      CFAEdgeWithAssumptions edgeWithAssignment = pathWithAssignments.get(pathIterator.getIndex() + multiEdgeOffset);
+      CFAEdgeWithAssumptions edgeWithAssignment =
+          pathWithAssignments.get(pathIterator.getIndex() + multiEdgeOffset);
       CFAEdge argPathEdge = pathIterator.getOutgoingEdge();
 
       if (!edgeWithAssignment.getCFAEdge().equals(argPathEdge)) {
@@ -108,8 +111,8 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
     return result.build();
   }
 
-  public static CFAPathWithAssumptions of(ConcreteStatePath statePath,
-      AssumptionToEdgeAllocator pAllocator) {
+  public static CFAPathWithAssumptions of(
+      ConcreteStatePath statePath, AssumptionToEdgeAllocator pAllocator) {
 
     ImmutableList.Builder<CFAEdgeWithAssumptions> result =
         ImmutableList.builderWithExpectedSize(statePath.size());
@@ -120,8 +123,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
 
       // this is an intermediate state: just create the assumptions for it
       // and add it as if it was a normal edge
-      if (node instanceof IntermediateConcreteState) {
-        IntermediateConcreteState intermediateState = (IntermediateConcreteState) node;
+      if (node instanceof IntermediateConcreteState intermediateState) {
         currentIntermediateStates.add(intermediateState);
         edge =
             pAllocator.allocateAssumptionsToEdge(
@@ -182,11 +184,9 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
   }
 
   private static boolean isEmptyDeclaration(CFAEdge pCfaEdge) {
-    if (pCfaEdge instanceof ADeclarationEdge) {
-      ADeclarationEdge declarationEdge = (ADeclarationEdge) pCfaEdge;
+    if (pCfaEdge instanceof ADeclarationEdge declarationEdge) {
       ADeclaration declaration = declarationEdge.getDeclaration();
-      if (declaration instanceof AVariableDeclaration) {
-        AVariableDeclaration variableDeclaration = (AVariableDeclaration) declaration;
+      if (declaration instanceof AVariableDeclaration variableDeclaration) {
         return variableDeclaration.getInitializer() == null && !variableDeclaration.isGlobal();
       }
       return true;
@@ -217,7 +217,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
 
   public Optional<CFAPathWithAssumptions> mergePaths(CFAPathWithAssumptions pOtherPath) {
 
-    if (pOtherPath.size() != this.size()) {
+    if (pOtherPath.size() != size()) {
       return Optional.empty();
     }
 

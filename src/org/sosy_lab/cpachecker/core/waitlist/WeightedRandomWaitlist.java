@@ -42,7 +42,7 @@ public class WeightedRandomWaitlist implements Waitlist {
       config.inject(this);
       if (exponent < 0) {
         throw new InvalidConfigurationException(
-            "analysis.traversal.random.exponent has to be " + "a double greater or equal to 0");
+            "analysis.traversal.random.exponent has to be a double greater or equal to 0");
       }
     }
   }
@@ -120,8 +120,7 @@ public class WeightedRandomWaitlist implements Waitlist {
         states.remove(state);
       }
       return removed;
-    }
-     else {
+    } else {
       return false;
     }
   }
@@ -137,7 +136,7 @@ public class WeightedRandomWaitlist implements Waitlist {
 
   @Override
   public Iterator<AbstractState> iterator() {
-    if(states.isEmpty()) {
+    if (states.isEmpty()) {
       return new Iterator<>() {
 
         @Override
@@ -178,4 +177,3 @@ public class WeightedRandomWaitlist implements Waitlist {
     };
   }
 }
-

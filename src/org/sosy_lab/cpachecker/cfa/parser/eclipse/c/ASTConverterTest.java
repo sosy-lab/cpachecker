@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.Triple;
 
 public class ASTConverterTest {
 
@@ -57,47 +56,47 @@ public class ASTConverterTest {
     assertThat(converter32.parseCharacterLiteral("'´'", null)).isEqualTo('´');
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression1() {
     converter32.parseCharacterLiteral("", null);
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression2() {
     converter32.parseCharacterLiteral("'\\'", null);
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression3() {
     converter32.parseCharacterLiteral("'aa'", null);
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression4() {
     converter32.parseCharacterLiteral("'\\777'", null);
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression5() {
     converter32.parseCharacterLiteral("'\\xFFF'", null);
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression6() {
     converter32.parseCharacterLiteral("'\\z'", null);
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression7() {
     converter32.parseCharacterLiteral("'\\0777'", null);
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression8() {
     converter32.parseCharacterLiteral("'\\088'", null);
   }
 
-  @Test(expected=CFAGenerationRuntimeException.class)
+  @Test(expected = CFAGenerationRuntimeException.class)
   public final void testInvalidCharacterExpression9() {
     converter32.parseCharacterLiteral("'\\xGG'", null);
   }
@@ -120,7 +119,8 @@ public class ASTConverterTest {
         } catch (CFAGenerationRuntimeException e) {
           assertThat(e.getMessage())
               .contains(
-                  "Integer value is too large to be represented by the highest possible type (unsigned long long int):");
+                  "Integer value is too large to be represented by the highest possible type"
+                      + " (unsigned long long int):");
         }
       }
     }
@@ -141,7 +141,7 @@ public class ASTConverterTest {
 
   @Test
   public final void testIntegerExpression() {
-    check("0","0");
+    check("0", "0");
     check("1", "1");
     check("2", "2");
     check("3", "3u");
@@ -193,31 +193,28 @@ public class ASTConverterTest {
   public final void testValidFloatExpressions() {
     ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
 
-    ImmutableList<Triple<String, String, CType>> input_output =
+    // TestCase consists of: input value, expected output, input type for CLiteralExpression
+    record TestCase(String input, String expected, CType type) {}
+    ImmutableList<TestCase> input_output =
         ImmutableList.of(
-            // Triples consist of: input value, expected output, input type for CLiteralExpression
-            Triple.of("0", "0.0", CNumericTypes.DOUBLE),
-            Triple.of("-0", "0.0", CNumericTypes.DOUBLE),
-            Triple.of("0xf", "15.0", CNumericTypes.DOUBLE),
-            Triple.of("5e2f", "500.0", CNumericTypes.FLOAT),
-            Triple.of("5e+2f", "500.0", CNumericTypes.FLOAT),
-            Triple.of("0x5e2f", "24111.0", CNumericTypes.FLOAT),
-            Triple.of("0x5e-2f", "94.0", CNumericTypes.FLOAT),
-            Triple.of(
+            new TestCase("0", "0.0", CNumericTypes.DOUBLE),
+            new TestCase("-0", "0.0", CNumericTypes.DOUBLE),
+            new TestCase("0xf", "15.0", CNumericTypes.DOUBLE),
+            new TestCase("5e2f", "500.0", CNumericTypes.FLOAT),
+            new TestCase("5e+2f", "500.0", CNumericTypes.FLOAT),
+            new TestCase("0x5e2f", "24111.0", CNumericTypes.FLOAT),
+            new TestCase("0x5e-2f", "94.0", CNumericTypes.FLOAT),
+            new TestCase(
                 "3.41E+38", "341000000000000000445911848520865808384.0", CNumericTypes.DOUBLE));
 
     for (ASTLiteralConverter converter : converters) {
-      for (Triple<String, String, CType> triple : input_output) {
-        String inputValue = triple.getFirst();
-        String expectedValue = triple.getSecond();
-        CType inputType = triple.getThird();
-
+      for (TestCase test : input_output) {
         CFloatLiteralExpression literal =
             (CFloatLiteralExpression)
-                converter.parseFloatLiteral(FileLocation.DUMMY, inputType, inputValue, null);
+                converter.parseFloatLiteral(FileLocation.DUMMY, test.type(), test.input(), null);
 
-        assertThat(literal.getValue().toString()).isEqualTo(expectedValue);
-        assertThat(inputType).isSameInstanceAs(literal.getExpressionType());
+        assertThat(literal.getValue().toString()).isEqualTo(test.expected());
+        assertThat(test.type()).isSameInstanceAs(literal.getExpressionType());
       }
     }
   }

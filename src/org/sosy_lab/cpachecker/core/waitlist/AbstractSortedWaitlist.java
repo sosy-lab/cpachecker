@@ -23,16 +23,14 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
 /**
- * Default implementation of a sorted waitlist.
- * The key that is used for sorting is defined by sub-classes (it's type is
- * the type parameter of this class).
+ * Default implementation of a sorted waitlist. The key that is used for sorting is defined by
+ * sub-classes (it's type is the type parameter of this class).
  *
- * There may be several abstract states with the same key, so this class
- * delegates the decision which of those should be chosen to a second waitlist
- * implementation. A factory for this implementation needs to be given to the
- * constructor.
+ * <p>There may be several abstract states with the same key, so this class delegates the decision
+ * which of those should be chosen to a second waitlist implementation. A factory for this
+ * implementation needs to be given to the constructor.
  *
- * The iterators created by this class are unmodifiable.
+ * <p>The iterators created by this class are unmodifiable.
  */
 public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements Waitlist {
 
@@ -48,23 +46,23 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   private final Map<String, StatInt> delegationCounts = new HashMap<>();
 
   /**
-   * Constructor that needs a factory for the waitlist implementation that
-   * should be used to store states with the same sorting key.
+   * Constructor that needs a factory for the waitlist implementation that should be used to store
+   * states with the same sorting key.
    */
   protected AbstractSortedWaitlist(WaitlistFactory pSecondaryStrategy) {
     wrappedWaitlist = Preconditions.checkNotNull(pSecondaryStrategy);
     popCount = new StatCounter("Pop requests to waitlist (" + getClass().getSimpleName() + ")");
-    delegationCount = new StatCounter(
-        "Pops delegated to wrapped waitlists (" + wrappedWaitlist.getClass().getSimpleName() +
-            ")");
+    delegationCount =
+        new StatCounter(
+            "Pops delegated to wrapped waitlists ("
+                + wrappedWaitlist.getClass().getSimpleName()
+                + ")");
   }
 
   /**
-   * Method that generates the sorting key for any abstract state.
-   * States with largest key are considered first.
-   * This method may not return null.
-   * If this method throws an exception, no guarantees about the state of the
-   * current instance of this class are made.
+   * Method that generates the sorting key for any abstract state. States with largest key are
+   * considered first. This method may not return null. If this method throws an exception, no
+   * guarantees about the state of the current instance of this class are made.
    */
   @ForOverride
   protected abstract K getSortKey(AbstractState pState);
@@ -147,9 +145,8 @@ public abstract class AbstractSortedWaitlist<K extends Comparable<K>> implements
   }
 
   /**
-   * Returns a map of delegation counts for this waitlist and all waitlists delegated to.
-   * The keys of the returned Map are the names of the waitlists, the values
-   * are the existing delegations.
+   * Returns a map of delegation counts for this waitlist and all waitlists delegated to. The keys
+   * of the returned Map are the names of the waitlists, the values are the existing delegations.
    */
   public Map<String, StatInt> getDelegationCounts() {
     String waitlistName = this.getClass().getSimpleName();

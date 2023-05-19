@@ -146,7 +146,6 @@ abstract class ProofObligation implements Iterable<ProofObligation>, Comparable<
     public Optional<ProofObligation> find(Predicate<? super ProofObligation> pFilter) {
       return StreamSupport.stream(spliterator(), false).filter(pFilter).findFirst();
     }
-
   }
 
   private static class LeafProofObligation extends ProofObligation {
@@ -160,12 +159,7 @@ abstract class ProofObligation implements Iterable<ProofObligation>, Comparable<
         int pNSpuriousTransitions,
         int pLength,
         CandidateInvariant pViolatedInvariant) {
-      super(
-          pBlockedAbstractCti,
-          pBlockedConcreteCti,
-          pFrameIndex,
-          pNSpuriousTransitions,
-          pLength);
+      super(pBlockedAbstractCti, pBlockedConcreteCti, pFrameIndex, pNSpuriousTransitions, pLength);
       violatedInvariant = Objects.requireNonNull(pViolatedInvariant);
     }
 
@@ -270,8 +264,7 @@ abstract class ProofObligation implements Iterable<ProofObligation>, Comparable<
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof ProofObligation) {
-      ProofObligation other = (ProofObligation) pOther;
+    if (pOther instanceof ProofObligation other) {
       return frameIndex == other.frameIndex
           && nSpuriousTransitions == other.nSpuriousTransitions
           && blockedConcreteCti.equals(other.blockedConcreteCti)
@@ -311,11 +304,7 @@ abstract class ProofObligation implements Iterable<ProofObligation>, Comparable<
       int pNSpuriousTransitions,
       int pLength) {
     return new NonLeafProofObligation(
-        pBlockedAbstractCti,
-        pBlockedConcreteCti,
-        pNSpuriousTransitions,
-        pLength,
-        this);
+        pBlockedAbstractCti, pBlockedConcreteCti, pNSpuriousTransitions, pLength, this);
   }
 
   public static ProofObligation createObligation(

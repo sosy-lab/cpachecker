@@ -56,15 +56,9 @@ public class RCNFManagerTest extends SolverViewBasedTest0 {
   }
 
   @Test
-  public void testFactorization() throws Exception{
-    BooleanFormula a = bfmgr.and(
-        bfmgr.makeVariable("p"),
-        bfmgr.makeVariable("a")
-    );
-    BooleanFormula b = bfmgr.and(
-        bfmgr.makeVariable("p"),
-        bfmgr.makeVariable("b")
-    );
+  public void testFactorization() throws Exception {
+    BooleanFormula a = bfmgr.and(bfmgr.makeVariable("p"), bfmgr.makeVariable("a"));
+    BooleanFormula b = bfmgr.and(bfmgr.makeVariable("p"), bfmgr.makeVariable("b"));
     BooleanFormula c = bfmgr.or(a, b);
 
     BooleanFormula converted = bfmgr.and(rcnfManager.toLemmas(c, mgrv));
@@ -76,16 +70,12 @@ public class RCNFManagerTest extends SolverViewBasedTest0 {
 
   @Test
   public void testNestedConjunctions() throws Exception {
-    BooleanFormula input = bfmgr.and(
-        bfmgr.makeVariable("a"),
+    BooleanFormula input =
         bfmgr.and(
-            bfmgr.makeVariable("b"),
+            bfmgr.makeVariable("a"),
             bfmgr.and(
-                bfmgr.makeVariable("c"),
-                bfmgr.makeVariable("d")
-            )
-        )
-    );
+                bfmgr.makeVariable("b"),
+                bfmgr.and(bfmgr.makeVariable("c"), bfmgr.makeVariable("d"))));
     Set<BooleanFormula> lemmas = rcnfManager.toLemmas(input, mgrv);
     assertThatFormula(bmgr.and(lemmas)).isEquivalentTo(input);
     Truth.assertThat(lemmas).containsExactly(v("a"), v("b"), v("c"), v("d"));
@@ -93,10 +83,8 @@ public class RCNFManagerTest extends SolverViewBasedTest0 {
 
   @Test
   public void testExplicitExpansion() throws Exception {
-    BooleanFormula input = bfmgr.or(
-        bfmgr.and(v("a"), v("b"), v("c")),
-        bfmgr.and(v("d"), v("e"), v("f"))
-    );
+    BooleanFormula input =
+        bfmgr.or(bfmgr.and(v("a"), v("b"), v("c")), bfmgr.and(v("d"), v("e"), v("f")));
     Set<BooleanFormula> lemmas = rcnfManager.toLemmas(input, mgrv);
     assertThatFormula(bfmgr.and(lemmas)).isEquivalentTo(input);
     Truth.assertThat(lemmas)

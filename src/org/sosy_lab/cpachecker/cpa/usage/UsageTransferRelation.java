@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
@@ -76,14 +77,13 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
   private Set<String> skippedfunctions = ImmutableSet.of();
 
   @Option(
-    description =
-        "functions, which are used to bind variables (like list elements are binded to list variable)",
-    secure = true
-  )
+      description =
+          "functions, which are used to bind variables (like list elements are binded to list"
+              + " variable)",
+      secure = true)
   private Set<String> binderFunctions = ImmutableSet.of();
 
-  @Option(description = "functions, which are marked as write access",
-      secure = true)
+  @Option(description = "functions, which are marked as write access", secure = true)
   private Set<String> writeAccessFunctions = ImmutableSet.of();
 
   @Option(name = "abortfunctions", description = "functions, which stops analysis", secure = true)
@@ -123,7 +123,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
 
     BinderFunctionInfo dummy = new BinderFunctionInfo();
     from(writeAccessFunctions).forEach(name -> binderFunctionInfoBuilder.put(name, dummy));
-    binderFunctionInfo = binderFunctionInfoBuilder.build();
+    binderFunctionInfo = binderFunctionInfoBuilder.buildOrThrow();
 
     // BindedFunctions should not be analysed
     skippedfunctions = Sets.union(skippedfunctions, binderFunctions);
@@ -137,13 +137,12 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       throws InterruptedException, CPATransferException {
 
     Collection<AbstractState> results;
-    assert (pPrecision instanceof UsagePrecision);
+    assert pPrecision instanceof UsagePrecision;
 
     CFANode node = extractLocation(pElement);
     results = new ArrayList<>(node.getNumLeavingEdges());
 
-    for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
-      CFAEdge edge = node.getLeavingEdge(edgeIdx);
+    for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
       results.addAll(getAbstractSuccessorsForEdge(pElement, pPrecision, edge));
     }
     return results;
@@ -242,9 +241,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       case ReturnStatementEdge:
       case BlankEdge:
       case CallToReturnEdge:
-        {
-          break;
-        }
+        break;
 
       default:
         throw new UnrecognizedCFAEdgeException(pCfaEdge);
@@ -320,11 +317,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       for (int i = 0; i < params.size(); i++) {
         id = currentInfo.createParamenterIdentifier(params.get(i), i, getCurrentFunction());
         id = newState.getLinksIfNecessary(id);
-        UsageInfo usage =
-            UsageInfo.createUsageInfo(
-                currentInfo.getBindedAccess(i),
-                newState,
-                id);
+        UsageInfo usage = UsageInfo.createUsageInfo(currentInfo.getBindedAccess(i), newState, id);
         addUsageIfNeccessary(usage);
       }
 
@@ -337,9 +330,8 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
 
   private void handleStatement(final CStatement pStatement) throws HandleCodeException {
 
-    if (pStatement instanceof CAssignment) {
+    if (pStatement instanceof CAssignment assignment) {
       // assignment like "a = b" or "a = foo()"
-      CAssignment assignment = (CAssignment) pStatement;
       CExpression left = assignment.getLeftHandSide();
       CRightHandSide right = assignment.getRightHandSide();
 
@@ -375,9 +367,9 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       // Sometimes these functions are used not only for linkings.
       // For example, sdlGetFirst also deletes element.
       // So, if we can't link (no left side), we skip it
-      AbstractIdentifier idIn, idFrom;
-      idIn = bInfo.constructFirstIdentifier(left, params, getCurrentFunction());
-      idFrom = bInfo.constructSecondIdentifier(left, params, getCurrentFunction());
+      AbstractIdentifier idIn = bInfo.constructFirstIdentifier(left, params, getCurrentFunction());
+      AbstractIdentifier idFrom =
+          bInfo.constructSecondIdentifier(left, params, getCurrentFunction());
       if (idIn == null || idFrom == null) {
         return;
       }
@@ -396,11 +388,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
     for (Pair<AbstractIdentifier, Access> pair : handler.getProcessedExpressions()) {
       AbstractIdentifier id = pair.getFirst();
       id = newState.getLinksIfNecessary(id);
-      UsageInfo usage =
-          UsageInfo.createUsageInfo(
-              pair.getSecond(),
-              newState,
-              id);
+      UsageInfo usage = UsageInfo.createUsageInfo(pair.getSecond(), newState, id);
       addUsageIfNeccessary(usage);
     }
   }

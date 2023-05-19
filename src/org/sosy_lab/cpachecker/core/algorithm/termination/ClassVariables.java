@@ -34,7 +34,7 @@ public class ClassVariables {
   private ClassVariables(DeclarationCollectionCFAVisitor visitor, CFA pCfa) {
     this.visitor = visitor;
 
-    for (CFANode function : pCfa.getAllFunctionHeads()) {
+    for (CFANode function : pCfa.entryNodes()) {
       CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(function, visitor);
     }
   }
@@ -78,8 +78,7 @@ public class ClassVariables {
         String functionName = pNode.getFunctionName();
         List<CParameterDeclaration> parameters =
             ((CFunctionEntryNode) pNode).getFunctionParameters();
-        parameters
-            .stream()
+        parameters.stream()
             .map(CParameterDeclaration::asVariableDeclaration)
             .forEach(decl -> localDeclarations.put(functionName, decl));
       }
@@ -91,9 +90,7 @@ public class ClassVariables {
 
       if (pEdge instanceof CDeclarationEdge) {
         CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
-        if (declaration instanceof CVariableDeclaration) {
-          CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
-
+        if (declaration instanceof CVariableDeclaration variableDeclaration) {
           if (variableDeclaration.isGlobal()) {
             globalDeclarations.add(variableDeclaration);
 

@@ -15,8 +15,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 public class EdgeCutOptimizer implements FiducciaMattheysesOptimizer {
 
   @Override
-  public int computeGain(int node, int toPartition, int[] nodeToPartition,
-      WeightedGraph wGraph) {
+  public int computeGain(int node, int toPartition, int[] nodeToPartition, WeightedGraph wGraph) {
 
     int gain =
         computeExternalDegree(node, toPartition, nodeToPartition, wGraph)
@@ -42,8 +41,8 @@ public class EdgeCutOptimizer implements FiducciaMattheysesOptimizer {
   }
 
   @Override
-  public int computeExternalDegree(int node, int toPartition, int[] nodeToPartition,
-      WeightedGraph wGraph) {
+  public int computeExternalDegree(
+      int node, int toPartition, int[] nodeToPartition, WeightedGraph wGraph) {
     int externalDegree = 0;
     for (WeightedEdge outEdge : wGraph.getOutgoingEdges(node)) {
       if (nodeToPartition[outEdge.getEndNode().getNodeNumber()] == toPartition) {
@@ -58,5 +57,4 @@ public class EdgeCutOptimizer implements FiducciaMattheysesOptimizer {
     }
     return externalDegree;
   }
-
 }

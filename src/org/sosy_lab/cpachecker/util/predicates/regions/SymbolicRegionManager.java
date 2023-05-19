@@ -17,7 +17,6 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -25,9 +24,8 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * Adaptor from FormulaManager/Solver to RegionManager in order to use Formulas
- * as Regions.
- * This class implements only a minimal set of methods on purpose.
+ * Adaptor from FormulaManager/Solver to RegionManager in order to use Formulas as Regions. This
+ * class implements only a minimal set of methods on purpose.
  */
 public class SymbolicRegionManager implements RegionManager {
 
@@ -58,8 +56,7 @@ public class SymbolicRegionManager implements RegionManager {
 
     @Override
     public boolean equals(Object pObj) {
-      return pObj instanceof SymbolicRegion
-          && f.equals(((SymbolicRegion)pObj).f);
+      return pObj instanceof SymbolicRegion && f.equals(((SymbolicRegion) pObj).f);
     }
 
     @Override
@@ -79,19 +76,19 @@ public class SymbolicRegionManager implements RegionManager {
     solver = pSolver;
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    trueRegion = new SymbolicRegion(bfmgr,  bfmgr.makeTrue());
-    falseRegion = new SymbolicRegion(bfmgr,  bfmgr.makeFalse());
+    trueRegion = new SymbolicRegion(bfmgr, bfmgr.makeTrue());
+    falseRegion = new SymbolicRegion(bfmgr, bfmgr.makeFalse());
   }
 
   @Override
-  public Region fromFormula(BooleanFormula f, FormulaManagerView pFmgr,
-      Function<BooleanFormula, Region> pAtomToRegion) {
+  public Region fromFormula(
+      BooleanFormula f, FormulaManagerView pFmgr, Function<BooleanFormula, Region> pAtomToRegion) {
     checkArgument(pFmgr.getBooleanFormulaManager() == bfmgr);
     return new SymbolicRegion(bfmgr, f);
   }
 
   public BooleanFormula toFormula(Region r) {
-    return ((SymbolicRegion)r).f;
+    return ((SymbolicRegion) r).f;
   }
 
   public Region createPredicate(BooleanFormula pAtom) {
@@ -100,8 +97,8 @@ public class SymbolicRegionManager implements RegionManager {
 
   @Override
   public boolean entails(Region pF1, Region pF2) throws SolverException, InterruptedException {
-    SymbolicRegion r1 = (SymbolicRegion)pF1;
-    SymbolicRegion r2 = (SymbolicRegion)pF2;
+    SymbolicRegion r1 = (SymbolicRegion) pF1;
+    SymbolicRegion r2 = (SymbolicRegion) pF2;
 
     return solver.implies(r1.f, r2.f);
   }
@@ -118,14 +115,14 @@ public class SymbolicRegionManager implements RegionManager {
 
   @Override
   public Region makeNot(Region pF) {
-    SymbolicRegion r = (SymbolicRegion)pF;
+    SymbolicRegion r = (SymbolicRegion) pF;
     return new SymbolicRegion(r.bfmgr, r.bfmgr.not(r.f));
   }
 
   @Override
   public Region makeAnd(Region pF1, Region pF2) {
-    SymbolicRegion r1 = (SymbolicRegion)pF1;
-    SymbolicRegion r2 = (SymbolicRegion)pF2;
+    SymbolicRegion r1 = (SymbolicRegion) pF1;
+    SymbolicRegion r2 = (SymbolicRegion) pF2;
     assert r1.bfmgr == r2.bfmgr;
 
     return new SymbolicRegion(r1.bfmgr, r1.bfmgr.and(r1.f, r2.f));
@@ -133,8 +130,8 @@ public class SymbolicRegionManager implements RegionManager {
 
   @Override
   public Region makeOr(Region pF1, Region pF2) {
-    SymbolicRegion r1 = (SymbolicRegion)pF1;
-    SymbolicRegion r2 = (SymbolicRegion)pF2;
+    SymbolicRegion r1 = (SymbolicRegion) pF1;
+    SymbolicRegion r2 = (SymbolicRegion) pF2;
     assert r1.bfmgr == r2.bfmgr;
 
     return new SymbolicRegion(r1.bfmgr, r1.bfmgr.or(r1.f, r2.f));
@@ -166,7 +163,7 @@ public class SymbolicRegionManager implements RegionManager {
   }
 
   @Override
-  public Triple<Region, Region, Region> getIfThenElse(Region pF) {
+  public IfThenElseParts getIfThenElse(Region pF) {
     throw new UnsupportedOperationException("Use toFormula(Region) instead of traversal.");
   }
 
@@ -189,13 +186,13 @@ public class SymbolicRegionManager implements RegionManager {
     @Override
     public void addPositiveRegion(Region r) {
       checkState(currentCube != null);
-      currentCube = bfmgr.and(((SymbolicRegion)r).f, currentCube);
+      currentCube = bfmgr.and(((SymbolicRegion) r).f, currentCube);
     }
 
     @Override
     public void addNegativeRegion(Region r) {
       checkState(currentCube != null);
-      currentCube = bfmgr.and(bfmgr.not(((SymbolicRegion)r).f), currentCube);
+      currentCube = bfmgr.and(bfmgr.not(((SymbolicRegion) r).f), currentCube);
     }
 
     @Override
@@ -211,8 +208,7 @@ public class SymbolicRegionManager implements RegionManager {
     }
 
     @Override
-    public void close() {
-    }
+    public void close() {}
   }
 
   @Override

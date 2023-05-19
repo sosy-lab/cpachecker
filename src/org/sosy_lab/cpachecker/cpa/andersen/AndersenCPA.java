@@ -30,18 +30,26 @@ public class AndersenCPA extends AbstractCPA {
     return AutomaticCPAFactory.forType(AndersenCPA.class);
   }
 
-  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
-      description="which merge operator to use for PointerACPA")
+  @Option(
+      secure = true,
+      name = "merge",
+      toUppercase = true,
+      values = {"SEP", "JOIN"},
+      description = "which merge operator to use for PointerACPA")
   private String mergeType = "JOIN";
 
-  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
-      description="which stop operator to use for PointerACPA")
+  @Option(
+      secure = true,
+      name = "stop",
+      toUppercase = true,
+      values = {"SEP", "JOIN", "NEVER"},
+      description = "which stop operator to use for PointerACPA")
   private String stopType = "SEP";
 
-  private AndersenCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private AndersenCPA(Configuration config, LogManager logger)
+      throws InvalidConfigurationException {
     super(
-        DelegateAbstractDomain.<AndersenState>getInstance(),
-        new AndersenTransferRelation(logger));
+        DelegateAbstractDomain.<AndersenState>getInstance(), new AndersenTransferRelation(logger));
     config.inject(this);
   }
 

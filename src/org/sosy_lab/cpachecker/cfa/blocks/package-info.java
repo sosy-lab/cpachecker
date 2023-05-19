@@ -7,8 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Grouping of parts of the CFA into blocks
- * for "Predicate Abstraction with Block-Abstraction Memoization" (BAM),
- * D. Wonisch and H. Wehrheim, ICFEM'12.
+ * Grouping of parts of the CFA into blocks for "Predicate Abstraction with Block-Abstraction
+ * Memoization" (BAM), D. Wonisch and H. Wehrheim, ICFEM'12.
  */
 package org.sosy_lab.cpachecker.cfa.blocks;

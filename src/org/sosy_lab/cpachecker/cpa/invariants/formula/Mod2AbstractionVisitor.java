@@ -24,10 +24,8 @@ public class Mod2AbstractionVisitor
 
   public enum Type {
     EVEN,
-
     ODD,
-
-    UNKNOWN;
+    UNKNOWN,
   }
 
   private final CompoundIntervalManagerFactory compoundIntervalManagerFactory;
@@ -44,10 +42,10 @@ public class Mod2AbstractionVisitor
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment,
       Set<BooleanFormula<CompoundInterval>> pAssumptions) {
-    this.compoundIntervalManagerFactory = Objects.requireNonNull(pCompoundIntervalManagerFactory);
-    this.evaluationVisitor = Objects.requireNonNull(pEvaluationVisitor);
-    this.environment = Objects.requireNonNull(pEnvironment);
-    this.assumptions = Objects.requireNonNull(pAssumptions);
+    compoundIntervalManagerFactory = Objects.requireNonNull(pCompoundIntervalManagerFactory);
+    evaluationVisitor = Objects.requireNonNull(pEvaluationVisitor);
+    environment = Objects.requireNonNull(pEnvironment);
+    assumptions = Objects.requireNonNull(pAssumptions);
   }
 
   @Override

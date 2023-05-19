@@ -8,24 +8,33 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CBinaryExpression extends ABinaryExpression implements CExpression {
+public final class CBinaryExpression extends ABinaryExpression implements CExpression {
 
   private static final long serialVersionUID = 1902123965106390020L;
   private final CType calculationType;
 
-  public CBinaryExpression(final FileLocation pFileLocation,
-                              final CType pExpressionType,
-                              final CType pCalculationType,
-                              final CExpression pOperand1,
-                              final CExpression pOperand2,
-                              final BinaryOperator pOperator) {
+  public CBinaryExpression(
+      final FileLocation pFileLocation,
+      final CType pExpressionType,
+      final CType pCalculationType,
+      final CExpression pOperand1,
+      final CExpression pOperand2,
+      final BinaryOperator pOperator) {
     super(pFileLocation, pExpressionType, pOperand1, pOperand2, pOperator);
     calculationType = pCalculationType;
+    checkArgument(
+        pOperator.isLogicalOperator()
+            || pOperator == BinaryOperator.PLUS
+            || pOperator == BinaryOperator.MINUS
+            || !(calculationType.getCanonicalType() instanceof CPointerType));
   }
 
   @Override
@@ -51,18 +60,17 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
   /**
    * This method returns the type for the 'calculation' of this binary expression.
    *
-   * This is not the type of the 'result' of this binary expression.
-   * The result-type is returned from getType().
-   * <p>
-   * Before the calculation, if necessary,
-   * both operand should be casted to the calculation-type.
+   * <p>This is not the type of the 'result' of this binary expression. The result-type is returned
+   * from getExpressionType().
+   *
+   * <p>Before the calculation, if necessary, both operand should be casted to the calculation-type.
    * In most cases this is a widening.
    *
-   * Then the operation is performed in this type.
-   * This may cause an overflow, if the calculation-type is not big enough.
+   * <p>Then the operation is performed in this type. This may cause an overflow, if the
+   * calculation-type is not big enough.
    *
-   * After the calculation, if necessary,
-   * the result of the binary operation should be casted to the result-type.
+   * <p>After the calculation, if necessary, the result of the binary operation should be casted to
+   * the result-type.
    */
   public CType getCalculationType() {
     return calculationType;
@@ -75,7 +83,7 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
 
   @Override
   public CExpression getOperand2() {
-    return (CExpression)super.getOperand2();
+    return (CExpression) super.getOperand2();
   }
 
   @Override
@@ -84,22 +92,22 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
   }
 
   public enum BinaryOperator implements ABinaryExpression.ABinaryOperator {
-    MULTIPLY      ("*"),
-    DIVIDE        ("/"),
-    MODULO        ("%"),
-    PLUS          ("+"),
-    MINUS         ("-"),
-    SHIFT_LEFT    ("<<"),
-    SHIFT_RIGHT   (">>"),
-    LESS_THAN     ("<"),
-    GREATER_THAN  (">"),
-    LESS_EQUAL    ("<="),
-    GREATER_EQUAL (">="),
-    BINARY_AND    ("&"),
-    BINARY_XOR    ("^"),
-    BINARY_OR     ("|"),
-    EQUALS        ("=="),
-    NOT_EQUALS    ("!="),
+    MULTIPLY("*"),
+    DIVIDE("/"),
+    MODULO("%"),
+    PLUS("+"),
+    MINUS("-"),
+    SHIFT_LEFT("<<"),
+    SHIFT_RIGHT(">>"),
+    LESS_THAN("<"),
+    GREATER_THAN(">"),
+    LESS_EQUAL("<="),
+    GREATER_EQUAL(">="),
+    BINARY_AND("&"),
+    BINARY_XOR("^"),
+    BINARY_OR("|"),
+    EQUALS("=="),
+    NOT_EQUALS("!="),
     ;
 
     private final String op;
@@ -108,9 +116,7 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
       op = pOp;
     }
 
-    /**
-     * Returns the string representation of this operator (e.g. "*", "+").
-     */
+    /** Returns the string representation of this operator (e.g. "*", "+"). */
     @Override
     public String getOperator() {
       return op;
@@ -118,26 +124,26 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
 
     public boolean isLogicalOperator() {
       switch (this) {
-      case MULTIPLY:
-      case DIVIDE:
-      case MODULO:
-      case PLUS:
-      case MINUS:
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-        return false;
-      case LESS_EQUAL:
-      case LESS_THAN:
-      case GREATER_EQUAL:
-      case GREATER_THAN:
-      case EQUALS:
-      case NOT_EQUALS:
-        return true;
-      default:
-        throw new AssertionError("Unhandled case statement");
+        case MULTIPLY:
+        case DIVIDE:
+        case MODULO:
+        case PLUS:
+        case MINUS:
+        case SHIFT_LEFT:
+        case SHIFT_RIGHT:
+        case BINARY_AND:
+        case BINARY_OR:
+        case BINARY_XOR:
+          return false;
+        case LESS_EQUAL:
+        case LESS_THAN:
+        case GREATER_EQUAL:
+        case GREATER_THAN:
+        case EQUALS:
+        case NOT_EQUALS:
+          return true;
+        default:
+          throw new AssertionError("Unhandled case statement");
       }
     }
 

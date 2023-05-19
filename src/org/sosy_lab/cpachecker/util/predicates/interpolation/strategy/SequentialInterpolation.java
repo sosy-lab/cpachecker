@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Random;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -18,8 +19,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationGroup;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -46,6 +46,7 @@ public class SequentialInterpolation extends ITPStrategy {
     BWD,
     BWD_FALLBACK,
     CONJUNCTION,
+    DISJUNCTION,
     WEIGHTED,
     RANDOM
   }
@@ -78,9 +79,10 @@ public class SequentialInterpolation extends ITPStrategy {
   @Override
   public <T> List<BooleanFormula> getInterpolants(
       final InterpolationManager.Interpolator<T> interpolator,
-      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStateAndGroupId)
+      final List<InterpolationGroup<T>> formulasWithStateAndGroupId)
       throws InterruptedException, SolverException {
-    final List<T> formulas = projectToThird(formulasWithStateAndGroupId);
+    final List<T> formulas =
+        Lists.transform(formulasWithStateAndGroupId, InterpolationGroup::groupId);
 
     switch (sequentialStrategy) {
       case FWD_FALLBACK:
@@ -88,6 +90,8 @@ public class SequentialInterpolation extends ITPStrategy {
           return getFwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.logDebugException(e, FALLBACK_BWD_MSG);
+          // Rebuild solver env as it might be tainted after an exception
+          interpolator.destroyAndRebuildSolverEnvironment();
         }
         // $FALL-THROUGH$
       case BWD:
@@ -98,12 +102,15 @@ public class SequentialInterpolation extends ITPStrategy {
           return getBwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.logDebugException(e, FALLBACK_FWD_MSG);
+          // Rebuild solver env as it might be tainted after an exception
+          interpolator.destroyAndRebuildSolverEnvironment();
         }
         // $FALL-THROUGH$
       case FWD:
         return getFwdInterpolants(interpolator, formulas);
 
       case CONJUNCTION:
+      case DISJUNCTION:
       case WEIGHTED:
       case RANDOM:
         List<BooleanFormula> forward = null;
@@ -111,6 +118,8 @@ public class SequentialInterpolation extends ITPStrategy {
           forward = getFwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.logDebugException(e, FALLBACK_BWD_MSG);
+          // Rebuild solver env as it might be tainted after an exception
+          interpolator.destroyAndRebuildSolverEnvironment();
           return getBwdInterpolants(interpolator, formulas);
         }
 
@@ -122,6 +131,8 @@ public class SequentialInterpolation extends ITPStrategy {
             throw e;
           } else {
             logger.logDebugException(e, FALLBACK_FWD_MSG);
+            // Rebuild solver env as it might be tainted after an exception
+            interpolator.destroyAndRebuildSolverEnvironment();
             return forward;
           }
         }
@@ -184,13 +195,23 @@ public class SequentialInterpolation extends ITPStrategy {
 
     switch (sequentialStrategy) {
       case CONJUNCTION:
-        final ImmutableList.Builder<BooleanFormula> interpolants =
-            ImmutableList.builderWithExpectedSize(forward.size());
-        for (int i = 0; i < forward.size(); i++) {
-          interpolants.add(bfmgr.and(forward.get(i), backward.get(i)));
+        {
+          final ImmutableList.Builder<BooleanFormula> interpolants =
+              ImmutableList.builderWithExpectedSize(forward.size());
+          for (int i = 0; i < forward.size(); i++) {
+            interpolants.add(bfmgr.and(forward.get(i), backward.get(i)));
+          }
+          return interpolants.build();
         }
-        return interpolants.build();
-
+      case DISJUNCTION:
+        {
+          final ImmutableList.Builder<BooleanFormula> interpolants =
+              ImmutableList.builderWithExpectedSize(forward.size());
+          for (int i = 0; i < forward.size(); i++) {
+            interpolants.add(bfmgr.or(forward.get(i), backward.get(i)));
+          }
+          return interpolants.build();
+        }
       case WEIGHTED:
         long weightFwd = getWeight(forward);
         long weightBwd = getWeight(backward);

@@ -15,8 +15,10 @@ public final class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinke
 
   /** head field offset */
   private final long hfo;
+
   /** prev field offset */
   private final long pfo;
+
   /** next field offset */
   private final long nfo;
 

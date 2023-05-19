@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.parallel.ParallelPartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningUtils;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 @Options(prefix = "pcc.parallel.io")
 public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
@@ -53,9 +55,11 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
   private final PropertyCheckerCPA cpa;
   private final ShutdownNotifier shutdownNotifier;
   private final Lock lock = new ReentrantLock();
+  private final CFA cfa;
 
-  @Option(secure=true, description = "enables parallel checking of partial certificate")
+  @Option(secure = true, description = "enables parallel checking of partial certificate")
   private boolean enableParallelCheck = false;
+
   private int nextPartition;
 
   public PartialReachedSetParallelReadingStrategy(
@@ -63,9 +67,11 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final Path pProofFile,
-      final @Nullable PropertyCheckerCPA pCpa)
+      final @Nullable PropertyCheckerCPA pCpa,
+      final @Nullable CFA pCFA)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pProofFile);
+    cfa = pCFA;
     pConfig.inject(this);
     ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier);
     shutdownNotifier = pShutdownNotifier;
@@ -81,13 +87,15 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
   }
 
   @Override
-  public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public boolean checkCertificate(final ReachedSet pReachedSet)
+      throws CPAException, InterruptedException {
     AtomicBoolean checkResult = new AtomicBoolean(true);
     AtomicInteger availablePartitions = new AtomicInteger(0);
     AtomicInteger id = new AtomicInteger(0);
     Semaphore partitionChecked = new Semaphore(0);
     Semaphore readPartitions = new Semaphore(ioHelper.getNumPartitions());
-    Collection<AbstractState> certificate = Sets.newHashSetWithExpectedSize(ioHelper.getNumPartitions());
+    Collection<AbstractState> certificate =
+        Sets.newHashSetWithExpectedSize(ioHelper.getNumPartitions());
     Multimap<CFANode, AbstractState> partitionNodes = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
     AbstractState initialState = pReachedSet.popFromWaitlist();
@@ -98,24 +106,47 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     ExecutorService executor = Executors.newFixedThreadPool(threads);
     try {
       for (int i = 0; i < threads; i++) {
-        executor.execute(new ParallelPartitionChecker(availablePartitions, id, checkResult, readPartitions,
-            partitionChecked, lock, ioHelper, partitionNodes, certificate, inOtherPartition, initPrec, cpa
-                .getStopOperator(), cpa.getTransferRelation(), shutdownNotifier, logger));
+        executor.execute(
+            new ParallelPartitionChecker(
+                availablePartitions,
+                id,
+                checkResult,
+                readPartitions,
+                partitionChecked,
+                lock,
+                ioHelper,
+                partitionNodes,
+                certificate,
+                inOtherPartition,
+                initPrec,
+                cpa.getStopOperator(),
+                cpa.getTransferRelation(),
+                shutdownNotifier,
+                logger));
       }
 
       partitionChecked.acquire(ioHelper.getNumPartitions());
 
-      if (!checkResult.get()) { return false; }
+      if (!checkResult.get()) {
+        return false;
+      }
 
-      logger.log(Level.INFO, "Add initial state to elements for which it will be checked if they are covered by partition nodes of certificate.");
+      logger.log(
+          Level.INFO,
+          "Add initial state to elements for which it will be checked if they are covered by"
+              + " partition nodes of certificate.");
       inOtherPartition.add(initialState);
 
-      logger.log(Level.INFO,
-              "Check if initial state and all nodes which should be contained in different partition are covered by certificate (partition node).");
-      if (!PartitioningUtils.areElementsCoveredByPartitionElement(inOtherPartition, partitionNodes, cpa.getStopOperator(),
-          initPrec)) {
-        logger.log(Level.SEVERE,
-            "Initial state or a state which should be in other partition is not covered by certificate.");
+      logger.log(
+          Level.INFO,
+          "Check if initial state and all nodes which should be contained in different partition"
+              + " are covered by certificate (partition node).");
+      if (!PartitioningUtils.areElementsCoveredByPartitionElement(
+          inOtherPartition, partitionNodes, cpa.getStopOperator(), initPrec)) {
+        logger.log(
+            Level.SEVERE,
+            "Initial state or a state which should be in other partition is not covered by"
+                + " certificate.");
         return false;
       }
 
@@ -158,10 +189,16 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
   }
 
   @Override
-  protected void readProofFromStream(final ObjectInputStream pIn) throws ClassNotFoundException,
-      InvalidConfigurationException, IOException {
+  protected void readProofFromStream(final ObjectInputStream pIn)
+      throws ClassNotFoundException, InvalidConfigurationException, IOException {
     // read metadata
-    ioHelper.readMetadata(pIn, true);
+    SerializationInfoStorage.storeSerializationInformation(cpa, cfa);
+    try {
+      ioHelper.readMetadata(pIn, true);
+    } finally {
+      SerializationInfoStorage.clear();
+      SerializationInfoStorage.clear();
+    }
     // read partitions in parallel
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);
     try {
@@ -171,7 +208,9 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
       int numPartition = ioHelper.getNumPartitions();
 
       for (int i = 0; i < numThreads; i++) {
-        executor.execute(new ParallelPartitionReader(success,waitRead, nextId, this, ioHelper, stats, logger));
+        executor.execute(
+            new ParallelPartitionReader(
+                cpa, success, waitRead, nextId, this, ioHelper, stats, logger));
       }
 
       try {
@@ -195,5 +234,4 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
     result.add(ioHelper.getGraphStatistic());
     return result;
   }
-
 }

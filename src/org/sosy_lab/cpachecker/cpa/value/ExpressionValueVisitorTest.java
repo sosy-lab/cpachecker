@@ -33,19 +33,16 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-/**
- * Unit tests for {@link ExpressionValueVisitor}
- * and {@link AbstractExpressionValueVisitor}.
- */
+/** Unit tests for {@link ExpressionValueVisitor} and {@link AbstractExpressionValueVisitor}. */
 @RunWith(Parameterized.class)
 public class ExpressionValueVisitorTest {
 
-  @Parameters(name="{0}, symbolicValues={1}")
+  @Parameters(name = "{0}, symbolicValues={1}")
   public static List<Object[]> getParameters() {
     List<Object[]> result = new ArrayList<>();
     for (MachineModel model : MachineModel.values()) {
-      result.add(new Object[] { model, false });
-      result.add(new Object[] { model, true });
+      result.add(new Object[] {model, false});
+      result.add(new Object[] {model, true});
     }
     return result;
   }
@@ -62,21 +59,21 @@ public class ExpressionValueVisitorTest {
   private static final long MAX_INT = 4294967296L;
 
   // type constants
-  private final static CSimpleType S_CHAR = CNumericTypes.SIGNED_CHAR;
-  private final static CSimpleType U_CHAR = CNumericTypes.UNSIGNED_CHAR;
+  private static final CSimpleType S_CHAR = CNumericTypes.SIGNED_CHAR;
+  private static final CSimpleType U_CHAR = CNumericTypes.UNSIGNED_CHAR;
 
-  private final static CSimpleType S_SHORT_INT = CNumericTypes.SHORT_INT;
-  private final static CSimpleType U_SHORT_INT = CNumericTypes.UNSIGNED_SHORT_INT;
-  private final static CSimpleType S_INT = CNumericTypes.INT;
-  private final static CSimpleType U_INT = CNumericTypes.UNSIGNED_INT;
-  private final static CSimpleType S_LONG_INT = CNumericTypes.LONG_INT;
-  private final static CSimpleType U_LONG_INT = CNumericTypes.UNSIGNED_LONG_INT;
-  private final static CSimpleType S_LONG_LONG_INT = CNumericTypes.LONG_LONG_INT;
-  private final static CSimpleType U_LONG_LONG_INT = CNumericTypes.UNSIGNED_LONG_LONG_INT;
+  private static final CSimpleType S_SHORT_INT = CNumericTypes.SHORT_INT;
+  private static final CSimpleType U_SHORT_INT = CNumericTypes.UNSIGNED_SHORT_INT;
+  private static final CSimpleType S_INT = CNumericTypes.INT;
+  private static final CSimpleType U_INT = CNumericTypes.UNSIGNED_INT;
+  private static final CSimpleType S_LONG_INT = CNumericTypes.LONG_INT;
+  private static final CSimpleType U_LONG_INT = CNumericTypes.UNSIGNED_LONG_INT;
+  private static final CSimpleType S_LONG_LONG_INT = CNumericTypes.LONG_LONG_INT;
+  private static final CSimpleType U_LONG_LONG_INT = CNumericTypes.UNSIGNED_LONG_LONG_INT;
 
-  private final static CSimpleType FLOAT = CNumericTypes.FLOAT;
-  private final static CSimpleType DOUBLE = CNumericTypes.DOUBLE;
-  private final static CSimpleType LONG_DOUBLE = CNumericTypes.LONG_DOUBLE;
+  private static final CSimpleType FLOAT = CNumericTypes.FLOAT;
+  private static final CSimpleType DOUBLE = CNumericTypes.DOUBLE;
+  private static final CSimpleType LONG_DOUBLE = CNumericTypes.LONG_DOUBLE;
 
   private LogManagerWithoutDuplicates logger;
   private ExpressionValueVisitor evv;
@@ -91,8 +88,8 @@ public class ExpressionValueVisitorTest {
   }
 
   /**
-   * this test checks the casts of CHAR, SHORT_INT and (normal) INT,
-   * it does not use LONG_INT or LONG_LONG_INT
+   * this test checks the casts of CHAR, SHORT_INT and (normal) INT, it does not use LONG_INT or
+   * LONG_LONG_INT
    */
   @Test
   public void checkSimpleCasts() throws Exception {
@@ -113,10 +110,9 @@ public class ExpressionValueVisitorTest {
     }
   }
 
-
   /**
-   * this test checks the casts of CHAR, SHORT_INT and (normal) INT,
-   * it does not use LONG_INT or LONG_LONG_INT
+   * this test checks the casts of CHAR, SHORT_INT and (normal) INT, it does not use LONG_INT or
+   * LONG_LONG_INT
    */
   @Test
   public void checkCastsDirect() throws Exception {
@@ -164,7 +160,6 @@ public class ExpressionValueVisitorTest {
     checkCast(-1L, 4294967295L, U_INT);
   }
 
-
   /** this test checks casting, we assume long_int == int == int32 */
   @Test
   public void checkIntegerCasts32() throws Exception {
@@ -206,7 +201,6 @@ public class ExpressionValueVisitorTest {
       checkCast(-1L, 4294967295L, t);
     }
   }
-
 
   /** this test checks casting, we assume long_int == long_long_int == int64 */
   @Test
@@ -265,7 +259,6 @@ public class ExpressionValueVisitorTest {
 
   }
 
-
   @Test
   public void checkFloatCasts32() {
     assume().that(machineModel).isSameInstanceAs(MachineModel.LINUX32);
@@ -313,13 +306,13 @@ public class ExpressionValueVisitorTest {
 
   private void performMachineModelAgnosticChecksForFloats() {
     for (CType type : ImmutableList.of(FLOAT, DOUBLE)) {
-      for (Float n : ImmutableList
-          .of(0.0f, Float.NaN, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY)) {
+      for (Float n :
+          ImmutableList.of(0.0f, Float.NaN, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY)) {
         checkCast(n, n, type);
       }
 
-      for (Double n : ImmutableList
-          .of(0.0d, Double.NaN, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY)) {
+      for (Double n :
+          ImmutableList.of(0.0d, Double.NaN, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY)) {
         checkCast(n, n, type);
       }
     }
@@ -340,9 +333,11 @@ public class ExpressionValueVisitorTest {
   private void checkCast(long in, long expectedOut, CType outType)
       throws UnrecognizedCodeException {
 
-    final Value value = evv.evaluate(
-        new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(in)),
-        outType);
+    final Value value =
+        evv.evaluate(
+            new CIntegerLiteralExpression(
+                FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(in)),
+            outType);
 
     // We know it's of type int since we manually created a CIntegerLiteralExpression
     assertThat(value.asLong(CNumericTypes.INT)).isEqualTo(expectedOut);
@@ -351,8 +346,9 @@ public class ExpressionValueVisitorTest {
   private void checkCast(double in, double expectedOut, CType outType) {
     NumericValue inValue = new NumericValue(in);
 
-    final Value value = AbstractExpressionValueVisitor
-        .castCValue(inValue, outType, machineModel, logger, FileLocation.DUMMY);
+    final Value value =
+        AbstractExpressionValueVisitor.castCValue(
+            inValue, outType, machineModel, logger, FileLocation.DUMMY);
 
     assertThat(value).isInstanceOf(NumericValue.class);
     assertThat(((NumericValue) value).doubleValue()).isEqualTo(expectedOut);
@@ -361,8 +357,9 @@ public class ExpressionValueVisitorTest {
   private void checkCast(float in, double expectedOut, CType outType) {
     NumericValue inValue = new NumericValue(in);
 
-    final Value value = AbstractExpressionValueVisitor
-        .castCValue(inValue, outType, machineModel, logger, FileLocation.DUMMY);
+    final Value value =
+        AbstractExpressionValueVisitor.castCValue(
+            inValue, outType, machineModel, logger, FileLocation.DUMMY);
 
     assertThat(value).isInstanceOf(NumericValue.class);
     assertThat(((NumericValue) value).doubleValue()).isEqualTo(expectedOut);
@@ -371,8 +368,9 @@ public class ExpressionValueVisitorTest {
   private void checkCast(float in, float expectedOut, CType outType) {
     NumericValue inValue = new NumericValue(in);
 
-    final Value value = AbstractExpressionValueVisitor
-        .castCValue(inValue, outType, machineModel, logger, FileLocation.DUMMY);
+    final Value value =
+        AbstractExpressionValueVisitor.castCValue(
+            inValue, outType, machineModel, logger, FileLocation.DUMMY);
 
     assertThat(value).isInstanceOf(NumericValue.class);
     assertThat(((NumericValue) value).floatValue()).isEqualTo(expectedOut);

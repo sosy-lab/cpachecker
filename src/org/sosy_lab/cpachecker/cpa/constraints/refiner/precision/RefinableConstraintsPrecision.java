@@ -16,24 +16,28 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
-/**
- * Refinable {@link ConstraintsPrecision}.
- */
+/** Refinable {@link ConstraintsPrecision}. */
 @Options(prefix = "cpa.constraints.refinement")
 public class RefinableConstraintsPrecision implements ConstraintsPrecision {
 
-  public enum PrecisionType { CONSTRAINTS, LOCATION }
+  public enum PrecisionType {
+    CONSTRAINTS,
+    LOCATION
+  }
 
-  @Option(secure = true, description = "Type of precision to use. Has to be LOCATION if"
-      + " PredicateExtractionRefiner is used.", toUppercase = true)
+  @Option(
+      secure = true,
+      description =
+          "Type of precision to use. Has to be LOCATION if"
+              + " PredicateExtractionRefiner is used.",
+      toUppercase = true)
   private PrecisionType precisionType = PrecisionType.CONSTRAINTS;
 
   private final ConstraintsPrecision delegate;
 
   public RefinableConstraintsPrecision(final Configuration pConfig, CFA cfa)
       throws InvalidConfigurationException {
-    pConfig.inject(this);
-    delegate = new InitialConstraintsPrecisionCreator(pConfig, cfa).create();
+    delegate = new InitialConstraintsPrecisionCreator(pConfig, cfa).create(precisionType);
   }
 
   private RefinableConstraintsPrecision(final ConstraintsPrecision pDelegate) {
@@ -66,9 +70,7 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
 
   @Override
   public int hashCode() {
-    int result = precisionType.hashCode();
-    result = 31 * result + delegate.hashCode();
-    return result;
+    return delegate.hashCode();
   }
 
   @Override

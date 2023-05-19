@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.BackwardsVisitor;
 import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.Node;
@@ -119,7 +118,8 @@ public class PredicateToValuePrecisionConverter implements Statistics {
       secure = true,
       name = "includeControlNonEquiv",
       description =
-          "also consider other binary operators then ==, !== when considering control dependencies while adapting predicate precision")
+          "also consider other binary operators then ==, !== when considering control dependencies"
+              + " while adapting predicate precision")
   private boolean nonEquivalenceInControl = false;
 
   @Option(
@@ -196,7 +196,8 @@ public class PredicateToValuePrecisionConverter implements Statistics {
           try {
             logger.log(
                 Level.FINE,
-                "Enhance value precision converted from predicate precision with additional relevant variables");
+                "Enhance value precision converted from predicate precision with additional"
+                    + " relevant variables");
             // TODO disable option dependencegraph.controldeps.considerPointees?
             Configuration depGraphConfig =
                 Configuration.builder()
@@ -225,7 +226,6 @@ public class PredicateToValuePrecisionConverter implements Statistics {
                     new ControlDependenceVisitor(inspectedVars, toProcess, result));
             MemoryLocation var;
             Collection<CSystemDependenceGraph.Node> relevantGraphNodes;
-            boolean allUsesTracked, oneUseTracked;
             ImmutableSet<MemoryLocation> defs;
             while (!toProcess.isEmpty()) {
               conversionShutdownNotifier.shutdownIfNecessary();
@@ -254,8 +254,8 @@ public class PredicateToValuePrecisionConverter implements Statistics {
                 for (CSystemDependenceGraph.Node relVarUse : relevantGraphNodes) {
                   defs = depGraph.getDefs(relVarUse);
                   if (!defs.isEmpty()) {
-                    allUsesTracked = true;
-                    oneUseTracked = false;
+                    boolean allUsesTracked = true;
+                    boolean oneUseTracked = false;
 
                     for (MemoryLocation varDep : depGraph.getUses(relVarUse)) {
                       if (inspectedVars.contains(varDep)) {
@@ -313,7 +313,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
 
     PredicateMapParser mapParser =
         new PredicateMapParser(
-            cfa, this.logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
+            cfa, logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
 
     try {
       return mapParser.parsePredicates(pPredPrecFile);
@@ -416,9 +416,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
         logger.logException(Level.SEVERE, e, "Failed to determine relevant edges");
       }
     }
-    return FluentIterable.from(cfa.getAllNodes())
-        .transformAndConcat(node -> CFAUtils.leavingEdges(node))
-        .toSet();
+    return ImmutableSet.copyOf(cfa.edges());
   }
 
   private Collection<Node> getRelevantGraphUsing(
@@ -495,7 +493,8 @@ public class PredicateToValuePrecisionConverter implements Statistics {
     }
 
     @Override
-    public VisitResult visitEdge(final EdgeType pType, final Node pPredecessor, final Node pSuccessor) {
+    public VisitResult visitEdge(
+        final EdgeType pType, final Node pPredecessor, final Node pSuccessor) {
       if (pType == EdgeType.CONTROL_DEPENDENCY) {
         CFAEdge edge = pSuccessor.getStatement().orElse(null);
         if (edge instanceof CAssumeEdge) {
@@ -572,7 +571,5 @@ public class PredicateToValuePrecisionConverter implements Statistics {
       }
       return Optional.empty();
     }
-
-
   }
 }

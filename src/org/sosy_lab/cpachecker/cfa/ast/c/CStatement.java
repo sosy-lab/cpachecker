@@ -10,7 +10,13 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 
-public  interface CStatement extends CAstNode, AStatement {
+public sealed interface CStatement extends CAstNode, AStatement
+    permits CAssignment,
+        CExpressionAssignmentStatement,
+        CExpressionStatement,
+        CFunctionCall,
+        CFunctionCallAssignmentStatement,
+        CFunctionCallStatement {
 
   <R, X extends Exception> R accept(CStatementVisitor<R, X> v) throws X;
 }

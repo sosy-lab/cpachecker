@@ -19,11 +19,17 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class TypeUtils {
+public final class TypeUtils {
+
+  private TypeUtils() {}
+
   public static CType createTypeWithLength(int pSizeInBits) {
     if (pSizeInBits % 8 == 0) {
-      CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(FileLocation.DUMMY,
-          CNumericTypes.UNSIGNED_LONG_INT, BigInteger.valueOf(pSizeInBits / 8));
+      CIntegerLiteralExpression arrayLen =
+          new CIntegerLiteralExpression(
+              FileLocation.DUMMY,
+              CNumericTypes.UNSIGNED_LONG_INT,
+              BigInteger.valueOf(pSizeInBits / 8));
       return new CArrayType(false, false, CNumericTypes.SIGNED_CHAR, arrayLen);
     } else {
       CSimpleType fieldType = CNumericTypes.SIGNED_CHAR;

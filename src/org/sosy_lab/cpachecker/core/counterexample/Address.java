@@ -18,15 +18,16 @@ import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 
 /**
  * The address of a left hand side expression {@link ALeftHandSide}. May be symbolic or concrete.
- * Addresses are preferably used to get values of variables that are stored in the {@link ConcreteState} state.
+ * Addresses are preferably used to get values of variables that are stored in the {@link
+ * ConcreteState} state.
  */
 public abstract class Address {
 
   private Address() {} // for visibility
 
   /**
-   * Adds a concrete value to the address. Is for example used in pointer arithmetic in C.
-   * This method may only be called if the address is concrete.
+   * Adds a concrete value to the address. Is for example used in pointer arithmetic in C. This
+   * method may only be called if the address is concrete.
    *
    * @param pOffset the value that is added on the address. May be negative.
    * @return returns the resulting address when adding this address with the given offset.
@@ -34,14 +35,13 @@ public abstract class Address {
   public abstract Address addOffset(BigInteger pOffset);
 
   /**
-   * Adds a concrete value to the address. Is for example used in pointer
-   * arithmetic in C. This method may only be called if the address is concrete.
+   * Adds a concrete value to the address. Is for example used in pointer arithmetic in C. This
+   * method may only be called if the address is concrete.
    *
-   * @param pOffset the value that is added on the address. May be negative. If the
-   *          value is no integer, a unknown address will be returned.
-   * @return returns the resulting address when adding this address with the
-   *         given offset or an unknown address, when the given offset is not an
-   *         integer.
+   * @param pOffset the value that is added on the address. May be negative. If the value is no
+   *     integer, a unknown address will be returned.
+   * @return returns the resulting address when adding this address with the given offset or an
+   *     unknown address, when the given offset is not an integer.
    */
   public abstract Address addOffset(BigDecimal pOffset);
 
@@ -71,8 +71,8 @@ public abstract class Address {
   public abstract BigInteger getAddressValue();
 
   /**
-   * Returns a string representation of the address to be used as comment for the User.
-   * May NOT return a integer value.
+   * Returns a string representation of the address to be used as comment for the User. May NOT
+   * return a integer value.
    *
    * @return a string representation of the address.
    */
@@ -80,11 +80,13 @@ public abstract class Address {
 
   /**
    * Returns an address for the given address representation. If the representation can be exactly
-   * converted to an {@link BigInteger} integer, then an concrete address with the given value will be returned.
+   * converted to an {@link BigInteger} integer, then an concrete address with the given value will
+   * be returned.
    *
-   * In all other cases an symbolic address will be returned with the given object as symbol.
+   * <p>In all other cases an symbolic address will be returned with the given object as symbol.
    *
-   * @param pAddress the representation of the address, either a concrete value like an BigInteger or a symbol like a String.
+   * @param pAddress the representation of the address, either a concrete value like an BigInteger
+   *     or a symbol like a String.
    * @return Returns an address for the given address representation
    */
   public static Address valueOf(Object pAddress) {
@@ -93,15 +95,11 @@ public abstract class Address {
       return (Address) pAddress;
     } else if (pAddress instanceof BigInteger) {
       return new ConcreteAddress((BigInteger) pAddress);
-    } else if (pAddress instanceof Rational) {
-      Rational rational = (Rational) pAddress;
-
+    } else if (pAddress instanceof Rational rational) {
       if (rational.isIntegral()) {
         return new ConcreteAddress(rational.getNum());
       }
-    } else if (pAddress instanceof ExtendedRational) {
-      ExtendedRational eRat = (ExtendedRational) pAddress;
-
+    } else if (pAddress instanceof ExtendedRational eRat) {
       if (eRat.isRational()) {
         Rational rat = eRat.getRational();
         if (rat.isIntegral()) {
@@ -120,21 +118,17 @@ public abstract class Address {
     } else if (pAddress instanceof Short) {
       long value = ((Short) pAddress).longValue();
       return new ConcreteAddress(BigInteger.valueOf(value));
-    } else if (pAddress instanceof Double) {
-      Double value = (Double) pAddress;
+    } else if (pAddress instanceof Double value) {
       if (DoubleMath.isMathematicalInteger(value)) {
         long dValue = value.longValue();
         return new ConcreteAddress(BigInteger.valueOf(dValue));
       }
-    } else if (pAddress instanceof Float) {
-      Float value = (Float) pAddress;
+    } else if (pAddress instanceof Float value) {
       if (DoubleMath.isMathematicalInteger(value)) {
         long dValue = value.longValue();
         return new ConcreteAddress(BigInteger.valueOf(dValue));
       }
-    } else if (pAddress instanceof BigDecimal) {
-      BigDecimal bdVal = (BigDecimal) pAddress;
-
+    } else if (pAddress instanceof BigDecimal bdVal) {
       try {
         BigInteger bigIntValue = bdVal.toBigIntegerExact();
         return new ConcreteAddress(bigIntValue);
@@ -150,6 +144,7 @@ public abstract class Address {
 
   /**
    * Returns a instance that represents an unknown address.
+   *
    * @return Returns a instance that represents an unknown address.
    */
   public static Address getUnknownAddress() {
@@ -228,15 +223,13 @@ public abstract class Address {
     public String getCommentRepresentation() {
       return addressValue.toString();
     }
-
   }
 
   private static class UnknownAddress extends Address {
 
     private static final UnknownAddress instance = new UnknownAddress();
 
-    private UnknownAddress() {
-    }
+    private UnknownAddress() {}
 
     private static UnknownAddress getInstance() {
       return instance;

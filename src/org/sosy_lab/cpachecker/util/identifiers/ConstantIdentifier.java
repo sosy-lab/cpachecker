@@ -72,7 +72,7 @@ public final class ConstantIdentifier implements AbstractIdentifier {
 
   @Override
   public boolean isDereferenced() {
-    return (dereference > 0);
+    return dereference > 0;
   }
 
   public String getName() {
@@ -84,7 +84,7 @@ public final class ConstantIdentifier implements AbstractIdentifier {
     if (pO instanceof ReturnIdentifier) {
       return 1;
     } else if (pO instanceof ConstantIdentifier) {
-      return this.name.compareTo(((ConstantIdentifier) pO).name);
+      return name.compareTo(((ConstantIdentifier) pO).name);
     } else {
       return -1;
     }

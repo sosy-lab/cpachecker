@@ -10,5 +10,5 @@ format_version: '1.0'
 input_files: 'always-error.c'
 
 properties:
-  - property_file: ../../../config/properties/unreach-label.prp
+  - property_file: ../../config/properties/unreach-label.prp
     expected_verdict: false

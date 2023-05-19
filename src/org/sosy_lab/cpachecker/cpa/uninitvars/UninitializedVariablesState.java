@@ -19,19 +19,21 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 
+@SuppressWarnings("checkstyle:NoClone") // refactor
 public class UninitializedVariablesState implements AbstractQueryableState, Serializable {
 
   private static final long serialVersionUID = 5745797034946117366L;
   private final List<String> globalVars;
   private final Deque<Pair<String, List<String>>> localVars;
 
-  private final Collection<Triple<Integer, String, String>> warnings;
+  record Warning(int line, String variable, String message) implements Serializable {}
+
+  private final Collection<Warning> warnings;
 
   enum ElementProperty {
     UNINITIALIZED_RETURN_VALUE,
-    UNINITIALIZED_VARIABLE_USED
+    UNINITIALIZED_VARIABLE_USED,
   }
 
   private Set<ElementProperty> properties = EnumSet.noneOf(ElementProperty.class); // emptySet
@@ -47,7 +49,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
   public UninitializedVariablesState(
       List<String> globalVars,
       Deque<Pair<String, List<String>>> localVars,
-      Collection<Triple<Integer, String, String>> warnings) {
+      Collection<Warning> warnings) {
     this.globalVars = globalVars;
     this.localVars = localVars;
     this.warnings = warnings;
@@ -85,13 +87,12 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
     return localVars;
   }
 
-  public Collection<Triple<Integer, String, String>> getWarnings() {
+  public Collection<Warning> getWarnings() {
     return warnings;
   }
 
   public boolean isUninitialized(String variable) {
-    return globalVars.contains(variable)
-        || localVars.peekLast().getSecond().contains(variable);
+    return globalVars.contains(variable) || localVars.peekLast().getSecond().contains(variable);
   }
 
   public void callFunction(String functionName) {
@@ -103,7 +104,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
   }
 
   public void addWarning(Integer lineNumber, String variable, String message) {
-    Triple<Integer, String, String> warning = Triple.of(lineNumber, variable, message);
+    Warning warning = new Warning(lineNumber, variable, message);
     if (!warnings.contains(warning)) {
       warnings.add(warning);
     }
@@ -118,10 +119,9 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
       return true;
     }
 
-    UninitializedVariablesState otherElement = (UninitializedVariablesState)o;
+    UninitializedVariablesState otherElement = (UninitializedVariablesState) o;
 
-    return globalVars.equals(otherElement.globalVars)
-        && localVars.equals(otherElement.localVars);
+    return globalVars.equals(otherElement.globalVars) && localVars.equals(otherElement.localVars);
   }
 
   @Override
@@ -138,8 +138,8 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
           Pair.of(localContext.getFirst(), new ArrayList<>(localContext.getSecond())));
     }
 
-    return new UninitializedVariablesState(new ArrayList<>(globalVars), newLocalVars,
-                                             new ArrayList<>(warnings));
+    return new UninitializedVariablesState(
+        new ArrayList<>(globalVars), newLocalVars, new ArrayList<>(warnings));
   }
 
   @Override
@@ -161,34 +161,34 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
 
   /**
    * Adds a property to this element
+   *
    * @param pProp the property to add
    */
   void addProperty(ElementProperty pProp) {
-    this.properties.add(pProp);
+    properties.add(pProp);
   }
-  /**
-   * Returns all properties set for this element.
-   */
+
+  /** Returns all properties set for this element. */
   Set<ElementProperty> getProperties() {
-    return this.properties;
+    return properties;
   }
-  /**
-   * Removes all property of this element
-   */
+
+  /** Removes all property of this element */
   void clearProperties() {
-    this.properties.clear();
+    properties.clear();
   }
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     ElementProperty prop;
     try {
-       prop = ElementProperty.valueOf(pProperty);
+      prop = ElementProperty.valueOf(pProperty);
     } catch (IllegalArgumentException e) {
       // thrown if the Enum does not contain the property
-      throw new InvalidQueryException("The Query \"" + pProperty + "\" is not defined for this CPA (\""+ this.getCPAName() + "\"");
+      throw new InvalidQueryException(
+          "The Query \"" + pProperty + "\" is not defined for this CPA (\"" + getCPAName() + "\"");
     }
-    return this.properties.contains(prop);
+    return properties.contains(prop);
   }
 
   @Override

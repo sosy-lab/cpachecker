@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.pixelexport;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.Ascii;
 import com.google.common.primitives.ImmutableIntArray;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -49,48 +50,47 @@ import org.w3c.dom.Document;
 @Options(prefix = "pixelgraphic.export")
 public abstract class GraphToPixelsWriter<Node> {
 
-  @Option(secure=true, description="Padding of the bitmap on the left and right (each) in pixels")
+  @Option(
+      secure = true,
+      description = "Padding of the bitmap on the left and right (each) in pixels")
   private int xPadding = 2;
 
-  @Option(secure=true, description="Padding of the bitmap on the top and bottom (each) in pixels")
+  @Option(
+      secure = true,
+      description = "Padding of the bitmap on the top and bottom (each) in pixels")
   private int yPadding = 2;
 
   @Option(
-    secure = true,
-    description =
-        "Width of the bitmap in pixels. If set to -1, width is computed"
-            + " in relation to the height. If both are set to -1, the optimal bitmap size"
-            + " to represent the graph is used. The final width is width*scaling"
-  )
+      secure = true,
+      description =
+          "Width of the bitmap in pixels. If set to -1, width is computed"
+              + " in relation to the height. If both are set to -1, the optimal bitmap size"
+              + " to represent the graph is used. The final width is width*scaling")
   private int width = -1;
 
   @Option(
-    secure = true,
-    description =
-        "Height of the bitmap in pixels. If set to -1, height is "
-            + " computed in relation to the width. If both are set to -1, the optimal bitmap size"
-            + " to represent the graph is used. The final height is height*scaling"
-  )
+      secure = true,
+      description =
+          "Height of the bitmap in pixels. If set to -1, height is "
+              + " computed in relation to the width. If both are set to -1, the optimal bitmap size"
+              + " to represent the graph is used. The final height is height*scaling")
   private int height = -1;
 
   @Option(
-    secure = true,
-    description =
-        "Scaling of the bitmap. If set to 1, 1 pixel represents one "
-            + "graph node. If set to 2, 2 * 2 pixels represent one graph node, and so on."
-  )
+      secure = true,
+      description =
+          "Scaling of the bitmap. If set to 1, 1 pixel represents one "
+              + "graph node. If set to 2, 2 * 2 pixels represent one graph node, and so on.")
   private int scaling = 2;
 
   @Option(secure = true, description = "Format to use for image output", name = "format")
   private String imageFormat = "svg";
 
   @Option(
-    secure = true,
-    description =
-        "Highlight not only corresponding graph nodes, but background of"
-            + " corresponding line, too. This may give an better overview, but also introduces more"
-            + " clutter"
-  )
+      secure = true,
+      description =
+          "Highlight not only corresponding graph nodes, but background of corresponding line, too."
+              + " This may give an better overview, but also introduces more clutter")
   private boolean strongHighlight = true;
 
   public static final Color COLOR_BACKGROUND = Color.LIGHT_GRAY;
@@ -103,7 +103,7 @@ public abstract class GraphToPixelsWriter<Node> {
   protected GraphToPixelsWriter(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this, GraphToPixelsWriter.class);
 
-    imageFormat = imageFormat.toLowerCase();
+    imageFormat = Ascii.toLowerCase(imageFormat);
 
     if (width == 0 || height == 0) {
       throw new InvalidConfigurationException("Width and height may not be 0");
@@ -174,7 +174,7 @@ public abstract class GraphToPixelsWriter<Node> {
       if (intendedWidth > 0) {
         if (intendedWidth < neededWidth) {
           throw new InvalidConfigurationException(
-              "Graph doesn't fit on the defined canvas. Needed " + "width: " + neededWidth);
+              "Graph doesn't fit on the defined canvas. Needed width: " + neededWidth);
         }
         finalWidth = intendedWidth;
       } else {
@@ -195,7 +195,7 @@ public abstract class GraphToPixelsWriter<Node> {
       if (intendedHeight > 0) {
         if (intendedHeight < neededHeight) {
           throw new InvalidConfigurationException(
-              "Graph doesn't fit on the defined canvas. Needed " + "height: " + neededHeight);
+              "Graph doesn't fit on the defined canvas. Needed height: " + neededHeight);
         }
         finalHeight = intendedHeight;
       } else {
@@ -254,15 +254,13 @@ public abstract class GraphToPixelsWriter<Node> {
     canvasHandler.writeToFile(fullOutputFile);
   }
 
-
-
-  private interface CanvasProvider {
+  private sealed interface CanvasProvider {
     Graphics2D createCanvas(int pWidth, int pHeight);
 
     void writeToFile(Path pOutputFile) throws IOException, InvalidConfigurationException;
   }
 
-  private static class BitmapProvider implements CanvasProvider {
+  private static final class BitmapProvider implements CanvasProvider {
 
     private String imageFormat;
     private BufferedImage bufferedImage = null;
@@ -273,8 +271,9 @@ public abstract class GraphToPixelsWriter<Node> {
 
     @Override
     public Graphics2D createCanvas(int pWidth, int pHeight) {
-      checkState(bufferedImage == null, "createCanvas can only be called after writing the old "
-          + "canvas to a file");
+      checkState(
+          bufferedImage == null,
+          "createCanvas can only be called after writing the old canvas to a file");
       bufferedImage = new BufferedImage(pWidth, pHeight, BufferedImage.TYPE_3BYTE_BGR);
       return bufferedImage.createGraphics();
     }
@@ -285,14 +284,15 @@ public abstract class GraphToPixelsWriter<Node> {
       try (FileImageOutputStream out = new FileImageOutputStream(pOutputFile.toFile())) {
         boolean success = ImageIO.write(bufferedImage, imageFormat, out);
         if (!success) {
-          throw new InvalidConfigurationException("ImageIO can't handle given format: " + imageFormat);
+          throw new InvalidConfigurationException(
+              "ImageIO can't handle given format: " + imageFormat);
         }
       }
       bufferedImage = null;
     }
   }
 
-  private static class SvgProvider implements CanvasProvider {
+  private static final class SvgProvider implements CanvasProvider {
 
     private SVGGraphics2D svgGenerator = null;
 
@@ -321,6 +321,4 @@ public abstract class GraphToPixelsWriter<Node> {
       }
     }
   }
-
 }
-

@@ -14,10 +14,9 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ForgettingCompositeState;
 import org.sosy_lab.cpachecker.util.refinement.InterpolantManager;
 
-/**
- * Manager for {@link SymbolicInterpolant}.
- */
-public class SymbolicInterpolantManager implements InterpolantManager<ForgettingCompositeState, SymbolicInterpolant> {
+/** Manager for {@link SymbolicInterpolant}. */
+public class SymbolicInterpolantManager
+    implements InterpolantManager<ForgettingCompositeState, SymbolicInterpolant> {
 
   private static final SymbolicInterpolantManager SINGLETON = new SymbolicInterpolantManager();
 
@@ -39,8 +38,8 @@ public class SymbolicInterpolantManager implements InterpolantManager<Forgetting
     final ValueAnalysisState values = state.getValueState();
     final ConstraintsState constraints = state.getConstraintsState();
 
-    return new SymbolicInterpolant(values.getInformation(),
-                                   new ConstraintsInformation(constraints));
+    return new SymbolicInterpolant(
+        values.getInformation(), new ConstraintsInformation(constraints));
   }
 
   @Override

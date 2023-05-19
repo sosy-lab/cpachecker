@@ -24,8 +24,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 @Options(prefix = "pcc")
 public class ProofStatesInfoCollector implements Statistics {
 
-  @Option(secure = true,
-      description = "collects information about value analysis states in proof")
+  @Option(secure = true, description = "collects information about value analysis states in proof")
   private boolean collectValueAnalysisStateInfo = false;
 
   private int numProofStates = 0;
@@ -55,8 +54,10 @@ public class ProofStatesInfoCollector implements Statistics {
 
   public String getInfoAsString() {
     if (collectValueAnalysisStateInfo) {
-      return "Proof state info:\n #states in proof:\t" + numProofStates
-          + "\n #values stored in value analysis:\t" + numValuesInValueAnalysisStates;
+      return "Proof state info:\n #states in proof:\t"
+          + numProofStates
+          + "\n #values stored in value analysis:\t"
+          + numValuesInValueAnalysisStates;
     } else {
       return "No proof state information collected.";
     }
@@ -65,13 +66,10 @@ public class ProofStatesInfoCollector implements Statistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     pOut.println(getInfoAsString());
-
   }
 
   @Override
-  public @Nullable
-  String getName() {
+  public @Nullable String getName() {
     return null;
   }
-
 }

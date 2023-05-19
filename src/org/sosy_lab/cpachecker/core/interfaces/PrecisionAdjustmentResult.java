@@ -11,8 +11,6 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Function;
-import java.util.Objects;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
@@ -22,64 +20,22 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
  * not null).
  */
 @javax.annotation.concurrent.Immutable // cannot prove deep immutability
-public class PrecisionAdjustmentResult {
-
-  private final AbstractState abstractState;
-  private final Precision precision;
-  private final Action action;
+public record PrecisionAdjustmentResult(
+    AbstractState abstractState, Precision precision, Action action) {
 
   /**
-   * The precision adjustment operator can tell the CPAAlgorithm whether
-   * to continue with the analysis or whether to break immediately.
+   * The precision adjustment operator can tell the CPAAlgorithm whether to continue with the
+   * analysis or whether to break immediately.
    */
   public enum Action {
     CONTINUE,
     BREAK,
-    ;
   }
 
-  private PrecisionAdjustmentResult(AbstractState pState, Precision pPrecision,
-      Action pAction) {
-    abstractState = checkNotNull(pState);
-    precision = checkNotNull(pPrecision);
-    action = checkNotNull(pAction);
-  }
-
-
-  public static PrecisionAdjustmentResult create(AbstractState pState,
-      Precision pPrecision, Action pAction) {
-    return new PrecisionAdjustmentResult(pState, pPrecision, pAction);
-  }
-
-  public AbstractState abstractState() {
-    return abstractState;
-  }
-
-  public Precision precision() {
-    return precision;
-  }
-
-  public Action action() {
-    return action;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(abstractState, action, precision);
-  }
-
-  @Override
-  public boolean equals(@Nullable Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (!(obj instanceof PrecisionAdjustmentResult)) {
-      return false;
-    }
-    PrecisionAdjustmentResult other = (PrecisionAdjustmentResult) obj;
-    return abstractState.equals(other.abstractState)
-        && precision.equals(other.precision)
-        && action.equals(other.action);
+  public PrecisionAdjustmentResult {
+    checkNotNull(abstractState);
+    checkNotNull(precision);
+    checkNotNull(action);
   }
 
   public PrecisionAdjustmentResult withAbstractState(AbstractState newAbstractState) {

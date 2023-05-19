@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonSetVariable;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 class AutomatonExpressionArguments {
 
@@ -47,8 +48,8 @@ class AutomatonExpressionArguments {
   private LogManager logger;
 
   /**
-   * In this String all print messages of the Transition are collected.
-   * They are logged (INFO-level) together at the end of the transition actions.
+   * In this String all print messages of the Transition are collected. They are logged (INFO-level)
+   * together at the end of the transition actions.
    */
   private String transitionLogMessages = "";
 
@@ -59,9 +60,11 @@ class AutomatonExpressionArguments {
   // If this pattern is changed the pattern in AutomatonASTcomparison should be changed too!
   static final Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
 
-  AutomatonExpressionArguments(AutomatonState pState,
+  AutomatonExpressionArguments(
+      AutomatonState pState,
       Map<String, AutomatonVariable> pAutomatonVariables,
-      List<AbstractState> pAbstractStates, CFAEdge pCfaEdge,
+      List<AbstractState> pAbstractStates,
+      CFAEdge pCfaEdge,
       LogManager pLogger) {
     if (pAutomatonVariables == null) {
       automatonVariables = ImmutableMap.of();
@@ -71,7 +74,7 @@ class AutomatonExpressionArguments {
     if (pAbstractStates == null) {
       abstractStates = ImmutableList.of();
     } else {
-      abstractStates = pAbstractStates;
+      abstractStates = AbstractStates.asFlatIterable(pAbstractStates).toList();
     }
     cfaEdge = pCfaEdge;
     logger = pLogger;
@@ -97,38 +100,40 @@ class AutomatonExpressionArguments {
   LogManager getLogger() {
     return logger;
   }
+
   void appendToLogMessage(String message) {
-    this.transitionLogMessages = transitionLogMessages  + message;
+    transitionLogMessages = transitionLogMessages + message;
   }
+
   void appendToLogMessage(int message) {
-    this.transitionLogMessages = transitionLogMessages  + message;
+    transitionLogMessages = transitionLogMessages + message;
   }
+
   String getLogMessage() {
     return transitionLogMessages;
   }
+
   public void clearLogMessage() {
     transitionLogMessages = "";
   }
 
   void clearTransitionVariables() {
-    this.transitionVariables.clear();
+    transitionVariables.clear();
   }
 
   AAstNode getTransitionVariable(int key) {
     // this is the variable adressed with $<key> in the automaton definition
-    return this.transitionVariables.get(key);
+    return transitionVariables.get(key);
   }
 
   void putTransitionVariable(int key, AAstNode value) {
-    this.transitionVariables.put(key, value);
+    transitionVariables.put(key, value);
   }
 
   /**
-   * This method replaces all references to
-   * 1. AutomatonVariables (referenced by $$<Name-of-Variable>)
-   * 2. TransitionVariables (referenced by $<Number-of-Variable>)
-   * with the values of the variables.
-   * If the variable is not found the function returns null.
+   * This method replaces all references to 1. AutomatonVariables (referenced by
+   * $$<Name-of-Variable>) 2. TransitionVariables (referenced by $<Number-of-Variable>) with the
+   * values of the variables. If the variable is not found the function returns null.
    */
   String replaceVariables(String pSourceString) {
 
@@ -143,13 +148,19 @@ class AutomatonExpressionArguments {
         AAstNode var = this.getTransitionVariable(varKey);
         if (var == null) {
           // this variable has not been set.
-          this.getLogger().log(Level.WARNING, "could not replace the transition variable $" + varKey + " (not found).");
+          getLogger()
+              .log(
+                  Level.WARNING,
+                  "could not replace the transition variable $" + varKey + " (not found).");
           return null;
         } else {
           result.append(var.toASTString());
         }
       } catch (NumberFormatException e) {
-        this.getLogger().log(Level.WARNING, "could not parse the int in " + matcher.group() + " , leaving it untouched");
+        getLogger()
+            .log(
+                Level.WARNING,
+                "could not parse the int in " + matcher.group() + " , leaving it untouched");
         result.append(matcher.group());
       }
     }
@@ -160,11 +171,14 @@ class AutomatonExpressionArguments {
     result = new StringBuilder();
     while (matcher.find()) {
       matcher.appendReplacement(result, "");
-      String varName =  matcher.group().substring(2); // matched string starts with $$
-      AutomatonVariable variable = this.getAutomatonVariables().get(varName);
+      String varName = matcher.group().substring(2); // matched string starts with $$
+      AutomatonVariable variable = getAutomatonVariables().get(varName);
       if (variable == null) {
         // this variable has not been set.
-        this.getLogger().log(Level.WARNING, "could not replace the Automaton variable reference " + varName + " (not found).");
+        getLogger()
+            .log(
+                Level.WARNING,
+                "could not replace the Automaton variable reference " + varName + " (not found).");
         return null;
       } else {
         result.append(variable.getValue());
@@ -179,11 +193,11 @@ class AutomatonExpressionArguments {
   }
 
   public Map<Integer, AAstNode> getTransitionVariables() {
-    return this.transitionVariables;
+    return transitionVariables;
   }
 
   public void putTransitionVariables(Map<Integer, AAstNode> pTransitionVariables) {
-    this.transitionVariables.putAll(pTransitionVariables);
+    transitionVariables.putAll(pTransitionVariables);
   }
 
   private AutomatonVariable getAutomatonVariable(String name) {
@@ -235,9 +249,8 @@ class AutomatonExpressionArguments {
       } else {
         return getTransitionVariable(idName);
       }
-    } else if (pNode instanceof CArraySubscriptExpression) {
+    } else if (pNode instanceof CArraySubscriptExpression expr) {
       // Take value of automata set variables in CArraySubscriptExpression.
-      CArraySubscriptExpression expr = (CArraySubscriptExpression) pNode;
       String arrayExpr = expr.getArrayExpression().toASTString();
       String subscriptExpr = expr.getSubscriptExpression().toASTString();
       AutomatonVariable automatonVariable = getAutomatonVariable(arrayExpr);
@@ -255,8 +268,7 @@ class AutomatonExpressionArguments {
                   ((AutomatonSetVariable<?>) automatonVariable).contains(name) ? 1 : 0));
         }
       }
-    } else if (pNode instanceof CBinaryExpression) {
-      CBinaryExpression expr = (CBinaryExpression) pNode;
+    } else if (pNode instanceof CBinaryExpression expr) {
       CExpression op1 = (CExpression) findSubstitute(expr.getOperand1());
       CExpression op2 = (CExpression) findSubstitute(expr.getOperand2());
       if (op1 == null) {
@@ -279,15 +291,14 @@ class AutomatonExpressionArguments {
               expr.getOperator());
         }
       }
-    } else if (pNode instanceof CFieldReference) {
+    } else if (pNode instanceof CFieldReference expr) {
       // Execute operations for automata variables, which are encoded in field reference.
-      CFieldReference expr = (CFieldReference) pNode;
       String fieldOwner = expr.getFieldOwner().toASTString();
       String fieldName = expr.getFieldName();
       AutomatonVariable automatonVariable = getAutomatonVariable(fieldOwner);
       if (automatonVariable != null) {
         if (automatonVariable instanceof AutomatonSetVariable) {
-          if (fieldName.toLowerCase().equals("empty")) {
+          if (fieldName.equalsIgnoreCase("empty")) {
             return new CIntegerLiteralExpression(
                 pNode.getFileLocation(),
                 CNumericTypes.INT,

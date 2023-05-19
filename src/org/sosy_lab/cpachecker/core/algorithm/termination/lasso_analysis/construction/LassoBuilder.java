@@ -27,6 +27,7 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConve
 import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter.NlaHandling;
 import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
+import de.uni_freiburg.informatik.ultimate.logic.Script;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
 import java.util.ArrayList;
@@ -67,23 +68,20 @@ import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
 import org.sosy_lab.java_smt.api.visitors.FormulaTransformationVisitor;
 import org.sosy_lab.java_smt.basicimpl.AbstractFormulaManager;
-import org.sosy_lab.java_smt.solvers.smtinterpol.SmtInterpolEnvironment;
 import org.sosy_lab.java_smt.utils.SolverUtils;
 import org.sosy_lab.java_smt.utils.UfElimination;
 import org.sosy_lab.java_smt.utils.UfElimination.Result;
 
-/**
- * Creates {@link Lasso}s from {@link CounterexampleInfo}.
- */
+/** Creates {@link Lasso}s from {@link CounterexampleInfo}. */
 @Options(prefix = "termination.lassoBuilder")
 public class LassoBuilder {
 
   protected static final ImmutableSet<String> META_VARIABLES_PREFIX =
       ImmutableSet.of("__VERIFIER_nondet_", "__ADDRESS_OF_");
 
-  final static String TERMINATION_AUX_VARS_PREFIX = "__TERMINATION-";
+  static final String TERMINATION_AUX_VARS_PREFIX = "__TERMINATION-";
 
-  final static String TERMINATION_REPLACE_VARS_PREFIX = "__TERMINATION_REPLACE-";
+  static final String TERMINATION_REPLACE_VARS_PREFIX = "__TERMINATION_REPLACE-";
 
   @Option(secure = true, description = "Simplifies loop and stem formulas.")
   private boolean simplify = false;
@@ -96,7 +94,7 @@ public class LassoBuilder {
   private final FormulaManagerView fmgrView;
   private final BooleanFormulaManagerView bfmrView;
   private final PathFormulaManager pathFormulaManager;
-  private final SmtInterpolEnvironment env;
+  private final Script env;
 
   private final DivAndModElimination divAndModElimination;
   private final NonLinearMultiplicationElimination nonLinearMultiplicationElimination;
@@ -123,7 +121,7 @@ public class LassoBuilder {
     logger = checkNotNull(pLogger);
     shutdownNotifier = checkNotNull(pShutdownNotifier);
     fmgr = checkNotNull(pFormulaManager);
-    env = (SmtInterpolEnvironment) fmgr.getEnvironment();
+    env = (Script) fmgr.getEnvironment();
     proverEnvironmentSupplier = checkNotNull(pProverEnvironmentSupplier);
     fmgrView = checkNotNull(pFormulaManagerView);
     bfmrView = fmgrView.getBooleanFormulaManager();
@@ -167,7 +165,7 @@ public class LassoBuilder {
         Maps.uniqueIndex(pRelevantVariables, AVariableDeclaration::getQualifiedName);
     try {
       stats.lassosCreationStarted();
-    return createLassos(stemAndLoop, relevantVariables);
+      return createLassos(stemAndLoop, relevantVariables);
     } finally {
       stats.lassosCreationFinished();
     }
@@ -219,16 +217,15 @@ public class LassoBuilder {
   public StemAndLoop createStemAndLoop(List<CFAEdge> stemEdges, List<CFAEdge> loopEdges)
       throws CPATransferException, InterruptedException {
     PathFormula stemPathFormula = pathFormulaManager.makeFormulaForPath(stemEdges);
-    PathFormula loopPathFormula = pathFormulaManager.makeEmptyPathFormulaWithContextFrom(stemPathFormula);
+    PathFormula loopPathFormula =
+        pathFormulaManager.makeEmptyPathFormulaWithContextFrom(stemPathFormula);
     SSAMapBuilder loopInVars = stemPathFormula.getSsa().builder();
     for (CFAEdge edge : loopEdges) {
       loopPathFormula = pathFormulaManager.makeAnd(loopPathFormula, edge);
 
       // update SSA index of input variables
       SSAMap currentSsa = loopPathFormula.getSsa();
-      currentSsa
-          .allVariables()
-          .stream()
+      currentSsa.allVariables().stream()
           .filter(v -> !loopInVars.allVariables().contains(v))
           .forEach(v -> loopInVars.setIndex(v, currentSsa.getType(v), currentSsa.getIndex(v)));
     }
@@ -427,7 +424,7 @@ public class LassoBuilder {
         logger.logf(FINE, "Ignoring variable %s during construction of lasso.", variableName);
       }
     }
-    return rankVars.build();
+    return rankVars.buildOrThrow();
   }
 
   private static class InOutVariables {

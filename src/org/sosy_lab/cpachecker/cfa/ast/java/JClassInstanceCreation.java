@@ -29,7 +29,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
  * <p>Not all node arragements will represent legal Java constructs. In particular, it is nonsense
  * if the functionname does not contain a {@link JIdExpression}.
  */
-public class JClassInstanceCreation extends JMethodInvocationExpression implements JRightHandSide {
+public sealed class JClassInstanceCreation extends JMethodInvocationExpression
+    permits JSuperConstructorInvocation {
 
   // TODO refactor to be either abstract or final
 
@@ -65,7 +66,8 @@ public class JClassInstanceCreation extends JMethodInvocationExpression implemen
 
   @Override
   public String toASTString(boolean pQualified) {
-    return "new " + getExpressionType().toASTString(getFunctionNameExpression().toASTString(pQualified));
+    return "new "
+        + getExpressionType().toASTString(getFunctionNameExpression().toASTString(pQualified));
   }
 
   @Override

@@ -17,8 +17,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 
-class SMGJoinSllProgress
-    extends SMGJoinAbstractListProgress<Long, SMGSingleLinkedListCandidate> {
+class SMGJoinSllProgress extends SMGJoinAbstractListProgress<Long, SMGSingleLinkedListCandidate> {
 
   public SMGJoinSllProgress() {}
 
@@ -33,7 +32,8 @@ class SMGJoinSllProgress
       int length,
       SMGJoinStatus status,
       UnmodifiableCLangSMG pSMG) {
-    return new SMGSingleLinkedListCandidateSequence(pCandidate, length, status, isPartOfSllSequence(pCandidate, length, pSMG));
+    return new SMGSingleLinkedListCandidateSequence(
+        pCandidate, length, status, isPartOfSllSequence(pCandidate, length, pSMG));
   }
 
   private boolean isPartOfSllSequence(

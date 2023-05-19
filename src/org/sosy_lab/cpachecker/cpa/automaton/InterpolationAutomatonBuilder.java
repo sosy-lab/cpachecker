@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
@@ -75,17 +76,13 @@ public class InterpolationAutomatonBuilder {
     checkArgument(pPath.asStatesList().size() == pInterpolants.size() + 1);
 
     ImmutableList<BooleanFormula> interpolants =
-        ImmutableList.<BooleanFormula>builderWithExpectedSize(pInterpolants.size() + 1)
-            .addAll(pInterpolants)
-            .add(bFMgrView.makeFalse())
-            .build()
-            .stream()
-            .map(fMgrView::uninstantiate)
-            .collect(ImmutableList.toImmutableList());
+        from(pInterpolants)
+            .append(bFMgrView.makeFalse())
+            .transform(fMgrView::uninstantiate)
+            .toList();
 
     ImmutableList<BooleanFormula> distinctInterpolants =
-        interpolants
-            .stream()
+        interpolants.stream()
             .filter(x -> !bFMgrView.isTrue(x))
             .filter(x -> !bFMgrView.isFalse(x))
             .distinct()

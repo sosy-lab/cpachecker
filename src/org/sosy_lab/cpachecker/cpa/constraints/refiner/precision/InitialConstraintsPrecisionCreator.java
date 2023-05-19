@@ -33,23 +33,11 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision.Increment;
+import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.RefinableConstraintsPrecision.PrecisionType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.constraints.refinement")
 public class InitialConstraintsPrecisionCreator {
-
-  public enum PrecisionType {
-    CONSTRAINTS,
-    LOCATION
-  }
-
-  @Option(secure = true, description = "Type of precision to use. Has to be LOCATION if"
-      + " PredicateExtractionRefiner is used.", toUppercase = true)
-  private PrecisionType precisionType = PrecisionType.CONSTRAINTS;
-
-  @Option(secure = true, description = "Whether to get initial constraint precision from a "
-      + "value precision or not.", toUppercase = true)
-  private boolean initialValueConstraintsPrecision = false;
 
   @Option(secure = true, description = "get an initial precision from file")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -74,34 +62,23 @@ public class InitialConstraintsPrecisionCreator {
     logger = LogManager.createTestLogManager();
   }
 
-
-  public ConstraintsPrecision create() throws AssertionError {
+  public ConstraintsPrecision create(final PrecisionType precisionType) throws AssertionError {
     // if fromValuePrecision flags are set, create an initial constraints precision based on the
     // given value precision
-    if (initialValueConstraintsPrecision && cfa != null && initialPrecisionFile != null) {
+    if (cfa != null && initialPrecisionFile != null) {
       restoreMappingFromFile(cfa);
-      return transformValueToConstraintsPrecision();
+      return transformValueToConstraintsPrecision(precisionType);
     } else {
-      // if flags are set, but no value precision is given, the initial constraint precision is empty
-      if (initialValueConstraintsPrecision) {
-        logger.log(Level.INFO,
-            "No cpa.constraints.refinement.initialPrecisionFile set. "
-                + "Continuing with empty initial precision");
-      }
       // empty initial constraints precision
-      switch (precisionType) {
-        case CONSTRAINTS:
-          return ConstraintBasedConstraintsPrecision.getEmptyPrecision();
-        case LOCATION:
-          return LocationBasedConstraintsPrecision.getEmptyPrecision();
-        default:
-          throw new AssertionError("Unhandled precision type " + precisionType);
-      }
+      return switch (precisionType) {
+        case CONSTRAINTS -> ConstraintBasedConstraintsPrecision.getEmptyPrecision();
+        case LOCATION -> LocationBasedConstraintsPrecision.getEmptyPrecision();
+      };
     }
   }
 
-
-  private ConstraintsPrecision transformValueToConstraintsPrecision() {
+  private ConstraintsPrecision transformValueToConstraintsPrecision(
+      final PrecisionType precisionType) {
     switch (precisionType) {
       case CONSTRAINTS:
         // create a ConstraintBasedConstraintsPrecision, that tracks important variables of value
@@ -187,7 +164,7 @@ public class InitialConstraintsPrecisionCreator {
 
   private Map<Integer, CFANode> createMappingForCFANodes(CFA pCfa) {
     Map<Integer, CFANode> idToNodeMap = new HashMap<>();
-    for (CFANode n : pCfa.getAllNodes()) {
+    for (CFANode n : pCfa.nodes()) {
       idToNodeMap.put(n.getNodeNumber(), n);
     }
     return idToNodeMap;

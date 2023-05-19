@@ -36,12 +36,12 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
- * This visitor is used to determine the address of an expression, mainly lValues.
- * It is used to prevent
- * code replication in other visitors who need this kind of functionality,
- * which is why its abstract.
+ * This visitor is used to determine the address of an expression, mainly lValues. It is used to
+ * prevent code replication in other visitors who need this kind of functionality, which is why its
+ * abstract.
  */
-abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressAndState>, CPATransferException>
+abstract class AddressVisitor
+    extends DefaultCExpressionVisitor<List<SMGAddressAndState>, CPATransferException>
     implements CRightHandSideVisitor<List<SMGAddressAndState>, CPATransferException> {
 
   final SMGExpressionEvaluator smgExpressionEvaluator;
@@ -75,12 +75,12 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
 
     if (object == null && variableName.getDeclaration() != null) {
       CSimpleDeclaration dcl = variableName.getDeclaration();
-      if (dcl instanceof CVariableDeclaration) {
-        CVariableDeclaration varDcl = (CVariableDeclaration) dcl;
-
+      if (dcl instanceof CVariableDeclaration varDcl) {
         if (varDcl.isGlobal()) {
-          object = state.addGlobalVariable(smgExpressionEvaluator.getBitSizeof(getCfaEdge(), varDcl.getType(), state),
-              varDcl.getName());
+          object =
+              state.addGlobalVariable(
+                  smgExpressionEvaluator.getBitSizeof(getCfaEdge(), varDcl.getType(), state),
+                  varDcl.getName());
         } else {
           Optional<SMGObject> addedLocalVariable =
               state.addLocalVariable(
@@ -101,7 +101,8 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
 
   @Override
   public List<SMGAddressAndState> visit(CArraySubscriptExpression exp) throws CPATransferException {
-    return smgExpressionEvaluator.evaluateArraySubscriptAddress(getInitialSmgState(), getCfaEdge(), exp);
+    return smgExpressionEvaluator.evaluateArraySubscriptAddress(
+        getInitialSmgState(), getCfaEdge(), exp);
   }
 
   @Override

@@ -39,15 +39,20 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
     return requirements;
   }
 
-  protected abstract Pair<List<String>, String> convertToFormula(final T requirement, final SSAMap indices, final @Nullable Collection<String> pRequiredVars)
+  protected abstract Pair<List<String>, String> convertToFormula(
+      final T requirement, final SSAMap indices, final @Nullable Collection<String> pRequiredVars)
       throws CPAException;
 
   public Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertRequirements(
-      final AbstractState pre, final Collection<? extends AbstractState> post, final SSAMap postIndices,
-      final @Nullable Collection<String> pInputVariables, final @Nullable Collection<String> pOutputVariables)
-          throws CPAException {
+      final AbstractState pre,
+      final Collection<? extends AbstractState> post,
+      final SSAMap postIndices,
+      final @Nullable Collection<String> pInputVariables,
+      final @Nullable Collection<String> pOutputVariables)
+      throws CPAException {
 
-    Pair<List<String>, String> formulaPre = convertToFormula(extractRequirement(pre), SSAMap.emptySSAMap(), pInputVariables);
+    Pair<List<String>, String> formulaPre =
+        convertToFormula(extractRequirement(pre), SSAMap.emptySSAMap(), pInputVariables);
     formulaPre = Pair.of(formulaPre.getFirst(), renameDefine(formulaPre.getSecond(), "pre"));
 
     if (post.isEmpty()) {
@@ -64,24 +69,27 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
 
     sb.append("(define-fun post () Bool ");
 
-    for (AbstractState state : post){
+    for (AbstractState state : post) {
       formula = convertToFormula(extractRequirement(state), postIndices, pOutputVariables);
       list.addAll(formula.getFirst());
 
-      if (BracketCounter != amount-1) {
+      if (BracketCounter != amount - 1) {
         sb.append("(or ");
         BracketCounter++;
       }
       // distinguish between (define-fun name () Bool (f)) and (define-fun name () Bool var)
       index = formula.getSecond().indexOf("(", formula.getSecond().indexOf(")"));
-      if (index>0){
-        definition = formula.getSecond().substring(index, formula.getSecond().length()-1);
+      if (index > 0) {
+        definition = formula.getSecond().substring(index, formula.getSecond().length() - 1);
       } else {
-        definition = formula.getSecond().substring(formula.getSecond().lastIndexOf(" "), formula.getSecond().length()-1);
+        definition =
+            formula
+                .getSecond()
+                .substring(formula.getSecond().lastIndexOf(" "), formula.getSecond().length() - 1);
       }
       sb.append(definition);
     }
-    for (int i=0; i<BracketCounter+1; i++) {
+    for (int i = 0; i < BracketCounter + 1; i++) {
       sb.append(")");
     }
 

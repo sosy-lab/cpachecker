@@ -33,8 +33,8 @@ public class CFloatInf extends CFloat {
   }
 
   public CFloatInf(boolean pNegative, int pType) {
-    this.negative = pNegative;
-    this.type = pType;
+    negative = pNegative;
+    type = pType;
   }
 
   @Override
@@ -183,20 +183,14 @@ public class CFloatInf extends CFloat {
 
   @Override
   public CFloatWrapper copyWrapper() {
-    CFloatWrapper result = null;
-    switch (type) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        result = new CFloatWrapper(getExponentMask() ^ (negative ? getSignBitMask() : 0L), 0L);
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        result =
-            new CFloatWrapper(
-                getExponentMask() ^ (negative ? getSignBitMask() : 0L), getNormalizationMask());
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + type);
-    }
+    CFloatWrapper result =
+        switch (type) {
+          case CFloatNativeAPI.FP_TYPE_SINGLE, CFloatNativeAPI.FP_TYPE_DOUBLE -> new CFloatWrapper(
+              getExponentMask() ^ (negative ? getSignBitMask() : 0L), 0L);
+          case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE -> new CFloatWrapper(
+              getExponentMask() ^ (negative ? getSignBitMask() : 0L), getNormalizationMask());
+          default -> throw new RuntimeException("Unimplemented floating point type: " + type);
+        };
     return result;
   }
 
@@ -220,7 +214,7 @@ public class CFloatInf extends CFloat {
     if (pFloat.isNan() || (pFloat.isInfinity() && !pFloat.isNegative())) {
       return false;
     }
-    return !this.isNegative();
+    return !isNegative();
   }
 
   @Override

@@ -26,7 +26,9 @@ import java.util.List;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 /** Detects Byte Order Mark (BOM) in a C file and decodes the file accordingly */
-public class BOMParser {
+public final class BOMParser {
+
+  private BOMParser() {}
 
   private enum ByteOrderMark {
     NO_BOM(Charset.defaultCharset(), ImmutableList.of()),
@@ -110,7 +112,7 @@ public class BOMParser {
     if (isPureAscii(codeBeginning)) {
       return ByteOrderMark.NO_BOM;
     }
-    for(ByteOrderMark bom : ByteOrderMark.values()) {
+    for (ByteOrderMark bom : ByteOrderMark.values()) {
       if (codeBeginning.equals(bom.sequence)) {
         return bom;
       }
@@ -126,5 +128,4 @@ public class BOMParser {
     }
     return true;
   }
-
 }

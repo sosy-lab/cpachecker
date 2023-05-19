@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * This package contains various ways to dump the created CFA for the user.
- */
+/** This package contains various ways to dump the created CFA for the user. */
 package org.sosy_lab.cpachecker.cfa.export;

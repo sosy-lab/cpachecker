@@ -82,6 +82,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 @FieldsAreNonnullByDefault
 final class VariableAndFieldRelevancyComputer {
 
+  private VariableAndFieldRelevancyComputer() {}
+
   public static final class VarFieldDependencies {
     @SuppressWarnings("unchecked") // Cloning here should work faster than adding all elements
     private static <T> Set<T> copy(final Set<T> source) {
@@ -298,7 +300,8 @@ final class VariableAndFieldRelevancyComputer {
         return this;
       }
       // This shouldn't matter much as merging has linear complexity anyway
-      // But probably we can get slightly faster by cloning the larger hash sets and iterating over smaller ones
+      // But probably we can get slightly faster by cloning the larger hash sets and iterating over
+      // smaller ones
       // As we don't have exact hash set sizes this is only a heuristic
       if (currentSize >= other.currentSize) {
         return new VarFieldDependencies(
@@ -400,7 +403,8 @@ final class VariableAndFieldRelevancyComputer {
     private final Set<String> addressedVariables;
     private final Multimap<VariableOrField, VariableOrField> dependencies;
     private final PersistentList<VarFieldDependencies> pendingMerges;
-    private final int currentSize, pendingSize;
+    private final int currentSize;
+    private final int pendingSize;
     private @Nullable VarFieldDependencies squashed = null;
 
     private static final int INITIAL_SIZE = 500;
@@ -500,8 +504,7 @@ final class VariableAndFieldRelevancyComputer {
           // Heuristic: for external function calls
           // r = f(a); // r depends on f and a, BUT
           // f(a); // f and a are always relevant
-          if (statement instanceof CAssignment) {
-            final CAssignment assignment = (CAssignment) statement;
+          if (statement instanceof CAssignment assignment) {
             final CRightHandSide rhs = assignment.getRightHandSide();
             final Pair<VariableOrField, VarFieldDependencies> r =
                 assignment.getLeftHandSide().accept(CollectingLHSVisitor.create(pCfa));
@@ -516,9 +519,10 @@ final class VariableAndFieldRelevancyComputer {
             }
           } else if (statement instanceof CFunctionCallStatement) {
             result =
-              result.withDependencies(
-                  ((CFunctionCallStatement) statement).getFunctionCallExpression()
-                      .accept(CollectingRHSVisitor.create(pCfa, VariableOrField.unknown())));
+                result.withDependencies(
+                    ((CFunctionCallStatement) statement)
+                        .getFunctionCallExpression()
+                        .accept(CollectingRHSVisitor.create(pCfa, VariableOrField.unknown())));
           }
           break;
         }
@@ -537,7 +541,7 @@ final class VariableAndFieldRelevancyComputer {
                                 pCfa,
                                 VariableOrField.newVariable(params.get(i).getQualifiedName()))));
           }
-          CFunctionCall statement = call.getSummaryEdge().getExpression();
+          CFunctionCall statement = call.getFunctionCall();
           Optional<CVariableDeclaration> returnVar = call.getSuccessor().getReturnVariable();
           if (returnVar.isPresent()) {
             String scopedRetVal = returnVar.orElseThrow().getQualifiedName();
@@ -556,9 +560,7 @@ final class VariableAndFieldRelevancyComputer {
         }
 
       case FunctionReturnEdge:
-        {
-          break;
-        }
+        break;
 
       case ReturnStatementEdge:
         {
@@ -585,14 +587,10 @@ final class VariableAndFieldRelevancyComputer {
 
       case BlankEdge:
       case CallToReturnEdge:
-        {
-          break;
-        }
+        break;
 
       default:
-        {
-          throw new UnrecognizedCodeException("Unknown edge type: " + edge.getEdgeType(), edge);
-        }
+        throw new UnrecognizedCodeException("Unknown edge type: " + edge.getEdgeType(), edge);
     }
 
     return result;

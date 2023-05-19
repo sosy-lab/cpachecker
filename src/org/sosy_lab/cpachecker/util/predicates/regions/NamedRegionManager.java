@@ -31,7 +31,6 @@ import java.util.function.Function;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -54,9 +53,9 @@ public class NamedRegionManager implements RegionManager {
   }
 
   /**
-   * Create a predicate with a name associated to it.
-   * If the same name is passed again to this method, the old predicate will be
-   * returned (guaranteeing uniqueness of predicate<->name mapping).
+   * Create a predicate with a name associated to it. If the same name is passed again to this
+   * method, the old predicate will be returned (guaranteeing uniqueness of predicate<->name
+   * mapping).
    *
    * @param pName An arbitary name for a predicate.
    * @return A region representing a predicate
@@ -70,9 +69,7 @@ public class NamedRegionManager implements RegionManager {
     return createPredicate(ANONYMOUS_PREDICATE + anonymousPredicateCounter.getAndIncrement());
   }
 
-  /**
-   * Returns a String representation of a region.
-   */
+  /** Returns a String representation of a region. */
   public Appender dumpRegion(final Region r) {
     return new AbstractAppender() {
       @Override
@@ -93,45 +90,35 @@ public class NamedRegionManager implements RegionManager {
       out.append("TRUE");
 
     } else {
-      Triple<Region, Region, Region> triple = delegate.getIfThenElse(r);
-      String predName = regionMap.inverse().get(triple.getFirst());
+      RegionManager.IfThenElseParts parts = delegate.getIfThenElse(r);
+      String predName = regionMap.inverse().get(parts.condition());
 
-      Region trueBranch = triple.getSecond();
-      Region falseBranch = triple.getThird();
+      Region trueBranch = parts.thenBranch();
+      Region falseBranch = parts.elseBranch();
 
       if (trueBranch.isFalse()) {
         assert !falseBranch.isFalse();
         // only falseBranch is present
-        out.append("!")
-            .append(predName)
-            .append(" & ");
+        out.append("!").append(predName).append(" & ");
         dumpRegion(falseBranch, out);
 
       } else if (falseBranch.isFalse()) {
         // only trueBranch is present
-        out.append(predName)
-            .append(" & ");
+        out.append(predName).append(" & ");
         dumpRegion(trueBranch, out);
 
       } else {
         // both branches present
-        out.append("((")
-            .append(predName)
-            .append(" & ");
+        out.append("((").append(predName).append(" & ");
         dumpRegion(trueBranch, out);
-        out.append(") | (")
-            .append("!")
-            .append(predName)
-            .append(" & ");
+        out.append(") | (").append("!").append(predName).append(" & ");
         dumpRegion(falseBranch, out);
         out.append("))");
       }
     }
   }
 
-  /**
-   * Returns a representation of a region in dot-format (graphviz).
-   */
+  /** Returns a representation of a region in dot-format (graphviz). */
   public String regionToDot(Region r) {
     // counter for nodes, values 0 and 1 are used for nodes FALSE and TRUE.
     // we use a reference to an integer to be able to change its value in called methods.
@@ -162,20 +149,20 @@ public class NamedRegionManager implements RegionManager {
       return cache.get(r);
 
     } else {
-      Triple<Region, Region, Region> triple = delegate.getIfThenElse(r);
+      RegionManager.IfThenElseParts parts = delegate.getIfThenElse(r);
 
       // create node with label
-      String predName = regionMap.inverse().get(triple.getFirst());
+      String predName = regionMap.inverse().get(parts.condition());
       int predNum = nodeCounter.incrementAndGet(); // one more node is created
       str.append(predNum).append(" [label=\"").append(predName).append("\"];\n");
 
       // create arrow for true branch
-      Region trueBranch = triple.getSecond();
+      Region trueBranch = parts.thenBranch();
       int trueTarget = regionToDot(trueBranch, str, cache, nodeCounter);
       str.append(predNum).append(" -> ").append(trueTarget).append(" [style=filled];\n");
 
       // create arrow for false branch
-      Region falseBranch = triple.getThird();
+      Region falseBranch = parts.elseBranch();
       int falseTarget = regionToDot(falseBranch, str, cache, nodeCounter);
       str.append(predNum).append(" -> ").append(falseTarget).append(" [style=dotted];\n");
 
@@ -245,13 +232,13 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public Region fromFormula(BooleanFormula pF, FormulaManagerView pFmgr,
-      Function<BooleanFormula, Region> pAtomToRegion) {
+  public Region fromFormula(
+      BooleanFormula pF, FormulaManagerView pFmgr, Function<BooleanFormula, Region> pAtomToRegion) {
     return delegate.fromFormula(pF, pFmgr, pAtomToRegion);
   }
 
   @Override
-  public Triple<Region, Region, Region> getIfThenElse(Region pF) {
+  public IfThenElseParts getIfThenElse(Region pF) {
     return delegate.getIfThenElse(pF);
   }
 
@@ -289,7 +276,7 @@ public class NamedRegionManager implements RegionManager {
           (a, b) -> {
             Region ra = regionMap.get(a);
             Region rb = regionMap.get(b);
-            Region root = getIfThenElse(makeAnd(ra, rb)).getFirst();
+            Region root = getIfThenElse(makeAnd(ra, rb)).condition();
             if (ra.equals(root)) {
               return 1;
             } else if (rb.equals(root)) {
@@ -314,10 +301,10 @@ public class NamedRegionManager implements RegionManager {
         if (r.isTrue() || r.isFalse() || !finished.add(r)) {
           continue;
         }
-        Triple<Region, Region, Region> t = getIfThenElse(r);
-        predicates.add(regionMap.inverse().get(t.getFirst()));
-        waitlist.add(t.getSecond());
-        waitlist.add(t.getThird());
+        RegionManager.IfThenElseParts parts = getIfThenElse(r);
+        predicates.add(regionMap.inverse().get(parts.condition()));
+        waitlist.add(parts.thenBranch());
+        waitlist.add(parts.elseBranch());
       }
       return predicates;
     }

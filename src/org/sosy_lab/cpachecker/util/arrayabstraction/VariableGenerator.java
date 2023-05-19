@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
-import java.util.Objects;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -39,8 +41,7 @@ class VariableGenerator {
 
   private static String getNondetFunctionName(CType pType) {
 
-    if (pType instanceof CSimpleType) {
-      CSimpleType simpleType = (CSimpleType) pType;
+    if (pType instanceof CSimpleType simpleType) {
       CBasicType basicType = simpleType.getType();
 
       // TODO: handle all types that have corresponding `__VERIFIER_nondet_X` functions
@@ -68,7 +69,8 @@ class VariableGenerator {
             nondetFunctionType,
             nondetFunctionName,
             nondetFunctionName,
-            ImmutableList.of());
+            ImmutableList.of(),
+            ImmutableSet.of());
     CIdExpression nondetFunctionNameExpression =
         new CIdExpression(
             FileLocation.DUMMY, nondetFunctionType, nondetFunctionName, nondetFunctionDeclaration);
@@ -85,8 +87,8 @@ class VariableGenerator {
 
   static CIdExpression createVariableNameExpression(CType pType, MemoryLocation pMemoryLocation) {
 
-    Objects.requireNonNull(pType, "pType must not be null");
-    Objects.requireNonNull(pMemoryLocation, "pMemoryLocation must not be null");
+    checkNotNull(pType);
+    checkNotNull(pMemoryLocation);
 
     String variableName = pMemoryLocation.getIdentifier();
 
@@ -109,9 +111,9 @@ class VariableGenerator {
   static CIdExpression createVariableNameExpression(
       CType pType, String pVariableName, Optional<String> pFunctionName) {
 
-    Objects.requireNonNull(pType, "pType must not be null");
-    Objects.requireNonNull(pVariableName, "pVariableName must not be null");
-    Objects.requireNonNull(pFunctionName, "pFunctionName must not be null");
+    checkNotNull(pType);
+    checkNotNull(pVariableName);
+    checkNotNull(pFunctionName);
 
     if (pFunctionName.isPresent()) {
       return createVariableNameExpression(
@@ -124,9 +126,9 @@ class VariableGenerator {
   static CFAEdge createNondetVariableEdge(
       CType pType, String pVariableName, Optional<String> pFunctionName) {
 
-    Objects.requireNonNull(pType, "pType must not be null");
-    Objects.requireNonNull(pVariableName, "pVariableName must not be null");
-    Objects.requireNonNull(pFunctionName, "pFunctionName must not be null");
+    checkNotNull(pType);
+    checkNotNull(pVariableName);
+    checkNotNull(pFunctionName);
 
     CIdExpression lhs = createVariableNameExpression(pType, pVariableName, pFunctionName);
     CFunctionCallExpression rhs = createNondetFunctionCallExpression(pType);

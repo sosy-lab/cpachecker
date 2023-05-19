@@ -46,8 +46,7 @@ public class PolyhedraWideningManager {
   private final PolicyIterationStatistics statistics;
   private final LogManager logger;
 
-  public PolyhedraWideningManager(PolicyIterationStatistics pStatistics,
-      LogManager pLogger) {
+  public PolyhedraWideningManager(PolicyIterationStatistics pStatistics, LogManager pLogger) {
     statistics = pStatistics;
     logger = pLogger;
     ApronManager apronManager = new ApronManager(AbstractDomain.POLKA);
@@ -65,26 +64,27 @@ public class PolyhedraWideningManager {
    * described by {@code oldState} and {@code newState}.
    */
   public Set<Template> generateWideningTemplates(
-      PolicyAbstractedState oldState,
-      PolicyAbstractedState newState) {
+      PolicyAbstractedState oldState, PolicyAbstractedState newState) {
 
-    Set<Template> allTemplates = Sets.union(oldState.getAbstraction().keySet(),
-        newState.getAbstraction().keySet());
-    Map<Template, Rational> oldData = Maps.transformValues(oldState.getAbstraction(),
-        PolicyBound::getBound);
-    Map<Template, Rational> newData = Maps.transformValues(
-        newState.getAbstraction(),
-        PolicyBound::getBound);
+    Set<Template> allTemplates =
+        Sets.union(oldState.getAbstraction().keySet(), newState.getAbstraction().keySet());
+    Map<Template, Rational> oldData =
+        Maps.transformValues(oldState.getAbstraction(), PolicyBound::getBound);
+    Map<Template, Rational> newData =
+        Maps.transformValues(newState.getAbstraction(), PolicyBound::getBound);
 
     Abstract1 widened;
     try {
       statistics.polyhedraWideningTimer.start();
-      Abstract1 abs1, abs2;
       Environment env = generateEnvironment(ImmutableList.of(oldData, newData));
-      abs1 = fromTemplates(env, oldData);
-      abs2 = fromTemplates(env, newData);
-      abs2.join(manager, abs1);
-      widened = abs1.widening(manager, abs2);
+      Abstract1 abs1 = fromTemplates(env, oldData);
+      Abstract1 abs2 = fromTemplates(env, newData);
+      try {
+        abs2.join(manager, abs1);
+        widened = abs1.widening(manager, abs2);
+      } catch (apron.ApronException e) {
+        throw new RuntimeException("An error occured while operating with the apron library", e);
+      }
     } finally {
       statistics.polyhedraWideningTimer.stop();
     }
@@ -113,7 +113,12 @@ public class PolyhedraWideningManager {
 
   Map<Template, Rational> toTemplates(Abstract1 abs) {
     Map<Template, Rational> out = new HashMap<>();
-    Lincons1[] values = abs.toLincons(manager);
+    Lincons1[] values;
+    try {
+      values = abs.toLincons(manager);
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
     for (Lincons1 constraint : values) {
       // We have: t + coeff >= 0.
       Rational coeff = ofCoeff(constraint.getCst());
@@ -127,12 +132,8 @@ public class PolyhedraWideningManager {
     return out;
   }
 
-  /**
-   * Intersection of all linear constraints.
-   */
-  Abstract1 fromTemplates(
-      Environment environment,
-      Map<Template, Rational> state) {
+  /** Intersection of all linear constraints. */
+  Abstract1 fromTemplates(Environment environment, Map<Template, Rational> state) {
 
     Lincons1[] values = new Lincons1[state.size()];
     int i = -1;
@@ -141,21 +142,25 @@ public class PolyhedraWideningManager {
       Rational bound = e.getValue();
       values[++i] = fromTemplateBound(environment, t, bound);
     }
-    Abstract1 out = new Abstract1(manager, environment);
-    out.meet(manager, values);
+    Abstract1 out;
+    try {
+      out = new Abstract1(manager, environment);
+      out.meet(manager, values);
+    } catch (apron.ApronException e) {
+      throw new RuntimeException("An error occured while operating with the apron library", e);
+    }
     return out;
   }
-
 
   private Template ofExpression(Lincons1 expr) {
     expr.minimize();
     LinearExpression<CIdExpression> out = LinearExpression.empty();
 
     for (Linterm1 term : expr.getLinterms()) {
-      String varName = term.getVariable();
+      String varName = term.getVariable().toString();
       Rational coeff = ofCoeff(term.getCoefficient());
 
-      out = out.add(LinearExpression.monomial(types.get(varName),  coeff));
+      out = out.add(LinearExpression.monomial(types.get(varName), coeff));
     }
 
     return Template.of(out);
@@ -164,25 +169,19 @@ public class PolyhedraWideningManager {
   private Rational ofCoeff(Coeff c) {
     assert c instanceof MpqScalar;
     MpqScalar mpq = (MpqScalar) c;
-    return Rational.of(mpq.get().getNum().bigIntegerValue(),
-        mpq.get().getDen().bigIntegerValue());
+    return Rational.of(mpq.get().getNum().bigIntegerValue(), mpq.get().getDen().bigIntegerValue());
   }
 
-  private Lincons1 fromTemplateBound(
-      Environment environment,
-      Template t, Rational bound) {
+  private Lincons1 fromTemplateBound(Environment environment, Template t, Rational bound) {
     // APRON supports only ">= 0".
     // We are getting from "t <= x" to "-t + x >= 0"
-    Linexpr1 expr = fromLinearExpression(
-        environment,
-        t.getLinearExpression().negate());
+    Linexpr1 expr = fromLinearExpression(environment, t.getLinearExpression().negate());
     expr.setCst(ofRational(bound));
     return new Lincons1(Lincons1.SUPEQ, expr);
   }
 
   private Linexpr1 fromLinearExpression(
-      Environment environment,
-      LinearExpression<CIdExpression> input) {
+      Environment environment, LinearExpression<CIdExpression> input) {
     Linexpr1 expr = new Linexpr1(environment, input.size());
     expr.setCst(ofRational(Rational.ZERO));
 
@@ -197,7 +196,6 @@ public class PolyhedraWideningManager {
     return expr;
   }
 
-
   private Environment generateEnvironment(Environment environment, Template t) {
     for (Entry<CIdExpression, Rational> e : t.getLinearExpression()) {
       CIdExpression id = e.getKey();
@@ -205,9 +203,9 @@ public class PolyhedraWideningManager {
       types.put(varName, id);
       if (!environment.hasVar(varName)) {
         if (isIntegral(id)) {
-          environment = environment.add(new String[]{varName}, new String[]{});
+          environment = environment.add(new String[] {varName}, new String[] {});
         } else {
-          environment = environment.add(new String[]{}, new String[]{varName});
+          environment = environment.add(new String[] {}, new String[] {varName});
         }
       }
     }

@@ -30,9 +30,7 @@ import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
-/**
- * Integration testing for Slicing Abstractions.
- */
+/** Integration testing for Slicing Abstractions. */
 @RunWith(Parameterized.class)
 public class SlicingAbstractionsTest {
 
@@ -40,19 +38,19 @@ public class SlicingAbstractionsTest {
   private static final String CONFIG_DIR_PATH = "config/";
 
   private static boolean isConfig(File pPathname) {
-          return ((pPathname.getName().contains("Kojak")
-                  || pPathname.getName().contains("SlicingAbstractions"))
-              && !pPathname.getName().contains("overflow"));
+    return ((pPathname.getName().contains("Kojak")
+            || pPathname.getName().contains("SlicingAbstractions"))
+        && !pPathname.getName().contains("overflow"));
   }
 
   private static boolean isSlabConfig(File pPathname) {
-      return pPathname.getName().contains("Slab");
+    return pPathname.getName().contains("Slab");
   }
 
   private static boolean isOverflowConfig(File pPathname) {
-          return ((pPathname.getName().contains("Kojak")
-                  || pPathname.getName().contains("SlicingAbstractions"))
-              && pPathname.getName().contains("overflow"));
+    return ((pPathname.getName().contains("Kojak")
+            || pPathname.getName().contains("SlicingAbstractions"))
+        && pPathname.getName().contains("overflow"));
   }
 
   private static final ImmutableMap<String, String> EMPTY_OPTIONS = ImmutableMap.of();
@@ -183,7 +181,9 @@ public class SlicingAbstractionsTest {
     return true;
   }
 
-  public SlicingAbstractionsTest(String filename, String configname,
+  public SlicingAbstractionsTest(
+      String filename,
+      String configname,
       Map<String, String> extraOptions,
       @SuppressWarnings("unused") String name) {
     this.filename = filename;
@@ -205,7 +205,7 @@ public class SlicingAbstractionsTest {
 
     TestResults results = CPATestRunner.run(config, fullPath);
     if (!configname.contains("overflow")) {
-    if (pFilename.contains("_true_assert") || pFilename.contains("_true-unreach")) {
+      if (pFilename.contains("_true_assert") || pFilename.contains("_true-unreach")) {
         results.assertIsSafe();
       } else if (pFilename.contains("_false_assert") || pFilename.contains("_false-unreach")) {
         results.assertIsUnsafe();

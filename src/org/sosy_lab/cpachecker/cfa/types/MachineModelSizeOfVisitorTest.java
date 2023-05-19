@@ -28,9 +28,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 
 @RunWith(Parameterized.class)
 @SuppressFBWarnings(
-  value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR",
-  justification = "Fields are filled by parameterization of JUnit"
-)
+    value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR",
+    justification = "Fields are filled by parameterization of JUnit")
 public class MachineModelSizeOfVisitorTest {
 
   private static final String TEST_STRUCT = "testStruct";
@@ -202,7 +201,7 @@ public class MachineModelSizeOfVisitorTest {
       {STRUCT_8, MODEL64, 8, "Struct_8"},
       {STRUCT_8, MODEL32, 8, "Struct_8"},
       {STRUCT_9, MODEL64, 16, "Struct_9"},
-      {STRUCT_9, MODEL32, 12, "Struct_9"}
+      {STRUCT_9, MODEL32, 12, "Struct_9"},
     };
   }
 

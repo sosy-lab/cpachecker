@@ -8,38 +8,44 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
- * This interface represents all sorts of top-level declarations (i.e., declarations
- * not nested inside another type declaration).
- * This excludes for examples function parameter declarations and struct members.
- * It includes local and global variables and types, as well as functions.
- * This class is only SuperClass of all abstract Classes and their Subclasses.
- * The Interface {@link ADeclaration} contains all language specific
- * AST Nodes as well.
+ * This interface represents all sorts of top-level declarations (i.e., declarations not nested
+ * inside another type declaration). This excludes for examples function parameter declarations and
+ * struct members. It includes local and global variables and types, as well as functions. This
+ * class is only SuperClass of all abstract Classes and their Subclasses. The Interface {@link
+ * ADeclaration} contains all language specific AST Nodes as well.
  */
-public abstract class AbstractDeclaration extends AbstractSimpleDeclaration implements ADeclaration {
+public abstract class AbstractDeclaration extends AbstractSimpleDeclaration
+    implements ADeclaration {
 
   private static final long serialVersionUID = 3218969369130423033L;
   private final boolean isGlobal;
+  private final Type type;
 
   protected AbstractDeclaration(
       FileLocation pFileLocation, boolean pIsGlobal, Type pType, String pName) {
-    super(pFileLocation, pType, pName, pName);
+    super(pFileLocation, pName, pName);
     isGlobal = pIsGlobal;
+    type = pType;
   }
 
   protected AbstractDeclaration(
       FileLocation pFileLocation, boolean pIsGlobal, Type pType, String pName, String pOrigName) {
-    super(pFileLocation, pType, pName, pOrigName);
+    super(pFileLocation, pName, pOrigName);
     isGlobal = pIsGlobal;
+    type = pType;
   }
 
   @Override
   public boolean isGlobal() {
     return isGlobal;
+  }
+
+  @Override
+  public Type getType() {
+    return type;
   }
 
   @Override
@@ -53,8 +59,7 @@ public abstract class AbstractDeclaration extends AbstractSimpleDeclaration impl
       return true;
     }
 
-    if (!(obj instanceof AbstractDeclaration)
-        || !super.equals(obj)) {
+    if (!(obj instanceof AbstractDeclaration) || !super.equals(obj)) {
       return false;
     }
 
@@ -62,5 +67,4 @@ public abstract class AbstractDeclaration extends AbstractSimpleDeclaration impl
 
     return other.isGlobal == isGlobal;
   }
-
 }

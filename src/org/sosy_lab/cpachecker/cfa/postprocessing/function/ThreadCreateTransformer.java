@@ -59,31 +59,27 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 public class ThreadCreateTransformer {
 
   @Option(
-    secure = true,
-    name = "cfa.threads.threadCreate",
-    description = "A name of thread_create function"
-  )
+      secure = true,
+      name = "cfa.threads.threadCreate",
+      description = "A name of thread_create function")
   private String threadCreate = "pthread_create";
 
   @Option(
-    secure = true,
-    name = "cfa.threads.threadSelfCreate",
-    description = "A name of thread_create_N function"
-  )
+      secure = true,
+      name = "cfa.threads.threadSelfCreate",
+      description = "A name of thread_create_N function")
   private String threadCreateN = "pthread_create_N";
 
   @Option(
-    secure = true,
-    name = "cfa.threads.threadJoin",
-    description = "A name of thread_join function"
-  )
+      secure = true,
+      name = "cfa.threads.threadJoin",
+      description = "A name of thread_join function")
   private String threadJoin = "pthread_join";
 
   @Option(
-    secure = true,
-    name = "cfa.threads.threadSelfJoin",
-    description = "A name of thread_join_N function"
-  )
+      secure = true,
+      name = "cfa.threads.threadSelfJoin",
+      description = "A name of thread_join_N function")
   private String threadJoinN = "pthread_join_N";
 
   private class ThreadFinder implements CFATraversal.CFAVisitor {
@@ -97,8 +93,7 @@ public class ThreadCreateTransformer {
         CStatement statement = ((CStatementEdge) pEdge).getStatement();
         if (statement instanceof CAssignment) {
           CRightHandSide rhs = ((CAssignment) statement).getRightHandSide();
-          if (rhs instanceof CFunctionCallExpression) {
-            CFunctionCallExpression exp = ((CFunctionCallExpression) rhs);
+          if (rhs instanceof CFunctionCallExpression exp) {
             checkFunctionExpression(pEdge, exp);
           }
         } else if (statement instanceof CFunctionCallStatement) {
@@ -136,7 +131,7 @@ public class ThreadCreateTransformer {
   public void transform(CFA cfa) {
     ThreadFinder threadVisitor = new ThreadFinder();
 
-    for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode functionStartNode : cfa.entryNodes()) {
       CFATraversal.dfs().traverseOnce(functionStartNode, threadVisitor);
     }
 

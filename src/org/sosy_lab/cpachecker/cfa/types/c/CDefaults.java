@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 
 public final class CDefaults {
 
-  private CDefaults() { }
+  private CDefaults() {}
 
   public static CInitializer forType(CType type, FileLocation fileLoc) {
     checkNotNull(fileLoc);
@@ -36,24 +36,26 @@ public final class CDefaults {
       return initializerFor(signedIntZero(fileLoc), fileLoc);
 
     } else if (type instanceof CSimpleType) {
-      CBasicType basicType = ((CSimpleType)type).getType();
+      CBasicType basicType = ((CSimpleType) type).getType();
       switch (basicType) {
-      case CHAR:
-        return initializerFor(new CCharLiteralExpression(fileLoc, type, '\0'), fileLoc);
+        case CHAR:
+          return initializerFor(new CCharLiteralExpression(fileLoc, type, '\0'), fileLoc);
 
-      case DOUBLE:
-      case FLOAT128:
-      case FLOAT:
-        return initializerFor(new CFloatLiteralExpression(fileLoc, type, BigDecimal.ZERO), fileLoc);
+        case DOUBLE:
+        case FLOAT128:
+        case FLOAT:
+          return initializerFor(
+              new CFloatLiteralExpression(fileLoc, type, BigDecimal.ZERO), fileLoc);
 
-      case UNSPECIFIED:
-      case BOOL:
-      case INT128:
-      case INT:
-        return initializerFor(new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO), fileLoc);
+        case UNSPECIFIED:
+        case BOOL:
+        case INT128:
+        case INT:
+          return initializerFor(
+              new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO), fileLoc);
 
-      default:
-        throw new AssertionError("Unknown basic type '" + basicType + "'");
+        default:
+          throw new AssertionError("Unknown basic type '" + basicType + "'");
       }
 
     } else if (type instanceof CEnumType) {
@@ -61,15 +63,16 @@ public final class CDefaults {
       return initializerFor(signedIntZero(fileLoc), fileLoc);
 
     } else if (type instanceof CElaboratedType) {
-       if (((CElaboratedType)type).getKind() == ComplexTypeKind.ENUM) {
+      if (((CElaboratedType) type).getKind() == ComplexTypeKind.ENUM) {
         // enum declaration: enum e var;
         return initializerFor(signedIntZero(fileLoc), fileLoc);
 
-       } else {
-         // struct or union that is incompletely defined,
-         // cannot produce an initializer
-         throw new IllegalArgumentException("Cannot produce initializer for incompletely defined type " + type);
-       }
+      } else {
+        // struct or union that is incompletely defined,
+        // cannot produce an initializer
+        throw new IllegalArgumentException(
+            "Cannot produce initializer for incompletely defined type " + type);
+      }
 
     } else if (type instanceof CCompositeType) {
       // struct or union

@@ -16,14 +16,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Merge operator of {@link SlicingCPA}.
- * Uses the merge operator of the CPA wrapped by the SlicingCPA,
- * with the precision of the CPA wrapped by the SlicingCPA.
+ * Merge operator of {@link SlicingCPA}. Uses the merge operator of the CPA wrapped by the
+ * SlicingCPA, with the precision of the CPA wrapped by the SlicingCPA.
  */
 // Since we have as precision type SlicingPrecision,
 // we can not simply use the wrapped merge operator.
-public class PrecisionDelegatingMerge
-    implements MergeOperator {
+public class PrecisionDelegatingMerge implements MergeOperator {
 
   private final MergeOperator delegateMerge;
 

@@ -99,7 +99,11 @@ public enum InvariantsSpecificationAutomatonBuilder {
 
     @Override
     public Automaton build(
-        Automaton pAutomaton, Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
+        Automaton pAutomaton,
+        Configuration pConfig,
+        LogManager pLogger,
+        ShutdownNotifier pShutdownNotifier,
+        CFA pCfa)
         throws InterruptedException {
       try {
         WitnessInvariantsExtractor extractor =
@@ -124,8 +128,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
           @SuppressWarnings("unchecked")
           ExpressionTree<AExpression> inv =
               (ExpressionTree<AExpression>) (ExpressionTree<?>) invariant.asExpressionTree();
-          CExpression cExpr =
-              inv.accept(new ToCExpressionVisitor(pCfa.getMachineModel(), pLogger));
+          CExpression cExpr = inv.accept(new ToCExpressionVisitor(pCfa.getMachineModel(), pLogger));
           if (inv instanceof LeafExpression<?>) {
             // we must swap the c expression when assume truth is false
             if (!((LeafExpression<?>) inv).assumeTruth()) {
@@ -217,7 +220,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
         String initialStateName = createStateName(pCfa.getMainFunction());
         ImmutableList.Builder<AutomatonInternalState> states = ImmutableList.builder();
         Set<CFANode> invariantCFANodes = extractCFANodes(pInvariants);
-        for (CFANode node : pCfa.getAllNodes()) {
+        for (CFANode node : pCfa.nodes()) {
           if (node.getNumLeavingEdges() > 0) {
             ImmutableList.Builder<AutomatonTransition> transitions = ImmutableList.builder();
             for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {

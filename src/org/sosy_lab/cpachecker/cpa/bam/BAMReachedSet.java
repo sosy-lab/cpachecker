@@ -37,9 +37,9 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       ARGPath pPath,
       TimerWrapper pRemoveCachedSubtreeTimer) {
     super(pMainReachedSet);
-    this.bamCpa = cpa;
-    this.path = pPath;
-    this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
+    bamCpa = cpa;
+    path = pPath;
+    removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
 
     assert path.getFirstState().getSubgraph().toSet().containsAll(path.asStatesList())
         : "path should traverse reachable states";
@@ -65,7 +65,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       List<Precision> newPrecisions,
       List<Predicate<? super Precision>> pPrecisionTypes)
       throws InterruptedException {
-    Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
+    Preconditions.checkArgument(newPrecisions.size() == pPrecisionTypes.size());
     assert path.getFirstState().getSubgraph().contains(element);
     final ARGSubtreeRemover argSubtreeRemover;
     if (bamCpa.useCopyOnWriteRefinement()) {
@@ -92,7 +92,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   }
 
   @Override
-  public String toString(){
+  public String toString() {
     return "BAMReachedSet {{" + asReachedSet().asCollection() + "}}";
   }
 }

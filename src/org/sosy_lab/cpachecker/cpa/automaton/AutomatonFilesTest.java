@@ -28,9 +28,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-/**
- * Test that the bundled specification files are all valid.
- */
+/** Test that the bundled specification files are all valid. */
 @RunWith(Parameterized.class)
 public class AutomatonFilesTest {
 

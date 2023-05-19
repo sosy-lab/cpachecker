@@ -35,45 +35,38 @@ class PushSummandVisitor<T>
   private final Map<? extends MemoryLocation, ? extends NumeralFormula<T>> EMPTY_ENVIRONMENT =
       ImmutableMap.of();
 
-  /**
-   * The evaluation visitor used to evaluate the addition and negation of
-   * constants.
-   */
+  /** The evaluation visitor used to evaluate the addition and negation of constants. */
   private final FormulaEvaluationVisitor<T> evaluationVisitor;
 
-  /**
-   * This flag indicates whether or not this visitor managed to get a summand
-   * consumed.
-   */
+  /** This flag indicates whether or not this visitor managed to get a summand consumed. */
   private boolean consumed = false;
 
   /**
-   * Creates a new push summand visitor with the given evaluation visitor. This
-   * visitor must not be reused after a summand has been consumed.
+   * Creates a new push summand visitor with the given evaluation visitor. This visitor must not be
+   * reused after a summand has been consumed.
    *
-   * @param pEvaluationVisitor the evaluation visitor used to evaluate the
-   * addition and negation of constants.
+   * @param pEvaluationVisitor the evaluation visitor used to evaluate the addition and negation of
+   *     constants.
    */
   public PushSummandVisitor(FormulaEvaluationVisitor<T> pEvaluationVisitor) {
-    this.evaluationVisitor = pEvaluationVisitor;
+    evaluationVisitor = pEvaluationVisitor;
   }
 
   /**
    * Checks if the visitor managed to get a summand consumed.
    *
-   * @return <code>true</code> if the summand was consumed, <code>false</code>
-   * otherwise.
+   * @return <code>true</code> if the summand was consumed, <code>false</code> otherwise.
    */
   public boolean isSummandConsumed() {
     return consumed;
   }
 
   /**
-   * Throws an illegal state exception if the visitor already managed to get a
-   * summand consumed, otherwise it does nothing.
+   * Throws an illegal state exception if the visitor already managed to get a summand consumed,
+   * otherwise it does nothing.
    *
-   * @throws IllegalStateException if the visitor already managed to get a
-   * summand consumed, otherwise it does nothing.
+   * @throws IllegalStateException if the visitor already managed to get a summand consumed,
+   *     otherwise it does nothing.
    */
   private void checkNotConsumed() throws IllegalStateException {
     checkState(!isSummandConsumed(), SUMMAND_ALREADY_CONSUMED_MESSAGE);
@@ -108,7 +101,7 @@ class PushSummandVisitor<T>
     InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
     NumeralFormula<T> toPush = ifm.asConstant(pConstant.getTypeInfo(), pToPush);
     NumeralFormula<T> sum = ifm.add(pConstant, toPush);
-    this.consumed = true;
+    consumed = true;
     T sumValue = sum.accept(evaluationVisitor, EMPTY_ENVIRONMENT);
     return InvariantsFormulaManager.INSTANCE.asConstant(pConstant.getTypeInfo(), sumValue);
   }
@@ -127,5 +120,4 @@ class PushSummandVisitor<T>
     NumeralFormula<T> toPush = ifm.asConstant(pFormula.getTypeInfo(), pToPush);
     return ifm.add(pFormula, toPush);
   }
-
 }

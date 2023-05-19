@@ -11,7 +11,10 @@ SPDX-License-Identifier: Apache-2.0
 Style & Coding Guide
 ====================
 
-The style guide of this project is the [Google Java Style](https://google.github.io/styleguide/javaguide.html).
+The style guide of this project is the [Google Java Style](https://google.github.io/styleguide/javaguide.html)
+and we format all code with [google-java-format](https://github.com/google/google-java-format).
+we recommend to install the google-java-format plugin for your IDE,
+otherwise you need to execute `ant format-source` before each commit.
 
 Further guidelines that are worth reading:
 - Bloch: [Effective Java, 3rd Edition](https://www.amazon.com/Effective-Java-3rd-Joshua-Bloch/dp/0134685997)
@@ -22,20 +25,6 @@ in this directory, e.g. [`Logging.md`](Logging.md) and [`Test.md`](Test.md).
 
 Please read all these documents, they will let you write better code
 with considerably less effort!
-
-We use an automatic code formatter to format our new code
-(existing code still may violate the style guide).
-Before committing, run `ant format-diff` to reformat your changes
-according to the style guide.
-For git users: You need to stage your changes first (with `git add`),
-then run `ant format-diff` and then stage the changes again.
-This allows you to view exactly what the reformatter changed after running it.
-
-IMPORTANT for Eclipse users:
-The automatic code formatter is enabled in our project whenever you save a file,
-so no need to run it manually.
-However, you must [install the google-java-format plugin](Developing.md#develop-cpachecker-from-within-eclipse)!
-Otherwise Eclipse will produce ugly code formatting.
 
 
 ## Additional rules and hints
@@ -111,16 +100,9 @@ Otherwise Eclipse will produce ugly code formatting.
 - All `@Option` fields need to have a non-empty description
   that explains (to a user) what the option does.
 
-### Coding
+### Collections and Data Structures
 
-- Never have public fields,
-  never have non-private non-final fields,
-  and try to keep all other non-private fields to a minimum.
-- If you use null in method parameters or return values, annotate them with @Nullable.
-- Mark fields as final, if they are never modified,
-  and try to make them final, if they are modified (-> immutability).
-- Prefer enhanced for-loop over `List.get(int)`.
-- Use try-with-resources instead of manually calling `close()`.
+- Use Guava's immutable data structures as described below in the separate section!
 - Use arrays only with primitive types (`int`, `long`, etc.)
   or when existing APIs require them.
   Otherwise never use arrays of object types, use lists instead.
@@ -131,6 +113,25 @@ Otherwise Eclipse will produce ugly code formatting.
   use the interface as type instead of the implementation (e.g., `List` instead of `ArrayList`).
   This is especially true for fields, parameters, and return types.
   Do use the `Immutable*` types from Guava, though, to show that your collection is immutable.
+- There are many helpers for collections, but unfortunately in different places:
+  - `org.sosy_lab.common.collect.Collections3` contains our own helper methods.
+  - Guava has [utility classes such as `Lists`, `Iterables`, `Maps`, `Collections2`](https://github.com/google/guava/wiki/CollectionUtilitiesExplained),
+    each of them offering utility methods for the respective type.
+  - `FluentIterable` is a nice class for handling `Iterable`s with the same kind of API like `Stream`,
+    and often easier to use and with more nice methods (like `filter(Class)`) than `Stream`.
+  - Java itself provides the `Collections` class,
+    though some parts like the singleton and immutable collections are better replaced by Guava utilities.
+
+### Coding
+
+- Never have public fields,
+  never have non-private non-final fields,
+  and try to keep all other non-private fields to a minimum.
+- If you use null in method parameters or return values, annotate them with @Nullable.
+- Mark fields as final, if they are never modified,
+  and try to make them final, if they are modified (-> immutability).
+- Prefer enhanced for-loop over `List.get(int)`.
+- Use try-with-resources instead of manually calling `close()`.
 - For Function, Predicate, and Optional,
   use the JDK types instead of the Guava types where possible.
   For Optional fields in serializable classes, make them @Nullable instead.
@@ -166,7 +167,7 @@ Otherwise Eclipse will produce ugly code formatting.
 ### Use Guava's immutable data structures
 
 Java provides several immutable collections, but Guava has better replacements,
-so always use Guava's methods.
+so always use [Guava's classes](https://github.com/google/guava/wiki/ImmutableCollectionsExplained).
 With Guava's data structures one can see the immutability directly from the type,
 and always using the same set of data structures consistently is better than mixing them.
 Furthermore, only `ImmutableMap` and `ImmutableSet` guarantee order,

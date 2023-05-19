@@ -115,7 +115,7 @@ public abstract class GenericReducer<S extends AbstractState, P extends Precisio
   }
 
   protected boolean canBeUsedInCache0(S pState) {
-    //default
+    // default
     return Reducer.super.canBeUsedInCache(pState);
   }
 

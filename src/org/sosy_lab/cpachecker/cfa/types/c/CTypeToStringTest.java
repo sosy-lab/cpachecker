@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.nio.file.Path;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,8 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 @RunWith(Parameterized.class)
 @SuppressFBWarnings(
     value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR",
-    justification = "Fields are filled by parameterization of JUnit"
-  )
+    justification = "Fields are filled by parameterization of JUnit")
 public class CTypeToStringTest {
 
   private static final String VAR = "var";
@@ -40,6 +40,7 @@ public class CTypeToStringTest {
       new CSimpleType(true, true, CBasicType.INT, false, false, false, false, false, false, false);
 
   @Parameters(name = "{0} [{1}]")
+  @SuppressWarnings("checkstyle:NoWhitespaceAfter") // nicely readable in this special case
   public static Object[][] types() {
     return new Object[][] {
       { // declare var as pointer to int
@@ -161,7 +162,8 @@ public class CTypeToStringTest {
             ImmutableList.of(CNumericTypes.INT),
             false),
       },
-      { // declare var as function (int) returning const volatile pointer to function (double) returning void
+      { // declare var as function (int) returning const volatile pointer to function (double)
+        // returning void
         "void (* const volatile var(int))(double)",
         new CFunctionType(
             new CPointerType(
@@ -171,7 +173,8 @@ public class CTypeToStringTest {
             ImmutableList.of(CNumericTypes.INT),
             false),
       },
-      { // declare var as function (int) returning pointer to function (double) returning pointer to char
+      { // declare var as function (int) returning pointer to function (double) returning pointer to
+        // char
         "char *(*var(int))(double)",
         new CFunctionType(
             new CPointerType(
@@ -215,7 +218,7 @@ public class CTypeToStringTest {
     CType parsed =
         (CType)
             parser
-                .parseString("dummy", stringRepr + ";")
+                .parseString(Path.of("dummy"), stringRepr + ";")
                 .getGlobalDeclarations()
                 .get(0)
                 .getFirst()

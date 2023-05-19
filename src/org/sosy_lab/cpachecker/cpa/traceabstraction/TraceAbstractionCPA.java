@@ -67,16 +67,7 @@ public class TraceAbstractionCPA extends AbstractSingleWrapperCPA {
   @SuppressWarnings("resource")
   @Override
   public TransferRelation getTransferRelation() {
-    PredicateCPA predicateCpa = (PredicateCPA) getWrappedCpa();
-
-    return new TraceAbstractionTransferRelation(
-        predicateCpa.getTransferRelation(),
-        predicateCpa.getSolver().getFormulaManager(),
-        predicateManager,
-        predicateCpa.getAbstractionManager(),
-        itpSequenceStorage,
-        logger,
-        shutdownNotifier);
+    return new TraceAbstractionTransferRelation(super.getTransferRelation());
   }
 
   InterpolationSequenceStorage getInterpolationSequenceStorage() {
@@ -98,8 +89,18 @@ public class TraceAbstractionCPA extends AbstractSingleWrapperCPA {
     return new StopSepOperator(getAbstractDomain());
   }
 
+  @SuppressWarnings("resource")
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return new TraceAbstractionPrecisionAdjustment(super.getPrecisionAdjustment());
+    PredicateCPA predicateCpa = (PredicateCPA) getWrappedCpa();
+
+    return new TraceAbstractionPrecisionAdjustment(
+        predicateCpa.getPrecisionAdjustment(),
+        predicateCpa.getSolver().getFormulaManager(),
+        predicateManager,
+        predicateCpa.getAbstractionManager(),
+        itpSequenceStorage,
+        logger,
+        shutdownNotifier);
   }
 }

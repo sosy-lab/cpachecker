@@ -8,21 +8,18 @@
 
 package org.sosy_lab.cpachecker.core.defaults;
 
+import java.util.Collection;
+import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-import java.util.Collection;
-import java.util.Collections;
-
 /**
- * This transfer relation always returns the state itself as its successor.
- * I.e, the relation contains for all abstract states x and edges e the tuples
- * (x,e,x).
+ * This transfer relation always returns the state itself as its successor. I.e, the relation
+ * contains for all abstract states x and edges e the tuples (x,e,x).
  */
 public enum IdentityTransferRelation implements TransferRelation {
-
   INSTANCE;
 
   @Override

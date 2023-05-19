@@ -19,34 +19,27 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * This class represents simple convex ranges of BigIntegers.
- * It has an lower bound and an upper bound, both of which may either be a
- * concrete value or infinity. In case of a concrete value, the bound is assumed
- * to be included in the range.
+ * This class represents simple convex ranges of BigIntegers. It has an lower bound and an upper
+ * bound, both of which may either be a concrete value or infinity. In case of a concrete value, the
+ * bound is assumed to be included in the range.
  *
- * All instances of this class are immutable.
+ * <p>All instances of this class are immutable.
  */
 public class BitVectorInterval implements BitVectorType {
 
-  /**
-   * The lower bound of the interval.
-   */
+  /** The lower bound of the interval. */
   private final BigInteger lowerBound;
 
-  /**
-   * The upper bound of the interval.
-   */
+  /** The upper bound of the interval. */
   private final BigInteger upperBound;
 
-  /**
-   * Size and signedness.
-   */
+  /** Size and signedness. */
   private final BitVectorInfo info;
 
   /**
    * Creates a new interval from the given lower bound to the given upper bound.
    *
-   * The lower bound must be a value less than or equal to the upper bound.
+   * <p>The lower bound must be a value less than or equal to the upper bound.
    *
    * @param pLowerBound the lower bound of the interval.
    * @param pUpperBound the upper bound of the interval.
@@ -55,10 +48,12 @@ public class BitVectorInterval implements BitVectorType {
     checkNotNull(pInfo);
     checkNotNull(pLowerBound);
     checkNotNull(pUpperBound);
-    checkArgument(pLowerBound.compareTo(pUpperBound) <= 0
-        , "lower endpoint greater than upper end point");
-    checkArgument(pLowerBound.compareTo(pInfo.getMinValue()) >= 0, "lower bound must fit the bit vector");
-    checkArgument(pUpperBound.compareTo(pInfo.getMaxValue()) <= 0, "upper bound must fit the bit vector");
+    checkArgument(
+        pLowerBound.compareTo(pUpperBound) <= 0, "lower endpoint greater than upper end point");
+    checkArgument(
+        pLowerBound.compareTo(pInfo.getMinValue()) >= 0, "lower bound must fit the bit vector");
+    checkArgument(
+        pUpperBound.compareTo(pInfo.getMaxValue()) <= 0, "upper bound must fit the bit vector");
 
     info = pInfo;
     lowerBound = pLowerBound;
@@ -75,36 +70,34 @@ public class BitVectorInterval implements BitVectorType {
     return info;
   }
 
-  /**
-   * Return lower bound (may only be called if {@link #hasLowerBound()} returns true.
-   */
+  /** Return lower bound (may only be called if {@link #hasLowerBound()} returns true. */
   public BigInteger getLowerBound() {
     return lowerBound;
   }
 
-  /**
-   * Return upper bound (may only be called if {@link #hasUpperBound()} returns true.
-   */
+  /** Return upper bound (may only be called if {@link #hasUpperBound()} returns true. */
   public BigInteger getUpperBound() {
     return upperBound;
   }
 
   /**
    * Checks if the interval includes every value.
-   * @return <code>true</code> if the interval has neither a lower nor an upper bound, <code>false</code> otherwise.
+   *
+   * @return <code>true</code> if the interval has neither a lower nor an upper bound, <code>false
+   *     </code> otherwise.
    */
   public boolean isTop() {
     return false;
   }
 
   public void checkBitVectorCompatibilityWith(BitVectorInterval pOther) {
-    Preconditions.checkArgument(info.equals(pOther.info),
-        "bit vectors are incompatible in size or signedness");
+    Preconditions.checkArgument(
+        info.equals(pOther.info), "bit vectors are incompatible in size or signedness");
   }
 
   /**
-   * Intersects this interval with the given interval. May only be called
-   * if {@link #intersectsWith(BitVectorInterval)} returns true.
+   * Intersects this interval with the given interval. May only be called if {@link
+   * #intersectsWith(BitVectorInterval)} returns true.
    *
    * @param pOther the interval to intersect this interval with.
    * @return the intersection of this interval with the given interval.
@@ -123,12 +116,12 @@ public class BitVectorInterval implements BitVectorType {
     // The lower bound of this interval is a candidate for the new lower bound
     // The lower bound of the other interval is a candidate as well
     // The new lower bound is the maximum of both lower bounds.
-    BigInteger newLowerBound = this.lowerBound.max(pOther.getLowerBound());
+    BigInteger newLowerBound = lowerBound.max(pOther.getLowerBound());
 
     // The upper bound of this interval is a candidate for the new lower bound
     // The upper bound of the other interval is a candidate as well
     // The new upper bound is the minimum of both upper bounds.
-    BigInteger newUpperBound = this.upperBound.min(pOther.getUpperBound());
+    BigInteger newUpperBound = upperBound.min(pOther.getUpperBound());
 
     return new BitVectorInterval(info, newLowerBound, newUpperBound);
   }
@@ -143,26 +136,21 @@ public class BitVectorInterval implements BitVectorType {
     return BitVectorInterval.of(info, BigInteger.ONE.max(lowerBound), upperBound);
   }
 
-  /**
-   * Return whether this interval has a concrete lower bound
-   * (otherwise it's positive infinity).
-   */
+  /** Return whether this interval has a concrete lower bound (otherwise it's positive infinity). */
   public boolean hasLowerBound() {
     return true;
   }
 
-  /**
-   * Return whether this interval has a concrete upper bound
-   * (otherwise it's positive infinity).
-   */
+  /** Return whether this interval has a concrete upper bound (otherwise it's positive infinity). */
   public boolean hasUpperBound() {
     return true;
   }
 
   /**
    * Checks if this interval contains at least one positive value.
-   * @return <code>true</code> if this interval contains at least one
-   * positive value, <code>false</code> otherwise.
+   *
+   * @return <code>true</code> if this interval contains at least one positive value, <code>false
+   *     </code> otherwise.
    */
   public boolean containsPositive() {
     return upperBound.signum() == 1;
@@ -170,36 +158,36 @@ public class BitVectorInterval implements BitVectorType {
 
   /**
    * Checks if this interval contains the value zero.
-   * @return <code>true</code> if this interval contains the value zero,
-   * <code>false</code> otherwise.
+   *
+   * @return <code>true</code> if this interval contains the value zero, <code>false</code>
+   *     otherwise.
    */
   public boolean containsZero() {
-    return upperBound.signum() >= 0
-        && lowerBound.signum() <= 0;
+    return upperBound.signum() >= 0 && lowerBound.signum() <= 0;
   }
 
   /**
    * Checks if this interval contains the value zero.
-   * @return <code>true</code> if this interval contains the value zero,
-   * <code>false</code> otherwise.
+   *
+   * @return <code>true</code> if this interval contains the value zero, <code>false</code>
+   *     otherwise.
    */
   public boolean contains(BigInteger pValue) {
-    return upperBound.compareTo(pValue) >= 0
-        && lowerBound.compareTo(pValue) <= 0;
+    return upperBound.compareTo(pValue) >= 0 && lowerBound.compareTo(pValue) <= 0;
   }
 
   /**
    * Checks if this interval contains at least one negative value.
-   * @return <code>true</code> if this interval contains at least one
-   * negative value, <code>false</code> otherwise.
+   *
+   * @return <code>true</code> if this interval contains at least one negative value, <code>false
+   *     </code> otherwise.
    */
   public boolean containsNegative() {
     return lowerBound.signum() == -1;
   }
 
   /**
-   * Computes the size of this interval:
-   * The upper bound minus the lower bound plus one.
+   * Computes the size of this interval: The upper bound minus the lower bound plus one.
    *
    * @return The upper bound minus the lower bound plus one.
    */
@@ -208,28 +196,25 @@ public class BitVectorInterval implements BitVectorType {
   }
 
   /**
-   * Checks if this interval contains exactly one single value. If this
-   * function returns <code>true</code>, {@link #getLowerBound()} may
-   * be called to retrieve the value.
+   * Checks if this interval contains exactly one single value. If this function returns <code>true
+   * </code>, {@link #getLowerBound()} may be called to retrieve the value.
    *
-   * @return <code>true</code> if this interval contains exactly one
-   * single value, <code>false</code> otherwise.
+   * @return <code>true</code> if this interval contains exactly one single value, <code>false
+   *     </code> otherwise.
    */
   public boolean isSingleton() {
     return lowerBound.equals(upperBound);
   }
 
   /**
-   * Returns the mathematical negation of this interval. The lower bound
-   * of the resulting interval is the negated upper bound of this interval
-   * and vice versa.
+   * Returns the mathematical negation of this interval. The lower bound of the resulting interval
+   * is the negated upper bound of this interval and vice versa.
    *
-   * @param pAllowSignedWrapAround whether or not to allow wrap-around for
-   * signed bit vectors.
-   *
+   * @param pAllowSignedWrapAround whether or not to allow wrap-around for signed bit vectors.
    * @return the mathematical negation of this interval.
    */
-  public BitVectorInterval negate(boolean pAllowSignedWrapAround, OverflowEventHandler pOverflowEventHandler) {
+  public BitVectorInterval negate(
+      boolean pAllowSignedWrapAround, OverflowEventHandler pOverflowEventHandler) {
     BigInteger newLowerBound = upperBound.negate();
     BigInteger newUpperBound = lowerBound.negate();
 
@@ -270,7 +255,8 @@ public class BitVectorInterval implements BitVectorType {
     return new BitVectorInterval(info, newLowerBound, newUpperBound);
   }
 
-  public static BitVectorInterval cast(BitVectorInfo pInfo,
+  public static BitVectorInterval cast(
+      BitVectorInfo pInfo,
       BigInteger pI,
       boolean pAllowSignedWrapAround,
       OverflowEventHandler pOverflowEventHandler) {
@@ -292,14 +278,14 @@ public class BitVectorInterval implements BitVectorType {
     return BitVectorInterval.singleton(pInfo, value);
   }
 
-  public static BitVectorInterval cast(BitVectorInfo pInfo,
+  public static BitVectorInterval cast(
+      BitVectorInfo pInfo,
       BigInteger pLowerBound,
       BigInteger pUpperBound,
       boolean pAllowSignedWrapAround,
       OverflowEventHandler pOverflowEventHandler) {
     if (pLowerBound.equals(pUpperBound)) {
       return cast(pInfo, pLowerBound, pAllowSignedWrapAround, pOverflowEventHandler);
-
     }
     BigInteger lowerBound = pLowerBound;
     BigInteger upperBound = pUpperBound;
@@ -364,11 +350,11 @@ public class BitVectorInterval implements BitVectorType {
   }
 
   /**
-   * Returns an interval from this interval's lower bound to the maximum value
-   * allowed by the bit vector size.
+   * Returns an interval from this interval's lower bound to the maximum value allowed by the bit
+   * vector size.
    *
-   * @return an interval from this interval's lower bound to the maximum value
-   * allowed by the bit vector size.
+   * @return an interval from this interval's lower bound to the maximum value allowed by the bit
+   *     vector size.
    */
   public BitVectorInterval extendToMaxValue() {
     if (upperBound.equals(info.getMaxValue())) {
@@ -378,11 +364,11 @@ public class BitVectorInterval implements BitVectorType {
   }
 
   /**
-   * Returns an interval from this interval's lower bound to the minimum value
-   * allowed by the bit vector size.
+   * Returns an interval from this interval's lower bound to the minimum value allowed by the bit
+   * vector size.
    *
-   * @return an interval from this interval's lower bound to the minimum value
-   * allowed by the bit vector size.
+   * @return an interval from this interval's lower bound to the minimum value allowed by the bit
+   *     vector size.
    */
   public BitVectorInterval extendToMinValue() {
     if (lowerBound.equals(info.getMinValue())) {
@@ -400,8 +386,8 @@ public class BitVectorInterval implements BitVectorType {
     }
 
     BitVectorInterval other = (BitVectorInterval) pObj;
-    return Objects.equals(this.lowerBound, other.lowerBound)
-        && Objects.equals(this.upperBound, other.upperBound);
+    return Objects.equals(lowerBound, other.lowerBound)
+        && Objects.equals(upperBound, other.upperBound);
   }
 
   @Override
@@ -416,9 +402,10 @@ public class BitVectorInterval implements BitVectorType {
 
   /**
    * Checks if this interval contains the given interval.
+   *
    * @param pOther the interval that this interval is checked for containing.
-   * @return <code>true</code> if this interval contains the given
-   * interval, <code>false</code> otherwise.
+   * @return <code>true</code> if this interval contains the given interval, <code>false</code>
+   *     otherwise.
    */
   public boolean contains(BitVectorInterval pOther) {
     if (this == pOther) {
@@ -428,75 +415,80 @@ public class BitVectorInterval implements BitVectorType {
       return false;
     }
 
-    return this.lowerBound.compareTo(pOther.lowerBound) <= 0
-        && this.upperBound.compareTo(pOther.upperBound) >= 0;
+    return lowerBound.compareTo(pOther.lowerBound) <= 0
+        && upperBound.compareTo(pOther.upperBound) >= 0;
   }
 
   /**
-   * Checks if this interval touches the given interval, which means the
-   * intervals either intersect each other or there is one upper bound
-   * in one of the two intervals that is exactly the lower bound of the
-   * other interval minus one.
+   * Checks if this interval touches the given interval, which means the intervals either intersect
+   * each other or there is one upper bound in one of the two intervals that is exactly the lower
+   * bound of the other interval minus one.
    *
    * @param pOther the interval to check for touching this interval.
-   * @return <code>true</code> if this interval touches the given
-   * interval, <code>false</code> otherwise.
+   * @return <code>true</code> if this interval touches the given interval, <code>false</code>
+   *     otherwise.
    */
   public boolean touches(BitVectorInterval pOther) {
-    if (pOther == null) { return false; }
-    if (intersectsWith(pOther)) { return true; }
-    return pOther.upperBound.add(BigInteger.ONE).equals(this.lowerBound)
-        || this.upperBound.add(BigInteger.ONE).equals(pOther.lowerBound);
+    if (pOther == null) {
+      return false;
+    }
+    if (intersectsWith(pOther)) {
+      return true;
+    }
+    return pOther.upperBound.add(BigInteger.ONE).equals(lowerBound)
+        || upperBound.add(BigInteger.ONE).equals(pOther.lowerBound);
   }
 
   /**
    * Checks if the given interval intersects with this interval.
+   *
    * @param other the interval to check for intersecting this interval.
-   * @return <code>true</code> if this interval intersects with the
-   * given interval, <code>false</code> otherwise.
+   * @return <code>true</code> if this interval intersects with the given interval, <code>false
+   *     </code> otherwise.
    */
   public boolean intersectsWith(BitVectorInterval other) {
-    if (this == other) { return true; }
+    if (this == other) {
+      return true;
+    }
 
     // this is [a, b]; other is [c, d]
     // result is true if a <= d and b >= c
-    boolean aLessThanOrEqB = this.lowerBound.compareTo(other.upperBound) <= 0;
-    boolean bGreaterThanOrEqC = this.upperBound.compareTo(other.lowerBound) >= 0;
+    boolean aLessThanOrEqB = lowerBound.compareTo(other.upperBound) <= 0;
+    boolean bGreaterThanOrEqC = upperBound.compareTo(other.lowerBound) >= 0;
     return aLessThanOrEqB && bGreaterThanOrEqC;
   }
 
   /**
-   * Gets the closest negative value to zero of this interval.
-   * May only be called if {@link #containsNegative()} returns true.
+   * Gets the closest negative value to zero of this interval. May only be called if {@link
+   * #containsNegative()} returns true.
    *
    * @return the closest negative value to zero of this interval.
    */
   public BigInteger closestNegativeToZero() {
     checkState(containsNegative());
-    if (isSingleton()) { return getLowerBound(); }
-    if (getUpperBound().signum() < 0) { return getUpperBound(); }
+    if (isSingleton()) {
+      return getLowerBound();
+    }
+    if (getUpperBound().signum() < 0) {
+      return getUpperBound();
+    }
     return BigInteger.ONE.negate();
   }
 
   /**
-   * Gets the bounds of the interval as well as the positive value closest to
-   * zero the negative value closest to zero.
+   * Gets the bounds of the interval as well as the positive value closest to zero the negative
+   * value closest to zero.
    *
-   * @return the bounds of the interval as well as the positive value closest
-   * to zero the negative value closest to zero.
+   * @return the bounds of the interval as well as the positive value closest to zero the negative
+   *     value closest to zero.
    */
   public List<BigInteger> getSplitZeroBounds() {
-    List<BigInteger> divisors = new ArrayList<>(
-        (containsPositive()
-            ? (closestPositiveToZero().equals(getUpperBound())
-                ? 1
-                : 2)
-            : 0)
-        + (containsNegative()
-            ? (closestNegativeToZero().equals(getLowerBound())
-                ? 1
-                : 2)
-            : 0));
+    List<BigInteger> divisors =
+        new ArrayList<>(
+            (containsPositive() ? (closestPositiveToZero().equals(getUpperBound()) ? 1 : 2) : 0)
+                + (containsNegative()
+                    ? (closestNegativeToZero().equals(getLowerBound()) ? 1 : 2)
+                    : 0));
     if (containsPositive()) {
       divisors.add(closestPositiveToZero());
       if (!closestPositiveToZero().equals(getUpperBound())) {
@@ -513,15 +505,19 @@ public class BitVectorInterval implements BitVectorType {
   }
 
   /**
-   * Gets the closest positive value to zero of this interval.
-   * May only be called if {@link #containsPositive()} returns true.
+   * Gets the closest positive value to zero of this interval. May only be called if {@link
+   * #containsPositive()} returns true.
    *
    * @return the closest positive value to zero of this interval.
    */
   public BigInteger closestPositiveToZero() {
     checkState(containsPositive());
-    if (isSingleton()) { return getLowerBound(); }
-    if (getLowerBound().signum() > 0) { return getLowerBound(); }
+    if (isSingleton()) {
+      return getLowerBound();
+    }
+    if (getLowerBound().signum() > 0) {
+      return getLowerBound();
+    }
     return BigInteger.ONE;
   }
 
@@ -537,13 +533,12 @@ public class BitVectorInterval implements BitVectorType {
     return singleton(pInfo, pI).extendToMinValue();
   }
 
-  public static BitVectorInterval of(BitVectorInfo pInfo, BigInteger pLowerBound, BigInteger pUpperBound) {
+  public static BitVectorInterval of(
+      BitVectorInfo pInfo, BigInteger pLowerBound, BigInteger pUpperBound) {
     return new BitVectorInterval(pInfo, pLowerBound, pUpperBound);
   }
 
-  /**
-   * Create the smallest interval that contains two given intervals;
-   */
+  /** Create the smallest interval that contains two given intervals; */
   public static BitVectorInterval span(BitVectorInterval a, BitVectorInterval b) {
     a.checkBitVectorCompatibilityWith(b);
     BigInteger lower;

@@ -13,14 +13,12 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-/**
- * Standard merge-sep operator
- */
+/** Standard merge-sep operator */
 public class MergeSepOperator implements MergeOperator {
 
   @Override
   public AbstractState merge(AbstractState el1, AbstractState el2, Precision p)
-    throws CPAException {
+      throws CPAException {
     return el2;
   }
 
@@ -29,5 +27,4 @@ public class MergeSepOperator implements MergeOperator {
   public static MergeOperator getInstance() {
     return instance;
   }
-
 }

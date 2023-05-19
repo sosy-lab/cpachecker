@@ -52,7 +52,7 @@ Verifying a Program with CPAchecker
    Example: `doc/examples/example.c` or `doc/examples/example_bug.c`
    A good source for more example programs is the benchmark set of the
    [International Competition on Software Verification](http://sv-comp.sosy-lab.org/),
-   which can be checked out from https://github.com/sosy-lab/sv-benchmarks.
+   which can be checked out from https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks.
 
 2. If you want to enable certain analyses like predicate analysis,
    choose a configuration file. This file defines for example which CPAs are used.
@@ -78,10 +78,10 @@ Verifying a Program with CPAchecker
    Example: `scripts/cpa.sh -config config/default.properties doc/examples/example.c`
    This example can also be abbreviated to:
    `scripts/cpa.sh -default doc/examples/example.c`
-   Java 11 or later is necessary. If it is not in your PATH,
+   Java 17 or later is necessary. If it is not in your PATH,
    you need to specify it in the environment variable JAVA.
-   Example: `export JAVA=/usr/lib/jvm/java-11-openjdk-amd64/bin/java`
-   for 64bit OpenJDK 11 on Ubuntu.
+   Example: `export JAVA=/usr/lib/jvm/java-17-openjdk-amd64/bin/java`
+   for 64bit OpenJDK 17 on Ubuntu.
    On Windows (without Cygwin or WSL),
    you need to use `cpa.bat` instead of `cpa.sh`.
 

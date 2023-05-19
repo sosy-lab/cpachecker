@@ -113,6 +113,14 @@ public class CPAMain {
     final LogManager logManager = BasicLogManager.create(logOptions);
     cpaConfig.enableLogging(logManager);
 
+    if (!System.getProperty("file.encoding", "UTF-8").equalsIgnoreCase("UTF-8")) {
+      logManager.logf(
+          Level.WARNING,
+          "JVM property file.encoding is set to non-standard value '%s'. This is not recommended"
+              + " and output files might be written in unexpected encodings.",
+          System.getProperty("file.encoding"));
+    }
+
     // create everything
     final ShutdownManager shutdownManager = ShutdownManager.create();
     final ShutdownNotifier shutdownNotifier = shutdownManager.getNotifier();
@@ -124,7 +132,8 @@ public class CPAMain {
     try {
       cpaConfig.inject(options);
       if (options.programs.isEmpty()) {
-        throw new InvalidConfigurationException("Please specify a program to analyze on the command line.");
+        throw new InvalidConfigurationException(
+            "Please specify a program to analyze on the command line.");
       }
       dumpConfiguration(options, cpaConfig, logManager);
 
@@ -165,7 +174,8 @@ public class CPAMain {
     }
 
     // We want to print the statistics completely now that we have come so far,
-    // so we disable all the limits, etc.
+    // so we disable all the limits, shutdown hooks, etc.
+    shutdownHook.disableShutdownRequests();
     shutdownNotifier.unregister(forcedExitOnShutdown);
     ForceTerminationOnShutdown.cancelPendingTermination();
     limits.cancel();
@@ -180,14 +190,12 @@ public class CPAMain {
     System.out.flush();
     System.err.flush();
     logManager.flush();
-    // Prevent closing on incoming signal from benchexec while printResultAndStatistics
-    shutdownHook.disableAndStop();
   }
 
   // Default values for options from external libraries
   // that we want to override in CPAchecker.
-  private static final ImmutableMap<String, String> EXTERN_OPTION_DEFAULTS = ImmutableMap.of(
-      "log.level", Level.INFO.toString());
+  private static final ImmutableMap<String, String> EXTERN_OPTION_DEFAULTS =
+      ImmutableMap.of("log.level", Level.INFO.toString());
 
   private static final String SPECIFICATION_OPTION = "specification";
   private static final String ENTRYFUNCTION_OPTION = "analysis.entryFunction";
@@ -195,9 +203,12 @@ public class CPAMain {
 
   @Options
   private static class BootstrapOptions {
-    @Option(secure=true, name="memorysafety.config",
-        description="When checking for memory safety properties, "
-            + "use this configuration file instead of the current one.")
+    @Option(
+        secure = true,
+        name = "memorysafety.config",
+        description =
+            "When checking for memory safety properties, "
+                + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path memsafetyConfig = null;
 
@@ -210,23 +221,37 @@ public class CPAMain {
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path memcleanupConfig = null;
 
-    @Option(secure=true, name="overflow.config",
-        description="When checking for the overflow property, "
-            + "use this configuration file instead of the current one.")
+    @Option(
+        secure = true,
+        name = "overflow.config",
+        description =
+            "When checking for the overflow property, "
+                + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path overflowConfig = null;
 
-    @Option(secure=true, name="termination.config",
-        description="When checking for the termination property, "
-            + "use this configuration file instead of the current one.")
+    @Option(
+        secure = true,
+        name = "datarace.config",
+        description =
+            "When checking for the data race property, "
+                + "use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path dataraceConfig = null;
+
+    @Option(
+        secure = true,
+        name = "termination.config",
+        description =
+            "When checking for the termination property, "
+                + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path terminationConfig = null;
 
     @Option(
-      secure = true,
-      name = CmdLineArguments.PRINT_USED_OPTIONS_OPTION,
-      description = "all used options are printed"
-    )
+        secure = true,
+        name = CmdLineArguments.PRINT_USED_OPTIONS_OPTION,
+        description = "all used options are printed")
     private boolean printUsedOptions = false;
   }
 
@@ -234,41 +259,46 @@ public class CPAMain {
   @Options
   protected static class MainOptions {
     @Option(
-      secure = true,
-      name = "analysis.programNames",
-      //required=true, NOT required because we want to give a nicer user message ourselves
-      description = "A String, denoting the programs to be analyzed"
-    )
+        secure = true,
+        name = "analysis.programNames",
+        // required=true, NOT required because we want to give a nicer user message ourselves
+        description = "A String, denoting the programs to be analyzed")
     private ImmutableList<String> programs = ImmutableList.of();
 
-    @Option(secure=true,
-        description="Programming language of the input program. If not given explicitly, "
-            + "auto-detection will occur")
+    @Option(
+        secure = true,
+        description =
+            "Programming language of the input program. If not given explicitly, "
+                + "auto-detection will occur")
     // keep option name in sync with {@link CFACreator#language}, value might differ
     private Language language = null;
 
-    @Option(secure=true, name="configuration.dumpFile",
-        description="Dump the complete configuration to a file.")
+    @Option(
+        secure = true,
+        name = "configuration.dumpFile",
+        description = "Dump the complete configuration to a file.")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path configurationOutputFile = Path.of("UsedConfiguration.properties");
 
-    @Option(secure=true, name="statistics.export", description="write some statistics to disk")
+    @Option(
+        secure = true,
+        name = "statistics.export",
+        description = "write some statistics to disk")
     private boolean exportStatistics = true;
 
-    @Option(secure=true, name="statistics.file",
-        description="write some statistics to disk")
+    @Option(secure = true, name = "statistics.file", description = "write some statistics to disk")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path exportStatisticsFile = Path.of("Statistics.txt");
 
-    @Option(secure=true, name="statistics.print", description="print statistics to console")
+    @Option(secure = true, name = "statistics.print", description = "print statistics to console")
     private boolean printStatistics = false;
 
-    @Option(secure=true, name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
+    @Option(secure = true, name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
     private boolean doPCC = false;
   }
 
-  private static void dumpConfiguration(MainOptions options, Configuration config,
-      LogManager logManager) {
+  private static void dumpConfiguration(
+      MainOptions options, Configuration config, LogManager logManager) {
     if (options.configurationOutputFile != null) {
       try {
         IO.writeFile(
@@ -291,7 +321,9 @@ public class CPAMain {
    * @return A Configuration object, the output directory, and the specification properties.
    */
   private static Config createConfiguration(String[] args)
-      throws InvalidConfigurationException, InvalidCmdlineArgumentException, IOException,
+      throws InvalidConfigurationException,
+          InvalidCmdlineArgumentException,
+          IOException,
           InterruptedException {
     // if there are some command line arguments, process them
     Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args);
@@ -410,18 +442,12 @@ public class CPAMain {
     for (String program : pPrograms) {
       Language language;
       String suffix = program.substring(program.lastIndexOf(".") + 1);
-      switch (suffix) {
-        case "ll":
-        case "bc":
-          language = Language.LLVM;
-          break;
-        case "c":
-        case "i":
-        case "h":
-        default:
-          language = Language.C;
-          break;
-      }
+      language =
+          switch (suffix) {
+            case "ll", "bc" -> Language.LLVM;
+            case "c", "i", "h" -> Language.C;
+            default -> Language.C;
+          };
       Preconditions.checkNotNull(language);
       if (frontendLanguage == null) { // first iteration
         frontendLanguage = language;
@@ -443,7 +469,7 @@ public class CPAMain {
           .put(CommonCoverageProperty.COVERAGE_CONDITION, TestTargetType.ASSUME)
           .put(CommonCoverageProperty.COVERAGE_ERROR, TestTargetType.ERROR_CALL)
           .put(CommonCoverageProperty.COVERAGE_STATEMENT, TestTargetType.STATEMENT)
-          .build();
+          .buildOrThrow();
 
   private static Configuration handlePropertyOptions(
       Configuration config,
@@ -467,7 +493,8 @@ public class CPAMain {
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
       }
-      alternateConfigFile = check(options.memcleanupConfig, "memory cleanup", "memorycleanup.config");
+      alternateConfigFile =
+          check(options.memcleanupConfig, "memory cleanup", "memorycleanup.config");
     } else if (properties.contains(CommonVerificationProperty.OVERFLOW)) {
       if (properties.size() != 1) {
         // Overflow property cannot be checked with others in combination
@@ -475,6 +502,13 @@ public class CPAMain {
             "Unsupported combination of properties: " + properties);
       }
       alternateConfigFile = check(options.overflowConfig, "overflows", "overflow.config");
+    } else if (properties.contains(CommonVerificationProperty.DATA_RACE)) {
+      if (properties.size() != 1) {
+        // Data race property cannot be checked with others in combination
+        throw new InvalidConfigurationException(
+            "Unsupported combination of properties: " + properties);
+      }
+      alternateConfigFile = check(options.dataraceConfig, "data races", "datarace.config");
     } else if (properties.contains(CommonVerificationProperty.TERMINATION)) {
       // Termination property cannot be checked with others in combination
       if (properties.size() != 1) {
@@ -518,6 +552,7 @@ public class CPAMain {
           .clearOption("memorysafety.config")
           .clearOption("memorycleanup.config")
           .clearOption("overflow.config")
+          .clearOption("datarace.config")
           .clearOption("termination.config")
           .clearOption("output.disable")
           .clearOption("output.path")
@@ -583,30 +618,27 @@ public class CPAMain {
   @Options
   private static class WitnessOptions {
     @Option(
-      secure = true,
-      name = "witness.validation.file",
-      description = "The witness to validate."
-    )
+        secure = true,
+        name = "witness.validation.file",
+        description = "The witness to validate.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path witness = null;
 
     @Option(
-      secure = true,
-      name = "witness.validation.violation.config",
-      description =
-          "When validating a violation witness, "
-              + "use this configuration file instead of the current one."
-    )
+        secure = true,
+        name = "witness.validation.violation.config",
+        description =
+            "When validating a violation witness, "
+                + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path violationWitnessValidationConfig = null;
 
     @Option(
-      secure = true,
-      name = "witness.validation.correctness.config",
-      description =
-          "When validating a correctness witness, "
-              + "use this configuration file instead of the current one."
-    )
+        secure = true,
+        name = "witness.validation.correctness.config",
+        description =
+            "When validating a correctness witness, "
+                + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path correctnessWitnessValidationConfig = null;
 
@@ -664,7 +696,8 @@ public class CPAMain {
     }
     if (validationConfigFile == null) {
       throw new InvalidConfigurationException(
-          "Validating (violation|correctness) witnesses is not supported if option witness.validation.(violation|correctness).config is not specified.");
+          "Validating (violation|correctness) witnesses is not supported if option"
+              + " witness.validation.(violation|correctness).config is not specified.");
     }
     ConfigurationBuilder configBuilder =
         Configuration.builder()
@@ -726,7 +759,9 @@ public class CPAMain {
 
       // print result
       if (!options.printStatistics) {
-        stream = makePrintStream(mergeStreams(System.out, file)); // ensure that result is printed to System.out
+        stream =
+            makePrintStream(
+                mergeStreams(System.out, file)); // ensure that result is printed to System.out
       }
       mResult.printResult(stream);
 
@@ -734,7 +769,10 @@ public class CPAMain {
       mResult.writeOutputFiles();
 
       if (outputDirectory != null) {
-        stream.println("More details about the verification run can be found in the directory \"" + outputDirectory + "\".");
+        stream.println(
+            "More details about the verification run can be found in the directory \""
+                + outputDirectory
+                + "\".");
       }
 
       stream.flush();
@@ -761,7 +799,7 @@ public class CPAMain {
   @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
   private static PrintStream makePrintStream(OutputStream stream) {
     if (stream instanceof PrintStream) {
-      return (PrintStream)stream;
+      return (PrintStream) stream;
     } else {
       // Default encoding is actually desired here because we output to the terminal,
       // so the default PrintStream constructor is ok.
@@ -769,7 +807,7 @@ public class CPAMain {
     }
   }
 
-  private CPAMain() { } // prevent instantiation
+  private CPAMain() {} // prevent instantiation
 
   private static class Config {
 

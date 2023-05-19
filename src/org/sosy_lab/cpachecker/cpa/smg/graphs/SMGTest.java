@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import java.util.TreeMap;
 import org.junit.Before;
@@ -100,7 +101,7 @@ public class SMGTest {
 
     assertThat(smg1.getHVEdges()).hasSize(0);
 
-    //copy constructor
+    // copy constructor
     SMG smg_copy = new SMG(smg1);
     assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
     assertThat(SMGConsistencyVerifier.verifySMG(logger, smg_copy)).isTrue();
@@ -295,13 +296,7 @@ public class SMGTest {
     smg1.addObject(object_16b);
     assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
 
-    boolean thrown = false;
-    try {
-      smg1.addHasValueEdge(hv_edge2);
-    } catch (AssertionError pAssertionError) {
-      thrown = true;
-    }
-    assertThat(thrown).isTrue();
+    assertThrows(AssertionError.class, () -> smg1.addHasValueEdge(hv_edge2));
   }
 
   @Test
@@ -347,7 +342,7 @@ public class SMGTest {
     assertThat(smg.isObjectValid(new SMGRegion(192, "wee"))).isFalse();
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void setValidityBadCallTest() {
     smg.setValidity(new SMGRegion(192, "wee"), true);
   }

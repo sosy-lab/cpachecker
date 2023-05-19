@@ -23,7 +23,7 @@ public class PrecisionAdjustmentResultTest {
     Precision precision = mock(Precision.class);
     Action action = Action.BREAK;
 
-    PrecisionAdjustmentResult r = PrecisionAdjustmentResult.create(state, precision, action);
+    PrecisionAdjustmentResult r = new PrecisionAdjustmentResult(state, precision, action);
     assertThat(r.abstractState()).isSameInstanceAs(state);
     assertThat(r.precision()).isSameInstanceAs(precision);
     assertThat(r.action()).isSameInstanceAs(action);
@@ -41,8 +41,9 @@ public class PrecisionAdjustmentResultTest {
 
   @Test
   public void testWithAbstractState() {
-    PrecisionAdjustmentResult r1 = PrecisionAdjustmentResult.create(
-        mock(AbstractState.class), mock(Precision.class), Action.CONTINUE);
+    PrecisionAdjustmentResult r1 =
+        new PrecisionAdjustmentResult(
+            mock(AbstractState.class), mock(Precision.class), Action.CONTINUE);
 
     AbstractState newState = mock(AbstractState.class);
     PrecisionAdjustmentResult r2 = r1.withAbstractState(newState);
@@ -57,8 +58,9 @@ public class PrecisionAdjustmentResultTest {
 
   @Test
   public void testWithPrecision() {
-    PrecisionAdjustmentResult r1 = PrecisionAdjustmentResult.create(
-        mock(AbstractState.class), mock(Precision.class), Action.CONTINUE);
+    PrecisionAdjustmentResult r1 =
+        new PrecisionAdjustmentResult(
+            mock(AbstractState.class), mock(Precision.class), Action.CONTINUE);
 
     Precision newPrecision = mock(Precision.class);
     PrecisionAdjustmentResult r2 = r1.withPrecision(newPrecision);
@@ -73,8 +75,9 @@ public class PrecisionAdjustmentResultTest {
 
   @Test
   public void testWithAction() {
-    PrecisionAdjustmentResult r1 = PrecisionAdjustmentResult.create(
-        mock(AbstractState.class), mock(Precision.class), Action.CONTINUE);
+    PrecisionAdjustmentResult r1 =
+        new PrecisionAdjustmentResult(
+            mock(AbstractState.class), mock(Precision.class), Action.CONTINUE);
 
     Action newAction = Action.BREAK;
     PrecisionAdjustmentResult r2 = r1.withAction(newAction);

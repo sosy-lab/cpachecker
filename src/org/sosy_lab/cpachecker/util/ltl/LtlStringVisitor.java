@@ -45,9 +45,7 @@ public class LtlStringVisitor implements LtlFormulaVisitor {
   }
 
   private String visitPropositionalFormula(PropositionalFormula pProp) {
-    return pProp
-        .getChildren()
-        .stream()
+    return pProp.getChildren().stream()
         .map(this::visitFormula)
         .collect(Collectors.joining(String.format(" %s ", pProp.getSymbol()), "(", ")"));
   }

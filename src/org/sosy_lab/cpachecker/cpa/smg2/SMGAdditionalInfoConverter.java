@@ -15,10 +15,9 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition;
 public class SMGAdditionalInfoConverter implements AdditionalInfoConverter {
 
   @Override
-  public TransitionCondition
-      convert(TransitionCondition pOriginalTransition, ConvertingTags pTag, Object pValue) {
+  public TransitionCondition convert(
+      TransitionCondition pOriginalTransition, ConvertingTags pTag, Object pValue) {
     // TODO Auto-generated method stub
     return null;
   }
-
 }

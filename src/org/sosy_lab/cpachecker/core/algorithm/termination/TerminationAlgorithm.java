@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.termination;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Comparator.comparingInt;
 import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.INFO;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -51,10 +52,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -94,6 +100,7 @@ import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -103,9 +110,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-/**
- * Algorithm that uses a safety-analysis to prove (non-)termination.
- */
+/** Algorithm that uses a safety-analysis to prove (non-)termination. */
 @Options(prefix = "termination")
 public class TerminationAlgorithm implements Algorithm, AutoCloseable, StatisticsProvider {
 
@@ -119,25 +124,24 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   @Option(
-    secure = true,
-    description =
-        "Strategy used to prepare reched set and ARG for next iteration "
-            + "after successful refinement of the termination argument."
-  )
+      secure = true,
+      description =
+          "Strategy used to prepare reched set and ARG for next iteration "
+              + "after successful refinement of the termination argument.")
   private ResetReachedSetStrategy resetReachedSetStrategy = ResetReachedSetStrategy.REMOVE_LOOP;
 
   @Option(
-    secure = true,
-    description = "maximal number of repeated ranking functions per loop before stopping analysis"
-  )
+      secure = true,
+      description =
+          "maximal number of repeated ranking functions per loop before stopping analysis")
   @IntegerOption(min = 1)
   private int maxRepeatedRankingFunctionsPerLoop = 10;
 
   @Option(
-    secure = true,
-    description =
-        "consider counterexamples for loops for which only pointer variables are relevant or which check that pointer is unequal to null pointer to be imprecise"
-  )
+      secure = true,
+      description =
+          "consider counterexamples for loops for which only pointer variables are relevant or"
+              + " which check that pointer is unequal to null pointer to be imprecise")
   private boolean useCexImpreciseHeuristic = false;
 
   @Option(secure = true, description = "enable to also analyze whether recursive calls terminate")
@@ -183,7 +187,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     terminationInformation = terminationCpa.getTerminationInformation();
 
     DeclarationCollectionCFAVisitor visitor = new DeclarationCollectionCFAVisitor();
-    for (CFANode function : cfa.getAllFunctionHeads()) {
+    for (CFANode function : cfa.entryNodes()) {
       CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(function, visitor);
     }
     localDeclarations = ImmutableSetMultimap.copyOf(visitor.localDeclarations);
@@ -197,11 +201,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
                         "Loop structure is not present, but required for termination analysis."));
 
     statistics =
-        new TerminationStatistics(
-            pConfig,
-            logger,
-            loopStructure.getAllLoops().size(),
-            pCfa);
+        new TerminationStatistics(pConfig, logger, loopStructure.getAllLoops().size(), pCfa);
     lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, pCfa, statistics);
   }
 
@@ -299,6 +299,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     Result result = Result.TRUE;
+    Optional<CounterexampleInfo> foundCounterexample = Optional.empty();
     while (pReachedSet.hasWaitingState() && result != Result.FALSE) {
       shutdownNotifier.shutdownIfNecessary();
       statistics.safetyAnalysisStarted(pLoop);
@@ -332,6 +333,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         if (lassoAnalysisResult.hasNonTerminationArgument()) {
           removeIntermediateStates(pReachedSet, targetState);
           result = Result.FALSE;
+          foundCounterexample = Optional.of(counterexample);
 
           statistics.setNonterminatingLoop(pLoop);
 
@@ -385,7 +387,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     if (useCexImpreciseHeuristic && result == Result.FALSE) {
-      if (allRelevantVarsArePointers(relevantVariables)) {
+      if (allRelevantVarsArePointers(relevantVariables)
+          || doesImpreciseOperationOccur(foundCounterexample)) {
+        logger.logf(INFO, "Counterexample to termination found, but deemed imprecise");
         return Result.UNKNOWN;
       } else {
         for (CFAEdge edge : pLoop.getOutgoingEdges()) {
@@ -398,6 +402,98 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     return result;
+  }
+
+  private boolean doesImpreciseOperationOccur(Optional<CounterexampleInfo> pCounterexampleInfo) {
+    if (pCounterexampleInfo.isEmpty()) {
+      return false;
+    }
+    CounterexampleInfo cex = pCounterexampleInfo.orElseThrow();
+
+    List<CFAEdge> edgesOnCex = cex.getTargetPath().getFullPath();
+    for (CFAEdge edge : edgesOnCex) {
+      CRightHandSide expression = CFAEdgeUtils.getRightHandSide(edge);
+      if (expression != null && containsBinaryOperation(expression)) {
+        return true;
+      }
+      if (edge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
+        if (containsBinaryOperation(((CAssumeEdge) edge).getExpression())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean containsBinaryOperation(CRightHandSide expression) {
+    if (expression instanceof CBinaryExpression binaryExp) {
+      BinaryOperator operator = binaryExp.getOperator();
+
+      if (isBitwiseBinaryOperation(operator)
+          || isMultiplicationWithEqualFactors(operator, binaryExp)) {
+        return true;
+      }
+
+      return containsBinaryOperation(binaryExp.getOperand1())
+          || containsBinaryOperation(binaryExp.getOperand2());
+    }
+    if (expression instanceof CUnaryExpression unaryExp) {
+      UnaryOperator operator = unaryExp.getOperator();
+
+      if (operator.equals(UnaryOperator.TILDE)) {
+        return true;
+      }
+      return containsBinaryOperation(unaryExp.getOperand());
+    }
+    return false;
+  }
+
+  private boolean isBitwiseBinaryOperation(BinaryOperator pOperator) {
+    switch (pOperator) {
+      case BINARY_AND:
+      case BINARY_XOR:
+      case BINARY_OR:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * This method filters out multiplication operations that contain equal factors, since LassoRanker
+   * is not able to compute precise counterexamples for those.
+   *
+   * <p>As an example, the operation (n * m * n <= x) is filtered out due to the factor n being
+   * there twice (multiplied with itself). An operation (n * m * k <= x) is however unproblematic
+   * and therefore left in place.
+   */
+  private boolean isMultiplicationWithEqualFactors(
+      BinaryOperator pOperator, CBinaryExpression pExpression) {
+
+    if (pOperator == BinaryOperator.MULTIPLY) {
+      Set<CIdExpression> factors = new HashSet<>();
+      return containsEqualFactors(pExpression, factors);
+    }
+
+    return false;
+  }
+
+  private boolean containsEqualFactors(CRightHandSide pExpression, Set<CIdExpression> pFactors) {
+    if (pExpression instanceof CIdExpression) {
+      if (!pFactors.add((CIdExpression) pExpression)) {
+        // The expression was not added to the set because there is already one that is equal
+        return true;
+      }
+    }
+
+    boolean equalFactorsFound = false;
+    if ((pExpression instanceof CBinaryExpression binaryExpression)
+        && (binaryExpression.getOperator() == BinaryOperator.MULTIPLY)) {
+      equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand1(), pFactors);
+      equalFactorsFound |= containsEqualFactors(binaryExpression.getOperand2(), pFactors);
+    }
+
+    return equalFactorsFound;
   }
 
   private boolean allRelevantVarsArePointers(final Set<CVariableDeclaration> pRelevantVariables) {
@@ -415,8 +511,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private boolean possiblyNotEqualsNullPointer(final CExpression expr) {
-    if (expr instanceof CBinaryExpression) {
-      CBinaryExpression binExpr = (CBinaryExpression) expr;
+    if (expr instanceof CBinaryExpression binExpr) {
       if (binExpr.getOperator() == BinaryOperator.NOT_EQUALS
           && binExpr.getOperand2() instanceof CCastExpression
           && binExpr.getOperand2().getExpressionType() instanceof CPointerType
@@ -500,7 +595,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   private void removeIntermediateStates(ReachedSet pReachedSet, AbstractState pTargetState) {
     Preconditions.checkArgument(AbstractStates.isTargetState(pTargetState));
-    Preconditions.checkArgument(!cfa.getAllNodes().contains(extractLocation(pTargetState)));
+    Preconditions.checkArgument(!cfa.nodes().contains(extractLocation(pTargetState)));
     ARGState targetState = AbstractStates.extractStateByType(pTargetState, ARGState.class);
     Preconditions.checkArgument(targetState.getCounterexampleInformation().isPresent());
     CounterexampleInfo counterexample = targetState.getCounterexampleInformation().orElseThrow();
@@ -531,6 +626,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
   /**
    * Removes all intermediate states from the counterexample.
+   *
    * @param counterexample the {@link CounterexampleInfo} to remove the states from
    * @param newTargetState the new target state which is the last state of the counterexample
    * @return the created {@link CounterexampleInfo}
@@ -551,7 +647,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         CFANode location = outgoingEdge.getPredecessor();
         CFANode nextLocation = outgoingEdge.getSuccessor();
 
-        if (cfa.getAllNodes().contains(location) && cfa.getAllNodes().contains(nextLocation)) {
+        if (cfa.nodes().contains(location) && cfa.nodes().contains(nextLocation)) {
 
           if (targetPathIt.isPositionWithState() || lastStateInCfa.isPresent()) {
             ARGState state = lastStateInCfa.orElseGet(targetPathIt::getAbstractState);
@@ -567,7 +663,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
           lastStateInCfa = Optional.empty();
 
-        } else if (cfa.getAllNodes().contains(location) && targetPathIt.isPositionWithState()) {
+        } else if (cfa.nodes().contains(location) && targetPathIt.isPositionWithState()) {
           lastStateInCfa = Optional.of(targetPathIt.getAbstractState());
         }
       }
@@ -617,9 +713,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
   }
 
-  /**
-   * Removes <code>pTargetState</code> from reached set and ARG.
-   */
+  /** Removes <code>pTargetState</code> from reached set and ARG. */
   private void removeTargetState(ReachedSet pReachedSet, ARGState pTargetState) {
     assert pTargetState.isTarget();
     pReachedSet.remove(pTargetState);
@@ -697,8 +791,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         String functionName = pNode.getFunctionName();
         List<CParameterDeclaration> parameters =
             ((CFunctionEntryNode) pNode).getFunctionParameters();
-        parameters
-            .stream()
+        parameters.stream()
             .map(CParameterDeclaration::asVariableDeclaration)
             .forEach(localDeclarations.get(functionName)::add);
       }
@@ -710,9 +803,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
       if (pEdge instanceof CDeclarationEdge) {
         CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
-        if (declaration instanceof CVariableDeclaration) {
-          CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
-
+        if (declaration instanceof CVariableDeclaration variableDeclaration) {
           if (variableDeclaration.isGlobal()) {
             globalDeclarations.add(variableDeclaration);
 

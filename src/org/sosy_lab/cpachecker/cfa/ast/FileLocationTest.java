@@ -19,8 +19,7 @@ public class FileLocationTest {
     final Path p = Path.of("f1");
     new EqualsTester()
         .addEqualityGroup(
-            new FileLocation(p, 1, 1, 1, 1),
-            new FileLocation(p, "f1", 1, 1, 1, 1, 10, 10, true))
+            new FileLocation(p, 1, 1, 1, 1), new FileLocation(p, "f1", 1, 1, 1, 1, 10, 10, true))
         .addEqualityGroup(new FileLocation(Path.of("f2"), 1, 1, 1, 1))
         .addEqualityGroup(new FileLocation(p, 2, 1, 1, 1))
         .addEqualityGroup(new FileLocation(p, 1, 2, 1, 1))

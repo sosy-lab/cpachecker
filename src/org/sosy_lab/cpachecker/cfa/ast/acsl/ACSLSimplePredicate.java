@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import com.google.common.base.Preconditions;
 
-public class ACSLSimplePredicate extends ACSLPredicate {
+public final class ACSLSimplePredicate extends ACSLPredicate {
 
   private final ACSLTerm term;
 
@@ -50,8 +50,7 @@ public class ACSLSimplePredicate extends ACSLPredicate {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLSimplePredicate) {
-      ACSLSimplePredicate other = (ACSLSimplePredicate) o;
+    if (o instanceof ACSLSimplePredicate other) {
       return super.equals(o) && term.equals(other.term);
     }
     return false;

@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Package for refinement of symbolic value analysis with CEGAR.
- */
+/** Package for refinement of symbolic value analysis with CEGAR. */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;

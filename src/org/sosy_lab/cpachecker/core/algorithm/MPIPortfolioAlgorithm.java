@@ -75,9 +75,9 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
           .resolveSibling(Path.of("scripts", "mpi_portfolio.py"));
 
   @Option(
-    secure = true,
-    required = true,
-    description = "List of property-files to be run by the subprocesses.")
+      secure = true,
+      required = true,
+      description = "List of property-files to be run by the subprocesses.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> configFiles;
 
@@ -89,10 +89,11 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   private Path hostfile;
 
   @Option(
-    secure = true,
-    description = "The MCA parameter ('Modular Component Architecture') "
-        + "is available only on Open MPI frameworks. It might thus need to be "
-        + "disabled if unavailable on the working machine.")
+      secure = true,
+      description =
+          "The MCA parameter ('Modular Component Architecture') "
+              + "is available only on Open MPI frameworks. It might thus need to be "
+              + "disabled if unavailable on the working machine.")
   private boolean disableMCAOptions;
 
   private final Configuration globalConfig;
@@ -150,14 +151,14 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       if (!isNullOrEmpty(numNodesEnv)) {
         logger.logf(
             Level.INFO,
-            "Env variable 'AWS_BATCH_JOB_NUM_NODES' found with value '%s'. Continuing using this value.",
+            "Env variable 'AWS_BATCH_JOB_NUM_NODES' found with value '%s'. Continuing using this"
+                + " value.",
             numNodesEnv);
         try {
           numberProcesses *= Integer.parseInt(numNodesEnv);
         } catch (NumberFormatException e) {
           throw new InvalidConfigurationException(
-              "Env variable 'AWS_BATCH_JOB_NUM_NODES' does not contain a valid integer value",
-              e);
+              "Env variable 'AWS_BATCH_JOB_NUM_NODES' does not contain a valid integer value", e);
         }
       }
     } else {
@@ -225,8 +226,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
               Level.WARNING,
               "Could not retrieve the ip address from the main node. Proceeding without it.");
           logger.logDebugException(
-              e,
-              "Failed to retrieve the ip address of the main node from PATH.");
+              e, "Failed to retrieve the ip address of the main node from PATH.");
         }
 
         if (mainNodeIPAddress != null) {
@@ -243,8 +243,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
     } catch (IOException e) {
       throw new InvalidConfigurationException(
-          "Failed to create a valid CPAchecker-cmdline from the config",
-          e);
+          "Failed to create a valid CPAchecker-cmdline from the config", e);
     }
   }
 
@@ -255,8 +254,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       return SubanalysisConfig.SUBPROCESS_DEFAULT_TIMELIMIT;
     }
 
-    @Nullable
-    String property = pConfig.getProperty("limits.time.cpu");
+    @Nullable String property = pConfig.getProperty("limits.time.cpu");
     verify(!isNullOrEmpty(property));
 
     String rawValue = Iterables.get(Splitter.on('s').split(property), 0).strip();
@@ -265,8 +263,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       limitMain = Integer.parseInt(rawValue);
     } catch (NumberFormatException e) {
       throw new InvalidConfigurationException(
-          String.format("Unable to turn the value '%s' into an int value", rawValue),
-          e);
+          String.format("Unable to turn the value '%s' into an int value", rawValue), e);
     }
 
     int limitSubanalyses;
@@ -295,7 +292,8 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     if (pathOpt.isEmpty()) {
       throw new InvalidConfigurationException(
           pRequiredBin
-              + " is required for performing the portfolio-analysis, but could not find it in PATH");
+              + " is required for performing the portfolio-analysis, but could not find it in"
+              + " PATH");
     }
 
     return pathOpt.orElseThrow().resolve(pRequiredBin);
@@ -366,18 +364,13 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       try {
         executor =
             new ProcessExecutor<>(
-                logger,
-                IOException.class,
-                Iterables.toArray(cmdList, String.class)) {
+                logger, IOException.class, Iterables.toArray(cmdList, String.class)) {
 
               @Override
               protected void handleOutput(String line) {
                 checkNotNull(line);
                 logger.logf(
-                    Level.INFO,
-                    "%s - %s",
-                    "scripts/" + MPI_PYTHON_MAIN_PATH.getFileName(),
-                    line);
+                    Level.INFO, "%s - %s", "scripts/" + MPI_PYTHON_MAIN_PATH.getFileName(), line);
               }
             };
 
@@ -385,8 +378,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.INFO, "MPI has finished its job. Continuing in main node.");
 
         if (exitCode != 0) {
-          if (executor.getErrorOutput()
-              .stream()
+          if (executor.getErrorOutput().stream()
               .anyMatch(x -> x.contains("unrecognized argument mca"))) {
             logger.log(
                 Level.SEVERE,
@@ -490,7 +482,6 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     // we didn't receive any results from the subanalyses, thus we can't tell anything about
     // them
     return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
-
   }
 
   private class SubanalysisConfig {
@@ -567,7 +558,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       builder.put(OUPUT_KEY, outputPath.toString());
       builder.put(LOGFILE_KEY, outputPath.resolve(logfileName).toString());
 
-      return ImmutableMap.of("Analysis_" + subanalysis_index, builder.build());
+      return ImmutableMap.of("Analysis_" + subanalysis_index, builder.buildOrThrow());
     }
 
     int getIndex() {
@@ -590,8 +581,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       return cmdLine;
     }
 
-    @Nullable
-    ImmutableList<String> getResultLog() {
+    @Nullable ImmutableList<String> getResultLog() {
       return resultLog;
     }
 
@@ -602,8 +592,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       resultLog = pResultLog;
     }
 
-    @Nullable
-    CPAcheckerResult getResult() {
+    @Nullable CPAcheckerResult getResult() {
       return result;
     }
 
@@ -618,7 +607,6 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     public String toString() {
       return String.format("Subanalysis_%d-%s", subanalysis_index, getConfigName());
     }
-
   }
 
   private static class MPIPortfolioAlgorithmStatistics implements Statistics {
@@ -644,7 +632,5 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     public @Nullable String getName() {
       return "MPI Portfolio Algorithm";
     }
-
   }
-
 }

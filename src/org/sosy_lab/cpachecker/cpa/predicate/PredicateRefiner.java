@@ -27,11 +27,12 @@ public abstract class PredicateRefiner implements Refiner {
       throws InvalidConfigurationException {
     PredicateCPA predicateCpa =
         CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, PredicateRefiner.class);
-    RefinementStrategy strategy = new PredicateAbstractionRefinementStrategy(
-        predicateCpa.getConfiguration(),
-        predicateCpa.getLogger(),
-        predicateCpa.getPredicateManager(),
-        predicateCpa.getSolver());
+    RefinementStrategy strategy =
+        new PredicateAbstractionRefinementStrategy(
+            predicateCpa.getConfiguration(),
+            predicateCpa.getLogger(),
+            predicateCpa.getPredicateManager(),
+            predicateCpa.getSolver());
 
     return new PredicateCPARefinerFactory(pCpa).create(strategy);
   }

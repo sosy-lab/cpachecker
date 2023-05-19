@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 public interface CAstNodeVisitor<R, X extends Exception>
-    extends CDesignatorVisitor<R, X>, CInitializerVisitor<R, X>, CRightHandSideVisitor<R, X>,
-        CSimpleDeclarationVisitor<R, X>, CStatementVisitor<R, X> {
+    extends CDesignatorVisitor<R, X>,
+        CInitializerVisitor<R, X>,
+        CRightHandSideVisitor<R, X>,
+        CSimpleDeclarationVisitor<R, X>,
+        CStatementVisitor<R, X> {
 
   R visit(CReturnStatement pNode) throws X;
-
 }

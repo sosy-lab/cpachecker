@@ -38,13 +38,11 @@ public class CachingTargetLocationProvider implements TargetLocationProvider {
               });
 
   public CachingTargetLocationProvider(TargetLocationProvider pBackingTargetLocationProvider) {
-    this.backingTargetLocationProvider = pBackingTargetLocationProvider;
+    backingTargetLocationProvider = pBackingTargetLocationProvider;
   }
 
   public CachingTargetLocationProvider(
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogManager,
-      CFA pCfa) {
+      ShutdownNotifier pShutdownNotifier, LogManager pLogManager, CFA pCfa) {
     this(new TargetLocationProviderImpl(pShutdownNotifier, pLogManager, pCfa));
   }
 
@@ -80,13 +78,10 @@ public class CachingTargetLocationProvider implements TargetLocationProvider {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof CacheKey) {
-        CacheKey other = (CacheKey) pObj;
+      if (pObj instanceof CacheKey other) {
         return node.equals(other.node) && specification.equals(other.specification);
       }
       return false;
     }
-
   }
-
 }

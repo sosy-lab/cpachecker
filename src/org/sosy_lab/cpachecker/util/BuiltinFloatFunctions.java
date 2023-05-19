@@ -15,9 +15,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
- * This class provides methods for checking whether a function is a specific builtin
- * for handling floats.
- * The builtin functions of gcc are used as a reference for the provided function names.
+ * This class provides methods for checking whether a function is a specific builtin for handling
+ * floats. The builtin functions of gcc are used as a reference for the provided function names.
  */
 public class BuiltinFloatFunctions {
 
@@ -130,7 +129,6 @@ public class BuiltinFloatFunctions {
           .addAll(ISLESSEQUAL)
           .addAll(ISLESS)
           .addAll(ISUNORDERED)
-
           .add(FLOAT_CLASSIFY)
           .add(COPYSIGN)
           .add(SIGNBIT)
@@ -145,8 +143,8 @@ public class BuiltinFloatFunctions {
   }
 
   /**
-   * Check whether a given function is a builtin function specific to floats
-   * that can be further analyzed with this class.
+   * Check whether a given function is a builtin function specific to floats that can be further
+   * analyzed with this class.
    */
   public static boolean isBuiltinFloatFunction(String pFunctionName) {
     for (String prefix : possiblePrefixes) {
@@ -158,31 +156,29 @@ public class BuiltinFloatFunctions {
     return false;
   }
 
-  private static boolean isBuiltinFloatFunctionWithPrefix(String pFunctionName,
-      Collection<String> pPrefix) {
-    return pPrefix.stream()
-        .anyMatch(nan -> isBuiltinFloatFunctionWithPrefix(pFunctionName, nan));
+  private static boolean isBuiltinFloatFunctionWithPrefix(
+      String pFunctionName, Collection<String> pPrefix) {
+    return pPrefix.stream().anyMatch(nan -> isBuiltinFloatFunctionWithPrefix(pFunctionName, nan));
   }
 
-  private static boolean isBuiltinFloatFunctionWithPrefix(String pFunctionName,
-      String pPrefix) {
+  private static boolean isBuiltinFloatFunctionWithPrefix(String pFunctionName, String pPrefix) {
     int length = pFunctionName.length();
     int prefixLength = pPrefix.length();
-    if ((length != prefixLength) && (length != prefixLength+1)) {
+    if ((length != prefixLength) && (length != prefixLength + 1)) {
       return false;
     }
     if (!pFunctionName.startsWith(pPrefix)) {
       return false;
     }
     String suffix = pFunctionName.substring(prefixLength);
-    return suffix.isEmpty()
-        || suffix.equals("f")
-        || suffix.equals("l");
+    return suffix.isEmpty() || suffix.equals("f") || suffix.equals("l");
   }
 
   /**
    * Get the type of a builtin float function. This could be the return type or a parameter type.
-   * @param pFunctionName A function name for which {@link #isBuiltinFloatFunction(String)} returns true.
+   *
+   * @param pFunctionName A function name for which {@link #isBuiltinFloatFunction(String)} returns
+   *     true.
    * @throws IllegalArgumentException For unhandled functions.
    */
   public static CSimpleType getTypeOfBuiltinFloatFunction(String pFunctionName) {
@@ -191,15 +187,15 @@ public class BuiltinFloatFunctions {
         String suffix = pFunctionName.substring(p.length());
 
         switch (suffix) {
-        case "":
-          return CNumericTypes.DOUBLE;
-        case "f":
-          return CNumericTypes.FLOAT;
-        case "l":
-          return CNumericTypes.LONG_DOUBLE;
-        default:
-          throw new IllegalArgumentException(
-              "Builtin function '" + pFunctionName + "' with unknown suffix '" + suffix + "'");
+          case "":
+            return CNumericTypes.DOUBLE;
+          case "f":
+            return CNumericTypes.FLOAT;
+          case "l":
+            return CNumericTypes.LONG_DOUBLE;
+          default:
+            throw new IllegalArgumentException(
+                "Builtin function '" + pFunctionName + "' with unknown suffix '" + suffix + "'");
         }
       }
     }
@@ -223,8 +219,8 @@ public class BuiltinFloatFunctions {
    * Returns whether the given function name is any builtin infinity-function.
    *
    * @param pFunctionName the function name to check
-   * @return <code>true</code> if the given function name is any builtin infinity-function,
-   *   <code>false</code> otherwise
+   * @return <code>true</code> if the given function name is any builtin infinity-function, <code>
+   *     false</code> otherwise
    */
   public static boolean matchesInfinity(String pFunctionName) {
     return isBuiltinFloatFunctionWithPrefix(pFunctionName, INFINITY);
@@ -246,8 +242,8 @@ public class BuiltinFloatFunctions {
    * Returns whether the given function name is any builtin huge_val-function.
    *
    * @param pFunctionName the function name to check
-   * @return <code>true</code> if the given function name is any builtin huge_val-function,
-   *   <code>false</code> otherwise
+   * @return <code>true</code> if the given function name is any builtin huge_val-function, <code>
+   *     false</code> otherwise
    */
   public static boolean matchesHugeVal(String pFunctionName) {
     return isBuiltinFloatFunctionWithPrefix(pFunctionName, HUGE_VAL);
@@ -269,8 +265,8 @@ public class BuiltinFloatFunctions {
    * Returns whether the given function name is any builtin NaN-function.
    *
    * @param pFunctionName the function name to check
-   * @return <code>true</code> if the given function name is any builtin NaN-function,
-   *   <code>false</code> otherwise
+   * @return <code>true</code> if the given function name is any builtin NaN-function, <code>false
+   *     </code> otherwise
    */
   public static boolean matchesNaN(String pFunctionName) {
     return isBuiltinFloatFunctionWithPrefix(pFunctionName, NOT_A_NUMBER);
@@ -400,8 +396,8 @@ public class BuiltinFloatFunctions {
    * Returns whether the given function name is any builtin absolute-function.
    *
    * @param pFunctionName the function name to check
-   * @return <code>true</code> if the given function name is any builtin absolute-function,
-   *   <code>false</code> otherwise
+   * @return <code>true</code> if the given function name is any builtin absolute-function, <code>
+   *     false</code> otherwise
    */
   public static boolean matchesAbsolute(String pFunctionName) {
     return isBuiltinFloatFunctionWithPrefix(pFunctionName, ABSOLUTE_VAL);
@@ -411,44 +407,44 @@ public class BuiltinFloatFunctions {
    * Returns whether the given function name is any builtin fpclassify-function.
    *
    * @param pFunctionName the function name to check
-   * @return <code>true</code> if the given function name is any builtin fpclassify-function,
-   *   <code>false</code> otherwise
+   * @return <code>true</code> if the given function name is any builtin fpclassify-function, <code>
+   *     false</code> otherwise
    */
   public static boolean matchesFloatClassify(String pFunctionName) {
     return isBuiltinFloatFunctionWithPrefix(pFunctionName, FLOAT_CLASSIFY);
   }
 
   /**
-   * Returns whether the given function name is any builtin function
-   * that checks whether a float is finite.
+   * Returns whether the given function name is any builtin function that checks whether a float is
+   * finite.
    *
    * @param pFunctionName the function name to check
-   * @return <code>true</code> if the given function name is any builtin finite-function,
-   *   <code>false</code> otherwise
+   * @return <code>true</code> if the given function name is any builtin finite-function, <code>
+   *     false</code> otherwise
    */
   public static boolean matchesFinite(String pFunctionName) {
     return isBuiltinFloatFunctionWithPrefix(pFunctionName, IS_FINITE);
   }
 
   /**
-   * Returns whether the given function name is any builtin function
-   * that checks whether a float is NaN.
+   * Returns whether the given function name is any builtin function that checks whether a float is
+   * NaN.
    *
    * @param pFunctionName the function name to check
-   * @return <code>true</code> if the given function name is any builtin isnan-function,
-   *   <code>false</code> otherwise
+   * @return <code>true</code> if the given function name is any builtin isnan-function, <code>false
+   *     </code> otherwise
    */
   public static boolean matchesIsNaN(String pFunctionName) {
     return isBuiltinFloatFunctionWithPrefix(pFunctionName, IS_NAN);
   }
 
   /**
-   * Returns whether the given function name is any builtin function
-   * that checks whether a float is infinite.
+   * Returns whether the given function name is any builtin function that checks whether a float is
+   * infinite.
    *
    * @param pFunctionName the function name to check
-   * @return <code>true</code> if the given function name is any builtin isinf-function,
-   *   <code>false</code> otherwise
+   * @return <code>true</code> if the given function name is any builtin isinf-function, <code>false
+   *     </code> otherwise
    */
   public static boolean matchesIsInfinity(String pFunctionName) {
     return isBuiltinFloatFunctionWithPrefix(pFunctionName, IS_INFINITY);

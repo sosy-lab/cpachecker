@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-
 public class CSourceOriginMapping {
 
   // Each RangeMap in this map contains the mapping for one input file,
@@ -98,8 +97,7 @@ public class CSourceOriginMapping {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof CodePosition) {
-        CodePosition other = (CodePosition) pObj;
+      if (pObj instanceof CodePosition other) {
         return lineNumber == other.lineNumber && fileName.equals(other.fileName);
       }
       return false;
@@ -121,6 +119,5 @@ public class CSourceOriginMapping {
     public static CodePosition of(Path pFileName, int pLineNumber) {
       return new CodePosition(pFileName, pLineNumber);
     }
-
   }
 }

@@ -14,6 +14,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterAncestors;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.isTrivialSelfLoop;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -76,9 +77,9 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCa
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PartialTransitionRelation.CtiWithInputs;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.AbstractInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -91,7 +92,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
@@ -106,6 +106,7 @@ import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
 import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -114,6 +115,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -209,30 +211,37 @@ public class PdrAlgorithm implements Algorithm {
 
     assignmentToPathAllocator =
         new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, cfa.getMachineModel());
-    invariantGenerator = new AbstractInvariantGenerator() {
+    invariantGenerator =
+        new AbstractInvariantGenerator() {
 
-      @Override
-      protected void startImpl(CFANode pInitialLocation) {
-        // do nothing
-      }
+          @Override
+          protected void startImpl(CFANode pInitialLocation) {
+            // do nothing
+          }
 
-      @Override
-      public boolean isProgramSafe() {
-        // just return false, program will be ended by parallel algorithm if the invariant
-        // generator can prove safety before the current analysis
-        return false;
-      }
+          @Override
+          public boolean isProgramSafe() {
+            // just return false, program will be ended by parallel algorithm if the invariant
+            // generator can prove safety before the current analysis
+            return false;
+          }
 
-      @Override
-      public void cancel() {
-        // do nothing
-      }
+          @Override
+          public void cancel() {
+            // do nothing
+          }
 
-      @Override
-      public AggregatedReachedSets get() throws CPAException, InterruptedException {
-        return pAggregatedReachedSets;
-      }
-    };
+          @Override
+          public InvariantSupplier getSupplier() throws CPAException, InterruptedException {
+            return new FormulaInvariantsSupplier(pAggregatedReachedSets);
+          }
+
+          @Override
+          public ExpressionTreeSupplier getExpressionTreeSupplier()
+              throws CPAException, InterruptedException {
+            return new ExpressionTreeInvariantSupplier(pAggregatedReachedSets, pCFA);
+          }
+        };
   }
 
   @Override
@@ -305,7 +314,8 @@ public class PdrAlgorithm implements Algorithm {
             Set<CandidateInvariant> frameInvariants = frameSet.getInvariants(i);
             frameInvariants =
                 Sets.union(
-                    frameInvariants, Collections.singleton(getCurrentInvariant(pTransitionRelation)));
+                    frameInvariants,
+                    Collections.singleton(getCurrentInvariant(pTransitionRelation)));
             List<CandidateInvariant> toPush = new ArrayList<>();
             for (CandidateInvariant frameClause : frameSet.getPushableFrameClauses(i)) {
               InductionResult<CandidateInvariant> pushAttempt =
@@ -372,8 +382,7 @@ public class PdrAlgorithm implements Algorithm {
       logger.log(
           Level.INFO,
           "Terminating because none of the following CPAs' precision can be adjusted any further ",
-          conditionCPAs
-              .stream()
+          conditionCPAs.stream()
               .map(Object::getClass)
               .map(Class::getSimpleName)
               .collect(Collectors.joining(", ")));
@@ -659,9 +668,7 @@ public class PdrAlgorithm implements Algorithm {
       ProofObligation pOldObligation,
       DetectingLiftingAbstractionFailureStrategy pLafsForCheck,
       InductionResult<? extends CandidateInvariant> pCheckResult) {
-    return pCheckResult
-        .getBadStateBlockingClauses()
-        .stream()
+    return pCheckResult.getBadStateBlockingClauses().stream()
         .map(
             badStateBlockingClause ->
                 pOldObligation.causeProofObligation(
@@ -685,12 +692,7 @@ public class PdrAlgorithm implements Algorithm {
   private InvariantSupplier getCurrentInvariantSupplier() throws InterruptedException {
     if (invariantGenerationRunning) {
       try {
-        if (invariantGenerator instanceof KInductionInvariantGenerator) {
-          return ((KInductionInvariantGenerator) invariantGenerator).getSupplier();
-        } else {
-          // in the general case we have to retrieve the invariants from a reachedset
-          return new FormulaInvariantsSupplier(invariantGenerator.get());
-        }
+        return invariantGenerator.getSupplier();
       } catch (CPAException e) {
         logger.logUserException(Level.FINE, e, "Invariant generation failed.");
         invariantGenerationRunning = false;
@@ -742,8 +744,10 @@ public class PdrAlgorithm implements Algorithm {
             predecessorAssertions, Collections.singleton(getCurrentInvariant(pTransitionRelation)));
     ProverEnvironmentWithFallback prover = pFrameSet.getFrameProver(oldFrontierIndex);
 
-    boolean eagerLiftingRefinement = oldFrontierIndex == 0 || basicPdrOptions.liftingAbstractionFailureThreshold <= 0;
-    DetectingLiftingAbstractionFailureStrategy lafs = new DetectingLiftingAbstractionFailureStrategy(eagerLiftingRefinement);
+    boolean eagerLiftingRefinement =
+        oldFrontierIndex == 0 || basicPdrOptions.liftingAbstractionFailureThreshold <= 0;
+    DetectingLiftingAbstractionFailureStrategy lafs =
+        new DetectingLiftingAbstractionFailureStrategy(eagerLiftingRefinement);
 
     InductionResult<CandidateInvariant> inductionResult =
         checkInduction(
@@ -790,7 +794,7 @@ public class PdrAlgorithm implements Algorithm {
     assert pProver.isEmpty();
 
     AssertCandidate assertSinglePredecessor =
-        (p ->
+        p ->
             BMCHelper.assertAt(
                 Collections.singleton(
                     pTransitionRelation
@@ -801,7 +805,7 @@ public class PdrAlgorithm implements Algorithm {
                 p,
                 fmgr,
                 pmgr,
-                true));
+                true);
 
     // TODO this can probably done more efficiently
     // by keeping the assertions and transitions on the stack;
@@ -812,22 +816,23 @@ public class PdrAlgorithm implements Algorithm {
     Object candidateAssertionId =
         pProver.push(pTransitionRelation.getPredecessorAssertion(pCandidateInvariant));
 
-    Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions = pTransitionRelation.getSuccessorViolationAssertions(pCandidateInvariant);
+    Multimap<BooleanFormula, BooleanFormula> successorViolationAssertions =
+        pTransitionRelation.getSuccessorViolationAssertions(pCandidateInvariant);
     BooleanFormula successorViolation =
         BMCHelper.disjoinStateViolationAssertions(bfmgr, successorViolationAssertions);
     pProver.push(successorViolation);
 
     boolean success = pProver.isUnsat();
     if (success) {
-      AssertCandidate assertKPredecessors = (p -> pTransitionRelation.getPredecessorAssertion(p));
+      AssertCandidate assertKPredecessors = p -> pTransitionRelation.getPredecessorAssertion(p);
       AssertCandidate assertSuccessorViolation =
-          (candidate -> {
+          candidate -> {
             Multimap<BooleanFormula, BooleanFormula> succViolationAssertions =
                 pTransitionRelation.getSuccessorViolationAssertions(pCandidateInvariant);
             BooleanFormula succViolation =
                 BMCHelper.disjoinStateViolationAssertions(bfmgr, succViolationAssertions);
             return succViolation;
-          });
+          };
       NextCti nextCti =
           () -> {
             List<ValueAssignment> modelAssignments = pProver.getModelAssignments();
@@ -1007,7 +1012,8 @@ public class PdrAlgorithm implements Algorithm {
     if (abstractionState.isPresent()) {
       logger.log(
           Level.WARNING,
-          "PDR algorithm and its derivatives do not work with PredicateCPA abstractions. Could not check for satisfiability.");
+          "PDR algorithm and its derivatives do not work with PredicateCPA abstractions. Could not"
+              + " check for satisfiability.");
       return false;
     }
     return true;
@@ -1080,7 +1086,6 @@ public class PdrAlgorithm implements Algorithm {
     return safe;
   }
 
-
   private boolean boundedModelCheck(
       UnrolledReachedSet pReachedSet,
       ProverEnvironmentWithFallback pProver,
@@ -1124,8 +1129,8 @@ public class PdrAlgorithm implements Algorithm {
     }
 
     stats.errorPathCreation.start();
-    Solver cexAnalysisSolver = this.solver;
-    PathFormulaManager cexAnalysisPmgr = this.pmgr;
+    Solver cexAnalysisSolver = solver;
+    PathFormulaManager cexAnalysisPmgr = pmgr;
     try {
       logger.log(Level.INFO, "Error found, creating error path");
 
@@ -1137,75 +1142,27 @@ public class PdrAlgorithm implements Algorithm {
             state.removeFromARG();
           });
       pReachedSet.removeAll(redundantStates);
-      targetStates = Sets.difference(targetStates, redundantStates);
 
-      final boolean shouldCheckBranching;
-      if (targetStates.size() == 1) {
-        ARGState state = Iterables.getOnlyElement(targetStates);
-        while (state.getParents().size() == 1 && state.getChildren().size() <= 1) {
-          state = Iterables.getOnlyElement(state.getParents());
-        }
-        shouldCheckBranching = (state.getParents().size() > 1) || (state.getChildren().size() > 1);
-      } else {
-        shouldCheckBranching = true;
-      }
+      // get (precise) error path
+      ARGPath targetPath;
+      try (Model model = pProver.getModel()) {
+        ARGState root = (ARGState) pReachedSet.getFirstState();
 
-      if (shouldCheckBranching) {
-        Set<ARGState> arg = from(pReachedSet).filter(ARGState.class).toSet();
-
-        // get the branchingFormula
-        // this formula contains predicates for all branches we took
-        // this way we can figure out which branches make a feasible path
-        BooleanFormula branchingFormula = pmgr.buildBranchingFormula(arg);
-
-        if (bfmgr.isTrue(branchingFormula)) {
-          logger.log(
-              Level.WARNING,
-              "Could not create error path because of missing branching information!");
+        try {
+          targetPath = pmgr.getARGPathFromModel(model, root);
+        } catch (IllegalArgumentException e) {
+          logger.logUserException(Level.WARNING, e, "Could not create error path");
           return;
         }
 
-        // add formula to solver environment
-        pProver.push(branchingFormula);
-      }
-
-      List<ValueAssignment> model;
-      try {
-        // need to ask solver for satisfiability again,
-        // otherwise model doesn't contain new predicates
-        boolean stillSatisfiable = !pProver.isUnsat();
-
-        if (!stillSatisfiable) {
-          // should not occur
-          logger.log(
-              Level.WARNING,
-              "Could not create error path information because of inconsistent branching information!");
+        if (!targetPath.getLastState().isTarget()) {
+          logger.log(Level.WARNING, "Could not create error path: path ends without target state!");
           return;
         }
-
-        model = pProver.getModelAssignments();
 
       } catch (SolverException e) {
         logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
         logger.logDebugException(e);
-        return;
-
-      } finally {
-        if (shouldCheckBranching) {
-          pProver.pop(); // remove branchingFormula
-        }
-      }
-
-      // get precise error path
-      Map<Integer, Boolean> branchingInformation = pmgr.getBranchingPredicateValuesFromModel(model);
-      ARGState root = (ARGState) pReachedSet.getFirstState();
-
-      ARGPath targetPath;
-      try {
-        Set<AbstractState> arg = pReachedSet.asCollection();
-        targetPath = ARGUtils.getPathFromBranchingInformation(root, arg, branchingInformation);
-      } catch (IllegalArgumentException e) {
-        logger.logUserException(Level.WARNING, e, "Could not create error path");
         return;
       }
 
@@ -1215,7 +1172,7 @@ public class PdrAlgorithm implements Algorithm {
       PathChecker pathChecker;
       try {
 
-        if (cexAnalysisSolver.getVersion().toLowerCase().contains("smtinterpol")) {
+        if (Ascii.toLowerCase(cexAnalysisSolver.getVersion()).contains("smtinterpol")) {
           // SMTInterpol does not support reusing the same solver
           cexAnalysisSolver = Solver.create(config, logger, shutdownNotifier);
           FormulaManagerView formulaManager = cexAnalysisSolver.getFormulaManager();
@@ -1239,14 +1196,14 @@ public class PdrAlgorithm implements Algorithm {
       }
 
       CounterexampleTraceInfo cexInfo =
-          CounterexampleTraceInfo.feasible(
-              ImmutableList.of(cexFormula), model, branchingInformation);
-      CounterexampleInfo counterexample = pathChecker.createCounterexample(targetPath, cexInfo);
+          CounterexampleTraceInfo.feasible(ImmutableList.of(cexFormula), targetPath);
+      CounterexampleInfo counterexample =
+          pathChecker.handleFeasibleCounterexample(cexInfo, targetPath);
       counterexample.getTargetState().addCounterexampleInformation(counterexample);
 
     } finally {
       stats.errorPathCreation.stop();
-      if (cexAnalysisSolver != this.solver) {
+      if (cexAnalysisSolver != solver) {
         cexAnalysisSolver.close();
       }
     }
@@ -1265,48 +1222,44 @@ public class PdrAlgorithm implements Algorithm {
   protected static class BasicPdrOptions {
 
     @Option(
-      secure = true,
-      description =
-          "Maximum number of accepted spurious transitions within a proof-obligation trace before a consecution abstraction failure triggers a refinement."
-    )
+        secure = true,
+        description =
+            "Maximum number of accepted spurious transitions within a proof-obligation trace before"
+                + " a consecution abstraction failure triggers a refinement.")
     private int spuriousTransitionCountThreshold = 0;
 
     @Option(
-      secure = true,
-      description =
-          "Maximum number of ignored lifting abstraction failures within a proof-obligation trace."
-    )
+        secure = true,
+        description =
+            "Maximum number of ignored lifting abstraction failures within a proof-obligation"
+                + " trace.")
     private int liftingAbstractionFailureThreshold = 0;
 
     @Option(
-      secure = true,
-      description = "Which strategy to use to abstract counterexamples to inductivity."
-    )
+        secure = true,
+        description = "Which strategy to use to abstract counterexamples to inductivity.")
     private LiftingStrategyFactories liftingStrategy = LiftingStrategyFactories.NO_LIFTING;
 
     @Option(
-      secure = true,
-      name = "abstractionStrategy",
-      description =
-          "Which strategy to use to perform abstraction of successful proof results"
-              + " or when lifting with the lifting strategy ABSTRACTION_BASED_LIFTING."
-    )
+        secure = true,
+        name = "abstractionStrategy",
+        description =
+            "Which strategy to use to perform abstraction of successful proof results"
+                + " or when lifting with the lifting strategy ABSTRACTION_BASED_LIFTING.")
     private AbstractionStrategyFactories abstractionStrategyFactory =
         AbstractionStrategyFactories.NO_ABSTRACTION;
 
     @Option(
-      secure = true,
-      name = "invariantRefinementStrategy",
-      description =
-          "Which strategy to use to perform invariant refinement on successful proof results."
-    )
+        secure = true,
+        name = "invariantRefinementStrategy",
+        description =
+            "Which strategy to use to perform invariant refinement on successful proof results.")
     private InvariantStrengtheningStrategies invariantRefinementStrategy =
         InvariantStrengtheningStrategies.NO_STRENGTHENING;
 
     @Option(
-      secure = true,
-      description = "Whether to adjust conditions (i.e. increment k) after frontier extension."
-    )
+        secure = true,
+        description = "Whether to adjust conditions (i.e. increment k) after frontier extension.")
     private ConditionAdjustmentCriterion conditionAdjustmentCriterion =
         ConditionAdjustmentCriterion.NEVER;
 

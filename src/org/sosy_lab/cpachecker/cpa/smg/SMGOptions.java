@@ -37,7 +37,7 @@ public class SMGOptions {
   @Option(
       secure = true,
       name = "enableMallocFail",
-      description = "If this Option is enabled, failure of malloc" + "is simulated")
+      description = "If this Option is enabled, failure of malloc is simulated")
   private boolean enableMallocFailure = true;
 
   @Option(
@@ -50,9 +50,9 @@ public class SMGOptions {
   @Option(
       secure = true,
       description =
-          "Which unknown function are always considered as safe functions, "
-              + "i.e., free of memory-related side-effects?")
-  private ImmutableSet<String> safeUnknownFunctions = ImmutableSet.of("abort");
+          "Patterns of unknown functions which are always considered as safe functions, i.e., free"
+              + " of memory-related side-effects.")
+  private ImmutableSet<String> safeUnknownFunctionsPatterns = ImmutableSet.of("abort");
 
   public enum UnknownFunctionHandling {
     STRICT,
@@ -81,17 +81,15 @@ public class SMGOptions {
       ImmutableSet.of("malloc", "__kmalloc", "kmalloc", "realloc");
 
   @Option(
-    secure = true,
-    name = "guessSize",
-    description = "Allocation size of memory that cannot be calculated."
-  )
+      secure = true,
+      name = "guessSize",
+      description = "Allocation size of memory that cannot be calculated.")
   private int guessSize = 2;
 
   @Option(
-    secure = true,
-    name = "memoryAllocationFunctionsSizeParameter",
-    description = "Size parameter of memory allocation functions"
-  )
+      secure = true,
+      name = "memoryAllocationFunctionsSizeParameter",
+      description = "Size parameter of memory allocation functions")
   private int memoryAllocationFunctionsSizeParameter = 0;
 
   @Option(
@@ -140,13 +138,24 @@ public class SMGOptions {
   private boolean trackPredicates = false;
 
   @Option(
-    secure = true,
-    name = "handleUnknownDereferenceAsSafe",
-    description =
-        "Handle unknown dereference as safe and check error based on error predicate, "
-            + "depends on trackPredicates"
-  )
+      secure = true,
+      name = "trackErrorPredicates",
+      description = "Enable track predicates for possible memory safety error on SMG state")
+  private boolean trackErrorPredicates = false;
+
+  @Option(
+      secure = true,
+      name = "handleUnknownDereferenceAsSafe",
+      description =
+          "Handle unknown dereference as safe and check error based on error predicate, "
+              + "depends on trackPredicates")
   private boolean handleUnknownDereferenceAsSafe = false;
+
+  @Option(
+      secure = true,
+      name = "crashOnUnknown",
+      description = "Crash on unknown array dereferences")
+  private boolean crashOnUnknown = false;
 
   @Option(
       secure = true,
@@ -233,8 +242,8 @@ public class SMGOptions {
     return handleUnknownFunctions;
   }
 
-  public ImmutableSet<String> getSafeUnknownFunctions() {
-    return safeUnknownFunctions;
+  public ImmutableSet<String> getSafeUnknownFunctionsPatterns() {
+    return safeUnknownFunctionsPatterns;
   }
 
   public boolean isGCCZeroLengthArray() {
@@ -289,6 +298,10 @@ public class SMGOptions {
     return trackPredicates;
   }
 
+  public boolean trackErrorPredicates() {
+    return trackErrorPredicates;
+  }
+
   public boolean isHeapAbstractionEnabled() {
     return enableHeapAbstraction;
   }
@@ -327,5 +340,9 @@ public class SMGOptions {
 
   public boolean getJoinOnBlockEnd() {
     return joinOnBlockEnd;
+  }
+
+  public boolean crashOnUnknown() {
+    return crashOnUnknown;
   }
 }

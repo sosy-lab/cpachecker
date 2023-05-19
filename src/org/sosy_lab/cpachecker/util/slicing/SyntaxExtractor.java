@@ -8,13 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -92,7 +91,7 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
 
     Set<CFAEdge> notFoundTargets = new HashSet<>(nodesReachingTargetEdges.values());
     ImmutableSet.Builder<CFAEdge> relevantTargets = ImmutableSet.builder();
-    Collection<CFAEdge> allEdges = extractAllCFAEdges(pCfa);
+    Collection<CFAEdge> allEdges = Lists.newArrayList(CFAUtils.allEdges(pCfa));
 
     // currently we assume that
     // (1) we goto dedicated state __FALSE when successors are not explored
@@ -117,15 +116,6 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
     }
 
     return relevantTargets.build();
-  }
-
-  private Collection<CFAEdge> extractAllCFAEdges(final CFA pCfa) {
-    Collection<CFAEdge> edges = new ArrayList<>(2 * pCfa.getAllNodes().size());
-
-    for (CFANode node : pCfa.getAllNodes()) {
-      CFAUtils.allLeavingEdges(node).copyInto(edges);
-    }
-    return edges;
   }
 
   private Iterable<CFANode> getTargetNodes(

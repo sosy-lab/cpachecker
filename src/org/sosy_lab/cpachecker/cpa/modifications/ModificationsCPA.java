@@ -52,11 +52,10 @@ public class ModificationsCPA implements ConfigurableProgramAnalysis {
   private Path originalProgram = null;
 
   @Option(
-    secure = true,
-    description =
-        "ignore declarations when detecting modifications, "
-            + "be careful when variables are renamed (could be unsound)"
-  )
+      secure = true,
+      description =
+          "ignore declarations when detecting modifications, "
+              + "be careful when variables are renamed (could be unsound)")
   private boolean ignoreDeclarations = false;
 
   private final Configuration config;
@@ -101,10 +100,10 @@ public class ModificationsCPA implements ConfigurableProgramAnalysis {
         transfer = new ModificationsTransferRelation();
       }
 
-    } catch (ParserException pE) {
-      throw new InvalidConfigurationException("Parser error for originalProgram", pE);
-    } catch (InterruptedException | IOException pE) {
-      throw new AssertionError(pE);
+    } catch (ParserException e) {
+      throw new InvalidConfigurationException("Parser error for originalProgram", e);
+    } catch (InterruptedException | IOException e) {
+      throw new AssertionError(e);
     }
   }
 

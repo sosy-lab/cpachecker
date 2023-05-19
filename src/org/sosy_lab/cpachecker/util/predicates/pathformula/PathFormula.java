@@ -15,7 +15,7 @@ import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -41,10 +41,10 @@ public final class PathFormula implements Serializable {
 
   // Do not make public, cf. createManually()
   PathFormula(BooleanFormula pf, SSAMap ssa, PointerTargetSet pts, int pLength) {
-    this.formula = checkNotNull(pf);
+    formula = checkNotNull(pf);
     this.ssa = checkNotNull(ssa);
     this.pts = checkNotNull(pts);
-    this.length = pLength;
+    length = pLength;
   }
 
   /**
@@ -119,12 +119,11 @@ public final class PathFormula implements Serializable {
       return false;
     }
 
-    PathFormula other = (PathFormula)obj;
+    PathFormula other = (PathFormula) obj;
     return (length == other.length)
         && formula.equals(other.formula)
         && ssa.equals(other.ssa)
-        && pts.equals(other.pts)
-        ;
+        && pts.equals(other.pts);
   }
 
   @Override
@@ -163,7 +162,8 @@ public final class PathFormula implements Serializable {
     private final PointerTargetSet pts;
 
     public SerializationProxy(PathFormula pPathFormula) {
-      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+      FormulaManagerView mgr =
+          SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       formulaDump = mgr.dumpFormula(pPathFormula.formula).toString();
       ssa = pPathFormula.ssa;
       length = pPathFormula.length;
@@ -171,7 +171,8 @@ public final class PathFormula implements Serializable {
     }
 
     private Object readResolve() {
-      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
+      FormulaManagerView mgr =
+          SerializationInfoStorage.getInstance().getPredicateFormulaManagerView();
       BooleanFormula formula = mgr.parse(formulaDump);
       return new PathFormula(formula, ssa, pts, length);
     }

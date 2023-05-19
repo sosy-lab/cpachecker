@@ -45,10 +45,10 @@ public class NondeterminismCPA implements ConfigurableProgramAnalysis {
   private static class NondeterminismOptions {
 
     @Option(
-      secure = true,
-      description =
-          "keep tracking nondeterministically-assigned variables even if they are used in assumptions"
-    )
+        secure = true,
+        description =
+            "keep tracking nondeterministically-assigned variables even if they are used in"
+                + " assumptions")
     private boolean acceptConstrained = true;
   }
 

@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -86,23 +87,25 @@ import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.Pair;
 
-/** This Class can be used to clone a function from the CFA.
- * You need to specify a new functionName.
+/**
+ * This Class can be used to clone a function from the CFA. You need to specify a new functionName.
  *
- * All edges and nodes inside the function are cloned,
- * their content (expressions, ...) is cloned from the original function.
- * If the old functionname is part of an object, the corresponding new name is the new functionname.
+ * <p>All edges and nodes inside the function are cloned, their content (expressions, ...) is cloned
+ * from the original function. If the old functionname is part of an object, the corresponding new
+ * name is the new functionname.
  *
- * There should not be any functioncall- or return-edges.
- * Currently only the language C is supported.
+ * <p>There should not be any functioncall- or return-edges. Currently only the language C is
+ * supported.
  */
 class FunctionCloner implements CFAVisitor {
 
   private static final String ONLY_C_SUPPORTED = "only C supported";
-  private static final String SUPERGRAPH_BUILD_TOO_EARLY = "functions should be cloned before building the supergraph";
+  private static final String SUPERGRAPH_BUILD_TOO_EARLY =
+      "functions should be cloned before building the supergraph";
 
   // local caches
-  private final Map<CFANode, CFANode> nodeCache = new HashMap<>(); // values will be used as CFANodes-Set for building new CFAs
+  // values will be used as CFANodes-Set for building new CFAs
+  private final Map<CFANode, CFANode> nodeCache = new HashMap<>();
   private final IdentityHashMap<AAstNode, AAstNode> astCache = new IdentityHashMap<>();
   private final IdentityHashMap<Type, Type> typeCache = new IdentityHashMap<>();
   private final CExpressionCloner expCloner = new CExpressionCloner();
@@ -110,7 +113,8 @@ class FunctionCloner implements CFAVisitor {
 
   private final String oldFunctionName;
   private final String newFunctionName;
-  private final boolean replaceFunctionOnly; // needed to replace functioncalls, where args stay equal, but functionname changes
+  // needed to replace functioncalls, where args stay equal, but functionname changes
+  private final boolean replaceFunctionOnly;
 
   /** FunctionCloner clones a function of the cfa and uses a new functionName. */
   public FunctionCloner(
@@ -122,9 +126,11 @@ class FunctionCloner implements CFAVisitor {
     this.replaceFunctionOnly = replaceFunctionOnly;
   }
 
-  /** clones a complete function and returns the new functionstart and the nodes of the new function. */
+  /**
+   * clones a complete function and returns the new functionstart and the nodes of the new function.
+   */
   public static Pair<FunctionEntryNode, Collection<CFANode>> cloneCFA(
-          final FunctionEntryNode pFunctionstart, final String newFunctionName) {
+      final FunctionEntryNode pFunctionstart, final String newFunctionName) {
 
     final String oldFunctionName = pFunctionstart.getFunctionName();
     assert !oldFunctionName.equals(newFunctionName);
@@ -133,15 +139,14 @@ class FunctionCloner implements CFAVisitor {
     CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(pFunctionstart, visitor);
 
     return Pair.of(
-            (FunctionEntryNode) visitor.nodeCache.get(pFunctionstart),
-            visitor.nodeCache.values());
+        (FunctionEntryNode) visitor.nodeCache.get(pFunctionstart), visitor.nodeCache.values());
   }
 
   @Override
   public TraversalProcess visitEdge(final CFAEdge edge) {
 
-    final CFANode start = cloneNode(edge.getPredecessor(), true);
-    final CFANode end = cloneNode(edge.getSuccessor(), true);
+    final CFANode start = cloneNode(edge.getPredecessor());
+    final CFANode end = cloneNode(edge.getSuccessor());
 
     final CFAEdge newEdge = cloneEdge(edge, start, end);
 
@@ -157,7 +162,7 @@ class FunctionCloner implements CFAVisitor {
     // TODO do we need to override this function?
     // each cloned edge also clones its predecessor and successor (if nodes not in nodeMapping).
 
-    cloneNode(node, true);
+    cloneNode(node);
 
     return TraversalProcess.CONTINUE;
   }
@@ -172,15 +177,15 @@ class FunctionCloner implements CFAVisitor {
     // clone correct type of edge
     final CFAEdge newEdge;
     switch (edge.getEdgeType()) {
+      case BlankEdge:
+        {
+          newEdge = new BlankEdge(rawStatement, loc, start, end, edge.getDescription());
+          break;
+        }
 
-      case BlankEdge: {
-        newEdge = new BlankEdge(rawStatement, loc, start, end, edge.getDescription());
-        break;
-      }
-
-      case AssumeEdge: {
-        if (edge instanceof CAssumeEdge) {
-          final CAssumeEdge e = (CAssumeEdge) edge;
+      case AssumeEdge:
+        {
+          if (edge instanceof CAssumeEdge e) {
             newEdge =
                 new CAssumeEdge(
                     rawStatement,
@@ -191,36 +196,51 @@ class FunctionCloner implements CFAVisitor {
                     e.getTruthAssumption(),
                     e.isSwapped(),
                     e.isArtificialIntermediate());
-        } else {
-          throw new AssertionError(ONLY_C_SUPPORTED);
+          } else {
+            throw new AssertionError(ONLY_C_SUPPORTED);
+          }
+          break;
         }
-        break;
-      }
 
-      case StatementEdge: {
-        if (edge instanceof CFunctionSummaryStatementEdge) {
-          throw new AssertionError(SUPERGRAPH_BUILD_TOO_EARLY);
-        } else if (edge instanceof CStatementEdge) {
-          newEdge = new CStatementEdge(rawStatement, cloneAst(((CStatementEdge) edge).getStatement()), loc, start, end);
-        } else {
-          throw new AssertionError(ONLY_C_SUPPORTED);
+      case StatementEdge:
+        {
+          if (edge instanceof CFunctionSummaryStatementEdge) {
+            throw new AssertionError(SUPERGRAPH_BUILD_TOO_EARLY);
+          } else if (edge instanceof CStatementEdge) {
+            newEdge =
+                new CStatementEdge(
+                    rawStatement,
+                    cloneAst(((CStatementEdge) edge).getStatement()),
+                    loc,
+                    start,
+                    end);
+          } else {
+            throw new AssertionError(ONLY_C_SUPPORTED);
+          }
+          break;
         }
-        break;
-      }
 
-      case DeclarationEdge: {
-        if (edge instanceof CDeclarationEdge) {
-          newEdge = new CDeclarationEdge(rawStatement, loc, start, end, cloneAst(((CDeclarationEdge) edge).getDeclaration()));
-        } else {
-          throw new AssertionError(ONLY_C_SUPPORTED);
+      case DeclarationEdge:
+        {
+          if (edge instanceof CDeclarationEdge) {
+            newEdge =
+                new CDeclarationEdge(
+                    rawStatement,
+                    loc,
+                    start,
+                    end,
+                    cloneAst(((CDeclarationEdge) edge).getDeclaration()));
+          } else {
+            throw new AssertionError(ONLY_C_SUPPORTED);
+          }
+          break;
         }
-        break;
-      }
 
-      case ReturnStatementEdge: {
-        assert end instanceof FunctionExitNode
-            : "Expected FunctionExitNode: " + end + ", " + end.getClass();
-        if (edge instanceof CReturnStatementEdge) {
+      case ReturnStatementEdge:
+        {
+          assert end instanceof FunctionExitNode
+              : "Expected FunctionExitNode: " + end + ", " + end.getClass();
+          if (edge instanceof CReturnStatementEdge) {
             newEdge =
                 new CReturnStatementEdge(
                     rawStatement,
@@ -228,59 +248,64 @@ class FunctionCloner implements CFAVisitor {
                     loc,
                     start,
                     (FunctionExitNode) end);
-        } else {
-          throw new AssertionError(ONLY_C_SUPPORTED);
+          } else {
+            throw new AssertionError(ONLY_C_SUPPORTED);
+          }
+          break;
         }
-        break;
-      }
 
-      case FunctionCallEdge: {
-        throw new AssertionError(SUPERGRAPH_BUILD_TOO_EARLY);
+      case FunctionCallEdge:
+        {
+          throw new AssertionError(SUPERGRAPH_BUILD_TOO_EARLY);
 
-        // if (edge instanceof CFunctionCallEdge) {
-        //   CFunctionCallEdge e = (CFunctionCallEdge) edge;
-        //   newEdge = new CFunctionCallEdge(rawStatement, line, start, (CFunctionEntryNode) end,
-        //       cloneAst((CFunctionCall) e.getRawAST().get()), e.getSummaryEdge());
-        // } else {
-        //   throw new AssertionError();
-        // }
-        // break;
-      }
+          // if (edge instanceof CFunctionCallEdge) {
+          //   CFunctionCallEdge e = (CFunctionCallEdge) edge;
+          //   newEdge = new CFunctionCallEdge(rawStatement, line, start, (CFunctionEntryNode) end,
+          //       cloneAst((CFunctionCall) e.getRawAST().get()), e.getSummaryEdge());
+          // } else {
+          //   throw new AssertionError();
+          // }
+          // break;
+        }
 
-      case FunctionReturnEdge: {
-        throw new AssertionError(SUPERGRAPH_BUILD_TOO_EARLY);
+      case FunctionReturnEdge:
+        {
+          throw new AssertionError(SUPERGRAPH_BUILD_TOO_EARLY);
 
-        // if (edge instanceof CFunctionReturnEdge) {
-        //   CFunctionReturnEdge e = (CFunctionReturnEdge) edge;
-        //   newEdge = new CFunctionReturnEdge(loc, (FunctionExitNode) start, end, cloneEdge(e.getSummaryEdge()));
-        // } else {
-        //   throw new AssertionError(ONLY_C_SUPPORTED);
-        // }
-        // break;
-      }
+          // if (edge instanceof CFunctionReturnEdge) {
+          //   CFunctionReturnEdge e = (CFunctionReturnEdge) edge;
+          //   newEdge = new CFunctionReturnEdge(loc, (FunctionExitNode) start, end,
+          // cloneEdge(e.getSummaryEdge()));
+          // } else {
+          //   throw new AssertionError(ONLY_C_SUPPORTED);
+          // }
+          // break;
+        }
 
-      case CallToReturnEdge: {
-        throw new AssertionError(SUPERGRAPH_BUILD_TOO_EARLY);
+      case CallToReturnEdge:
+        {
+          throw new AssertionError(SUPERGRAPH_BUILD_TOO_EARLY);
 
-        // if (edge instanceof CFunctionSummaryEdge) {
-        //   CFunctionSummaryEdge e = (CFunctionSummaryEdge) edge;
-        //   newEdge = new CFunctionSummaryEdge(rawStatement, loc, start, end, cloneAst(e.getExpression()));
-        // } else {
-        //   throw new AssertionError();
-        // }
-        // break;
-      }
+          // if (edge instanceof CFunctionSummaryEdge) {
+          //   CFunctionSummaryEdge e = (CFunctionSummaryEdge) edge;
+          //   newEdge = new CFunctionSummaryEdge(rawStatement, loc, start, end,
+          // cloneAst(e.getExpression()));
+          // } else {
+          //   throw new AssertionError();
+          // }
+          // break;
+        }
 
       default:
         throw new AssertionError("unhandled type of edge: " + edge.getEdgeType());
     }
 
-    return (T)newEdge;
+    return (T) newEdge;
   }
 
   /** clones a node: copies all content and inserts a new functionName */
   @SuppressWarnings("unchecked")
-  private <T extends CFANode> T cloneNode(@NonNull final T node, final boolean addToMapping) {
+  private <T extends CFANode> T cloneNode(@NonNull final T node) {
     Preconditions.checkNotNull(node);
 
     if (nodeCache.containsKey(node)) {
@@ -298,14 +323,10 @@ class FunctionCloner implements CFAVisitor {
     } else if (node instanceof FunctionExitNode) {
       newNode = new FunctionExitNode(cloneAst(node.getFunction()));
 
-    } else if (node instanceof CFunctionEntryNode) {
-      final CFunctionEntryNode n = (CFunctionEntryNode) node;
-      final FunctionExitNode exitNode = n.getExitNode();
+    } else if (node instanceof CFunctionEntryNode n) {
+      @Nullable FunctionExitNode newExitNode =
+          n.getExitNode().map(exitNode -> cloneNode(exitNode)).orElse(null);
 
-      // exitNode is maybe not part of the CFA, but accessible through entryNode.getExitNode().
-      final boolean isExitNodeReachable = exitNode.getNumEnteringEdges() > 0;
-
-      final FunctionExitNode newExitNode = cloneNode(exitNode, isExitNodeReachable);
       Optional<CVariableDeclaration> returnVariable = n.getReturnVariable();
       if (returnVariable.isPresent()) {
         returnVariable = Optional.of(cloneAst(returnVariable.orElseThrow()));
@@ -316,11 +337,14 @@ class FunctionCloner implements CFAVisitor {
               cloneAst(n.getFunctionDefinition()),
               newExitNode,
               returnVariable);
-      newExitNode.setEntryNode(entryNode); // this must not change hashvalue!
+      if (newExitNode != null) {
+        newExitNode.setEntryNode(entryNode); // this must not change hashvalue!
+      }
       newNode = entryNode;
 
     } else {
-      assert node.getClass() == CFANode.class : "unhandled subclass for CFANode: " + node.getClass();
+      assert node.getClass() == CFANode.class
+          : "unhandled subclass for CFANode: " + node.getClass();
       newNode = new CFANode(cloneAst(node.getFunction()));
     }
 
@@ -330,9 +354,7 @@ class FunctionCloner implements CFAVisitor {
       newNode.setLoopStart();
     }
 
-    if (addToMapping) {
-      nodeCache.put(node, newNode);
-    }
+    nodeCache.put(node, newNode);
 
     return (T) newNode;
   }
@@ -374,91 +396,103 @@ class FunctionCloner implements CFAVisitor {
       if (ast instanceof CExpression) {
         return ((CExpression) ast).accept(expCloner);
 
-      } else if (ast instanceof CFunctionCallExpression) {
-        CFunctionCallExpression func = (CFunctionCallExpression) ast;
-        return new CFunctionCallExpression(loc, cloneType(func.getExpressionType()),
-                cloneAst(func.getFunctionNameExpression()),
-                cloneAstList(func.getParameterExpressions()), cloneAst(func.getDeclaration()));
+      } else if (ast instanceof CFunctionCallExpression func) {
+        return new CFunctionCallExpression(
+            loc,
+            cloneType(func.getExpressionType()),
+            cloneAst(func.getFunctionNameExpression()),
+            cloneAstList(func.getParameterExpressions()),
+            cloneAst(func.getDeclaration()));
       }
 
     } else if (ast instanceof CInitializer) {
 
       if (ast instanceof CInitializerExpression) {
-        return new CInitializerExpression(loc, cloneAst(((CInitializerExpression) ast).getExpression()));
+        return new CInitializerExpression(
+            loc, cloneAst(((CInitializerExpression) ast).getExpression()));
 
       } else if (ast instanceof CInitializerList) {
         return new CInitializerList(loc, cloneAstList(((CInitializerList) ast).getInitializers()));
 
-      } else if (ast instanceof CDesignatedInitializer) {
-        CDesignatedInitializer di = (CDesignatedInitializer) ast;
-        return new CDesignatedInitializer(loc, cloneAstList(di.getDesignators()), cloneAst(di.getRightHandSide()));
+      } else if (ast instanceof CDesignatedInitializer di) {
+        return new CDesignatedInitializer(
+            loc, cloneAstList(di.getDesignators()), cloneAst(di.getRightHandSide()));
       }
 
     } else if (ast instanceof CSimpleDeclaration) {
 
-      if (ast instanceof CVariableDeclaration) {
-        CVariableDeclaration decl = (CVariableDeclaration) ast;
-        CVariableDeclaration newDecl = new CVariableDeclaration(loc, decl.isGlobal(), decl.getCStorageClass(),
-                cloneType(decl.getType()), decl.getName(), decl.getOrigName(),
-                changeQualifiedName(decl.getQualifiedName()), null);
+      if (ast instanceof CVariableDeclaration decl) {
+        CVariableDeclaration newDecl =
+            new CVariableDeclaration(
+                loc,
+                decl.isGlobal(),
+                decl.getCStorageClass(),
+                cloneType(decl.getType()),
+                decl.getName(),
+                decl.getOrigName(),
+                changeQualifiedName(decl.getQualifiedName()),
+                null);
         // cache the declaration, then clone the initializer and add it.
         // this is needed for the following code: int x = x;
         astCache.put(ast, newDecl);
         newDecl.addInitializer(cloneAst(decl.getInitializer()));
         return newDecl;
 
-      } else if (ast instanceof CFunctionDeclaration) {
-        CFunctionDeclaration decl = (CFunctionDeclaration) ast;
+      } else if (ast instanceof CFunctionDeclaration decl) {
         List<CParameterDeclaration> l = new ArrayList<>(decl.getParameters().size());
         for (CParameterDeclaration param : decl.getParameters()) {
           l.add(cloneAst(param));
         }
         return new CFunctionDeclaration(
-            loc, cloneType(decl.getType()), changeName(decl.getName()), decl.getOrigName(), l);
+            loc,
+            cloneType(decl.getType()),
+            changeName(decl.getName()),
+            decl.getOrigName(),
+            l,
+            decl.getAttributes());
 
-      } else if (ast instanceof CComplexTypeDeclaration) {
-        CComplexTypeDeclaration decl = (CComplexTypeDeclaration) ast;
+      } else if (ast instanceof CComplexTypeDeclaration decl) {
         return new CComplexTypeDeclaration(loc, decl.isGlobal(), cloneType(decl.getType()));
 
-      } else if (ast instanceof CTypeDefDeclaration) {
-        CTypeDefDeclaration decl = (CTypeDefDeclaration) ast;
-        return new CTypeDefDeclaration(loc, decl.isGlobal(), cloneType(decl.getType()),
-                decl.getName(), changeQualifiedName(decl.getQualifiedName()));
+      } else if (ast instanceof CTypeDefDeclaration decl) {
+        return new CTypeDefDeclaration(
+            loc,
+            decl.isGlobal(),
+            cloneType(decl.getType()),
+            decl.getName(),
+            changeQualifiedName(decl.getQualifiedName()));
 
-      } else if (ast instanceof CParameterDeclaration) {
+      } else if (ast instanceof CParameterDeclaration decl) {
         // we do not cache CParameterDeclaration, but clone it directly,
         // because its equals- and hashcode-Method are insufficient for caching
         // TODO do we need to cache it?
-        CParameterDeclaration decl = (CParameterDeclaration) ast;
-        CParameterDeclaration newDecl = new CParameterDeclaration(loc, cloneType(decl.getType()), decl.getName());
+        CParameterDeclaration newDecl =
+            new CParameterDeclaration(loc, cloneType(decl.getType()), decl.getName());
         newDecl.setQualifiedName(changeQualifiedName(decl.getQualifiedName()));
         return newDecl;
 
-      } else if (ast instanceof CEnumType.CEnumerator) {
-        CEnumType.CEnumerator decl = (CEnumType.CEnumerator) ast;
-        return new CEnumType.CEnumerator(
-            loc,
-            decl.getName(),
-            changeQualifiedName(decl.getQualifiedName()),
-            decl.getType(),
-            decl.getValue());
+      } else if (ast instanceof CEnumerator decl) {
+        return new CEnumerator(
+            loc, decl.getName(), changeQualifiedName(decl.getQualifiedName()), decl.getValue());
       }
 
     } else if (ast instanceof CStatement) {
 
-      if (ast instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement stat = (CFunctionCallAssignmentStatement) ast;
-        return new CFunctionCallAssignmentStatement(loc, cloneAst(stat.getLeftHandSide()), cloneAst(stat.getRightHandSide()));
+      if (ast instanceof CFunctionCallAssignmentStatement stat) {
+        return new CFunctionCallAssignmentStatement(
+            loc, cloneAst(stat.getLeftHandSide()), cloneAst(stat.getRightHandSide()));
 
-      } else if (ast instanceof CExpressionAssignmentStatement) {
-        CExpressionAssignmentStatement stat = (CExpressionAssignmentStatement) ast;
-        return new CExpressionAssignmentStatement(loc, cloneAst(stat.getLeftHandSide()), cloneAst(stat.getRightHandSide()));
+      } else if (ast instanceof CExpressionAssignmentStatement stat) {
+        return new CExpressionAssignmentStatement(
+            loc, cloneAst(stat.getLeftHandSide()), cloneAst(stat.getRightHandSide()));
 
       } else if (ast instanceof CFunctionCallStatement) {
-        return new CFunctionCallStatement(loc, cloneAst(((CFunctionCallStatement) ast).getFunctionCallExpression()));
+        return new CFunctionCallStatement(
+            loc, cloneAst(((CFunctionCallStatement) ast).getFunctionCallExpression()));
 
       } else if (ast instanceof CExpressionStatement) {
-        return new CExpressionStatement(loc, cloneAst(((CExpressionStatement) ast).getExpression()));
+        return new CExpressionStatement(
+            loc, cloneAst(((CExpressionStatement) ast).getExpression()));
       }
 
     } else if (ast instanceof CReturnStatement) {
@@ -475,14 +509,17 @@ class FunctionCloner implements CFAVisitor {
     } else if (ast instanceof CDesignator) {
 
       if (ast instanceof CArrayDesignator) {
-        return new CArrayDesignator(loc, cloneAst(((CArrayDesignator) ast).getSubscriptExpression()));
+        return new CArrayDesignator(
+            loc, cloneAst(((CArrayDesignator) ast).getSubscriptExpression()));
 
       } else if (ast instanceof CArrayRangeDesignator) {
-        return new CArrayRangeDesignator(loc, cloneAst(((CArrayRangeDesignator) ast).getFloorExpression()),
-                cloneAst(((CArrayRangeDesignator) ast).getCeilExpression()));
+        return new CArrayRangeDesignator(
+            loc,
+            cloneAst(((CArrayRangeDesignator) ast).getFloorExpression()),
+            cloneAst(((CArrayRangeDesignator) ast).getCeilExpression()));
 
       } else if (ast instanceof CFieldDesignator) {
-        return new CFieldDesignator(loc, ((CFieldDesignator)ast).getFieldName());
+        return new CFieldDesignator(loc, ((CFieldDesignator) ast).getFieldName());
       }
     }
 
@@ -515,8 +552,10 @@ class FunctionCloner implements CFAVisitor {
     throw new AssertionError("unhandled Type " + type + " of " + type.getClass());
   }
 
-  /** clones CExpressions and calls cloneAst on non-expression-content.
-   * Note: caching sub-expressions is useless because of the location, that is different for each expression. */
+  /**
+   * clones CExpressions and calls cloneAst on non-expression-content. Note: caching sub-expressions
+   * is useless because of the location, that is different for each expression.
+   */
   private class CExpressionCloner extends DefaultCExpressionVisitor<CExpression, NoException> {
 
     @Override
@@ -526,53 +565,82 @@ class FunctionCloner implements CFAVisitor {
 
     @Override
     public CExpression visit(CBinaryExpression exp) {
-      return new CBinaryExpression(exp.getFileLocation(), exp.getExpressionType(), exp.getCalculationType(),
-              exp.getOperand1().accept(this), exp.getOperand2().accept(this), exp.getOperator());
+      return new CBinaryExpression(
+          exp.getFileLocation(),
+          exp.getExpressionType(),
+          exp.getCalculationType(),
+          exp.getOperand1().accept(this),
+          exp.getOperand2().accept(this),
+          exp.getOperator());
     }
 
     @Override
     public CExpression visit(CCastExpression exp) {
-      return new CCastExpression(exp.getFileLocation(), cloneType(exp.getExpressionType()), exp.getOperand().accept(this));
+      return new CCastExpression(
+          exp.getFileLocation(), cloneType(exp.getExpressionType()), exp.getOperand().accept(this));
     }
 
     @Override
     public CExpression visit(CUnaryExpression exp) {
-      return new CUnaryExpression(exp.getFileLocation(), cloneType(exp.getExpressionType()), exp.getOperand().accept(this), exp.getOperator());
+      return new CUnaryExpression(
+          exp.getFileLocation(),
+          cloneType(exp.getExpressionType()),
+          exp.getOperand().accept(this),
+          exp.getOperator());
     }
 
     @Override
     public CExpression visit(CArraySubscriptExpression exp) {
-      return new CArraySubscriptExpression(exp.getFileLocation(), cloneType(exp.getExpressionType()),
-              exp.getArrayExpression().accept(this), exp.getSubscriptExpression().accept(this));
+      return new CArraySubscriptExpression(
+          exp.getFileLocation(),
+          cloneType(exp.getExpressionType()),
+          exp.getArrayExpression().accept(this),
+          exp.getSubscriptExpression().accept(this));
     }
 
     @Override
     public CExpression visit(CFieldReference exp) {
-      return new CFieldReference(exp.getFileLocation(), cloneType(exp.getExpressionType()),
-              exp.getFieldName(), exp.getFieldOwner().accept(this), exp.isPointerDereference());
+      return new CFieldReference(
+          exp.getFileLocation(),
+          cloneType(exp.getExpressionType()),
+          exp.getFieldName(),
+          exp.getFieldOwner().accept(this),
+          exp.isPointerDereference());
     }
 
     @Override
     public CExpression visit(CIdExpression exp) {
-      // check for self-recursion --> replace self-calling functioncalls with new self-calling functioncalls
+      // check for self-recursion --> replace self-calling functioncalls with new self-calling
+      // functioncalls
       if (exp.getExpressionType() instanceof CFunctionType) {
-        return new CIdExpression(exp.getFileLocation(), cloneType(exp.getExpressionType()),
-                changeName(exp.getName()), cloneAst(exp.getDeclaration()));
+        return new CIdExpression(
+            exp.getFileLocation(),
+            cloneType(exp.getExpressionType()),
+            changeName(exp.getName()),
+            cloneAst(exp.getDeclaration()));
       } else {
-        return  new CIdExpression(exp.getFileLocation(), cloneType(exp.getExpressionType()),
-                exp.getName(), cloneAst(exp.getDeclaration()));
+        return new CIdExpression(
+            exp.getFileLocation(),
+            cloneType(exp.getExpressionType()),
+            exp.getName(),
+            cloneAst(exp.getDeclaration()));
       }
     }
 
     @Override
     public CExpression visit(CPointerExpression exp) {
-      return new CPointerExpression(exp.getFileLocation(), cloneType(exp.getExpressionType()), exp.getOperand().accept(this));
+      return new CPointerExpression(
+          exp.getFileLocation(), cloneType(exp.getExpressionType()), exp.getOperand().accept(this));
     }
 
     @Override
     public CExpression visit(CComplexCastExpression exp) {
-      return new CComplexCastExpression(exp.getFileLocation(), cloneType(exp.getExpressionType()),
-              exp.getOperand().accept(this), exp.getType(), exp.isRealCast());
+      return new CComplexCastExpression(
+          exp.getFileLocation(),
+          cloneType(exp.getExpressionType()),
+          exp.getOperand().accept(this),
+          exp.getType(),
+          exp.isRealCast());
     }
   }
 
@@ -585,7 +653,8 @@ class FunctionCloner implements CFAVisitor {
 
     @Override
     public CType visit(CArrayType type) {
-      return new CArrayType(type.isConst(), type.isVolatile(), type.getType().accept(this), type.getLength());
+      return new CArrayType(
+          type.isConst(), type.isVolatile(), type.getType().accept(this), type.getLength());
     }
 
     @Override
@@ -613,24 +682,36 @@ class FunctionCloner implements CFAVisitor {
 
     @Override
     public CType visit(CElaboratedType type) {
-      return new CElaboratedType(type.isConst(), type.isVolatile(), type.getKind(), type.getName(), type.getOrigName(), cloneType(type.getRealType()));
+      return new CElaboratedType(
+          type.isConst(),
+          type.isVolatile(),
+          type.getKind(),
+          type.getName(),
+          type.getOrigName(),
+          cloneType(type.getRealType()));
     }
 
     @Override
     public CType visit(CEnumType type) {
-      List<CEnumType.CEnumerator> l = new ArrayList<>(type.getEnumerators().size());
-      for (CEnumType.CEnumerator e : type.getEnumerators()) {
-        CEnumType.CEnumerator enumType =
-            new CEnumType.CEnumerator(
+      List<CEnumerator> l = new ArrayList<>(type.getEnumerators().size());
+      for (CEnumerator e : type.getEnumerators()) {
+        l.add(
+            new CEnumerator(
                 e.getFileLocation(),
                 e.getName(),
                 changeQualifiedName(e.getQualifiedName()),
-                e.getType(),
-                (e.hasValue() ? e.getValue() : null));
-        enumType.setEnum(e.getEnum());
-        l.add(enumType);
+                e.getValue()));
       }
-      return new CEnumType(type.isConst(), type.isVolatile(), l, type.getName(), type.getOrigName());
+      CEnumType enumType =
+          new CEnumType(
+              type.isConst(),
+              type.isVolatile(),
+              type.getCompatibleType(),
+              l,
+              type.getName(),
+              type.getOrigName());
+      l.forEach(e -> e.setEnum(enumType));
+      return enumType;
     }
 
     @Override
@@ -638,7 +719,8 @@ class FunctionCloner implements CFAVisitor {
       final CFunctionType funcType;
       if (type instanceof CFunctionTypeWithNames) {
         List<CParameterDeclaration> l = new ArrayList<>(type.getParameters().size());
-        for (CParameterDeclaration param : ((CFunctionTypeWithNames)type).getParameterDeclarations()) {
+        for (CParameterDeclaration param :
+            ((CFunctionTypeWithNames) type).getParameterDeclarations()) {
           l.add(cloneAst(param));
         }
         funcType = new CFunctionTypeWithNames(type.getReturnType(), l, type.takesVarArgs());
@@ -663,7 +745,8 @@ class FunctionCloner implements CFAVisitor {
 
     @Override
     public CType visit(CTypedefType type) {
-      return new CTypedefType(type.isConst(), type.isVolatile(), type.getName(), type.getRealType().accept(this));
+      return new CTypedefType(
+          type.isConst(), type.isVolatile(), type.getName(), type.getRealType().accept(this));
     }
 
     @Override

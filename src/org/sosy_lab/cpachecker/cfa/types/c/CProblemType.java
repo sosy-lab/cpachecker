@@ -13,9 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/**
- * This type is used when the parser could not determine the correct type.
- */
+/** This type is used when the parser could not determine the correct type. */
 public final class CProblemType implements CType {
 
   private static final long serialVersionUID = -5658149239682173246L;
@@ -46,6 +44,11 @@ public final class CProblemType implements CType {
   }
 
   @Override
+  public boolean hasKnownConstantSize() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public String toASTString(String pDeclarator) {
     checkNotNull(pDeclarator);
     return typeName + " " + pDeclarator;
@@ -62,9 +65,9 @@ public final class CProblemType implements CType {
   }
 
   /**
-   * Be careful, this method compares the CType as it is to the given object,
-   * typedefs won't be resolved. If you want to compare the type without having
-   * typedefs in it use #getCanonicalType().equals()
+   * Be careful, this method compares the CType as it is to the given object, typedefs won't be
+   * resolved. If you want to compare the type without having typedefs in it use
+   * #getCanonicalType().equals()
    */
   @Override
   public boolean equals(@Nullable Object obj) {

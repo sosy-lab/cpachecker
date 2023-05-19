@@ -122,7 +122,6 @@ class PollingResultDownloader:
         self._shutdown = threading.Event()
 
     def _poll_run_states(self):
-
         # in every iteration the states of all unfinished runs are requested once
         while not self._shutdown.is_set():
             start = time()
@@ -137,7 +136,6 @@ class PollingResultDownloader:
 
             # Collect states of runs
             for state_future in as_completed(states.keys()):
-
                 run_id = states[state_future]
                 state = state_future.result()
 
@@ -153,7 +151,7 @@ class PollingResultDownloader:
                 self._shutdown.wait(self._result_poll_interval - duration)
 
     def start(self):
-        if (not self._shutdown.is_set()) and (not self._state_poll_thread.isAlive()):
+        if (not self._shutdown.is_set()) and (not self._state_poll_thread.is_alive()):
             logging.info("Starting polling of run states.")
             self._state_poll_thread.start()
 
@@ -174,7 +172,7 @@ if HAS_SSECLIENT:
             last_id=None,
             retry=3000,
             session=None,
-            **kwargs
+            **kwargs,
         ):
             super().__init__(url, last_id, retry, session, **kwargs)
             self._should_reconnect = should_reconnect
@@ -227,11 +225,9 @@ if HAS_SSECLIENT:
                 logging.debug("Exception in SSE connection: %s", error)
                 return False
             else:
-
                 return True
 
         def _start_sse_connection(self):
-
             while self._new_runs:
                 run_ids = set(self._web_interface._unfinished_runs.keys())
                 self._new_runs = False
@@ -476,12 +472,21 @@ class WebInterface:
         directory = os.path.dirname(HASH_CODE_CACHE_PATH)
         try:
             os.makedirs(directory, exist_ok=True)
-            with tempfile.NamedTemporaryFile(dir=directory, delete=False) as tmpFile:
-                for (path, mTime), hashValue in hash_code_cache.items():
-                    line = path + "\t" + mTime + "\t" + hashValue + "\n"
-                    tmpFile.write(line.encode())
+            try:
+                with tempfile.NamedTemporaryFile(
+                    dir=directory, delete=False
+                ) as tmpFile:
+                    for (path, mTime), hashValue in hash_code_cache.items():
+                        line = path + "\t" + mTime + "\t" + hashValue + "\n"
+                        tmpFile.write(line.encode())
 
-                os.renames(tmpFile.name, HASH_CODE_CACHE_PATH)
+                os.replace(tmpFile.name, HASH_CODE_CACHE_PATH)
+            except OSError:
+                try:
+                    os.remove(tmpFile.name)
+                except OSError:
+                    pass
+                raise
         except OSError as e:
             logging.warning(
                 "Could not write hash-code cache file to %s: %s",
@@ -643,7 +648,6 @@ class WebInterface:
         revision,
         counter=0,
     ):
-
         params = []
         opened_files = []  # open file handles are passed to the request library
 
@@ -1164,7 +1168,7 @@ class WebInterface:
 
 def _open_output_log(output_path):
     log_file_path = output_path + "output.log"
-    logging.info("Log file is written to " + log_file_path + ".")
+    logging.info("Log file is written to %s.", log_file_path)
     return open(log_file_path, "wb")
 
 
@@ -1268,7 +1272,6 @@ def _handle_result(
     result_files_patterns,
     run_identifier,
 ):
-
     files = set(resultZipFile.namelist())
 
     # extract run info

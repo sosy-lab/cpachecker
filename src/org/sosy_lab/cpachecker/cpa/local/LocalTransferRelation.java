@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -53,7 +52,6 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.ConstantIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.IdentifierCreator;
@@ -66,26 +64,23 @@ public class LocalTransferRelation
     extends ForwardingTransferRelation<LocalState, LocalState, Precision> {
 
   @Option(
-    name = "allocatefunctions",
-    description = "functions, which allocate new free memory",
-    secure = true
-  )
+      name = "allocatefunctions",
+      description = "functions, which allocate new free memory",
+      secure = true)
   private Set<String> allocate = ImmutableSet.of();
 
   // Use it carefully: just alloc is not enough, because EMG generates
   // ldv_random_allocationless_scenario_callback_*
   @Option(
-    name = "allocateFunctionPattern",
-    description = "functions, which allocate new free memory",
-    secure = true
-  )
+      name = "allocateFunctionPattern",
+      description = "functions, which allocate new free memory",
+      secure = true)
   private Set<String> allocatePattern = ImmutableSet.of();
 
   @Option(
-    name = "conservativefunctions",
-    description = "functions, which do not change sharedness of parameters",
-    secure = true
-  )
+      name = "conservativefunctions",
+      description = "functions, which do not change sharedness of parameters",
+      secure = true)
   private Set<String> conservationOfSharedness = ImmutableSet.of();
 
   private final Map<String, Integer> allocateInfo;
@@ -131,20 +126,14 @@ public class LocalTransferRelation
 
   @Override
   protected LocalState handleFunctionReturnEdge(
-      CFunctionReturnEdge cfaEdge,
-      CFunctionSummaryEdge fnkCall,
-      CFunctionCall summaryExpr,
-      String callerFunctionName)
+      CFunctionReturnEdge cfaEdge, CFunctionCall exprOnSummary, String callerFunctionName)
       throws HandleCodeException {
 
     // NOTE! getFunctionName() return inner function name!
 
-    CFunctionCall exprOnSummary = cfaEdge.getSummaryEdge().getExpression();
     LocalState newElement = state.getClonedPreviousState();
 
-    if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement assignExp =
-          ((CFunctionCallAssignmentStatement) exprOnSummary);
+    if (exprOnSummary instanceof CFunctionCallAssignmentStatement assignExp) {
       // Need to prepare id as left id is from caller function and the right id is from called
       // function
       int dereference = findDereference(assignExp.getLeftHandSide().getExpressionType());
@@ -155,28 +144,26 @@ public class LocalTransferRelation
     }
 
     // Update the outer parameters:
-    CFunctionSummaryEdge sEdge = cfaEdge.getSummaryEdge();
-    CFunctionEntryNode entry = sEdge.getFunctionEntry();
+    CFunctionEntryNode entry = cfaEdge.getFunctionEntry();
     String funcName = entry.getFunctionName();
     assert funcName.equals(getFunctionName());
-
 
     int allocParameter = isParameterAllocatedFunction(funcName) ? allocateInfo.get(funcName) : 0;
     List<String> paramNames = entry.getFunctionParameterNames();
     List<CExpression> arguments =
-        sEdge.getExpression().getFunctionCallExpression().getParameterExpressions();
+        cfaEdge.getFunctionCall().getFunctionCallExpression().getParameterExpressions();
     List<CParameterDeclaration> parameterTypes = entry.getFunctionDefinition().getParameters();
 
-    List<Triple<AbstractIdentifier, LocalVariableIdentifier, Integer>> toProcess =
+    List<Identifier> toProcess =
         extractIdentifiers(arguments, paramNames, parameterTypes, callerFunctionName, funcName);
 
     for (int i = 0; i < toProcess.size(); i++) {
-      Triple<AbstractIdentifier, LocalVariableIdentifier, Integer> pairId = toProcess.get(i);
+      Identifier pairId = toProcess.get(i);
       // Note, index starts from in configuration
       if (allocParameter > 0 && allocParameter == i + 1) {
-        completeSet(newElement, pairId.getFirst(), pairId.getThird(), DataType.LOCAL);
+        completeSet(newElement, pairId.outerId(), pairId.dereference(), DataType.LOCAL);
       } else {
-        completeAssign(newElement, pairId.getFirst(), pairId.getThird(), pairId.getSecond());
+        completeAssign(newElement, pairId.outerId(), pairId.dereference(), pairId.innerId());
       }
     }
     return newElement;
@@ -192,19 +179,18 @@ public class LocalTransferRelation
     CFunctionEntryNode functionEntryNode = cfaEdge.getSuccessor();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
 
-    List<Triple<AbstractIdentifier, LocalVariableIdentifier, Integer>> toProcess =
+    List<Identifier> toProcess =
         extractIdentifiers(
             arguments, paramNames, parameterTypes, getFunctionName(), calledFunctionName);
     // TODO Make it with config
-    boolean isThreadCreate =
-        cfaEdge.getSummaryEdge().getExpression() instanceof CThreadCreateStatement;
+    boolean isThreadCreate = cfaEdge.getFunctionCall() instanceof CThreadCreateStatement;
 
-    for (Triple<AbstractIdentifier, LocalVariableIdentifier, Integer> pairId : toProcess) {
+    for (Identifier pairId : toProcess) {
       if (isThreadCreate) {
         // Data became shared after thread creation
-        completeSet(newState, pairId.getSecond(), pairId.getThird(), DataType.GLOBAL);
+        completeSet(newState, pairId.innerId(), pairId.dereference(), DataType.GLOBAL);
       } else {
-        completeAssign(newState, pairId.getSecond(), pairId.getThird(), pairId.getFirst());
+        completeAssign(newState, pairId.innerId(), pairId.dereference(), pairId.outerId());
       }
     }
 
@@ -214,9 +200,8 @@ public class LocalTransferRelation
   @Override
   protected LocalState handleStatementEdge(CStatementEdge cfaEdge, CStatement statement) {
     LocalState newState = state.copy();
-    if (statement instanceof CAssignment) {
+    if (statement instanceof CAssignment assignment) {
       // assignment like "a = b" or "a = foo()"
-      CAssignment assignment = (CAssignment) statement;
       assign(newState, assignment.getLeftHandSide(), assignment.getRightHandSide());
     }
     return newState;
@@ -284,14 +269,17 @@ public class LocalTransferRelation
     return false;
   }
 
-  private List<Triple<AbstractIdentifier, LocalVariableIdentifier, Integer>> extractIdentifiers(
+  private record Identifier(
+      AbstractIdentifier outerId, LocalVariableIdentifier innerId, int dereference) {}
+
+  private List<Identifier> extractIdentifiers(
       List<CExpression> arguments,
       List<String> paramNames,
       List<CParameterDeclaration> parameterTypes,
       String callerFunction,
       String calledFunction) {
 
-    List<Triple<AbstractIdentifier, LocalVariableIdentifier, Integer>> result = new ArrayList<>();
+    List<Identifier> result = new ArrayList<>();
     CExpression currentArgument;
     int dereference;
     for (int i = 0; i < arguments.size(); i++) {
@@ -308,7 +296,7 @@ public class LocalTransferRelation
               paramNames.get(i), parameterTypes.get(i).getType(), calledFunction, 0);
       AbstractIdentifier outerId =
           createId(currentArgument, 0, new IdentifierCreator(callerFunction));
-      result.add(Triple.of(outerId, innerId, dereference));
+      result.add(new Identifier(outerId, innerId, dereference));
     }
     return result;
   }
@@ -365,8 +353,8 @@ public class LocalTransferRelation
       AbstractIdentifier leftId,
       int dereference,
       AbstractIdentifier rightId) {
-    //assign leftId = rightId
-    //alias *leftId <-> *rightId
+    // assign leftId = rightId
+    // alias *leftId <-> *rightId
 
     if (dereference > 0) {
       leftId = incrementDereference(leftId);
@@ -387,8 +375,7 @@ public class LocalTransferRelation
     }
   }
 
-  private void alias(
-      LocalState pSuccessor, AbstractIdentifier leftId, AbstractIdentifier rightId) {
+  private void alias(LocalState pSuccessor, AbstractIdentifier leftId, AbstractIdentifier rightId) {
     if (leftId.isGlobal() && !pSuccessor.checkIsAlwaysLocal(leftId)) {
       // Variable is global, not memory location!
       // So, we should set the type of 'right' to global
@@ -423,11 +410,9 @@ public class LocalTransferRelation
   }
 
   public static int findDereference(CType type) {
-    if (type instanceof CPointerType) {
-      CPointerType pointerType = (CPointerType) type;
+    if (type instanceof CPointerType pointerType) {
       return (findDereference(pointerType.getType()) + 1);
-    } else if (type instanceof CArrayType) {
-      CArrayType arrayType = (CArrayType) type;
+    } else if (type instanceof CArrayType arrayType) {
       return (findDereference(arrayType.getType()) + 1);
     } else if (type instanceof CTypedefType) {
       return findDereference(((CTypedefType) type).getRealType());
@@ -441,7 +426,6 @@ public class LocalTransferRelation
   }
 
   private boolean isParameterAllocatedFunction(String funcName) {
-    return allocateInfo.containsKey(funcName)
-        && allocateInfo.get(funcName) > 0;
+    return allocateInfo.containsKey(funcName) && allocateInfo.get(funcName) > 0;
   }
 }

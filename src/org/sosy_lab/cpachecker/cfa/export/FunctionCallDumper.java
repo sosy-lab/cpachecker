@@ -44,11 +44,14 @@ import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-/** This class allows to dump functioncalls in a tree-like structure.
- * For most cases the structure is a tree, but for special cases the graph contains
- * loops (-> recursion) or several root-nodes (-> one for each unused function).
+/**
+ * This class allows to dump functioncalls in a tree-like structure. For most cases the structure is
+ * a tree, but for special cases the graph contains loops (-> recursion) or several root-nodes (->
+ * one for each unused function).
  */
-public class FunctionCallDumper {
+public final class FunctionCallDumper {
+
+  private FunctionCallDumper() {}
 
   /**
    * This method iterates over the CFA, searches for function calls and after that, dumps them in a
@@ -62,7 +65,7 @@ public class FunctionCallDumper {
 
     // get all function calls
     final CFAFunctionCallFinder finder = new CFAFunctionCallFinder(pCfa);
-    for (final FunctionEntryNode entryNode : pCfa.getAllFunctionHeads()) {
+    for (final FunctionEntryNode entryNode : pCfa.entryNodes()) {
       CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(entryNode, finder);
     }
 
@@ -180,10 +183,11 @@ public class FunctionCallDumper {
     @Override
     public TraversalProcess visitEdge(final CFAEdge pEdge) {
       switch (pEdge.getEdgeType()) {
-      case CallToReturnEdge: {
-        // the normal case of functioncall, both functions have their complete CFA
-        final FunctionSummaryEdge function = (FunctionSummaryEdge) pEdge;
-        final String functionName = function.getPredecessor().getFunctionName();
+        case CallToReturnEdge:
+          {
+            // the normal case of functioncall, both functions have their complete CFA
+            final FunctionSummaryEdge function = (FunctionSummaryEdge) pEdge;
+            final String functionName = function.getPredecessor().getFunctionName();
             final AFunctionDeclaration calledFunctionDecl =
                 CFAUtils.leavingEdges(function.getPredecessor())
                     .filter(FunctionCallEdge.class)
@@ -197,17 +201,19 @@ public class FunctionCallDumper {
             break;
           }
 
-      case StatementEdge: {
-        final AStatementEdge edge = (AStatementEdge) pEdge;
-        if (edge.getStatement() instanceof AFunctionCall) {
-          // called function has no body, only declaration available, external function
-          final AFunctionCall functionCall = (AFunctionCall) edge.getStatement();
-          final AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
-          final AFunctionDeclaration declaration = functionCallExpression.getDeclaration();
-          if (declaration != null) {
-            final String functionName = pEdge.getPredecessor().getFunctionName();
-            final String calledFunction = declaration.getName();
-            functionCalls.put(functionName, calledFunction);
+        case StatementEdge:
+          {
+            final AStatementEdge edge = (AStatementEdge) pEdge;
+            if (edge.getStatement() instanceof AFunctionCall) {
+              // called function has no body, only declaration available, external function
+              final AFunctionCall functionCall = (AFunctionCall) edge.getStatement();
+              final AFunctionCallExpression functionCallExpression =
+                  functionCall.getFunctionCallExpression();
+              final AFunctionDeclaration declaration = functionCallExpression.getDeclaration();
+              if (declaration != null) {
+                final String functionName = pEdge.getPredecessor().getFunctionName();
+                final String calledFunction = declaration.getName();
+                functionCalls.put(functionName, calledFunction);
                 originalNames.put(declaration.getName(), declaration.getOrigName());
 
                 // for threads, we also collect function called via pthread_create
@@ -232,17 +238,16 @@ public class FunctionCallDumper {
                     }
                   }
                 }
+              }
+            }
+            break;
           }
-        }
-        break;
-      }
 
-      case FunctionCallEdge: {
-        throw new AssertionError("traversal-strategy should ignore functioncalls");
-      }
+        case FunctionCallEdge:
+          throw new AssertionError("traversal-strategy should ignore functioncalls");
 
-      default:
-         // nothing to do
+        default:
+          // nothing to do
 
       }
       return TraversalProcess.CONTINUE;

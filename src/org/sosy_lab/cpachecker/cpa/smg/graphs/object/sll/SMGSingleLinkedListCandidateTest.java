@@ -43,7 +43,8 @@ public class SMGSingleLinkedListCandidateTest {
             0,
             MachineModel.LINUX32.getSizeofInBits(CPointerType.POINTER_TO_VOID).longValueExact(),
             MachineModel.LINUX32);
-    SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 2, SMGJoinStatus.INCOMPARABLE, false);
+    SMGSingleLinkedListCandidateSequence candidateSeq =
+        new SMGSingleLinkedListCandidateSequence(candidate, 2, SMGJoinStatus.INCOMPARABLE, false);
 
     assertThat(candidate.getStartObject()).isSameInstanceAs(object);
     assertThat(candidate.getShape().getNfo()).isEqualTo(32);
@@ -71,10 +72,17 @@ public class SMGSingleLinkedListCandidateTest {
             0,
             MachineModel.LINUX32.getSizeofInBits(CPointerType.POINTER_TO_VOID).longValueExact(),
             MachineModel.LINUX32);
-    SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, SEGMENT_LENGTH, SMGJoinStatus.INCOMPARABLE, false);
+    SMGSingleLinkedListCandidateSequence candidateSeq =
+        new SMGSingleLinkedListCandidateSequence(
+            candidate, SEGMENT_LENGTH, SMGJoinStatus.INCOMPARABLE, false);
 
-    CLangSMG abstractedSmg = candidateSeq.execute(smg,
-        new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration())));
+    CLangSMG abstractedSmg =
+        candidateSeq.execute(
+            smg,
+            new SMGState(
+                LogManager.createTestLogManager(),
+                MachineModel.LINUX64,
+                new SMGOptions(Configuration.defaultConfiguration())));
     PersistentSet<SMGObject> heap = abstractedSmg.getHeapObjects();
     assertThat(heap).hasSize(2);
     SMGHasValueEdges globalHves =
@@ -84,7 +92,7 @@ public class SMGSingleLinkedListCandidateTest {
     SMGObject pointedObject = abstractedSmg.getPointer(value).getObject();
     assertThat(pointedObject).isInstanceOf(SMGSingleLinkedList.class);
     assertThat(pointedObject.isAbstract()).isTrue();
-    SMGSingleLinkedList segment = (SMGSingleLinkedList)pointedObject;
+    SMGSingleLinkedList segment = (SMGSingleLinkedList) pointedObject;
     assertThat(segment.getSize()).isEqualTo(NODE_SIZE);
     assertThat(segment.getMinimumLength()).isEqualTo(SEGMENT_LENGTH);
     assertThat(segment.getNfo()).isEqualTo(OFFSET);
@@ -102,7 +110,8 @@ public class SMGSingleLinkedListCandidateTest {
   }
 
   @Test
-  public void executeOnNullTerminatedList() throws SMGInconsistentException, InvalidConfigurationException {
+  public void executeOnNullTerminatedList()
+      throws SMGInconsistentException, InvalidConfigurationException {
     CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
     SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 2, 128, 64, "pointer");
 
@@ -115,9 +124,15 @@ public class SMGSingleLinkedListCandidateTest {
             0,
             MachineModel.LINUX32.getSizeofInBits(CPointerType.POINTER_TO_VOID).longValueExact(),
             MachineModel.LINUX32);
-    SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 2, SMGJoinStatus.INCOMPARABLE, false);
-    CLangSMG abstractedSmg = candidateSeq.execute(smg,
-        new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration())));
+    SMGSingleLinkedListCandidateSequence candidateSeq =
+        new SMGSingleLinkedListCandidateSequence(candidate, 2, SMGJoinStatus.INCOMPARABLE, false);
+    CLangSMG abstractedSmg =
+        candidateSeq.execute(
+            smg,
+            new SMGState(
+                LogManager.createTestLogManager(),
+                MachineModel.LINUX64,
+                new SMGOptions(Configuration.defaultConfiguration())));
     PersistentSet<SMGObject> heap = abstractedSmg.getHeapObjects();
     assertThat(heap).hasSize(2);
     SMGHasValueEdges globalHves =
@@ -127,7 +142,7 @@ public class SMGSingleLinkedListCandidateTest {
     SMGObject sll = abstractedSmg.getPointer(value).getObject();
     assertThat(sll.isAbstract()).isTrue();
     assertThat(sll).isInstanceOf(SMGSingleLinkedList.class);
-    SMGSingleLinkedList realSll = (SMGSingleLinkedList)sll;
+    SMGSingleLinkedList realSll = (SMGSingleLinkedList) sll;
     assertThat(realSll.getMinimumLength()).isEqualTo(2);
     SMGHasValueEdges outboundEdges =
         abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(realSll));

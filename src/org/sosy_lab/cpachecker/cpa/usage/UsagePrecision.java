@@ -132,13 +132,12 @@ public final class UsagePrecision implements WrapperPrecision, AdjustablePrecisi
       AdjustablePrecision pOtherPrecision,
       BiFunction<AdjustablePrecision, AdjustablePrecision, AdjustablePrecision> adjustFunction) {
 
-    AdjustablePrecision thisWrappedPrecision = (AdjustablePrecision) this.wrappedPrecision;
+    AdjustablePrecision thisWrappedPrecision = (AdjustablePrecision) wrappedPrecision;
     AdjustablePrecision wrappedOtherPrecision;
-    if (pOtherPrecision instanceof UsagePrecision) {
-      UsagePrecision otherPrecision = (UsagePrecision) pOtherPrecision;
+    if (pOtherPrecision instanceof UsagePrecision otherPrecision) {
       wrappedOtherPrecision = (AdjustablePrecision) otherPrecision.wrappedPrecision;
       // The precision is not modified
-      assert (this.localStatistics.equals(otherPrecision.localStatistics));
+      assert localStatistics.equals(otherPrecision.localStatistics);
     } else {
       wrappedOtherPrecision = pOtherPrecision;
     }

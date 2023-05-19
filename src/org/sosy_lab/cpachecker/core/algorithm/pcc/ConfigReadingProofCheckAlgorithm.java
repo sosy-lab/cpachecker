@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.util.ValidationConfigurationBuilder;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 @Options(prefix = "pcc")
 public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsProvider {
@@ -57,25 +56,26 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa,
       final Specification pSpecification)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     pConfig.inject(this);
 
     cfa = pCfa;
 
     valConfig = readValidationConfiguration();
 
-    coreFact = new CoreComponentsFactory(valConfig, pLogger, pShutdownNotifier,
-        AggregatedReachedSets.empty());
+    coreFact =
+        new CoreComponentsFactory(
+            valConfig, pLogger, pShutdownNotifier, AggregatedReachedSets.empty());
 
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.copyFrom(pConfig);
     configBuilder.copyOptionFrom(valConfig, "pcc.strategy");
 
     valCPA = instantiateCPA(pCfa, pSpecification);
-    GlobalInfo.getInstance().setUpInfoFromCPA(valCPA);
 
-    checkingAlgorithm = new ProofCheckAlgorithm(valCPA, configBuilder.build(), pLogger,
-        pShutdownNotifier, pCfa, pSpecification);
+    checkingAlgorithm =
+        new ProofCheckAlgorithm(
+            valCPA, configBuilder.build(), pLogger, pShutdownNotifier, pCfa, pSpecification);
   }
 
   private Configuration readValidationConfiguration() throws InvalidConfigurationException {
@@ -88,7 +88,8 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
   }
 
   private ConfigurableProgramAnalysis instantiateCPA(
-      final CFA pCfa, final Specification pSpecification) throws InvalidConfigurationException {
+      final CFA pCfa, final Specification pSpecification)
+      throws InvalidConfigurationException, InterruptedException {
     try {
       return coreFact.createCPA(pCfa, pSpecification);
     } catch (CPAException e) {
@@ -107,19 +108,18 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
     ReachedSet internalReached = coreFact.createReachedSet(valCPA);
     internalReached.add(
         valCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
-        valCPA.getInitialPrecision(cfa.getMainFunction(),
-            StateSpacePartition.getDefaultPartition()));
+        valCPA.getInitialPrecision(
+            cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
 
     AlgorithmStatus status = checkingAlgorithm.run(internalReached);
 
     pReachedSet.popFromWaitlist();
 
     if (!status.isSound()) {
-      pReachedSet.add(new DummyErrorState(pReachedSet.getFirstState()),
-          SingletonPrecision.getInstance());
+      pReachedSet.add(
+          new DummyErrorState(pReachedSet.getFirstState()), SingletonPrecision.getInstance());
     }
 
     return status;
   }
-
 }

@@ -37,7 +37,9 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
-public class WitnessToOutputFormatsUtils {
+public final class WitnessToOutputFormatsUtils {
+
+  private WitnessToOutputFormatsUtils() {}
 
   /** utility method */
   public static void writeWitness(
@@ -62,6 +64,18 @@ public class WitnessToOutputFormatsUtils {
    */
   public static void writeToGraphMl(Witness witness, Appendable pTarget) throws IOException {
     new WitnessToGraphMLFormatter(witness).appendTo(pTarget);
+  }
+
+  /**
+   * Appends the witness as GraphML to the supplied {@link Appendable}
+   *
+   * @param witness contains the information necessary to generate the GraphML representation
+   * @param pTarget where to append the GraphML
+   * @param pExportAllInvariants enable to also export true invariants
+   */
+  public static void writeToGraphMl(
+      Witness witness, boolean pExportAllInvariants, Appendable pTarget) throws IOException {
+    new WitnessToGraphMLFormatter(witness, pExportAllInvariants).appendTo(pTarget);
   }
 
   /** Appends the witness as Dot/Graphviz to the supplied {@link Appendable}. */
@@ -96,11 +110,10 @@ public class WitnessToOutputFormatsUtils {
         // targetNode = createNewNode(doc, edge.getTarget(), witness);
         sourceNode = new HashMap<>();
 
-        List<Integer> nodeIds = witness
-            .getARGStatesFor(source)
-            .stream()
-            .map(ARGState::getStateId)
-            .collect(ImmutableList.toImmutableList());
+        List<Integer> nodeIds =
+            witness.getARGStatesFor(source).stream()
+                .map(ARGState::getStateId)
+                .collect(ImmutableList.toImmutableList());
         String nodeString = SLARGToDotWriter.generateLocationString(nodeIds).toString();
         StringBuilder labelBuilder = new StringBuilder(source);
         if (!nodeString.isEmpty()) {
@@ -138,13 +151,11 @@ public class WitnessToOutputFormatsUtils {
         for (java.util.Map.Entry<KeyDef, String> e : edge.getLabel().getMapping().entrySet()) {
           edgeMap.put(e.getKey().toString(), e.getValue());
         }
-        edgesMap.put(
-            edge.getSource() + "->" + edge.getTarget(),
-            edgeMap);
+        edgesMap.put(edge.getSource() + "->" + edge.getTarget(), edgeMap);
 
         if (nodes.add(edge.getTarget())) {
           if (!ExpressionTrees.getFalse().equals(tree)) {
-          waitlist.push(edge.getTarget());
+            waitlist.push(edge.getTarget());
           }
         }
       }
@@ -158,7 +169,7 @@ public class WitnessToOutputFormatsUtils {
       return "target";
     } else if (!states.stream().allMatch(ARGState::wasExpanded)) {
       return "not-expanded";
-    } else if (states.stream().anyMatch(ARGState::shouldBeHighlighted)){
+    } else if (states.stream().anyMatch(ARGState::shouldBeHighlighted)) {
       return "highlighted";
     }
     return "";

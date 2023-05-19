@@ -8,7 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-public abstract class ACSLPredicate implements ACSLLogicExpression {
+public abstract sealed class ACSLPredicate implements ACSLLogicExpression
+    permits ACSLLogicalPredicate,
+        ACSLSimplePredicate,
+        ACSLTernaryCondition,
+        ACSLPredicate.FALSE,
+        PredicateAt,
+        ACSLPredicate.TRUE {
 
   private final boolean negated;
 
@@ -46,8 +52,7 @@ public abstract class ACSLPredicate implements ACSLLogicExpression {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof ACSLPredicate) {
-      ACSLPredicate other = (ACSLPredicate) obj;
+    if (obj instanceof ACSLPredicate other) {
       return negated == other.negated;
     }
     return false;
@@ -71,7 +76,7 @@ public abstract class ACSLPredicate implements ACSLLogicExpression {
 
   public abstract <R, X extends Exception> R accept(ACSLPredicateVisitor<R, X> visitor) throws X;
 
-  private static class TRUE extends ACSLPredicate {
+  static final class TRUE extends ACSLPredicate {
 
     private static final TRUE singleton = new TRUE();
 
@@ -129,7 +134,7 @@ public abstract class ACSLPredicate implements ACSLLogicExpression {
     }
   }
 
-  private static class FALSE extends ACSLPredicate {
+  static final class FALSE extends ACSLPredicate {
 
     private static final FALSE singleton = new FALSE();
 

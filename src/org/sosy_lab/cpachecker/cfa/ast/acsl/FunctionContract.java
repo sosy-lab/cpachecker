@@ -12,7 +12,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 
-public class FunctionContract implements ACSLAnnotation {
+public final class FunctionContract implements ACSLAnnotation {
 
   private final RequiresClause requiresClause;
   private final EnsuresClause ensuresClause;
@@ -155,8 +155,7 @@ public class FunctionContract implements ACSLAnnotation {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof FunctionContract) {
-      FunctionContract other = (FunctionContract) obj;
+    if (obj instanceof FunctionContract other) {
       return requiresClause.equals(other.requiresClause)
           && ensuresClause.equals(other.ensuresClause)
           && behaviors.equals(other.behaviors)

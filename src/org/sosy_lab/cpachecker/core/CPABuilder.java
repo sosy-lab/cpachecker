@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -62,8 +63,10 @@ public class CPABuilder {
 
   private static final Splitter LIST_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
 
-  @Option(secure=true, name=CPA_OPTION_NAME,
-      description="CPA to use (see doc/Configuration.md for more documentation on this)")
+  @Option(
+      secure = true,
+      name = CPA_OPTION_NAME,
+      description = "CPA to use (see doc/Configuration.md for more documentation on this)")
   private String cpaName = CompositeCPA.class.getCanonicalName();
 
   private final Configuration config;
@@ -71,12 +74,16 @@ public class CPABuilder {
   private final ShutdownNotifier shutdownNotifier;
   private final ReachedSetFactory reachedSetFactory;
 
-  public CPABuilder(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-      ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException {
-    this.config = pConfig;
-    this.logger = pLogger;
-    this.shutdownNotifier = pShutdownNotifier;
-    this.reachedSetFactory = pReachedSetFactory;
+  public CPABuilder(
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      ReachedSetFactory pReachedSetFactory)
+      throws InvalidConfigurationException {
+    config = pConfig;
+    logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
+    reachedSetFactory = pReachedSetFactory;
     config.inject(this);
   }
 
@@ -90,7 +97,7 @@ public class CPABuilder {
       final CFA cfa,
       final Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     return buildCPAs(cfa, specification, ImmutableList.of(), pAggregatedReachedSets);
   }
 
@@ -105,7 +112,7 @@ public class CPABuilder {
       final Specification specification,
       final List<Automaton> additionalAutomata,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     final FluentIterable<Automaton> allAutomata =
         FluentIterable.concat(specification.getSpecificationAutomata(), additionalAutomata);
 
@@ -166,7 +173,7 @@ public class CPABuilder {
             ImmutableList.of(CPAConfig.forClass(LocationCPA.class), SPECIFICATION_PLACEHOLDER);
       } else {
         insertionPoint.children =
-            from(insertionPoint.children).append(SPECIFICATION_PLACEHOLDER).toList();
+            listAndElement(insertionPoint.children, SPECIFICATION_PLACEHOLDER);
       }
       placeholderCount++;
     }
@@ -259,8 +266,7 @@ public class CPABuilder {
       logger.log(Level.FINER, "CPA", cpaAlias, "got children", childrenCpaNames);
     }
 
-    return new CPAConfig(
-        cpaNameFromOption, cpaAlias, cpaClass, child, childrenCpas.build());
+    return new CPAConfig(cpaNameFromOption, cpaAlias, cpaClass, child, childrenCpas.build());
   }
 
   /** Check that aliases for each CPA and each given automaton are unique. */
@@ -307,7 +313,7 @@ public class CPABuilder {
       final CFA cfa,
       final Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     if (cpaConfig.isPlaceholder) {
       if (cpaConfig.equals(SPECIFICATION_PLACEHOLDER)) {
@@ -349,8 +355,7 @@ public class CPABuilder {
       factory.set(cfa, CFA.class);
     }
 
-    createAndSetChildrenCPAs(
-        cpaConfig, factory, cpas, cfa, specification, pAggregatedReachedSets);
+    createAndSetChildrenCPAs(cpaConfig, factory, cpas, cfa, specification, pAggregatedReachedSets);
 
     // finally call createInstance
     ConfigurableProgramAnalysis cpa;
@@ -362,7 +367,9 @@ public class CPABuilder {
     if (cpa == null) {
       throw new InvalidComponentException(cpaClass, "CPA", "Factory returned null.");
     }
-    logger.log(Level.FINER, "Sucessfully instantiated CPA " + cpa.getClass().getName() + " with alias " + cpaAlias);
+    logger.log(
+        Level.FINER,
+        "Sucessfully instantiated CPA " + cpa.getClass().getName() + " with alias " + cpaAlias);
     return cpa;
   }
 
@@ -379,7 +386,8 @@ public class CPABuilder {
       return optionParts.get(1);
 
     } else {
-      throw new InvalidConfigurationException("Option " + optionName + " contains invalid CPA specification \"" + optionValue + "\"!");
+      throw new InvalidConfigurationException(
+          "Option " + optionName + " contains invalid CPA specification \"" + optionValue + "\"!");
     }
   }
 
@@ -395,7 +403,10 @@ public class CPABuilder {
 
     if (!ConfigurableProgramAnalysis.class.isAssignableFrom(cpaClass)) {
       throw new InvalidConfigurationException(
-        "Option " + optionName + " has to be set to a class implementing the ConfigurableProgramAnalysis interface!");
+          "Option "
+              + optionName
+              + " has to be set to a class implementing the ConfigurableProgramAnalysis"
+              + " interface!");
     }
 
     Classes.produceClassLoadingWarning(logger, cpaClass, ConfigurableProgramAnalysis.class);
@@ -410,7 +421,8 @@ public class CPABuilder {
     try {
       factoryMethod = cpaClass.getMethod("factory", (Class<?>[]) null);
     } catch (NoSuchMethodException e) {
-      throw new InvalidComponentException(cpaClass, "CPA", "No public static method \"factory\" with zero parameters.");
+      throw new InvalidComponentException(
+          cpaClass, "CPA", "No public static method \"factory\" with zero parameters.");
     }
 
     // verify signature
@@ -420,13 +432,16 @@ public class CPABuilder {
 
     String exception = Classes.verifyDeclaredExceptions(factoryMethod, CPAException.class);
     if (exception != null) {
-      throw new InvalidComponentException(cpaClass, "CPA", "Factory method declares the unsupported checked exception " + exception + " .");
+      throw new InvalidComponentException(
+          cpaClass,
+          "CPA",
+          "Factory method declares the unsupported checked exception " + exception + " .");
     }
 
     // invoke factory method
     Object factoryObj;
     try {
-      factoryObj = factoryMethod.invoke(null, (Object[])null);
+      factoryObj = factoryMethod.invoke(null, (Object[]) null);
 
     } catch (IllegalAccessException e) {
       throw new InvalidComponentException(cpaClass, "CPA", "Factory method is not public.");
@@ -439,10 +454,11 @@ public class CPABuilder {
     }
 
     if (!(factoryObj instanceof CPAFactory)) {
-      throw new InvalidComponentException(cpaClass, "CPA", "Factory method did not return a CPAFactory instance.");
+      throw new InvalidComponentException(
+          cpaClass, "CPA", "Factory method did not return a CPAFactory instance.");
     }
 
-    return (CPAFactory)factoryObj;
+    return (CPAFactory) factoryObj;
   }
 
   private void createAndSetChildrenCPAs(
@@ -452,7 +468,7 @@ public class CPABuilder {
       final CFA cfa,
       final Specification specification,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     ImmutableList<CPAConfig> children = cpaConfig.children;
 
@@ -460,17 +476,12 @@ public class CPABuilder {
       // only one child CPA
       ConfigurableProgramAnalysis child =
           instantiateCPAandChildren(
-              cpaConfig.child,
-              cpas,
-              cfa,
-              specification,
-              pAggregatedReachedSets);
+              cpaConfig.child, cpas, cfa, specification, pAggregatedReachedSets);
       try {
         factory.setChild(child);
       } catch (UnsupportedOperationException e) {
         throw new InvalidConfigurationException(
-            cpaConfig.name + " is no wrapper CPA, but was configured to have a child CPA!",
-            e);
+            cpaConfig.name + " is no wrapper CPA, but was configured to have a child CPA!", e);
       }
 
     } else if (!children.isEmpty()) {
@@ -492,9 +503,7 @@ public class CPABuilder {
         factory.setChildren(childrenCpas.build());
       } catch (UnsupportedOperationException e) {
         throw new InvalidConfigurationException(
-            cpaConfig.name
-                + " is no wrapper CPA, but was configured to have children CPAs!",
-            e);
+            cpaConfig.name + " is no wrapper CPA, but was configured to have children CPAs!", e);
       }
     }
   }
@@ -510,12 +519,16 @@ public class CPABuilder {
      * cpa.location.LocationCPA)
      */
     final String name;
+
     /** The alias for this CPA instance as given by the user or inferred */
     final String alias;
+
     /** The class of this CPA (null if placeholder instance). */
     final @Nullable Class<?> cpaClass;
+
     /** Config for child CPA if the "alias.cpa" option was given. */
     final @Nullable CPAConfig child;
+
     /** Config for children CPA if the "alias.cpas" option was given. */
     ImmutableList<CPAConfig> children;
 

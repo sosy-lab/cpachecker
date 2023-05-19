@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 import java.math.BigInteger;
 
-
 public interface CompoundIntegralInterval extends CompoundInterval {
 
   @Override
@@ -21,5 +20,4 @@ public interface CompoundIntegralInterval extends CompoundInterval {
 
   @Override
   BigInteger getValue();
-
 }

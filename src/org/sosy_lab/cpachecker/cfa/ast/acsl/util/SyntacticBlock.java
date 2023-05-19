@@ -26,13 +26,13 @@ public interface SyntacticBlock {
    * Returns the entering edges of the block. An edge is an entering edge if it is not inside the
    * block but the next concrete edge is.
    */
-  Set<CFAEdge> getEnteringEdges();
+  Iterable<CFAEdge> getEnteringEdges();
 
   /**
-   * Returns the leaving edges of the block. An edge is a leaving edge if it is inside the
-   * block but the next concrete edge is not.
+   * Returns the leaving edges of the block. An edge is a leaving edge if it is inside the block but
+   * the next concrete edge is not.
    */
-  Set<CFAEdge> getLeavingEdges();
+  Iterable<CFAEdge> getLeavingEdges();
 
   Set<CFANode> getContainedNodes();
 

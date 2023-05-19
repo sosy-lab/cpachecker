@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 @RunWith(Parameterized.class)
 public class CBinaryExpressionBuilderTest {
 
-  @Parameters(name="{0}")
+  @Parameters(name = "{0}")
   public static Object[] getMachineModels() {
     return MachineModel.values();
   }
@@ -43,25 +43,23 @@ public class CBinaryExpressionBuilderTest {
   @Parameter(0)
   public MachineModel machineModel;
 
-  //type constants, need to be canonical
-  private final static CSimpleType S_CHAR = CNumericTypes.SIGNED_CHAR;
-  private final static CSimpleType U_CHAR = CNumericTypes.UNSIGNED_CHAR;
+  // type constants, need to be canonical
+  private static final CSimpleType S_CHAR = CNumericTypes.SIGNED_CHAR;
+  private static final CSimpleType U_CHAR = CNumericTypes.UNSIGNED_CHAR;
 
-  private final static CSimpleType S_SHORT_INT = CNumericTypes.SHORT_INT.getCanonicalType();
-  private final static CSimpleType U_SHORT_INT = CNumericTypes.UNSIGNED_SHORT_INT;
-  private final static CSimpleType S_INT = CNumericTypes.INT.getCanonicalType();
-  private final static CSimpleType U_INT = CNumericTypes.UNSIGNED_INT;
-  private final static CSimpleType S_LONG_INT = CNumericTypes.LONG_INT.getCanonicalType();
-  private final static CSimpleType U_LONG_INT = CNumericTypes.UNSIGNED_LONG_INT;
-  private final static CSimpleType S_LONG_LONG_INT = CNumericTypes.LONG_LONG_INT.getCanonicalType();
-  private final static CSimpleType U_LONG_LONG_INT = CNumericTypes.UNSIGNED_LONG_LONG_INT;
+  private static final CSimpleType S_SHORT_INT = CNumericTypes.SHORT_INT.getCanonicalType();
+  private static final CSimpleType U_SHORT_INT = CNumericTypes.UNSIGNED_SHORT_INT;
+  private static final CSimpleType S_INT = CNumericTypes.INT.getCanonicalType();
+  private static final CSimpleType U_INT = CNumericTypes.UNSIGNED_INT;
+  private static final CSimpleType S_LONG_INT = CNumericTypes.LONG_INT.getCanonicalType();
+  private static final CSimpleType U_LONG_INT = CNumericTypes.UNSIGNED_LONG_INT;
+  private static final CSimpleType S_LONG_LONG_INT = CNumericTypes.LONG_LONG_INT.getCanonicalType();
+  private static final CSimpleType U_LONG_LONG_INT = CNumericTypes.UNSIGNED_LONG_LONG_INT;
 
-
-  private final static List<CSimpleType> smallTypes = ImmutableList.of(
-      S_CHAR, U_CHAR, S_SHORT_INT, U_SHORT_INT, S_INT);
-  private final static List<CSimpleType> bigTypes = ImmutableList.of(
-      U_INT, S_LONG_INT, U_LONG_INT, S_LONG_LONG_INT, U_LONG_LONG_INT);
-
+  private static final List<CSimpleType> smallTypes =
+      ImmutableList.of(S_CHAR, U_CHAR, S_SHORT_INT, U_SHORT_INT, S_INT);
+  private static final List<CSimpleType> bigTypes =
+      ImmutableList.of(U_INT, S_LONG_INT, U_LONG_INT, S_LONG_LONG_INT, U_LONG_LONG_INT);
 
   private LogManager logger;
   private CBinaryExpressionBuilder c;
@@ -86,7 +84,6 @@ public class CBinaryExpressionBuilderTest {
     checkRelationalTypes(EQUALS);
     checkRelationalTypes(LESS_THAN);
     checkRelationalTypes(GREATER_EQUAL);
-
   }
 
   private void checkArithmeticTypes(BinaryOperator op) throws UnrecognizedCodeException {
@@ -158,17 +155,25 @@ public class CBinaryExpressionBuilderTest {
 
   private void checkCalculation(BinaryOperator op, CType t1, CType t2, CType target)
       throws UnrecognizedCodeException {
-    assertThat(c.getCalculationTypeForBinaryOperation(t1, t2, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO))
-              .isEqualTo(target);
-    assertThat(c.getCalculationTypeForBinaryOperation(t2, t1, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO))
-              .isEqualTo(target);
+    assertThat(
+            c.getCalculationTypeForBinaryOperation(
+                t1, t2, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO))
+        .isEqualTo(target);
+    assertThat(
+            c.getCalculationTypeForBinaryOperation(
+                t2, t1, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO))
+        .isEqualTo(target);
   }
 
   private void checkResult(BinaryOperator op, CType t1, CType t2, CType target)
       throws UnrecognizedCodeException {
-    assertThat(c.getResultTypeForBinaryOperation(t1, t2, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO))
-              .isEqualTo(target);
-    assertThat(c.getResultTypeForBinaryOperation(t2, t1, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO))
-              .isEqualTo(target);
+    assertThat(
+            c.getResultTypeForBinaryOperation(
+                t1, t2, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO))
+        .isEqualTo(target);
+    assertThat(
+            c.getResultTypeForBinaryOperation(
+                t2, t1, op, CIntegerLiteralExpression.ZERO, CIntegerLiteralExpression.ZERO))
+        .isEqualTo(target);
   }
 }

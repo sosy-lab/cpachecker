@@ -46,7 +46,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class ReachingDefUtils {
+public final class ReachingDefUtils {
+
+  private ReachingDefUtils() {}
 
   private static List<CFANode> cfaNodes;
 
@@ -59,7 +61,7 @@ public class ReachingDefUtils {
     List<MemoryLocation> globalVariables = new ArrayList<>();
     List<CFANode> nodes = new ArrayList<>();
 
-    assert(pMainNode instanceof FunctionEntryNode);
+    assert (pMainNode instanceof FunctionEntryNode);
     Map<FunctionEntryNode, Set<MemoryLocation>> result = new HashMap<>();
 
     Set<FunctionEntryNode> reachedFunctions = new HashSet<>();
@@ -104,7 +106,7 @@ public class ReachingDefUtils {
             out = currentElement.getLeavingSummaryEdge();
           }
 
-          if(out instanceof CDeclarationEdge) {
+          if (out instanceof CDeclarationEdge) {
             handleDeclaration((CDeclarationEdge) out, globalVariables, localVariables);
           }
 
@@ -210,6 +212,7 @@ public class ReachingDefUtils {
     protected MemoryLocation visitDefault(CExpression pExp) {
       return null;
     }
+
     // TODO adapt, need more
     @Override
     public MemoryLocation visit(CArraySubscriptExpression pIastArraySubscriptExpression)
@@ -263,5 +266,4 @@ public class ReachingDefUtils {
           pIastUnaryExpression);
     }
   }
-
 }

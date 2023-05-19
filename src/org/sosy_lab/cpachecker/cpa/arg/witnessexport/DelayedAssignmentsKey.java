@@ -21,9 +21,9 @@ class DelayedAssignmentsKey {
   private final ARGState state;
 
   public DelayedAssignmentsKey(String pFrom, CFAEdge pEdge, ARGState pState) {
-    this.from = pFrom;
-    this.edge = pEdge;
-    this.state = pState;
+    from = pFrom;
+    edge = pEdge;
+    state = pState;
   }
 
   @Override
@@ -36,8 +36,7 @@ class DelayedAssignmentsKey {
     if (this == pObj) {
       return true;
     }
-    if (pObj instanceof DelayedAssignmentsKey) {
-      DelayedAssignmentsKey other = (DelayedAssignmentsKey) pObj;
+    if (pObj instanceof DelayedAssignmentsKey other) {
       return Objects.equals(from, other.from)
           && Objects.equals(edge, other.edge)
           && Objects.equals(state, other.state);
