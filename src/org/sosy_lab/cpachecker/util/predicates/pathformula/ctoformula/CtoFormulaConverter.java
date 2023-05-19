@@ -33,6 +33,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -832,9 +833,18 @@ public class CtoFormulaConverter {
     // array-to-pointer conversion
     CArrayType arrayType = (CArrayType) arrayExpression.getExpressionType().getCanonicalType();
     CPointerType pointerType = arrayType.asPointerType();
+    CExpression firstElementExpression =
+        new CArraySubscriptExpression(
+            arrayExpression.getFileLocation(),
+            arrayType.getType(),
+            arrayExpression,
+            CIntegerLiteralExpression.ZERO);
 
     return new CUnaryExpression(
-        arrayExpression.getFileLocation(), pointerType, arrayExpression, UnaryOperator.AMPER);
+        arrayExpression.getFileLocation(),
+        pointerType,
+        firstElementExpression,
+        UnaryOperator.AMPER);
   }
 
   /**
