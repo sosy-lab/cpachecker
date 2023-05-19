@@ -79,7 +79,6 @@ class AssignmentFormulaHandler {
     PartialSpan {
       checkArgument(bitSize > 0);
     }
-
   }
 
   /**
@@ -358,7 +357,7 @@ class AssignmentFormulaHandler {
             (completeRhsFormula != null)
                 ? fmgr.makeOr(completeRhsFormula, partialRhsFormula)
                 : partialRhsFormula;
-        }
+      }
     }
 
     // the complete RHS formula is now definitely non-null as long as the type is non-zero-sized
@@ -461,9 +460,7 @@ class AssignmentFormulaHandler {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   private Expression convertResolved(
-      AssignmentOptions.ConversionType conversionType,
-      CType toType,
-      ResolvedSlice resolved)
+      AssignmentOptions.ConversionType conversionType, CType toType, ResolvedSlice resolved)
       throws UnrecognizedCodeException {
     // BYTE_REPEAT must be done in convertByteRepeatRhs
     checkArgument(conversionType != AssignmentOptions.ConversionType.BYTE_REPEAT);
@@ -942,11 +939,11 @@ class AssignmentFormulaHandler {
       // either the condition holds and the assignment should be done,
       // or the condition does not hold and the previous value should be copied
       final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
-        Formula oldVariable = fmgr.makeVariable(targetType, targetName, oldIndex);
+      Formula oldVariable = fmgr.makeVariable(targetType, targetName, oldIndex);
 
-        BooleanFormula retainmentAssignment = fmgr.assignment(newVariable, oldVariable);
+      BooleanFormula retainmentAssignment = fmgr.assignment(newVariable, oldVariable);
 
-        result = conv.bfmgr.ifThenElse(condition, result, retainmentAssignment);
+      result = conv.bfmgr.ifThenElse(condition, result, retainmentAssignment);
 
     } else { // Aliased LHS
       MemoryRegion region = lvalue.asAliased().getMemoryRegion();

@@ -79,16 +79,24 @@ record AssignmentOptions(
   }
 
   static final class Builder {
-    /** @see AssignmentOptions#conversionType */
+    /**
+     * @see AssignmentOptions#conversionType
+     */
     private AssignmentOptions.ConversionType conversionType;
 
-    /** @see AssignmentOptions#useOldSSAIndicesIfAliased */
+    /**
+     * @see AssignmentOptions#useOldSSAIndicesIfAliased
+     */
     private boolean useOldSSAIndicesIfAliased = false;
 
-    /** @see AssignmentOptions#forceEncodingQuantifiers */
+    /**
+     * @see AssignmentOptions#forceEncodingQuantifiers
+     */
     private boolean forceEncodingQuantifiers = false;
 
-    /** @see AssignmentOptions#forcePointerAssignment */
+    /**
+     * @see AssignmentOptions#forcePointerAssignment
+     */
     private boolean forcePointerAssignment = false;
 
     /**

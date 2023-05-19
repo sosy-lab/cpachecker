@@ -249,7 +249,7 @@ class AssignmentHandler {
       // it must be adjusted to pointer
       CType targetType = typeHandler.simplifyType(assignment.lhs.getFullExpressionType());
       if (assignmentOptions.forcePointerAssignment()) {
-          targetType = CTypes.adjustFunctionOrArrayType(targetType);
+        targetType = CTypes.adjustFunctionOrArrayType(targetType);
       }
 
       // construct the partial assignment as if it is a full assignment from RHS (converted to
@@ -284,7 +284,6 @@ class AssignmentHandler {
         generateSimplePartialAssignments(partialAssignment, simpleAssignmentMultimap);
       }
     }
-
 
     // hand over to quantifier handler
     final AssignmentQuantifierHandler assignmentQuantifierHandler =
@@ -625,8 +624,7 @@ class AssignmentHandler {
     }
 
     // slice the assignment using a slice variable
-    final SliceVariable indexVariable =
-        new SliceVariable(lhsArrayType.getLength());
+    final SliceVariable indexVariable = new SliceVariable(lhsArrayType.getLength());
     final SliceExpression elementLhs = assignment.lhs().actual().withIndex(indexVariable);
     final Optional<SliceExpression> elementRhs =
         assignment.rhs().actual().map(rhsSlice -> rhsSlice.withIndex(indexVariable));
@@ -807,8 +805,7 @@ class AssignmentHandler {
         SliceExpression sliceLhs =
             new SliceExpression(wholeAssignmentLeftSide)
                 .withIndex(new SliceVariable(arrayType.getLength()));
-        SliceExpression sliceRhs =
-            new SliceExpression(firstAssignment.getRightHandSide());
+        SliceExpression sliceRhs = new SliceExpression(firstAssignment.getRightHandSide());
         SliceAssignment sliceAssignment =
             new SliceAssignment(
                 sliceLhs, Optional.of(firstAssignmentLeftSide), Optional.of(sliceRhs));
@@ -818,14 +815,12 @@ class AssignmentHandler {
 
     // normal initializer handling, build all initialization assignments
 
-    ImmutableList.Builder<SliceAssignment> builder =
-        ImmutableList.<SliceAssignment>builder();
+    ImmutableList.Builder<SliceAssignment> builder = ImmutableList.<SliceAssignment>builder();
     for (CExpressionAssignmentStatement assignment : assignments) {
       SliceExpression lhs = new SliceExpression(assignment.getLeftHandSide());
       SliceExpression rhs = new SliceExpression(assignment.getRightHandSide());
       builder.add(
-          new SliceAssignment(
-              lhs, Optional.of(assignment.getLeftHandSide()), Optional.of(rhs)));
+          new SliceAssignment(lhs, Optional.of(assignment.getLeftHandSide()), Optional.of(rhs)));
     }
     return assign(builder.build());
   }
@@ -853,5 +848,4 @@ class AssignmentHandler {
     }
     return true;
   }
-
 }

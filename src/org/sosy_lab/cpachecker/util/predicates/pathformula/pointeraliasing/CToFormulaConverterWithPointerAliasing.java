@@ -843,8 +843,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     SliceExpression assignmentLhs = new SliceExpression(lhs);
     SliceExpression assignmentRhs = new SliceExpression(rhs);
     SliceAssignment assignment =
-        new SliceAssignment(
-            assignmentLhs, Optional.of(lhsForChecking), Optional.of(assignmentRhs));
+        new SliceAssignment(assignmentLhs, Optional.of(lhsForChecking), Optional.of(assignmentRhs));
 
     // use normal assignment options with cast conversion, force pointer assignment if necessary,
     // leave everything else as-is
@@ -1048,8 +1047,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
               CInitializers.convertToAssignments(declaration, declarationEdge);
           // Special handling for string literal initializers -- convert them into character arrays
           assignments = expandStringLiterals(assignments);
-          return assignmentHandler.initializationAssign(
-              lhs, declarationType, assignments);
+          return assignmentHandler.initializationAssign(lhs, declarationType, assignments);
         }
 
         CExpression rhs = ((CInitializerExpression) initializer).getExpression();

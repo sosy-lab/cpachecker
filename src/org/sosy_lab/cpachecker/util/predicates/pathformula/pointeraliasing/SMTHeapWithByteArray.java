@@ -67,8 +67,8 @@ class SMTHeapWithByteArray implements SMTHeap {
       FloatingPointType floatTargetType = (FloatingPointType) pTargetType;
       BitvectorType bvType = FormulaType.getBitvectorTypeWithSize(floatTargetType.getTotalSize());
       FloatingPointFormulaManagerView floatMgr = formulaManager.getFloatingPointFormulaManager();
-        BitvectorFormula bvValue =
-            floatMgr.toIeeeBitvector((FloatingPointFormula) assignment.value());
+      BitvectorFormula bvValue =
+          floatMgr.toIeeeBitvector((FloatingPointFormula) assignment.value());
       SMTAddressValue<I, BitvectorFormula> bvAssignment =
           new SMTAddressValue<>(assignment.address(), bvValue);
       return makePointerAssignment(targetName, bvType, oldIndex, newIndex, bvAssignment);
@@ -80,7 +80,8 @@ class SMTHeapWithByteArray implements SMTHeap {
       FormulaType<I> addressType = formulaManager.getFormulaType(assignment.address());
       checkArgument(pointerType.equals(addressType));
 
-      SMTAddressValue<I, BitvectorFormula> bvAssignment = new SMTAddressValue<>(assignment.address(), (BitvectorFormula) assignment.value());
+      SMTAddressValue<I, BitvectorFormula> bvAssignment =
+          new SMTAddressValue<>(assignment.address(), (BitvectorFormula) assignment.value());
 
       return handleBitvectorAssignment(
           targetName, oldIndex, newIndex, addressType, null, bvAssignment);

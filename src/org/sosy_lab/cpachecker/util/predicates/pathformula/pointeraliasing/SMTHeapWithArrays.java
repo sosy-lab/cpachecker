@@ -53,23 +53,25 @@ class SMTHeapWithArrays implements SMTMultipleAssignmentHeap {
       I address = assignment.address();
       E value = assignment.value();
       FormulaType<E> targetType = formulaManager.getFormulaType(value);
-    checkArgument(
-        pTargetType.equals(targetType),
-        "Target type %s does not match value type %s when assigning target %s address %s to value %s",
-        pTargetType,
-        targetType,
-        targetName,
-        address,
-        value);
-    FormulaType<I> addressType = formulaManager.getFormulaType(address);
-    checkArgument(
-        pointerType.equals(addressType),
-        "Pointer type %s does not match address type %s when assigning target %s address %s to value %s",
-        pointerType,
-        addressType,
-        targetName,
-        address,
-        value);
+      checkArgument(
+          pTargetType.equals(targetType),
+          "Target type %s does not match value type %s when assigning target %s address %s to value"
+              + " %s",
+          pTargetType,
+          targetType,
+          targetName,
+          address,
+          value);
+      FormulaType<I> addressType = formulaManager.getFormulaType(address);
+      checkArgument(
+          pointerType.equals(addressType),
+          "Pointer type %s does not match address type %s when assigning target %s address %s to"
+              + " value %s",
+          pointerType,
+          addressType,
+          targetName,
+          address,
+          value);
       oldFormula = afmgr.store(oldFormula, address, value);
     }
     return formulaManager.makeEqual(arrayFormula, oldFormula);

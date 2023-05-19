@@ -326,11 +326,11 @@ class AssignmentQuantifierHandler {
     // one; otherwise, behavior would be heavily implementation-defined
 
     if (fullExpressionType instanceof CBitFieldType) {
-        for (PartialAssignmentRhs rhs : assignment.rhsList) {
-          if (rhs.actual.isEmpty()) {
-            // nondet, skip
-            continue;
-          }
+      for (PartialAssignmentRhs rhs : assignment.rhsList) {
+        if (rhs.actual.isEmpty()) {
+          // nondet, skip
+          continue;
+        }
         SliceExpression rhsSlice = rhs.actual.get();
 
         // it is the caller's responsibility to ensure the rhs base is a cast to unsigned char
@@ -347,7 +347,8 @@ class AssignmentQuantifierHandler {
         }
 
         // determine the value of literal
-        final CIntegerLiteralExpression setValueLiteral = (CIntegerLiteralExpression) baseUnderlying;
+        final CIntegerLiteralExpression setValueLiteral =
+            (CIntegerLiteralExpression) baseUnderlying;
 
         // make sure it is either all-zeros or all-ones
         int unsignedCharAllOnes =
@@ -418,18 +419,10 @@ class AssignmentQuantifierHandler {
     // the functions are recursive and return the result of completed assignment
     if (shouldEncode()) {
       return encodeQuantifier(
-          assignment,
-          nextVariablesToQuantify,
-          condition,
-          variableToQuantify,
-          sliceSizeFormula);
+          assignment, nextVariablesToQuantify, condition, variableToQuantify, sliceSizeFormula);
     } else {
       return unrollQuantifier(
-          assignment,
-          nextVariablesToQuantify,
-          condition,
-          variableToQuantify,
-          sliceSizeFormula);
+          assignment, nextVariablesToQuantify, condition, variableToQuantify, sliceSizeFormula);
     }
   }
 
@@ -604,8 +597,7 @@ class AssignmentQuantifierHandler {
       final Function<SliceExpression, SliceExpression> sliceMappingFunction) {
 
     // apply the function to the LHS slice
-    final SliceExpression mappedLhsSlice =
-        sliceMappingFunction.apply(assignment.lhs.actual);
+    final SliceExpression mappedLhsSlice = sliceMappingFunction.apply(assignment.lhs.actual);
     // construct the whole LHS
     final PartialAssignmentLhs mappedLhs =
         new PartialAssignmentLhs(mappedLhsSlice, assignment.lhs.targetType);
@@ -643,64 +635,57 @@ class AssignmentQuantifierHandler {
     final AssignmentFormulaHandler assignmentFormulaHandler =
         new AssignmentFormulaHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
 
+    final SliceExpression lhsSlice = assignment.lhs.actual();
+    final CType targetType = assignment.lhs.targetType();
 
-      final SliceExpression lhsSlice = assignment.lhs.actual();
-      final CType targetType = assignment.lhs.targetType();
+    // resolve the LHS by getting the resolved base and resolving modifiers over it
+    final ResolvedSlice lhsResolvedBase = resolvedLhsBases.get(lhsSlice.base());
+    final ResolvedSlice lhsResolved = applySliceModifiersToResolvedBase(lhsResolvedBase, lhsSlice);
 
-      // resolve the LHS by getting the resolved base and resolving modifiers over it
-      final ResolvedSlice lhsResolvedBase = resolvedLhsBases.get(lhsSlice.base());
-      final ResolvedSlice lhsResolved = applySliceModifiersToResolvedBase(lhsResolvedBase, lhsSlice);
+    final List<ResolvedPartialAssignmentRhs> rhsResolvedList = new ArrayList<>();
 
-      final List<ResolvedPartialAssignmentRhs> rhsResolvedList = new ArrayList<>();
+    // resolve each RHS and collect them into a list
+    for (PartialAssignmentRhs rhs : assignment.rhsList) {
 
-      // resolve each RHS and collect them into a list
-      for (PartialAssignmentRhs rhs : assignment.rhsList) {
-
-        // make nondet RHS into nondet resolved
-        if (rhs.actual().isEmpty()) {
-          rhsResolvedList.add(new ResolvedPartialAssignmentRhs(rhs.span(), Optional.empty()));
-          continue;
-        }
-
-        // resolve the RHS by getting the resolved base and resolving modifiers over it
-        final SliceExpression rhsSlice = rhs.actual().get();
-        final ResolvedSlice rhsResolvedBase = resolvedRhsBases.get(rhsSlice.base());
-        ResolvedSlice rhsResolved = applySliceModifiersToResolvedBase(rhsResolvedBase, rhsSlice);
-
-        // after resolving rhs, the rhs resolved type may be array even if we want to do
-        // pointer assignment, signified by pointer target type
-        // make rhs resolved target type into pointer in that case
-        if (targetType instanceof CPointerType) {
-          rhsResolved =
-              new ResolvedSlice(
-                  rhsResolved.expression(), CTypes.adjustFunctionOrArrayType(rhsResolved.type()));
-        }
-        // add resolved RHS to list
-        rhsResolvedList.add(new ResolvedPartialAssignmentRhs(rhs.span(), Optional.of(rhsResolved)));
+      // make nondet RHS into nondet resolved
+      if (rhs.actual().isEmpty()) {
+        rhsResolvedList.add(new ResolvedPartialAssignmentRhs(rhs.span(), Optional.empty()));
+        continue;
       }
 
-      // compute pointer-target set pattern if necessary for UFs finishing
-      // UFs must be finished only if all three of the following conditions are met:
-      // 1. UF heap is used
-      // 2. lhs is in aliased location (unaliased location is assigned as a whole)
-      // 3. using old SSA indices is not selected
-      final PointerTargetPattern pattern =
-          !options.useArraysForHeap()
-                  && lhsResolved.expression().isAliasedLocation()
-                  && !assignmentOptions.useOldSSAIndicesIfAliased()
-              ? PointerTargetPattern.forLeftHandSide(
-                  (CLeftHandSide) lhsSlice.getDummyResolvedExpression(), typeHandler, edge, pts)
-              : null;
+      // resolve the RHS by getting the resolved base and resolving modifiers over it
+      final SliceExpression rhsSlice = rhs.actual().get();
+      final ResolvedSlice rhsResolvedBase = resolvedRhsBases.get(rhsSlice.base());
+      ResolvedSlice rhsResolved = applySliceModifiersToResolvedBase(rhsResolvedBase, rhsSlice);
 
-      // make the actual assignment
-      return assignmentFormulaHandler.assignResolvedSlice(
-                  lhsResolved,
-                  targetType,
-                  rhsResolvedList,
-                  assignmentOptions,
-                  condition,
-                  false,
-                  pattern);
+      // after resolving rhs, the rhs resolved type may be array even if we want to do
+      // pointer assignment, signified by pointer target type
+      // make rhs resolved target type into pointer in that case
+      if (targetType instanceof CPointerType) {
+        rhsResolved =
+            new ResolvedSlice(
+                rhsResolved.expression(), CTypes.adjustFunctionOrArrayType(rhsResolved.type()));
+      }
+      // add resolved RHS to list
+      rhsResolvedList.add(new ResolvedPartialAssignmentRhs(rhs.span(), Optional.of(rhsResolved)));
+    }
+
+    // compute pointer-target set pattern if necessary for UFs finishing
+    // UFs must be finished only if all three of the following conditions are met:
+    // 1. UF heap is used
+    // 2. lhs is in aliased location (unaliased location is assigned as a whole)
+    // 3. using old SSA indices is not selected
+    final PointerTargetPattern pattern =
+        !options.useArraysForHeap()
+                && lhsResolved.expression().isAliasedLocation()
+                && !assignmentOptions.useOldSSAIndicesIfAliased()
+            ? PointerTargetPattern.forLeftHandSide(
+                (CLeftHandSide) lhsSlice.getDummyResolvedExpression(), typeHandler, edge, pts)
+            : null;
+
+    // make the actual assignment
+    return assignmentFormulaHandler.assignResolvedSlice(
+        lhsResolved, targetType, rhsResolvedList, assignmentOptions, condition, false, pattern);
   }
 
   /**
@@ -819,5 +804,4 @@ class AssignmentQuantifierHandler {
         addressHandler.applySubscriptOffset(baseType, base, directAccess, elementType, subscript);
     return new ResolvedSlice(adjustedExpression, elementType);
   }
-
 }

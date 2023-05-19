@@ -703,7 +703,6 @@ public class CtoFormulaConverter {
     }
   }
 
-
   /**
    * Used for implicit and explicit type casts between CTypes. Optionally, overflows can be replaced
    * with UFs.

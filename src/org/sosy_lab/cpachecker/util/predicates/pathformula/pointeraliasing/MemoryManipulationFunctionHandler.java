@@ -189,15 +189,13 @@ class MemoryManipulationFunctionHandler {
     // them by reinterpretation
     final CType destinationType = typeHandler.getSimplifiedType(processedDestination);
     final CPointerType adjustedDestinationType =
-        (CPointerType)
-            CTypes.adjustFunctionOrArrayType(destinationType);
+        (CPointerType) CTypes.adjustFunctionOrArrayType(destinationType);
 
     final CType sourceType = typeHandler.getSimplifiedType(processedSource);
-    CPointerType adjustedSourceType =
-        (CPointerType)
-            CTypes.adjustFunctionOrArrayType(sourceType);
+    CPointerType adjustedSourceType = (CPointerType) CTypes.adjustFunctionOrArrayType(sourceType);
 
-    final long underlyingDestinationBitSize = typeHandler.getBitSizeof(adjustedDestinationType.getType());
+    final long underlyingDestinationBitSize =
+        typeHandler.getBitSizeof(adjustedDestinationType.getType());
     final long underlyingSourceBitSize = typeHandler.getBitSizeof(adjustedSourceType.getType());
 
     if (underlyingDestinationBitSize != underlyingSourceBitSize) {
@@ -239,8 +237,10 @@ class MemoryManipulationFunctionHandler {
             assignmentOptions);
 
     // for relevancy checking, we need a CLeftHandSide expression; we construct a dummy dereference,
-    // which, for relevancy checking purposes, describes assignment to the first element of destination
-    final CType destinationElementType = typeHandler.simplifyType(adjustedDestinationType.getType());
+    // which, for relevancy checking purposes, describes assignment to the first element of
+    // destination
+    final CType destinationElementType =
+        typeHandler.simplifyType(adjustedDestinationType.getType());
     final CLeftHandSide lhsForRelevancyChecking =
         new CPointerExpression(FileLocation.DUMMY, destinationElementType, processedDestination);
 

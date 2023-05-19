@@ -44,7 +44,7 @@ class SMTHeapWithUninterpretedFunctionCalls implements SMTMultipleAssignmentHeap
       final Formula lhs =
           ffmgr.declareAndCallUninterpretedFunction(targetName, newIndex, targetType, address);
       final BooleanFormula assignmentFormula = formulaManager.assignment(lhs, value);
-        result = formulaManager.makeAnd(result, assignmentFormula);
+      result = formulaManager.makeAnd(result, assignmentFormula);
     }
     return result;
   }
@@ -81,5 +81,4 @@ class SMTHeapWithUninterpretedFunctionCalls implements SMTMultipleAssignmentHeap
     // the retainment assignments will be performed afterwards by AssignmentHandler
     return formulaManager.getBooleanFormulaManager().makeTrue();
   }
-
 }

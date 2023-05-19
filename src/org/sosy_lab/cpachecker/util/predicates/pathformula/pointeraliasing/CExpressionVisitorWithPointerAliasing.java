@@ -167,12 +167,7 @@ class CExpressionVisitorWithPointerAliasing
     this.function = function;
 
     addressHandler =
-        new AddressHandler(
-            cToFormulaConverter,
-            ssa,
-            constraints,
-            errorConditions,
-            regionMgr);
+        new AddressHandler(cToFormulaConverter, ssa, constraints, errorConditions, regionMgr);
   }
 
   /**

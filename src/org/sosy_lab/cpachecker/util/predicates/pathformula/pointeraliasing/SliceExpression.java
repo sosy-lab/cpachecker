@@ -109,8 +109,7 @@ record SliceExpression(
       permits SliceVariableIndexModifier, SliceFormulaIndexModifier {}
 
   /** Represents performing a field access on a {@code CExpression}, i.e., {@code base.field}. */
-  record SliceFieldAccessModifier(CCompositeTypeMemberDeclaration field)
-      implements SliceModifier {
+  record SliceFieldAccessModifier(CCompositeTypeMemberDeclaration field) implements SliceModifier {
     SliceFieldAccessModifier {
       checkNotNull(field);
     }
@@ -146,7 +145,6 @@ record SliceExpression(
   SliceExpression(CRightHandSide base) {
     this(base, ImmutableList.of());
   }
-
 
   /**
    * Return a new {@link SliceExpression} with access of the specified field as the last modifier.
@@ -326,5 +324,4 @@ record SliceExpression(
   boolean containsResolvedModifiers() {
     return modifiers.stream().anyMatch(modifier -> modifier instanceof SliceFormulaIndexModifier);
   }
-
 }
