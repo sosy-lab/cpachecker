@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.cwriter;
 
+import com.google.common.base.Ascii;
 import java.util.Iterator;
 import java.util.Set;
 import org.sosy_lab.common.Appender;
@@ -67,7 +68,7 @@ public class PathToConcreteProgramTranslator extends PathTranslator {
   protected Appender generateCCode() {
     for (Iterator<String> it = mGlobalDefinitionsList.iterator(); it.hasNext(); ) {
       String s = it.next();
-      s = s.toLowerCase().trim();
+      s = Ascii.toLowerCase(s.trim());
       if (s.startsWith("void main()")
           || s.startsWith("int main()")
           || s.contains("__verifier_nondet_")) {

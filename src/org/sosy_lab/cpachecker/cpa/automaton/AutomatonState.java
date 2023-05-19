@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVaria
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 /**
  * This class combines a AutomatonInternal State with a variable Configuration. Instances of this
@@ -70,7 +70,7 @@ public class AutomatonState
 
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
-      return pProperty.toLowerCase().equals("state == top");
+      return pProperty.equalsIgnoreCase("state == top");
     }
 
     @Override
@@ -98,7 +98,7 @@ public class AutomatonState
 
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
-      return pProperty.toLowerCase().equals("state == bottom");
+      return pProperty.equalsIgnoreCase("state == bottom");
     }
 
     @Override
@@ -478,7 +478,7 @@ public class AutomatonState
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     int stateId = in.readInt();
-    internalState = GlobalInfo.getInstance().getAutomatonInfo().getStateById(stateId);
+    internalState = SerializationInfoStorage.getInstance().getAutomatonInfo().getStateById(stateId);
     if (internalState == null) {
       if (stateId == AutomatonInternalState.ERROR.getStateId()) {
         internalState = AutomatonInternalState.ERROR;
@@ -490,7 +490,7 @@ public class AutomatonState
     }
 
     automaton =
-        GlobalInfo.getInstance()
+        SerializationInfoStorage.getInstance()
             .getAutomatonInfo()
             .getCPAForAutomaton((String) in.readObject())
             .getAutomaton();

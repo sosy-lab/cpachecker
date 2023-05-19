@@ -447,6 +447,17 @@ public class SMG {
     return new SMG(newObjects, smgValues, newHVEdges, pointsToEdges, sizeOfPointer);
   }
 
+  /**
+   * Validated the entered SMGObject (that is assumed to be in the SMG!).
+   *
+   * @param pObject the {@link SMGObject} to be validated.
+   * @return a new SMG with the object validated.
+   */
+  public SMG copyAndValidateObject(SMGObject pObject) {
+    PersistentMap<SMGObject, Boolean> newObjects = smgObjects.putAndCopy(pObject, true);
+    return new SMG(newObjects, smgValues, hasValueEdges, pointsToEdges, sizeOfPointer);
+  }
+
   public SMG copyAndRemoveObjects(Collection<SMGObject> pUnreachableObjects) {
     SMG returnSmg = this;
     for (SMGObject smgObject : pUnreachableObjects) {

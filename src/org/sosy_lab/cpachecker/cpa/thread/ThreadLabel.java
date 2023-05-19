@@ -20,6 +20,7 @@ public final class ThreadLabel implements Comparable<ThreadLabel> {
 
   private final String threadName;
   private final String varName;
+
   // private final LabelStatus status;
 
   public ThreadLabel(String name, String vName) {

@@ -298,7 +298,7 @@ class AutomatonExpressionArguments {
       AutomatonVariable automatonVariable = getAutomatonVariable(fieldOwner);
       if (automatonVariable != null) {
         if (automatonVariable instanceof AutomatonSetVariable) {
-          if (fieldName.toLowerCase().equals("empty")) {
+          if (fieldName.equalsIgnoreCase("empty")) {
             return new CIntegerLiteralExpression(
                 pNode.getFileLocation(),
                 CNumericTypes.INT,

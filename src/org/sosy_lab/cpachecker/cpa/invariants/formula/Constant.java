@@ -35,7 +35,7 @@ public class Constant<T> extends AbstractFormula<T> implements NumeralFormula<T>
     if (pValue instanceof Typed) {
       Preconditions.checkArgument(pInfo.equals(((Typed) pValue).getTypeInfo()));
     }
-    this.value = pValue;
+    value = pValue;
   }
 
   /**
@@ -44,7 +44,7 @@ public class Constant<T> extends AbstractFormula<T> implements NumeralFormula<T>
    * @return the value of the constant.
    */
   public T getValue() {
-    return this.value;
+    return value;
   }
 
   @Override

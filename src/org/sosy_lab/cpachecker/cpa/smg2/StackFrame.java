@@ -37,6 +37,7 @@ public final class StackFrame {
 
   /** Function to which this stack frame belongs */
   private final CFunctionDeclaration stackFunction;
+
   /** An object to store function return value. The Object is Null if function has Void-type. */
   private final Optional<SMGObject> returnValueObject;
 

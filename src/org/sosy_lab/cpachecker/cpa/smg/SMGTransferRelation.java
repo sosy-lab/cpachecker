@@ -366,9 +366,9 @@ public class SMGTransferRelation
       }
       // handle string argument
       if (exp instanceof CStringLiteralExpression strExp) {
-        cParamType = strExp.transformTypeToArrayType();
+        cParamType = strExp.getExpressionType();
 
-        String name = strExp.getContentString() + " string literal";
+        String name = strExp.getContentWithoutNullTerminator() + " string literal";
 
         SMGRegion stringObj = initialNewState.getHeap().getObjectForVisibleVariable(name);
 
@@ -1110,6 +1110,7 @@ public class SMGTransferRelation
       return assignFieldToState(pNewState, pEdge, pNewObject, pOffset, pLValueType, expression);
     }
   }
+
   /*
    * Handle string literal expression initializer:
    * if a string initializer nested in struct type:
@@ -1140,8 +1141,8 @@ public class SMGTransferRelation
     if (realCType instanceof CCompositeType || pLValueType instanceof CPointerType) {
       // create a new global region for string literal expression
       List<SMGState> smgStates = new ArrayList<>();
-      CType cParamType = pExpression.transformTypeToArrayType();
-      String name = pExpression.getContentString() + " string literal";
+      CArrayType cParamType = pExpression.getExpressionType();
+      String name = pExpression.getContentWithoutNullTerminator() + " string literal";
       SMGRegion region = pNewState.getHeap().getObjectForVisibleVariable(name);
 
       if (region != null) {
@@ -1179,7 +1180,7 @@ public class SMGTransferRelation
                 pEdge,
                 pNewObject,
                 pOffset,
-                pExpression.getExpressionType(),
+                pExpression.getExpressionType().asPointerType(),
                 newInitializer));
       }
 
@@ -1187,7 +1188,7 @@ public class SMGTransferRelation
     }
     // create char array from string and call list init
     List<CInitializer> charInitialziers = new ArrayList<>();
-    CArrayType arrayType = pExpression.transformTypeToArrayType();
+    CArrayType arrayType = pExpression.getExpressionType();
     for (CCharLiteralExpression charLiteralExp : pExpression.expandStringLiteral(arrayType)) {
       charInitialziers.add(new CInitializerExpression(pFileLocation, charLiteralExp));
     }

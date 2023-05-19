@@ -1752,13 +1752,7 @@ public class CFABuilder {
 
     if (pItem.canBeTransformedFromGetElementPtrToString()) {
       String constant = pItem.getGetElementPtrAsString();
-      CType constCharType =
-          new CSimpleType(
-              true, false, CBasicType.CHAR, false, false, false, false, false, false, false);
-
-      CType stringType = new CPointerType(false, false, constCharType);
-
-      return new CStringLiteralExpression(fileLocation, stringType, '"' + constant + '"');
+      return new CStringLiteralExpression(fileLocation, '"' + constant + '"');
     }
 
     CType currentType = typeConverter.getCType(startPointer.typeOf());

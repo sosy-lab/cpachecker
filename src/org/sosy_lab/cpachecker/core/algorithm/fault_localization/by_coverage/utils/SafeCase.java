@@ -57,6 +57,7 @@ public class SafeCase {
   public boolean existsSafePath() {
     return !getSafeStates().isEmpty();
   }
+
   /**
    * Gets root state from reachedSet.
    *

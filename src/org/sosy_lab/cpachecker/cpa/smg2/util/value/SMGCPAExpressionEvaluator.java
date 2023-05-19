@@ -292,6 +292,30 @@ public class SMGCPAExpressionEvaluator {
   }
 
   /**
+   * Creates memory with size sizeInBits. sizeInBits should not be 0! The memory is then invalidated
+   * and added to the malloc zero map.
+   *
+   * @param pInitialSmgState {@link SMGState} initial state.
+   * @param sizeInBits some non-zero size.
+   * @return {@link ValueAndSMGState} of the pointer to the memory and its state.
+   */
+  public ValueAndSMGState createMallocZeroMemoryAndPointer(
+      SMGState pInitialSmgState, BigInteger sizeInBits) {
+    SMGObjectAndSMGState newObjectAndState = pInitialSmgState.copyAndAddHeapObject(sizeInBits);
+    SMGObject newObject = newObjectAndState.getSMGObject();
+    SMGState newState = newObjectAndState.getState();
+
+    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    // New regions always have offset 0
+    SMGState finalState = newState.createAndAddPointer(addressValue, newObject, BigInteger.ZERO);
+    SymbolicProgramConfiguration newSPC =
+        finalState.getMemoryModel().setMemoryAsResultOfMallocZero(newObject);
+    newSPC = newSPC.invalidateSMGObject(newObject);
+    finalState = newState.copyAndReplaceMemoryModel(newSPC);
+    return ValueAndSMGState.of(addressValue, finalState);
+  }
+
+  /**
    * Create a new stack object with the size in bits and then create a pointer to its beginning and
    * return the state with the pointer and object + the pointer Value (address to the objects
    * beginning).
@@ -1597,12 +1621,8 @@ public class SMGCPAExpressionEvaluator {
       CInitializer init = pVarDecl.getInitializer();
       if (init instanceof CInitializerExpression) {
         CExpression initExpr = ((CInitializerExpression) init).getExpression();
-        if (initExpr instanceof CStringLiteralExpression) {
-          typeSizeInBits =
-              BigInteger.valueOf(8)
-                  .multiply(
-                      BigInteger.valueOf(
-                          (((CStringLiteralExpression) initExpr).getContentString().length() + 1)));
+        if (initExpr instanceof CStringLiteralExpression stringLit) {
+          typeSizeInBits = BigInteger.valueOf(8).multiply(BigInteger.valueOf(stringLit.getSize()));
         } else {
           throw new SMGException(
               "Could not determine correct type size for an array for initializer expression: "
@@ -1912,8 +1932,9 @@ public class SMGCPAExpressionEvaluator {
     // write the String into it, make a pointer to the beginning and save that in the char *.
     if (pCurrentExpressionType instanceof CPointerType) {
       // create a new memory region for the string (right hand side)
-      CType stringArrayType = pExpression.transformTypeToArrayType();
-      String stringVarName = "_" + pExpression.getContentString() + "_STRING_LITERAL";
+      CArrayType stringArrayType = pExpression.getExpressionType();
+      String stringVarName =
+          "_" + pExpression.getContentWithoutNullTerminator() + "_STRING_LITERAL";
       // If the var exists we change the name and create a new one
       // (Don't reuse an old variable! They might be different from the new one!)
       int num = 0;
@@ -1968,7 +1989,7 @@ public class SMGCPAExpressionEvaluator {
       throws CPATransferException {
     // Create a char array from string and call list init
     ImmutableList.Builder<CInitializer> charArrayInitialziersBuilder = ImmutableList.builder();
-    CArrayType arrayType = pExpression.transformTypeToArrayType();
+    CArrayType arrayType = pExpression.getExpressionType();
     for (CCharLiteralExpression charLiteralExp : pExpression.expandStringLiteral(arrayType)) {
       charArrayInitialziersBuilder.add(new CInitializerExpression(pFileLocation, charLiteralExp));
     }

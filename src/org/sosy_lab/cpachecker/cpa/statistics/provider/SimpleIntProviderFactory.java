@@ -44,6 +44,7 @@ public class SimpleIntProviderFactory {
   public interface Counter<T> {
     int count(T e);
   }
+
   /**
    * Helper method to count expressions. See the other countExpressions overload for more
    * information.

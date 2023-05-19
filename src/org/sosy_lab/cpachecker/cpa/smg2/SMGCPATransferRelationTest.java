@@ -813,10 +813,53 @@ public class SMGCPATransferRelationTest {
         // TODO:
         SMGState stateAfterMallocAssignSuccess;
         if (sizeInBytes.compareTo(BigInteger.ZERO) == 0) {
-          // malloc(0) is always a single null pointer
-          assertThat(
-                  checkMallocFailure(statesListAfterMallocAssign.get(0), variableName, pointerType))
-              .isTrue();
+          // malloc(0) is always a single null pointer or a non-zero pointer that may not be
+          // accessed but freed
+          if (smgOptions.isMallocZeroReturnsZero()) {
+            assertThat(
+                    checkMallocFailure(
+                        statesListAfterMallocAssign.get(0), variableName, pointerType))
+                .isTrue();
+          } else {
+            // Non zero return
+            SymbolicProgramConfiguration memoryModel =
+                statesListAfterMallocAssign.get(0).getMemoryModel();
+            assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+            SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+            List<ValueAndSMGState> readValueAndState =
+                statesListAfterMallocAssign
+                    .get(0)
+                    .readValue(
+                        memoryObject,
+                        BigInteger.ZERO,
+                        MACHINE_MODEL.getSizeofInBits(pointerType),
+                        null);
+            Preconditions.checkArgument(readValueAndState.size() == 1);
+            assertThat(
+                    statesListAfterMallocAssign
+                        .get(0)
+                        .getMemoryModel()
+                        .isPointer(readValueAndState.get(0).getValue()))
+                .isTrue();
+            SMGObject mallocMemoryObject =
+                statesListAfterMallocAssign
+                    .get(0)
+                    .getPointsToTarget(readValueAndState.get(0).getValue())
+                    .orElseThrow()
+                    .getSMGObject();
+            assertThat(
+                    statesListAfterMallocAssign
+                        .get(0)
+                        .getMemoryModel()
+                        .isObjectValid(mallocMemoryObject))
+                .isFalse();
+            assertThat(
+                    statesListAfterMallocAssign
+                        .get(0)
+                        .getMemoryModel()
+                        .memoryIsResultOfMallocZero(mallocMemoryObject))
+                .isTrue();
+          }
           continue;
 
         } else if (!smgOptions.isEnableMallocFailure()) {
@@ -959,11 +1002,55 @@ public class SMGCPATransferRelationTest {
           // TODO:
           SMGState stateAfterMallocAssignSuccess;
           if (sizeMultiplikator.compareTo(BigInteger.ZERO) == 0) {
-            // malloc(0) is always a single null pointer
-            assertThat(
-                    checkMallocFailure(
-                        statesListAfterMallocAssign.get(0), variableName, pointerType))
-                .isTrue();
+            // malloc(0) is always a single null pointer or a non-zero pointer that may not be
+            // accessed but freed
+            if (smgOptions.isMallocZeroReturnsZero()) {
+              assertThat(
+                      checkMallocFailure(
+                          statesListAfterMallocAssign.get(0), variableName, pointerType))
+                  .isTrue();
+            } else {
+              // Non 0, invalid memory
+              SymbolicProgramConfiguration memoryModel =
+                  statesListAfterMallocAssign.get(0).getMemoryModel();
+              assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName))
+                  .isTrue();
+              SMGObject memoryObject =
+                  memoryModel.getStackFrames().peek().getVariable(variableName);
+              List<ValueAndSMGState> readValueAndState =
+                  statesListAfterMallocAssign
+                      .get(0)
+                      .readValue(
+                          memoryObject,
+                          BigInteger.ZERO,
+                          MACHINE_MODEL.getSizeofInBits(pointerType),
+                          null);
+              Preconditions.checkArgument(readValueAndState.size() == 1);
+              assertThat(
+                      statesListAfterMallocAssign
+                          .get(0)
+                          .getMemoryModel()
+                          .isPointer(readValueAndState.get(0).getValue()))
+                  .isTrue();
+              SMGObject mallocMemoryObject =
+                  statesListAfterMallocAssign
+                      .get(0)
+                      .getPointsToTarget(readValueAndState.get(0).getValue())
+                      .orElseThrow()
+                      .getSMGObject();
+              assertThat(
+                      statesListAfterMallocAssign
+                          .get(0)
+                          .getMemoryModel()
+                          .isObjectValid(mallocMemoryObject))
+                  .isFalse();
+              assertThat(
+                      statesListAfterMallocAssign
+                          .get(0)
+                          .getMemoryModel()
+                          .memoryIsResultOfMallocZero(mallocMemoryObject))
+                  .isTrue();
+            }
             continue;
 
           } else if (!smgOptions.isEnableMallocFailure()) {
@@ -1030,6 +1117,7 @@ public class SMGCPATransferRelationTest {
   /*
    * Checks the state for a variable with the name entered and the type entered.
    * This variable should have a failed malloc (value = 0) result.
+   * If malloc returns non-zero, the memory is invalid.
    * If this is not the case, this method returns false.
    * True if the value read from the variable is zero, which is a malloc failure.
    */

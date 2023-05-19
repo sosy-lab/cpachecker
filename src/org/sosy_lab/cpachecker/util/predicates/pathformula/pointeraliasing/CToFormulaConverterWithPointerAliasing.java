@@ -970,7 +970,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         actualLength = initList.getInitializers().size();
       } else if (initializer instanceof CInitializerExpression initExp
           && initExp.getExpression() instanceof CStringLiteralExpression initStringLiteral) {
-        actualLength = initStringLiteral.getContentString().length() + 1;
+        actualLength = initStringLiteral.getSize();
       } else {
         actualLength = null;
       }

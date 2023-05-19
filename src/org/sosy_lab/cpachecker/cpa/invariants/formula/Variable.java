@@ -19,11 +19,11 @@ public class Variable<ConstantType> extends AbstractFormula<ConstantType>
 
   private Variable(TypeInfo pInfo, MemoryLocation pMemoryLocation) {
     super(pInfo);
-    this.memoryLocation = pMemoryLocation;
+    memoryLocation = pMemoryLocation;
   }
 
   public MemoryLocation getMemoryLocation() {
-    return this.memoryLocation;
+    return memoryLocation;
   }
 
   @Override

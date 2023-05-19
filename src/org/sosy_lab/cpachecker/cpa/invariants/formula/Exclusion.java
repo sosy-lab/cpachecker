@@ -15,11 +15,11 @@ public class Exclusion<ConstantType> extends AbstractFormula<ConstantType>
 
   private Exclusion(NumeralFormula<ConstantType> pExcluded) {
     super(pExcluded.getTypeInfo());
-    this.excluded = pExcluded;
+    excluded = pExcluded;
   }
 
   public NumeralFormula<ConstantType> getExcluded() {
-    return this.excluded;
+    return excluded;
   }
 
   @Override

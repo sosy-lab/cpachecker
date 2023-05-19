@@ -17,7 +17,7 @@ class Cast<ConstantType> extends AbstractFormula<ConstantType> {
 
   private Cast(TypeInfo pInfo, NumeralFormula<ConstantType> pCasted) {
     super(pInfo);
-    this.casted = pCasted;
+    casted = pCasted;
   }
 
   public NumeralFormula<ConstantType> getCasted() {

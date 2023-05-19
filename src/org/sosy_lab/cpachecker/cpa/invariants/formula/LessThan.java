@@ -31,8 +31,8 @@ public class LessThan<ConstantType> implements BooleanFormula<ConstantType> {
    */
   private LessThan(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     Preconditions.checkArgument(pOperand1.getTypeInfo().equals(pOperand2.getTypeInfo()));
-    this.operand1 = pOperand1;
-    this.operand2 = pOperand2;
+    operand1 = pOperand1;
+    operand2 = pOperand2;
   }
 
   public NumeralFormula<ConstantType> getOperand1() {

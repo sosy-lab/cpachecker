@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Ascii;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -113,7 +114,7 @@ public class FormulaManagerView {
       if (this == INTEGER) {
         return "unbounded integers";
       } else {
-        return name().toLowerCase() + "s";
+        return Ascii.toLowerCase(name()) + "s";
       }
     }
   }

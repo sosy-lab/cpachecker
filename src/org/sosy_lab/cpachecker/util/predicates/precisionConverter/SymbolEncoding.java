@@ -250,13 +250,13 @@ public class SymbolEncoding {
     private final ImmutableList<T> parameterTypes;
 
     public Type(T pReturnType, ImmutableList<T> pParameterTypes) {
-      this.returnType = pReturnType;
-      this.parameterTypes = pParameterTypes;
+      returnType = pReturnType;
+      parameterTypes = pParameterTypes;
     }
 
     public Type(T pReturnType) {
-      this.returnType = pReturnType;
-      this.parameterTypes = ImmutableList.of();
+      returnType = pReturnType;
+      parameterTypes = ImmutableList.of();
     }
 
     public T getReturnType() {
@@ -268,7 +268,7 @@ public class SymbolEncoding {
     }
 
     public void setSigness(boolean pSigned) {
-      this.signed = pSigned;
+      signed = pSigned;
     }
 
     public boolean isSigned() {
