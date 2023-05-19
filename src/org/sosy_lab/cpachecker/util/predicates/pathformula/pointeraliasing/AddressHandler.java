@@ -30,15 +30,7 @@ final class AddressHandler {
   private final Constraints constraints;
   private final ErrorConditions errorConditions;
   private final MemoryRegionManager regionMgr;
-  /**
-   * Creates a new AssignmentQuantifierHandler.
-   *
-   * @param pConv The C to SMT formula converter.
-   * @param pSsa The SSA map.
-   * @param pConstraints Additional constraints.
-   * @param pErrorConditions Additional error conditions.
-   * @param pRegionMgr Memory region manager.
-   */
+
   AddressHandler(
       CToFormulaConverterWithPointerAliasing pConv,
       SSAMapBuilder pSsa,
