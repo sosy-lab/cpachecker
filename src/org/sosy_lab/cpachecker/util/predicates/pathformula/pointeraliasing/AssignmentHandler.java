@@ -117,10 +117,10 @@ class AssignmentHandler {
           rhs().map(rhsSlice -> rhsSlice.constructCanonical()));
     }
 
-    private boolean isRelevant(CToFormulaConverterWithPointerAliasing conv) {
+    private boolean isRelevant(CToFormulaConverterWithPointerAliasing pConv) {
       // if relevancyLhs is empty in some assignment, treat it as relevant
       return relevancyLhs
-          .map(presentRelevancyLhs -> conv.isRelevantLeftHandSide(presentRelevancyLhs))
+          .map(presentRelevancyLhs -> pConv.isRelevantLeftHandSide(presentRelevancyLhs))
           .orElse(true);
     }
   }
