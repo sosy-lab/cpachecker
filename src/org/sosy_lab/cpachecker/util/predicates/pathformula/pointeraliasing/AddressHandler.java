@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import java.util.Optional;
 import java.util.OptionalLong;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -154,31 +155,59 @@ final class AddressHandler {
    * address is dereferenced in this case. The parameter {@code isSafe} determines whether such a
    * reference is always safe to accomplish.
    *
+   * <p>In case the expression is nondeterministic, returns a formula with a new nondeterministic
+   * variable of the given type.
+   *
    * @param expression The expression.
    * @param type The type of the expression.
    * @param isSafe Whether dereferencing the formula is safe or not.
    * @return A formula for the value.
    */
   Formula getValueFormula(final Expression expression, final CType type, final boolean isSafe) {
-    if (expression.isNondetValue()) {
-      // should happen only because of bit fields that we currently do not handle
-      String nondetName = "__nondet_value_" + CTypeUtils.typeToString(type).replace(' ', '_');
-      return conv.makeNondet(nondetName, type, ssa, constraints);
-    } else if (expression.isValue()) {
-      return expression.asValue().getValue();
-    } else if (expression.isAliasedLocation()) {
-      MemoryRegion region = expression.asAliasedLocation().getMemoryRegion();
-      if (region == null) {
-        region = regionMgr.makeMemoryRegion(type);
-      }
-      return !isSafe
-          ? conv.makeDereference(
-              type, expression.asAliasedLocation().getAddress(), ssa, errorConditions, region)
-          : conv.makeSafeDereference(
-              type, expression.asAliasedLocation().getAddress(), ssa, region);
-    } else { // Unaliased location
-      return conv.makeVariable(expression.asUnaliasedLocation().getVariableName(), type, ssa);
+
+    Optional<Formula> optionalFormula = getOptionalValueFormula(expression, type, isSafe);
+    if (optionalFormula.isPresent()) {
+      return optionalFormula.get();
     }
+
+    // nondet value, make a new nondet variable with the given type
+    String nondetName = "__nondet_value_" + CTypeUtils.typeToString(type).replace(' ', '_');
+    return conv.makeNondet(nondetName, type, ssa, constraints);
+  }
+
+  /**
+   * Creates a formula for the value of an expression or returns empty Optional if the value is
+   * nondeterministic.
+   *
+   * <p>As aliased location expression do not store the actual variable, but rather its address, the
+   * address is dereferenced in this case. The parameter {@code isSafe} determines whether such a
+   * reference is always safe to accomplish.
+   *
+   * @param expression The expression.
+   * @param type The type of the expression.
+   * @param isSafe Whether dereferencing the formula is safe or not.
+   * @return An optional containing the formula for the value, empty if it is nondeterministic.
+   */
+  Optional<Formula> getOptionalValueFormula(
+      final Expression expression, final CType type, final boolean isSafe) {
+    return switch (expression.getKind()) {
+      case ALIASED_LOCATION -> {
+        MemoryRegion region = expression.asAliasedLocation().getMemoryRegion();
+        if (region == null) {
+          region = regionMgr.makeMemoryRegion(type);
+        }
+        if (isSafe) {
+          yield Optional.of(conv.makeSafeDereference(
+              type, expression.asAliasedLocation().getAddress(), ssa, region));
+        }
+        yield Optional.of(conv.makeDereference(
+            type, expression.asAliasedLocation().getAddress(), ssa, errorConditions, region));
+      }
+      case UNALIASED_LOCATION -> Optional.of(
+          conv.makeVariable(expression.asUnaliasedLocation().getVariableName(), type, ssa));
+      case DET_VALUE -> Optional.of(expression.asValue().getValue());
+      case NONDET -> Optional.empty();
+    };
   }
 
   /**

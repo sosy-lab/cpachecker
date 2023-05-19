@@ -113,8 +113,9 @@ class AssignmentFormulaHandler {
   private final SSAMapBuilder ssa;
   private final PointerTargetSetBuilder pts;
   private final Constraints constraints;
-  private final ErrorConditions errorConditions;
   private final MemoryRegionManager regionMgr;
+
+  private final AddressHandler addressHandler;
 
   /**
    * Creates a new AssignmentFormulaHandler.
@@ -145,8 +146,9 @@ class AssignmentFormulaHandler {
     ssa = pSsa;
     pts = pPts;
     constraints = pConstraints;
-    errorConditions = pErrorConditions;
     regionMgr = pRegionMgr;
+
+    addressHandler = new AddressHandler(pConv, pSsa, pConstraints, pErrorConditions, pRegionMgr);
   }
 
   /**
@@ -321,7 +323,8 @@ class AssignmentFormulaHandler {
             convertResolved(assignmentOptions.conversionType(), targetType, rhsResolved);
 
         // get the RHS formula for low-level manipulation
-        Optional<Formula> rhsFormula = getValueFormula(targetType, targetTypeRhsExpression);
+        Optional<Formula> rhsFormula =
+            addressHandler.getOptionalValueFormula(targetTypeRhsExpression, targetType, false);
         if (rhsFormula.isEmpty()) {
           // nondet partial formula, make whole assignment nondet
           partialRhsFormula = Optional.empty();
@@ -372,7 +375,8 @@ class AssignmentFormulaHandler {
     if (!retainedRangeSet.isEmpty()) {
       // there are some retained bits from previous LHS
       // get previous LHS formula
-      Optional<Formula> previousLhsFormula = getValueFormula(lhs.type(), lhs.expression());
+      Optional<Formula> previousLhsFormula =
+          addressHandler.getOptionalValueFormula(lhs.expression(), lhs.type(), false);
       if (previousLhsFormula.isEmpty()) {
         // some bits from previous LHS are retained in current RHS, but previous LHS is nondet
         // make current RHS nondet as well
@@ -510,12 +514,16 @@ class AssignmentFormulaHandler {
       return resolved.expression();
     }
 
-    Optional<Formula> optionalRhsFormula = getValueFormula(fromType, resolved.expression());
+    Optional<Formula> optionalRhsFormula =
+        addressHandler.getOptionalValueFormula(resolved.expression(), fromType, false);
     if (optionalRhsFormula.isEmpty()) {
       // nondeterministic RHS expression has no formula, do not convert
       return resolved.expression();
     }
-    Formula rhsFormula = getValueFormula(fromType, resolved.expression()).orElseThrow();
+    Formula rhsFormula =
+        addressHandler
+            .getOptionalValueFormula(resolved.expression(), fromType, false)
+            .orElseThrow();
     return switch (conversionType) {
       case CAST ->
       // cast rhs from rhs type to lhs type
@@ -555,7 +563,8 @@ class AssignmentFormulaHandler {
       CType lhsType, PartialSpan span, ResolvedSlice rhs) {
 
     final CType rhsType = rhs.type();
-    Optional<Formula> rhsFormula = getValueFormula(rhsType, rhs.expression());
+    Optional<Formula> rhsFormula =
+        addressHandler.getOptionalValueFormula(rhs.expression(), rhsType, false);
     if (rhsFormula.isEmpty()) {
       return Optional.empty();
     }
@@ -597,43 +606,6 @@ class AssignmentFormulaHandler {
 
     // do not convert from bitvector type
     return Optional.of(extractedFormula);
-  }
-
-  /**
-   * Gets the formula corresponding to the value of {@link Expression} when interpreted with a given
-   * {@link CType}.
-   *
-   * @param pRValueType The interpretation type.
-   * @param pRValue The expression to get the value of.
-   * @return Optional containing the formula corresponding to the value or empty Optional if the
-   *     value is nondet.
-   * @throws AssertionError When the kind of formula is not handled.
-   */
-  private Optional<Formula> getValueFormula(CType pRValueType, Expression pRValue)
-      throws AssertionError {
-    switch (pRValue.getKind()) {
-      case ALIASED_LOCATION:
-        MemoryRegion region = pRValue.asAliasedLocation().getMemoryRegion();
-        if (region == null) {
-          region = regionMgr.makeMemoryRegion(pRValueType);
-        }
-        return Optional.of(
-            conv.makeDereference(
-                pRValueType,
-                pRValue.asAliasedLocation().getAddress(),
-                ssa,
-                errorConditions,
-                region));
-      case UNALIASED_LOCATION:
-        return Optional.of(
-            conv.makeVariable(pRValue.asUnaliasedLocation().getVariableName(), pRValueType, ssa));
-      case DET_VALUE:
-        return Optional.of(pRValue.asValue().getValue());
-      case NONDET:
-        return Optional.empty();
-      default:
-        throw new AssertionError();
-    }
   }
 
   /**
@@ -950,7 +922,8 @@ class AssignmentFormulaHandler {
       // When assigning an array to a pointer, the address of the array is taken
       rhs = rvalue.asAliasedLocation().getAddress();
     } else {
-      final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
+      final Optional<Formula> value =
+          addressHandler.getOptionalValueFormula(rvalue, rvalueType, false);
       rhs =
           value.isPresent()
               ? conv.makeCast(rvalueType, lvalueType, value.orElseThrow(), constraints, edge)
