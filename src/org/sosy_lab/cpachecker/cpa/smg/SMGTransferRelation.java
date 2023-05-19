@@ -368,7 +368,7 @@ public class SMGTransferRelation
       if (exp instanceof CStringLiteralExpression strExp) {
         cParamType = strExp.transformTypeToArrayType();
 
-        String name = strExp.getContentString() + " string literal";
+        String name = strExp.getContentWithoutNullTerminator() + " string literal";
 
         SMGRegion stringObj = initialNewState.getHeap().getObjectForVisibleVariable(name);
 
@@ -1142,7 +1142,7 @@ public class SMGTransferRelation
       // create a new global region for string literal expression
       List<SMGState> smgStates = new ArrayList<>();
       CType cParamType = pExpression.transformTypeToArrayType();
-      String name = pExpression.getContentString() + " string literal";
+      String name = pExpression.getContentWithoutNullTerminator() + " string literal";
       SMGRegion region = pNewState.getHeap().getObjectForVisibleVariable(name);
 
       if (region != null) {

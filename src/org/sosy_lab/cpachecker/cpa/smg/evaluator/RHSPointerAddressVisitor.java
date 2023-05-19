@@ -77,7 +77,7 @@ class RHSPointerAddressVisitor extends PointerVisitor {
     List<SMGAddressValueAndState> result = new ArrayList<>();
     SMGState smgState = getInitialSmgState();
 
-    String name = pStringLiteralExpression.getContentString() + " string literal";
+    String name = pStringLiteralExpression.getContentWithoutNullTerminator() + " string literal";
     SMGRegion region = smgState.getHeap().getObjectForVisibleVariable(name);
 
     if (region != null) {

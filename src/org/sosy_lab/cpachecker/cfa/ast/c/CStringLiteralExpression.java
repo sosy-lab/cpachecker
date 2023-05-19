@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import static com.google.common.base.Verify.verify;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,8 +57,34 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
     return getValue();
   }
 
-  public String getContentString() {
+  /**
+   * Use either {@link #toASTString()} (if you want the syntactic representation including quotes)
+   * or {@link #getContentWithNullTerminator()} (if you want the actual content) or {@link
+   * #getContentWithoutNullTerminator()} (if you want the actual content but without the including
+   * null terminator).
+   */
+  @Override
+  @Deprecated
+  public String getValue() {
+    return super.getValue();
+  }
+
+  /**
+   * Returns the content of this string literal including the null terminator. This is the actual
+   * semantics of a string literal according to the C standard.
+   */
+  public String getContentWithNullTerminator() {
+    return getContentWithoutNullTerminator() + "\0";
+  }
+
+  /**
+   * Returns the content of this string literal, but removes the null terminator first. Typically
+   * one would use {@link #getContentWithNullTerminator()} instead, use this only in special cases.
+   */
+  public String getContentWithoutNullTerminator() {
     String literal = getValue();
+    verify(literal.charAt(0) == '"');
+    verify(literal.charAt(literal.length() - 1) == '"');
     return literal.substring(1, literal.length() - 1);
   }
 
@@ -89,9 +117,9 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
    * @return List of character-literal expressions
    */
   public List<CCharLiteralExpression> expandStringLiteral(final CArrayType type) {
-    // The string is either NULL terminated, or not.
-    // If the length is not provided explicitly, NULL termination is used
-    final String s = getContentString();
+    // The string literal is is always NULL terminated, but a string in an array might be not.
+    // We handle this below.
+    final String s = getContentWithoutNullTerminator();
     final int length = type.getLengthAsInt().orElse(s.length() + 1);
     assert length >= s.length();
 

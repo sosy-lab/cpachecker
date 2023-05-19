@@ -1621,12 +1621,10 @@ public class SMGCPAExpressionEvaluator {
       CInitializer init = pVarDecl.getInitializer();
       if (init instanceof CInitializerExpression) {
         CExpression initExpr = ((CInitializerExpression) init).getExpression();
-        if (initExpr instanceof CStringLiteralExpression) {
+        if (initExpr instanceof CStringLiteralExpression stringLit) {
           typeSizeInBits =
               BigInteger.valueOf(8)
-                  .multiply(
-                      BigInteger.valueOf(
-                          (((CStringLiteralExpression) initExpr).getContentString().length() + 1)));
+                  .multiply(BigInteger.valueOf(stringLit.getContentWithNullTerminator().length()));
         } else {
           throw new SMGException(
               "Could not determine correct type size for an array for initializer expression: "
@@ -1937,7 +1935,8 @@ public class SMGCPAExpressionEvaluator {
     if (pCurrentExpressionType instanceof CPointerType) {
       // create a new memory region for the string (right hand side)
       CType stringArrayType = pExpression.transformTypeToArrayType();
-      String stringVarName = "_" + pExpression.getContentString() + "_STRING_LITERAL";
+      String stringVarName =
+          "_" + pExpression.getContentWithoutNullTerminator() + "_STRING_LITERAL";
       // If the var exists we change the name and create a new one
       // (Don't reuse an old variable! They might be different from the new one!)
       int num = 0;

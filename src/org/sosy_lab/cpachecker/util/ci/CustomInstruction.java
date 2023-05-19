@@ -1258,7 +1258,9 @@ public class CustomInstruction {
                 + aciStringLiteralExp.getExpressionType()
                 + ").");
       }
-      if (!ciExp.getValue().equals(aciStringLiteralExp.getValue())) {
+      if (!ciExp
+          .getContentWithNullTerminator()
+          .equals(aciStringLiteralExp.getContentWithNullTerminator())) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The value of the CIntegerLiteralExpression of ci "
                 + ciExp
