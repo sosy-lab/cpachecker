@@ -91,16 +91,14 @@ class AssignmentHandler {
    * <p>The right-hand side is optional. If empty, it is taken to be nondeterministic.
    *
    * <p>If {@code relevancyLhs} is non-empty, the assignment is not performed if not relevant, as
-   * decided by {@link
-   * CToFormulaConverterWithPointerAliasing#isRelevantLeftHandSide(CLeftHandSide)}.
+   * decided by {@link CToFormulaConverterWithPointerAliasing#isRelevantLeftHandSide(CLeftHandSide,
+   * Optional)}.
    *
    * <p>The quantified variables in LHS and RHS slice expressions must be unresolved. They will be
    * resolved later by {@link AssignmentQuantifierHandler}.
    */
   record SliceAssignment(
-      SliceExpression lhs,
-      Optional<CLeftHandSide> relevancyLhs,
-      Optional<SliceExpression> rhs) {
+      SliceExpression lhs, Optional<CLeftHandSide> relevancyLhs, Optional<SliceExpression> rhs) {
     SliceAssignment {
       checkNotNull(lhs);
       checkNotNull(relevancyLhs);
@@ -120,7 +118,9 @@ class AssignmentHandler {
     private boolean isRelevant(CToFormulaConverterWithPointerAliasing pConv) {
       // if relevancyLhs is empty in some assignment, treat it as relevant
       return relevancyLhs
-          .map(presentRelevancyLhs -> pConv.isRelevantLeftHandSide(presentRelevancyLhs))
+          .map(
+              presentRelevancyLhs ->
+                  pConv.isRelevantLeftHandSide(presentRelevancyLhs, rhs.map(SliceExpression::base)))
           .orElse(true);
     }
   }

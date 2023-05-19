@@ -1437,8 +1437,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @return Whether a left hand side is relevant for the analysis.
    */
   @Override
-  protected boolean isRelevantLeftHandSide(CLeftHandSide pLhs) {
-    return super.isRelevantLeftHandSide(pLhs);
+  protected boolean isRelevantLeftHandSide(CLeftHandSide pLhs, Optional<CRightHandSide> pRhs) {
+    return super.isRelevantLeftHandSide(pLhs, pRhs);
   }
 
   protected boolean isRelevantField(

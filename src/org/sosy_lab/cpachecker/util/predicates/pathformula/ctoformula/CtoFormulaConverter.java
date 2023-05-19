@@ -149,6 +149,9 @@ public class CtoFormulaConverter {
           "memmove", "memmove",
           "memset", "memset");
 
+  private static final ImmutableSet<String> SIDE_EFFECT_FUNCTIONS =
+      ImmutableSet.of("memcpy", "memmove", "memset");
+
   // names for special variables needed to deal with functions
   @Deprecated
   private static final String RETURN_VARIABLE_NAME =
@@ -264,7 +267,16 @@ public class CtoFormulaConverter {
         .containsEntry(compositeType, fieldName);
   }
 
-  protected boolean isRelevantLeftHandSide(final CLeftHandSide lhs) {
+  protected boolean isRelevantLeftHandSide(
+      final CLeftHandSide lhs, final Optional<CRightHandSide> rhs) {
+    if (rhs.isPresent()
+        && rhs.orElseThrow() instanceof CFunctionCallExpression funcCall
+        && SIDE_EFFECT_FUNCTIONS.contains(funcCall.getFunctionNameExpression().toString())) {
+      // Extern function calls like memset have side effects, we should not ignore this based on
+      // LHS alone.
+      return true;
+    }
+
     if (!options.trackFunctionPointers() && CTypes.isFunctionPointer(lhs.getExpressionType())) {
       return false;
     }
@@ -1666,7 +1678,7 @@ public class CtoFormulaConverter {
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
 
-    if (!isRelevantLeftHandSide(lhsForChecking)) {
+    if (!isRelevantLeftHandSide(lhsForChecking, Optional.of(rhs))) {
       // Optimization for unused variables and fields
       return bfmgr.makeTrue();
     }
