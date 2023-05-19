@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
@@ -157,10 +159,7 @@ record SliceExpression(
     checkNotNull(field);
     // add to modifiers
     ImmutableList<SliceModifier> newModifiers =
-        ImmutableList.<SliceModifier>builder()
-            .addAll(modifiers)
-            .add(new SliceFieldAccessModifier(field))
-            .build();
+        listAndElement(modifiers, new SliceFieldAccessModifier(field));
     return new SliceExpression(base, newModifiers);
   }
 
@@ -175,10 +174,7 @@ record SliceExpression(
     checkNotNull(index);
     // add to modifiers
     ImmutableList<SliceModifier> newModifiers =
-        ImmutableList.<SliceModifier>builder()
-            .addAll(modifiers)
-            .add(new SliceVariableIndexModifier(index))
-            .build();
+        listAndElement(modifiers, new SliceVariableIndexModifier(index));
     return new SliceExpression(base, newModifiers);
   }
 
@@ -194,14 +190,13 @@ record SliceExpression(
 
     // replace variable index modifiers on the given variable by formula index modifiers
     ImmutableList<SliceModifier> newModifiers =
-        FluentIterable.from(modifiers)
-            .transform(
-                modifier ->
-                    modifier instanceof SliceVariableIndexModifier quantifiedModifier
-                            && quantifiedModifier.index.equals(sliceVariable)
-                        ? new SliceFormulaIndexModifier(replacementFormula)
-                        : modifier)
-            .toList();
+        transformedImmutableListCopy(
+            modifiers,
+            modifier ->
+                modifier instanceof SliceVariableIndexModifier quantifiedModifier
+                        && quantifiedModifier.index.equals(sliceVariable)
+                    ? new SliceFormulaIndexModifier(replacementFormula)
+                    : modifier);
 
     return new SliceExpression(base, newModifiers);
   }
@@ -285,10 +280,9 @@ record SliceExpression(
       return base;
     }
 
-    if (!(base instanceof CExpression)) {
-      throw new IllegalStateException(
-          "Cannot get dummy resolved expression, base is not CExpression and has modifiers");
-    }
+    checkState(
+        base instanceof CExpression,
+        "Cannot get dummy resolved expression, base is not CExpression and has modifiers");
 
     // resolve the expression with dummy zero indices to get the type
     CExpression resolved = (CExpression) base;

@@ -270,7 +270,7 @@ class AssignmentQuantifierHandler {
       variablesToQuantifyBuilder.addAll(lhs.actual().getPresentVariables());
       for (PartialAssignmentRhs rhs : rhsList) {
         if (rhs.actual().isPresent()) {
-          variablesToQuantifyBuilder.addAll(rhs.actual().get().getPresentVariables());
+          variablesToQuantifyBuilder.addAll(rhs.actual().orElseThrow().getPresentVariables());
         }
       }
 
@@ -331,7 +331,7 @@ class AssignmentQuantifierHandler {
           // nondet, skip
           continue;
         }
-        SliceExpression rhsSlice = rhs.actual.get();
+        SliceExpression rhsSlice = rhs.actual.orElseThrow();
 
         // it is the caller's responsibility to ensure the rhs base is a cast to unsigned char
         CCastExpression base = (CCastExpression) rhsSlice.base();
@@ -654,7 +654,7 @@ class AssignmentQuantifierHandler {
       }
 
       // resolve the RHS by getting the resolved base and resolving modifiers over it
-      final SliceExpression rhsSlice = rhs.actual().get();
+      final SliceExpression rhsSlice = rhs.actual().orElseThrow();
       final ResolvedSlice rhsResolvedBase = resolvedRhsBases.get(rhsSlice.base());
       ResolvedSlice rhsResolved = applySliceModifiersToResolvedBase(rhsResolvedBase, rhsSlice);
 

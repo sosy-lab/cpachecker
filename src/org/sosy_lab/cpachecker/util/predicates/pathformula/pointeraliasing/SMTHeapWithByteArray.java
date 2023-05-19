@@ -263,8 +263,7 @@ class SMTHeapWithByteArray implements SMTHeap {
 
     if (condition != null) {
       // TODO: support quantified assignments with byte heap
-      throw new UnsupportedOperationException(
-          String.format("Byte heap does not support quantified assignments!"));
+      throw new UnsupportedOperationException("Byte heap does not support quantified assignments!");
     }
 
     I address = assignment.address();

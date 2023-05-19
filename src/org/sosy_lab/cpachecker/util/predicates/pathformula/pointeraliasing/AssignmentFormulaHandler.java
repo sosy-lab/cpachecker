@@ -305,7 +305,8 @@ class AssignmentFormulaHandler {
           // construct the partial RHS formula in a separate function
           partialRhsFormula =
               Optional.of(
-                  constructPartialRhsFormula(lhsBitSize, targetType, rhsSpan, rhsFormula.get()));
+                  constructPartialRhsFormula(
+                      lhsBitSize, targetType, rhsSpan, rhsFormula.orElseThrow()));
         }
       }
 
@@ -317,8 +318,8 @@ class AssignmentFormulaHandler {
       // bit-or with other parts, all of them are LHS-sized
       completeRhsFormula =
           (completeRhsFormula != null)
-              ? fmgr.makeOr(completeRhsFormula, partialRhsFormula.get())
-              : partialRhsFormula.get();
+              ? fmgr.makeOr(completeRhsFormula, partialRhsFormula.orElseThrow())
+              : partialRhsFormula.orElseThrow();
     }
 
     // completeRhsFormula now contains all partial RHS and is LHS-sized (or null)
@@ -342,7 +343,7 @@ class AssignmentFormulaHandler {
 
       // reinterpret the previous LHS formula to bitvector
       Formula bitvectorPreviousLhsFormula =
-          conv.makeValueReinterpretationToBitvector(lhs.type(), previousLhsFormula.get());
+          conv.makeValueReinterpretationToBitvector(lhs.type(), previousLhsFormula.orElseThrow());
       // for all retained ranges, retain previous LHS values in the complete RHS formula
       for (Range<Long> retainedRange : retainedRangeSet.asRanges()) {
         if (retainedRange.isEmpty()) {
@@ -524,7 +525,7 @@ class AssignmentFormulaHandler {
     // reinterpret as bitvector
     final BitvectorFormulaManagerView bvmgr = conv.fmgr.getBitvectorFormulaManager();
     final BitvectorFormula bitvectorFormula =
-        conv.makeValueReinterpretationToBitvector(rhsType, rhsFormula.get());
+        conv.makeValueReinterpretationToBitvector(rhsType, rhsFormula.orElseThrow());
 
     final long fromBitSizeof = conv.getBitSizeof(rhsType);
     // the type which we are repeating must be byte-sized

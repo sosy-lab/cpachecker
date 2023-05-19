@@ -40,7 +40,6 @@ interface SMTHeap {
       final int newIndex,
       final SMTAddressValue<I, E> assignment);
 
-
   /**
    * Create a formula that represents a conditional assignment to a value via a pointer, with the
    * possibility of using quantified variables encoded in the formulas for address, condition, and

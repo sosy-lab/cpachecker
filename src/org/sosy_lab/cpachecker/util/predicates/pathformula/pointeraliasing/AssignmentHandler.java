@@ -104,7 +104,7 @@ class AssignmentHandler {
       checkNotNull(relevancyLhs);
       checkNotNull(rhs);
       checkArgument(!lhs.containsResolvedModifiers());
-      checkArgument(rhs.isEmpty() || !rhs.get().containsResolvedModifiers());
+      checkArgument(rhs.isEmpty() || !rhs.orElseThrow().containsResolvedModifiers());
     }
 
     private SliceAssignment constructCanonical() {
@@ -328,7 +328,7 @@ class AssignmentHandler {
     }
     IsRelevantWithHavocAbstractionVisitor havocVisitor =
         new IsRelevantWithHavocAbstractionVisitor(conv);
-    if (assignment.rhs.get().base().accept(havocVisitor)) {
+    if (assignment.rhs.orElseThrow().base().accept(havocVisitor)) {
       // relevant
       return assignment;
     }
@@ -384,7 +384,7 @@ class AssignmentHandler {
       // no resolution of RHS base or deferred memory handling
       return;
     }
-    final SliceExpression rhs = assignment.rhs.get();
+    final SliceExpression rhs = assignment.rhs.orElseThrow();
 
     // resolve RHS base using visitor
     final CRightHandSide rhsBase = rhs.base();
@@ -791,7 +791,7 @@ class AssignmentHandler {
       final Location lhsLocation = variable.accept(lhsVisitor).asLocation();
 
       if (arrayLength.isPresent()
-          && arrayLength.getAsInt() == assignments.size()
+          && arrayLength.orElseThrow() == assignments.size()
           && rhsValue.isValue()
           && checkEqualityOfInitializers(assignments, rhsVisitor)
           && lhsLocation.isAliased()) {
