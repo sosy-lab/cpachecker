@@ -8,10 +8,14 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints.refiner.precision;
 
+import com.google.common.base.Preconditions;
+import java.nio.file.Path;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
@@ -33,11 +37,30 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
       toUppercase = true)
   private PrecisionType precisionType = PrecisionType.CONSTRAINTS;
 
+  @Option(secure = true, description = "get an initial precision from file")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path initialPrecisionFile = null;
+
   private final ConstraintsPrecision delegate;
 
-  public RefinableConstraintsPrecision(final Configuration pConfig, final CFA pCfa)
+  public RefinableConstraintsPrecision(
+      final Configuration pConfig, final CFA pCfa, final LogManager pLogger)
       throws InvalidConfigurationException {
-    delegate = new InitialConstraintsPrecisionCreator(pConfig, pCfa).create(precisionType);
+    pConfig.inject(this);
+
+    if (initialPrecisionFile != null) {
+      Preconditions.checkNotNull(pCfa);
+      delegate =
+          new InitialConstraintsPrecisionCreator(pLogger)
+              .transformValueToConstraintsPrecision(precisionType, initialPrecisionFile, pCfa);
+    } else {
+      // empty initial constraints precision
+      delegate =
+          switch (precisionType) {
+            case CONSTRAINTS -> ConstraintBasedConstraintsPrecision.getEmptyPrecision();
+            case LOCATION -> LocationBasedConstraintsPrecision.getEmptyPrecision();
+          };
+    }
   }
 
   private RefinableConstraintsPrecision(final ConstraintsPrecision pDelegate) {

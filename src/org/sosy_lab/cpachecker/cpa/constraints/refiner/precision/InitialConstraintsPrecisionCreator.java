@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints.refiner.precision;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -24,11 +23,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -37,15 +31,9 @@ import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrec
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.RefinableConstraintsPrecision.PrecisionType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-@Options(prefix = "cpa.constraints.refinement")
 public class InitialConstraintsPrecisionCreator {
 
-  @Option(secure = true, description = "get an initial precision from file")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path initialPrecisionFile = null;
-
-  private final CFA cfa;
-  private LogManager logger;
+  private final LogManager logger;
 
   //for ConstraintBasedConstraintsPrecision
   private Set<String> trackedGlobalVariables = new HashSet<>();
@@ -55,32 +43,13 @@ public class InitialConstraintsPrecisionCreator {
   //for LocationBasedConstraintPrecision
   private Set<CFANode> locationMap = new HashSet<>();
 
-  public InitialConstraintsPrecisionCreator(
-      Configuration pConfig, CFA pcfa)
-      throws InvalidConfigurationException {
-    pConfig.inject(this);
-    cfa = pcfa;
-    logger = LogManager.createTestLogManager();
+  public InitialConstraintsPrecisionCreator(LogManager pLogger) {
+    logger = pLogger;
   }
 
-  public ConstraintsPrecision create(final PrecisionType precisionType) throws AssertionError {
-    // if fromValuePrecision flags are set, create an initial constraints precision based on the
-    // given value precision
-    if (initialPrecisionFile != null) {
-      Preconditions.checkNotNull(cfa);
-      restoreMappingFromFile(cfa);
-      return transformValueToConstraintsPrecision(precisionType);
-    } else {
-      // empty initial constraints precision
-      return switch (precisionType) {
-        case CONSTRAINTS -> ConstraintBasedConstraintsPrecision.getEmptyPrecision();
-        case LOCATION -> LocationBasedConstraintsPrecision.getEmptyPrecision();
-      };
-    }
-  }
-
-  private ConstraintsPrecision transformValueToConstraintsPrecision(
-      final PrecisionType precisionType) {
+  public ConstraintsPrecision transformValueToConstraintsPrecision(
+      final PrecisionType precisionType, final Path pInitialPrecisionFile, final CFA pCfa) {
+    restoreMappingFromFile(pCfa, pInitialPrecisionFile);
     switch (precisionType) {
       case CONSTRAINTS:
         // create a ConstraintBasedConstraintsPrecision, that tracks important variables of value
@@ -102,15 +71,15 @@ public class InitialConstraintsPrecisionCreator {
     }
   }
 
-  private void restoreMappingFromFile(CFA pCfa) {
+  private void restoreMappingFromFile(CFA pCfa, Path pInitialPrecisionFile) {
     List<String> contents = new ArrayList<>();
     boolean scopeValuePrecision = false;
     Multimap<CFANode, MemoryLocation> locationMemoryMap = HashMultimap.create();
     try {
-      contents = Files.readAllLines(initialPrecisionFile, Charset.defaultCharset());
+      contents = Files.readAllLines(pInitialPrecisionFile, Charset.defaultCharset());
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e,
-          "Could not read precision from file named " + initialPrecisionFile);
+      logger.logUserException(
+          Level.WARNING, e, "Could not read precision from file named " + pInitialPrecisionFile);
     }
 
     Map<Integer, CFANode> idToCfaNode = createMappingForCFANodes(pCfa);
