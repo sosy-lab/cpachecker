@@ -88,6 +88,14 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
     return literal.substring(1, literal.length() - 1);
   }
 
+  /** Returns the size in bytes of the represented string. */
+  public int getSize() {
+    // without quotes but plus null terminator
+    int value = getValue().length() - 2 + 1;
+    assert value == getContentWithNullTerminator().length();
+    return value;
+  }
+
   @Override
   public int hashCode() {
     return super.hashCode();
@@ -149,7 +157,7 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
             getFileLocation(),
             new CSimpleType(
                 false, false, CBasicType.INT, false, false, false, false, false, false, false),
-            BigInteger.valueOf(getValue().length() - 1));
+            BigInteger.valueOf(getSize()));
 
     if (getExpressionType() instanceof CArrayType) {
       CArrayType arrayType = (CArrayType) getExpressionType();

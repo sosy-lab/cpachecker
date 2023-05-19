@@ -1622,9 +1622,7 @@ public class SMGCPAExpressionEvaluator {
       if (init instanceof CInitializerExpression) {
         CExpression initExpr = ((CInitializerExpression) init).getExpression();
         if (initExpr instanceof CStringLiteralExpression stringLit) {
-          typeSizeInBits =
-              BigInteger.valueOf(8)
-                  .multiply(BigInteger.valueOf(stringLit.getContentWithNullTerminator().length()));
+          typeSizeInBits = BigInteger.valueOf(8).multiply(BigInteger.valueOf(stringLit.getSize()));
         } else {
           throw new SMGException(
               "Could not determine correct type size for an array for initializer expression: "
