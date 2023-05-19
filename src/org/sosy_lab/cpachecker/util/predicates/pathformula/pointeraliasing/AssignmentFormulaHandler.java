@@ -495,10 +495,7 @@ class AssignmentFormulaHandler {
         }
         yield Value.ofValue(reinterpretedFormula);
       }
-      default -> throw new IllegalArgumentException("Unexpected value: " + conversionType);
-      case BYTE_REPEAT -> {
-        throw new AssertionError();
-      }
+      case BYTE_REPEAT -> throw new AssertionError();
     };
   }
 
