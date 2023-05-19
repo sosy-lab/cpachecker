@@ -1712,9 +1712,6 @@ cpa.constraints.minimalSatCheck = true
 # get an initial precision from file
 cpa.constraints.refinement.initialPrecisionFile = no default value
 
-# Whether to get initial constraint precision from a value precision or not.
-cpa.constraints.refinement.initialValueConstraintsPrecision = false
-
 # Type of precision to use. Has to be LOCATION if PredicateExtractionRefiner
 # is used.
 cpa.constraints.refinement.precisionType = CONSTRAINTS
