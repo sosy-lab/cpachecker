@@ -88,7 +88,7 @@ class RHSPointerAddressVisitor extends PointerVisitor {
 
     smgState = getInitialSmgState();
     // create a new global region for string literal expression
-    CArrayType cParamType = pStringLiteralExpression.transformTypeToArrayType();
+    CArrayType cParamType = pStringLiteralExpression.getExpressionType();
     region =
         smgState.addGlobalVariable(
             smgExpressionEvaluator.machineModel.getSizeofInBits(cParamType).longValue(), name);

@@ -1932,7 +1932,7 @@ public class SMGCPAExpressionEvaluator {
     // write the String into it, make a pointer to the beginning and save that in the char *.
     if (pCurrentExpressionType instanceof CPointerType) {
       // create a new memory region for the string (right hand side)
-      CType stringArrayType = pExpression.transformTypeToArrayType();
+      CArrayType stringArrayType = pExpression.getExpressionType();
       String stringVarName =
           "_" + pExpression.getContentWithoutNullTerminator() + "_STRING_LITERAL";
       // If the var exists we change the name and create a new one
@@ -1989,7 +1989,7 @@ public class SMGCPAExpressionEvaluator {
       throws CPATransferException {
     // Create a char array from string and call list init
     ImmutableList.Builder<CInitializer> charArrayInitialziersBuilder = ImmutableList.builder();
-    CArrayType arrayType = pExpression.transformTypeToArrayType();
+    CArrayType arrayType = pExpression.getExpressionType();
     for (CCharLiteralExpression charLiteralExp : pExpression.expandStringLiteral(arrayType)) {
       charArrayInitialziersBuilder.add(new CInitializerExpression(pFileLocation, charLiteralExp));
     }

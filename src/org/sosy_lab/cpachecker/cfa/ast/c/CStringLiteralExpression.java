@@ -16,25 +16,22 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 public final class CStringLiteralExpression extends AStringLiteralExpression
     implements CLiteralExpression {
 
   private static final long serialVersionUID = 2656216584704518185L;
 
-  public CStringLiteralExpression(FileLocation pFileLocation, CType pType, String pValue) {
-    super(pFileLocation, pType, pValue);
+  public CStringLiteralExpression(FileLocation pFileLocation, String pValue) {
+    super(pFileLocation, computeType(pValue, pFileLocation), pValue);
   }
 
+  /** Returns the type as <code>char[]</code> including the correct length. */
   @Override
-  public CType getExpressionType() {
-    return (CType) super.getExpressionType();
+  public CArrayType getExpressionType() {
+    return (CArrayType) super.getExpressionType();
   }
 
   @Override
@@ -150,26 +147,10 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
     return result;
   }
 
-  public CArrayType transformTypeToArrayType() throws UnrecognizedCodeException {
-
+  private static CArrayType computeType(String astString, FileLocation pFileLocation) {
     CExpression length =
         new CIntegerLiteralExpression(
-            getFileLocation(),
-            new CSimpleType(
-                false, false, CBasicType.INT, false, false, false, false, false, false, false),
-            BigInteger.valueOf(getSize()));
-
-    if (getExpressionType() instanceof CArrayType) {
-      CArrayType arrayType = (CArrayType) getExpressionType();
-      if (arrayType.getLengthAsInt().orElse(0) == 0) {
-        arrayType = new CArrayType(false, false, arrayType.getType(), length);
-      }
-      return arrayType;
-    } else if (getExpressionType() instanceof CPointerType) {
-      return new CArrayType(false, false, ((CPointerType) getExpressionType()).getType(), length);
-    } else {
-      throw new UnrecognizedCodeException(
-          "Assigning string literal to " + getExpressionType(), this);
-    }
+            pFileLocation, CNumericTypes.INT, BigInteger.valueOf(astString.length() - 2 + 1));
+    return new CArrayType(false, false, CTypes.withConst(CNumericTypes.CHAR), length);
   }
 }
