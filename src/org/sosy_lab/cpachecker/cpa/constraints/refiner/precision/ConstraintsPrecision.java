@@ -54,10 +54,6 @@ public interface ConstraintsPrecision extends Precision {
       return trackedLocally;
     }
 
-    public static Builder builder() {
-      return new Builder();
-    }
-
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("ConstraintsPrecision.Increment[");
@@ -133,6 +129,10 @@ public interface ConstraintsPrecision extends Precision {
 
       public Increment build() {
         return new Increment(trackedLocally, trackedInFunction, trackedGlobally);
+      }
+
+      public static Builder builder() {
+        return new Builder();
       }
     }
   }
