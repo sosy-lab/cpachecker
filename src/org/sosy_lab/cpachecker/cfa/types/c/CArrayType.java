@@ -36,7 +36,6 @@ public final class CArrayType extends AArrayType implements CType {
     isConst = pConst;
     isVolatile = pVolatile;
     length = pLength;
-
   }
 
   @Override
