@@ -2218,10 +2218,6 @@ cpa.predicate.encodeOverflowsWithUFs = false
 # file are global and declared before this function is called.
 cpa.predicate.externModelFunctionName = "__VERIFIER_externModelSatisfied"
 
-# Force functions memset, memcopy, memmove to use quantifiers even if they
-# are not normally used.
-cpa.predicate.forceQuantifiersInMemoryAssignmentFunctions = false
-
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.smt2"
 
@@ -2255,6 +2251,10 @@ cpa.predicate.ignoreIrrelevantVariables = true
 
 # do not include assumptions of states into path formula during strengthening
 cpa.predicate.ignoreStateAssumptions = false
+
+# Prevent functions memset, memcopy, memmove from stopping verification if
+# there is unrecognized code. Instead, they will just be skipped (unsound).
+cpa.predicate.ignoreUnrecognizedCodeInMemoryAssignmentFunctions = false
 
 # Add computed invariants to the precision. Invariants do not need to be
 # generated with the PredicateCPA they can also be given from outside.
@@ -2697,10 +2697,6 @@ cpa.predicate.useMemoryRegions = false
 
 # add special information to formulas about non-deterministic functions
 cpa.predicate.useNondetFlags = false
-
-# Use the old version of assignment handling for normal assignments. Memory
-# manipulation functions still will use the new version.
-cpa.predicate.useOldAssignment = false
 
 # Insert tmp-variables for parameters at function-entries. The variables are
 # similar to return-variables at function-exit.
