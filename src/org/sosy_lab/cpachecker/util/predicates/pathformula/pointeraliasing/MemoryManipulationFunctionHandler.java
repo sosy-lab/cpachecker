@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Slice
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * Handles memory manipulation functions {@code memset}, {@code memcpy}, {@copy memmove}. These
+ * Handles memory manipulation functions {@code memset}, {@code memcpy}, {@code memmove}. These
  * functions perform assignments to/from memory blocks.
  *
  * <p>The memory functions are encoded into slice assignments internally.
@@ -102,10 +102,10 @@ class MemoryManipulationFunctionHandler {
   }
 
   /**
-   * This method handles memory manipulation functions {@code memset}, {@code memcpy}, {@copy
+   * This method handles memory manipulation functions {@code memset}, {@code memcpy}, {code
    * memmove} with arguments given by {@link CFunctionCallExpression}.
    *
-   * @param functionName The function name. Must be {@code memset}, {@code memcpy}, or {@copy
+   * @param functionName The function name. Must be {@code memset}, {@code memcpy}, or {code
    *     memmove}.
    * @param functionCall Function call expression which should be handled.
    * @return The return value of function, which is always the destination (first) parameter of the
