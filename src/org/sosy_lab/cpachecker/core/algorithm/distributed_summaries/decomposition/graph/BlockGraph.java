@@ -39,9 +39,7 @@ public class BlockGraph {
 
   public BlockGraph(BlockNode pRoot, ImmutableSet<BlockNode> pNodes) {
     checkArgument(
-        pRoot.getPredecessorIds().isEmpty(),
-        "Node with ID: '" + ROOT_ID + "%s",
-        "' has predecessors.");
+        pRoot.getPredecessorIds().isEmpty(), "Node with ID: '%s' has predecessors.", ROOT_ID);
     Preconditions.checkArgument(
         pNodes.stream().noneMatch(b -> b.equals(pRoot) || b.getId().equals(ROOT_ID)),
         "Root nodes are ambiguous.");
