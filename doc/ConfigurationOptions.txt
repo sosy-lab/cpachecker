@@ -683,7 +683,6 @@ bdd.synchronizeLibraryAccess = false
 
 # output file for visualizing the block graph
 blockCFAFile = "block_analysis/blocks.json"
-blockCFAFile = no default value
 
 # Allow reduction of function entries; calculate abstractions always at
 # function entries?
@@ -3735,19 +3734,9 @@ differential.variableSetMerge = false
 # point. MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION.
 # The final number of blocks should converge to the number of functions in
 # the program. NO_DECOMPOSITION creates one block around the CFA.
-# Allows to set the algorithm for decomposing the CFA. BLOCK_OPERATOR creates
-# blocks from each merge/branching point to the next merge/branching point.
-# GIVEN_SIZE merges blocks obtained by BLOCK_OPERATOR until
-# distributedSummaries.desiredNumberOfBlocks blocks are present. SINGLE_BLOCK
-# creates one block around the complete CFA.
 distributedSummaries.decompositionType = LINEAR_DECOMPOSITION
   enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
              NO_DECOMPOSITION]
-distributedSummaries.decompositionType = no default value
-  enum:     [BLOCK_OPERATOR, GIVEN_SIZE, SINGLE_BLOCK]
-
-# desired number of BlockNodes
-distributedSummaries.desiredNumberOfBlocks = no default value
 
 # Change the queue type. ERRROR_CONDITION prioritizes the processing
 # ofErrorConditionMessages. DEFAULT does not differ between PostCondition and
@@ -3759,7 +3748,6 @@ distributedSummaries.queue = DEFAULT
 # create visual output for debugging. Workers consume resources and should
 # not be used for benchmarks.
 distributedSummaries.spawnUtilWorkers = true
-distributedSummaries.spawnUtilWorkers = no default value
 
 # The number of blocks is dependent by the number of functions in the
 # program.A tolerance of 1 means, that we subtract 1 of the total number of
@@ -3789,11 +3777,6 @@ distributedSummaries.worker.sendEveryErrorMessage = false
 # the abstract state to a byte string.
 distributedSummaries.worker.serializationType = BYTE
   enum:     [IDENTITY, BYTE]
-
-# Choose the workers that are spawned for each block. Contrary to DEFAULT
-# workers, SMART workers consume multiple messages at once.
-distributedSummaries.workerType = no default value
-  enum:     [DEFAULT, SMART]
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
@@ -4511,7 +4494,6 @@ report.export = true
 report.file = "Report.html"
 
 # output file for visualizing message exchange
-reportFile = no default value
 reportFiles = "block_analysis/block_analysis"
 
 # set path to file which contains the condition
