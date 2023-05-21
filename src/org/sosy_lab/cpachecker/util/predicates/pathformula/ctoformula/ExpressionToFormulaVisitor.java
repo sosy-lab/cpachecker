@@ -456,7 +456,7 @@ public class ExpressionToFormulaVisitor
   public Formula visit(CStringLiteralExpression lexp) throws UnrecognizedCodeException {
     // we create a string constant representing the given
     // string literal
-    return conv.makeStringLiteral(lexp.getValue());
+    return conv.makeStringLiteral(lexp.getContentWithNullTerminator());
   }
 
   @Override
