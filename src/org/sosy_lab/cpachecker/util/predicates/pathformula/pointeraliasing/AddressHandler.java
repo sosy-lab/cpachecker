@@ -167,7 +167,7 @@ final class AddressHandler {
 
     Optional<Formula> optionalFormula = getOptionalValueFormula(expression, type, isSafe);
     if (optionalFormula.isPresent()) {
-      return optionalFormula.get();
+      return optionalFormula.orElseThrow();
     }
 
     // nondet value, make a new nondet variable with the given type

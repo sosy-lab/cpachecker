@@ -276,8 +276,8 @@ class AssignmentFormulaHandler {
           && lhsBitSize == targetBitSize
           && rhs.actual().isPresent()) {
         // we now know it is a full-span something-to-pointer assignment
-        ResolvedSlice rhsResolvedSlice = rhs.actual().get();
-        if (rhsResolvedSlice.type() instanceof CArrayType arrayType) {
+        ResolvedSlice rhsResolvedSlice = rhs.actual().orElseThrow();
+        if (rhsResolvedSlice.type() instanceof CArrayType) {
           // OK, this is the special case, full-span array-to-pointer assignment
           // return the RHS resolved slice, which has the array type
           return rhsResolvedSlice;
