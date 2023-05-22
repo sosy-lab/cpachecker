@@ -197,11 +197,13 @@ final class AddressHandler {
           region = regionMgr.makeMemoryRegion(type);
         }
         if (isSafe) {
-          yield Optional.of(conv.makeSafeDereference(
-              type, expression.asAliasedLocation().getAddress(), ssa, region));
+          yield Optional.of(
+              conv.makeSafeDereference(
+                  type, expression.asAliasedLocation().getAddress(), ssa, region));
         }
-        yield Optional.of(conv.makeDereference(
-            type, expression.asAliasedLocation().getAddress(), ssa, errorConditions, region));
+        yield Optional.of(
+            conv.makeDereference(
+                type, expression.asAliasedLocation().getAddress(), ssa, errorConditions, region));
       }
       case UNALIASED_LOCATION -> Optional.of(
           conv.makeVariable(expression.asUnaliasedLocation().getVariableName(), type, ssa));

@@ -82,13 +82,11 @@ class AssignmentFormulaHandler {
     }
 
     /**
-     * Returns whether the span is full, i.e., starts at zero both at left-hand side
-     * and right-hand-side and its bit size equals the parameter bit size.
+     * Returns whether the span is full, i.e., starts at zero both at left-hand side and
+     * right-hand-side and its bit size equals the parameter bit size.
      */
     boolean isFullSpan(long fullBitSize) {
-      return lhsBitOffset == 0
-          && rhsTargetBitOffset == 0
-          && bitSize == fullBitSize;
+      return lhsBitOffset == 0 && rhsTargetBitOffset == 0 && bitSize == fullBitSize;
     }
   }
 
