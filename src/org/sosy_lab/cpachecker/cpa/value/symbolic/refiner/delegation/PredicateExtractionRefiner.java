@@ -40,11 +40,11 @@ public abstract class PredicateExtractionRefiner implements Refiner {
         CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, PredicateExtractionRefiner.class);
 
     final Configuration config = valueAnalysisCpa.getConfiguration();
+    final LogManager logger = valueAnalysisCpa.getLogger();
 
     valueAnalysisCpa.injectRefinablePrecision();
-    constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config));
-
-    final LogManager logger = valueAnalysisCpa.getLogger();
+    constraintsCpa.injectRefinablePrecision(
+        new RefinableConstraintsPrecision(config, valueAnalysisCpa.getCFA(), logger));
 
     RefinementStrategy strategy =
         new SymbolicPrecisionRefinementStrategy(
