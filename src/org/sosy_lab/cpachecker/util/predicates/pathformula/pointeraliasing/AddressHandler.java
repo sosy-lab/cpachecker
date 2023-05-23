@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import java.util.Optional;
 import java.util.OptionalLong;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -167,7 +168,7 @@ final class AddressHandler {
 
     Optional<Formula> optionalFormula = getOptionalValueFormula(expression, type, isSafe);
     if (optionalFormula.isPresent()) {
-      return optionalFormula.orElseThrow();
+      return optionalFormula.get();
     }
 
     // nondet value, make a new nondet variable with the given type
@@ -192,18 +193,24 @@ final class AddressHandler {
       final Expression expression, final CType type, final boolean isSafe) {
     return switch (expression.getKind()) {
       case ALIASED_LOCATION -> {
+        final CType adjustedType = CTypes.adjustFunctionOrArrayType(type);
+
         MemoryRegion region = expression.asAliasedLocation().getMemoryRegion();
         if (region == null) {
-          region = regionMgr.makeMemoryRegion(type);
+          region = regionMgr.makeMemoryRegion(adjustedType);
         }
         if (isSafe) {
           yield Optional.of(
               conv.makeSafeDereference(
-                  type, expression.asAliasedLocation().getAddress(), ssa, region));
+                  adjustedType, expression.asAliasedLocation().getAddress(), ssa, region));
         }
         yield Optional.of(
             conv.makeDereference(
-                type, expression.asAliasedLocation().getAddress(), ssa, errorConditions, region));
+                adjustedType,
+                expression.asAliasedLocation().getAddress(),
+                ssa,
+                errorConditions,
+                region));
       }
       case UNALIASED_LOCATION -> Optional.of(
           conv.makeVariable(expression.asUnaliasedLocation().getVariableName(), type, ssa));
