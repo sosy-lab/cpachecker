@@ -239,8 +239,8 @@ class AssignmentFormulaHandler {
    * do not correspond to any partial RHS, these are copied from previous LHS value.
    *
    * <p>The resolved RHS type only differs from the resolved LHS type in the special case of a
-   * full-span array-to-pointer assignment, so that this can be detected later on and the aliased
-   * location be assigned directly without dereferencing.
+   * full-span array-or-function-to-pointer assignment, in which case the original type is returned
+   * within the result.
    *
    * @param lhs Resolved left-hand side.
    * @param targetType Original target type to which each partial right-hand side is cast or
@@ -266,7 +266,7 @@ class AssignmentFormulaHandler {
     long targetBitSize = typeHandler.getBitSizeof(targetType);
     long lhsBitSize = typeHandler.getBitSizeof(lhsType);
 
-    // handle the special case of full-span array-to-pointer assignment
+    // handle the special case of full-span array-or-function-to-pointer assignment
     if (lhs.type() instanceof CPointerType && rhsList.size() == 1) {
       // we now know it is a something-to-pointer assignment
       final ResolvedPartialAssignmentRhs rhs = rhsList.get(0);
@@ -277,8 +277,9 @@ class AssignmentFormulaHandler {
           && rhs.actual().isPresent()) {
         // we now know it is a full-span something-to-pointer assignment
         ResolvedSlice rhsResolvedSlice = rhs.actual().orElseThrow();
-        if (rhsResolvedSlice.type() instanceof CArrayType) {
-          // OK, this is the special case, full-span array-to-pointer assignment
+        if (rhsResolvedSlice.type() instanceof CArrayType
+            || rhsResolvedSlice.type() instanceof CFunctionType) {
+          // OK, this is the special case, full-span array-or-function-to-pointer assignment
           // return the RHS resolved slice, which has the array type
           return rhsResolvedSlice;
         }
