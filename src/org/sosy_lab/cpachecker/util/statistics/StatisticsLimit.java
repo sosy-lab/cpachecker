@@ -58,7 +58,7 @@ public class StatisticsLimit<T extends Comparable<T>> implements StatisticsValue
   @Override
   public void updated(StatisticsValue<T> pStatisticsValue) throws InterruptedException {
     if (this.isExceeded(pStatisticsValue)) {
-      String reason = String.format("The %s has elapsed.", name);
+      String reason = String.format("The %s of %s has elapsed.", name, limit.toString());
       throw new InterruptedException(reason);
     }
   }
