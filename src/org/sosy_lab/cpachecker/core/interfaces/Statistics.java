@@ -9,11 +9,13 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.io.PrintStream;
+import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsValue;
 
 /**
  * A class to output statistics and results of an analysis.
@@ -51,6 +53,13 @@ public interface Statistics {
    * @return A String with a human-readable name or null.
    */
   @Nullable String getName();
+
+  /**
+   * Get all Statistics-values that are collected in a specific Statistics instance.
+   *
+   * @return A List of StatisticsValue
+   */
+  List<StatisticsValue<?>> getStatistics();
 
   /**
    * Write result files related to this group of statistics.
