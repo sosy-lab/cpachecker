@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatHist;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsValue;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
@@ -68,7 +69,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private Timer addTimer = new Timer();
     private Timer forcedCoveringTimer = new Timer();
 
-    private int countIterations = 0;
+    private StatisticsValue<Integer> countIterations = new StatisticsValue<>("IterationCount", 0);
     private int maxWaitlistSize = 0;
     private long countWaitlistSize = 0;
     private int countSuccessors = 0;
@@ -124,14 +125,15 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
-      out.println("Number of iterations:            " + countIterations);
-      if (countIterations == 0) {
+      out.println("Number of iterations:            " + countIterations.getValue());
+      if (countIterations.getValue() == 0) {
         // Statistics not relevant, prevent division by zero
         return;
       }
 
       out.println("Max size of waitlist:            " + maxWaitlistSize);
-      out.println("Average size of waitlist:        " + countWaitlistSize / countIterations);
+      out.println(
+          "Average size of waitlist:        " + countWaitlistSize / countIterations.getValue());
       StatisticsWriter w = StatisticsWriter.writingStatisticsTo(out);
       for (AbstractStatValue c : reachedSetStatistics.values()) {
         w.put(c);
@@ -269,7 +271,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     while (reachedSet.hasWaitingState()) {
       shutdownNotifier.shutdownIfNecessary();
 
-      stats.countIterations++;
+      // stats.countIterations.register(new StatisticsLimit<>("Iteration Limit", 1));
+      stats.countIterations.setValue(stats.countIterations.getValue() + 1);
 
       // Pick next state using strategy
       // BFS, DFS or top sort according to the configuration
