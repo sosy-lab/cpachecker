@@ -69,7 +69,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private Timer addTimer = new Timer();
     private Timer forcedCoveringTimer = new Timer();
 
-    private StatisticsValue<Integer> countIterations = new StatisticsValue<>("IterationCount", 0);
+    private StatisticsValue<Integer> countIterations = new StatisticsValue<>("Iteration Count", 0);
     private int maxWaitlistSize = 0;
     private long countWaitlistSize = 0;
     private int countSuccessors = 0;
@@ -121,6 +121,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     @Override
     public String getName() {
       return "CPA algorithm";
+    }
+
+    @Override
+    public List<StatisticsValue<?>> getStatistics() {
+      return List.of(countIterations);
     }
 
     @Override
