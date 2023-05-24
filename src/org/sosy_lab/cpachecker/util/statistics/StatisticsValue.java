@@ -24,8 +24,9 @@ public class StatisticsValue<T> {
   private final Collection<StatisticsValueUpdateListener<T>> statisticsValueUpdateListeners =
       new ArrayList<>();
 
-  public StatisticsValue(String pname) {
-    name = pname;
+  public StatisticsValue(String pName, T pValue) {
+    name = pName;
+    value = pValue;
   }
 
   /**
@@ -41,8 +42,11 @@ public class StatisticsValue<T> {
     return value;
   }
 
-  public void setValue(T pValue) {
+  public void setValue(T pValue) throws InterruptedException {
     value = pValue;
+    for (StatisticsValueUpdateListener<T> li : statisticsValueUpdateListeners) {
+      li.updated(this);
+    }
   }
 
   /** @param out the PrintStream to use for printing the statistics */
