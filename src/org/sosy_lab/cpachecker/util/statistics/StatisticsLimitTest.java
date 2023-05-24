@@ -8,14 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.statistics;
 
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
 import org.junit.Before;
-
-// import static com.google.common.truth.Truth.assertThat;
-
 import org.junit.Test;
 
 public class StatisticsLimitTest {
@@ -47,11 +44,11 @@ public class StatisticsLimitTest {
     // TODO: Better to access private limit variable through magic and not declare new statval
     // Cannot use setValue() because it would trigger exception
     StatisticsValue<Integer> statVal = new StatisticsValue<>("IterationCount", 2);
-    assertTrue(limitInt1.isExceeded(statVal));
+    assertThat(limitInt1.isExceeded(statVal)).isTrue();
     statVal = new StatisticsValue<>("IterationCount", 1);
-    assertTrue(limitInt1.isExceeded(statVal));
+    assertThat(limitInt1.isExceeded(statVal)).isTrue();
     statVal = new StatisticsValue<>("IterationCount", 0);
-    assertTrue(limitInt1.isExceeded(statVal) == false);
+    assertThat(limitInt1.isExceeded(statVal)).isFalse();
   }
 
   @Test
