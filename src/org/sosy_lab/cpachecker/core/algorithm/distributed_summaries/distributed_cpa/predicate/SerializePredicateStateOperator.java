@@ -84,7 +84,7 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     }
     return BlockSummaryMessagePayload.builder()
         .addEntry(PredicateCPA.class.getName(), serializedFormula)
-        // .addEntry("readable", booleanFormula.toString())
+        .addEntry("readable", booleanFormula.toString())
         .addEntry(BlockSummaryMessagePayload.SSA, serializedSSAMap)
         .addEntry(BlockSummaryMessagePayload.PTS, pts)
         .buildPayload();
