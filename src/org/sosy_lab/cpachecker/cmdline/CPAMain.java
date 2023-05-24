@@ -22,19 +22,24 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.io.MoreFiles;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -59,8 +64,10 @@ import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentEx
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.MainCPAStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageProperty;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
@@ -71,6 +78,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsValue;
 
 @SuppressForbidden("System.out in this class is ok")
 public class CPAMain {
@@ -187,6 +195,11 @@ public class CPAMain {
       logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
     }
 
+    // TODO: Ludwig insert write to file here!! This comes from CPAcheckerResult which is returned
+    // by the run() function in CPAchecker.java
+    // far result:result.stats.getSubStatistics();
+    saveArtefacts(result, options, logManager);
+
     System.out.flush();
     System.err.flush();
     logManager.flush();
@@ -295,6 +308,19 @@ public class CPAMain {
 
     @Option(secure = true, name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
     private boolean doPCC = false;
+
+    @Option(
+        secure = true,
+        name = "reprArtefacts.export",
+        description = "write reproduction artefacts to disk")
+    private boolean exportArtefacts = true;
+
+    @Option(
+        secure = true,
+        name = "reprArtefacts.file",
+        description = "write reproduction arte facts to disk")
+    @FileOption(FileOption.Type.OUTPUT_FILE)
+    private Path exportArtefactsFile = Path.of("artefacts.txt");
   }
 
   private static void dumpConfiguration(
@@ -790,6 +816,39 @@ public class CPAMain {
           mResult.getCfa(),
           mResult.getReached(),
           statistics.toString(Charset.defaultCharset()));
+    }
+  }
+
+  private static void saveArtefacts(
+      CPAcheckerResult pResult, MainOptions options, LogManager logManager) {
+
+    MainCPAStatistics mainstat = (MainCPAStatistics) pResult.getStatistics();
+    Collection<Statistics> substats = mainstat.getSubStatistics();
+
+    if (options.exportArtefacts && options.exportArtefactsFile != null) {
+      try (PrintWriter file =
+          new PrintWriter(
+              new BufferedWriter(new FileWriter(options.exportArtefactsFile.toFile()))); ) {
+        // MoreFiles.createParentDirectories(options.exportArtefactsFile);
+        Properties reprProp = new Properties();
+        substats.forEach(
+            substat -> {
+              String subname = substat.getName();
+              if (subname == "CPA algorithm") {
+                List<StatisticsValue<?>> statvals = substat.getStatistics();
+                statvals.forEach(
+                    statval -> {
+                      String statname = statval.getName();
+                      String statvalue = String.valueOf(statval.getValue());
+                      reprProp.setProperty(subname + "." + statname, statvalue);
+                    });
+              }
+            });
+        reprProp.store(file, "CPAchecker Artefacts file");
+
+      } catch (IOException e) {
+        logManager.logUserException(Level.WARNING, e, "Could not write artefacts to file");
+      }
     }
   }
 
