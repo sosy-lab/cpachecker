@@ -12,42 +12,51 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 
-
 /**
- * A class to store and update exactly one statistic value.
- * Implements an Observable for e.g. resource limits
+ * A class to store and update exactly one statistic value. Implements an Observable for e.g.
+ * resource limits
  */
+public class StatisticsValue<T> {
 
-public class StatisticsValue implements StatisticsValueObservable{
+  private String name;
+  private T value;
 
-  private final Collection<StatisticsValueUpdateListener> statisticsValueUpdateListeners = new ArrayList<>();
-  
+  private final Collection<StatisticsValueUpdateListener<T>> statisticsValueUpdateListeners =
+      new ArrayList<>();
+
+  public StatisticsValue(String pname) {
+    name = pname;
+  }
+
   /**
-   * Define a name for this statistics value.
+   * Get the name for this statistics value.
    *
-   * @return A String with a human-readable name or null.
+   * @return A String with a human-readable name.
    */
-  public String getName() {return "";}
-  
-  public Object getValue() {return null;}
-  
-  /**
-   * @param out the PrintStream to use for printing the statistics
-   */
+  public String getName() {
+    return name;
+  }
+
+  public T getValue() {
+    return value;
+  }
+
+  public void setValue(T pValue) {
+    value = pValue;
+  }
+
+  /** @param out the PrintStream to use for printing the statistics */
   public void printValue(PrintStream out) {}
-  
-  @Override
-  public void register(StatisticsValueUpdateListener pStatisticsValueListener) {
+
+  public void register(StatisticsValueUpdateListener<T> pStatisticsValueListener) {
     statisticsValueUpdateListeners.add(pStatisticsValueListener);
   }
 
-  @Override
-  public void unregister(StatisticsValueUpdateListener pStatisticsValueListener) {
+  public void unregister(StatisticsValueUpdateListener<T> pStatisticsValueListener) {
     statisticsValueUpdateListeners.remove(pStatisticsValueListener);
   }
-  
-  public interface StatisticsValueUpdateListener {
-    void updated(StatisticsValue pStatisticsValue);
-  }
 
-}
+  public interface StatisticsValueUpdateListener<T> {
+    void updated(StatisticsValue<T> pStatisticsValue) throws InterruptedException;
+  }
+  }
