@@ -317,7 +317,7 @@ class AssignmentFormulaHandler {
       if (assignmentOptions.conversionType() == AssignmentOptions.ConversionType.BYTE_REPEAT) {
         // treat repeat conversion specially to avoid constructing target-type-sized bitvector
         // we only need the LHS-sized bitvector after span extraction
-        partialRhsFormula = convertByteRepeatRhs(lhs.type(), rhs.span(), rhsResolved);
+        partialRhsFormula = convertByteRepeatRhs(lhsBitSize, rhs.span(), rhsResolved);
       } else {
         // convert RHS expression to target type
         Expression targetTypeRhsExpression =
@@ -547,7 +547,7 @@ class AssignmentFormulaHandler {
    *
    * <p>Note that we are skipping the target type entirely; we can do this as we are not casting.
    *
-   * @param lhsType Left-hand-side type we are converting to.
+   * @param lhsBitSize LHS bit size.
    * @param span Partial span to use when extracting from "infinitely-repeating" byte.
    * @param rhs Resolved array slice containing the expression to convert and type we are converting
    *     from.
@@ -555,7 +555,7 @@ class AssignmentFormulaHandler {
    *     nondeterministic.
    */
   private Optional<BitvectorFormula> convertByteRepeatRhs(
-      CType lhsType, PartialSpan span, ResolvedSlice rhs) {
+      long lhsBitSize, PartialSpan span, ResolvedSlice rhs) {
 
     final CType rhsType = rhs.type();
     Optional<Formula> rhsFormula =
@@ -599,7 +599,8 @@ class AssignmentFormulaHandler {
         bvmgr.extract(repeatedFormula, (int) extractMsb, (int) extractLsb);
 
     // do not convert from bitvector type
-    return Optional.of(extractedFormula);
+    return Optional.of(
+        expandToLhsSize(extractedFormula, lhsBitSize, span.lhsBitOffset(), span.bitSize()));
   }
 
   /**
