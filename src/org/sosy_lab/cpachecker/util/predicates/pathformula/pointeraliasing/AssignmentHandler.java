@@ -11,9 +11,10 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Range;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -272,8 +273,8 @@ class AssignmentHandler {
     // as we have converted to progenitors, this will recurse into unionized fields within
     // the same coarsest type, and thus resolve these unionized assignments correctly
     // note that one LHS can now correspond to multiple RHS, so we need a multimap
-    final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> simpleAssignmentMultimap =
-        ArrayListMultimap.create();
+    final ListMultimap<PartialAssignmentLhs, PartialAssignmentRhs> simpleAssignmentMultimap =
+        MultimapBuilder.linkedHashKeys().arrayListValues().build();
 
     for (SingleRhsPartialAssignment partialAssignment : partialAssignments) {
       if (assignmentOptions.forcePointerAssignment()) {

@@ -14,7 +14,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ListMultimap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -236,14 +236,14 @@ class AssignmentQuantifierHandler {
    *
    * @param assignmentMultimap The multimap containing the simple partial slice assignments. Each
    *     LHS can have multiple partial RHS from which to assign. The full expression types of LHS
-   *     and RHS cannot be array or composite types. The multimap should preserve order of addition
-   *     for deterministic order of quantification.
+   *     and RHS cannot be array or composite types. For deterministic formula creation the multimap
+   *     should have deterministic iteration order.
    * @return The Boolean formula describing to assignments.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If a shutdown was requested during assigning.
    */
   BooleanFormula assignSimpleSlices(
-      final Multimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap)
+      final ListMultimap<PartialAssignmentLhs, PartialAssignmentRhs> assignmentMultimap)
       throws UnrecognizedCodeException, InterruptedException {
 
     // the result is a conjunction of assignments
