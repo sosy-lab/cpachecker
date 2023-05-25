@@ -280,9 +280,10 @@ class AssignmentQuantifierHandler {
       // checking multiple times after unrolling
       checkAssignmentSupported(assignment);
 
+      // quantify assignments, there is no condition and we have no encoded quantifiers at start
       BooleanFormula assignmentResult =
           quantifyAssignments(
-              assignment, variablesToQuantifyBuilder.build().asList(), bfmgr.makeTrue());
+              assignment, variablesToQuantifyBuilder.build().asList(), bfmgr.makeTrue(), false);
 
       // conjunct the assignment formulas
       result = bfmgr.and(result, assignmentResult);
@@ -380,12 +381,13 @@ class AssignmentQuantifierHandler {
   private BooleanFormula quantifyAssignments(
       final PartialAssignment assignment,
       final ImmutableList<SliceVariable> variablesToQuantify,
-      final BooleanFormula condition)
+      final BooleanFormula condition,
+      final boolean haveEncodedQuantifiers)
       throws UnrecognizedCodeException, InterruptedException {
 
     if (variablesToQuantify.isEmpty()) {
       // all variables have been quantified, perform quantified assignment
-      return assignSimpleSlicesWithResolvedIndexing(assignment, condition);
+      return assignSimpleSlicesWithResolvedIndexing(assignment, condition, haveEncodedQuantifiers);
     }
 
     // not all variables have been quantified, get the variable to quantify
@@ -400,7 +402,12 @@ class AssignmentQuantifierHandler {
     if (shouldEncode()) {
       return encodeQuantifier(assignment, nextVariablesToQuantify, condition, variableToQuantify);
     } else {
-      return unrollQuantifier(assignment, nextVariablesToQuantify, condition, variableToQuantify);
+      return unrollQuantifier(
+          assignment,
+          nextVariablesToQuantify,
+          condition,
+          haveEncodedQuantifiers,
+          variableToQuantify);
     }
   }
 
@@ -440,7 +447,7 @@ class AssignmentQuantifierHandler {
 
   /**
    * Encodes the quantifier for the given slice variable in the SMT solver theory of quantifiers and
-   * calls {@link #quantifyAssignments(PartialAssignment, ImmutableList, BooleanFormula)}
+   * calls {@link #quantifyAssignments(PartialAssignment, ImmutableList, BooleanFormula, boolean)}
    * recursively.
    *
    * @param assignment The the simple partial slice assignment to quantify.
@@ -482,8 +489,9 @@ class AssignmentQuantifierHandler {
         bfmgr.and(condition, fmgr.makeLessThan(encodedVariable, sliceSizeFormula, false));
 
     // recurse and get the assignment result
+    // we now have at least one encoded quantifier since we encoded this one
     final BooleanFormula assignmentResult =
-        quantifyAssignments(nextAssignment, nextVariablesToQuantify, nextCondition);
+        quantifyAssignments(nextAssignment, nextVariablesToQuantify, nextCondition, true);
 
     // add quantifier around the recursion result
     return fmgr.getQuantifiedFormulaManager().forall(encodedVariable, assignmentResult);
@@ -491,7 +499,7 @@ class AssignmentQuantifierHandler {
 
   /**
    * Unrolls the quantifier for the given slice variable in the and calls {@link
-   * #quantifyAssignments(PartialAssignment, ImmutableList, BooleanFormula)} recursively.
+   * #quantifyAssignments(PartialAssignment, ImmutableList, BooleanFormula, boolean)} recursively.
    *
    * <p>This is unsound if the length of unrolling is not sufficient. If UFs are used, it also may
    * be unsound due to other assignments within the same aliased location not being retained.
@@ -501,6 +509,7 @@ class AssignmentQuantifierHandler {
    *     to currently unroll. Each variable which still needs to be quantified, except the one to
    *     currently unroll, must appear in this list exactly once.
    * @param condition Boolean formula condition for the assignment to actually occur.
+   * @param haveEncodedQuantifiers Whether at least one encoded quantifier is used.
    * @param variableToUnroll The variable to be unrolled here.
    * @return The Boolean formula describing the assignment.
    */
@@ -508,6 +517,7 @@ class AssignmentQuantifierHandler {
       PartialAssignment assignment,
       ImmutableList<SliceVariable> nextVariablesToQuantify,
       BooleanFormula condition,
+      boolean haveEncodedQuantifiers,
       SliceVariable variableToUnroll)
       throws UnrecognizedCodeException, InterruptedException {
 
@@ -573,8 +583,10 @@ class AssignmentQuantifierHandler {
               assignment, slice -> slice.resolveVariable(variableToUnroll, indexFormula));
 
       // quantify recursively
+      // pass whether we have some encoded quantifiers
       final BooleanFormula recursionResult =
-          quantifyAssignments(nextAssignment, nextVariablesToQuantify, nextCondition);
+          quantifyAssignments(
+              nextAssignment, nextVariablesToQuantify, nextCondition, haveEncodedQuantifiers);
 
       // result is conjunction of unrolled assignment results
       result = bfmgr.and(result, recursionResult);
@@ -624,12 +636,15 @@ class AssignmentQuantifierHandler {
    *
    * @param assignment The simple partial slice assignment. All indexing modifiers must be resolved.
    * @param condition Boolean formula condition for the assignment to actually occur.
+   * @param haveEncodedQuantifiers Whether at least one encoded quantifier is used.
    * @return The Boolean formula describing the assignment.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If a shutdown was requested during assigning.
    */
   private BooleanFormula assignSimpleSlicesWithResolvedIndexing(
-      final PartialAssignment assignment, final BooleanFormula condition)
+      final PartialAssignment assignment,
+      final BooleanFormula condition,
+      final boolean haveEncodedQuantifiers)
       throws UnrecognizedCodeException, InterruptedException {
 
     // construct a formula handler
@@ -678,7 +693,13 @@ class AssignmentQuantifierHandler {
 
     // make the actual assignment
     return assignmentFormulaHandler.assignResolvedSlice(
-        lhsResolved, targetType, rhsResolvedList, assignmentOptions, condition, false, pattern);
+        lhsResolved,
+        targetType,
+        rhsResolvedList,
+        assignmentOptions,
+        condition,
+        haveEncodedQuantifiers,
+        pattern);
   }
 
   /**
