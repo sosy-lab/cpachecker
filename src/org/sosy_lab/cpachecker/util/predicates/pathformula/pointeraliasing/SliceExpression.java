@@ -15,8 +15,8 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -238,15 +238,14 @@ record SliceExpression(
       return this;
     }
     CExpression currentBase = (CExpression) base;
-    List<SliceModifier> canonicalModifiers = new ArrayList<>(modifiers);
+    Deque<SliceModifier> canonicalModifiers = new ArrayDeque<>(modifiers);
     while (currentBase instanceof CFieldReference outerFieldReference) {
       if (outerFieldReference.isPointerDereference()) {
         // pointer dereference, convert to explicit pointer dereference
         outerFieldReference = outerFieldReference.withExplicitPointerDereference();
       }
       // the outer reference must be added in front of all previous modifiers
-      canonicalModifiers.add(
-          0,
+      canonicalModifiers.addFirst(
           new SliceFieldAccessModifier(
               new CCompositeTypeMemberDeclaration(
                   outerFieldReference.getExpressionType(), outerFieldReference.getFieldName())));
