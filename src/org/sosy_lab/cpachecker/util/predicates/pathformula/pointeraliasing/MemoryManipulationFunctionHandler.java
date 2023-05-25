@@ -359,8 +359,23 @@ class MemoryManipulationFunctionHandler {
     // if possible, compute the size in elements statically so it remains a literal
     if (sizeInBytes instanceof CIntegerLiteralExpression literalSizeInBytes) {
       final long sizeInBytesAsLong = literalSizeInBytes.asLong();
+
       final long operationSizeInElementsAsLong =
           (sizeInBytesAsLong + elementSizeInBytes - 1) / elementSizeInBytes;
+
+      if ((sizeInBytesAsLong % elementSizeInBytes) != 0) {
+        // warn if we are sure there will be some loss of soundness
+        // we cannot produce the warning if sizeInBytes is not a literal, however
+        conv.logger.logfOnce(
+            Level.WARNING,
+            "%s: Byte size %s is not divisible by %s (size of %s) exactly, rounding up to %s",
+            edge.getFileLocation(),
+            sizeInBytes,
+            elementSizeInBytes,
+            underlyingType,
+            operationSizeInElementsAsLong * elementSizeInBytes);
+      }
+
       final CExpression operationSizeInElements =
           CIntegerLiteralExpression.createDummyLiteral(
               operationSizeInElementsAsLong, pointerSizedIntType);
