@@ -104,6 +104,7 @@ class AssignmentFormulaHandler {
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
+  private final BitvectorFormulaManagerView bvmgr;
 
   private final CToFormulaConverterWithPointerAliasing conv;
   private final TypeHandlerWithPointerAliasing typeHandler;
@@ -139,6 +140,7 @@ class AssignmentFormulaHandler {
     options = conv.options;
     fmgr = conv.fmgr;
     bfmgr = conv.bfmgr;
+    bvmgr = fmgr.getBitvectorFormulaManager();
 
     edge = pEdge;
     ssa = pSsa;
@@ -293,7 +295,7 @@ class AssignmentFormulaHandler {
 
     // initialize the complete formula to null as it is not trivial
     // to create a zero-filled formula of given C type
-    Formula completeRhsFormula = null;
+    BitvectorFormula completeRhsFormula = null;
 
     // for each partial RHS, insert the part into the correct place in the complete formula
     for (ResolvedPartialAssignmentRhs rhs : rhsList) {
@@ -310,7 +312,7 @@ class AssignmentFormulaHandler {
       ResolvedSlice rhsResolved =
           rhs.actual().orElse(new ResolvedSlice(Value.nondetValue(), targetType));
 
-      final Optional<Formula> partialRhsFormula;
+      final Optional<BitvectorFormula> partialRhsFormula;
 
       if (assignmentOptions.conversionType() == AssignmentOptions.ConversionType.BYTE_REPEAT) {
         // treat repeat conversion specially to avoid constructing target-type-sized bitvector
@@ -383,7 +385,7 @@ class AssignmentFormulaHandler {
       }
 
       // reinterpret the previous LHS formula to bitvector
-      Formula bitvectorPreviousLhsFormula =
+      BitvectorFormula bitvectorPreviousLhsFormula =
           conv.makeValueReinterpretationToBitvector(lhs.type(), previousLhsFormula.orElseThrow());
       // for all retained ranges, retain previous LHS values in the complete RHS formula
       for (Range<Long> retainedRange : retainedRangeSet.asRanges()) {
@@ -391,13 +393,13 @@ class AssignmentFormulaHandler {
           continue;
         }
         // construct the partial RHS formula in a separate function
-        Formula partialRhsFormula =
+        BitvectorFormula partialRhsFormula =
             constructPartialRhsFromPreviousLhsFormula(
                 bitvectorPreviousLhsFormula, lhsBitSize, retainedRange);
         // bit-or with other parts, all of them are LHS-sized
         completeRhsFormula =
             (completeRhsFormula != null)
-                ? fmgr.makeOr(completeRhsFormula, partialRhsFormula)
+                ? bvmgr.or(completeRhsFormula, partialRhsFormula)
                 : partialRhsFormula;
       }
     }
@@ -406,11 +408,11 @@ class AssignmentFormulaHandler {
     assert (completeRhsFormula != null);
 
     // reinterpret from LHS-sized bitvector to the actual LHS type
-    completeRhsFormula =
+    Formula targetTypeCompleteRhsFormula =
         conv.makeValueReinterpretationFromBitvector(lhs.type(), completeRhsFormula);
 
     // return the complete RHS formula
-    return new ResolvedSlice(Value.ofValue(completeRhsFormula), resultType);
+    return new ResolvedSlice(Value.ofValue(targetTypeCompleteRhsFormula), resultType);
   }
 
   /**
@@ -426,7 +428,7 @@ class AssignmentFormulaHandler {
    * @return LHS-sized bitvector formula containing the part of {@code rhsFormula} as determined by
    *     {@code span}, all other bits filled with zeros.
    */
-  private Formula constructPartialRhsFormula(
+  private BitvectorFormula constructPartialRhsFormula(
       long lhsBitSize, CType targetType, PartialSpan span, Formula rhsFormula) {
 
     // make the formula a bitvector formula
@@ -434,21 +436,21 @@ class AssignmentFormulaHandler {
         conv.makeValueReinterpretationToBitvector(targetType, rhsFormula);
 
     // extract the interesting part
-    Formula extractedFormula =
-        fmgr.makeExtract(
+    BitvectorFormula extractedFormula =
+        bvmgr.extract(
             bitvectorRhsFormula,
             (int) (span.rhsTargetBitOffset() + span.bitSize() - 1),
             (int) span.rhsTargetBitOffset());
 
     // extend to LHS type size
     long numExtendBits = lhsBitSize - span.bitSize();
-    Formula extendedFormula = fmgr.makeExtend(extractedFormula, (int) numExtendBits, false);
+    BitvectorFormula extendedFormula = bvmgr.extend(extractedFormula, (int) numExtendBits, false);
 
     // shift left by span.lhsBitOffset()
-    Formula shiftedFormula =
-        fmgr.makeShiftLeft(
+    BitvectorFormula shiftedFormula =
+        bvmgr.shiftLeft(
             extendedFormula,
-            fmgr.makeNumber(
+            bvmgr.makeBitvector(
                 FormulaType.getBitvectorTypeWithSize((int) lhsBitSize), span.lhsBitOffset()));
 
     // return the result
@@ -465,8 +467,8 @@ class AssignmentFormulaHandler {
    *     closed on bottom and open on top, i.e. [lsb, msb+1).
    * @return LHS-sized bitvector formula
    */
-  private Formula constructPartialRhsFromPreviousLhsFormula(
-      Formula bitvectorPreviousLhsFormula, long lhsBitSize, Range<Long> retainedRange) {
+  private BitvectorFormula constructPartialRhsFromPreviousLhsFormula(
+      BitvectorFormula bitvectorPreviousLhsFormula, long lhsBitSize, Range<Long> retainedRange) {
 
     // compute the retained bit offset, size, lsb, msb
     long retainedLsb = retainedRange.lowerEndpoint();
@@ -474,16 +476,16 @@ class AssignmentFormulaHandler {
     long retainedMsb = retainedRange.upperEndpoint() - 1;
 
     // extract the range [lsb, msb]
-    Formula extractedFormula =
-        fmgr.makeExtract(bitvectorPreviousLhsFormula, (int) retainedMsb, (int) retainedLsb);
+    BitvectorFormula extractedFormula =
+        bvmgr.extract(bitvectorPreviousLhsFormula, (int) retainedMsb, (int) retainedLsb);
 
     // extend back to LHS bit size
     long numExtendBits = lhsBitSize - retainedBitSize;
-    Formula extendedFormula = fmgr.makeExtend(extractedFormula, (int) numExtendBits, false);
+    BitvectorFormula extendedFormula = bvmgr.extend(extractedFormula, (int) numExtendBits, false);
 
     // shift left so that lsb is in its correct place again
-    Formula shiftedFormula =
-        fmgr.makeShiftLeft(
+    BitvectorFormula shiftedFormula =
+        bvmgr.shiftLeft(
             extendedFormula,
             fmgr.makeNumber(FormulaType.getBitvectorTypeWithSize((int) lhsBitSize), retainedLsb));
 
@@ -558,7 +560,7 @@ class AssignmentFormulaHandler {
    * @return Bitvector formula with left-hand-side type size or empty Optional if the value is
    *     nondeterministic.
    */
-  private Optional<Formula> convertByteRepeatRhs(
+  private Optional<BitvectorFormula> convertByteRepeatRhs(
       CType lhsType, PartialSpan span, ResolvedSlice rhs) {
 
     final CType rhsType = rhs.type();
@@ -569,7 +571,6 @@ class AssignmentFormulaHandler {
     }
 
     // reinterpret as bitvector
-    final BitvectorFormulaManagerView bvmgr = conv.fmgr.getBitvectorFormulaManager();
     final BitvectorFormula bitvectorFormula =
         conv.makeValueReinterpretationToBitvector(rhsType, rhsFormula.orElseThrow());
 

@@ -1292,7 +1292,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   /** {@inheritDoc} */
   @Override
   protected @Nullable Formula makeValueReinterpretationFromBitvector(
-      CType pToType, Formula pFormula) {
+      CType pToType, BitvectorFormula pFormula) {
     return super.makeValueReinterpretationFromBitvector(pToType, pFormula);
   }
 

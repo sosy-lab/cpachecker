@@ -700,14 +700,13 @@ public class CtoFormulaConverter {
    * returns the original formula if {@code pToType} is represented by bitvector, not {@code null}.
    */
   protected @Nullable Formula makeValueReinterpretationFromBitvector(
-      final CType pToType, Formula formula) {
-    BitvectorFormula bitvectorFormula = (BitvectorFormula) formula;
+      final CType pToType, BitvectorFormula formula) {
     CType toType = handlePointerAndEnumAsInt(pToType);
     FormulaType<?> toFormulaType = getFormulaTypeFromCType(toType);
 
     if (toFormulaType.isFloatingPointType()) {
       return fmgr.getFloatingPointFormulaManager()
-          .fromIeeeBitvector(bitvectorFormula, (FloatingPointType) toFormulaType);
+          .fromIeeeBitvector(formula, (FloatingPointType) toFormulaType);
     } else if (toFormulaType.isBitvectorType()) {
       // already a bitvector
       return formula;
