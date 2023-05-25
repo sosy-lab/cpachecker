@@ -17,10 +17,12 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.BoundType;
+import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
-import com.google.common.collect.RangeSet;
-import com.google.common.collect.TreeRangeSet;
+import com.google.common.collect.RangeMap;
+import com.google.common.collect.TreeRangeMap;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -241,9 +243,9 @@ class AssignmentFormulaHandler {
    * previous resolved left-hand-side, together with the its type to be considered.
    *
    * <p>This is done by first casting / reinterpreting (according to {@link AssignmentOptions}) each
-   * partial RHS to the target type. After that, the interesting part of RHS is extracted and
-   * inserted to the correct place in LHS-sized formula. Since there might be some parts of LHS that
-   * do not correspond to any partial RHS, these are copied from previous LHS value.
+   * partial RHS to the target type. After that, the interesting part of RHS is extracted and stored
+   * for the respective span. Since there might be some parts of LHS that do not correspond to any
+   * partial RHS, these are copied from previous LHS value.
    *
    * <p>The resolved RHS type only differs from the resolved LHS type in the special case of a
    * full-span array-or-function-to-pointer assignment, in which case the original type is returned
@@ -266,8 +268,8 @@ class AssignmentFormulaHandler {
 
     // in this function, we consider "RHS formula" to be the resolved formula of a single part
     // before any span consideration; "partial RHS formula" to be such a formula after extracting
-    // and inserting into an LHS-sized formula, the other bits being zeroed; and "whole RHS formula"
-    // to be a bit-or of all such partial RHS formulas
+    // the relevant span; and "complete RHS formula" to be a concatenation of all such partial RHS
+    // formulas.
 
     CType lhsType = lhs.type();
     long targetBitSize = typeHandler.getBitSizeof(targetType);
@@ -295,20 +297,17 @@ class AssignmentFormulaHandler {
     // not the special case, the returned RHS type is the LHS type
     final CType resultType = lhs.type();
 
-    // track ranges of LHS which have been already filled
-    RangeSet<Long> lhsRangeSet = TreeRangeSet.create();
-
-    // initialize the complete formula to null as it is not trivial
-    // to create a zero-filled formula of given C type
-    BitvectorFormula completeRhsFormula = null;
+    // track partial RHS formulas for their spans in the LHS
+    RangeMap<Long, BitvectorFormula> partialRhsMap = TreeRangeMap.create();
 
     // for each partial RHS, insert the part into the correct place in the complete formula
     for (ResolvedPartialAssignmentRhs rhs : rhsList) {
-
       PartialSpan rhsSpan = rhs.span();
-
-      // add to lhs range set
-      lhsRangeSet.add(rhsSpan.asLhsRange());
+      Range<Long> lhsSpanRange = rhsSpan.asLhsRange();
+      verify(
+          partialRhsMap.asMapOfRanges().isEmpty()
+              || partialRhsMap.subRangeMap(lhsSpanRange).asMapOfRanges().isEmpty(),
+          "overlapping spans are not allowed");
 
       // if resolved RHS is nondet, treat it as a nondet value with target type
       // this means there is now only one way to represent a nondet value
@@ -319,8 +318,8 @@ class AssignmentFormulaHandler {
 
       if (assignmentOptions.conversionType() == AssignmentOptions.ConversionType.BYTE_REPEAT) {
         // treat repeat conversion specially to avoid constructing target-type-sized bitvector
-        // we only need the LHS-sized bitvector after span extraction
-        partialRhsFormula = convertByteRepeatRhs(lhsBitSize, rhs.span(), rhsResolved);
+        // we only need the bitvector after span extraction
+        partialRhsFormula = convertByteRepeatRhs(rhs.span(), rhsResolved);
       } else {
         // convert RHS expression to target type
         Expression targetTypeRhsExpression =
@@ -350,8 +349,7 @@ class AssignmentFormulaHandler {
           // construct the partial RHS formula in a separate function
           partialRhsFormula =
               Optional.of(
-                  constructPartialRhsFormula(
-                      lhsBitSize, targetType, rhsSpan, rhsFormula.orElseThrow()));
+                  constructPartialRhsFormula(targetType, rhsSpan, rhsFormula.orElseThrow()));
         }
       }
 
@@ -360,21 +358,23 @@ class AssignmentFormulaHandler {
         return new ResolvedSlice(Value.nondetValue(), resultType);
       }
 
-      // bit-or with other parts, all of them are LHS-sized
-      completeRhsFormula =
-          (completeRhsFormula != null)
-              ? fmgr.makeOr(completeRhsFormula, partialRhsFormula.orElseThrow())
-              : partialRhsFormula.orElseThrow();
+      verify(bvmgr.getLength(partialRhsFormula.orElseThrow()) == rhsSpan.bitSize());
+
+      // store in correct place
+      partialRhsMap.put(lhsSpanRange, partialRhsFormula.orElseThrow());
     }
 
-    // completeRhsFormula now contains all partial RHS and is LHS-sized (or null)
+    // partialRhsMap now contains all partial RHS.
     // however, there is a possibility that some ranges of bits were not assigned
     // so we need to retain those bits from previous LHS
 
+    ImmutableRangeSet<Long> assignedLhsRanges =
+        ImmutableRangeSet.copyOf(partialRhsMap.asMapOfRanges().keySet());
+
     // to find out which ranges should be retained, we complement the assigned ranges
     // and union with the range encompassing completeRhsFormula [0, lhsBitSize)
-    RangeSet<Long> retainedRangeSet =
-        lhsRangeSet.complement().subRangeSet(Range.closedOpen(0L, lhsBitSize));
+    ImmutableRangeSet<Long> retainedRangeSet =
+        assignedLhsRanges.complement().subRangeSet(Range.closedOpen(0L, lhsBitSize));
 
     if (!retainedRangeSet.isEmpty()) {
       // there are some retained bits from previous LHS
@@ -397,18 +397,15 @@ class AssignmentFormulaHandler {
         }
         // construct the partial RHS formula in a separate function
         BitvectorFormula partialRhsFormula =
-            constructPartialRhsFromPreviousLhsFormula(
-                bitvectorPreviousLhsFormula, lhsBitSize, retainedRange);
-        // bit-or with other parts, all of them are LHS-sized
-        completeRhsFormula =
-            (completeRhsFormula != null)
-                ? bvmgr.or(completeRhsFormula, partialRhsFormula)
-                : partialRhsFormula;
+            constructPartialRhsFromPreviousLhsFormula(bitvectorPreviousLhsFormula, retainedRange);
+        partialRhsMap.put(retainedRange, partialRhsFormula);
       }
     }
 
-    // the complete RHS formula is now definitely non-null as long as the type is non-zero-sized
-    assert (completeRhsFormula != null);
+    // partialRhsMap is now definitely non-empty as long as the type is non-zero-sized
+    BitvectorFormula completeRhsFormula =
+        partialRhsMap.asMapOfRanges().values().stream().reduce(bvmgr::concat).orElseThrow();
+    verify(bvmgr.getLength(completeRhsFormula) == lhsBitSize);
 
     // reinterpret from LHS-sized bitvector to the actual LHS type
     Formula targetTypeCompleteRhsFormula =
@@ -419,20 +416,18 @@ class AssignmentFormulaHandler {
   }
 
   /**
-   * Construct an left-hand-side-sized bitvector formula containing the part of given
-   * right-hand-side formula in a given place, as determined by {@code rhsSpan}. All other bits are
-   * zeroed.
+   * Construct an span-sized bitvector formula containing the part of given right-hand-side formula,
+   * as determined by {@code rhsSpan}.
    *
-   * @param lhsBitSize LHS bit size.
    * @param targetType RHS target type. It is assumed the RHS formula was already cast /
    *     reinterpreted to this type.
    * @param span Span which gives the offsets and size of the interesting part of RHS.
    * @param rhsFormula Supplied RHS formula. Does not need to be a bitvector formula.
-   * @return LHS-sized bitvector formula containing the part of {@code rhsFormula} as determined by
-   *     {@code span}, all other bits filled with zeros.
+   * @return Span-sized bitvector formula containing the part of {@code rhsFormula} as determined by
+   *     {@code span}.
    */
   private BitvectorFormula constructPartialRhsFormula(
-      long lhsBitSize, CType targetType, PartialSpan span, Formula rhsFormula) {
+      CType targetType, PartialSpan span, Formula rhsFormula) {
 
     // make the formula a bitvector formula
     BitvectorFormula bitvectorRhsFormula =
@@ -445,49 +440,32 @@ class AssignmentFormulaHandler {
             (int) (span.rhsTargetBitOffset() + span.bitSize() - 1),
             (int) span.rhsTargetBitOffset());
 
-    return expandToLhsSize(extractedFormula, lhsBitSize, span.lhsBitOffset(), span.bitSize());
+    return extractedFormula;
   }
 
   /**
-   * Construct an left-hand-side-sized bitvector formula retaining a range of bits in previous LHS
-   * formula, setting all other bits to zero.
+   * Construct an bitvector formula retaining a range of bits from previous LHS formula.
    *
    * @param bitvectorPreviousLhsFormula Bitvector formula giving the previous LHS value.
-   * @param lhsBitSize LHS bit size.
    * @param retainedRange The range determining the bits to retain. The range is assumed to be
    *     closed on bottom and open on top, i.e. [lsb, msb+1).
    * @return LHS-sized bitvector formula
    */
   private BitvectorFormula constructPartialRhsFromPreviousLhsFormula(
-      BitvectorFormula bitvectorPreviousLhsFormula, long lhsBitSize, Range<Long> retainedRange) {
+      BitvectorFormula bitvectorPreviousLhsFormula, Range<Long> retainedRange) {
+    checkArgument(retainedRange.lowerBoundType() == BoundType.CLOSED);
+    checkArgument(retainedRange.upperBoundType() == BoundType.OPEN);
 
     // compute the retained bit offset, size, lsb, msb
     long retainedLsb = retainedRange.lowerEndpoint();
-    long retainedBitSize = retainedRange.upperEndpoint() - retainedRange.lowerEndpoint();
     long retainedMsb = retainedRange.upperEndpoint() - 1;
 
     // extract the range [lsb, msb]
     BitvectorFormula extractedFormula =
         bvmgr.extract(bitvectorPreviousLhsFormula, (int) retainedMsb, (int) retainedLsb);
 
-    return expandToLhsSize(extractedFormula, lhsBitSize, retainedLsb, retainedBitSize);
-  }
-
-  private BitvectorFormula expandToLhsSize(
-      BitvectorFormula rhsSpanFormula, long lhsBitSize, long lhsBitOffset, long rhsBitSize) {
-    // extend to LHS type size
-    long numExtendBits = lhsBitSize - rhsBitSize;
-    BitvectorFormula extendedFormula = bvmgr.extend(rhsSpanFormula, (int) numExtendBits, false);
-
-    // shift left so that lsb is in its correct place again
-    BitvectorFormula shiftedFormula =
-        bvmgr.shiftLeft(
-            extendedFormula,
-            bvmgr.makeBitvector(
-                FormulaType.getBitvectorTypeWithSize((int) lhsBitSize), lhsBitOffset));
-
     // return the result
-    return shiftedFormula;
+    return extractedFormula;
   }
 
   /**
@@ -550,15 +528,12 @@ class AssignmentFormulaHandler {
    *
    * <p>Note that we are skipping the target type entirely; we can do this as we are not casting.
    *
-   * @param lhsBitSize LHS bit size.
    * @param span Partial span to use when extracting from "infinitely-repeating" byte.
    * @param rhs Resolved array slice containing the expression to convert and type we are converting
    *     from.
-   * @return Bitvector formula with left-hand-side type size or empty Optional if the value is
-   *     nondeterministic.
+   * @return Bitvector formula with span size or empty Optional if the value is nondeterministic.
    */
-  private Optional<BitvectorFormula> convertByteRepeatRhs(
-      long lhsBitSize, PartialSpan span, ResolvedSlice rhs) {
+  private Optional<BitvectorFormula> convertByteRepeatRhs(PartialSpan span, ResolvedSlice rhs) {
 
     final CType rhsType = rhs.type();
     Optional<Formula> rhsFormula =
@@ -602,8 +577,7 @@ class AssignmentFormulaHandler {
         bvmgr.extract(repeatedFormula, (int) extractMsb, (int) extractLsb);
 
     // do not convert from bitvector type
-    return Optional.of(
-        expandToLhsSize(extractedFormula, lhsBitSize, span.lhsBitOffset(), span.bitSize()));
+    return Optional.of(extractedFormula);
   }
 
   /**
