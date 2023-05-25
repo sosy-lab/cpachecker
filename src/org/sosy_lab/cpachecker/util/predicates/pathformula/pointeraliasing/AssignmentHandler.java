@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
 import java.util.ArrayList;
@@ -477,31 +476,27 @@ class AssignmentHandler {
 
     ImmutableList<SliceModifier> lhsModifiers = assignment.lhs().actual().modifiers();
 
-    // iterate in reverse to split to head and trailing
-    List<SliceModifier> progenitorModifiers = new ArrayList<>();
-    List<SliceFieldAccessModifier> trailingFieldAccesses = new ArrayList<>();
-    boolean stillTrailing = true;
-    for (SliceModifier modifier : Lists.reverse(lhsModifiers)) {
-      if (stillTrailing && modifier instanceof SliceFieldAccessModifier accessModifier) {
-        // add at the start of trailing
-        trailingFieldAccesses.add(0, accessModifier);
-      } else {
-        // we are no longer trailing, add to the start of head
-        stillTrailing = false;
-        progenitorModifiers.add(0, modifier);
-      }
+    // split to head and trailing
+    // Invariant: lhsModifiers.get(splitPoint) either does not exist or it and all further elements
+    // are SliceFieldAccessModifier
+    int splitPoint = lhsModifiers.size();
+    while (splitPoint > 0 && lhsModifiers.get(splitPoint - 1) instanceof SliceFieldAccessModifier) {
+      splitPoint--;
     }
+    ImmutableList<SliceModifier> progenitorModifiers = lhsModifiers.subList(0, splitPoint);
+    ImmutableList<SliceModifier> trailingFieldAccesses =
+        lhsModifiers.subList(splitPoint, lhsModifiers.size());
 
     // construct the progenitor lhs
     SliceExpression progenitorLhs =
-        new SliceExpression(
-            assignment.lhs().actual().base(), ImmutableList.copyOf(progenitorModifiers));
+        new SliceExpression(assignment.lhs().actual().base(), progenitorModifiers);
 
     // compute the full bit offset from progenitor
     // the parent type of first field access is the progenitor type
     CType parentType = progenitorLhs.getFullExpressionType();
     long bitOffsetFromProgenitor = 0;
-    for (SliceFieldAccessModifier access : trailingFieldAccesses) {
+    for (SliceModifier modifier : trailingFieldAccesses) {
+      SliceFieldAccessModifier access = (SliceFieldAccessModifier) modifier; // ensured above
 
       // field access, parent must be composite
       CCompositeType parentCompositeType = (CCompositeType) parentType;
