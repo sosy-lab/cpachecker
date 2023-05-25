@@ -442,19 +442,7 @@ class AssignmentFormulaHandler {
             (int) (span.rhsTargetBitOffset() + span.bitSize() - 1),
             (int) span.rhsTargetBitOffset());
 
-    // extend to LHS type size
-    long numExtendBits = lhsBitSize - span.bitSize();
-    BitvectorFormula extendedFormula = bvmgr.extend(extractedFormula, (int) numExtendBits, false);
-
-    // shift left by span.lhsBitOffset()
-    BitvectorFormula shiftedFormula =
-        bvmgr.shiftLeft(
-            extendedFormula,
-            bvmgr.makeBitvector(
-                FormulaType.getBitvectorTypeWithSize((int) lhsBitSize), span.lhsBitOffset()));
-
-    // return the result
-    return shiftedFormula;
+    return expandToLhsSize(extractedFormula, lhsBitSize, span.lhsBitOffset(), span.bitSize());
   }
 
   /**
@@ -479,17 +467,23 @@ class AssignmentFormulaHandler {
     BitvectorFormula extractedFormula =
         bvmgr.extract(bitvectorPreviousLhsFormula, (int) retainedMsb, (int) retainedLsb);
 
-    // extend back to LHS bit size
-    long numExtendBits = lhsBitSize - retainedBitSize;
-    BitvectorFormula extendedFormula = bvmgr.extend(extractedFormula, (int) numExtendBits, false);
+    return expandToLhsSize(extractedFormula, lhsBitSize, retainedLsb, retainedBitSize);
+  }
+
+  private BitvectorFormula expandToLhsSize(
+      BitvectorFormula rhsSpanFormula, long lhsBitSize, long lhsBitOffset, long rhsBitSize) {
+    // extend to LHS type size
+    long numExtendBits = lhsBitSize - rhsBitSize;
+    BitvectorFormula extendedFormula = bvmgr.extend(rhsSpanFormula, (int) numExtendBits, false);
 
     // shift left so that lsb is in its correct place again
     BitvectorFormula shiftedFormula =
         bvmgr.shiftLeft(
             extendedFormula,
-            fmgr.makeNumber(FormulaType.getBitvectorTypeWithSize((int) lhsBitSize), retainedLsb));
+            bvmgr.makeBitvector(
+                FormulaType.getBitvectorTypeWithSize((int) lhsBitSize), lhsBitOffset));
 
-    // return result
+    // return the result
     return shiftedFormula;
   }
 
