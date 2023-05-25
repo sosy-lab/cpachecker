@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.logging.Level;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -135,7 +136,7 @@ class AssignmentQuantifierHandler {
    * SMT solver formula even when the quantifier handler is constructed for each assignment
    * separately.
    */
-  private static int NEXT_ENCODED_VARIABLE_NUMBER = 0;
+  private static final UniqueIdGenerator ENCODED_VARIABLE_NUMBER = new UniqueIdGenerator();
 
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView fmgr;
@@ -467,7 +468,7 @@ class AssignmentQuantifierHandler {
     // create encoded quantified variable
     final Formula encodedVariable =
         fmgr.makeVariableWithoutSSAIndex(
-            sizeFormulaType, ENCODED_VARIABLE_PREFIX + NEXT_ENCODED_VARIABLE_NUMBER++);
+            sizeFormulaType, ENCODED_VARIABLE_PREFIX + ENCODED_VARIABLE_NUMBER.getFreshId());
 
     // resolve the quantifier in assignment
     // for every (LHS or RHS) slice, we replace it with a slice that has unresolved indexing
