@@ -395,31 +395,12 @@ class AssignmentQuantifierHandler {
     final ImmutableList<SliceVariable> nextVariablesToQuantify =
         variablesToQuantify.subList(1, variablesToQuantify.size());
 
-    // get the variable slice size (the assignment is done for all i where 0 <= i < sliceSize)
-    final CExpression sliceSize = variableToQuantify.getSliceSize();
-    // cast it to unsigned type capable of storing all pointer values to get a proper formula
-    final CExpression sliceSizeCastToCapableType =
-        new CCastExpression(FileLocation.DUMMY, pointerAsUnsignedIntType, sliceSize);
-    // visit it to get the formula
-    final CExpressionVisitorWithPointerAliasing indexSizeVisitor =
-        new CExpressionVisitorWithPointerAliasing(
-            conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
-    final Expression sliceSizeExpression = sliceSizeCastToCapableType.accept(indexSizeVisitor);
-    final Formula sliceSizeFormula =
-        indexSizeVisitor.asValueFormula(sliceSizeExpression, pointerAsUnsignedIntType);
-
-    // add used fields from index visitor for UF handling
-    pts.addEssentialFields(indexSizeVisitor.getInitializedFields());
-    pts.addEssentialFields(indexSizeVisitor.getUsedFields());
-
     // decide whether to encode or unroll the quantifier
     // the functions are recursive and return the result of completed assignment
     if (shouldEncode()) {
-      return encodeQuantifier(
-          assignment, nextVariablesToQuantify, condition, variableToQuantify, sliceSizeFormula);
+      return encodeQuantifier(assignment, nextVariablesToQuantify, condition, variableToQuantify);
     } else {
-      return unrollQuantifier(
-          assignment, nextVariablesToQuantify, condition, variableToQuantify, sliceSizeFormula);
+      return unrollQuantifier(assignment, nextVariablesToQuantify, condition, variableToQuantify);
     }
   }
 
@@ -436,6 +417,27 @@ class AssignmentQuantifierHandler {
     return options.useQuantifiersOnArrays() || assignmentOptions.forceEncodingQuantifiers();
   }
 
+  /** Create a formula that represents the slice size of the given slice variable. */
+  private Formula createSlizeSiceFormula(final SliceVariable variableToQuantify)
+      throws UnrecognizedCodeException {
+    final CExpression sliceSize = variableToQuantify.getSliceSize();
+    // cast it to unsigned type capable of storing all pointer values to get a proper formula
+    final CExpression sliceSizeCastToCapableType =
+        new CCastExpression(FileLocation.DUMMY, pointerAsUnsignedIntType, sliceSize);
+    // visit it to get the formula
+    final CExpressionVisitorWithPointerAliasing indexSizeVisitor =
+        new CExpressionVisitorWithPointerAliasing(
+            conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+    final Expression sliceSizeExpression = sliceSizeCastToCapableType.accept(indexSizeVisitor);
+    final Formula sliceSizeFormula =
+        indexSizeVisitor.asValueFormula(sliceSizeExpression, pointerAsUnsignedIntType);
+
+    // add used fields from index visitor for UF handling
+    pts.addEssentialFields(indexSizeVisitor.getInitializedFields());
+    pts.addEssentialFields(indexSizeVisitor.getUsedFields());
+    return sliceSizeFormula;
+  }
+
   /**
    * Encodes the quantifier for the given slice variable in the SMT solver theory of quantifiers and
    * calls {@link #quantifyAssignments(PartialAssignment, ImmutableList, BooleanFormula)}
@@ -447,16 +449,13 @@ class AssignmentQuantifierHandler {
    *     currently encode, must appear in this list exactly once.
    * @param condition Boolean formula condition for the assignment to actually occur.
    * @param variableToEncode The variable to be encoded here.
-   * @param sliceSizeFormula The formula for slice size. The assignment should occur iff {@code 0 <=
-   *     i < sliceSizeFormula} where {@code i} is the encoded variable.
    * @return The Boolean formula describing the assignment.
    */
   private BooleanFormula encodeQuantifier(
       PartialAssignment assignment,
       ImmutableList<SliceVariable> nextVariablesToQuantify,
       BooleanFormula condition,
-      SliceVariable variableToEncode,
-      Formula sliceSizeFormula)
+      SliceVariable variableToEncode)
       throws UnrecognizedCodeException, InterruptedException {
 
     // the encoded quantified variable should be of pointerAsUnsignedIntType
@@ -478,6 +477,7 @@ class AssignmentQuantifierHandler {
     // create the condition for quantifier
     // the quantified variable condition holds when 0 <= index < size
     // the formula is unsigned, we will just do an unsigned less-than comparison
+    final Formula sliceSizeFormula = createSlizeSiceFormula(variableToEncode);
     final BooleanFormula nextCondition =
         bfmgr.and(condition, fmgr.makeLessThan(encodedVariable, sliceSizeFormula, false));
 
@@ -502,16 +502,13 @@ class AssignmentQuantifierHandler {
    *     currently unroll, must appear in this list exactly once.
    * @param condition Boolean formula condition for the assignment to actually occur.
    * @param variableToUnroll The variable to be unrolled here.
-   * @param sliceSizeFormula The formula for slice size. The assignment should occur iff {@code 0 <=
-   *     i < sliceSizeFormula} where {@code i} is the unrolled variable.
    * @return The Boolean formula describing the assignment.
    */
   private BooleanFormula unrollQuantifier(
       PartialAssignment assignment,
       ImmutableList<SliceVariable> nextVariablesToQuantify,
       BooleanFormula condition,
-      SliceVariable variableToUnroll,
-      Formula sliceSizeFormula)
+      SliceVariable variableToUnroll)
       throws UnrecognizedCodeException, InterruptedException {
 
     // the unrolled index should be of pointerAsUnsignedIntType
@@ -519,6 +516,7 @@ class AssignmentQuantifierHandler {
 
     // limit the unrolling size to a reasonable number by default
     long unrollingSize = options.defaultArrayLength();
+    final Optional<Formula> sliceSizeFormula;
 
     // if the expression is a literal, we can get the exact slice size
     final CExpression sliceSize = variableToUnroll.getSliceSize();
@@ -539,6 +537,7 @@ class AssignmentQuantifierHandler {
         // reasonable exact slice size, soundness is guaranteed
         unrollingSize = exactSliceSize;
       }
+      sliceSizeFormula = Optional.empty();
     } else {
       // non-literal slice size expression, always potentially unsound
       // warn just once for all non-literal unrollings to avoid polluting the output
@@ -546,6 +545,7 @@ class AssignmentQuantifierHandler {
           Level.WARNING,
           "Limiting unrolling of non-literal-length slice assignment to %s, soundness may be lost",
           unrollingSize);
+      sliceSizeFormula = Optional.of(createSlizeSiceFormula(variableToUnroll));
     }
 
     // the result will be a conjunction of unrolled assignment results
@@ -556,11 +556,14 @@ class AssignmentQuantifierHandler {
       // construct the index formula
       final Formula indexFormula = conv.fmgr.makeNumber(sizeFormulaType, i);
 
-      // perform the unrolled assignments conditionally
+      // Add the unrolled assignments conditionally if size is not known statically.
       // the variable condition holds when 0 <= i < size
       // the formula is unsigned, we will just do an unsigned less-than comparison
       final BooleanFormula nextCondition =
-          bfmgr.and(condition, fmgr.makeLessThan(indexFormula, sliceSizeFormula, false));
+          sliceSizeFormula.isPresent()
+              ? bfmgr.and(
+                  condition, fmgr.makeLessThan(indexFormula, sliceSizeFormula.orElseThrow(), false))
+              : condition;
 
       // resolve the quantifier in assignment
       // for every (LHS or RHS) slice, we replace it with a slice that has unresolved indexing
