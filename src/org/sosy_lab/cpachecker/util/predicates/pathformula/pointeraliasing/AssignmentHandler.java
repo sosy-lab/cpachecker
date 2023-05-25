@@ -664,9 +664,7 @@ class AssignmentHandler {
     final SliceExpression lhsMemberSlice = assignment.lhs().actual().withFieldAccess(lhsMember);
 
     // compare LHS assignment range with member range
-    final Range<Long> lhsOriginalRange =
-        Range.closedOpen(
-            originalSpan.lhsBitOffset(), originalSpan.lhsBitOffset() + originalSpan.bitSize());
+    final Range<Long> lhsOriginalRange = originalSpan.asLhsRange();
     final Range<Long> lhsMemberRange =
         Range.closedOpen(lhsMemberBitOffset, lhsMemberBitOffset + lhsMemberBitSize);
     if (!lhsOriginalRange.isConnected(lhsMemberRange)) {

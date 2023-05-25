@@ -88,6 +88,11 @@ class AssignmentFormulaHandler {
     boolean isFullSpan(long fullBitSize) {
       return lhsBitOffset == 0 && rhsTargetBitOffset == 0 && bitSize == fullBitSize;
     }
+
+    /** Return a closed-open range that contains the relevant offsets that this span represents. */
+    Range<Long> asLhsRange() {
+      return Range.closedOpen(lhsBitOffset, lhsBitOffset + bitSize);
+    }
   }
 
   /**
@@ -303,9 +308,7 @@ class AssignmentFormulaHandler {
       PartialSpan rhsSpan = rhs.span();
 
       // add to lhs range set
-      long lhsOffset = rhsSpan.lhsBitOffset();
-      long lhsAfterEnd = rhsSpan.lhsBitOffset() + rhsSpan.bitSize();
-      lhsRangeSet.add(Range.closedOpen(lhsOffset, lhsAfterEnd));
+      lhsRangeSet.add(rhsSpan.asLhsRange());
 
       // if resolved RHS is nondet, treat it as a nondet value with target type
       // this means there is now only one way to represent a nondet value
