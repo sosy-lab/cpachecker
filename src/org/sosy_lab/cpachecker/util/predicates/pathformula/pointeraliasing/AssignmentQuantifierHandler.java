@@ -16,10 +16,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -255,9 +253,7 @@ class AssignmentQuantifierHandler {
     // we do not want to assign multiple left-hand sides at once as we would potentially need to
     // unroll variables that only occur in one assignment, which would result in a large amount
     // of unnecessary formula duplication
-    for (Entry<PartialAssignmentLhs, Collection<PartialAssignmentRhs>> entry :
-        assignmentMultimap.asMap().entrySet()) {
-
+    for (var entry : assignmentMultimap.asMap().entrySet()) {
       final PartialAssignmentLhs lhs = entry.getKey();
       final ImmutableList<PartialAssignmentRhs> rhsList = ImmutableList.copyOf(entry.getValue());
 
@@ -383,7 +379,7 @@ class AssignmentQuantifierHandler {
    */
   private BooleanFormula quantifyAssignments(
       final PartialAssignment assignment,
-      final List<SliceVariable> variablesToQuantify,
+      final ImmutableList<SliceVariable> variablesToQuantify,
       final BooleanFormula condition)
       throws UnrecognizedCodeException, InterruptedException {
 
@@ -393,10 +389,10 @@ class AssignmentQuantifierHandler {
     }
 
     // not all variables have been quantified, get the variable to quantify
-    final SliceVariable variableToQuantify = variablesToQuantify.iterator().next();
+    final SliceVariable variableToQuantify = variablesToQuantify.get(0);
 
     // make a sublist without the variable to quantify
-    final List<SliceVariable> nextVariablesToQuantify =
+    final ImmutableList<SliceVariable> nextVariablesToQuantify =
         variablesToQuantify.subList(1, variablesToQuantify.size());
 
     // get the variable slice size (the assignment is done for all i where 0 <= i < sliceSize)
@@ -442,7 +438,8 @@ class AssignmentQuantifierHandler {
 
   /**
    * Encodes the quantifier for the given slice variable in the SMT solver theory of quantifiers and
-   * calls {@link #quantifyAssignments(PartialAssignment, List, BooleanFormula)} recursively.
+   * calls {@link #quantifyAssignments(PartialAssignment, ImmutableList, BooleanFormula)}
+   * recursively.
    *
    * @param assignment The the simple partial slice assignment to quantify.
    * @param nextVariablesToQuantify Remaining variables that need to be quantified, without the one
@@ -456,7 +453,7 @@ class AssignmentQuantifierHandler {
    */
   private BooleanFormula encodeQuantifier(
       PartialAssignment assignment,
-      List<SliceVariable> nextVariablesToQuantify,
+      ImmutableList<SliceVariable> nextVariablesToQuantify,
       BooleanFormula condition,
       SliceVariable variableToEncode,
       Formula sliceSizeFormula)
@@ -494,7 +491,7 @@ class AssignmentQuantifierHandler {
 
   /**
    * Unrolls the quantifier for the given slice variable in the and calls {@link
-   * #quantifyAssignments(PartialAssignment, List, BooleanFormula)} recursively.
+   * #quantifyAssignments(PartialAssignment, ImmutableList, BooleanFormula)} recursively.
    *
    * <p>This is unsound if the length of unrolling is not sufficient. If UFs are used, it also may
    * be unsound due to other assignments within the same aliased location not being retained.
@@ -511,7 +508,7 @@ class AssignmentQuantifierHandler {
    */
   private BooleanFormula unrollQuantifier(
       PartialAssignment assignment,
-      List<SliceVariable> nextVariablesToQuantify,
+      ImmutableList<SliceVariable> nextVariablesToQuantify,
       BooleanFormula condition,
       SliceVariable variableToUnroll,
       Formula sliceSizeFormula)

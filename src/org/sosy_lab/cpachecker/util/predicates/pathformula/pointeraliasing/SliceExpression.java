@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
@@ -255,14 +256,10 @@ record SliceExpression(
   }
 
   /** Returns all slice variables present in the modifiers. */
-  ImmutableList<SliceVariable> getPresentVariables() {
-    ImmutableList.Builder<SliceVariable> builder = ImmutableList.builder();
-    for (SliceModifier modifier : modifiers) {
-      if (modifier instanceof SliceVariableIndexModifier subscriptModifier) {
-        builder.add(subscriptModifier.index());
-      }
-    }
-    return builder.build();
+  Iterable<SliceVariable> getPresentVariables() {
+    return from(modifiers)
+        .filter(SliceVariableIndexModifier.class)
+        .transform(SliceVariableIndexModifier::index);
   }
 
   /**

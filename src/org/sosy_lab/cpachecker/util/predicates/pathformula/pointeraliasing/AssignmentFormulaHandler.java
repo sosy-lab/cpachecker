@@ -371,7 +371,7 @@ class AssignmentFormulaHandler {
     // to find out which ranges should be retained, we complement the assigned ranges
     // and union with the range encompassing completeRhsFormula [0, lhsBitSize)
     RangeSet<Long> retainedRangeSet =
-        lhsRangeSet.complement().subRangeSet(Range.closedOpen((long) 0, lhsBitSize));
+        lhsRangeSet.complement().subRangeSet(Range.closedOpen(0L, lhsBitSize));
 
     if (!retainedRangeSet.isEmpty()) {
       // there are some retained bits from previous LHS
