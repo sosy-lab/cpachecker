@@ -115,7 +115,9 @@ record AssignmentOptions(
      */
     private boolean forcePointerAssignment = false;
 
-    /** @see AssignmentOptions#forceArrayAttachment */
+    /**
+     * @see AssignmentOptions#forceArrayAttachment
+     */
     private boolean forceArrayAttachment = false;
 
     /**
