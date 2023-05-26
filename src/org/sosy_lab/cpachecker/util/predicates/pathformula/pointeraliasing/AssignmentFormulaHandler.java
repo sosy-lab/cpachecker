@@ -213,6 +213,21 @@ class AssignmentFormulaHandler {
     ResolvedSlice rhsResult =
         resolveCompleteRhs(lhsResolved, targetType, rhsList, assignmentOptions);
 
+    if (assignmentOptions.forceArrayAttachment()) {
+      // attach the LHS to RHS and return
+      // LHS must be an aliased location as it is of array type
+      // RHS must be either an aliased location or a value that stores the location
+      final AliasedLocation lhsLocation = lhsResolved.expression().asAliasedLocation();
+      final Formula rhsFormula;
+      if (rhsResult.expression().isAliasedLocation()) {
+        rhsFormula = rhsResult.expression().asAliasedLocation().getAddress();
+      } else {
+        rhsFormula = rhsResult.expression().asValue().getValue();
+      }
+
+      return fmgr.assignment(lhsLocation.getAddress(), rhsFormula);
+    }
+
     // determine whether it is desired to use old SSA indices because we are doing
     // an initialization assignment
     // unaliased locations do not get any improvement from using old SSA indices

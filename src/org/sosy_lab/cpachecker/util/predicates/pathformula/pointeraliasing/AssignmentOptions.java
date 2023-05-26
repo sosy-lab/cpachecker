@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
@@ -27,13 +29,27 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
  * @param forcePointerAssignment If set, the left-hand side is treated as a pointer; the assignment
  *     caller is responsible for ensuring that the left-hand side type can be treated as such.
  *     Intended to be used for function parameters which may need to be assigned as a pointer even
- *     though their actual type is an array type.
+ *     though their actual type is an array type. Cannot be set together with {@link
+ *     #forceArrayAttachment}.
+ * @param forceArrayAttachment If set, left-hand-side array address is attached to right-hand-side
+ *     aliased location or value. It is up to caller to ensure that the left-hand side is an array
+ *     and the right-hand side formula will be a memory address. Cannot be set together with {@link
+ *     #forcePointerAssignment}.
  */
 record AssignmentOptions(
     AssignmentOptions.ConversionType conversionType,
     boolean useOldSSAIndicesIfAliased,
     boolean forceEncodingQuantifiers,
-    boolean forcePointerAssignment) {
+    boolean forcePointerAssignment,
+    boolean forceArrayAttachment) {
+
+  AssignmentOptions {
+    checkArgument(!forcePointerAssignment || !forceArrayAttachment);
+  }
+
+  boolean forcePointerAssignmentOrArrayAttachment() {
+    return forcePointerAssignment || forceArrayAttachment;
+  }
 
   /**
    * Determines how conversion of right-hand-side type to target type should be handled, especially
@@ -99,6 +115,9 @@ record AssignmentOptions(
      */
     private boolean forcePointerAssignment = false;
 
+    /** @see AssignmentOptions#forceArrayAttachment */
+    private boolean forceArrayAttachment = false;
+
     /**
      * Constructs an assignment options builder with the given conversion type, not setting any
      * flags.
@@ -154,6 +173,21 @@ record AssignmentOptions(
     }
 
     /**
+     * Sets whether array attachment will be forced. If set, left-hand-side array address is
+     * attached to right-hand-side aliased location or value. It is up to caller to ensure that the
+     * left-hand side is an array and the right-hand side formula will be a memory address.
+     *
+     * <p>False by default when building.
+     *
+     * @see AssignmentOptions#forceArrayAttachment
+     * @return This builder with the flag set to the given value.
+     */
+    Builder setForceArrayAttachment(boolean value) {
+      forceArrayAttachment = value;
+      return this;
+    }
+
+    /**
      * Builds assignment options using the settings in this builder.
      *
      * @return The built assignment options.
@@ -173,6 +207,7 @@ record AssignmentOptions(
         builder.conversionType,
         builder.useOldSSAIndicesIfAliased,
         builder.forceEncodingQuantifiers,
-        builder.forcePointerAssignment);
+        builder.forcePointerAssignment,
+        builder.forceArrayAttachment);
   }
 }
