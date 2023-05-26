@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.statistics;
 
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -49,8 +48,8 @@ public class StatisticsValue<T> {
     }
   }
 
-  /** @param out the PrintStream to use for printing the statistics */
-  public void printValue(PrintStream out) {}
+  /// ** @param out the PrintStream to use for printing the statistics */
+  // public void printValue(PrintStream out) {}
 
   public void register(StatisticsValueUpdateListener<T> pStatisticsValueListener) {
     statisticsValueUpdateListeners.add(pStatisticsValueListener);
