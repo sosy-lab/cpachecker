@@ -415,7 +415,9 @@ class AssignmentFormulaHandler {
 
     // partialRhsMap is now definitely non-empty as long as the type is non-zero-sized
     BitvectorFormula completeRhsFormula =
-        partialRhsMap.asMapOfRanges().values().stream().reduce(bvmgr::concat).orElseThrow();
+        partialRhsMap.asMapOfRanges().values().stream()
+            .reduce((low, high) -> bvmgr.concat(high, low))
+            .orElseThrow();
     verify(bvmgr.getLength(completeRhsFormula) == lhsBitSize);
 
     // reinterpret from LHS-sized bitvector to the actual LHS type
