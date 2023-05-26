@@ -388,6 +388,11 @@ class MemoryManipulationFunctionHandler {
     CExpression operationSizeInBytes =
         new CCastExpression(FileLocation.DUMMY, pointerSizedIntType, sizeInBytes);
 
+    if (elementSizeInBytes == 1) {
+      // this would lead to "(byte_operation_size + 0) / 1", we can simplify
+      return operationSizeInBytes;
+    }
+
     // create (byte_operation_size + (element_size - 1))
     CIntegerLiteralExpression elementSizeInBytesMinusOneLiteral =
         CIntegerLiteralExpression.createDummyLiteral(elementSizeInBytes - 1, pointerSizedIntType);
