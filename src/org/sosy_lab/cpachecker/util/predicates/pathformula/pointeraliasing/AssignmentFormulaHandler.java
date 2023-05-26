@@ -345,10 +345,7 @@ class AssignmentFormulaHandler {
         } else {
           // handle full assignments without complications: reinterpret from targetType to
           // lhsResolved.type and return the resulting expression
-          if (rhsSpan.lhsBitOffset() == 0
-              && rhsSpan.rhsTargetBitOffset() == 0
-              && rhsSpan.bitSize() == lhsBitSize
-              && lhsBitSize == targetBitSize) {
+          if (rhsSpan.isFullSpan(lhsBitSize) && lhsBitSize == targetBitSize) {
             return new ResolvedSlice(
                 convertResolved(
                     AssignmentOptions.ConversionType.REINTERPRET,
