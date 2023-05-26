@@ -91,9 +91,20 @@ class AssignmentFormulaHandler {
       return lhsBitOffset == 0 && rhsTargetBitOffset == 0 && bitSize == fullBitSize;
     }
 
-    /** Return a closed-open range that contains the relevant offsets that this span represents. */
+    /**
+     * Return a closed-open range that contains the relevant offsets that this span represents in
+     * the LHS.
+     */
     Range<Long> asLhsRange() {
       return Range.closedOpen(lhsBitOffset, lhsBitOffset + bitSize);
+    }
+
+    /**
+     * Return a closed-open range that contains the relevant offsets that this span represents in
+     * the RHS.
+     */
+    Range<Long> asRhsRange() {
+      return Range.closedOpen(rhsTargetBitOffset, rhsTargetBitOffset + bitSize);
     }
   }
 
@@ -346,10 +357,13 @@ class AssignmentFormulaHandler {
                 resultType);
           }
 
-          // construct the partial RHS formula in a separate function
+          // make the formula a bitvector formula
+          BitvectorFormula bitvectorRhsFormula =
+              conv.makeValueReinterpretationToBitvector(targetType, rhsFormula.orElseThrow());
+
+          // extract the interesting part
           partialRhsFormula =
-              Optional.of(
-                  constructPartialRhsFormula(targetType, rhsSpan, rhsFormula.orElseThrow()));
+              Optional.of(extractRangeOfBitvector(bitvectorRhsFormula, rhsSpan.asRhsRange()));
         }
       }
 
@@ -397,7 +411,7 @@ class AssignmentFormulaHandler {
         }
         // construct the partial RHS formula in a separate function
         BitvectorFormula partialRhsFormula =
-            constructPartialRhsFromPreviousLhsFormula(bitvectorPreviousLhsFormula, retainedRange);
+            extractRangeOfBitvector(bitvectorPreviousLhsFormula, retainedRange);
         partialRhsMap.put(retainedRange, partialRhsFormula);
       }
     }
@@ -416,43 +430,15 @@ class AssignmentFormulaHandler {
   }
 
   /**
-   * Construct an span-sized bitvector formula containing the part of given right-hand-side formula,
-   * as determined by {@code rhsSpan}.
+   * Construct an bitvector formula retaining a range of bits from a given bitvector.
    *
-   * @param targetType RHS target type. It is assumed the RHS formula was already cast /
-   *     reinterpreted to this type.
-   * @param span Span which gives the offsets and size of the interesting part of RHS.
-   * @param rhsFormula Supplied RHS formula. Does not need to be a bitvector formula.
-   * @return Span-sized bitvector formula containing the part of {@code rhsFormula} as determined by
-   *     {@code span}.
-   */
-  private BitvectorFormula constructPartialRhsFormula(
-      CType targetType, PartialSpan span, Formula rhsFormula) {
-
-    // make the formula a bitvector formula
-    BitvectorFormula bitvectorRhsFormula =
-        conv.makeValueReinterpretationToBitvector(targetType, rhsFormula);
-
-    // extract the interesting part
-    BitvectorFormula extractedFormula =
-        bvmgr.extract(
-            bitvectorRhsFormula,
-            (int) (span.rhsTargetBitOffset() + span.bitSize() - 1),
-            (int) span.rhsTargetBitOffset());
-
-    return extractedFormula;
-  }
-
-  /**
-   * Construct an bitvector formula retaining a range of bits from previous LHS formula.
-   *
-   * @param bitvectorPreviousLhsFormula Bitvector formula giving the previous LHS value.
+   * @param formula Bitvector formula.
    * @param retainedRange The range determining the bits to retain. The range is assumed to be
    *     closed on bottom and open on top, i.e. [lsb, msb+1).
-   * @return LHS-sized bitvector formula
+   * @return range-sized bitvector formula
    */
-  private BitvectorFormula constructPartialRhsFromPreviousLhsFormula(
-      BitvectorFormula bitvectorPreviousLhsFormula, Range<Long> retainedRange) {
+  private BitvectorFormula extractRangeOfBitvector(
+      BitvectorFormula formula, Range<Long> retainedRange) {
     checkArgument(retainedRange.lowerBoundType() == BoundType.CLOSED);
     checkArgument(retainedRange.upperBoundType() == BoundType.OPEN);
 
@@ -461,11 +447,7 @@ class AssignmentFormulaHandler {
     long retainedMsb = retainedRange.upperEndpoint() - 1;
 
     // extract the range [lsb, msb]
-    BitvectorFormula extractedFormula =
-        bvmgr.extract(bitvectorPreviousLhsFormula, (int) retainedMsb, (int) retainedLsb);
-
-    // return the result
-    return extractedFormula;
+    return bvmgr.extract(formula, (int) retainedMsb, (int) retainedLsb);
   }
 
   /**
