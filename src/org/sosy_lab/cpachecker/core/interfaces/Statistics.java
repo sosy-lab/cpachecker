@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -59,7 +60,9 @@ public interface Statistics {
    *
    * @return A List of StatisticsValue
    */
-  List<StatisticsValue<?>> getStatistics();
+  default List<StatisticsValue<?>> getStatistics() {
+    return ImmutableList.of();
+  }
 
   /**
    * Write result files related to this group of statistics.
