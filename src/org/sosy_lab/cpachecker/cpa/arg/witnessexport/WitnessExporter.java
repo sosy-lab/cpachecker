@@ -112,7 +112,9 @@ public class WitnessExporter {
       CounterexampleInfo pCounterExample)
       throws InterruptedException {
 
-    String defaultFileName = getInitialFileName(pRootState, false);
+    final boolean backwardARG = isBackward(pRootState);
+
+    String defaultFileName = getInitialFileName(pRootState, backwardARG);
     WitnessFactory writer =
         new WitnessFactory(
             options,
@@ -132,17 +134,19 @@ public class WitnessExporter {
         Optional.empty(),
         Optional.ofNullable(pCounterExample),
         GraphBuilder.ARG_PATH,
-        false);
+        backwardARG);
   }
 
   public Witness generateTerminationErrorWitness(
-      final ARGState pRoot,
+      final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
       final Predicate<? super ARGState> pIsCycleHead,
       final Function<? super ARGState, ExpressionTree<Object>> toQuasiInvariant)
       throws InterruptedException {
-    String defaultFileName = getInitialFileName(pRoot, false);
+
+    final boolean backwardARG = isBackward(pRootState);
+    String defaultFileName = getInitialFileName(pRootState, backwardARG);
     WitnessFactory writer =
         new WitnessFactory(
             options,
@@ -155,14 +159,14 @@ public class WitnessExporter {
             WitnessType.VIOLATION_WITNESS,
             InvariantProvider.TrueInvariantProvider.INSTANCE);
     return writer.produceWitness(
-        pRoot,
+        pRootState,
         pIsRelevantState,
         pIsRelevantEdge,
         pIsCycleHead,
         Optional.of(toQuasiInvariant),
         Optional.empty(),
         GraphBuilder.ARG_PATH,
-        false);
+        backwardARG);
   }
 
   public Witness generateProofWitness(
@@ -177,21 +181,7 @@ public class WitnessExporter {
     Preconditions.checkNotNull(pIsRelevantEdge);
     Preconditions.checkNotNull(pInvariantProvider);
 
-    boolean backwardARG = false;
-    CFANode rootNode = AbstractStates.extractLocation(pRootState);
-    Iterator<ARGState> rootChildren = pRootState.getChildren().iterator();
-
-    // Check if any child node has a leaving edge to the root node
-    outer:
-    while (rootChildren.hasNext()) {
-      CFANode childNode = AbstractStates.extractLocation(rootChildren.next());
-      for (CFANode childSuc : CFAUtils.successorsOf(childNode)) {
-        if (childSuc.equals(rootNode)) {
-          backwardARG = true;
-          break outer;
-        }
-      }
-    }
+    final boolean backwardARG = isBackward(pRootState);
 
     String defaultFileName = getInitialFileName(pRootState, backwardARG);
     WitnessFactory writer =
@@ -238,5 +228,25 @@ public class WitnessExporter {
     }
 
     throw new RuntimeException("Could not determine file name based on abstract state!");
+  }
+
+  protected boolean isBackward(ARGState pRootState) {
+    boolean backwardARG = false;
+    CFANode rootNode = AbstractStates.extractLocation(pRootState);
+    Iterator<ARGState> rootChildren = pRootState.getChildren().iterator();
+
+    // Check if any child node has a leaving edge to the root node
+    outer:
+    while (rootChildren.hasNext()) {
+      CFANode childNode = AbstractStates.extractLocation(rootChildren.next());
+      for (CFANode childSuc : CFAUtils.successorsOf(childNode)) {
+        if (childSuc.equals(rootNode)) {
+          backwardARG = true;
+          break outer;
+        }
+      }
+    }
+
+    return backwardARG;
   }
 }

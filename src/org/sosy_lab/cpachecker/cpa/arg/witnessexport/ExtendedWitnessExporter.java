@@ -36,7 +36,9 @@ public class ExtendedWitnessExporter extends WitnessExporter {
       CounterexampleInfo pCounterExample)
       throws InterruptedException {
 
-    String defaultFileName = getInitialFileName(pRootState, false);
+    final boolean backwardARG = isBackward(pRootState);
+
+    String defaultFileName = getInitialFileName(pRootState, backwardARG);
     WitnessFactory writer =
         new ExtendedWitnessFactory(
             options,
@@ -56,6 +58,6 @@ public class ExtendedWitnessExporter extends WitnessExporter {
         Optional.empty(),
         Optional.of(pCounterExample),
         GraphBuilder.ARG_PATH,
-        false);
+        backwardARG);
   }
 }

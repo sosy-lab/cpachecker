@@ -386,22 +386,6 @@ public class ARGStatistics implements Statistics {
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction =
         Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.of());
 
-    // CFANode rootNode = AbstractStates.extractLocation(rootState);
-    // Iterator<ARGState> rootChildren = rootState.getChildren().iterator();
-    //
-    // // Check if any child node has a leaving edge to the root node
-    // outer: while (rootChildren.hasNext()) {
-    // CFANode childNode = AbstractStates.extractLocation(rootChildren.next());
-    // for (CFANode childSuc : CFAUtils.successorsOf(childNode)) {
-    // if (childSuc.equals(rootNode)) {
-    // backwardARG = true;
-    // break outer;
-    // }
-    // }
-    // }
-
-    // assert backwardARG == true;
-
     if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
       try {
         final Witness witness =
