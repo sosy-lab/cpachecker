@@ -368,31 +368,8 @@ class AssignmentFormulaHandler {
       ResolvedSlice rhsResolved = rhs.actual().orElseThrow();
       // now we have a non-nondet value
 
-      final BitvectorFormula partialRhsFormula;
-
-      if (assignmentOptions.conversionType() == AssignmentOptions.ConversionType.BYTE_REPEAT) {
-        // treat repeat conversion specially to avoid constructing target-type-sized bitvector
-        // we only need the bitvector after span extraction
-        partialRhsFormula = convertByteRepeatRhs(rhsSpan, rhsResolved);
-      } else {
-        // convert RHS expression to target type
-        Expression targetTypeRhsExpression =
-            convertResolved(assignmentOptions.conversionType(), targetType, rhsResolved);
-
-        // get the RHS formula for low-level manipulation
-        Formula rhsFormula =
-            addressHandler
-                .getOptionalValueFormula(targetTypeRhsExpression, targetType, false)
-                .orElseThrow();
-
-        // make the formula a bitvector formula
-        BitvectorFormula bitvectorRhsFormula =
-            conv.makeValueReinterpretationToBitvector(targetType, rhsFormula);
-
-        // extract the interesting part
-        partialRhsFormula = extractRangeOfBitvector(bitvectorRhsFormula, rhsSpan.asRhsRange());
-      }
-
+      final BitvectorFormula partialRhsFormula =
+          constructPartialRhsFormula(rhsResolved, targetType, rhsSpan, assignmentOptions);
       verify(bvmgr.getLength(partialRhsFormula) == rhsSpan.bitSize());
 
       // store in correct place
@@ -450,6 +427,47 @@ class AssignmentFormulaHandler {
 
     // return the complete RHS formula
     return new ResolvedSlice(Value.ofValue(targetTypeCompleteRhsFormula), resultType);
+  }
+
+  /**
+   * Construct an span-sized bitvector formula containing the part of given right-hand-side formula,
+   * as determined by {@code rhsSpan}.
+   *
+   * @param rhs Resolved array slice containing the expression to convert and type we are converting
+   *     from. Must not be nondet.
+   * @param targetType RHS target type.
+   * @param rhsSpan Span which gives the offsets and size of the interesting part of RHS.
+   * @return Span-sized bitvector formula containing the part of {@code rhs} as determined by {@code
+   *     rhsSpan}.
+   */
+  private BitvectorFormula constructPartialRhsFormula(
+      final ResolvedSlice rhs,
+      final CType targetType,
+      final PartialSpan rhsSpan,
+      final AssignmentOptions assignmentOptions)
+      throws UnrecognizedCodeException {
+    if (assignmentOptions.conversionType() == AssignmentOptions.ConversionType.BYTE_REPEAT) {
+      // treat repeat conversion specially to avoid constructing target-type-sized bitvector
+      // we only need the bitvector after span extraction
+      return convertByteRepeatRhs(rhsSpan, rhs);
+    } else {
+      // convert RHS expression to target type
+      Expression targetTypeRhsExpression =
+          convertResolved(assignmentOptions.conversionType(), targetType, rhs);
+
+      // get the RHS formula for low-level manipulation
+      Formula rhsFormula =
+          addressHandler
+              .getOptionalValueFormula(targetTypeRhsExpression, targetType, false)
+              .orElseThrow();
+
+      // make the formula a bitvector formula
+      BitvectorFormula bitvectorRhsFormula =
+          conv.makeValueReinterpretationToBitvector(targetType, rhsFormula);
+
+      // extract the interesting part
+      return extractRangeOfBitvector(bitvectorRhsFormula, rhsSpan.asRhsRange());
+    }
   }
 
   /**
