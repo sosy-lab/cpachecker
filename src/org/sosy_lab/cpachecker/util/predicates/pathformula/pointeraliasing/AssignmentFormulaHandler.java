@@ -292,10 +292,10 @@ class AssignmentFormulaHandler {
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   private ResolvedSlice resolveCompleteRhs(
-      ResolvedSlice lhs,
-      CType targetType,
-      List<ResolvedPartialAssignmentRhs> rhsList,
-      AssignmentOptions assignmentOptions)
+      final ResolvedSlice lhs,
+      final CType targetType,
+      final List<ResolvedPartialAssignmentRhs> rhsList,
+      final AssignmentOptions assignmentOptions)
       throws UnrecognizedCodeException {
 
     // in this function, we consider "RHS formula" to be the resolved formula of a single part
@@ -303,12 +303,12 @@ class AssignmentFormulaHandler {
     // the relevant span; and "complete RHS formula" to be a concatenation of all such partial RHS
     // formulas.
 
-    CType lhsType = lhs.type();
+    final CType resultType = lhs.type();
     long targetBitSize = typeHandler.getBitSizeof(targetType);
-    long lhsBitSize = typeHandler.getBitSizeof(lhsType);
+    long lhsBitSize = typeHandler.getBitSizeof(resultType);
 
     // handle the special case of full-span array-or-function-to-pointer assignment
-    if (lhs.type() instanceof CPointerType && rhsList.size() == 1) {
+    if (resultType instanceof CPointerType && rhsList.size() == 1) {
       // we now know it is a something-to-pointer assignment
       final ResolvedPartialAssignmentRhs rhs = rhsList.get(0);
       final PartialSpan rhsSpan = rhs.span();
@@ -327,7 +327,6 @@ class AssignmentFormulaHandler {
       }
     }
     // not the special case, the returned RHS type is the LHS type
-    final CType resultType = lhs.type();
 
     // track partial RHS formulas for their spans in the LHS
     RangeMap<Long, BitvectorFormula> partialRhsMap = TreeRangeMap.create();
@@ -353,7 +352,7 @@ class AssignmentFormulaHandler {
       if (assignmentOptions.conversionType() == AssignmentOptions.ConversionType.BYTE_REPEAT) {
         // treat repeat conversion specially to avoid constructing target-type-sized bitvector
         // we only need the bitvector after span extraction
-        partialRhsFormula = convertByteRepeatRhs(rhs.span(), rhsResolved);
+        partialRhsFormula = convertByteRepeatRhs(rhsSpan, rhsResolved);
       } else {
         // convert RHS expression to target type
         Expression targetTypeRhsExpression =
@@ -371,7 +370,7 @@ class AssignmentFormulaHandler {
           return new ResolvedSlice(
               convertResolved(
                   AssignmentOptions.ConversionType.REINTERPRET,
-                  lhs.type(),
+                  resultType,
                   new ResolvedSlice(targetTypeRhsExpression, targetType)),
               resultType);
         }
