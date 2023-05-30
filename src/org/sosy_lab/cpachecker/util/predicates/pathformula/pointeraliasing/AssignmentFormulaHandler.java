@@ -307,25 +307,46 @@ class AssignmentFormulaHandler {
     long targetBitSize = typeHandler.getBitSizeof(targetType);
     long lhsBitSize = typeHandler.getBitSizeof(resultType);
 
-    // handle the special case of full-span array-or-function-to-pointer assignment
-    if (resultType instanceof CPointerType && rhsList.size() == 1) {
-      // we now know it is a something-to-pointer assignment
+    // Handle full-span assignments upfront, this is better than via the loop below.
+    if (rhsList.size() == 1) {
       final ResolvedPartialAssignmentRhs rhs = rhsList.get(0);
       final PartialSpan rhsSpan = rhs.span();
+      if (rhsSpan.isFullSpan(lhsBitSize) && lhsBitSize == targetBitSize) {
 
-      if (rhsSpan.isFullSpan(lhsBitSize)
-          && lhsBitSize == targetBitSize
-          && rhs.actual().isPresent()) {
-        // we now know it is a full-span something-to-pointer assignment
+        // handle the special case of full-span array-or-function-to-pointer assignment
+        if (rhs.actual().isPresent() && resultType instanceof CPointerType) {
+          ResolvedSlice rhsResolvedSlice = rhs.actual().orElseThrow();
+          // we now know it is a full-span something-to-pointer assignment
+          if (rhsResolvedSlice.type() instanceof CArrayType
+              || rhsResolvedSlice.type() instanceof CFunctionType) {
+            // return the RHS resolved slice, which has the array type instead of the resultType
+            return rhsResolvedSlice;
+          }
+        }
+
+        if (rhs.isNondet()) {
+          return new ResolvedSlice(Value.nondetValue(), resultType);
+        }
         ResolvedSlice rhsResolvedSlice = rhs.actual().orElseThrow();
-        if (rhsResolvedSlice.type() instanceof CArrayType
-            || rhsResolvedSlice.type() instanceof CFunctionType) {
-          // OK, this is the special case, full-span array-or-function-to-pointer assignment
-          // return the RHS resolved slice, which has the array type
-          return rhsResolvedSlice;
+
+        if (assignmentOptions.conversionType() != AssignmentOptions.ConversionType.BYTE_REPEAT) {
+          // convert RHS expression to target type
+          Expression targetTypeRhsExpression =
+              convertResolved(assignmentOptions.conversionType(), targetType, rhsResolvedSlice);
+
+          // Handle full assignments without complications: reinterpret from targetType to
+          // lhsResolved.type and return the resulting expression.
+          // Potentially avoids the reinterpretation as bitvector that the below loop enforces.
+          return new ResolvedSlice(
+              convertResolved(
+                  AssignmentOptions.ConversionType.REINTERPRET,
+                  resultType,
+                  new ResolvedSlice(targetTypeRhsExpression, targetType)),
+              resultType);
         }
       }
     }
+
     // not the special case, the returned RHS type is the LHS type
 
     // track partial RHS formulas for their spans in the LHS
@@ -363,17 +384,6 @@ class AssignmentFormulaHandler {
             addressHandler
                 .getOptionalValueFormula(targetTypeRhsExpression, targetType, false)
                 .orElseThrow();
-
-        // handle full assignments without complications: reinterpret from targetType to
-        // lhsResolved.type and return the resulting expression
-        if (rhsSpan.isFullSpan(lhsBitSize) && lhsBitSize == targetBitSize) {
-          return new ResolvedSlice(
-              convertResolved(
-                  AssignmentOptions.ConversionType.REINTERPRET,
-                  resultType,
-                  new ResolvedSlice(targetTypeRhsExpression, targetType)),
-              resultType);
-        }
 
         // make the formula a bitvector formula
         BitvectorFormula bitvectorRhsFormula =
