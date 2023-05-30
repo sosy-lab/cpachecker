@@ -118,6 +118,11 @@ class AssignmentFormulaHandler {
       checkNotNull(span);
       checkNotNull(actual);
     }
+
+    /** Returns whether this assignment is for a nondet value. */
+    boolean isNondet() {
+      return actual.isEmpty() || actual.orElseThrow().expression().getKind() == Kind.NONDET;
+    }
   }
 
   private final FormulaEncodingWithPointerAliasingOptions options;
@@ -336,14 +341,11 @@ class AssignmentFormulaHandler {
               || partialRhsMap.subRangeMap(lhsSpanRange).asMapOfRanges().isEmpty(),
           "overlapping spans are not allowed");
 
-      // if resolved RHS is nondet, treat it as a nondet value with target type
-      // this means there is now only one way to represent a nondet value
-      ResolvedSlice rhsResolved =
-          rhs.actual().orElse(new ResolvedSlice(Value.nondetValue(), targetType));
-      if (rhsResolved.expression().getKind() == Kind.NONDET) {
+      if (rhs.isNondet()) {
         // nondet rhs part, make the whole rhs result nondeterministic
         return new ResolvedSlice(Value.nondetValue(), resultType);
       }
+      ResolvedSlice rhsResolved = rhs.actual().orElseThrow();
       // now we have a non-nondet value
 
       final BitvectorFormula partialRhsFormula;
