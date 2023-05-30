@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SMTHeap.SMTAddressValue;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -189,15 +188,17 @@ class PointerTargetSetManager {
    * Create a formula that represents an assignment to a value via a pointer.
    *
    * <p>The assignment may not contain encoded quantified variables. Use {@link
-   * #makeQuantifiedPointerAssignment(String, FormulaType, int, int, BooleanFormula,
-   * SMTAddressValue)} instead if it does.
+   * #makeQuantifiedPointerAssignment(String, FormulaType, int, int, BooleanFormula, Formula,
+   * Formula)} instead if it does.
    *
    * @param targetName The name of the pointer access symbol as returned by {@link
    *     MemoryRegionManager#getPointerAccessName(MemoryRegion)}
    * @param pTargetType The formula type of the value
    * @param oldIndex The old SSA index for targetName
    * @param newIndex The new SSA index for targetName
-   * @param assignment The assignment, which may not contain encoded quantified variables
+   * @param address The address where the value should be written, which may not contain encoded
+   *     quantified variables.
+   * @param value The value to write.
    * @return A formula representing assignment of the form {@code targetName@newIndex[address] =
    *     value}
    */
@@ -206,8 +207,9 @@ class PointerTargetSetManager {
       final FormulaType<?> pTargetType,
       final int oldIndex,
       final int newIndex,
-      final SMTAddressValue<I, E> assignment) {
-    return heap.makePointerAssignment(targetName, pTargetType, oldIndex, newIndex, assignment);
+      final I address,
+      final E value) {
+    return heap.makePointerAssignment(targetName, pTargetType, oldIndex, newIndex, address, value);
   }
 
   /**
@@ -237,7 +239,7 @@ class PointerTargetSetManager {
    *
    * <p>Since the formulas may contain encoded quantified variables, it may not be possible to
    * perform the assignment using the theory used for standard {@link #makePointerAssignment(String,
-   * FormulaType, int, int, SMTAddressValue)}. Specifically, for the theory of arrays, it is not
+   * FormulaType, int, int, Formula, Formula)}. Specifically, for the theory of arrays, it is not
    * possible to perform a write to quantified address as the meaning would be "value is stored to
    * one of the selected locations" instead of proper "value is stored to each address as
    * aplicable".
@@ -249,8 +251,9 @@ class PointerTargetSetManager {
    * @param newIndex The new SSA index for targetName
    * @param condition The condition upon which the value is assigned to the address, otherwise, the
    *     previous value is retained. May contain encoded quantified variables.
-   * @param assignment The combination of address to assign to and the value to assign. May contain
-   *     encoded quantified variables, therefore actually "pointing to multiple addresses".
+   * @param address The address where the value should be written. May contain encoded quantified
+   *     variables, therefore actually "pointing to multiple addresses".
+   * @param value The value to write.
    * @return A formula representing the assignments.
    */
   <I extends Formula, E extends Formula> BooleanFormula makeQuantifiedPointerAssignment(
@@ -259,9 +262,10 @@ class PointerTargetSetManager {
       final int oldIndex,
       final int newIndex,
       final BooleanFormula condition,
-      final SMTAddressValue<I, E> assignment) {
+      final I address,
+      final E value) {
     return heap.makeQuantifiedPointerAssignment(
-        targetName, pTargetType, oldIndex, newIndex, condition, assignment);
+        targetName, pTargetType, oldIndex, newIndex, condition, address, value);
   }
 
   /**

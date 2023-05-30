@@ -24,6 +24,8 @@ import org.sosy_lab.java_smt.api.FormulaType;
  */
 interface SMTMultipleAssignmentHeap extends SMTHeap {
 
+  record SMTAddressValue<I extends Formula, E extends Formula>(I address, E value) {}
+
   /**
    * Create a formula that represents multiple assignments to a value via a pointer.
    *
@@ -54,8 +56,13 @@ interface SMTMultipleAssignmentHeap extends SMTHeap {
       final FormulaType<?> pTargetType,
       final int oldIndex,
       final int newIndex,
-      final SMTAddressValue<I, E> assignment) {
+      final I address,
+      final E value) {
     return makePointerAssignments(
-        targetName, pTargetType, oldIndex, newIndex, ImmutableList.of(assignment));
+        targetName,
+        pTargetType,
+        oldIndex,
+        newIndex,
+        ImmutableList.of(new SMTAddressValue<>(address, value)));
   }
 }

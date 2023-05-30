@@ -15,21 +15,21 @@ import org.sosy_lab.java_smt.api.FormulaType;
 /** Interface abstraction for SMT heap accesses. */
 interface SMTHeap {
 
-  record SMTAddressValue<I extends Formula, E extends Formula>(I address, E value) {}
-
   /**
    * Create a formula that represents an assignment to a value via a pointer.
    *
    * <p>The assignment may not contain encoded quantified variables. Use {@link
-   * #makeQuantifiedPointerAssignment(String, FormulaType, int, int, BooleanFormula,
-   * SMTAddressValue)} instead if it does.
+   * #makeQuantifiedPointerAssignment(String, FormulaType, int, int, BooleanFormula, Formula,
+   * Formula)} instead if it does.
    *
    * @param targetName The name of the pointer access symbol as returned by {@link
    *     MemoryRegionManager#getPointerAccessName(MemoryRegion)}
    * @param pTargetType The formula type of the value
    * @param oldIndex The old SSA index for targetName
    * @param newIndex The new SSA index for targetName
-   * @param assignment The assignment, which may not contain encoded quantified variables
+   * @param address The address where the value should be written, which may not contain encoded
+   *     quantified variables.
+   * @param value The value to write.
    * @return A formula representing assignment of the form {@code targetName@newIndex[address] =
    *     value}
    */
@@ -38,7 +38,8 @@ interface SMTHeap {
       final FormulaType<?> pTargetType,
       final int oldIndex,
       final int newIndex,
-      final SMTAddressValue<I, E> assignment);
+      final I address,
+      final E value);
 
   /**
    * Create a formula that represents a conditional assignment to a value via a pointer, with the
@@ -47,7 +48,7 @@ interface SMTHeap {
    *
    * <p>Since the formulas may contain encoded quantified variables, it may not be possible to
    * perform the assignment using the theory used for standard {@link #makePointerAssignment(String,
-   * FormulaType, int, int, SMTAddressValue)}. Specifically, for the theory of arrays, it is not
+   * FormulaType, int, int, Formula, Formula)}. Specifically, for the theory of arrays, it is not
    * possible to perform a write to quantified address as the meaning would be "value is stored to
    * one of the selected locations" instead of proper "value is stored to each address as
    * aplicable".
@@ -59,8 +60,9 @@ interface SMTHeap {
    * @param newIndex The new SSA index for targetName
    * @param condition The condition upon which the value is assigned to the address, otherwise, the
    *     previous value is retained. May contain encoded quantified variables.
-   * @param assignment The combination of address to assign to and the value to assign. May contain
-   *     encoded quantified variables, therefore actually "pointing to multiple addresses".
+   * @param address The address where the value should be written. May contain encoded quantified
+   *     variables, therefore actually "pointing to multiple addresses".
+   * @param value The value to write.
    * @return A formula representing the assignments.
    */
   <I extends Formula, E extends Formula> BooleanFormula makeQuantifiedPointerAssignment(
@@ -69,7 +71,8 @@ interface SMTHeap {
       final int oldIndex,
       final int newIndex,
       final BooleanFormula condition,
-      final SMTAddressValue<I, E> assignment);
+      final I address,
+      final E value);
 
   /**
    * Create a formula that represents an assignment from old SSA index to new SSA index without

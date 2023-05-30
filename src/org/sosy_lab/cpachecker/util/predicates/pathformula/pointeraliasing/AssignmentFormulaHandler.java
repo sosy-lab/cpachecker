@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SMTHeap.SMTAddressValue;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -981,20 +980,11 @@ class AssignmentFormulaHandler {
         if (useQuantifiers) {
           result =
               conv.ptsMgr.makeQuantifiedPointerAssignment(
-                  targetName,
-                  targetType,
-                  oldIndex,
-                  newIndex,
-                  condition,
-                  new SMTAddressValue<>(address, rhs));
+                  targetName, targetType, oldIndex, newIndex, condition, address, rhs);
         } else {
           result =
               conv.ptsMgr.makePointerAssignment(
-                  targetName,
-                  targetType,
-                  oldIndex,
-                  newIndex,
-                  new SMTHeap.SMTAddressValue<>(address, rhs));
+                  targetName, targetType, oldIndex, newIndex, address, rhs);
         }
       } else {
         result = bfmgr.makeTrue();

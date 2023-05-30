@@ -56,7 +56,8 @@ class SMTHeapWithUninterpretedFunctionCalls implements SMTMultipleAssignmentHeap
       int oldIndex,
       int newIndex,
       final BooleanFormula condition,
-      final SMTAddressValue<I, E> assignment) {
+      final I address,
+      final E value) {
     // TODO: implement
     throw new UnsupportedOperationException(
         "Quantified pointer assignment not implemented for heap with uninterpreted function calls"

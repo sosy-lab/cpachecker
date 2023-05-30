@@ -84,10 +84,8 @@ class SMTHeapWithArrays implements SMTMultipleAssignmentHeap {
       final int oldIndex,
       final int newIndex,
       final BooleanFormula condition,
-      final SMTAddressValue<I, E> assignment) {
-
-    I address = assignment.address();
-    E value = assignment.value();
+      final I address,
+      final E value) {
 
     // handle the in the same fashion as if the select was an uninterpreted function
 

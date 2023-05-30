@@ -160,8 +160,7 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
     final String targetName = getHeapSymbolName(length);
     final FormulaType<BitvectorFormula> pTargetType = FormulaType.getBitvectorTypeWithSize(length);
     final BitvectorFormula address = bvmgr.makeBitvector(model.getSizeofPtrInBits(), TEST_ADDRESS);
-    return heap.makePointerAssignment(
-        targetName, pTargetType, index, ++index, new SMTHeap.SMTAddressValue<>(address, value));
+    return heap.makePointerAssignment(targetName, pTargetType, index, ++index, address, value);
   }
 
   private BooleanFormula readBitVector(int length) {
