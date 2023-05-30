@@ -128,8 +128,6 @@ class MemoryManipulationFunctionHandler {
     final List<CExpression> arguments = functionCall.getParameterExpressions();
     verify(arguments.size() == 3);
 
-    // TODO: make sure that the destination is flagged not to be ignored
-    // for testing, this can be kludged by cpa.predicate.ignoreIrrelevantVariables=false
     CExpression destination = arguments.get(0);
     final CExpression secondArgument = arguments.get(1);
     final CExpression sizeInBytes = arguments.get(2);
