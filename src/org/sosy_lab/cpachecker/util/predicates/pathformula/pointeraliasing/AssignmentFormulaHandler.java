@@ -492,10 +492,7 @@ class AssignmentFormulaHandler {
       // nondeterministic RHS expression has no formula, do not convert
       return resolved.expression();
     }
-    Formula rhsFormula =
-        addressHandler
-            .getOptionalValueFormula(resolved.expression(), fromType, false)
-            .orElseThrow();
+    Formula rhsFormula = optionalRhsFormula.orElseThrow();
     return switch (conversionType) {
       case CAST ->
       // cast rhs from rhs type to lhs type
