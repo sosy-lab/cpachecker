@@ -253,7 +253,7 @@ class PointerTargetSetManager {
    *     encoded quantified variables, therefore actually "pointing to multiple addresses".
    * @return A formula representing the assignments.
    */
-  public <I extends Formula, E extends Formula> BooleanFormula makeQuantifiedPointerAssignment(
+  <I extends Formula, E extends Formula> BooleanFormula makeQuantifiedPointerAssignment(
       final String targetName,
       final FormulaType<?> pTargetType,
       final int oldIndex,
