@@ -142,7 +142,7 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
       description =
           "Enable handling of functions memset, memcopy, memmove. "
               + "If disabled, using these functions will result in an error.")
-  private boolean enableMemoryAssignmentFunctions = true;
+  private boolean enableMemoryAssignmentFunctions = false;
 
   @Option(
       secure = true,

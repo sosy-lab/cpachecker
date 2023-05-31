@@ -2201,7 +2201,7 @@ cpa.predicate.enableBlockreducer = false
 
 # Enable handling of functions memset, memcopy, memmove. If disabled, using
 # these functions will result in an error.
-cpa.predicate.enableMemoryAssignmentFunctions = true
+cpa.predicate.enableMemoryAssignmentFunctions = false
 
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
 # specified theory is used to approximate bitvectors. This can be used for
