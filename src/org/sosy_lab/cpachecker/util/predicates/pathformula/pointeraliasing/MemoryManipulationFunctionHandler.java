@@ -120,7 +120,9 @@ class MemoryManipulationFunctionHandler {
       throws UnrecognizedCodeException, InterruptedException {
     if (!conv.options.enableMemoryAssignmentFunctions()) {
       throw new UnrecognizedCodeException(
-          "Memory assignment function present but their handling is disabled", functionCall);
+          "Memory assignment function called but their handling is disabled. "
+              + "Set cpa.predicate.enableMemoryAssignmentFunctions=true to enable.",
+          functionCall);
     }
 
     // all of the functions have exactly three arguments

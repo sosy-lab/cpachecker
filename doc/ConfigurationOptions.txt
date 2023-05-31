@@ -2199,8 +2199,8 @@ cpa.predicate.direction = FORWARD
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
-# Enable functions memset, memcopy, memmove. If disabled, using these
-# functions will result in an error.
+# Enable handling of functions memset, memcopy, memmove. If disabled, using
+# these functions will result in an error.
 cpa.predicate.enableMemoryAssignmentFunctions = true
 
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
@@ -2276,6 +2276,7 @@ cpa.predicate.ignoreStateAssumptions = false
 
 # Prevent functions memset, memcopy, memmove from stopping verification if
 # there is unrecognized code. Instead, they will just be skipped (unsound).
+# Only relevant if enableMemoryAssignmentFunctions is set to true.
 cpa.predicate.ignoreUnrecognizedCodeInMemoryAssignmentFunctions = false
 
 # Add computed invariants to the precision. Invariants do not need to be
