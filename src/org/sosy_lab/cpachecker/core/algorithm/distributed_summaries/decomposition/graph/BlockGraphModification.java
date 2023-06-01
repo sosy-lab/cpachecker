@@ -81,7 +81,7 @@ public class BlockGraphModification {
     // create a `MutableCFA` for the clone (contains the same CFA nodes and edges as `clone`)
     NavigableMap<String, FunctionEntryNode> functionEntryNodes = new TreeMap<>();
     TreeMultimap<String, CFANode> allNodes = TreeMultimap.create();
-    for (CFANode node : pCfa.nodes()) {
+    for (CFANode node : clone.nodes()) {
       String functionName = node.getFunction().getQualifiedName();
       allNodes.put(functionName, node);
       if (node instanceof FunctionEntryNode) {
