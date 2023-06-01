@@ -39,19 +39,13 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantChecker;
 import org.sosy_lab.cpachecker.core.algorithm.sampling.Sample.SampleClass;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -123,34 +117,16 @@ public class InvariantValidationAlgorithm implements Algorithm {
 
   @Option(
       secure = true,
-      description =
-          "Only output the necessary verification conditions, do not attempt validation."
-              + "This option is ignored when invariantValidation.useBMC is enabled.")
+      description = "Only output the necessary verification conditions, do not attempt validation.")
   private boolean outputVCs = false;
 
-  @Option(
-      secure = true,
-      description = "Whether to use a BMC-based approach for counterexample extraction.")
-  private boolean useBMC = false;
-
-  private final Configuration config;
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
   private final CFA cfa;
   private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
-  private final Specification specification;
 
   private final CParser parser;
   private final ParserTools parserTools;
-
-  public record PreconditionCounterexample(
-      CandidateInvariant candidate, Collection<ValueAssignment> pre) {}
-
-  public record StepCaseCounterexample(
-      CandidateInvariant candidate,
-      Collection<ValueAssignment> loopBefore,
-      Collection<ValueAssignment> loopAfter) {}
 
   public InvariantValidationAlgorithm(
       Configuration pConfig,
@@ -158,22 +134,18 @@ public class InvariantValidationAlgorithm implements Algorithm {
       ConfigurableProgramAnalysis pCpa,
       CFA pCFA,
       LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      Specification pSpecification)
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
-    config = pConfig;
     algorithm = pAlgorithm;
     cpa = pCpa;
     cfa = pCFA;
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
-    specification = pSpecification;
 
     parser =
         CParser.Factory.getParser(
-            logger, CParser.Factory.getOptions(config), cfa.getMachineModel(), shutdownNotifier);
+            logger, CParser.Factory.getOptions(pConfig), cfa.getMachineModel(), pShutdownNotifier);
     parserTools = ParserTools.create(ExpressionTrees.newFactory(), cfa.getMachineModel(), logger);
   }
 
@@ -196,8 +168,6 @@ public class InvariantValidationAlgorithm implements Algorithm {
       try {
         if (outputVCs) {
           vcJoiner.add(outputVerificationConditions(reachedSet, loopHead));
-        } else if (useBMC) {
-          validateBMC(loopHead, preSamples, stepSamples, postSamples);
         } else {
           validateSMT(reachedSet, loopHead, preSamples, stepSamples, postSamples);
         }
@@ -429,111 +399,6 @@ public class InvariantValidationAlgorithm implements Algorithm {
                 model, pLocation, SampleClass.NEGATIVE));
       }
       prover.pop();
-    }
-  }
-
-  private void validateBMC(
-      CFANode pLocation,
-      Set<Sample> pPreSamples,
-      Set<Sample> pStepSamples,
-      Set<Sample> pPostSamples)
-      throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
-    // TODO: Might need to further adjust scope according to pLocation
-    CProgramScope scope =
-        new CProgramScope(cfa, logger).withFunctionScope(pLocation.getFunctionName());
-
-    ExpressionTree<AExpression> expressionTree =
-        CParserUtils.parseStatementsAsExpressionTree(
-            ImmutableSet.of(invariant), Optional.empty(), parser, scope, parserTools);
-    CandidateInvariant candidate =
-        new ExpressionTreeLocationInvariant(
-            pLocation.toString(), pLocation, expressionTree, new ConcurrentHashMap<>());
-
-    // Validate invariant using k-Induction
-    CandidateGenerator candidateGenerator = new StaticCandidateProvider(ImmutableSet.of(candidate));
-    KInductionInvariantChecker invariantChecker =
-        new KInductionInvariantChecker(
-            config, shutdownNotifier, logger, cfa, specification, candidateGenerator, true);
-    invariantChecker.checkCandidates();
-
-    Set<? extends CandidateInvariant> confirmed = candidateGenerator.getConfirmedCandidates();
-    boolean validated = !confirmed.isEmpty();
-
-    if (validated) {
-      // Just because the invariant was validated does not mean it is also useful, so check whether
-      // an error location is still reachable
-      checkPostcondition(candidate, pLocation, pPostSamples);
-    } else {
-      logger.log(Level.INFO, "Invariant was not validated, collecting counterexamples...");
-      Set<PreconditionCounterexample> pre_cexs = invariantChecker.getPreconditionCounterexamples();
-      Set<StepCaseCounterexample> step_cexs = invariantChecker.getStepCaseCounterexamples();
-
-      // Counterexamples are reachable, so all are positive samples
-      for (PreconditionCounterexample pre_cex : pre_cexs) {
-        if (!pre_cex.candidate().equals(candidate)) {
-          continue;
-        }
-        Iterable<ValueAssignment> model = pre_cex.pre();
-        pPreSamples.add(
-            SampleUtils.extractSampleFromRelevantAssignments(
-                model, pLocation, SampleClass.POSITIVE));
-      }
-
-      // Counterexamples are reachable, so all are positive samples
-      for (StepCaseCounterexample step_cex : step_cexs) {
-        if (!step_cex.candidate().equals(candidate)) {
-          continue;
-        }
-        Sample sampleBefore =
-            SampleUtils.extractSampleFromRelevantAssignments(
-                step_cex.loopBefore(), pLocation, SampleClass.POSITIVE);
-        pStepSamples.add(sampleBefore);
-
-        Sample sampleAfter =
-            SampleUtils.extractSampleFromRelevantAssignments(
-                    step_cex.loopAfter(), pLocation, SampleClass.POSITIVE)
-                .withPrevious(sampleBefore);
-        pStepSamples.add(sampleAfter);
-      }
-    }
-  }
-
-  private void checkPostcondition(
-      CandidateInvariant pCandidate, CFANode pLocation, Set<Sample> pPostSamples)
-      throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
-    // Retrieve formula managers
-    PredicateCPA predicateCPA =
-        CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, InvariantValidationAlgorithm.class);
-    Solver solver = predicateCPA.getSolver();
-    FormulaManagerView fmgr = solver.getFormulaManager();
-    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
-    PathFormulaManager pmgr = predicateCPA.getPathFormulaManager();
-
-    // Run algorithm to determine reachable states
-    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
-    ReachedSet reached =
-        reachedSetFactory.createAndInitialize(
-            cpa, cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
-    algorithm.run(reached);
-
-    // Assert that target location is reachable
-    CandidateInvariant targetReachable = TargetLocationCandidateInvariant.INSTANCE;
-    BooleanFormula program = bfmgr.not(targetReachable.getAssertion(reached, fmgr, pmgr));
-
-    // Assert that invariant holds
-    BooleanFormula invariantHolds = pCandidate.getAssertion(reached, fmgr, pmgr);
-
-    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      // Check whether the invariant is strong enough to prove the postcondition, otherwise generate
-      // counterexamples.
-      prover.push(bfmgr.and(program, invariantHolds));
-      if (!prover.isUnsat()) {
-        Iterable<ValueAssignment> model = prover.getModelAssignments();
-        // Postcondition counterexamples lead to an error state and are thus negative by definition
-        pPostSamples.add(
-            SampleUtils.extractSampleFromRelevantAssignments(
-                model, pLocation, SampleClass.NEGATIVE));
-      }
     }
   }
 

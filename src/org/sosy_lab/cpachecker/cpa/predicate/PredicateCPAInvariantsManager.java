@@ -619,8 +619,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
               new OnlyWarningsLogmanager(logger),
               cfa,
               specification,
-              candidateGenerator,
-              false)
+              candidateGenerator)
           .checkCandidates();
 
       Set<CandidateInvariant> invariants = candidateGenerator.getConfirmedCandidates();
@@ -766,8 +765,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
               new OnlyWarningsLogmanager(logger),
               cfa,
               specification,
-              candidateGenerator,
-              false);
+              candidateGenerator);
       invChecker.checkCandidates();
 
       if (candidateGenerator.hasFoundInvariants()) {

@@ -54,15 +54,12 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.FormulaInContext;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.InvariantStrengthening.NextCti;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariantCombination;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCandiateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
-import org.sosy_lab.cpachecker.core.algorithm.sampling.InvariantValidationAlgorithm.StepCaseCounterexample;
-import org.sosy_lab.cpachecker.core.algorithm.sampling.SampleUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -140,8 +137,6 @@ class KInductionProver implements AutoCloseable {
   private final ImmutableSet<CFANode> loopHeads;
 
   private boolean invariantGenerationRunning = true;
-
-  private StepCaseCounterexample stepCex = null;
 
   /** Creates an instance of the KInductionProver. */
   public KInductionProver(
@@ -269,10 +264,6 @@ class KInductionProver implements AutoCloseable {
     ExpressionTreeSupplier currentInvariantsSupplier = getCurrentExpressionTreeInvariantSupplier();
 
     return currentInvariantsSupplier.getInvariantFor(pLocation);
-  }
-
-  public StepCaseCounterexample getStepCaseCounterexample() {
-    return stepCex;
   }
 
   @Override
@@ -496,69 +487,6 @@ class KInductionProver implements AutoCloseable {
           List<ValueAssignment> modelAssignments = prover.getModelAssignments();
           if (logger.wouldBeLogged(Level.ALL)) {
             logger.log(Level.ALL, "Model returned for induction check:", modelAssignments);
-          }
-
-          if (pCandidateInvariant instanceof ExpressionTreeLocationInvariant) {
-            // Remove everything but the predecessor assertion to get a model for the previous
-            // iteration
-            prover.pop();
-            prover.pop();
-            prover.pop();
-            prover.pop();
-            prover.push(predecessorAssertion);
-            assert !prover.isUnsat();
-            Collection<ValueAssignment> valuesBefore = new ArrayList<>();
-            for (ValueAssignment assignment :
-                SampleUtils.getRelevantAssignments(
-                    prover.getModelAssignments(),
-                    ((ExpressionTreeLocationInvariant) pCandidateInvariant).getLocation())) {
-              valuesBefore.add(assignment);
-            }
-
-            // Push back relevant formulas and add assertions to make successor model consistent
-            // with predecessor model
-            prover.push(successorViolation);
-            prover.push(loopHeadInv);
-            BooleanFormula consistentAssignments =
-                bfmgr.and(valuesBefore.stream().map(x -> x.getAssignmentAsFormula()).toList());
-            prover.push(consistentAssignments);
-            while (prover.isUnsat()) {
-              // Might be UNSAT if valuesBefore already corresponds to the last loop iteration.
-              // In that case, retry with a different assignment.
-              prover.pop();
-              prover.pop();
-              prover.pop();
-              prover.addConstraint(bfmgr.not(consistentAssignments));
-              assert !prover.isUnsat();
-
-              valuesBefore = new ArrayList<>();
-              for (ValueAssignment assignment :
-                  SampleUtils.getRelevantAssignments(
-                      prover.getModelAssignments(),
-                      ((ExpressionTreeLocationInvariant) pCandidateInvariant).getLocation())) {
-                valuesBefore.add(assignment);
-              }
-
-              prover.push(successorViolation);
-              prover.push(loopHeadInv);
-              consistentAssignments =
-                  bfmgr.and(valuesBefore.stream().map(x -> x.getAssignmentAsFormula()).toList());
-              prover.push(consistentAssignments);
-            }
-
-            // Create step case cex
-            Collection<ValueAssignment> valuesAfter = prover.getModelAssignments();
-            stepCex = new StepCaseCounterexample(pCandidateInvariant, valuesBefore, valuesAfter);
-
-            // Restore previous state of the prover stack
-            prover.pop();
-            prover.pop();
-            prover.pop();
-            prover.pop();
-            prover.push(successorExistsAssertion);
-            prover.push(predecessorAssertion);
-            prover.push(successorViolation);
-            prover.push(loopHeadInv);
           }
 
           if (!loopHeadInvChanged) {

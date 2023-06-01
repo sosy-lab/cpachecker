@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Set;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -24,8 +23,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.sampling.InvariantValidationAlgorithm.PreconditionCounterexample;
-import org.sosy_lab.cpachecker.core.algorithm.sampling.InvariantValidationAlgorithm.StepCaseCounterexample;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -69,8 +66,7 @@ public class KInductionInvariantChecker {
       LogManager pLogger,
       CFA pCfa,
       Specification specification,
-      CandidateGenerator pCandidateGenerator,
-      boolean pCollectCounterexamples)
+      CandidateGenerator pCandidateGenerator)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     pConfig.inject(this);
     cfa = pCfa;
@@ -98,8 +94,7 @@ public class KInductionInvariantChecker {
             specification,
             reached,
             pCandidateGenerator,
-            false,
-            pCollectCounterexamples);
+            false);
   }
 
   /** Determines if the program could be successfully proven to be safe with k-induction. */
@@ -119,13 +114,5 @@ public class KInductionInvariantChecker {
     invGen.getSupplier(); // let invariant generator do the work
 
     isComputationFinished = true;
-  }
-
-  public Set<PreconditionCounterexample> getPreconditionCounterexamples() {
-    return invGen.getPreconditionCounterexamples();
-  }
-
-  public Set<StepCaseCounterexample> getStepCaseCounterexamples() {
-    return invGen.getStepCaseCounterexamples();
   }
 }

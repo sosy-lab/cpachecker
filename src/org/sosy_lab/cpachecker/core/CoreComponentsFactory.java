@@ -664,7 +664,7 @@ public class CoreComponentsFactory {
       if (useInvariantValidationAlgorithm) {
         algorithm =
             new InvariantValidationAlgorithm(
-                config, algorithm, cpa, cfa, logger, shutdownNotifier, specification);
+                config, algorithm, cpa, cfa, logger, shutdownNotifier);
       }
 
       algorithm =

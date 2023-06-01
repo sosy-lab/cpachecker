@@ -3908,9 +3908,6 @@ invariantGeneration.config = no default value
 # Check candidate invariants in a separate thread asynchronously.
 invariantGeneration.kInduction.async = true
 
-# Whether counterexample disproving incorrect candidates should be collected
-invariantGeneration.kInduction.collectCexs = false
-
 # Guess some candidates for the k-induction invariant generator from the CFA.
 invariantGeneration.kInduction.guessCandidatesFromCFA = ASSUME_EDGES_PLAIN
   enum:     [NONE, ASSUME_EDGES_PLAIN, ASSUME_EDGE_TEMPLATES, LINEAR_TEMPLATES]
@@ -3944,8 +3941,7 @@ invariantValidation.invariant = no default value
 invariantValidation.location = no default value
 
 # Only output the necessary verification conditions, do not attempt
-# validation.This option is ignored when invariantValidation.useBMC is
-# enabled.
+# validation.
 invariantValidation.outputVCs = false
 
 # The file to which postcondition counterexamples shall be written.
@@ -3956,9 +3952,6 @@ invariantValidation.preCexOutFile = "pre_cex_samples.json"
 
 # The file to which step case counterexamples shall be written.
 invariantValidation.stepCexOutFile = "step_cex_samples.json"
-
-# Whether to use a BMC-based approach for counterexample extraction.
-invariantValidation.useBMC = false
 
 # The file to which verification conditions are output.Unused if option
 # invariantValidation.outputVCs is disabled.
