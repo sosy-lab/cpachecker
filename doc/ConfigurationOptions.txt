@@ -1717,6 +1717,19 @@ cpa.constraints.mergeType = SEP
 # Whether to perform SAT checks only for the last added constraint
 cpa.constraints.minimalSatCheck = true
 
+# enable if variables from value precision should be considered in variable's
+# scope instead of scope specified in precision
+cpa.constraints.refinement.applyInScope = false
+
+# derive an initial constraint precision from value precision stored in this
+# file
+cpa.constraints.refinement.initialValuePrecisionFile = no default value
+
+# enable to track constraints based on value precision only if all variables
+# occurring in constraint are relevant in variable precision. If disabled it
+# is sufficient that one variable is relevant.
+cpa.constraints.refinement.mustTrackAll = false
+
 # Type of precision to use. Has to be LOCATION if PredicateExtractionRefiner
 # is used.
 cpa.constraints.refinement.precisionType = CONSTRAINTS

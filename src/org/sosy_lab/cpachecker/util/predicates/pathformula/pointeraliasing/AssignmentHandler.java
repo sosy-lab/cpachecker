@@ -139,7 +139,7 @@ class AssignmentHandler {
       final @Nullable CRightHandSide rhs,
       final boolean useOldSSAIndicesIfAliased)
       throws UnrecognizedCodeException, InterruptedException {
-    if (!conv.isRelevantLeftHandSide(lhsForChecking)) {
+    if (!conv.isRelevantLeftHandSide(lhsForChecking, Optional.ofNullable(rhs))) {
       // Optimization for unused variables and fields
       return conv.bfmgr.makeTrue();
     }
