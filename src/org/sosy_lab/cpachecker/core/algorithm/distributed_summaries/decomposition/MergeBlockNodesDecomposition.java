@@ -20,7 +20,6 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
@@ -29,7 +28,7 @@ public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
 
   private final BlockSummaryCFADecomposer decomposer;
   private final long targetNumber;
-  private Comparator<BlockNodeWithoutGraphInformation> sort;
+  private final Comparator<BlockNodeWithoutGraphInformation> sort;
   private int id;
 
   private record BlockScope(CFANode start, CFANode last) {}
@@ -62,10 +61,6 @@ public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
         break;
       }
       nodes = sorted(mergeVertically(nodes));
-      if (nodes.size() <= targetNumber) {
-        break;
-      }
-      nodes = sorted(mergeSubsumption(nodes));
       if (sizeBefore == nodes.size()) {
         // also quit if no more merges are possible
         break;
@@ -80,29 +75,6 @@ public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
       return pSort;
     }
     return ImmutableList.sortedCopyOf(sort, pSort);
-  }
-
-  private Collection<BlockNodeWithoutGraphInformation> mergeSubsumption(
-      Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {
-    Set<BlockNodeWithoutGraphInformation> available = new LinkedHashSet<>(pNodes);
-    for (BlockNodeWithoutGraphInformation node1 : pNodes) {
-      for (BlockNodeWithoutGraphInformation node2 : pNodes) {
-        if (!available.contains(node1) || !available.contains(node2) || node1 == node2) {
-          // already merged
-          continue;
-        }
-        if (node1.getFirst().equals(node2.getFirst()) && node1.getFirst().equals(node2.getLast())) {
-          BlockNodeWithoutGraphInformation merged = mergeSubsumedBlocks(node1, node2);
-          available.remove(node1);
-          available.remove(node2);
-          available.add(merged);
-          if (available.size() <= targetNumber) {
-            return available;
-          }
-        }
-      }
-    }
-    return available;
   }
 
   private Collection<BlockNodeWithoutGraphInformation> mergeHorizontally(
@@ -165,22 +137,6 @@ public class MergeBlockNodesDecomposition implements BlockSummaryCFADecomposer {
     }
     assert startingPoints.values().containsAll(endingPoints.values());
     return startingPoints.values();
-  }
-
-  private BlockNodeWithoutGraphInformation mergeSubsumedBlocks(
-      BlockNodeWithoutGraphInformation pOuter, BlockNodeWithoutGraphInformation pInner) {
-    Preconditions.checkArgument(
-        pOuter.getNodes().contains(pInner.getFirst())
-            && pOuter.getNodes().contains(pInner.getLast()));
-    return new BlockNodeWithoutGraphInformation(
-        "MS" + id++,
-        pOuter.getFirst(),
-        pOuter.getLast(),
-        ImmutableSet.<CFANode>builder().addAll(pOuter.getNodes()).addAll(pInner.getNodes()).build(),
-        ImmutableSet.<CFAEdge>builder()
-            .addAll(pOuter.getEdges())
-            .addAll(pInner.getEdges())
-            .build());
   }
 
   private BlockNodeWithoutGraphInformation mergeBlocksHorizontally(

@@ -232,8 +232,8 @@ public class DCPAAlgorithm {
           AbstractState merged =
               cpa.getMergeOperator().merge(value, abstractState, blockStartPrecision);
           if (!merged.equals(abstractState)) {
-            reachedSet.add(merged, blockStartPrecision);
             reachedSet.remove(abstractState);
+            reachedSet.add(merged, blockStartPrecision);
           }
         }
         if (!cpa.getStopOperator()
