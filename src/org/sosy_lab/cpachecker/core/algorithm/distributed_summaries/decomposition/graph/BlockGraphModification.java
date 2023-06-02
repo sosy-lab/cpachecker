@@ -31,12 +31,11 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.GhostEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
@@ -53,11 +52,8 @@ public class BlockGraphModification {
   public record Modification(
       CFA cfa, BlockGraph blockGraph, ImmutableSet<CFANode> unableToAbstract) {}
 
-  public static final String UNIQUE_DESCRIPTION = "<<distributed-block-summary-block-end>>";
-
   public static boolean hasAbstractionOccurred(BlockNode pBlockNode, ReachedSet pReachedSet) {
-    if (pBlockNode.getEdges().stream()
-        .noneMatch(e -> e.getDescription().equals(UNIQUE_DESCRIPTION))) {
+    if (pBlockNode.getEdges().stream().noneMatch(e -> e instanceof GhostEdge)) {
       return false;
     }
     if (pReachedSet.getReached(pBlockNode.getLast()).isEmpty()) {
@@ -97,23 +93,24 @@ public class BlockGraphModification {
       return new Modification(pCFA, pBlockGraph, ImmutableSet.of());
     }
     MutableCFA mutableCfa = createMutableCfaCopy(pCFA, pConfig, pLogger);
+    MappingInformation blockMapping =
+        createMappingBetweenOriginalAndInstrumentedCFA(pCFA, mutableCfa);
     ImmutableSet<CFANode> blockEnds =
         transformedImmutableSetCopy(pBlockGraph.getNodes(), n -> n.getLast());
     ImmutableSet.Builder<CFANode> unableToAbstract = ImmutableSet.builder();
-    for (CFANode blockEnd : blockEnds) {
-      if (blockEnd.getLeavingSummaryEdge() == null
-          && !blockEnd.equals(pCFA.getMainFunction())
-          && !(blockEnd instanceof CFATerminationNode)) {
-        CFANode blockEndEdgeSuccessor = new CFANode(blockEnd.getFunction());
+    for (CFANode originalBlockEnd : blockEnds) {
+      CFANode mutableCfaBlockEnd = blockMapping.originalToInstrumentedNodes().get(originalBlockEnd);
+      if (mutableCfaBlockEnd.getLeavingSummaryEdge() == null
+          && !mutableCfaBlockEnd.equals(pCFA.getMainFunction())
+          && !(mutableCfaBlockEnd instanceof CFATerminationNode)) {
+        CFANode blockEndEdgeSuccessor = new CFANode(mutableCfaBlockEnd.getFunction());
         mutableCfa.addNode(blockEndEdgeSuccessor);
-        BlankEdge blockEndEdge =
-            new BlankEdge(
-                "", FileLocation.DUMMY, blockEnd, blockEndEdgeSuccessor, UNIQUE_DESCRIPTION);
-        blockEnd.addLeavingEdge(blockEndEdge);
+        GhostEdge blockEndEdge = new GhostEdge(mutableCfaBlockEnd, blockEndEdgeSuccessor);
+        mutableCfaBlockEnd.addLeavingEdge(blockEndEdge);
         blockEndEdgeSuccessor.addEnteringEdge(blockEndEdge);
       } else {
-        if (blockEnd.getLeavingSummaryEdge() != null) {
-          unableToAbstract.add(blockEnd);
+        if (mutableCfaBlockEnd.getLeavingSummaryEdge() != null) {
+          unableToAbstract.add(mutableCfaBlockEnd);
         }
       }
     }
@@ -254,7 +251,7 @@ public class BlockGraphModification {
       CFANode instrumentedNode = pair.n2();
       FluentIterable<CFAEdge> instrumentedOutgoing = CFAUtils.allLeavingEdges(instrumentedNode);
       FluentIterable<CFAEdge> abstractionEdges =
-          instrumentedOutgoing.filter(e -> e.getDescription().equals(UNIQUE_DESCRIPTION));
+          instrumentedOutgoing.filter(e -> e instanceof GhostEdge);
       assertOrFail(
           abstractionEdges.size() <= 1, "Cannot have more than one abstraction edge per node.");
       int outgoing = instrumentedNode.getNumLeavingEdges() - abstractionEdges.size();
