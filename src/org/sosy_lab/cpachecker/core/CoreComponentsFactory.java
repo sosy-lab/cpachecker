@@ -390,12 +390,6 @@ public class CoreComponentsFactory {
       description = "Import faults stored in a JSON format.")
   private boolean useImportFaults = false;
 
-  @Option(
-      secure = true,
-      name = "algorithm.reverseTransitions",
-      description = "use Reverse CFA for Backward Reachability Analysis.")
-  private boolean useReverseCFA = false;
-
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
