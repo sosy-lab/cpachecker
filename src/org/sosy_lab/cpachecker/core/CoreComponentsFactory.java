@@ -391,8 +391,8 @@ public class CoreComponentsFactory {
   private boolean useImportFaults = false;
 
   @Option(
-      secure = true, 
-      name = "algorithm.reverseTransitions", 
+      secure = true,
+      name = "algorithm.reverseTransitions",
       description = "use Reverse CFA for Backward Reachability Analysis.")
   private boolean useReverseCFA = false;
 
