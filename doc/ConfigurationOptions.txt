@@ -251,6 +251,9 @@ analysis.algorithm.proofCheckWithARGCMCStrategy = false
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
 
+# use Reverse CFA for Backward Reachability Analysis.
+analysis.algorithm.reverseTransitions = false
+
 # Use termination algorithm to prove (non-)termination. This needs the
 # TerminationCPA as root CPA and an automaton CPA with
 # termination_as_reach.spc in the tree of CPAs.
