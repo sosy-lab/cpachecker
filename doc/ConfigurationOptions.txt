@@ -850,6 +850,9 @@ cfa.nonReturningFunctions = {"abort", "exit"}
 # 'null', no pixel graphic is exported.
 cfa.pixelGraphicFile = "cfaPixel"
 
+# use Reverse CFA for Backward Reachability Analysis.
+cfa.reverseTransitions = false
+
 # export CFA as .ser file (dump Java objects)
 cfa.serialize = false
 cfa.serializeFile = "cfa.ser.gz"

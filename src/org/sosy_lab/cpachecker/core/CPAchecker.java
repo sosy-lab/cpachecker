@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.CFACheck;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.transformer.c.CFAReverser;
 import org.sosy_lab.cpachecker.cmdline.CPAMain;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -188,6 +189,12 @@ public class CPAchecker {
       description = "Maximum number of counterexamples to be created.")
   private int cexLimit = 0;
 
+  @Option(
+      secure = true,
+      name = "cfa.reverseTransitions",
+      description = "use Reverse CFA for Backward Reachability Analysis.")
+  private boolean useReverseCFA = false;
+
   private final LogManager logger;
   private final Configuration config;
   private final ShutdownManager shutdownManager;
@@ -317,6 +324,11 @@ public class CPAchecker {
       stats.creationTime.start();
 
       cfa = parse(programDenotation, stats);
+      if (useReverseCFA) {
+        logger.log(Level.INFO, "Using Reverse CFA.");
+        cfa = CFAReverser.reverseCfa(config, logger, cfa);
+      }
+
       shutdownNotifier.shutdownIfNecessary();
 
       ConfigurableProgramAnalysis cpa;
