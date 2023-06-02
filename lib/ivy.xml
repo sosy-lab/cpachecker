@@ -45,12 +45,12 @@ SPDX-License-Identifier: Apache-2.0
         <!-- When adding/changing/removing a runtime dependency, make sure to also update java-runtime-licenses.txt! -->
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.3000-529-g6152d88"
+        <dependency org="org.sosy_lab" name="common" rev="0.3000-568-gb81232a9"
                     conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="31.1-jre"
+        <dependency org="com.google.guava" name="guava" rev="32.0.0-jre"
                     conf="runtime->default; contrib->sources"/>
 
         <dependency org="org.sosy_lab" name="llvm-j" rev="0.10"
@@ -81,7 +81,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- JFlex Scanner generator
              Used for generating automaton and FQL scanners. -->
-        <dependency org="de.jflex" name="jflex" rev="1.8.2" conf="build->default"
+        <dependency org="de.jflex" name="jflex" rev="1.9.1" conf="build->default"
                     transitive="false"/>
 
         <!-- CUP LALR Parser Generator for Java
@@ -102,8 +102,8 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="5.0.0" conf="test->default"/>
-        <dependency org="org.mockito" name="mockito-errorprone" rev="5.0.0" conf="build->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="5.3.1" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-errorprone" rev="5.3.1" conf="build->default"/>
 
         <!-- Antlr
              Parser generator. -->
@@ -117,13 +117,13 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Truth
              Library for writing literal assertions. -->
-        <dependency org="com.google.truth" name="truth" rev="1.1.3"
+        <dependency org="com.google.truth" name="truth" rev="1.1.4"
                     conf="test->default; contrib->sources"/>
-        <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="1.1.3"
+        <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="1.1.4"
                     conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="31.1-jre"
+        <dependency org="com.google.guava" name="guava-testlib" rev="32.0.0-jre"
                     conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
@@ -136,12 +136,12 @@ SPDX-License-Identifier: Apache-2.0
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
         <!-- Synchronize version with REFASTER_VERSION in ../.gitlab-ci.yml! -->
-        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.18.0" conf="build->default" />
-        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.18.0" conf="build->default; contrib->sources" />
+        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.19.1" conf="build->default" />
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.19.1" conf="build->default; contrib->sources" />
 
         <!-- Policeman's Forbidden API Checker
              Useful for detecting uses of unwanted API -->
-        <dependency org="de.thetaphi" name="forbiddenapis" rev="3.2" conf="build->default" />
+        <dependency org="de.thetaphi" name="forbiddenapis" rev="3.5.1" conf="build->default" />
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
@@ -149,7 +149,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- google-java-format
              A source-code formatter for Java -->
-        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.15.0" conf="format-source->default"/>
+        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.17.0" conf="format-source->default"/>
 
         <!-- SpotBugs -->
         <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="4.7.3" conf="spotbugs->default"/>
@@ -159,7 +159,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Checkstyle -->
         <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.44.1" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="10.6.0" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="10.12.0" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>

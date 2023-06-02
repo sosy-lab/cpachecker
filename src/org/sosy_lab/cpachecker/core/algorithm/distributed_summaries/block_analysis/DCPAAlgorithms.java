@@ -37,6 +37,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class DCPAAlgorithms {
 
+  private DCPAAlgorithms() {}
+
   static Optional<CFANode> abstractStateToLocation(AbstractState state) {
     LocationState locState = AbstractStates.extractStateByType(state, LocationState.class);
     if (locState != null) {

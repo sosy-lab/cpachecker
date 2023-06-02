@@ -61,6 +61,7 @@ public class AutomatonState
           pAutomaton,
           ImmutableList.of(),
           ExpressionTrees.getTrue(),
+          true,
           0,
           0,
           null,
@@ -69,7 +70,7 @@ public class AutomatonState
 
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
-      return pProperty.toLowerCase().equals("state == top");
+      return pProperty.equalsIgnoreCase("state == top");
     }
 
     @Override
@@ -88,6 +89,7 @@ public class AutomatonState
           pAutomaton,
           ImmutableList.of(),
           ExpressionTrees.getTrue(),
+          true,
           0,
           0,
           null,
@@ -96,7 +98,7 @@ public class AutomatonState
 
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
-      return pProperty.toLowerCase().equals("state == bottom");
+      return pProperty.equalsIgnoreCase("state == bottom");
     }
 
     @Override
@@ -110,6 +112,7 @@ public class AutomatonState
   private transient AutomatonInternalState internalState;
   private final ImmutableList<AExpression> assumptions;
   private final transient ExpressionTree<AExpression> candidateInvariants;
+  private final boolean areDefaultCandidateInvariants;
   private int matches = 0;
   private int failedMatches = 0;
   private final transient AutomatonTargetInformation targetInformation;
@@ -121,6 +124,7 @@ public class AutomatonState
       Automaton pAutomaton,
       ImmutableList<AExpression> pAssumptions,
       ExpressionTree<AExpression> pCandidateInvariants,
+      boolean pAreDefaultCandiateInvariants,
       int successfulMatches,
       int failedMatches,
       AutomatonTargetInformation targetInformation,
@@ -135,6 +139,7 @@ public class AutomatonState
           pAutomaton,
           pAssumptions,
           pCandidateInvariants,
+          pAreDefaultCandiateInvariants,
           successfulMatches,
           failedMatches,
           targetInformation,
@@ -156,6 +161,7 @@ public class AutomatonState
         pAutomaton,
         ImmutableList.of(),
         ExpressionTrees.getTrue(),
+        true,
         successfulMatches,
         failedMatches,
         targetInformation,
@@ -168,6 +174,7 @@ public class AutomatonState
       Automaton pAutomaton,
       ImmutableList<AExpression> pAssumptions,
       ExpressionTree<AExpression> pCandidateInvariants,
+      boolean pAreDefaultCandiateInvariants,
       int successfulMatches,
       int failedMatches,
       AutomatonTargetInformation pTargetInformation,
@@ -180,6 +187,7 @@ public class AutomatonState
     this.failedMatches = failedMatches;
     assumptions = pAssumptions;
     candidateInvariants = pCandidateInvariants;
+    areDefaultCandidateInvariants = pAreDefaultCandiateInvariants;
     treatErrorAsTarget = pTreatErrorAsTarget;
 
     if (internalState.isTarget()) {
@@ -188,6 +196,10 @@ public class AutomatonState
     } else {
       targetInformation = null;
     }
+  }
+
+  public boolean hasDefaultCandidateInvariants() {
+    return areDefaultCandidateInvariants;
   }
 
   @Override
@@ -303,6 +315,7 @@ public class AutomatonState
           pPreviousState.automaton,
           ImmutableList.of(),
           ExpressionTrees.getTrue(),
+          true,
           -1,
           -1,
           pPreviousState.targetInformation,

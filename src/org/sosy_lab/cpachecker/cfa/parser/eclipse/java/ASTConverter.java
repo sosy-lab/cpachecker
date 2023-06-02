@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -1535,7 +1536,7 @@ class ASTConverter {
     String visibilityModifierString = pConstructor.toGenericString().substring(0, i);
 
     try {
-      visibilityModifier = VisibilityModifier.valueOf(visibilityModifierString.toUpperCase());
+      visibilityModifier = VisibilityModifier.valueOf(Ascii.toUpperCase(visibilityModifierString));
     } catch (IllegalArgumentException ignored) {
       visibilityModifier = VisibilityModifier.NONE;
     }
@@ -1572,7 +1573,7 @@ class ASTConverter {
     if (!matchingImportDeclaration.isPresent()) {
       try {
         cls = Class.forName("java.lang." + pClassName);
-      } catch (ClassNotFoundException pE) {
+      } catch (ClassNotFoundException e) {
         return Optional.empty();
       }
     } else {
@@ -1580,7 +1581,7 @@ class ASTConverter {
         cls =
             Class.forName(
                 matchingImportDeclaration.orElseThrow().getName().getFullyQualifiedName());
-      } catch (ClassNotFoundException pE) {
+      } catch (ClassNotFoundException e) {
         return Optional.empty();
       }
     }
@@ -1682,7 +1683,7 @@ class ASTConverter {
               Optional.of(
                   Class.forName(
                       matchingImportDeclaration.orElseThrow().getName().getFullyQualifiedName()));
-        } catch (ClassNotFoundException pE) {
+        } catch (ClassNotFoundException e) {
           cls = Optional.empty();
         }
       }
@@ -1690,7 +1691,7 @@ class ASTConverter {
         try {
           cls = Optional.of(Class.forName(jTypeName));
 
-        } catch (ClassNotFoundException pE) {
+        } catch (ClassNotFoundException e) {
           cls = Optional.empty();
         }
       }
@@ -1699,7 +1700,7 @@ class ASTConverter {
           final String className = "java.lang." + jTypeName;
           cls = Optional.of(Class.forName(className));
 
-        } catch (ClassNotFoundException pE) {
+        } catch (ClassNotFoundException e) {
 
           cls = Optional.empty();
         }

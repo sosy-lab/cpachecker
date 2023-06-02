@@ -119,8 +119,7 @@ public final class ArrayAbstractionAlgorithm extends NestingAlgorithm {
 
     statistics.startTimer();
     try {
-      arrayAbstractionResult =
-          ArrayAbstraction.transformCfa(globalConfig, logger, shutdownNotifier, originalCfa);
+      arrayAbstractionResult = ArrayAbstraction.transformCfa(globalConfig, logger, originalCfa);
     } finally {
       statistics.stopTimer();
     }

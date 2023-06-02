@@ -74,9 +74,9 @@ public enum TestTargetAdaption {
   PORTFOLIO {
     @Override
     public Set<CFAEdge> adaptTestTargets(Set<CFAEdge> pTargets, CFA pCfa) {
-      Set<CFAEdge> finalResult, returnResult;
-      finalResult = COVERED_NEXT_EDGE.adaptTestTargets(pTargets, pCfa);
-      returnResult = ESSENTIAL_EDGE_ORIGINAL.adaptTestTargets(pTargets, pCfa); // TODO select best
+      Set<CFAEdge> finalResult = COVERED_NEXT_EDGE.adaptTestTargets(pTargets, pCfa);
+      Set<CFAEdge> returnResult =
+          ESSENTIAL_EDGE_ORIGINAL.adaptTestTargets(pTargets, pCfa); // TODO select best
       finalResult = finalResult.size() > returnResult.size() ? returnResult : finalResult;
       returnResult = SPANNING_SET.adaptTestTargets(pTargets, pCfa);
       finalResult = finalResult.size() > returnResult.size() ? returnResult : finalResult;

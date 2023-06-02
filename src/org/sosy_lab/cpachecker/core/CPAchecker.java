@@ -455,7 +455,10 @@ public class CPAchecker {
   }
 
   private CFA parse(List<String> fileNames, MainCPAStatistics stats)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException,
+      throws InvalidConfigurationException,
+          IOException,
+          ParserException,
+          InterruptedException,
           ClassNotFoundException {
 
     final CFA cfa;
@@ -609,7 +612,7 @@ public class CPAchecker {
               }
               yield Optionals.asSet(pAnalysisEntryFunction.getExitNode());
             }
-            case FUNCTION_ENTRIES -> ImmutableSet.copyOf(pCfa.getAllFunctionHeads());
+            case FUNCTION_ENTRIES -> ImmutableSet.copyOf(pCfa.entryNodes());
             case FUNCTION_SINKS -> ImmutableSet.<CFANode>builder()
                 .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
                 .addAll(getAllFunctionExitNodes(pCfa))
@@ -647,7 +650,7 @@ public class CPAchecker {
   private Set<CFANode> getAllFunctionExitNodes(CFA cfa) {
     Set<CFANode> functionExitNodes = new HashSet<>();
 
-    for (FunctionEntryNode node : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode node : cfa.entryNodes()) {
       node.getExitNode().ifPresent(functionExitNodes::add);
     }
     return functionExitNodes;

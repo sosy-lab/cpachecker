@@ -1126,7 +1126,7 @@ public class CFABuilder {
         break;
       case LShr: // Logical shift right
         // GNU C performs a logical shift for unsigned types
-        op1type = typeConverter.getCType(operand1.typeOf(), /* isUnsigned = */ true);
+        op1type = typeConverter.getCType(operand1.typeOf(), /* isUnsigned= */ true);
         operand1Exp = castToExpectedType(operand1Exp, op1type, getLocation(pItem, pFileName));
         // $FALL-THROUGH$
       case AShr: // Arithmetic shift right
@@ -1146,7 +1146,7 @@ public class CFABuilder {
         }
 
         // operand2 should always be treated as an unsigned value
-        op2type = typeConverter.getCType(operand2.typeOf(), /* isUnsigned = */ true);
+        op2type = typeConverter.getCType(operand2.typeOf(), /* isUnsigned= */ true);
         operand2Exp = castToExpectedType(operand2Exp, op2type, getLocation(pItem, pFileName));
 
         // GNU C performs an arithmetic shift for signed types
@@ -1752,13 +1752,7 @@ public class CFABuilder {
 
     if (pItem.canBeTransformedFromGetElementPtrToString()) {
       String constant = pItem.getGetElementPtrAsString();
-      CType constCharType =
-          new CSimpleType(
-              true, false, CBasicType.CHAR, false, false, false, false, false, false, false);
-
-      CType stringType = new CPointerType(false, false, constCharType);
-
-      return new CStringLiteralExpression(fileLocation, stringType, '"' + constant + '"');
+      return new CStringLiteralExpression(fileLocation, '"' + constant + '"');
     }
 
     CType currentType = typeConverter.getCType(startPointer.typeOf());

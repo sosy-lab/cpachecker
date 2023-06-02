@@ -51,7 +51,7 @@ class EclipseCWriter implements CWriter {
 
       return astUnit.getRawSignature();
 
-    } catch (final CoreException pE) {
+    } catch (final CoreException e) {
       throw new CPAException("Failed to export CFA to C program because AST parsing failed.");
     }
   }

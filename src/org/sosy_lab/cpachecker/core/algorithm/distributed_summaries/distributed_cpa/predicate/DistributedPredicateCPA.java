@@ -47,7 +47,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
     serializePrecisionOperator =
         new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());
     ImmutableMap.Builder<Integer, CFANode> idToNodeMap = ImmutableMap.builder();
-    for (CFANode cfaNode : pCFA.getAllNodes()) {
+    for (CFANode cfaNode : pCFA.nodes()) {
       idToNodeMap.put(cfaNode.getNodeNumber(), cfaNode);
     }
     deserializePrecisionOperator =

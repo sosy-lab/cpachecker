@@ -169,13 +169,13 @@ public class UsageContainer {
         }
         UnrefinedUsagePointSet uset = getSet(id);
 
-        LockState locks, expandedLocks;
         for (UsageInfo uinfo : entry.getValue()) {
           if (uinfo.getKeyState() == null) {
             // TODO what should we do?
             continue;
           }
-          locks = (LockState) uinfo.getLockState();
+          LockState locks = (LockState) uinfo.getLockState();
+          LockState expandedLocks;
           if (reduceToExpand.containsKey(locks)) {
             expandedLocks = reduceToExpand.get(locks);
           } else {

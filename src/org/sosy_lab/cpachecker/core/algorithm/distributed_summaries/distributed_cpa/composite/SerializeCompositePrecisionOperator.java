@@ -49,8 +49,8 @@ public class SerializeCompositePrecisionOperator implements SerializePrecisionOp
         }
       }
       return payload.buildPayload();
-    } catch (InterruptedException pE) {
-      throw new AssertionError(pE);
+    } catch (InterruptedException e) {
+      throw new AssertionError(e);
     }
   }
 }

@@ -446,7 +446,12 @@ public final class CTypes {
     @Override
     public CEnumType visit(CEnumType t) {
       return new CEnumType(
-          constValue, t.isVolatile(), t.getEnumerators(), t.getName(), t.getOrigName());
+          constValue,
+          t.isVolatile(),
+          t.getCompatibleType(),
+          t.getEnumerators(),
+          t.getName(),
+          t.getOrigName());
     }
 
     @Override
@@ -529,7 +534,12 @@ public final class CTypes {
     @Override
     public CEnumType visit(CEnumType t) {
       return new CEnumType(
-          t.isConst(), volatileValue, t.getEnumerators(), t.getName(), t.getOrigName());
+          t.isConst(),
+          volatileValue,
+          t.getCompatibleType(),
+          t.getEnumerators(),
+          t.getName(),
+          t.getOrigName());
     }
 
     @Override

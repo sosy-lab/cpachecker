@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.arg.Splitable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -138,8 +137,9 @@ public abstract sealed class PredicateAbstractState
     }
   }
 
-  private static sealed class NonAbstractionState extends PredicateAbstractState {
+  private static final class NonAbstractionState extends PredicateAbstractState {
     private static final long serialVersionUID = -6912172362012773999L;
+
     /** The abstract state this element was merged into. Used for fast coverage checks. */
     private transient PredicateAbstractState mergedInto = null;
 
@@ -185,35 +185,6 @@ public abstract sealed class PredicateAbstractState
     }
   }
 
-  // TODO The existence of this class is likely problematic, cf.
-  // https://gitlab.com/sosy-lab/software/cpachecker/-/commit/fbb5ea09d8d869e970649913225c455b3e72f4ba#note_1245299862
-  public static final class InfeasibleDummyState extends NonAbstractionState
-      implements NonMergeableAbstractState, Graphable {
-    private static final long serialVersionUID = 4845812617465441779L;
-
-    private InfeasibleDummyState(
-        PathFormula pF,
-        AbstractionFormula pA,
-        PersistentMap<CFANode, Integer> pAbstractionLocations) {
-      super(pF, pA, pAbstractionLocations);
-    }
-
-    @Override
-    public String toString() {
-      return "Dummy location";
-    }
-
-    @Override
-    public String toDOTLabel() {
-      return toString();
-    }
-
-    @Override
-    public boolean shouldBeHighlighted() {
-      return true;
-    }
-  }
-
   public static PredicateAbstractState mkAbstractionState(
       PathFormula pF,
       AbstractionFormula pA,
@@ -251,13 +222,6 @@ public abstract sealed class PredicateAbstractState
       AbstractionFormula pA,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
     return new NonAbstractionState(pF, pA, pAbstractionLocations);
-  }
-
-  static PredicateAbstractState mkInfeasibleDummyState(
-      PathFormula pF,
-      AbstractionFormula pA,
-      PersistentMap<CFANode, Integer> pAbstractionLocations) {
-    return new InfeasibleDummyState(pF, pA, pAbstractionLocations);
   }
 
   /**

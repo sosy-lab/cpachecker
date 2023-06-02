@@ -15,11 +15,12 @@ public final class ThreadLabel implements Comparable<ThreadLabel> {
   public enum LabelStatus {
     PARENT_THREAD,
     CREATED_THREAD,
-    SELF_PARALLEL_THREAD;
+    SELF_PARALLEL_THREAD,
   }
 
   private final String threadName;
   private final String varName;
+
   // private final LabelStatus status;
 
   public ThreadLabel(String name, String vName) {

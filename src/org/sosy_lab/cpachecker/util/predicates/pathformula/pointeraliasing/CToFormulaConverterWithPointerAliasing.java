@@ -929,19 +929,13 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final CInitializer initializer = declaration.getInitializer();
 
     // Fixing unsized array declarations
-    if (declarationType instanceof CArrayType
-        && ((CArrayType) declarationType).getLength() == null) {
+    if (declarationType instanceof CArrayType arrayType && arrayType.getLength() == null) {
       final Integer actualLength;
-      if (initializer instanceof CInitializerList) {
-        actualLength = ((CInitializerList) initializer).getInitializers().size();
-      } else if (initializer instanceof CInitializerExpression
-          && ((CInitializerExpression) initializer).getExpression()
-              instanceof CStringLiteralExpression) {
-        actualLength =
-            ((CStringLiteralExpression) ((CInitializerExpression) initializer).getExpression())
-                    .getContentString()
-                    .length()
-                + 1;
+      if (initializer instanceof CInitializerList initList) {
+        actualLength = initList.getInitializers().size();
+      } else if (initializer instanceof CInitializerExpression initExp
+          && initExp.getExpression() instanceof CStringLiteralExpression initStringLiteral) {
+        actualLength = initStringLiteral.getSize();
       } else {
         actualLength = null;
       }
@@ -951,10 +945,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
             new CArrayType(
                 declarationType.isConst(),
                 declarationType.isVolatile(),
-                ((CArrayType) declarationType).getType(),
+                arrayType.getType(),
                 new CIntegerLiteralExpression(
                     declaration.getFileLocation(),
-                    machineModel.getPointerDiffType(),
+                    machineModel.getSizeType(),
                     BigInteger.valueOf(actualLength)));
 
         declaration =
@@ -1369,8 +1363,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @return Whether a left hand side is relevant for the analysis.
    */
   @Override
-  protected boolean isRelevantLeftHandSide(CLeftHandSide pLhs) {
-    return super.isRelevantLeftHandSide(pLhs);
+  protected boolean isRelevantLeftHandSide(CLeftHandSide pLhs, Optional<CRightHandSide> pRhs) {
+    return super.isRelevantLeftHandSide(pLhs, pRhs);
   }
 
   protected boolean isRelevantField(

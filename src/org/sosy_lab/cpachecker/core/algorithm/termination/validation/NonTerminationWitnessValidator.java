@@ -939,7 +939,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
     BREAK,
     ERROR,
     STOP,
-    FINISHED;
+    FINISHED,
   }
 
   private Automaton getSpecForErrorAt(

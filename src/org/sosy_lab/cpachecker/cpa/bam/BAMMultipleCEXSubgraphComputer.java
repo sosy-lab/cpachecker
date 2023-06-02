@@ -225,6 +225,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer {
    */
   public static final BackwardARGState DUMMY_STATE_FOR_REPEATED_STATE =
       new BackwardARGState(new ARGState(null, null));
+
   /**
    * This is a ARGState, that counts backwards, used to build the Pseudo-ARG for CEX-retrieval. As
    * the Pseudo-ARG is build backwards starting at its end-state, we count the ID backwards.

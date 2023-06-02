@@ -28,6 +28,8 @@ public class PredicateOperatorUtil {
 
   public static final String INDEX_SEPARATOR = ".";
 
+  private PredicateOperatorUtil() {}
+
   public static String extractFormulaString(
       BlockSummaryMessage pMessage,
       Class<? extends ConfigurableProgramAnalysis> pKey,

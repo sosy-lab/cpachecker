@@ -58,7 +58,9 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
 
   @Override
   public PreCondition extractPreCondition(List<CFAEdge> pCounterexample)
-      throws SolverException, InterruptedException, CPATransferException,
+      throws SolverException,
+          InterruptedException,
+          CPATransferException,
           InvalidCounterexampleException {
     PreCondition nondets = createNondetPrecondition(pCounterexample);
     if (!includeInitialAssignment) {
@@ -139,7 +141,9 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
   }
 
   private PreCondition createNondetPrecondition(List<CFAEdge> pCounterexample)
-      throws SolverException, InterruptedException, CPATransferException,
+      throws SolverException,
+          InterruptedException,
+          CPATransferException,
           InvalidCounterexampleException {
     BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
     BooleanFormula precond = bmgr.makeTrue();

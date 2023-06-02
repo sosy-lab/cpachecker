@@ -205,8 +205,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       BlockGraph blockGraph = decomposer.decompose(initialCFA);
       blockGraph.checkConsistency(shutdownManager.getNotifier());
       Modification modification =
-          BlockGraphModification.instrumentCFA(
-              initialCFA, blockGraph, logger, shutdownManager.getNotifier());
+          BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
       ImmutableSet<CFANode> abstractionDeadEnds = modification.unableToAbstract();
       numberWorkersWithoutAbstraction.setNextValue(abstractionDeadEnds.size());
       if (!abstractionDeadEnds.isEmpty()) {
@@ -273,9 +272,9 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
         }
         return resultPair.status();
       }
-    } catch (InvalidConfigurationException | IOException pE) {
-      logger.logException(Level.SEVERE, pE, "Block analysis stopped unexpectedly.");
-      throw new CPAException("Component Analysis run into an error.", pE);
+    } catch (InvalidConfigurationException | IOException e) {
+      logger.logException(Level.SEVERE, e, "Block analysis stopped unexpectedly.");
+      throw new CPAException("Component Analysis run into an error.", e);
     } finally {
       logger.log(Level.INFO, "Block analysis finished.");
     }

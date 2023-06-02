@@ -194,8 +194,8 @@ public class FaultLocalizationByImport implements Algorithm {
       faults = intermediateFaults.getFaults();
       errorEdge = intermediateFaults.getErrorLocation();
       errorLocation = errorEdge == null ? null : errorEdge.getSuccessor();
-    } catch (IOException pE) {
-      throw new CPAException("Could not deserialize faults", pE);
+    } catch (IOException e) {
+      throw new CPAException("Could not deserialize faults", e);
     }
     logger.logf(Level.INFO, "Finished parsing %d faults.", faults.size());
     AlgorithmStatus status;
@@ -312,16 +312,16 @@ public class FaultLocalizationByImport implements Algorithm {
                         e -> new CFAEdgeWithAssumptions(e, ImmutableList.of(), ""))),
                 errorPath);
         info.apply();
-      } catch (IndexOutOfBoundsException pE) {
-        throw new AssertionError("Could not find a path showing the violation.", pE);
-      } catch (InvalidConfigurationException pE) {
-        throw new AssertionError("Configuration for LocationStateFactory was invalid.", pE);
+      } catch (IndexOutOfBoundsException e) {
+        throw new AssertionError("Could not find a path showing the violation.", e);
+      } catch (InvalidConfigurationException e) {
+        throw new AssertionError("Configuration for LocationStateFactory was invalid.", e);
       }
       try {
         new FaultLocalizationInfoExporter(config).export(faults, errorEdge);
         logger.log(Level.INFO, "Finished exporting faults successfully!");
-      } catch (IOException | InvalidConfigurationException pE) {
-        logger.logUserException(Level.WARNING, pE, "Failed exporting faults...");
+      } catch (IOException | InvalidConfigurationException e) {
+        logger.logUserException(Level.WARNING, e, "Failed exporting faults...");
       }
       return status;
     }
@@ -352,10 +352,7 @@ public class FaultLocalizationByImport implements Algorithm {
 
     public FaultsDeserializer(CFA pCFA) {
       super(IntermediateFaults.class);
-      edges =
-          FluentIterable.from(pCFA.getAllNodes())
-              .transformAndConcat(CFAUtils::allLeavingEdges)
-              .toSet();
+      edges = ImmutableSet.copyOf(CFAUtils.allEdges(pCFA));
     }
 
     @Override

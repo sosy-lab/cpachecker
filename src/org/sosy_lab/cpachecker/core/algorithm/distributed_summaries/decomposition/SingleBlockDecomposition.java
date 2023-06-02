@@ -44,7 +44,7 @@ public class SingleBlockDecomposition implements BlockSummaryCFADecomposer {
         waitlist.add(leavingEdge.getSuccessor());
       }
     }
-    assert seen.containsAll(cfa.getAllNodes());
+    assert seen.containsAll(cfa.nodes());
     assert lastNode != null;
     return BlockGraph.fromBlockNodesWithoutGraphInformation(
         cfa,
@@ -53,7 +53,7 @@ public class SingleBlockDecomposition implements BlockSummaryCFADecomposer {
                 "SB1",
                 cfa.getMainFunction(),
                 lastNode,
-                ImmutableSet.copyOf(cfa.getAllNodes()),
+                ImmutableSet.copyOf(cfa.nodes()),
                 edges.build())));
   }
 }

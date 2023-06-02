@@ -335,16 +335,12 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
         // maybe two function pointers are compared.
       case AssumeEdge:
-        {
-          break;
-        }
+        break;
 
         // nothing to do.
       case BlankEdge:
       case CallToReturnEdge:
-        {
-          break;
-        }
+        break;
 
       default:
         throw new UnrecognizedCFAEdgeException(pCfaEdge);
@@ -460,7 +456,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     CFunctionSummaryEdge summaryEdge = pFunctionReturnEdge.getSummaryEdge();
     assert summaryEdge != null;
 
-    CFunctionCall funcCall = summaryEdge.getExpression();
+    CFunctionCall funcCall = pFunctionReturnEdge.getFunctionCall();
     if (funcCall instanceof CFunctionCallAssignmentStatement) {
       CExpression left = ((CFunctionCallAssignmentStatement) funcCall).getLeftHandSide();
       String varName = getLeftHandSide(left, summaryEdge);

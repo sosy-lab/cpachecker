@@ -29,7 +29,7 @@ public class ContainsVarVisitor<T>
 
   public ContainsVarVisitor(
       Map<? extends MemoryLocation, ? extends NumeralFormula<T>> pEnvironment) {
-    this.environment = pEnvironment;
+    environment = pEnvironment;
   }
 
   @Override
@@ -153,10 +153,10 @@ public class ContainsVarVisitor<T>
   }
 
   private boolean refersTo(Variable<T> pVariable, MemoryLocation pVarName) {
-    if (this.environment == null) {
+    if (environment == null) {
       return false;
     }
-    NumeralFormula<T> value = this.environment.get(pVariable.getMemoryLocation());
+    NumeralFormula<T> value = environment.get(pVariable.getMemoryLocation());
     if (value == null) {
       return false;
     }

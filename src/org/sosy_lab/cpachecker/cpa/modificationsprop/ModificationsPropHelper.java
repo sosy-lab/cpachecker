@@ -58,19 +58,25 @@ public class ModificationsPropHelper {
 
   /** Nodes that are part of the property. */
   private final ImmutableSet<CFANode> errorLocationsInOrigOrMod;
+
   /** Setting for ignoring of declaration statements. */
   private final boolean ignoreDeclarations;
+
   /** Setting for switching on/off the SMT implication check. */
   private final boolean implicationCheck;
+
   /** Set of nodes from which an error location is reachable in original program. */
   private final Set<CFANode> mayReachErrorLocOrig;
+
   /** Set of nodes from which an error location is reachable in modified program. */
   private final Set<CFANode> mayReachErrorLocMod;
 
   private final Solver solver;
   private final CtoFormulaConverter converter;
+
   /** Logging manager to log with different levels of severity. */
   private final LogManager logger;
+
   /** A visitor to get used variables as string set for an expression. */
   private final VariableIdentifierVisitor visitor;
 

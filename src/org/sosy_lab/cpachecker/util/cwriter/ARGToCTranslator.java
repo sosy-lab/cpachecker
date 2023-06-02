@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.cwriter;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -682,11 +683,7 @@ public class ARGToCTranslator {
     } else {
       CFunctionReturnEdge functionReturnEdge =
           (CFunctionReturnEdge) pReturnEdge.getSuccessor().getLeavingEdge(0);
-      CFANode functionDefNode = functionReturnEdge.getSummaryEdge().getPredecessor();
-      assert functionDefNode.getNumLeavingEdges() == 1;
-      assert functionDefNode.getLeavingEdge(0) instanceof CFunctionCallEdge;
-      CFunctionCallEdge callEdge = (CFunctionCallEdge) functionDefNode.getLeavingEdge(0);
-      CFunctionEntryNode fn = callEdge.getSuccessor();
+      CFunctionEntryNode fn = functionReturnEdge.getFunctionEntry();
       CType retType = fn.getFunctionDefinition().getType().getReturnType();
       if (retType instanceof CArrayType) {
         returnType = ((CArrayType) retType).toQualifiedASTString(varName);
@@ -716,16 +713,12 @@ public class ARGToCTranslator {
 
     switch (pCFAEdge.getEdgeType()) {
       case BlankEdge:
-        {
-          // nothing to do
-          break;
-        }
+        // nothing to do
+        break;
 
       case AssumeEdge:
-        {
-          // nothing to do
-          break;
-        }
+        // nothing to do
+        break;
 
       case StatementEdge:
         {
@@ -799,16 +792,12 @@ public class ARGToCTranslator {
         }
 
       case CallToReturnEdge:
-        {
-          //          this should not have been taken
-          throw new AssertionError("CallToReturnEdge in counterexample path: " + pCFAEdge);
-        }
+        //          this should not have been taken
+        throw new AssertionError("CallToReturnEdge in counterexample path: " + pCFAEdge);
 
       default:
-        {
-          throw new AssertionError(
-              "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
-        }
+        throw new AssertionError(
+            "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
     }
 
     return "";
@@ -989,14 +978,13 @@ public class ARGToCTranslator {
     Map<ARGState, List<CDeclaration>> probVarDec =
         Maps.newHashMapWithExpectedSize(decProblems.keySet().size());
 
-    boolean containAll, different;
     for (ARGState key : decProblems.keySet()) {
       probs = new ArrayList<>(decProblems.get(key));
       probVars = new ArrayList<>();
 
       for (Entry<CDeclaration, String> prob : probs.get(0).entrySet()) {
-        containAll = true;
-        different = false;
+        boolean containAll = true;
+        boolean different = false;
         for (int i = 1; i < probs.size(); i++) {
           if (!probs.get(i).containsKey(prob.getKey())) {
             containAll = false;
@@ -1076,21 +1064,12 @@ public class ARGToCTranslator {
       ImmutableMap.Builder<CDeclaration, String> builder = ImmutableMap.builder();
 
       for (CParameterDeclaration paramDecl :
-          callEdge
-              .getSummaryEdge()
-              .getExpression()
-              .getFunctionCallExpression()
-              .getDeclaration()
-              .getParameters()) {
+          callEdge.getFunctionCall().getFunctionCallExpression().getDeclaration().getParameters()) {
         builder.put(paramDecl.asVariableDeclaration(), decId);
       }
 
       return new DeclarationInfo(
-          builder.buildOrThrow(),
-          ImmutableList.<ImmutableMap<CDeclaration, String>>builder()
-              .addAll(calleeFunDecInfos)
-              .add(currentFuncDecInfo)
-              .build());
+          builder.buildOrThrow(), listAndElement(calleeFunDecInfos, currentFuncDecInfo));
     }
 
     public DeclarationInfo fromFunctionReturn() {

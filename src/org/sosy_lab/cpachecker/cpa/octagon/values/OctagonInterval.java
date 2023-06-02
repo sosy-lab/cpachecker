@@ -415,7 +415,7 @@ public class OctagonInterval {
       scalarTimes(low, other.low),
       scalarTimes(low, other.high),
       scalarTimes(high, other.low),
-      scalarTimes(high, other.high)
+      scalarTimes(high, other.high),
     };
 
     return new OctagonInterval(
@@ -435,7 +435,7 @@ public class OctagonInterval {
       return createUnboundOctInterval();
     } else {
       OctagonNumericValue<?>[] values = {
-        low.div(other.low), low.div(other.high), high.div(other.low), high.div(other.high)
+        low.div(other.low), low.div(other.high), high.div(other.low), high.div(other.high),
       };
 
       return new OctagonInterval(

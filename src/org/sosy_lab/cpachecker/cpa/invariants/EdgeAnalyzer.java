@@ -197,7 +197,7 @@ class EdgeAnalyzer {
         }
       case FunctionReturnEdge:
         FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) pCfaEdge;
-        AFunctionCall functionCall = functionReturnEdge.getSummaryEdge().getExpression();
+        AFunctionCall functionCall = functionReturnEdge.getFunctionCall();
         if (functionCall
             instanceof AFunctionCallAssignmentStatement functionCallAssignmentStatement) {
           AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();

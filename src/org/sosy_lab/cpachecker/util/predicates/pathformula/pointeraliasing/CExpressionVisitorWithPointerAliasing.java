@@ -801,7 +801,7 @@ class CExpressionVisitorWithPointerAliasing
       sizeFormula =
           conv.makeCast(size.getExpressionType(), sizeType, sizeFormula, constraints, edge);
     } else {
-      sizeType = conv.machineModel.getPointerEquivalentSimpleType(); // should be size_t actually
+      sizeType = conv.machineModel.getSizeType();
       sizeFormula = null;
     }
     final Formula stringTerminator =

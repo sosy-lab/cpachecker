@@ -130,9 +130,9 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
                   dcpa.getSerializeOperator().serialize(topState),
                   true)));
       super.run();
-    } catch (InterruptedException pE) {
-      getLogger().logException(Level.SEVERE, pE, "Root worker stopped unexpectedly.");
-      broadcastOrLogException(ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getId(), pE)));
+    } catch (InterruptedException e) {
+      getLogger().logException(Level.SEVERE, e, "Root worker stopped unexpectedly.");
+      broadcastOrLogException(ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getId(), e)));
     }
   }
 }

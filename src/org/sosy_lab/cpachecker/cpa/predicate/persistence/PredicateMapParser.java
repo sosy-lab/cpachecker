@@ -268,7 +268,7 @@ public class PredicateMapParser {
 
   private CFANode getCFANodeWithId(int id) {
     if (idToNodeMap.isEmpty()) {
-      for (CFANode n : cfa.getAllNodes()) {
+      for (CFANode n : cfa.nodes()) {
         idToNodeMap.put(n.getNodeNumber(), n);
       }
     }

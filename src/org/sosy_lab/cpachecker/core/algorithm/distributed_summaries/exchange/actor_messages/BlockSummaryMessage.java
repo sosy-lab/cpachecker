@@ -329,6 +329,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
       return mapper.readValue(pBytes, BlockSummaryMessage.class);
     }
   }
+
   /** Mimics a MessageConverter but it zips messages. */
   public static class CompressedMessageConverter extends MessageConverter {
 

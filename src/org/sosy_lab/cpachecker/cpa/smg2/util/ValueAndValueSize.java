@@ -61,6 +61,6 @@ public class ValueAndValueSize {
 
   @Override
   public String toString() {
-    return value.toString() + " (" + sizeOfValueInBits + ")";
+    return value.toString() + " (size: " + sizeOfValueInBits + " bits)";
   }
 }

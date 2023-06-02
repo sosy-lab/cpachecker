@@ -100,11 +100,11 @@ public class ReplaceVisitor<T>
     Preconditions.checkNotNull(pReplacementN);
     Preconditions.checkNotNull(pToReplaceB);
     Preconditions.checkNotNull(pReplacementB);
-    this.toReplaceN = pToReplaceN;
-    this.replacementN = pReplacementN;
-    this.toReplaceB = pToReplaceB;
-    this.replacementB = pReplacementB;
-    this.recursiveNumeralFormulaVisitor =
+    toReplaceN = pToReplaceN;
+    replacementN = pReplacementN;
+    toReplaceB = pToReplaceB;
+    replacementB = pReplacementB;
+    recursiveNumeralFormulaVisitor =
         new RecursiveNumeralFormulaVisitor<>() {
 
           @Override
@@ -115,8 +115,8 @@ public class ReplaceVisitor<T>
             return pFormula;
           }
         };
-    this.recursiveBooleanFormulaVisitor =
-        new RecursiveBooleanFormulaVisitor<>(this.recursiveNumeralFormulaVisitor) {
+    recursiveBooleanFormulaVisitor =
+        new RecursiveBooleanFormulaVisitor<>(recursiveNumeralFormulaVisitor) {
 
           @Override
           protected BooleanFormula<T> visitPost(BooleanFormula<T> pFormula) {
@@ -130,111 +130,111 @@ public class ReplaceVisitor<T>
 
   @Override
   public BooleanFormula<T> visitFalse() {
-    return this.recursiveBooleanFormulaVisitor.visitFalse();
+    return recursiveBooleanFormulaVisitor.visitFalse();
   }
 
   @Override
   public BooleanFormula<T> visitTrue() {
-    return this.recursiveBooleanFormulaVisitor.visitTrue();
+    return recursiveBooleanFormulaVisitor.visitTrue();
   }
 
   @Override
   public BooleanFormula<T> visit(Equal<T> pEqual) {
-    return pEqual.accept(this.recursiveBooleanFormulaVisitor);
+    return pEqual.accept(recursiveBooleanFormulaVisitor);
   }
 
   @Override
   public BooleanFormula<T> visit(LessThan<T> pLessThan) {
-    return pLessThan.accept(this.recursiveBooleanFormulaVisitor);
+    return pLessThan.accept(recursiveBooleanFormulaVisitor);
   }
 
   @Override
   public BooleanFormula<T> visit(LogicalAnd<T> pAnd) {
-    return pAnd.accept(this.recursiveBooleanFormulaVisitor);
+    return pAnd.accept(recursiveBooleanFormulaVisitor);
   }
 
   @Override
   public BooleanFormula<T> visit(LogicalNot<T> pNot) {
-    return pNot.accept(this.recursiveBooleanFormulaVisitor);
+    return pNot.accept(recursiveBooleanFormulaVisitor);
   }
 
   @Override
   public NumeralFormula<T> visit(Add<T> pAdd) {
-    return pAdd.accept(this.recursiveNumeralFormulaVisitor);
+    return pAdd.accept(recursiveNumeralFormulaVisitor);
   }
 
   @Override
   public NumeralFormula<T> visit(BinaryAnd<T> pAnd) {
-    return pAnd.accept(this.recursiveNumeralFormulaVisitor);
+    return pAnd.accept(recursiveNumeralFormulaVisitor);
   }
 
   @Override
   public NumeralFormula<T> visit(BinaryNot<T> pNot) {
-    return pNot.accept(this.recursiveNumeralFormulaVisitor);
+    return pNot.accept(recursiveNumeralFormulaVisitor);
   }
 
   @Override
   public NumeralFormula<T> visit(BinaryOr<T> pOr) {
-    return pOr.accept(this.recursiveNumeralFormulaVisitor);
+    return pOr.accept(recursiveNumeralFormulaVisitor);
   }
 
   @Override
   public NumeralFormula<T> visit(BinaryXor<T> pXor) {
-    return pXor.accept(this.recursiveNumeralFormulaVisitor);
+    return pXor.accept(recursiveNumeralFormulaVisitor);
   }
 
   @Override
   public NumeralFormula<T> visit(Constant<T> pConstant) {
-    return pConstant.accept(this.recursiveNumeralFormulaVisitor);
+    return pConstant.accept(recursiveNumeralFormulaVisitor);
   }
 
   @Override
   public NumeralFormula<T> visit(Divide<T> pDivide) {
-    return pDivide.accept(this.recursiveNumeralFormulaVisitor);
+    return pDivide.accept(recursiveNumeralFormulaVisitor);
   }
 
   @Override
   public NumeralFormula<T> visit(Exclusion<T> pExclusion) {
-    return pExclusion.accept(this.recursiveNumeralFormulaVisitor);
+    return pExclusion.accept(recursiveNumeralFormulaVisitor);
   }
 
   @Override
   public NumeralFormula<T> visit(Modulo<T> pModulo) {
-    return pModulo.accept(this.recursiveNumeralFormulaVisitor);
+    return pModulo.accept(recursiveNumeralFormulaVisitor);
   }
 
   @Override
   public NumeralFormula<T> visit(Multiply<T> pMultiply) {
-    return pMultiply.accept(this.recursiveNumeralFormulaVisitor);
+    return pMultiply.accept(recursiveNumeralFormulaVisitor);
   }
 
   @Override
   public NumeralFormula<T> visit(ShiftLeft<T> pShiftLeft) {
-    return pShiftLeft.accept(this.recursiveNumeralFormulaVisitor);
+    return pShiftLeft.accept(recursiveNumeralFormulaVisitor);
   }
 
   @Override
   public NumeralFormula<T> visit(ShiftRight<T> pShiftRight) {
-    return pShiftRight.accept(this.recursiveNumeralFormulaVisitor);
+    return pShiftRight.accept(recursiveNumeralFormulaVisitor);
   }
 
   @Override
   public NumeralFormula<T> visit(Union<T> pUnion) {
-    return pUnion.accept(this.recursiveNumeralFormulaVisitor);
+    return pUnion.accept(recursiveNumeralFormulaVisitor);
   }
 
   @Override
   public NumeralFormula<T> visit(Variable<T> pVariable) {
-    return pVariable.accept(this.recursiveNumeralFormulaVisitor);
+    return pVariable.accept(recursiveNumeralFormulaVisitor);
   }
 
   @Override
   public NumeralFormula<T> visit(IfThenElse<T> pIfThenElse) {
-    return pIfThenElse.accept(this.recursiveNumeralFormulaVisitor);
+    return pIfThenElse.accept(recursiveNumeralFormulaVisitor);
   }
 
   @Override
   public NumeralFormula<T> visit(Cast<T> pCast) {
-    return pCast.accept(this.recursiveNumeralFormulaVisitor);
+    return pCast.accept(recursiveNumeralFormulaVisitor);
   }
 }

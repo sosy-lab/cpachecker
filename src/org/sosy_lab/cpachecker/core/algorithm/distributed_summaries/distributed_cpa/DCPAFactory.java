@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class DCPAFactory {
 
+  private DCPAFactory() {}
+
   /**
    * Register corresponding DCPA to a CPA
    *

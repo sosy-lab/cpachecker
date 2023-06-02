@@ -27,7 +27,7 @@ public class CollectFormulasVisitor<T>
   private final Predicate<? super NumeralFormula<T>> condition;
 
   public CollectFormulasVisitor(Predicate<? super NumeralFormula<T>> pCondition) {
-    this.condition = pCondition;
+    condition = pCondition;
   }
 
   @Override

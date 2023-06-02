@@ -54,12 +54,13 @@ public class CallstackFilter extends GenericFilter<String> {
     if (notSelfParallelFunctions.contains(pFirstPathCore)
         && pFirstPathCore.equals(pSecondPathCore)) {
       return false;
-    } else if (singleThreadFunctions.contains(pFirstPathCore)
+    }
+    if (singleThreadFunctions.contains(pFirstPathCore)
         || singleThreadFunctions.contains(pSecondPathCore)) {
       return false;
-    } else {
-      return true;
     }
+
+    return true;
   }
 
   @Override

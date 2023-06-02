@@ -13,6 +13,7 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Splitter;
 import java.io.IOException;
 import java.io.InvalidObjectException;
@@ -53,11 +54,11 @@ public class LocationState
 
     @Override
     public Iterable<CFAEdge> getOutgoingEdges() {
-      return super.getIngoingEdges();
+      return super.getIncomingEdges();
     }
 
     @Override
-    public Iterable<CFAEdge> getIngoingEdges() {
+    public Iterable<CFAEdge> getIncomingEdges() {
       return super.getOutgoingEdges();
     }
   }
@@ -86,7 +87,7 @@ public class LocationState
   }
 
   @Override
-  public Iterable<CFAEdge> getIngoingEdges() {
+  public Iterable<CFAEdge> getIncomingEdges() {
     if (followFunctionCalls) {
       return enteringEdges(locationNode);
 
@@ -110,7 +111,7 @@ public class LocationState
               + pProperty
               + "\" is invalid. Could not split the property string correctly.");
     } else {
-      switch (parts.get(0).toLowerCase()) {
+      switch (Ascii.toLowerCase(parts.get(0))) {
         case "line":
           try {
             int queryLine = Integer.parseInt(parts.get(1));

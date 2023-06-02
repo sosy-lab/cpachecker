@@ -153,6 +153,7 @@ public class PrefixSelector {
     }
   }
 
+  @FunctionalInterface
   private interface Scorer {
     int DEFAULT_SCORE = Integer.MAX_VALUE;
 

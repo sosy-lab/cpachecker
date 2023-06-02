@@ -241,9 +241,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       case ReturnStatementEdge:
       case BlankEdge:
       case CallToReturnEdge:
-        {
-          break;
-        }
+        break;
 
       default:
         throw new UnrecognizedCFAEdgeException(pCfaEdge);
@@ -369,9 +367,9 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       // Sometimes these functions are used not only for linkings.
       // For example, sdlGetFirst also deletes element.
       // So, if we can't link (no left side), we skip it
-      AbstractIdentifier idIn, idFrom;
-      idIn = bInfo.constructFirstIdentifier(left, params, getCurrentFunction());
-      idFrom = bInfo.constructSecondIdentifier(left, params, getCurrentFunction());
+      AbstractIdentifier idIn = bInfo.constructFirstIdentifier(left, params, getCurrentFunction());
+      AbstractIdentifier idFrom =
+          bInfo.constructSecondIdentifier(left, params, getCurrentFunction());
       if (idIn == null || idFrom == null) {
         return;
       }
