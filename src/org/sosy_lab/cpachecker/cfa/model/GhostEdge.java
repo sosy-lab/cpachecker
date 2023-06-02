@@ -8,12 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
-import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class GhostEdge extends BlankEdge {
 
-  @Serial private static final long serialVersionUID = -2960788869518347802L;
+  private static final long serialVersionUID = -2960788869518347802L;
 
   public GhostEdge(CFANode pPredecessor, CFANode pSuccessor) {
     super("", FileLocation.DUMMY, pPredecessor, pSuccessor, "<<ghost-edge>>");
