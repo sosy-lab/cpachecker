@@ -27,7 +27,12 @@ for egg in glob.glob(
 
 from benchexec import util
 
-from benchmark.webclient import CommandLineArgumentError, WebInterface, WebClientError, handle_result
+from benchmark.webclient import (
+    CommandLineArgumentError,
+    WebInterface,
+    WebClientError,
+    handle_result,
+)
 
 __version__ = "1.0"
 
