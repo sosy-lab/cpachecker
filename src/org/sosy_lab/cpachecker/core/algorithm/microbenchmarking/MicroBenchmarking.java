@@ -1,54 +1,42 @@
 package org.sosy_lab.cpachecker.core.algorithm.microbenchmarking;
 
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Tickers;
 import org.sosy_lab.common.time.Tickers.TickerWithUnit;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 @Options(prefix = "microBenchmark")
 public class MicroBenchmarking implements Algorithm {
 
   private static class BenchmarkExecutionRun {
     long duration;
-    double firstRowSum;
-  }
-
-  private static class MatrixMultiplicationCell {
-    private int[] values;
-
-    public MatrixMultiplicationCell(int size) {
-      values = new int[size];
-    }
-
-    void consume(int value, int index) {
-      values[index] = value;
-    }
-
-    int sum() {
-      return Arrays.stream(values).reduce(0, (a, b) -> a + b);
-    }
-
   }
 
   private static class ConfigProgramExecutions {
@@ -64,6 +52,8 @@ public class MicroBenchmarking implements Algorithm {
 
   private final Algorithm child;
   private final LogManager logger;
+  private final ShutdownNotifier pShutdownNotifier;
+  private final Specification pSpecification;
 
   @Option(
     secure = true,
@@ -117,120 +107,121 @@ public class MicroBenchmarking implements Algorithm {
 
     this.child = child;
     this.logger = pLogger;
+    this.pShutdownNotifier = pShutdownNotifier;
+    this.pSpecification = pSpecification;
   }
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
+    try {
+      runMicroBenchmark();
+    } catch (IOException | InvalidConfigurationException | ParserException | InterruptedException
+        | CPAException e) {
+      logger.logfException(Level.SEVERE, e, "Failed to run micro benchmark!");
+    }
+
+    return child.run(pReachedSet);
+  }
+
+  private void runMicroBenchmark()
+      throws IOException, InvalidConfigurationException, ParserException, InterruptedException,
+      CPAException {
     logger.logf(Level.INFO, "Starting micro benchmarking");
     TickerWithUnit ticker = Tickers.getCurrentThreadCputime();
 
-    Map<String, List<ConfigProgramExecutions>> benchmarkTimes = new HashMap<>();
-    List<BenchmarkExecutionRun> runTimes = new ArrayList<>();
+    for (int i = 0; i < propertyFiles.size(); i++) { // Iterate over all user-defined analysis'
+      for (int z = 0; z < programFiles.size(); z++) {
 
+        logger.log(
+            Level.INFO,
+            String.format(
+                "Running analysis defined in '%s' on program '%s'",
+                propertyFiles.get(i),
+                programFiles.get(i)));
 
-    for (int exec = 0; exec < (numWarmupExecutions + numExecutions); exec++) {
-      int[][] firstMatrix = generateRandomMatrix();
-      int[][] secondMatrix = generateRandomMatrix();
-      int m = firstMatrix.length;
-      int n = firstMatrix[0].length;
-      int[][] C = new int[m][n];
+        ConfigurationBuilder configurationBuilder = Configuration.builder();
+        configurationBuilder.loadFromFile(propertyFiles.get(i));
+        Configuration configuration = configurationBuilder.build();
+        CFACreator cfaCreator = new CFACreator(configuration, logger, pShutdownNotifier);
+
+        CFA cfa =
+            cfaCreator.parseFileAndCreateCFA(ImmutableList.of(programFiles.get(z).toString()));
+
+        ReachedSetFactory reachedSetFactory = new ReachedSetFactory(configuration, logger);
+        CPABuilder cpaBuilder =
+            new CPABuilder(configuration, logger, pShutdownNotifier, reachedSetFactory);
+        final ConfigurableProgramAnalysis cpa =
+            cpaBuilder.buildCPAs(cfa, pSpecification, AggregatedReachedSets.empty());
+
+        CoreComponentsFactory factory =
+            new CoreComponentsFactory(
+                configuration,
+                logger,
+                pShutdownNotifier,
+                AggregatedReachedSets.empty());
+        Algorithm algorithm = factory.createAlgorithm(cpa, cfa, pSpecification);
+        ReachedSet reached =
+            reachedSetFactory.createAndInitialize(
+                cpa,
+                cfa.getMainFunction(),
+                StateSpacePartition.getDefaultPartition());
+
+        runProgramAnalysis(ticker, algorithm, reached, reachedSetFactory, cpa, cfa);
+
+      }
+    }
+  }
+
+  private List<BenchmarkExecutionRun> runProgramAnalysis(
+      TickerWithUnit ticker,
+      Algorithm algorithm,
+      ReachedSet reached,
+      ReachedSetFactory reachedSetFactory,
+      ConfigurableProgramAnalysis cpa,
+      CFA cfa)
+      throws InterruptedException {
+
+    List<BenchmarkExecutionRun> list = new ArrayList<>();
+    for (int i = 0; i < numWarmupExecutions + numExecutions; i++) {
+
+      if (i < numWarmupExecutions) {
+        logger
+            .log(Level.INFO, "Running microbenchmarking analysis as warmup iteration #" + (i + 1));
+      } else {
+        logger.log(Level.INFO, "Running microbenchmarking analysis - iteration #" + (i + 1));
+      }
+
       long startTime = ticker.read();
 
-      for (int i = 0; i < m; i++) {
-        for (int j = 0; j < n; j++) {
-          MatrixMultiplicationCell cellData = new MatrixMultiplicationCell(secondMatrix.length);
-          for (int k = 0; k < secondMatrix.length; k++) {
-            int value = firstMatrix[i][k] * secondMatrix[k][j];
-            cellData.consume(value, k);
-          }
-          C[i][j] = cellData.sum();
-        }
+      try {
+        algorithm.run(reached);
+      } catch (CPAException | InterruptedException e) {
+        logger.log(
+            Level.FINE,
+            "Error during microbenchmarking run. Ignoring result and continuuing...");
+        continue;
       }
 
       long endTime = ticker.read();
       long timeDiff = endTime - startTime;
 
-      if (exec >= numWarmupExecutions) {
-        BenchmarkExecutionRun run = new BenchmarkExecutionRun();
-        run.duration = timeDiff;
-        run.firstRowSum = sumFirstRow(C);
-        runTimes.add(run);
+      if (i < ((numExecutions + numWarmupExecutions) - 1)) { // Create new empty reached set for
+                                                             // every iteration
+        reached =
+            reachedSetFactory.createAndInitialize(
+                cpa,
+                cfa.getMainFunction(),
+                StateSpacePartition.getDefaultPartition());
       }
+
+      BenchmarkExecutionRun run = new BenchmarkExecutionRun();
+      run.duration = timeDiff;
+      list.add(run);
+      logger.logf(Level.INFO, "Finished run #%s in %s ms", (i + 1), timeDiff);
 
     }
-
-    ConfigProgramExecutions obj = new ConfigProgramExecutions();
-    obj.configFileName = "";
-    obj.programFileName = "matrix-multiplication";
-    obj.runTimes = runTimes;
-    double averageRunTime = calculateAverage(obj);
-    obj.averageRunTime = averageRunTime;
-    double variance = calculateVariance(obj, averageRunTime);
-    obj.variance = variance;
-    double standardDeviation = Math.sqrt(variance);
-    obj.standardDeviation = standardDeviation;
-    benchmarkTimes.put("matrix-multiplicatioN", List.of(obj));
-
-    double totalRunTime = runTimes.stream().map(a -> a.duration).reduce(0L, (a, b) -> a + b);
-    if (baseLineRunTime > 0 && warningThreshold > 0) {
-      double upperBound = baseLineRunTime + baseLineRunTime * (warningThreshold / 100.0);
-      double lowerBound = baseLineRunTime - baseLineRunTime * (warningThreshold / 100.0);
-
-      if (totalRunTime >= upperBound) {
-        logger.log(
-            Level.WARNING,
-            "The system you're running on completed the microbenchmark more than 10% slower than the base line system!");
-      }
-
-      if (totalRunTime <= lowerBound) {
-        logger.log(
-            Level.WARNING,
-            "The system you're running on completed the microbenchmark more than 10% faster than the base line system!");
-      }
-    }
-
-    if (this.outputFile != null) {
-      try (Writer writer = IO.openOutputFile(this.outputFile, Charset.defaultCharset())) {
-        benchmarkTimes.entrySet().forEach(entry -> entry.getValue().forEach(l -> {
-          try {
-            writer.append("Config file: ");
-            writer.append(l.configFileName + "\n");
-            writer.append("Program file: ");
-            writer.append(l.programFileName + "\n");
-
-            for (BenchmarkExecutionRun run : l.runTimes) {
-              writer.append(String.valueOf(run.duration));
-              writer.append(';');
-            }
-            writer.append("\n");
-            writer.append("Calculated sum of first matrix rows:");
-            for (BenchmarkExecutionRun run : l.runTimes) {
-              writer.append(String.valueOf(run.firstRowSum));
-              writer.append(';');
-            }
-            writer.append("\n");
-
-            writer.append("Average run time: ");
-            writer.append(String.valueOf(l.averageRunTime) + "\n");
-
-            writer.append("Variance: ");
-            writer.append(String.valueOf(l.variance) + "\n");
-
-            writer.append("Standard deviation: ");
-            writer.append(String.valueOf(l.standardDeviation) + "\n");
-
-            writer.append("\n\n");
-          } catch (IOException e) {
-            logger.logfUserException(Level.WARNING, e, "Failed to write run time data to file.");
-          }
-        }));
-      } catch (IOException ex) {
-        logger.logUserException(Level.WARNING, ex, "Could not write CFA to dot file");
-      }
-    }
-
-    return child.run(pReachedSet);
+    return list;
   }
 
   private int[][] generateRandomMatrix() {

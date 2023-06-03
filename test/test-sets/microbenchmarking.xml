@@ -13,6 +13,6 @@
   <rundefinition>
     <option name="-config">config/microbenchmarking.properties</option>
     <option name="-setprop">microBenchmark.outputFile=output.txt</option>
-    <option name="-setprop">microBenchmark.programFiles=test/programs/benchmarks/openssl/s3_srvr.blast.03.i.cil.c,test/programs/benchmarks/openssl/s3_srvr.blast.03.i.cil.c</option>
+    <option name="-setprop">microBenchmark.programFiles=test/programs/benchmarks/openssl/s3_srvr.blast.03.i.cil.c</option>
   </rundefinition>
 </benchmark>
