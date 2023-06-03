@@ -1158,7 +1158,9 @@ class WebInterface:
                 if response.status_code == 401:
                     message = "Permission denied. "
                     if not self._connection.auth and not user_pwd:
-                        message += "Please specify the user information using --cloudUser."
+                        message += (
+                            "Please specify the user information using --cloudUser."
+                        )
                     else:
                         message += "Please check the given username and password."
 
