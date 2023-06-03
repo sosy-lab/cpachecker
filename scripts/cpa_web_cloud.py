@@ -27,7 +27,7 @@ for egg in glob.glob(
 
 from benchexec import util
 
-from benchmark.webclient import WebInterface, WebClientError, handle_result
+from benchmark.webclient import CommandLineArgumentError, WebInterface, WebClientError, handle_result
 
 __version__ = "1.0"
 
@@ -291,6 +291,8 @@ def _execute():
         logging.warning(e.reason)
     except WebClientError as e:
         logging.warning(str(e))
+    except CommandLineArgumentError as e:
+        logging.error(str(e))
 
     finally:
         webclient.shutdown()
