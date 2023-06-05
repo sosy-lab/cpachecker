@@ -160,16 +160,16 @@ in various configurations on every commit to `trunk` and checks for regression.
 All major projects and configurations within CPAchecker should be part of this test suite.
 Please refer to [`Test.md`](Test.md) for more information.
 
+
 Refaster Setup
 --------------
-(Note that the current version of Refaster has trouble with Java 17
- and is not expected to work with our full rule set.)
 
 [Refaster](https://errorprone.info/docs/refaster) is a way to extend Google Error Prone
 with custom rules, and we have a [collection of such rules](https://gitlab.com/sosy-lab/software/refaster).
 To apply them to CPAchecker, the following setup is required:
 - Checkout rule repository with `git clone https://gitlab.com/sosy-lab/software/refaster.git` to some directory.
-- Add the following line to `build.properties` in the CPAchecker project directory:
+- Add the following line to `build.properties` in the CPAchecker project directory
+  (create the file if you do not have it already):
   ```
   refaster.rule.file=/PATH_TO_YOUR_REFASTER_RULES_CHECKOUT/rule.refaster
   ```
