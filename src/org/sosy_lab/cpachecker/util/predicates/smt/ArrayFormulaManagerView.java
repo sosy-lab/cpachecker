@@ -2,7 +2,7 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -18,7 +18,7 @@ import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
 /** Implements some methods for easier interaction with the formula manager for array formulas. */
 public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFormulaManager {
 
-  private ArrayFormulaManager manager;
+  private final ArrayFormulaManager manager;
 
   /**
    * Creates the new formula manager view for arrays.
@@ -56,8 +56,7 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
 
     @SuppressWarnings("unchecked")
     final ArrayFormula<TI, TE> declaredArray = (ArrayFormula<TI, TE>) unwrap(pArray);
-    final ArrayFormulaType<TI, TE> inputArrayType =
-        new ArrayFormulaType<>(getIndexType(pArray), getElementType(pArray));
+    final ArrayFormulaType<TI, TE> inputArrayType = FormulaType.getArrayType(getIndexType(pArray), getElementType(pArray));
 
     @SuppressWarnings("unchecked")
     final ArrayFormula<TI, TE> resultFormula =
@@ -79,8 +78,7 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
       ArrayFormula<TI, TE> makeArray(
           final String pName, final FTI pIndexType, final FTE pElementType) {
 
-    final ArrayFormulaType<TI, TE> inputArrayType =
-        new ArrayFormulaType<>(pIndexType, pElementType);
+    final ArrayFormulaType<TI, TE> inputArrayType = FormulaType.getArrayType(pIndexType, pElementType);
 
     @SuppressWarnings("unchecked")
     final FTI unwrappedIndexType = (FTI) unwrapType(pIndexType);
