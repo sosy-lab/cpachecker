@@ -40,6 +40,7 @@ import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.eclipse.cdt.core.dom.ast.IASTStatement;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.cdt.core.parser.IToken;
+import org.eclipse.cdt.internal.core.dom.parser.ASTNodeSearch;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.CCfaEdgeStatement.GlobalDeclaration;
@@ -126,9 +127,19 @@ class AstExporter extends ASTGenericVisitor {
         }
       }
 
-      exportSyntax(
-          pNode.getTrailingSyntax(),
-          pNode.getFileLocation().getNodeOffset() + pNode.getFileLocation().getNodeLength());
+      if (pNode.getSyntax() == null) {
+        // TODO investigate these problems further
+        // do not export trailing syntax because that seems to result in an exception
+        return PROCESS_CONTINUE;
+      }
+
+      final IASTNode rightSibling = (new ASTNodeSearch(pNode)).findRightSibling();
+      if (rightSibling == null) {
+        // we only export the trailing syntax for the last sibling
+        exportSyntax(
+            pNode.getTrailingSyntax(),
+            pNode.getFileLocation().getNodeOffset() + pNode.getFileLocation().getNodeLength());
+      }
       return PROCESS_CONTINUE;
 
     } catch (final IOException | ExpansionOverlapsBoundaryException pE) {
