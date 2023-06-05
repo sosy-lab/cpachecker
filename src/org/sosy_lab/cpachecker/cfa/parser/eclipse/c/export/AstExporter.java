@@ -133,7 +133,7 @@ class AstExporter extends ASTGenericVisitor {
         return PROCESS_CONTINUE;
       }
 
-      final IASTNode rightSibling = (new ASTNodeSearch(pNode)).findRightSibling();
+      final IASTNode rightSibling = new ASTNodeSearch(pNode).findRightSibling();
       if (rightSibling == null) {
         // we only export the trailing syntax for the last sibling
         exportSyntax(
