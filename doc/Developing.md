@@ -203,6 +203,17 @@ Our JS code is postprocessed with [webpack](https://webpack.js.org/). Webpack bu
 During development, we also have a small development server that can be started via `npm run start`. This server automatically opens an example report file in the browser and enables live updates for any changes to the JS code. Since a fully rendered HTML file is necessary for this server, the example file was created by CPAchecker and can be found under `development_data/index.html`. Therefore, changes to the `report.html` file will not be updated automatically. It is important to keep this file up to date by hand after any changes to the `report.html` file.
 
 
+Offline Development
+-------------------
+
+Dependencies for CPAchecker are downloaded from an Ivy repository
+hosted at sosy-lab.org during build.
+It is possible to override the path to the Ivy repository
+and also to use a fully local copy of the Ivy repository.
+Instructions for doing so can be found in our cross-project
+[wiki](https://gitlab.com/sosy-lab/doc/-/wikis/Using-a-Different-Ivy-Repository-for-Development).
+
+
 Releasing a New Version
 -----------------------
 
