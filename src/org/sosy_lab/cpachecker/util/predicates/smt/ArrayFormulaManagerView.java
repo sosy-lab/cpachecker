@@ -56,7 +56,8 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
 
     @SuppressWarnings("unchecked")
     final ArrayFormula<TI, TE> declaredArray = (ArrayFormula<TI, TE>) unwrap(pArray);
-    final ArrayFormulaType<TI, TE> inputArrayType = FormulaType.getArrayType(getIndexType(pArray), getElementType(pArray));
+    final ArrayFormulaType<TI, TE> inputArrayType =
+        FormulaType.getArrayType(getIndexType(pArray), getElementType(pArray));
 
     @SuppressWarnings("unchecked")
     final ArrayFormula<TI, TE> resultFormula =
@@ -78,7 +79,8 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
       ArrayFormula<TI, TE> makeArray(
           final String pName, final FTI pIndexType, final FTE pElementType) {
 
-    final ArrayFormulaType<TI, TE> inputArrayType = FormulaType.getArrayType(pIndexType, pElementType);
+    final ArrayFormulaType<TI, TE> inputArrayType =
+        FormulaType.getArrayType(pIndexType, pElementType);
 
     @SuppressWarnings("unchecked")
     final FTI unwrappedIndexType = (FTI) unwrapType(pIndexType);
