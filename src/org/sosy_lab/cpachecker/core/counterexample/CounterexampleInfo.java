@@ -52,6 +52,8 @@ public class CounterexampleInfo extends AbstractAppender {
   private final CFAPathWithAssumptions assignments;
   private final CFAPathWithAdditionalInfo additionalInfo;
 
+  public boolean fullReuse = false;
+
   // list with additional information about the counterexample
   private final Collection<Pair<Object, PathTemplate>> furtherInfo;
 

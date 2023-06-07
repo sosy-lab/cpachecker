@@ -1,0 +1,117 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
+<benchmark tool="cpachecker" displayName="CPA/CoVeriTest" timelimit="15 min" memlimit="10 GB" cpuCores="4">
+	<resultfiles>**/test-suite</resultfiles>
+	<option name="-benchmark" />
+	<option name="-heap">10000M</option>
+	<option name="-setprop">log.consoleLevel=SEVERE</option>
+	<rundefinition name="Test-Comp23_coverage-branches">
+		<option name="-testcomp23" />
+		<propertyfile>../../test/programs/sv-benchmarks/c/properties/coverage-branches.prp</propertyfile>
+	</rundefinition>
+	<rundefinition name="Test-Comp23_coverage-branches-Reuse">
+		<option name="-testcomp23Reuse" />
+		<propertyfile>../../test/programs/sv-benchmarks/c/properties/coverage-branches.prp</propertyfile>
+	</rundefinition>
+	<!-- 
+  <rundefinition name="Test-Comp23_coverage-error-call">
+    <propertyfile>../../test/programs/sv-benchmarks/c/properties/coverage-error-call.prp</propertyfile>
+  </rundefinition>
+
+  <rundefinition name="Test-Comp23_coverage-error-call-Reuse">
+    <option name="-testcomp23Reuse"/>
+      <propertyfile>../../test/programs/sv-benchmarks/c/properties/coverage-error-call.prp</propertyfile>
+  </rundefinition>
+	-->
+	
+	
+	<!-- 
+  <tasks name="ReachSafety-Arrays">
+    <includesfile>../../test/programs/sv-benchmarks/c/ReachSafety-Arrays.set</includesfile>
+  </tasks>
+
+  	<tasks name="ReachSafety-BitVectors">
+		<includesfile>../../test/programs/sv-benchmarks/c/ReachSafety-BitVectors.set</includesfile>
+	</tasks>
+	-->
+	<tasks name="ReachSafety-ControlFlow">
+		<include>../../test/programs/sv-benchmarks/c/ntdrivers-simplified/*.yml</include>
+		<include>../../test/programs/sv-benchmarks/c/openssl-simplified/*.yml</include>
+		<include>../../test/programs/sv-benchmarks/c/locks/*.yml</include>
+		<!-- 
+		<include>../../test/programs/sv-benchmarks/c/ntdrivers/*.yml</include>
+		-->
+	</tasks>
+	<!-- 
+  <tasks name="ReachSafety-ECA">
+    <includesfile>../../test/programs/sv-benchmarks/c/ReachSafety-ECA.set</includesfile>
+    <excludesfile>../../test/programs/sv-benchmarks/c/excludes/ReachSafety-ECA-excludes.set</excludesfile>
+  </tasks>
+ 
+  <tasks name="ReachSafety-Floats">
+    <includesfile>../../test/programs/sv-benchmarks/c/ReachSafety-Floats.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-Heap">
+    <includesfile>../../test/programs/sv-benchmarks/c/ReachSafety-Heap.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-Loops">
+    <includesfile>../../test/programs/sv-benchmarks/c/ReachSafety-Loops.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-ProductLines">
+    <includesfile>../../test/programs/sv-benchmarks/c/ReachSafety-ProductLines.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-Recursive">
+    <includesfile>../../test/programs/sv-benchmarks/c/ReachSafety-Recursive.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-Sequentialized">
+    <includesfile>../../test/programs/sv-benchmarks/c/ReachSafety-Sequentialized.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-XCSP">
+    <includesfile>../../test/programs/sv-benchmarks/c/ReachSafety-XCSP.set</includesfile>
+  </tasks>
+  <tasks name="ReachSafety-Combinations">
+    <includesfile>../../test/programs/sv-benchmarks/c/ReachSafety-Combinations.set</includesfile>
+  </tasks>
+  
+  <tasks name="ReachSafety-Hardware">
+    <includesfile>../../test/programs/sv-benchmarks/c/ReachSafety-Hardware.set</includesfile>
+  </tasks>
+
+  <tasks name="SoftwareSystems-BusyBox-MemSafety">
+    <includesfile>../../test/programs/sv-benchmarks/c/SoftwareSystems-BusyBox-MemSafety.set</includesfile>
+  </tasks>
+
+  <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">
+    <includesfile>../../test/programs/sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <excludesfile>../../test/programs/sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64Large-ReachSafety.set</excludesfile>
+  </tasks>
+
+  <tasks name="SoftwareSystems-SQLite-MemSafety">
+    <includesfile>../../test/programs/sv-benchmarks/c/SoftwareSystems-SQLite-MemSafety.set</includesfile>
+  </tasks>
+
+  <tasks name="Termination-MainHeap">
+    <includesfile>../../test/programs/sv-benchmarks/c/Termination-MainHeap.set</includesfile>
+  </tasks>
+  -->
+	<!--
+    Search the CPAchecker output for some values.
+    The <column> tag has the pattern as content,
+    and the script will try to extract a numerical value from matching lines.
+    "numberOfDigits" gives the number of digits after the decimal separator,
+    "title" the name of the column in the table.
+    Both attributes are optional.
+    These tags are not necessary here,
+    statistics can still be extracted after the benchmark run.
+     -->
+	<columns>
+		<column title="coverage">Test target coverage</column>
+		<column title="solvertime">Total time for SMT solver</column>
+		<column title="VAReuse">VAReuse</column>
+		<column title="countNondetintVars">Amount of nondetint vars</column>
+		<column title="countReuses">Number of reuses</column>
+		<column title="countReusedVAs">Number of reused variable assgiments</column>
+		<column title="countFailedReuses">Number of failed reuses</column>
+		<column title="countFullReuses">Number of full reuses</column>
+	</columns>
+</benchmark>

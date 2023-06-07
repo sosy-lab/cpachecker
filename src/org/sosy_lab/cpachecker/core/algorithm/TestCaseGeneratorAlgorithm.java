@@ -214,9 +214,10 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                       ARGUtils.tryGetOrCreateCounterexampleInformation(
                               argState, cpa, assumptionToEdgeAllocator)
                           .orElseThrow();
-                  exporter.writeTestCaseFilesAndMutations(
-                      cexInfo, Optional.ofNullable(specProp), numMutations);
-
+                  if (!cexInfo.fullReuse) {
+                    exporter.writeTestCaseFilesAndMutations(
+                        cexInfo, Optional.ofNullable(specProp), numMutations);
+                  }
                   logger.log(Level.FINE, "Removing test target: " + targetEdge);
                   testTargets.remove(targetEdge);
 

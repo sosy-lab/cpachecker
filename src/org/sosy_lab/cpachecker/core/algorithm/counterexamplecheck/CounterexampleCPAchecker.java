@@ -82,7 +82,8 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
           "cpa.predicate.memoryAllocationsAlwaysSucceed",
           "testcase.targets.type",
           "testcase.targets.optimization.strategy",
-          "testcase.generate.parallel");
+          "testcase.generate.parallel",
+          "cpa.predicate.withReuse");
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;

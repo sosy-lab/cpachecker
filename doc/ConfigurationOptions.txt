@@ -1143,6 +1143,9 @@ counterexample.export.report = "Counterexample.%d.html"
 # export counterexample as source file
 counterexample.export.source = "Counterexample.%d.c"
 
+# Reuse the last __VERIFIER_nondet_ variable assignments of last iteration
+counterexample.export.withReuse = false
+
 # export counterexample witness as Dot/Graphviz visualization
 counterexample.export.witnessGraph = "Counterexample.%d.witness.dot"
 
@@ -2088,9 +2091,6 @@ cpa.predicate.abstraction.simplify = false
 # What to use for storing abstractions
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, FORMULA]
-
-# Export abstraction formulas as (way more readable) expressions.
-cpa.predicate.abstractions.asExpressions = false
 
 # Export one abstraction formula for each abstraction state into a file?
 cpa.predicate.abstractions.export = true

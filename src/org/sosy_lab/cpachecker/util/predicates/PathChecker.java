@@ -11,18 +11,22 @@ package org.sosy_lab.cpachecker.util.predicates;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -38,9 +42,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
@@ -56,6 +63,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -64,7 +72,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 /** This class can check feasibility of a simple path using an SMT solver. */
 @Options(prefix = "counterexample.export", deprecatedPrefix = "cpa.predicate")
-public class PathChecker {
+public class PathChecker implements Statistics {
 
   @Option(
       secure = true,
@@ -102,10 +110,25 @@ public class PathChecker {
               + " imprecise or potentially wrong program paths will be exported as counterexample.")
   private boolean alwaysUseImpreciseCounterexamples = false;
 
+  @Option(
+      secure = true,
+      description = "Reuse the last __VERIFIER_nondet_ variable assignments of last iteration")
+  private boolean withReuse = false;
+
+
+
   private final LogManager logger;
   private final PathFormulaManager pmgr;
   private final Solver solver;
   private final AssignmentToPathAllocator assignmentToPathAllocator;
+  private List<ValueAssignment> inputModelCache = new ArrayList<ValueAssignment>();
+  private List<ValueAssignment> inputModelCacheForReuse = new ArrayList<ValueAssignment>();
+  private int countNondetVars = 0;
+  private int countReuses = 0;
+  private int countReusedVAs = 0;
+  private int countFailedReuses = 0;
+  private int countFullReuses = 0;
+  private int pfSize = 0;
 
   public PathChecker(
       Configuration pConfig,
@@ -176,7 +199,12 @@ public class PathChecker {
       precisePath = counterexample.getPrecisePath();
     }
 
-    return createCounterexample(precisePath, counterexample);
+
+    if (withReuse) {
+      return createCounterexampleWithReuse(precisePath, counterexample);
+    } else {
+      return createCounterexample(precisePath, counterexample);
+    }
   }
 
   /** Determine whether the given path is the only possible path to its last state in the ARG. */
@@ -194,6 +222,94 @@ public class PathChecker {
     }
 
     return false;
+  }
+
+  private CounterexampleInfo createCounterexampleWithReuse(
+      final ARGPath precisePath, final CounterexampleTraceInfo pInfo) throws InterruptedException {
+
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+
+      Pair<PathFormula, List<SSAMap>> replayedPath = createPrecisePathFormula(precisePath);
+      List<SSAMap> ssaMaps = replayedPath.getSecond();
+      BooleanFormula pathFormula = replayedPath.getFirstNotNull().getFormula();
+      LinkedHashSet<BooleanFormula> previousVariableAssignments;
+      prover.push(pathFormula);
+      boolean fullReuse = true;
+      if (pfSize < pathFormula.toString().length()) {
+        // erst alle assigments pushen oder immer nur eins? // vlt alle, wenn unsat letzte raus ?
+        // aber
+        // dass probiert dann wieder
+        for (ValueAssignment assignment : inputModelCacheForReuse) {
+          countReusedVAs += 1;
+          prover.push(
+              assignment
+                  .getAssignmentAsFormula()); // mehr als 1 va pushen vlt alles was sich in letztem
+        }
+
+        if (prover.isUnsat()) {
+          fullReuse = false;
+          countFailedReuses += 1;
+          for (ValueAssignment assignment : inputModelCacheForReuse) {
+            prover.pop();
+            countReusedVAs -= 1;
+          }
+          if (prover.isUnsat()) { // TODO kann das bei testcomp vlt weg?
+            logger.log(
+                Level.WARNING,
+                "Inconsistent replayed error path! No variable values will be available.");
+            return createImpreciseCounterexample(precisePath, pInfo);
+          }
+        } else {
+          countReuses += 1;
+        }
+      } else {
+        if (prover.isUnsat()) { // TODO kann das bei testcomp vlt weg?
+          logger.log(
+              Level.WARNING,
+              "Inconsistent replayed error path! No variable values will be available.");
+          return createImpreciseCounterexample(precisePath, pInfo);
+        }
+      }
+
+      ImmutableList<ValueAssignment> model = getModel(prover);
+      List<ValueAssignment> modelHelper = new ArrayList<>();
+      pfSize = pathFormula.toString().length();
+      inputModelCacheForReuse.clear();
+      for (ValueAssignment va : model) {
+        if (va.getName().startsWith("__VERIFIER_nondet_")) {
+          if (inputModelCache.contains(va)) {
+            inputModelCacheForReuse.add(va);
+          } else {
+            fullReuse = false;
+          }
+        }
+        modelHelper.add(va);
+      }
+
+      inputModelCache.clear();
+      countNondetVars = modelHelper.size();
+      inputModelCache.addAll(modelHelper);
+
+      CFAPathWithAssumptions pathWithAssignments =
+          assignmentToPathAllocator.allocateAssignmentsToPath(precisePath, model, ssaMaps);
+
+      CounterexampleInfo cex = CounterexampleInfo.feasiblePrecise(precisePath, pathWithAssignments);
+      addCounterexampleFormula(ImmutableList.of(pathFormula), cex);
+      addCounterexampleModel(model, cex);
+
+      if (fullReuse) {
+        cex.fullReuse = true;
+        countFullReuses += 1;
+      }
+
+      return cex;
+
+    } catch (SolverException | CPATransferException e) {
+      // path is now suddenly a problem
+      logger.logUserException(
+          Level.WARNING, e, "Could not replay error path! No variable values will be available.");
+      return createImpreciseCounterexample(precisePath, pInfo);
+    }
   }
 
   /**
@@ -373,5 +489,32 @@ public class PathChecker {
       logger.logDebugException(e);
       return ImmutableList.of();
     }
+  }
+
+
+  @Override
+  public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+
+    StatisticsWriter w0 = writingStatisticsTo(pOut);
+    w0.put("VAReuse ", withReuse);
+    w0.put("Number of predicate refinements", countNondetVars);
+
+    w0.put("Number of nondetint vars ", countNondetVars);
+
+    w0.put("Number of reuses " , countReuses);
+
+    w0.put("Number of reused variable assgiments ", countReusedVAs);
+
+    w0.put("Number of failed reuses ", countFailedReuses);
+
+    w0.put("Number of full reuses " , countFullReuses);
+
+
+
+  }
+
+  @Override
+  public @Nullable String getName() {
+    return "PathChecker: Reuse Variable Assignments of Nondet Variables";
   }
 }
