@@ -324,10 +324,6 @@ public class CPAchecker {
       stats.creationTime.start();
 
       cfa = parse(programDenotation, stats);
-      if (useReverseCFA) {
-        logger.log(Level.INFO, "Using Reverse CFA.");
-        cfa = CFAReverser.reverseCfa(config, logger, cfa);
-      }
 
       shutdownNotifier.shutdownIfNecessary();
 
@@ -336,6 +332,10 @@ public class CPAchecker {
       try {
         specification =
             Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
+        if (useReverseCFA) {
+          logger.log(Level.INFO, "Using Reverse CFA.");
+          cfa = CFAReverser.reverseCfa(config, specification, logger, cfa, shutdownNotifier);
+        }
         cpa = factory.createCPA(cfa, specification);
       } finally {
         stats.cpaCreationTime.stop();
