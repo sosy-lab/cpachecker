@@ -1918,6 +1918,9 @@ cpa.loopbound.startAtBound = 0
 # enable stack-based tracking of loops
 cpa.loopbound.trackStack = false
 
+# Analyse the CFA backwards
+cpa.loopbound.traverseBackwards = false
+
 # Where to perform abstraction
 cpa.lpi.abstractionLocations = LOOPHEAD
   enum:     [ALL, LOOPHEAD, MERGE]
