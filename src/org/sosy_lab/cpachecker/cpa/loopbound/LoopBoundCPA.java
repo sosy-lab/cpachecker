@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -58,6 +59,9 @@ public class LoopBoundCPA extends AbstractCPA
               + " feature.")
   private int cyclicStopModulus = -1;
 
+  @Option(secure = true, description = "Analyse the CFA backwards")
+  private boolean traverseBackwards = false;
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(LoopBoundCPA.class);
   }
@@ -66,12 +70,18 @@ public class LoopBoundCPA extends AbstractCPA
 
   private final LoopBoundPrecisionAdjustment precisionAdjustment;
 
+  private final TransferRelation transferRelation;
+
   LoopBoundCPA(Configuration pConfig, CFA pCFA, LogManager pLogger)
       throws InvalidConfigurationException, CPAException {
-    super("sep", "sep", new LoopBoundTransferRelation(pConfig, pCFA));
+    super("sep", "sep", null);
     pConfig.inject(this);
     loopStructure = pCFA.getLoopStructure().orElseThrow();
     precisionAdjustment = new LoopBoundPrecisionAdjustment(pConfig, pLogger);
+    transferRelation =
+        traverseBackwards
+            ? new LoopBoundTransferRelationBackwards(pConfig, pCFA)
+            : new LoopBoundTransferRelation(pConfig, pCFA);
   }
 
   @Override
@@ -104,6 +114,11 @@ public class LoopBoundCPA extends AbstractCPA
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
+  }
+
+  @Override
+  public TransferRelation getTransferRelation() {
+    return transferRelation;
   }
 
   @Override

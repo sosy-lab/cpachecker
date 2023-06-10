@@ -122,7 +122,7 @@ public class LoopBoundTransferRelationBackwards extends SingleEdgeTransferRelati
     Loop newLoop = null;
     if (precision.shouldTrackStack()) {
       // Push a new loop onto the stack if we enter it
-      // Traversing backwards, we enter from the exit edge of the loop
+      // Traversing backwards, so we enter from the exit edge of the loop
       newLoop = loopExitEdges.get(pCfaEdge);
       if (newLoop != null) {
         state = state.enter(newLoop);
