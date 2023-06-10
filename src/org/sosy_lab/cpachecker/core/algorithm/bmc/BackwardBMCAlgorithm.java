@@ -9,11 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class BackwardBMCAlgorithm implements Algorithm {
@@ -25,9 +23,7 @@ public class BackwardBMCAlgorithm implements Algorithm {
   public BackwardBMCAlgorithm(
       Algorithm pAlgorithm,
       ConfigurableProgramAnalysis pCPA,
-      LogManager pLogger,
-      CFA pCFA,
-      final Specification specification) {
+      LogManager pLogger) {
 
     logger = pLogger;
     algorithm = pAlgorithm;
