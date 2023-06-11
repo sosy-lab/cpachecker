@@ -212,7 +212,7 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     // Prepare generation of initial positive samples using predicate-based sampling
     Solver forwardSolver;
     Map<CFANode, ImmutableSet<BooleanFormula>> formulasForPositiveSamples;
-    Multimap<Loop, Formula> relevantVariablesPositive = ImmutableListMultimap.of();
+    Multimap<Loop, Formula> relevantVariablesPositive;
     // Build the reachedSet for the forward ARG.
     // This is always necessary to collect the relevant variables.
     try {
@@ -234,23 +234,28 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     // Collect formulas and relevant variables for each loop
     ImmutableMap.Builder<CFANode, ImmutableSet<BooleanFormula>> positiveFormulaBuilder =
         ImmutableMap.builder();
+    ImmutableListMultimap.Builder<Loop, Formula> relevantVariablePosBuilder =
+        ImmutableListMultimap.builder();
     for (Loop loop : loops) {
-      Set<BooleanFormula> formulasForLoop = new HashSet<>();
-      for (CFANode loopHead : loop.getLoopHeads()) {
+      ImmutableSet.Builder<Formula> relevantVariableBuilder = ImmutableSet.builder();
+      for (CFANode node : loop.getLoopNodes()) {
         ImmutableSet<BooleanFormula> formulas =
-            collectFormulasFromReachedSet(forwardReachedSet, loopHead, bfmgr);
-        positiveFormulaBuilder.put(loopHead, formulas);
-        formulasForLoop.addAll(formulas);
+            collectFormulasFromReachedSet(forwardReachedSet, node, bfmgr);
+        relevantVariableBuilder.addAll(
+            getRelevantVariablesForFormulas(forwardSolver, node, formulas));
+        if (loop.getLoopHeads().contains(node)) {
+          positiveFormulaBuilder.put(node, formulas);
+        }
       }
-
-      relevantVariablesPositive =
-          getRelevantVariablesForFormulas(forwardSolver, loop, formulasForLoop);
-      if (relevantVariablesPositive.isEmpty()) {
-        // No relevant variables means nothing to do or a bug
-        return AlgorithmStatus.NO_PROPERTY_CHECKED;
-      }
+      relevantVariablePosBuilder.putAll(loop, relevantVariableBuilder.build());
     }
     formulasForPositiveSamples = positiveFormulaBuilder.buildOrThrow();
+    relevantVariablesPositive = relevantVariablePosBuilder.build();
+    if (relevantVariablesPositive.isEmpty()) {
+      // No relevant variables means nothing to do or a bug
+      // TODO: What do you mean "or a bug"?
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    }
 
     // Prepare generation of initial negative samples using predicate-based sampling
     Solver backwardSolver = null;
@@ -276,26 +281,31 @@ public class SamplingAlgorithm extends NestingAlgorithm {
       // Collect formulas and relevant variables for each loop
       ImmutableMap.Builder<CFANode, ImmutableSet<BooleanFormula>> negativeFormulaBuilder =
           ImmutableMap.builder();
+      ImmutableListMultimap.Builder<Loop, Formula> relevantVariableNegBuilder =
+          ImmutableListMultimap.builder();
       for (Loop loop : loops) {
-        Set<BooleanFormula> formulasForLoop = new HashSet<>();
-        for (CFANode loopHead : loop.getLoopHeads()) {
+        ImmutableSet.Builder<Formula> relevantVariableBuilder = ImmutableSet.builder();
+        for (CFANode node : loop.getLoopNodes()) {
           ImmutableSet<BooleanFormula> formulas =
-              collectFormulasFromReachedSet(backwardReachedSet, loopHead, backwardBfmgr);
-          negativeFormulaBuilder.put(loopHead, formulas);
-          formulasForLoop.addAll(formulas);
+              collectFormulasFromReachedSet(backwardReachedSet, node, backwardBfmgr);
+          relevantVariableBuilder.addAll(
+              getRelevantVariablesForFormulas(backwardSolver, node, formulas));
+          if (loop.getLoopHeads().contains(node)) {
+            negativeFormulaBuilder.put(node, formulas);
+          }
         }
-
         // The relevant variables are the same for positive and for negative samples, but we need to
         // avoid using formulas from other solver contexts and SSA indices are different between
         // forward and backward analysis.
-        relevantVariablesNegative =
-            getRelevantVariablesForFormulas(backwardSolver, loop, formulasForLoop);
-        if (relevantVariablesNegative.isEmpty()) {
-          // No relevant variables means nothing to do or a bug
-          return AlgorithmStatus.NO_PROPERTY_CHECKED;
-        }
+        relevantVariableNegBuilder.putAll(loop, relevantVariableBuilder.build());
       }
       formulasForNegativeSamples = negativeFormulaBuilder.buildOrThrow();
+      relevantVariablesNegative = relevantVariableNegBuilder.build();
+      if (relevantVariablesNegative.isEmpty()) {
+        // No relevant variables means nothing to do or a bug
+        // TODO: What do you mean "or a bug"?
+        return AlgorithmStatus.NO_PROPERTY_CHECKED;
+      }
     }
 
     // Continuously collect samples until shutdown is requested
@@ -538,28 +548,22 @@ public class SamplingAlgorithm extends NestingAlgorithm {
     return samples;
   }
 
-  private Multimap<Loop, Formula> getRelevantVariablesForFormulas(
-      Solver pSolver, Loop pLoop, Set<BooleanFormula> pFormulas)
+  private ImmutableSet<Formula> getRelevantVariablesForFormulas(
+      Solver pSolver, CFANode pLocation, Set<BooleanFormula> pFormulas)
       throws InterruptedException, SolverException {
-    BooleanFormulaManagerView bfmgr = pSolver.getFormulaManager().getBooleanFormulaManager();
-    ImmutableListMultimap.Builder<Loop, Formula> relevantVariableBuilder =
-        ImmutableListMultimap.builder();
+    ImmutableSet.Builder<Formula> relevantVariableBuilder = ImmutableSet.builder();
 
     try (ProverEnvironment prover = pSolver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      // TODO: When using disjunction this just gives the relevant variables of one path, not
-      //       necessarily all of them -> Should handle all formulas separately
-      prover.push(bfmgr.or(pFormulas));
-      if (prover.isUnsat()) {
-        return ImmutableListMultimap.of();
-      }
-      List<ValueAssignment> assignments = prover.getModelAssignments();
-      // We are only interested in getting the relevant variables here, so the precise location
-      // does not matter as long as it is part of the loop (and also not in another function,
-      // but this is guaranteed by LoopStructure.Loop).
-      CFANode location = pLoop.getLoopNodes().first();
-      for (ValueAssignment relevantVariableAssignment :
-          SampleUtils.getRelevantAssignments(assignments, location)) {
-        relevantVariableBuilder.put(pLoop, relevantVariableAssignment.getKey());
+      for (BooleanFormula formula : pFormulas) {
+        prover.push(formula);
+        if (!prover.isUnsat()) {
+          List<ValueAssignment> assignments = prover.getModelAssignments();
+          for (ValueAssignment relevantVariableAssignment :
+              SampleUtils.getRelevantAssignments(assignments, pLocation)) {
+            relevantVariableBuilder.add(relevantVariableAssignment.getKey());
+          }
+        }
+        prover.pop();
       }
     }
     return relevantVariableBuilder.build();
