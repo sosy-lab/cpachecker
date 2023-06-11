@@ -114,8 +114,7 @@ public class ExtendedWitnessFactory extends WitnessFactory {
       boolean pGoesToSink,
       boolean pIsDefaultCase) {
     TransitionCondition result = pTransitionCondition;
-    if (pEdge instanceof CDeclarationEdge) {
-      CDeclarationEdge declEdge = (CDeclarationEdge) pEdge;
+    if (pEdge instanceof CDeclarationEdge declEdge) {
       CDeclaration decl = declEdge.getDeclaration();
       if (decl instanceof CVariableDeclaration || decl instanceof CFunctionDeclaration) {
         result = result.putAndCopy(KeyDef.DECL, "true");

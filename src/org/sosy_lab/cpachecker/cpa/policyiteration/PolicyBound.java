@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -41,10 +40,10 @@ public final class PolicyBound {
 
   private int hashCache = 0;
 
+  private record SerializedPolicy(
+      PolicyAbstractedState from, BooleanFormula policy, PolicyAbstractedState to) {}
   // TODO: static fields may fall dreadfully if multiple LPI CPAs are running in parallel.
-  private static final Map<
-          Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState>, Integer>
-      serializationMap = new HashMap<>();
+  private static final Map<SerializedPolicy, Integer> serializationMap = new HashMap<>();
   private static final UniqueIdGenerator pathCounter = new UniqueIdGenerator();
 
   private PolicyBound(
@@ -86,8 +85,7 @@ public final class PolicyBound {
    * <p>Based on triple {@code from, to, policy}.
    */
   int serializePolicy(PolicyAbstractedState toState) {
-    Triple<PolicyAbstractedState, BooleanFormula, PolicyAbstractedState> p =
-        Triple.of(predecessor, formula.getFormula(), toState);
+    SerializedPolicy p = new SerializedPolicy(predecessor, formula.getFormula(), toState);
     Integer serialization = serializationMap.get(p);
     if (serialization == null) {
       serialization = pathCounter.getFreshId();

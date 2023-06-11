@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.block;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -25,6 +26,7 @@ class BlockCPAFactory extends AbstractCPAFactory {
     analysisDirection = pAnalysisDirection;
   }
 
+  @CanIgnoreReturnValue
   @Override
   public <T> BlockCPAFactory set(T pObject, Class<T> pClass) {
     if (CFA.class.isAssignableFrom(pClass)) {

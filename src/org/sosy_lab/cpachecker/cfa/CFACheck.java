@@ -86,15 +86,23 @@ public class CFACheck {
         // The actual checks
         isConsistent(node, machineModel);
         checkEdgeCount(node);
+
+        // If the function entry node has a function exit node, the exit node must be part of the
+        // CFA, so we check it here. This check detects function exit nodes that are unreachable but
+        // have not been removed.
+        if (node instanceof FunctionEntryNode) {
+          ((FunctionEntryNode) node).getExitNode().ifPresent(CFACheck::checkEdgeCount);
+        }
       }
     }
 
     if (nodes != null) {
       verify(
           visitedNodes.equals(nodes),
-          "\n"
-              + "Nodes in CFA but not reachable through traversal: %s\n"
-              + "Nodes reached that are not in CFA: %s",
+          """
+
+          Nodes in CFA but not reachable through traversal: %s
+          Nodes reached that are not in CFA: %s""",
           Iterables.transform(Sets.difference(nodes, visitedNodes), CFACheck::debugFormat),
           Iterables.transform(Sets.difference(visitedNodes, nodes), CFACheck::debugFormat));
     }

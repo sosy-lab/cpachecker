@@ -104,6 +104,8 @@ def execute_benchmark(benchmark, output_handler):
             cmdLine.extend(["--zip-result-files", str(benchmark.config.zipResultFiles)])
         if benchmark.config.cgroupAccess:
             cmdLine.extend(["--cgroupAccess", str(benchmark.config.cgroupAccess)])
+        if benchmark.config.tryLessMemory:
+            cmdLine.extend(["--try-less-memory", str(benchmark.config.tryLessMemory)])
         if benchmark.config.debug:
             cmdLine.extend(["--print-new-files", "true"])
 
@@ -155,7 +157,6 @@ def toTabList(items):
 
 
 def getCloudInput(benchmark):
-
     (
         requirements,
         numberOfRuns,
@@ -200,7 +201,6 @@ def getCloudInput(benchmark):
 
 
 def getBenchmarkDataForCloud(benchmark):
-
     # get requirements
     r = benchmark.requirements
     requirements = [
@@ -259,7 +259,6 @@ def getBenchmarkDataForCloud(benchmark):
 
 
 def getToolDataForCloud(benchmark):
-
     workingDir = benchmark.working_directory()
     if not os.path.isdir(workingDir):
         sys.exit(f"Missing working directory '{workingDir}', cannot run tool.")
@@ -288,7 +287,6 @@ def getToolDataForCloud(benchmark):
 
 
 def handleCloudResults(benchmark, output_handler, start_time, end_time):
-
     outputDir = benchmark.log_folder
     if not os.path.isdir(outputDir) or not os.listdir(outputDir):
         # outputDir does not exist or is empty
@@ -349,9 +347,7 @@ def handleCloudResults(benchmark, output_handler, start_time, end_time):
             rawPath = run.log_file[: -len(".log")]
             dirname, filename = os.path.split(rawPath)
             vcloudFilesDirectory = rawPath + ".files"
-            benchexecFilesDirectory = os.path.join(
-                dirname[: -len(".logfiles")] + ".files", filename
-            )
+            benchexecFilesDirectory = run.result_files_folder
             if os.path.isdir(vcloudFilesDirectory) and not os.path.isdir(
                 benchexecFilesDirectory
             ):

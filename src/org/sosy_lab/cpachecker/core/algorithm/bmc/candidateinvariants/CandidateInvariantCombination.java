@@ -31,7 +31,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 public class CandidateInvariantCombination {
 
-  private interface Combination extends CandidateInvariant {
+  private sealed interface Combination extends CandidateInvariant {
 
     Set<CandidateInvariant> getOperands();
 
@@ -41,7 +41,7 @@ public class CandidateInvariantCombination {
     Iterable<AbstractState> filterApplicable(Iterable<AbstractState> pStates);
   }
 
-  private static class GenericCombination implements Combination {
+  private static final class GenericCombination implements Combination {
 
     private final Set<CandidateInvariant> operands;
 
@@ -116,8 +116,7 @@ public class CandidateInvariantCombination {
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof GenericCombination) {
-        GenericCombination other = (GenericCombination) pOther;
+      if (pOther instanceof GenericCombination other) {
         return conjunction == other.conjunction
             && operands.equals(((GenericCombination) pOther).operands);
       }
@@ -157,7 +156,7 @@ public class CandidateInvariantCombination {
     }
   }
 
-  private static class SingleLocationCombination extends SingleLocationFormulaInvariant
+  private static final class SingleLocationCombination extends SingleLocationFormulaInvariant
       implements Combination {
 
     private final Combination delegate;

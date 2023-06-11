@@ -280,16 +280,14 @@ public class PredicateStaticRefiner extends StaticRefiner
       Deque<CFAEdge> edgesToHandle = CFAUtils.leavingEdges(u).copyInto(new ArrayDeque<>());
       while (!edgesToHandle.isEmpty()) {
         CFAEdge e = edgesToHandle.pop();
-        if (e instanceof CStatementEdge) {
-          CStatementEdge stmtEdge = (CStatementEdge) e;
-          if (stmtEdge.getStatement() instanceof CAssignment) {
-            CAssignment assign = (CAssignment) stmtEdge.getStatement();
+        if ((e instanceof CStatementEdge stmtEdge)
+            && (stmtEdge.getStatement() instanceof CAssignment)) {
+          CAssignment assign = (CAssignment) stmtEdge.getStatement();
 
-            if (assign.getLeftHandSide() instanceof CIdExpression) {
-              String variable =
-                  ((CIdExpression) assign.getLeftHandSide()).getDeclaration().getQualifiedName();
-              directlyAffectingStatements.put(variable, stmtEdge);
-            }
+          if (assign.getLeftHandSide() instanceof CIdExpression) {
+            String variable =
+                ((CIdExpression) assign.getLeftHandSide()).getDeclaration().getQualifiedName();
+            directlyAffectingStatements.put(variable, stmtEdge);
           }
         }
       }
@@ -351,12 +349,9 @@ public class PredicateStaticRefiner extends StaticRefiner
 
     for (CFANode u : cfa.getAllNodes()) {
       for (CFAEdge e : CFAUtils.leavingEdges(u)) {
-        if (e instanceof AssumeEdge) {
-          AssumeEdge assume = (AssumeEdge) e;
-          if (!isAssumeOnLoopVariable(assume)) {
-            if (hasContradictingOperationInFlow(assume, directlyAffectingStatements)) {
-              result.add(assume);
-            }
+        if ((e instanceof AssumeEdge assume) && !isAssumeOnLoopVariable(assume)) {
+          if (hasContradictingOperationInFlow(assume, directlyAffectingStatements)) {
+            result.add(assume);
           }
         }
       }
@@ -388,8 +383,7 @@ public class PredicateStaticRefiner extends StaticRefiner
         }
 
         if (edgeOnTrace) {
-          if (e instanceof AssumeEdge) {
-            AssumeEdge assume = (AssumeEdge) e;
+          if (e instanceof AssumeEdge assume) {
             if (!isAssumeOnLoopVariable(assume)) {
               if (hasContradictingOperationInFlow(assume, directlyAffectingStatements)) {
                 result.add(assume);

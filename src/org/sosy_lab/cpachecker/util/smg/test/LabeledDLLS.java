@@ -28,7 +28,7 @@ class LabeledDLLS extends SMGDoublyLinkedListSegment {
       int pMinLength,
       BigInteger pHeadOffset,
       String pLabel) {
-    super(pNestingLevel, pSize, pOffset, pPrevOffset, pNextOffset, pMinLength, pHeadOffset);
+    super(pNestingLevel, pSize, pOffset, pHeadOffset, pNextOffset, pPrevOffset, pMinLength);
     label = pLabel;
   }
 

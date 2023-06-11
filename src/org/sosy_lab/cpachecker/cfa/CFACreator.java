@@ -322,9 +322,11 @@ public class CFACreator {
   private final Parser parser;
   private final ShutdownNotifier shutdownNotifier;
   private static final String EXAMPLE_JAVA_METHOD_NAME =
-      "Please note that a method has to be given in the following notation:\n <ClassName>_"
-          + "<MethodName>_<ParameterTypes>.\nExample: pack1.Car_drive_int_Car\n"
-          + "for the method drive(int speed, Car car) in the class Car.";
+      """
+      Please note that a method has to be given in the following notation:
+      <ClassName>_<MethodName>_<ParameterTypes>.
+      Example: pack1.Car_drive_int_Car
+      for the method drive(int speed, Car car) in the class Car.""";
 
   private static class CFACreatorStatistics implements Statistics {
 
@@ -573,14 +575,15 @@ public class CFACreator {
 
     assert mainFunction != null;
 
-    MutableCFA cfa =
-        new MutableCFA(
+    CfaMetadata cfaMetadata =
+        CfaMetadata.forMandatoryAttributes(
             machineModel,
-            pParseResult.getFunctions(),
-            pParseResult.getCFANodes(),
-            mainFunction,
+            language,
             pParseResult.getFileNames(),
-            language);
+            mainFunction,
+            CfaConnectedness.UNCONNECTED_FUNCTIONS);
+    MutableCFA cfa =
+        new MutableCFA(pParseResult.getFunctions(), pParseResult.getCFANodes(), cfaMetadata);
 
     stats.checkTime.start();
 
@@ -620,6 +623,7 @@ public class CFACreator {
       logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
       CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa, language, logger, config);
       spbuilder.insertCallEdgesRecursively();
+      cfa.setMetadata(cfa.getMetadata().withConnectedness(CfaConnectedness.SUPERGRAPH));
     }
 
     // FIFTH, do post-processings on the supergraph
@@ -661,9 +665,7 @@ public class CFACreator {
 
     final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
 
-    if (pParseResult instanceof ParseResultWithCommentLocations) {
-      ParseResultWithCommentLocations withCommentLocations =
-          ((ParseResultWithCommentLocations) pParseResult);
+    if (pParseResult instanceof ParseResultWithCommentLocations withCommentLocations) {
       commentPositions.addAll(withCommentLocations.getCommentLocations());
       blocks.addAll(withCommentLocations.getBlocks());
     }
@@ -1043,20 +1045,14 @@ public class CFACreator {
       CFANode n = new CFANode(cur.getFunction());
       cfa.addNode(n);
 
-      final CFAEdge newEdge;
-      switch (cfa.getLanguage()) {
-        case C:
-          newEdge =
-              new CDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
-          break;
-        case JAVA:
-          newEdge =
-              new JDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (JDeclaration) d);
-          break;
-        default:
-          throw new AssertionError("unknown language");
-      }
-
+      final CFAEdge newEdge =
+          switch (cfa.getLanguage()) {
+            case C -> new CDeclarationEdge(
+                rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
+            case JAVA -> new JDeclarationEdge(
+                rawSignature, d.getFileLocation(), cur, n, (JDeclaration) d);
+            default -> throw new AssertionError("unknown language");
+          };
       CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
       cur = n;
     }

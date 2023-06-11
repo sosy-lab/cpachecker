@@ -35,12 +35,12 @@ public interface Value extends Serializable {
    */
   @Nullable NumericValue asNumericValue();
 
-  /** Return the long value if this is a long value, null otherwise. * */
+  /** Return the long value if this is a long value, null otherwise. */
   @Nullable Long asLong(CType type);
 
   <T> T accept(ValueVisitor<T> pVisitor);
 
-  /** Singleton class used to signal that the value is unknown (could be anything). * */
+  /** Singleton class used to signal that the value is unknown (could be anything). */
   public static final class UnknownValue implements Value, Serializable {
 
     private static final long serialVersionUID = -300842115868319184L;

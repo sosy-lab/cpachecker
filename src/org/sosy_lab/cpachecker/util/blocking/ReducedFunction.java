@@ -17,17 +17,18 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 class ReducedFunction {
   private final Table<ReducedNode, ReducedNode, Set<ReducedEdge>> cfaEdges;
   private final Multiset<ReducedNode> activeNodes;
   private final ReducedNode entryNode;
-  private final ReducedNode exitNode;
+  private final @Nullable ReducedNode exitNode;
 
-  public ReducedFunction(ReducedNode pEntryNode, ReducedNode pExitNode) {
+  public ReducedFunction(ReducedNode pEntryNode, @Nullable ReducedNode pExitNode) {
     assert pEntryNode != null;
-    assert pExitNode != null;
 
     cfaEdges = HashBasedTable.create();
     activeNodes = HashMultiset.create();
@@ -85,8 +86,8 @@ class ReducedFunction {
     return entryNode;
   }
 
-  public ReducedNode getExitNode() {
-    return exitNode;
+  public Optional<ReducedNode> getExitNode() {
+    return Optional.ofNullable(exitNode);
   }
 
   public Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> getInlinedCfa() {

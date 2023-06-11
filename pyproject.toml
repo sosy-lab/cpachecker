@@ -7,5 +7,5 @@
 # SPDX-License-Identifier: Apache-2.0
 
 [tool.black]
-include = '(scripts|test/util).*\.py$'
-target-version = ['py34']
+include = '(contrib|scripts|test/util).*\.(ipynb|py)$'
+target-version = ['py37']

@@ -120,39 +120,20 @@ abstract class TypeConverter {
 
   private JSimpleType convertPrimitiveType(String primitiveTypeName) {
 
-    JSimpleType type;
-    switch (primitiveTypeName) {
-      case "boolean":
-        type = JSimpleType.getBoolean();
-        break;
-      case "char":
-        type = JSimpleType.getChar();
-        break;
-      case "double":
-        type = JSimpleType.getDouble();
-        break;
-      case "float":
-        type = JSimpleType.getFloat();
-        break;
-      case "int":
-        type = JSimpleType.getInt();
-        break;
-      case "void":
-        type = JSimpleType.getVoid();
-        break;
-      case "long":
-        type = JSimpleType.getLong();
-        break;
-      case "short":
-        type = JSimpleType.getShort();
-        break;
-      case "byte":
-        type = JSimpleType.getByte();
-        break;
-      default:
-        throw new CFAGenerationRuntimeException("Unknown primitive type " + primitiveTypeName);
-    }
-
+    JSimpleType type =
+        switch (primitiveTypeName) {
+          case "boolean" -> JSimpleType.getBoolean();
+          case "char" -> JSimpleType.getChar();
+          case "double" -> JSimpleType.getDouble();
+          case "float" -> JSimpleType.getFloat();
+          case "int" -> JSimpleType.getInt();
+          case "void" -> JSimpleType.getVoid();
+          case "long" -> JSimpleType.getLong();
+          case "short" -> JSimpleType.getShort();
+          case "byte" -> JSimpleType.getByte();
+          default -> throw new CFAGenerationRuntimeException(
+              "Unknown primitive type " + primitiveTypeName);
+        };
     return type;
   }
 

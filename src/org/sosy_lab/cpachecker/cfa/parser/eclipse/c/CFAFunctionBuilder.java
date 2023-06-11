@@ -258,6 +258,12 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
     }
 
+    // if the function exit node doesn't have entering edges, it's unreachable and we remove it
+    Optional<FunctionExitNode> exitNode = cfa.getExitNode();
+    if (exitNode.isPresent() && exitNode.orElseThrow().getNumEnteringEdges() == 0) {
+      cfa.removeExitNode();
+    }
+
     assert !sideAssignmentStack.hasPreSideAssignments();
     assert !sideAssignmentStack.hasPostSideAssignments();
     assert locStack.isEmpty();
@@ -526,12 +532,15 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       CFANode lastNode = locStack.pop();
 
+      // During function CFA construction, every function entry node must have a function exit node
+      // (unreachable function exit nodes have not been removed yet).
+      FunctionExitNode functionExitNode = cfa.getExitNode().orElseThrow();
       if (isReachableNode(lastNode)) {
         BlankEdge blankEdge =
-            new BlankEdge("", FileLocation.DUMMY, lastNode, cfa.getExitNode(), "default return");
+            new BlankEdge("", FileLocation.DUMMY, lastNode, functionExitNode, "default return");
         addToCFA(blankEdge);
       } else {
-        cfa.getExitNode().addOutOfScopeVariables(lastNode.getOutOfScopeVariables());
+        functionExitNode.addOutOfScopeVariables(lastNode.getOutOfScopeVariables());
       }
 
       if (!gotoLabelNeeded.isEmpty()) {
@@ -876,7 +885,10 @@ class CFAFunctionBuilder extends ASTVisitor {
   private void handleReturnStatement(IASTReturnStatement returnStatement, FileLocation fileloc) {
 
     CFANode prevNode = locStack.pop();
-    FunctionExitNode functionExitNode = cfa.getExitNode();
+
+    // During function CFA construction, every function entry node must have a function exit node
+    // (unreachable function exit nodes have not been removed yet).
+    FunctionExitNode functionExitNode = cfa.getExitNode().orElseThrow();
 
     // a return statement leaves all available scopes at once.
     for (Collection<CSimpleDeclaration> vars : scope.getVariablesOfMostLocalScopes()) {
@@ -1939,45 +1951,37 @@ class CFAFunctionBuilder extends ASTVisitor {
         buildBinaryExpression(switchExpr, caseExpr, CBinaryExpression.BinaryOperator.EQUALS);
 
     final CExpression exp = astCreator.simplifyExpressionOneStep(binExp);
-    final CFANode nextCaseStartsAtNode;
-    switch (astCreator.getConditionKind(exp)) {
-      case ALWAYS_FALSE:
-        // no edge connecting rootNode with caseNode,
-        // so the "case" branch won't be connected to the rest of the CFA.
-        // also ignore the edge from rootNode to notCaseNode, it is not needed
-        nextCaseStartsAtNode = rootNode;
-        break;
-
-      case ALWAYS_TRUE:
-        final BlankEdge trueEdge =
-            new BlankEdge(
-                "",
-                onlyFirstLine(fileLocation),
+    final CFANode nextCaseStartsAtNode =
+        switch (astCreator.getConditionKind(exp)) {
+            // no edge connecting rootNode with caseNode,
+            // so the "case" branch won't be connected to the rest of the CFA.
+            // also ignore the edge from rootNode to notCaseNode, it is not needed
+          case ALWAYS_FALSE -> rootNode;
+          case ALWAYS_TRUE -> {
+            final BlankEdge trueEdge =
+                new BlankEdge(
+                    "",
+                    onlyFirstLine(fileLocation),
+                    rootNode,
+                    caseNode,
+                    "__case__[" + binExp.toASTString() + "]");
+            addToCFA(trueEdge);
+            yield notCaseNode;
+          }
+          case NORMAL -> {
+            assert ASTOperatorConverter.isBooleanExpression(exp);
+            addConditionEdges(
+                exp.toASTString(),
+                exp,
                 rootNode,
                 caseNode,
-                "__case__[" + binExp.toASTString() + "]");
-        addToCFA(trueEdge);
-        nextCaseStartsAtNode = notCaseNode;
-        break;
-
-      case NORMAL:
-        assert ASTOperatorConverter.isBooleanExpression(exp);
-        addConditionEdges(
-            exp.toASTString(),
-            exp,
-            rootNode,
-            caseNode,
-            notCaseNode,
-            fileLocation,
-            false,
-            ImmutableSet.of());
-        nextCaseStartsAtNode = notCaseNode;
-        break;
-
-      default:
-        throw new AssertionError();
-    }
-
+                notCaseNode,
+                fileLocation,
+                false,
+                ImmutableSet.of());
+            yield notCaseNode;
+          }
+        };
     return nextCaseStartsAtNode;
   }
 
@@ -2138,12 +2142,10 @@ class CFAFunctionBuilder extends ASTVisitor {
           Pair<IASTExpression, CIdExpression> cond = it.next();
           IASTExpression condExp = cond.getFirst();
           CIdExpression tempVar = cond.getSecond();
-          if (sideAssignment instanceof CVariableDeclaration) {
-            CVariableDeclaration cvd = (CVariableDeclaration) sideAssignment;
-            if (cvd.getOrigName().equals(tempVar.getName())) {
-              prevNode = handleConditionalExpression(prevNode, condExp, tempVar);
-              it.remove();
-            }
+          if ((sideAssignment instanceof CVariableDeclaration cvd)
+              && cvd.getOrigName().equals(tempVar.getName())) {
+            prevNode = handleConditionalExpression(prevNode, condExp, tempVar);
+            it.remove();
           }
         }
       }

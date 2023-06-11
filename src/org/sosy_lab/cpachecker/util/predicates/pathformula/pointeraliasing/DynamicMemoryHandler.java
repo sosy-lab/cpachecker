@@ -160,13 +160,13 @@ class DynamicMemoryHandler {
           builder.buildBinaryExpression(param0, param1, BinaryOperator.MULTIPLY);
 
       // Try to evaluate the multiplication if possible.
-      Integer value0 = tryEvaluateExpression(param0);
-      Integer value1 = tryEvaluateExpression(param1);
+      Long value0 = tryEvaluateExpression(param0);
+      Long value1 = tryEvaluateExpression(param1);
       if (value0 != null && value1 != null) {
         long result =
             AbstractExpressionValueVisitor.calculateBinaryOperation(
-                    new NumericValue(value0.longValue()),
-                    new NumericValue(value1.longValue()),
+                    new NumericValue(value0),
+                    new NumericValue(value1),
                     multiplication,
                     conv.machineModel,
                     conv.logger)
@@ -243,7 +243,7 @@ class DynamicMemoryHandler {
     }
 
     final CExpression parameter = parameters.get(0);
-    Integer size = null;
+    Long size = null;
     final CType newType;
     if (isSizeof(parameter)) {
       newType = getSizeofType(parameter);
@@ -264,7 +264,7 @@ class DynamicMemoryHandler {
       if (!conv.options.revealAllocationTypeFromLHS() && !conv.options.deferUntypedAllocations()) {
         final CExpression length;
         if (size == null) {
-          size = conv.options.defaultAllocationSize();
+          size = (long) conv.options.defaultAllocationSize();
           length =
               new CIntegerLiteralExpression(
                   parameter.getFileLocation(),
@@ -298,10 +298,14 @@ class DynamicMemoryHandler {
           makeAllocVariableName(functionName, newType, pts.getFreshAllocationId());
       address =
           makeAllocation(
-              conv.options.isSuccessfulZallocFunctionName(functionName), newType, newBase, sizeExp);
+              conv.options.isSuccessfulZallocFunctionName(functionName),
+              newType,
+              newBase,
+              Optional.of(sizeExp));
     } else {
       final String newBase =
           makeAllocVariableName(functionName, CVoidType.VOID, pts.getFreshAllocationId());
+      pts.addNextBaseAddressConstraints(newBase, null, sizeExp, true, constraints);
       pts.addTemporaryDeferredAllocation(
           conv.options.isSuccessfulZallocFunctionName(functionName),
           Optional.ofNullable(size)
@@ -311,7 +315,6 @@ class DynamicMemoryHandler {
                           parameter.getFileLocation(),
                           parameter.getExpressionType(),
                           BigInteger.valueOf(s))),
-          sizeExp,
           newBase);
       address =
           conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID);
@@ -369,13 +372,14 @@ class DynamicMemoryHandler {
    * @param isZeroing A flag indicating if the variable is zeroing.
    * @param type The type.
    * @param base The name of the base.
-   * @param size An expression for the size in bytes of the new base.
+   * @param pSize An expression for the size in bytes of the new base. If absent, this was a
+   *     previously deferred base.
    * @return A formula for the memory allocation.
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution gets interrupted.
    */
   private Formula makeAllocation(
-      final boolean isZeroing, final CType type, final String base, final Formula size)
+      final boolean isZeroing, final CType type, final String base, final Optional<Formula> pSize)
       throws UnrecognizedCodeException, InterruptedException {
     final Formula result = conv.makeBaseAddress(base, type);
     if (isZeroing) {
@@ -394,7 +398,9 @@ class DynamicMemoryHandler {
 
       constraints.addConstraint(initialization);
     }
-    pts.addBase(base, type, size, constraints);
+
+    pSize.ifPresent(size -> pts.addNextBaseAddressConstraints(base, type, size, true, constraints));
+    pts.addBase(base, type);
     if (isZeroing) {
       addAllFields(type);
     }
@@ -407,8 +413,7 @@ class DynamicMemoryHandler {
    * @param type The type of the composite type.
    */
   private void addAllFields(final CType type) {
-    if (type instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) type;
+    if (type instanceof CCompositeType compositeType) {
       for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         if (conv.isRelevantField(compositeType, memberDeclaration)) {
           pts.addField(CompositeField.of(compositeType, memberDeclaration));
@@ -456,9 +461,9 @@ class DynamicMemoryHandler {
    * @param e The C expression.
    * @return The value, if the expression is an integer literal, or {@code null}
    */
-  private static @Nullable Integer tryEvaluateExpression(CExpression e) {
+  private static @Nullable Long tryEvaluateExpression(CExpression e) {
     if (e instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression) e).getValue().intValue();
+      return ((CIntegerLiteralExpression) e).getValue().longValueExact();
     }
     return null;
   }
@@ -523,8 +528,8 @@ class DynamicMemoryHandler {
   private CType refineType(final CType type, final CIntegerLiteralExpression sizeLiteral) {
     assert sizeLiteral.getValue() != null;
 
-    final int size = sizeLiteral.getValue().intValue();
-    final int typeSize = conv.getSizeof(type);
+    final long size = sizeLiteral.getValue().longValueExact();
+    final long typeSize = conv.getSizeof(type);
     if (type instanceof CArrayType) {
       // An array type is used in the cast or assignment, so its size should likely match the
       // allocated size.
@@ -543,8 +548,8 @@ class DynamicMemoryHandler {
       // A pointer type is used in the cast or assignment.
       // If the allocated size is the multiple of the usage type size, we can recover the
       // actual array type (with length) of the allocation. Otherwise, just return the usage type.
-      final int n = size / typeSize;
-      final int remainder = size % typeSize;
+      final long n = size / typeSize;
+      final long remainder = size % typeSize;
       if (n == 0 || remainder != 0) {
         conv.logger.logf(
             Level.WARNING,
@@ -605,7 +610,7 @@ class DynamicMemoryHandler {
       throws UnrecognizedCodeException, InterruptedException {
     for (DeferredAllocation d : pts.removeDeferredAllocations(pointer)) {
       makeAllocation(
-          d.isZeroed(), getAllocationType(type, d.getSize()), d.getBase(), d.getSizeExpression());
+          d.isZeroed(), getAllocationType(type, d.getSize()), d.getBase(), Optional.empty());
     }
   }
 

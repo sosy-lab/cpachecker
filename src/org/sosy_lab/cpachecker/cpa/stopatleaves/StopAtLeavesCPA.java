@@ -19,9 +19,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-/**
- * @see org.sosy_lab.cpachecker.cpa.targetreachability.TargetReachabilityCPA
- */
+/** See {@link org.sosy_lab.cpachecker.cpa.targetreachability.TargetReachabilityCPA}. */
 public class StopAtLeavesCPA extends AbstractCPA {
   StopAtLeavesRelation relation;
 

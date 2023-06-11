@@ -54,6 +54,10 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
     return new CFAPathWithAssumptions(ImmutableList.of());
   }
 
+  public static CFAPathWithAssumptions from(ImmutableList<CFAEdgeWithAssumptions> pAssumptions) {
+    return new CFAPathWithAssumptions(pAssumptions);
+  }
+
   @Override
   protected List<CFAEdgeWithAssumptions> delegate() {
     return pathWithAssignments;
@@ -119,8 +123,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
 
       // this is an intermediate state: just create the assumptions for it
       // and add it as if it was a normal edge
-      if (node instanceof IntermediateConcreteState) {
-        IntermediateConcreteState intermediateState = (IntermediateConcreteState) node;
+      if (node instanceof IntermediateConcreteState intermediateState) {
         currentIntermediateStates.add(intermediateState);
         edge =
             pAllocator.allocateAssumptionsToEdge(
@@ -181,11 +184,9 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
   }
 
   private static boolean isEmptyDeclaration(CFAEdge pCfaEdge) {
-    if (pCfaEdge instanceof ADeclarationEdge) {
-      ADeclarationEdge declarationEdge = (ADeclarationEdge) pCfaEdge;
+    if (pCfaEdge instanceof ADeclarationEdge declarationEdge) {
       ADeclaration declaration = declarationEdge.getDeclaration();
-      if (declaration instanceof AVariableDeclaration) {
-        AVariableDeclaration variableDeclaration = (AVariableDeclaration) declaration;
+      if (declaration instanceof AVariableDeclaration variableDeclaration) {
         return variableDeclaration.getInitializer() == null && !variableDeclaration.isGlobal();
       }
       return true;

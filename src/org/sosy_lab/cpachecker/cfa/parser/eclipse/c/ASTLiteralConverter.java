@@ -193,8 +193,16 @@ class ASTLiteralConverter {
   }
 
   @VisibleForTesting
-  char parseCharacterLiteral(String s, final IASTNode e) {
+  char parseCharacterLiteral(String s, final IASTLiteralExpression e) {
     check(s.length() >= 3, "invalid character literal (too short)", e);
+    if (s.charAt(0) == 'L' || s.charAt(0) == 'u' || s.charAt(0) == 'U') {
+      try {
+        return parseCharacterLiteral(s.substring(1), e);
+      } catch (CFAGenerationRuntimeException ex) {
+        throw parseContext.parseError("Unsupported wide character literal", e);
+      }
+    }
+
     check(
         s.charAt(0) == '\'' && s.charAt(s.length() - 1) == '\'',
         "character literal without quotation marks",
@@ -237,40 +245,20 @@ class ASTLiteralConverter {
       } else {
         // something like '\n'
         check(s.length() == 1, "character literal too long", e);
-        switch (c) {
-          case 'a':
-            result = 7;
-            break;
-          case 'b':
-            result = '\b';
-            break;
-          case 'f':
-            result = '\f';
-            break;
-          case 'n':
-            result = '\n';
-            break;
-          case 'r':
-            result = '\r';
-            break;
-          case 't':
-            result = '\t';
-            break;
-          case 'v':
-            result = 11;
-            break;
-          case '"':
-            result = '\"';
-            break;
-          case '\'':
-            result = '\'';
-            break;
-          case '\\':
-            result = '\\';
-            break;
-          default:
-            throw parseContext.parseError("unknown character literal", e);
-        }
+        result =
+            switch (c) {
+              case 'a' -> 7;
+              case 'b' -> '\b';
+              case 'f' -> '\f';
+              case 'n' -> '\n';
+              case 'r' -> '\r';
+              case 't' -> '\t';
+              case 'v' -> 11;
+              case '"' -> '\"';
+              case '\'' -> '\'';
+              case '\\' -> '\\';
+              default -> throw parseContext.parseError("unknown character literal", e);
+            };
       }
     }
     return result;
@@ -294,26 +282,15 @@ class ASTLiteralConverter {
   private BigInteger parseRawIntegerValue(ConstantType type, String s, final IASTNode e) {
     BigInteger result;
     try {
-      switch (type) {
-        case BINARY:
-          // remove "0b" from the string
-          s = s.substring(2);
-          result = new BigInteger(s, 2);
-          break;
-        case OCTAL:
-          result = new BigInteger(s, 8);
-          break;
-        case DECIMAL:
-          result = new BigInteger(s, 10);
-          break;
-        case HEXADECIMAL:
-          // this is expected to be in hex format, remove "0x" from the string
-          s = s.substring(2);
-          result = new BigInteger(s, 16);
-          break;
-        default:
-          throw parseContext.parseError(String.format("invalid constant type: %s", type.name()), e);
-      }
+      result =
+          switch (type) {
+            case BINARY -> new BigInteger(s.substring(2), 2); // remove "0b" from the string
+            case OCTAL -> new BigInteger(s, 8);
+            case DECIMAL -> new BigInteger(s, 10);
+            case HEXADECIMAL -> new BigInteger(s.substring(2), 16); // remove "0x" from the string
+            default -> throw parseContext.parseError(
+                String.format("invalid constant type: %s", type.name()), e);
+          };
     } catch (NumberFormatException exception) {
       throw parseContext.parseError("invalid number", e);
     }

@@ -149,10 +149,9 @@ public final class AbstractStates {
 
   public static FluentIterable<AbstractState> filterLocations(
       Iterable<AbstractState> pStates, Set<CFANode> pLocs) {
-    if (pStates instanceof LocationMappedReachedSet) {
+    if (pStates instanceof LocationMappedReachedSet states) {
       // only do this for LocationMappedReachedSet, not for all ReachedSet,
       // because this method is imprecise for the rest
-      final LocationMappedReachedSet states = (LocationMappedReachedSet) pStates;
       return from(pLocs).transformAndConcat(states::getReached);
     }
 

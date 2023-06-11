@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CUnaryExpression extends AUnaryExpression implements CExpression {
+public final class CUnaryExpression extends AUnaryExpression implements CExpression {
 
   private static final long serialVersionUID = -7701970127701577207L;
 

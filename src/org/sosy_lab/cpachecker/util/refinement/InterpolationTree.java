@@ -196,7 +196,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * @param file file the file to write to
    */
   public void exportToDot(PathTemplate file, long refinementCounter) {
-    StringBuilder result = new StringBuilder("digraph tree {" + "\n");
+    StringBuilder result = new StringBuilder("digraph tree {\n");
     for (Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
       final ARGState parent = current.getKey();
       String interpolant =
@@ -210,8 +210,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
       // + " [label=\"" + parent.getEdgeToChild(current.getValue()).getRawStatement().replace("\n",
       // "") + "\"]\n");
       if (current.getValue().isTarget()) {
-        result.append(
-            current.getValue().getStateId() + " [style=filled, fillcolor=\"red\"]" + "\n");
+        result.append(current.getValue().getStateId() + " [style=filled, fillcolor=\"red\"]\n");
       }
       assert !parent.isTarget();
     }
@@ -404,7 +403,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * @param currentState the state for which to check
    * @return true, if a non-trivial interpolant is present, else false
    */
-  private boolean stateHasNonTrivialInterpolant(final ARGState currentState) {
+  public boolean stateHasNonTrivialInterpolant(final ARGState currentState) {
     return interpolants.containsKey(currentState) && !interpolants.get(currentState).isTrivial();
   }
 
@@ -414,7 +413,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * @param currentState the state for which to check
    * @return true, if a false interpolant is present, else false
    */
-  private boolean stateHasFalseInterpolant(final ARGState currentState) {
+  public boolean stateHasFalseInterpolant(final ARGState currentState) {
     return interpolants.containsKey(currentState) && interpolants.get(currentState).isFalse();
   }
 
@@ -459,7 +458,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
     I getInitialInterpolantForRoot(ARGState root);
   }
 
-  private class TopDownInterpolationStrategy implements InterpolationStrategy<I> {
+  private final class TopDownInterpolationStrategy implements InterpolationStrategy<I> {
 
     /** the states that are the sources for obtaining (partial) error paths */
     private Deque<ARGState> sources = new ArrayDeque<>(Collections.singleton(root));
@@ -544,7 +543,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
     }
   }
 
-  private class BottomUpInterpolationStrategy implements InterpolationStrategy<I> {
+  private final class BottomUpInterpolationStrategy implements InterpolationStrategy<I> {
 
     /** the states that are the sources for obtaining error paths */
     private List<ARGState> sources;

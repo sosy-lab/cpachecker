@@ -17,7 +17,7 @@ SPDX-License-Identifier: Apache-2.0
 			<attribute name="optional" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-11">
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-17">
 		<attributes>
 			<attribute name="module" value="true"/>
 			<attribute name="limit-modules" value="java.compiler,java.desktop,java.instrument,java.logging,jdk.management,jdk.xml.dom,jdk.unsupported"/>
@@ -81,6 +81,7 @@ SPDX-License-Identifier: Apache-2.0
 	<classpathentry kind="lib" path="lib/java/runtime/antlr4-runtime.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/com.microsoft.z3.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/CVC4.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/cvc5.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/princess_2.13.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/scala-library.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/jackson-annotations.jar"/>

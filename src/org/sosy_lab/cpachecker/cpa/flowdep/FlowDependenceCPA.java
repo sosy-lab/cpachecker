@@ -84,7 +84,7 @@ public class FlowDependenceCPA extends AbstractSingleWrapperCPA {
 
     if (pCfa.getLanguage() != Language.C) {
       throw new InvalidConfigurationException(
-          FlowDependenceCPA.class.getSimpleName() + " only" + " supports C");
+          FlowDependenceCPA.class.getSimpleName() + " only supports C");
     }
   }
 

@@ -1,0 +1,25 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# This is a Docker image for running the tests.
+# It should be pushed to registry.gitlab.com/sosy-lab/software/cpachecker/test
+# and will be used by CI as declared in .gitlab-ci.yml.
+#
+# Commands for updating the image:
+# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker/test:jdk-19 - < build/gitlab-ci.Dockerfile.jdk-19
+# docker push registry.gitlab.com/sosy-lab/software/cpachecker/test
+
+FROM registry.gitlab.com/sosy-lab/software/java-project-template/test:jdk-19
+RUN apt-get update && apt-get install -y \
+  gcc \
+  graphviz \
+  libgmp10 \
+  libgomp1 \
+  python3
+# We would need clang-9 for tests (https://gitlab.com/sosy-lab/software/cpachecker/-/issues/953),
+# but there is no Ubuntu version that provides Java 19 and clang-9.

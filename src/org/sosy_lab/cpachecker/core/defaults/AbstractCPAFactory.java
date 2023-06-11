@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -35,6 +36,7 @@ public abstract class AbstractCPAFactory implements CPAFactory {
     throw new UnsupportedOperationException("Cannot wrap CPAs");
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CPAFactory setConfiguration(Configuration pConfiguration) {
     Preconditions.checkNotNull(pConfiguration);
@@ -44,6 +46,7 @@ public abstract class AbstractCPAFactory implements CPAFactory {
     return this;
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CPAFactory setLogger(LogManager pLogger) {
     Preconditions.checkNotNull(pLogger);
@@ -53,6 +56,7 @@ public abstract class AbstractCPAFactory implements CPAFactory {
     return this;
   }
 
+  @CanIgnoreReturnValue
   @Override
   public CPAFactory setShutdownNotifier(ShutdownNotifier pShutdownNotifier) {
     Preconditions.checkNotNull(pShutdownNotifier);

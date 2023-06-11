@@ -13,6 +13,7 @@ import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultiset;
@@ -60,7 +61,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.ITPStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.NestedInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolation;
@@ -94,6 +94,9 @@ public final class InterpolationManager {
   private int reusedFormulasOnSolverStack = 0;
 
   public void printStatistics(StatisticsWriter w0) {
+    if (cexAnalysisTimer.getNumberOfIntervals() == 0) {
+      return;
+    }
     w0.put(
         "Counterexample analysis",
         cexAnalysisTimer
@@ -236,6 +239,13 @@ public final class InterpolationManager {
               + " options instead of giving up immediately.")
   private boolean tryAgainOnInterpolationError = true;
 
+  @Option(
+      secure = true,
+      description =
+          "When interpolation query fails, attempt to check feasibility of the current"
+              + " counterexample without interpolation")
+  private boolean tryWithoutInterpolation = true;
+
   private final ITPStrategy itpStrategy;
 
   private final ExecutorService executor;
@@ -276,28 +286,16 @@ public final class InterpolationManager {
       interpolator = null;
     }
 
-    switch (strategy) {
-      case SEQ_CPACHECKER:
-        itpStrategy = new SequentialInterpolation(pLogger, pShutdownNotifier, fmgr, config);
-        break;
-      case SEQ:
-        itpStrategy = new SequentialInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr);
-        break;
-      case TREE_WELLSCOPED:
-        itpStrategy = new WellScopedInterpolation(pLogger, pShutdownNotifier, fmgr);
-        break;
-      case TREE_NESTED:
-        itpStrategy = new NestedInterpolation(pLogger, pShutdownNotifier, fmgr);
-        break;
-      case TREE_CPACHECKER:
-        itpStrategy = new TreeInterpolation(pLogger, pShutdownNotifier, fmgr);
-        break;
-      case TREE:
-        itpStrategy = new TreeInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr);
-        break;
-      default:
-        throw new AssertionError("unknown interpolation strategy");
-    }
+    itpStrategy =
+        switch (strategy) {
+          case SEQ_CPACHECKER -> new SequentialInterpolation(
+              pLogger, pShutdownNotifier, fmgr, config);
+          case SEQ -> new SequentialInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr);
+          case TREE_WELLSCOPED -> new WellScopedInterpolation(pLogger, pShutdownNotifier, fmgr);
+          case TREE_NESTED -> new NestedInterpolation(pLogger, pShutdownNotifier, fmgr);
+          case TREE_CPACHECKER -> new TreeInterpolation(pLogger, pShutdownNotifier, fmgr);
+          case TREE -> new TreeInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr);
+        };
   }
 
   /**
@@ -434,11 +432,14 @@ public final class InterpolationManager {
           }
         }
       } catch (SolverException itpException) {
-        logger.logUserException(
-            Level.FINEST,
-            itpException,
-            "Interpolation failed, attempting to solve without interpolation");
-        return fallbackWithoutInterpolation(f, imprecisePath, itpException);
+        if (tryWithoutInterpolation) {
+          logger.logUserException(
+              Level.FINEST,
+              itpException,
+              "Interpolation failed, attempting to solve without interpolation");
+          return fallbackWithoutInterpolation(f, imprecisePath, itpException);
+        }
+        throw new RefinementFailedException(Reason.InterpolationFailed, null, itpException);
       }
 
     } finally {
@@ -482,6 +483,7 @@ public final class InterpolationManager {
       try {
         return solveCounterexample(f, imprecisePath);
       } catch (SolverException e) {
+        // TODO: Do we need to rebuild the interpolator here? i.e. is it ever used again?
         throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
       }
 
@@ -753,8 +755,7 @@ public final class InterpolationManager {
    * @return A list of (N-1) interpolants for N formulae.
    */
   private <T> List<BooleanFormula> getInterpolants(
-      Interpolator<T> pInterpolator,
-      List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+      Interpolator<T> pInterpolator, List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds)
       throws SolverException, InterruptedException {
 
     final List<BooleanFormula> interpolants;
@@ -863,7 +864,7 @@ public final class InterpolationManager {
   public class Interpolator<T> {
 
     public InterpolatingProverEnvironment<T> itpProver;
-    private final List<Pair<BooleanFormula, T>> currentlyAssertedFormulas = new ArrayList<>();
+    private List<Pair<BooleanFormula, T>> currentlyAssertedFormulas = new ArrayList<>();
 
     Interpolator() {
       itpProver = newEnvironment();
@@ -875,6 +876,31 @@ public final class InterpolationManager {
       // only the InterpolatingProverEnvironment itself cares about it.
       return (InterpolatingProverEnvironment<T>)
           solver.newProverEnvironmentWithInterpolation(ProverOptions.GENERATE_MODELS);
+    }
+
+    /**
+     * Builds a new solver environment out of the old environment and replaces the old. Also asserts
+     * all formulas currently on the assertion stack and calls isUnsat() once on the new
+     * environment. Deletes old environment afterwards. The currentlyAssertedFormulas are updated as
+     * well. Should be used after an interpolation failed with an exception.
+     *
+     * @throws InterruptedException solver specific
+     * @throws SolverException solver specific
+     */
+    public void destroyAndRebuildSolverEnvironment() throws InterruptedException, SolverException {
+      itpProver.close();
+      itpProver = newEnvironment();
+      List<Pair<BooleanFormula, T>> newAssertedFormulas = new ArrayList<>();
+      for (Pair<BooleanFormula, T> formulaAndItpP : currentlyAssertedFormulas) {
+        newAssertedFormulas.add(
+            Pair.of(formulaAndItpP.getFirst(), itpProver.push(formulaAndItpP.getFirst())));
+      }
+      currentlyAssertedFormulas = newAssertedFormulas;
+      // One could argue that this should be done manually and not automatically.
+      // But if this is only used after a failed interpolation, an automatic isUnsat call is fine
+      // The result here should not differ from before, but it needs to be done for the internal
+      // solver state
+      Preconditions.checkArgument(itpProver.isUnsat());
     }
 
     /**
@@ -906,7 +932,7 @@ public final class InterpolationManager {
       // for every block of the counterexample (in correct order).
       // It is initialized with {@code null} and filled while the formulas are pushed on the solver
       // stack.
-      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds =
+      final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds =
           new ArrayList<>(Collections.nCopies(formulas.getSize(), null));
 
       ImmutableIntArray formulaPermutation;
@@ -933,7 +959,7 @@ public final class InterpolationManager {
                 pAbstractionStates,
                 formulaPermutation,
                 formulasWithStatesAndGroupdIds);
-        assert Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst)
+        assert Lists.transform(formulasWithStatesAndGroupdIds, InterpolationGroup::formula)
             .equals(formulas.getFormulas());
 
       } finally {
@@ -962,6 +988,7 @@ public final class InterpolationManager {
               e,
               "Interpolation failed, trying again in reverse order and with%s incremental check.",
               incrementalCheck ? "out" : "");
+          this.destroyAndRebuildSolverEnvironment();
           Collections.fill(formulasWithStatesAndGroupdIds, null); // reset state
 
           int[] permutation = formulaPermutation.toArray();
@@ -981,7 +1008,7 @@ public final class InterpolationManager {
                     pAbstractionStates,
                     formulaPermutation,
                     formulasWithStatesAndGroupdIds);
-            assert Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst)
+            assert Lists.transform(formulasWithStatesAndGroupdIds, InterpolationGroup::formula)
                 .equals(formulas.getFormulas());
             verify(spurious, "Counterexample formulas became satisfiable on second try");
 
@@ -1027,7 +1054,7 @@ public final class InterpolationManager {
         final List<BooleanFormula> traceFormulas,
         final List<AbstractState> traceStates,
         final ImmutableIntArray formulaPermutation,
-        final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+        final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds)
         throws InterruptedException, SolverException {
 
       // first identify which formulas are already on the solver stack,
@@ -1067,7 +1094,7 @@ public final class InterpolationManager {
         final List<BooleanFormula> traceFormulas,
         final List<AbstractState> traceStates,
         final ListIterator<Integer> todoIterator,
-        final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds) {
+        final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds) {
 
       ListIterator<Pair<BooleanFormula, T>> assertedIterator =
           currentlyAssertedFormulas.listIterator();
@@ -1086,8 +1113,8 @@ public final class InterpolationManager {
 
         if (todoFormula.equals(assertedFormula.getFirst())) {
           // formula is already in solver stack in correct location
-          final Triple<BooleanFormula, AbstractState, T> assertedFormulaWithState =
-              Triple.of(
+          final InterpolationGroup<T> assertedFormulaWithState =
+              new InterpolationGroup<>(
                   assertedFormula.getFirst(), traceStates.get(index), assertedFormula.getSecond());
           formulasWithStatesAndGroupdIds.set(index, assertedFormulaWithState);
 
@@ -1145,7 +1172,7 @@ public final class InterpolationManager {
         final List<BooleanFormula> traceFormulas,
         final List<AbstractState> traceStates,
         final ListIterator<Integer> todoIterator,
-        final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+        final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds)
         throws SolverException, InterruptedException {
       boolean isStillFeasible = true;
 
@@ -1164,7 +1191,7 @@ public final class InterpolationManager {
         assert formulasWithStatesAndGroupdIds.get(index) == null;
         logger.logf(Level.ALL, "Pushing formula for block %s:\n  %s", index, f);
         T itpGroupId = itpProver.push(f);
-        formulasWithStatesAndGroupdIds.set(index, Triple.of(f, state, itpGroupId));
+        formulasWithStatesAndGroupdIds.set(index, new InterpolationGroup<>(f, state, itpGroupId));
         currentlyAssertedFormulas.add(Pair.of(f, itpGroupId));
 
         // We need to iterate through the full loop

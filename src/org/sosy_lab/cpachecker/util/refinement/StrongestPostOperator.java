@@ -26,7 +26,7 @@ public interface StrongestPostOperator<S extends ForgetfulState<?>> {
    * that it represents no concrete states, an empty <code>Optional</code> is returned.
    *
    * @param origin the abstract state the computation is started at
-   * @param precision th precision to use for the computation
+   * @param precision the precision to use for the computation
    * @param operation the operation to perform
    * @return an <code>Optional</code> containing the computed abstract state. An empty <code>
    *     Optional</code>, if the resulting abstracted state is contradicting

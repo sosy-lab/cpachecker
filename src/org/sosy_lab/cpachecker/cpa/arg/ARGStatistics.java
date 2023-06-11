@@ -118,6 +118,11 @@ public class ARGStatistics implements Statistics {
 
   @Option(
       secure = true,
+      description = "when enabled also write invariant true to correctness-witness automata")
+  private boolean exportTrueInvariants = false;
+
+  @Option(
+      secure = true,
       name = "simplifiedARG.file",
       description =
           "export final ARG as .dot file, showing only loop heads and function entries/exits")
@@ -395,7 +400,9 @@ public class ARGStatistics implements Statistics {
           WitnessToOutputFormatsUtils.writeWitness(
               witnessFile,
               compressWitness,
-              pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
+              pAppendable ->
+                  WitnessToOutputFormatsUtils.writeToGraphMl(
+                      witness, exportTrueInvariants, pAppendable),
               logger);
         }
 

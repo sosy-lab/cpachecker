@@ -70,6 +70,7 @@ public final class Specification {
           .put(CommonVerificationProperty.VALID_MEMTRACK, "sv-comp-memorysafety")
           .put(CommonVerificationProperty.VALID_MEMCLEANUP, "sv-comp-memorycleanup")
           .put(CommonVerificationProperty.OVERFLOW, "sv-comp-overflow")
+          .put(CommonVerificationProperty.DATA_RACE, "sv-comp-datarace")
           .put(CommonVerificationProperty.DEADLOCK, "deadlock")
           .put(CommonVerificationProperty.ASSERT, "JavaAssertion")
           // .put(CommonPropertyType.TERMINATION, "none needed")
@@ -127,16 +128,11 @@ public final class Specification {
     ImmutableListMultimap.Builder<Path, Automaton> specificationAutomata =
         ImmutableListMultimap.builder();
 
-    Scope scope;
-    switch (cfa.getLanguage()) {
-      case C:
-        scope = new CProgramScope(cfa, logger);
-        break;
-      default:
-        scope = DummyScope.getInstance();
-        break;
-    }
-
+    Scope scope =
+        switch (cfa.getLanguage()) {
+          case C -> new CProgramScope(cfa, logger);
+          default -> DummyScope.getInstance();
+        };
     // for deduplicating values returned by getAutomatonForProperty()
     Set<Path> handledAutomataForProperties = new HashSet<>();
 

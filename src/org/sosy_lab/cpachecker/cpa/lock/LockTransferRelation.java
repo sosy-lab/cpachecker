@@ -232,8 +232,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   private List<AbstractLockEffect> handleAssumption(CAssumeEdge cfaEdge) {
     CExpression assumption = cfaEdge.getExpression();
 
-    if (assumption instanceof CBinaryExpression) {
-      CBinaryExpression binExpression = (CBinaryExpression) assumption;
+    if (assumption instanceof CBinaryExpression binExpression) {
       IdentifierCreator creator = new IdentifierCreator(cfaEdge.getSuccessor().getFunctionName());
       AbstractIdentifier varId = creator.createIdentifier(binExpression.getOperand1(), 0);
       if (varId instanceof SingleIdentifier) {
@@ -362,8 +361,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
        */
       CRightHandSide op2 = ((CAssignment) statement).getRightHandSide();
 
-      if (op2 instanceof CFunctionCallExpression) {
-        CFunctionCallExpression function = (CFunctionCallExpression) op2;
+      if (op2 instanceof CFunctionCallExpression function) {
         return handleFunctionCallExpression(function);
       } else {
         /*
@@ -387,11 +385,10 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
         }
       }
 
-    } else if (statement instanceof CFunctionCallStatement) {
+    } else if (statement instanceof CFunctionCallStatement funcStatement) {
       /*
        * queLock(que);
        */
-      CFunctionCallStatement funcStatement = (CFunctionCallStatement) statement;
       return handleFunctionCallExpression(funcStatement.getFunctionCallExpression());
     }
     // No lock-relating operations
@@ -418,7 +415,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
    * @return the verdict
    */
   public String doesChangeTheState(CFAEdge pEdge) {
-    return Joiner.on(",").join(getLockEffects(pEdge));
+    return getLockEffects(pEdge).join(Joiner.on(","));
   }
 
   public Statistics getStatistics() {

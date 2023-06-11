@@ -125,7 +125,7 @@ solver.smtinterpol.furtherOptions = []
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, YICES2]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
 
 # Sequentialize all solver actions to allow concurrent access!
 solver.synchronize = false
@@ -191,10 +191,6 @@ analysis.algorithm.CEGAR = false
 # with PredicateCPA and large-block encoding
 analysis.algorithm.IMC = false
 
-# use interpolation-sequence based model checking algorithm, works only with
-# PredicateCPA and large-block encoding
-analysis.algorithm.ISMC = false
-
 # Use MPI for running analyses in new subprocesses. The resulting reachedset
 # is the one of the first analysis returning in time. All other mpi-processes
 # will get aborted.
@@ -225,6 +221,9 @@ analysis.algorithm.faultLocalization.by_traceformula = false
 
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
+
+# Import faults stored in a JSON format.
+analysis.algorithm.importFaults = false
 
 # use nontermination witness validator to check a violation witness for
 # termination
@@ -325,7 +324,7 @@ analysis.functionPointerTargets = {
           FunctionSet.EQ_PARAM_COUNT}
 
 # What CFA nodes should be the starting point of the analysis?
-analysis.initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY)
+analysis.initialStatesFor = {InitialStatesFor.ENTRY}
 
 # run interprocedural analysis
 analysis.interprocedural = true
@@ -1075,6 +1074,10 @@ counterexample.export.exportCounterexampleCoverage = false
 # Export extended witness in addition to regular witness
 counterexample.export.exportExtendedWitness = false
 
+# exports a JSON file describing found faults, if fault localization is
+# activated
+counterexample.export.exportFaults = true
+
 # export test harness
 counterexample.export.exportHarness = false
 
@@ -1144,6 +1147,11 @@ counterexample.removeInfeasibleErrorState = true
 # may prevent a lot of similar infeasible counterexamples to get discovered,
 # but is unsound
 counterexample.removeInfeasibleErrors = false
+
+# If true, the counterexample checker will not assume a counterexample as
+# infeasible because of unsupported code. But will try different paths
+# anyway.
+counterexample.skipCounterexampleForUnsupportedCode = false
 
 # Compute and export information about the verification coverage?
 coverage.enabled = true
@@ -1281,6 +1289,9 @@ cpa.arg.export.code.header = true
 # this file
 cpa.arg.export.code.metadataOutput = no default value
 
+# when enabled also write invariant true to correctness-witness automata
+cpa.arg.exportTrueInvariants = false
+
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
 
@@ -1344,6 +1355,13 @@ cpa.arg.witness.exportAssumptions = true
 
 # Verification witness: Include function calls and function returns?
 cpa.arg.witness.exportFunctionCallsAndReturns = true
+
+# Export invariants in correctness witness also if location was not explored
+cpa.arg.witness.exportInvariantsForNonExploredStates = true
+
+# Export witness that is a combination of multiple (partial) correctness
+# witnesses, do not export default invariants
+cpa.arg.witness.exportJointWitnesses = false
 
 # Verification witness: Include the (starting) line numbers of the operations
 # on the transitions?
@@ -1709,9 +1727,6 @@ cpa.dca.refiner.dotExport = false
 # replaced by the automaton name.
 cpa.dca.refiner.dotExportFile = "%s.dot"
 
-# If set to true, all infeasible dummy states will be kept in the ARG.
-cpa.dca.refiner.keepInfeasibleStates = false
-
 # The max amount of refinements for the trace abstraction algorithm. Setting
 # it to 0 leads to an analysis of the ARG without executing any refinements.
 # This is used for debugging purposes.
@@ -2051,6 +2066,9 @@ cpa.predicate.abstraction.simplify = false
 # What to use for storing abstractions
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, FORMULA]
+
+# Export abstraction formulas as (way more readable) expressions.
+cpa.predicate.abstractions.asExpressions = false
 
 # Export one abstraction formula for each abstraction state into a file?
 cpa.predicate.abstractions.export = true
@@ -2550,6 +2568,10 @@ cpa.predicate.refinement.timelimit = 0ms
 # different options instead of giving up immediately.
 cpa.predicate.refinement.tryAgainOnInterpolationError = true
 
+# When interpolation query fails, attempt to check feasibility of the current
+# counterexample without interpolation
+cpa.predicate.refinement.tryWithoutInterpolation = true
+
 # Use BDDs to simplify interpolants (removing irrelevant predicates)
 cpa.predicate.refinement.useBddInterpolantSimplification = false
 
@@ -2806,7 +2828,7 @@ cpa.smg.deallocationFunctions = {"free"}
 # with this option enabled, heap abstraction will be enabled.
 cpa.smg.enableHeapAbstraction = false
 
-# If this Option is enabled, failure of mallocis simulated
+# If this Option is enabled, failure of malloc is simulated
 cpa.smg.enableMallocFail = true
 
 # Filename format for SMG graph dumps
@@ -2911,20 +2933,77 @@ cpa.smg.verifyPredicates = false
 # Allocation functions which set memory to zero
 cpa.smg.zeroingMemoryAllocation = {"calloc", "kzalloc"}
 
+# Enable GCC extension 'Arrays of Length Zero'.
+cpa.smg2.GCCZeroLengthArray = false
+
+# If heap values are to be abstracted based on CEGAR.
+cpa.smg2.abstraction.abstractHeapValues = false
+
+# Abstraction of all detected linked lists at loop heads.
+cpa.smg2.abstraction.abstractLinkedLists = true
+
+# Abstraction of program variables via CEGAR.
+cpa.smg2.abstraction.abstractProgramVariables = false
+
+# restrict abstraction computations to branching points
+cpa.smg2.abstraction.alwaysAtBranch = false
+
+# restrict abstraction computations to function calls/returns
+cpa.smg2.abstraction.alwaysAtFunction = false
+
+# restrict abstraction computations to join points
+cpa.smg2.abstraction.alwaysAtJoin = false
+
+# If enabled, abstraction computations at loop-heads are enabled. List
+# abstraction has to be enabled for this.
+cpa.smg2.abstraction.alwaysAtLoop = false
+
+# threshold for level of determinism, in percent, up-to which abstraction
+# computations are performed (and iteration threshold was reached)
+cpa.smg2.abstraction.determinismThreshold = 85
+
+# toggle liveness abstraction
+cpa.smg2.abstraction.doLivenessAbstraction = false
+
+# skip abstraction computations until the given number of iterations are
+# reached, after that decision is based on then current level of determinism,
+# setting the option to -1 always performs abstraction computations
+cpa.smg2.abstraction.iterationThreshold = -1
+
+# The minimum list segments directly following each other with the same value
+# needed to abstract them.Minimum is 2.
+cpa.smg2.abstraction.listAbstractionMinimumLengthThreshhold = 12
+
+# restrict liveness abstractions to nodes with more than one entering and/or
+# leaving edge
+cpa.smg2.abstraction.onlyAtNonLinearCFA = false
+
 # Allocate memory on declaration of external variable
 cpa.smg2.allocateExternalVariables = true
 
 # Array allocation functions
 cpa.smg2.arrayAllocationFunctions = {"calloc"}
 
+# Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
+cpa.smg2.assignEqualityAssumptions = true
+
+# Treat symbolic values as unknowns and assign new concrete values to them.
+cpa.smg2.assignSymbolicValues = true
+
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
 cpa.smg2.checkForMemLeaksAtEveryFrameDrop = true
 
+# Crash on unknown array dereferences
+cpa.smg2.crashOnUnknown = false
+
 # Deallocation functions
 cpa.smg2.deallocationFunctions = {"free"}
 
-# If this Option is enabled, failure of mallocis simulated
+# with this option enabled, heap abstraction will be enabled.
+cpa.smg2.enableHeapAbstraction = false
+
+# If this Option is enabled, failure of malloc is simulated
 cpa.smg2.enableMallocFail = true
 
 # Filename format for SMG graph dumps
@@ -2939,6 +3018,12 @@ cpa.smg2.externalAllocationFunction = {"ext_allocation"}
 
 # Default size of externally allocated memory
 cpa.smg2.externalAllocationSize = Integer.MAX_VALUE
+
+# Allocation size of memory that cannot be calculated.
+cpa.smg2.guessSize = BigInteger.valueOf(2)
+
+# Size of memory that cannot be calculated will be guessed.
+cpa.smg2.guessSizeOfUnknownMemorySize = false
 
 # Handle external variables with incomplete type (extern int array[]) as
 # external allocation
@@ -2955,6 +3040,21 @@ cpa.smg2.handleUnknownDereferenceAsSafe = false
 # Sets how unknown functions are handled.
 cpa.smg2.handleUnknownFunctions = STRICT
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
+
+# If this option is enabled, a memory allocation (e.g. malloc or array
+# declaration) for unknown memory sizes does not abort, but also does not
+# create any memory.
+cpa.smg2.ignoreUnknownMemoryAllocation = false
+
+# if there is an assumption like (x!=0), this option sets unknown
+# (uninitialized) variables to 1L, when the true-branch is handled.
+cpa.smg2.initAssumptionVars = false
+
+# get an initial precision from file
+cpa.smg2.initialPrecisionFile = no default value
+
+# get an initial precision from a predicate precision file
+cpa.smg2.initialPredicatePrecisionFile = no default value
 
 # Perform merge SMGStates by SMGJoin on ends of code block. Works with
 # 'merge=JOIN'
@@ -2977,7 +3077,40 @@ cpa.smg2.memoryErrors = true
 
 # which merge operator to use for the SMGCPA
 cpa.smg2.merge = "SEP"
-  allowed values: [SEP, JOIN]
+  allowed values: [SEP]
+
+# Assume that variables used only in a boolean context are either zero or
+# one.
+cpa.smg2.optimizeBooleanVariables = true
+
+# target file to hold the exported precision
+cpa.smg2.precisionFile = no default value
+
+# whether or not to use heuristic to avoid similar, repeated refinements
+cpa.smg2.refinement.avoidSimilarRepeatedRefinement = false
+
+# Which base precision should be used for a new precision? ALL: During
+# refinement, collect precisions from the complete ARG. SUBGRAPH: During
+# refinement, keep precision from all removed parts (subgraph) of the ARG.
+# CUTPOINT: Only the cut-point's precision is kept. TARGET: Only the target
+# state's precision is kept.
+cpa.smg2.refinement.basisStrategy = SUBGRAPH
+  enum:     [ALL, SUBGRAPH, TARGET, CUTPOINT]
+
+# whether or not to do lazy-abstraction
+cpa.smg2.refinement.doLazyAbstraction = true
+
+# whether to perform (more precise) edge-based interpolation or (more
+# efficient) path-based interpolation
+cpa.smg2.refinement.performEdgeBasedInterpolation = true
+
+# whether or not to do lazy-abstraction
+cpa.smg2.refinement.restart = PIVOT
+  enum:     [ROOT, PIVOT, COMMON]
+
+# Sets the level of runtime checking: NONE, HALF, FULL
+cpa.smg2.runtimeCheck = NONE
+  enum:     [FORCED, NONE, HALF, FULL]
 
 # Which unknown function are always considered as safe functions, i.e., free
 # of memory-related side-effects?
@@ -2986,6 +3119,9 @@ cpa.smg2.safeUnknownFunctions = {"abort"}
 # which stop operator to use for the SMGCPA
 cpa.smg2.stop = "SEP"
   allowed values: [SEP, NEVER, END_BLOCK]
+
+# Enable track predicates for possible memory safety error on SMG state
+cpa.smg2.trackErrorPredicates = false
 
 # Enable track predicates on SMG state
 cpa.smg2.trackPredicates = false
@@ -3478,6 +3614,10 @@ custominstructions.requirementsStateClassName = no default value
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
 
+# When checking for the data race property, use this configuration file
+# instead of the current one.
+datarace.config = no default value
+
 # Whether to consider pointees. Only if this option is set to true, a pointer
 # analysis is run during system dependence graph (SDG) construction and
 # dependencies of pointees are inserted into the SDG. If this option is set
@@ -3625,6 +3765,10 @@ faultLocalization.by_distance.metric = ADM
 # available.
 faultLocalization.by_distance.stopAfter = 40
 
+# whether to include variables beginning with
+# __FAULT_LOCALIZATION_precondition
+faultLocalization.by_traceformula.includeDeclared = true
+
 # Do not show faults that contain a certain variable. Use, e.g., 'main::x' to
 # ban variable 'x' in the main function. Use, e.g., '::x' to ban all
 # variables named 'x'. This is especially useful to filter specific faults if
@@ -3638,7 +3782,7 @@ faultLocalization.by_traceformula.postConditionType = LAST_ASSUME_EDGES_ON_SAME_
              LAST_ASSUME_EDGE_CLUSTER]
 
 # By default, the precondition only contains the failing variable assignment
-# of all nondet variables. Choose INITIAL_ASSIGNMENT to assignments like
+# of all nondet variables. Choose INITIAL_ASSIGNMENT to add assignments like
 # '<datatype> <variable-name> = <value>' to the precondition.
 faultLocalization.by_traceformula.preconditionType = NONDETERMINISTIC_VARIABLES_ONLY
   enum:     [NONDETERMINISTIC_VARIABLES_ONLY, INITIAL_ASSIGNMENT, ALWAYS_TRUE]
@@ -3646,6 +3790,24 @@ faultLocalization.by_traceformula.preconditionType = NONDETERMINISTIC_VARIABLES_
 # which algorithm to use
 faultLocalization.by_traceformula.type = UNSAT
   enum:     [UNSAT, MAXSAT, MAXORG, ERRINV]
+
+# Whether to zip the resulting JSON file.
+faultLocalization.export.compressed = false
+
+# Where to write machine readable faults.
+faultLocalization.export.outputFile = "faultlocalization.json"
+
+# Whether to run specified analysis
+faultLocalization.import.algorithmActivated = false
+
+# which explanations to use
+faultLocalization.import.explanations = []
+
+# path to the input json file with faults
+faultLocalization.import.importFile = no default value
+
+# which scoring functions to use
+faultLocalization.import.scorings = []
 
 # Configuration for programs containing more than @Option adressedRatio
 # addressed vars.
@@ -3682,17 +3844,56 @@ heuristicSelection.recursionConfig = no default value
 # Configuration for programs with a single loop.
 heuristicSelection.singleLoopConfig = no default value
 
-# toggle asserting targets at every iteration
+# toggle asserting targets at every iteration for IMC
 imc.assertTargetsAtEveryIteration = false
 
 # toggle checking forward conditions
 imc.checkForwardConditions = true
 
+# toggle checking whether the safety property is inductive
+imc.checkPropertyInductiveness = false
+
 # toggle falling back if interpolation or forward-condition is disabled
 imc.fallBack = true
 
-# toggle using interpolation to verify programs with loops
-imc.interpolation = true
+# toggle which strategy is used for computing fixed points in order to verify
+# programs with loops. ITP enables IMC algorithm, and ITPSEQ enables ISMC
+# algorithm. ITPSEQ_AND_ITP runs ISMC first, and if a fixed point is not
+# reached by ISMC, IMC is invoked.
+imc.fixedPointComputeStrategy = ITP
+  enum:     [NONE, ITP, ITPSEQ, ITPSEQ_AND_ITP]
+
+# toggle Impact-like covering for the ISMC fixed-point check
+imc.impactLikeCovering = false
+
+# toggle the strategy to determine the next loop iteration
+# to execute BMC phase of IMC or ISMC
+# CONST: increased by one (to guarantee a shortest counterexample)
+# EAGER: skip all iterations where a bug cannot be found
+imc.loopBoundIncrementStrategyForBMC = CONST
+  enum:     [CONST, EAGER]
+
+# toggle the strategy to determine the next loop iteration
+# to execute interpolation phase of IMC
+# CONST: increased by a constant (specified via
+# loopBoundIncrementValueForIMC)
+# EAGER: skip all iterations where a bug cannot be found
+imc.loopBoundIncrementStrategyForIMC = CONST
+  enum:     [CONST, EAGER]
+
+# toggle the strategy to determine the next loop iteration
+# to execute k-inductive check if "checkPropertyInductiveness" is enabled
+# CONST: increased by by a constant (specified via
+# loopBoundIncrementValueForKI)
+# EAGER: skip all iterations where a bug cannot be found
+imc.loopBoundIncrementStrategyForKI = CONST
+  enum:     [CONST, EAGER]
+
+# toggle the value to increment the loop bound by at each step for IMC
+imc.loopBoundIncrementValueForIMC = 1
+
+# toggle the value to increment the loop bound by at each step for KI
+imc.loopBoundIncrementValueForKI = 1
 
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false
@@ -3732,21 +3933,6 @@ invariantStore.invariantGenerationStrategy = REACHED_SET
 
 # The witness from which invariants should be generated.
 invariantStore.witness = "invariantwitness.yaml"
-
-# toggle checking forward conditions
-ismc.checkForwardConditions = true
-
-# toggle falling back if interpolation or forward-condition is disabled
-ismc.fallBack = true
-
-# toggle Impact-like covering for the fixed-point check
-ismc.impactLikeCovering = false
-
-# toggle using interpolation to verify programs with loops
-ismc.interpolation = true
-
-# toggle removing unreachable stop states in ARG
-ismc.removeUnreachableStopStates = false
 
 # Specify the class code path to search for java class or interface
 # definitions
@@ -4383,11 +4569,11 @@ solver.enableLoggingInSolver = false
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, YICES2]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
 
 # Which SMT solver to use.
 solver.solver = MATHSAT5
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, YICES2]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
 
 # Comma-separated list of files with specifications that should be checked
 # (cf. config/specification/ for examples). Property files as used in SV-COMP
@@ -4617,6 +4803,9 @@ traceformula.filter = ["main"]
 # variable is used as prefix, separated by two ':'
 traceformula.ignore = []
 
+# if enabled, nondet declarations get a selector, otherwise they don't
+traceformula.inlinePrecondition = true
+
 # Make trace formula flow-sensitive, i.e., assume edges imply the edges that
 # are only reachable through the assume edge. Flow-sensitive traces remove
 # assume edges from the trace. Hence, no assume edge will be part of a fault.
@@ -4730,6 +4919,9 @@ witness.strictChecking = true
 # neccessary.This option is intended to be used with an ISA (c.f. option
 # witness.invariantsSpecificationAutomaton)
 witness.useInvariantsAsAssumptions = true
+
+# extend name of each witness automaton with a unique id
+witness.useUniqueName = false
 
 # Validate program using invariants from ACSL annotations.
 witness.validation.correctness.acsl = false

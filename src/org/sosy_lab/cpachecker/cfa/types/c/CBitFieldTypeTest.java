@@ -25,7 +25,7 @@ public class CBitFieldTypeTest {
   private final ClassSanityTester tester = new ClassSanityTester();
 
   public CBitFieldTypeTest() {
-    tester.setDefault(CType.class, CNumericTypes.INT);
+    tester.setDistinctValues(CType.class, CNumericTypes.INT, CNumericTypes.CHAR);
   }
 
   @Test

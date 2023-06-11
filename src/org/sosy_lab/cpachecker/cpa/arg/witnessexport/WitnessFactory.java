@@ -95,6 +95,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.cpa.acsl.ACSLState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition.Scope;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
@@ -383,9 +384,8 @@ class WitnessFactory implements EdgeAppender {
       result = result.putAndCopy(KeyDef.FUNCTIONEXIT, functionName);
     }
 
-    if (pEdge instanceof AssumeEdge
+    if (pEdge instanceof AssumeEdge assumeEdge
         && !AutomatonGraphmlCommon.isPartOfTerminatingAssumption(pEdge)) {
-      AssumeEdge assumeEdge = (AssumeEdge) pEdge;
       // Check if the assume edge is an artificial edge introduced for pointer-calls
       if (AutomatonGraphmlCommon.isPointerCallAssumption(assumeEdge)) {
         // If the assume edge is followed by a pointer call,
@@ -550,27 +550,25 @@ class WitnessFactory implements EdgeAppender {
         assignments = getAssignments(cfaEdgeWithAssignments, null);
 
         // Export function return value for cases where it is not explicitly assigned to a variable
-        if (pEdge instanceof AStatementEdge) {
-          AStatementEdge edge = (AStatementEdge) pEdge;
-          if (edge.getStatement() instanceof AFunctionCallAssignmentStatement) {
-            AFunctionCallAssignmentStatement assignment =
-                (AFunctionCallAssignmentStatement) edge.getStatement();
-            if (assignment.getLeftHandSide() instanceof AIdExpression
-                && assignment.getFunctionCallExpression().getFunctionNameExpression()
-                    instanceof AIdExpression) {
-              AIdExpression idExpression = (AIdExpression) assignment.getLeftHandSide();
-              if (isTmpVariable(idExpression)) {
-                // get only assignments without nested tmpVariables (except self)
-                assignments = getAssignments(cfaEdgeWithAssignments, idExpression);
-                resultVariable = Optional.of(idExpression);
-                AIdExpression resultFunctionName =
-                    (AIdExpression)
-                        assignment.getFunctionCallExpression().getFunctionNameExpression();
-                if (resultFunctionName.getDeclaration() != null) {
-                  resultFunction = Optional.of(resultFunctionName.getDeclaration().getOrigName());
-                } else {
-                  resultFunction = Optional.of(resultFunctionName.getName());
-                }
+        if ((pEdge instanceof AStatementEdge edge)
+            && (edge.getStatement() instanceof AFunctionCallAssignmentStatement)) {
+          AFunctionCallAssignmentStatement assignment =
+              (AFunctionCallAssignmentStatement) edge.getStatement();
+          if (assignment.getLeftHandSide() instanceof AIdExpression
+              && assignment.getFunctionCallExpression().getFunctionNameExpression()
+                  instanceof AIdExpression) {
+            AIdExpression idExpression = (AIdExpression) assignment.getLeftHandSide();
+            if (isTmpVariable(idExpression)) {
+              // get only assignments without nested tmpVariables (except self)
+              assignments = getAssignments(cfaEdgeWithAssignments, idExpression);
+              resultVariable = Optional.of(idExpression);
+              AIdExpression resultFunctionName =
+                  (AIdExpression)
+                      assignment.getFunctionCallExpression().getFunctionNameExpression();
+              if (resultFunctionName.getDeclaration() != null) {
+                resultFunction = Optional.of(resultFunctionName.getDeclaration().getOrigName());
+              } else {
+                resultFunction = Optional.of(resultFunctionName.getName());
               }
             }
           }
@@ -719,10 +717,9 @@ class WitnessFactory implements EdgeAppender {
     // If there are only conjunctions, use multiple statements
     // instead of the "&&" operator that is harder to parse.
     if (ExpressionTrees.isAnd(assumption)) {
-      return Joiner.on("; ")
-          .join(
-              ExpressionTrees.getChildren(assumption)
-                  .transform(pTree -> ExpressionTrees.convert(pTree, converter)));
+      return ExpressionTrees.getChildren(assumption)
+          .transform(pTree -> ExpressionTrees.convert(pTree, converter))
+          .join(Joiner.on("; "));
     } else {
       return ExpressionTrees.convert(assumption, converter).toString();
     }
@@ -1041,8 +1038,7 @@ class WitnessFactory implements EdgeAppender {
             Multimaps.transformValues(
                 pCounterExample.orElseThrow().getExactVariableValues(),
                 WitnessAssumptionFilter::filterRelevantAssumptions);
-        if (cex instanceof FaultLocalizationInfoWithTraceFormula) {
-          FaultLocalizationInfoWithTraceFormula fInfo = (FaultLocalizationInfoWithTraceFormula) cex;
+        if (cex instanceof FaultLocalizationInfoWithTraceFormula fInfo) {
           List<Fault> faults = fInfo.getRankedList();
           if (!faults.isEmpty()) {
             Fault bestFault = faults.get(0);
@@ -1765,6 +1761,20 @@ class WitnessFactory implements EdgeAppender {
   }
 
   private boolean exportInvariant(CFAEdge pEdge, Optional<Collection<ARGState>> pFromState) {
+    if (!witnessOptions.exportInvariantsForNonExploredStates() && !pFromState.isPresent()) {
+      return false;
+    }
+
+    return exportInvariant0(pEdge, pFromState)
+        && (!witnessOptions.exportJointWitnesses()
+            || (pFromState.isPresent()
+                && from(pFromState.orElseThrow())
+                    .transformAndConcat(argState -> AbstractStates.asIterable(argState))
+                    .filter(AutomatonState.class)
+                    .anyMatch(state -> !state.hasDefaultCandidateInvariants())));
+  }
+
+  private boolean exportInvariant0(CFAEdge pEdge, Optional<Collection<ARGState>> pFromState) {
     if (pFromState.isPresent()
         && pFromState.orElseThrow().stream()
             .map(AbstractStates.toState(PredicateAbstractState.class))
@@ -1867,8 +1877,7 @@ class WitnessFactory implements EdgeAppender {
         }
         if (pNode.isLoopStart()) {
           boolean gotoLoop = false;
-          if (pNode instanceof CFALabelNode) {
-            CFALabelNode node = (CFALabelNode) pNode;
+          if (pNode instanceof CFALabelNode node) {
             for (BlankEdge e : CFAUtils.enteringEdges(pNode).filter(BlankEdge.class)) {
               if (e.getDescription().equals("Goto: " + node.getLabel())) {
                 gotoLoop = true;
@@ -1964,8 +1973,7 @@ class WitnessFactory implements EdgeAppender {
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof LoopEntryInfo) {
-        LoopEntryInfo other = (LoopEntryInfo) pOther;
+      if (pOther instanceof LoopEntryInfo other) {
         return Objects.equals(getLoopHead(), other.getLoopHead()) && gotoLoop == other.gotoLoop;
       }
       return false;

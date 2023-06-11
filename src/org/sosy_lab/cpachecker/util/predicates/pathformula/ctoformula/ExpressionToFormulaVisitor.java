@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -39,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -110,7 +110,7 @@ public class ExpressionToFormulaVisitor
 
   private Formula getPointerTargetSizeLiteral(
       final CPointerType pointerType, final CType implicitType) {
-    final int pointerTargetSize = conv.getSizeof(pointerType.getType());
+    final long pointerTargetSize = conv.getSizeof(pointerType.getType());
     return mgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
   }
 
@@ -269,30 +269,16 @@ public class ExpressionToFormulaVisitor
       case EQUALS:
       case NOT_EQUALS:
         {
-          BooleanFormula result;
-          switch (op) {
-            case GREATER_THAN:
-              result = mgr.makeGreaterThan(f1, f2, signed);
-              break;
-            case GREATER_EQUAL:
-              result = mgr.makeGreaterOrEqual(f1, f2, signed);
-              break;
-            case LESS_THAN:
-              result = mgr.makeLessThan(f1, f2, signed);
-              break;
-            case LESS_EQUAL:
-              result = mgr.makeLessOrEqual(f1, f2, signed);
-              break;
-            case EQUALS:
-              result = handleEquals(exp, f1, f2);
-              break;
-            case NOT_EQUALS:
-              result = conv.bfmgr.not(mgr.makeEqual(f1, f2));
-              break;
-            default:
-              throw new AssertionError();
-          }
-
+          BooleanFormula result =
+              switch (op) {
+                case GREATER_THAN -> mgr.makeGreaterThan(f1, f2, signed);
+                case GREATER_EQUAL -> mgr.makeGreaterOrEqual(f1, f2, signed);
+                case LESS_THAN -> mgr.makeLessThan(f1, f2, signed);
+                case LESS_EQUAL -> mgr.makeLessOrEqual(f1, f2, signed);
+                case EQUALS -> handleEquals(exp, f1, f2);
+                case NOT_EQUALS -> conv.bfmgr.not(mgr.makeEqual(f1, f2));
+                default -> throw new AssertionError();
+              };
           // Here we directly use the returnFormulaType instead of the calculcationType
           // to avoid a useless cast.
           // However, this means that we may not call makeCast() below
@@ -319,7 +305,7 @@ public class ExpressionToFormulaVisitor
     CExpression e1 = exp.getOperand1();
     CExpression e2 = exp.getOperand2();
     if (e2.equals(CIntegerLiteralExpression.ZERO)
-        && e1 instanceof CBinaryExpression
+        && e1 instanceof CBinaryExpression or
         && ((CBinaryExpression) e1).getOperator() == BinaryOperator.BINARY_OR) {
       // This is code like "(a | b) == 0".
       // According to LDV, GCC sometimes produces this during weaving,
@@ -327,7 +313,6 @@ public class ExpressionToFormulaVisitor
       // TODO Maybe refactor AutomatonASTComparator into something generic
       // and use this to match such cases.
 
-      final CBinaryExpression or = (CBinaryExpression) e1;
       final Formula zero = f2;
       final Formula a =
           processOperand(or.getOperand1(), exp.getCalculationType(), exp.getExpressionType());
@@ -509,7 +494,7 @@ public class ExpressionToFormulaVisitor
           CType returnType = exp.getExpressionType();
           FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
           if (!returnFormulaType.equals(mgr.getFormulaType(ret))) {
-            ret = conv.makeCast(t, returnType, ret, constraints, edge);
+            ret = conv.makeCast(promoted, returnType, ret, constraints, edge);
           }
           assert returnFormulaType.equals(mgr.getFormulaType(ret))
               : "Returntype "
@@ -1183,10 +1168,11 @@ public class ExpressionToFormulaVisitor
               pIsLongLong
                   ? conv.getFormulaTypeFromCType(CNumericTypes.LONG_LONG_INT)
                   : conv.getFormulaTypeFromCType(CNumericTypes.LONG_INT);
+          final boolean signed = true; // LongLongInt and LongInt are signed
 
-          castIntegral = fpfmgr.castTo(integral, type);
-          castNegative = fpfmgr.castTo(rounded_negative_Infinity, type);
-          castPositive = fpfmgr.castTo(rounded_positive_Infinity, type);
+          castIntegral = fpfmgr.castTo(integral, signed, type);
+          castNegative = fpfmgr.castTo(rounded_negative_Infinity, signed, type);
+          castPositive = fpfmgr.castTo(rounded_positive_Infinity, signed, type);
         }
 
         // XXX: Currently MathSAT does not support the rounding mode NEAREST_TIE_AWAY,
@@ -1318,7 +1304,7 @@ public class ExpressionToFormulaVisitor
         int offset = 0;
         BitvectorFormula result = bvMgrv.makeBitvector(bvReturnType, 0);
         while (offset < bvParamType.getSize()) {
-          BitvectorFormula bitAtOffset = bvMgrv.extract(bvParameter, offset, offset++, false);
+          BitvectorFormula bitAtOffset = bvMgrv.extract(bvParameter, offset, offset++);
           BitvectorFormula bitAtOffsetAsBV =
               bvMgrv.extend(bitAtOffset, bvReturnType.getSize() - 1, false);
           result = bvMgrv.add(result, bitAtOffsetAsBV);

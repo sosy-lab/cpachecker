@@ -286,7 +286,7 @@ public class SMGInterpolationTree {
     SMGInterpolant getInitialInterpolantForRoot(ARGState root);
   }
 
-  private class TopDownInterpolationStrategy implements SMGInterpolationStrategy {
+  private final class TopDownInterpolationStrategy implements SMGInterpolationStrategy {
 
     /** the states that are the sources for obtaining (partial) error paths */
     private Deque<ARGState> sources = new ArrayDeque<>(Collections.singleton(root));
@@ -371,7 +371,7 @@ public class SMGInterpolationTree {
     }
   }
 
-  private class BottomUpInterpolationStrategy implements SMGInterpolationStrategy {
+  private final class BottomUpInterpolationStrategy implements SMGInterpolationStrategy {
 
     /** the states that are the sources for obtaining error paths */
     private List<ARGState> sources;
@@ -431,7 +431,7 @@ public class SMGInterpolationTree {
    * @param file file the file to write to
    */
   public void exportToDot(PathTemplate file, long refinementCounter) {
-    StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
+    StringBuilder result = new StringBuilder().append("digraph tree {\n");
     for (Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
       if (interpolants.containsKey(current.getKey())) {
 

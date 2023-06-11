@@ -18,7 +18,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  *
  * <p>e.g. Type a = b;
  */
-public class JVariableDeclaration extends AVariableDeclaration implements JDeclaration {
+public sealed class JVariableDeclaration extends AVariableDeclaration implements JDeclaration
+    permits JFieldDeclaration {
 
   // TODO refactor to be either abstract or final
 

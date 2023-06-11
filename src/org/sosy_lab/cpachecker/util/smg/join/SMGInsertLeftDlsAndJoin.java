@@ -100,10 +100,10 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
             dlls1.getNestingLevel(),
             dlls1.getSize(),
             dlls1.getOffset(),
-            dlls1.getPrevOffset(),
+            dlls1.getHeadOffset(),
             dlls1.getNextOffset(),
-            0,
-            dlls1.getHeadOffset());
+            dlls1.getPrevOffset(),
+            0);
     mapping1.addMapping(dlls1, freshCopyDLLS1);
     destSMG = destSMG.copyAndAddObject(freshCopyDLLS1);
     // step 7 map unmapped nodes and exclude already mapped

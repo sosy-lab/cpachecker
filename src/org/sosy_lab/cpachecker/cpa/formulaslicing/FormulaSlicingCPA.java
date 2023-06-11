@@ -143,7 +143,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   public AbstractState join(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
     throw new UnsupportedOperationException(
-        "FormulaSlicingCPA should be used" + " with its own merge operator");
+        "FormulaSlicingCPA should be used with its own merge operator");
   }
 
   @Override

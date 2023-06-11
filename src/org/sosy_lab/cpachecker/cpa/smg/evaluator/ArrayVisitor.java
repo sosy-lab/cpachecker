@@ -48,7 +48,7 @@ class ArrayVisitor extends AddressVisitor
   @Override
   public List<SMGAddressAndState> visit(CUnaryExpression unaryExpression)
       throws CPATransferException {
-    throw new AssertionError("The result of any unary expression " + "cannot be an array type.");
+    throw new AssertionError("The result of any unary expression cannot be an array type.");
   }
 
   @Override

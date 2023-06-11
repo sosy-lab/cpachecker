@@ -162,8 +162,7 @@ public class CBinaryExpressionBuilder {
   public CBinaryExpression negateExpressionAndSimplify(final CExpression expr)
       throws UnrecognizedCodeException {
 
-    if (expr instanceof CBinaryExpression) {
-      final CBinaryExpression binExpr = (CBinaryExpression) expr;
+    if (expr instanceof CBinaryExpression binExpr) {
       BinaryOperator binOp = binExpr.getOperator();
       // some binary expressions can be directly negated: "!(a==b)" --> "a!=b"
       if (binExpr.getOperator().isLogicalOperator()) {
@@ -216,8 +215,7 @@ public class CBinaryExpressionBuilder {
         || (pType instanceof CElaboratedType
             && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM)) {
       return CNumericTypes.SIGNED_INT;
-    } else if (pType instanceof CBitFieldType) {
-      CBitFieldType bitFieldType = (CBitFieldType) pType;
+    } else if (pType instanceof CBitFieldType bitFieldType) {
       CType handledInnerType = handleEnum(bitFieldType.getType());
       if (handledInnerType == bitFieldType.getType()) {
         return pType;
@@ -529,7 +527,7 @@ public class CBinaryExpressionBuilder {
       return t2;
     }
 
-    /* Otherwise, the integer promotions are performed on both operands. */
+    // Otherwise, the integer promotions are performed on both operands.
 
     return getLongestIntegerPromotion(t1, t2);
   }
@@ -564,7 +562,7 @@ public class CBinaryExpressionBuilder {
     final int rank1 = getConversionRank(t1);
     final int rank2 = getConversionRank(t2);
 
-    /* If both operands have the same type, then no further conversion is needed. */
+    // If both operands have the same type, then no further conversion is needed.
     //      --> this is implicitly handled with next case
 
     /* Otherwise, if both operands have signed integer types or both have

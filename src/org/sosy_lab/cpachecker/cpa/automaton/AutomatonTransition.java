@@ -14,6 +14,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -76,6 +77,8 @@ class AutomatonTransition {
 
   private final ExpressionTree<AExpression> candidateInvariants;
 
+  private final boolean areDefaultCandidateInvariants;
+
   /** The actions are applied after the assertion are checked successfully. */
   private final ImmutableList<AutomatonAction> actions;
 
@@ -98,6 +101,7 @@ class AutomatonTransition {
     private String followStateName;
     private @Nullable AutomatonInternalState followState;
     private ExpressionTree<AExpression> candidateInvariants;
+    private boolean areDefaultCandidateInvariants;
     private @Nullable StringExpression targetInformation;
 
     Builder(AutomatonBoolExpr pTrigger, String pFollowStateName) {
@@ -107,6 +111,7 @@ class AutomatonTransition {
       actions = ImmutableList.of();
       followStateName = pFollowStateName;
       candidateInvariants = ExpressionTrees.getTrue();
+      areDefaultCandidateInvariants = true;
     }
 
     Builder(AutomatonBoolExpr pTrigger, @Nullable AutomatonInternalState pFollowState) {
@@ -114,31 +119,43 @@ class AutomatonTransition {
       followState = pFollowState;
     }
 
+    @CanIgnoreReturnValue
     Builder withAssertion(AutomatonBoolExpr pAssertion) {
       assertions = ImmutableList.of(pAssertion);
       return this;
     }
 
+    @CanIgnoreReturnValue
     Builder withAssertions(List<AutomatonBoolExpr> pAssertions) {
       assertions = pAssertions;
       return this;
     }
 
+    @CanIgnoreReturnValue
     Builder withAssumptions(List<AExpression> pAssumptions) {
       assumptions = pAssumptions;
       return this;
     }
 
+    @CanIgnoreReturnValue
     Builder withActions(List<AutomatonAction> pActions) {
       actions = pActions;
       return this;
     }
 
+    @CanIgnoreReturnValue
     Builder withCandidateInvariants(ExpressionTree<AExpression> pCandidateInvariants) {
       candidateInvariants = pCandidateInvariants;
       return this;
     }
 
+    @CanIgnoreReturnValue
+    Builder withNonDefaultCandidateInvariants() {
+      areDefaultCandidateInvariants = false;
+      return this;
+    }
+
+    @CanIgnoreReturnValue
     Builder withTargetInformation(StringExpression pTargetInformation) {
       targetInformation = pTargetInformation;
       return this;
@@ -150,6 +167,7 @@ class AutomatonTransition {
           assertions,
           assumptions,
           candidateInvariants,
+          areDefaultCandidateInvariants,
           actions,
           followStateName,
           followState,
@@ -163,6 +181,7 @@ class AutomatonTransition {
         b.assertions,
         b.assumptions,
         b.candidateInvariants,
+        b.areDefaultCandidateInvariants,
         b.actions,
         b.followStateName,
         b.followState,
@@ -174,6 +193,7 @@ class AutomatonTransition {
       List<AutomatonBoolExpr> pAssertions,
       List<AExpression> pAssumptions,
       ExpressionTree<AExpression> pCandidateInvariants,
+      boolean pAreDefaultCandidateInvariants,
       List<AutomatonAction> pActions,
       String pFollowStateName,
       AutomatonInternalState pFollowState,
@@ -188,6 +208,7 @@ class AutomatonTransition {
     }
 
     candidateInvariants = checkNotNull(pCandidateInvariants);
+    areDefaultCandidateInvariants = pAreDefaultCandidateInvariants;
 
     actions = ImmutableList.copyOf(pActions);
     followStateName = checkNotNull(pFollowStateName);
@@ -398,9 +419,7 @@ class AutomatonTransition {
             String functionName = CProgramScope.getFunctionNameOfArtificialReturnVar(idExpression);
             if (pEdge instanceof AStatementEdge) {
               AStatement statement = ((AStatementEdge) pEdge).getStatement();
-              if (statement instanceof AFunctionCallAssignmentStatement) {
-                AFunctionCallAssignmentStatement functionCallAssignment =
-                    (AFunctionCallAssignmentStatement) statement;
+              if (statement instanceof AFunctionCallAssignmentStatement functionCallAssignment) {
                 AExpression functionNameExpression =
                     functionCallAssignment.getFunctionCallExpression().getFunctionNameExpression();
                 if (functionNameExpression instanceof AIdExpression
@@ -427,6 +446,10 @@ class AutomatonTransition {
 
   public ExpressionTree<AExpression> getCandidateInvariants() {
     return candidateInvariants;
+  }
+
+  public boolean hasDefaultCandidateInvariants() {
+    return areDefaultCandidateInvariants;
   }
 
   public boolean isTransitionWithAssumptions() {

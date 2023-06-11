@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
-import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
 public abstract class AFunctionDeclaration extends AbstractDeclaration {
 
@@ -20,7 +20,7 @@ public abstract class AFunctionDeclaration extends AbstractDeclaration {
 
   protected AFunctionDeclaration(
       FileLocation pFileLocation,
-      IAFunctionType pType,
+      AFunctionType pType,
       String pName,
       String pOrigName,
       List<? extends AParameterDeclaration> pParameters) {
@@ -30,8 +30,8 @@ public abstract class AFunctionDeclaration extends AbstractDeclaration {
   }
 
   @Override
-  public IAFunctionType getType() {
-    return (IAFunctionType) super.getType();
+  public AFunctionType getType() {
+    return (AFunctionType) super.getType();
   }
 
   public List<? extends AParameterDeclaration> getParameters() {

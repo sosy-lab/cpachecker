@@ -110,7 +110,7 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
     if (value.isUnknown()) {
       if (binaryExp.getOperator().isLogicalOperator()) {
-        /* We may be able to get an explicit Value from pointer comparisons. */
+        // We may be able to get an explicit Value from pointer comparisons.
 
         List<? extends SMGValueAndState> symValueAndStates;
 
@@ -134,7 +134,7 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
           return new NumericValue(0);
         }
       } else if (BinaryOperator.MINUS == binaryExp.getOperator()) {
-        /* We may be able to get an explicit Value from pointer comparisons. */
+        // We may be able to get an explicit Value from pointer comparisons.
         // TODO without the redirection to the explicit value visitor above,
         // we could also directly solve this and avoid those special cases.
 
