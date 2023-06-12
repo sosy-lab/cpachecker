@@ -17,6 +17,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import static com.google.common.truth.Truth.assertThat;
 
@@ -37,6 +39,9 @@ public class ParallelDecompositionTest {
         creator.parseSourceAndCreateCFA("void main() { return; }"); final ParallelBlockNodeDecomposition decomposer = new ParallelBlockNodeDecomposition();
     final BlockGraph decomposed = decomposer.decompose(created);
     assertThat(decomposed.getNodes().size()).isEqualTo(1);
+    for(BlockNode n : decomposed.getNodes()){
+      n.getEdges().forEach(e -> assertThat(e.getEdgeType()).isNotEqualTo(CFAEdgeType.FunctionCallEdge));
+    }
   }
 
 
@@ -53,6 +58,27 @@ public class ParallelDecompositionTest {
     final ParallelBlockNodeDecomposition decomposer = new ParallelBlockNodeDecomposition();
     final BlockGraph decomposed = decomposer.decompose(created);
     assertThat(decomposed.getNodes().size()).isEqualTo(3);
+    for(BlockNode n : decomposed.getNodes()){
+      n.getEdges().forEach(e -> assertThat(e.getEdgeType()).isNotEqualTo(CFAEdgeType.FunctionCallEdge));
+    }
+  }
+
+
+  @Test
+  public void testDecomposeNested()
+      throws InvalidConfigurationException, ParserException,
+             InterruptedException {
+    final Configuration config =
+        TestDataTools.configurationForTest().setOption("language", "C").build();
+    final CFACreator creator = createTestingConfig(config);
+    final String program = "void main() { return; } int foo(int x) { if (x > 0) { return bar(); } else { return 0; }} int bar(){ return 1; }";
+    final CFA created =
+        creator.parseSourceAndCreateCFA(program);
+    final ParallelBlockNodeDecomposition decomposer = new ParallelBlockNodeDecomposition();
+    final BlockGraph decomposed = decomposer.decompose(created);
+    for(BlockNode n : decomposed.getNodes()){
+      n.getEdges().forEach(e -> assertThat(e.getEdgeType()).isNotEqualTo(CFAEdgeType.FunctionCallEdge));
+    }
   }
 
   private CFACreator createTestingConfig(Configuration config)
