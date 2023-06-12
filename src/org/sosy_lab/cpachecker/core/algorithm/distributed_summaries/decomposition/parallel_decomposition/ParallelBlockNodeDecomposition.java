@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.parallel_decomposition;
 //
-import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFADecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -21,14 +19,16 @@ public class ParallelBlockNodeDecomposition
 
   private final BlockNodeCFAVisitor visitor;
 
-  public ParallelBlockNodeDecomposition(Predicate<CFANode> pIsBlockEnd) {
-    visitor = new BlockNodeCFAVisitor(pIsBlockEnd);
+  public ParallelBlockNodeDecomposition() {
+    visitor = new BlockNodeCFAVisitor();
   }
 
   @Override
   public BlockGraph decompose(CFA cfa) throws InterruptedException {
-    for (FunctionEntryNode f : cfa.getAllFunctions().values())
+    for (FunctionEntryNode f : cfa.getAllFunctions().values()){
       CFAEdgeDFSTraversal.dfs().traverseOnce(f, visitor);
+      visitor.finish();
+    }
 
     return BlockGraph.fromBlockNodesWithoutGraphInformation(
         cfa, visitor.getBlockNodes());

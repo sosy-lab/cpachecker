@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.parallel_decomposition;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -21,13 +20,11 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 // Visitor which specifically ignores function call and return edges
 
 class BlockNodeCFAVisitor implements CFAVisitor {
-  private final Predicate<CFANode> isBlockEnd;
   private final ImmutableSet.Builder<BlockNodeWithoutGraphInformation>
       blockNodesWithoutGraphInformation;
   private final BlockNodeTracker tracker;
 
-  BlockNodeCFAVisitor(Predicate<CFANode> pIsBlockEnd) {
-    isBlockEnd = pIsBlockEnd;
+  BlockNodeCFAVisitor() {
     tracker = new BlockNodeTracker();
     blockNodesWithoutGraphInformation = ImmutableSet.builder();
   }
@@ -38,15 +35,16 @@ class BlockNodeCFAVisitor implements CFAVisitor {
                                                  CFunctionReturnEdge)
       return TraversalProcess.SKIP;
     tracker.track(edge);
-    if (isBlockEnd.test(edge.getSuccessor())) {
-      blockNodesWithoutGraphInformation.add(tracker.finish());
-    }
     return TraversalProcess.CONTINUE;
   }
 
   @Override
   public TraversalProcess visitNode(CFANode node) {
     return TraversalProcess.CONTINUE;
+  }
+
+  public void finish() {
+    blockNodesWithoutGraphInformation.add(tracker.finish());
   }
 
   ImmutableSet<BlockNodeWithoutGraphInformation> getBlockNodes() {
