@@ -198,7 +198,7 @@ public class CPAMain {
     // TODO: Ludwig insert write to file here!! This comes from CPAcheckerResult which is returned
     // by the run() function in CPAchecker.java
     // far result:result.stats.getSubStatistics();
-    saveArtefacts(result, options, logManager);
+    saveArtifacts(result, options, logManager);
 
     System.out.flush();
     System.err.flush();
@@ -311,16 +311,16 @@ public class CPAMain {
 
     @Option(
         secure = true,
-        name = "reprArtefacts.export",
-        description = "write reproduction artefacts to disk")
-    private boolean exportArtefacts = true;
+        name = "reprArtifacts.export",
+        description = "write reproduction artifacts to disk")
+    private boolean exportArtifacts = true;
 
     @Option(
         secure = true,
-        name = "reprArtefacts.file",
-        description = "write reproduction arte facts to disk")
+        name = "reprArtifacts.file",
+        description = "write reproduction artifacts to disk")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path exportArtefactsFile = Path.of("artefacts.txt");
+    private Path exportArtifactsFile = Path.of("artifacts.txt");
   }
 
   private static void dumpConfiguration(
@@ -819,16 +819,16 @@ public class CPAMain {
     }
   }
 
-  private static void saveArtefacts(
+  private static void saveArtifacts(
       CPAcheckerResult pResult, MainOptions options, LogManager logManager) {
 
     MainCPAStatistics mainstat = (MainCPAStatistics) pResult.getStatistics();
     Collection<Statistics> substats = mainstat.getSubStatistics();
 
-    if (options.exportArtefacts && options.exportArtefactsFile != null) {
+    if (options.exportArtifacts && options.exportArtifactsFile != null) {
       try (PrintWriter file =
           new PrintWriter(
-              new BufferedWriter(new FileWriter(options.exportArtefactsFile.toFile()))); ) {
+              new BufferedWriter(new FileWriter(options.exportArtifactsFile.toFile()))); ) {
         // MoreFiles.createParentDirectories(options.exportArtefactsFile);
         Properties reprProp = new Properties();
         substats.forEach(
@@ -844,7 +844,7 @@ public class CPAMain {
                     });
               }
             });
-        reprProp.store(file, "CPAchecker Artefacts file");
+        reprProp.store(file, "CPAchecker Artifacts file");
 
       } catch (IOException e) {
         logManager.logUserException(Level.WARNING, e, "Could not write artefacts to file");
