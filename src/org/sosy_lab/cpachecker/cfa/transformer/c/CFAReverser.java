@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,6 +50,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -89,7 +92,6 @@ public class CFAReverser {
   /** The reverse CFA builder */
   private static final class CfaBuilder {
     private final CFA pCfa;
-    private final Configuration pConfig;
     private final Specification pSpec;
     private final LogManager pLog;
     private final TargetLocationProvider targetFinder;
@@ -98,6 +100,7 @@ public class CFAReverser {
     private final NavigableMap<String, FunctionEntryNode> functions;
     private final TreeMultimap<String, CFANode> nodes;
     private final HashMap<CFunctionDeclaration, CFunctionDeclaration> funcDeclMap;
+    private final HashMap<CFANode, CFANode> nodeMap;
 
     private CfaBuilder(
         Configuration pConfiguration,
@@ -105,7 +108,7 @@ public class CFAReverser {
         LogManager pLogger,
         CFA pCfa,
         ShutdownNotifier shutdownNotifier) {
-      this.pConfig = pConfiguration;
+      checkNotNull(pConfiguration);
       this.pSpec = pSpecification;
       this.pLog = pLogger;
       this.pCfa = pCfa;
@@ -115,87 +118,85 @@ public class CFAReverser {
       this.functions = new TreeMap<>();
       this.nodes = TreeMultimap.create();
       this.funcDeclMap = new HashMap<>();
+      this.nodeMap = new HashMap<>();
     }
 
     private CFA createCfa() {
 
-      FunctionEntryNode dummyMain = null;
-      /* Reverse each Function's CFA */
+      FunctionEntryNode reverseMainEntry = newDummyMain();
+
+      // Reverse each Function's CFA
       for (Map.Entry<String, FunctionEntryNode> function : pCfa.getAllFunctions().entrySet()) {
         String name = function.getKey();
         FunctionEntryNode entryNode = function.getValue();
         FunctionEntryNode reverseEntryNode = reverseFunction(entryNode);
-        dummyMain = reverseEntryNode;
         functions.put(name, reverseEntryNode);
       }
-      /* second pass */
 
-      // FIXME : metadata for new CFA
-      return new MutableCFA(functions, nodes, pCfa.getMetadata().withMainFunctionEntry(dummyMain));
-    }
-
-    /** Reverse a single function's CFA. */
-    private FunctionEntryNode reverseFunction(FunctionEntryNode originalEntryNode) {
-      String funcName = originalEntryNode.getFunctionName();
-      CFunctionDeclaration oldDecl =
-          (CFunctionDeclaration) originalEntryNode.getFunctionDefinition();
-      // pLog.log(Level.INFO, "oldfdef: " +  oldfdef.toString());
-      CFunctionDeclaration newDecl = newDeclaration(oldDecl);
-      // pLog.log(Level.INFO, "oldfdef: " +  oldfdef.toString());
-      FunctionExitNode dummyExit = new FunctionExitNode(newDecl);
-      // pLog.log(Level.INFO, "dummyExit: " +  dummyExit.toString());
-      FunctionEntryNode dummyEntry =
-          new CFunctionEntryNode(FileLocation.DUMMY, newDecl, dummyExit, Optional.empty());
-      // pLog.log(Level.INFO, "dummyEntry: " +  dummyEntry.toString());
-      nodes.put(funcName, dummyEntry);
-      nodes.put(funcName, dummyExit);
-
-      funcDeclMap.put(oldDecl, newDecl);
-
+      // Search for the target in the original CFA
       ImmutableSet<CFANode> targets =
-          targetFinder.tryGetAutomatonTargetLocations(originalEntryNode, pSpec);
-      // Find if there is any target in this CFA, and connect them to the dummy entry.
+          targetFinder.tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pSpec);
+
+      // Connect main entry to each target
       for (CFANode oldtarget : targets) {
-        pLog.log(Level.INFO, "TARGET: " + oldtarget.toString());
-        CFANode newtarget = newNode(oldtarget);
+        pLog.log(Level.INFO, "OLD TARGET: " + oldtarget.toString());
+        CFANode newtarget = nodeMap.get(oldtarget);
+        pLog.log(Level.INFO, "NEW TARGET: " + newtarget.toString());
         BlankEdge dummyEdge =
-            new BlankEdge("", FileLocation.DUMMY, dummyEntry, newtarget, "Target Dummy Edge");
+            new BlankEdge("", FileLocation.DUMMY, reverseMainEntry, newtarget, "Target Dummy Edge");
         addToCFA(dummyEdge);
-        reverseEachTarget(funcName, oldtarget, newtarget);
       }
 
-      return dummyEntry;
+      return new MutableCFA(
+          functions, nodes, pCfa.getMetadata().withMainFunctionEntry(reverseMainEntry));
     }
 
-    /** For each new "entry", create a path which connect it with the original entry node */
-    private void reverseEachTarget(String funcName, CFANode oldtarget, CFANode newtarget) {
+    // Reverse a single function's CFA.
+    private FunctionEntryNode reverseFunction(FunctionEntryNode oldEntryNode) {
+      String funcName = oldEntryNode.getFunctionName();
+
+      CFunctionDeclaration oldDecl = (CFunctionDeclaration) oldEntryNode.getFunctionDefinition();
+      CFunctionDeclaration newDecl = newDeclaration(oldDecl);
+
+      FunctionExitNode oldExitNode = oldEntryNode.getExitNode().get();
+
+      FunctionEntryNode newEntry =
+          new CFunctionEntryNode(FileLocation.DUMMY, newDecl, null, Optional.empty());
+
+      nodeMap.put(oldExitNode, newEntry);
+      nodes.put(funcName, newEntry);
+      funcDeclMap.put(oldDecl, newDecl);
+
       // BFS the old CFA, starting with the target.
       Set<CFANode> visited = new HashSet<>();
       Deque<CFANode> waitList = new ArrayDeque<>();
-      TreeMap<CFANode, CFANode> nodeMap = new TreeMap<>();
-      waitList.add(oldtarget);
-      visited.add(oldtarget);
-      nodeMap.put(oldtarget, newtarget);
+      waitList.add(oldExitNode);
+      visited.add(oldExitNode);
       pLog.log(Level.INFO, "TRACE:");
-      while (!waitList.isEmpty()) {
 
+      while (!waitList.isEmpty()) {
         CFANode oldhead = waitList.remove();
-        pLog.log(Level.INFO, oldhead.toString());
+
         if (oldhead instanceof FunctionEntryNode) {
           continue;
         }
+
         CFANode newhead = nodeMap.get(oldhead);
+        checkNotNull(newhead);
+
         nodes.put(funcName, newhead);
 
         for (CFAEdge oldEdge : CFAUtils.allEnteringEdges(oldhead)) {
           pLog.log(Level.INFO, oldEdge.toString() + " " + oldEdge.getEdgeType());
           locstack.push(newhead);
+
           CFAEdge newedge = ((CCfaEdge) oldEdge).accept(edgeReverseVistor);
 
           CFANode oldNext = oldEdge.getPredecessor(); // forward edge
           CFANode newNext = newedge.getSuccessor(); // reverse edge
 
           nodeMap.put(oldNext, newNext);
+          pLog.log(Level.INFO, "newNext: " + newNext.toString());
           addToCFA(newedge);
 
           if (visited.add(oldNext)) {
@@ -203,6 +204,29 @@ public class CFAReverser {
           }
         }
       }
+
+      return newEntry;
+    }
+
+    private CFunctionEntryNode newDummyMain() {
+      CFunctionType type = new CFunctionType(CVoidType.VOID, new ArrayList<>(0), false);
+
+      CFunctionDeclaration dummyMain =
+          new CFunctionDeclaration(
+              FileLocation.DUMMY,
+              type,
+              "dummy_main",
+              "dummy_main",
+              new ArrayList<>(0),
+              ImmutableSet.of());
+
+      CFunctionEntryNode dummyEntryNode =
+          new CFunctionEntryNode(FileLocation.DUMMY, dummyMain, null, Optional.empty());
+
+      functions.put("dummy_main", dummyEntryNode);
+      nodes.put("dummy_main", dummyEntryNode);
+
+      return dummyEntryNode;
     }
 
     /////////////////////////////////////////////////////////////////////////////
@@ -228,7 +252,7 @@ public class CFAReverser {
         return new CFANode(funcDecl);
       } else if (node instanceof FunctionExitNode) {
         throw new IllegalStateException(
-            "FunctionExitNode should not be processed now." + node.toString());
+            "FunctionExitNode should not be processed here." + node.toString());
       } else {
         AFunctionDeclaration funcDecl = funcDeclMap.get(node.getFunction());
         return new CFANode(funcDecl);
@@ -299,6 +323,10 @@ public class CFAReverser {
         return null;
       }
     }
+
+    /////////////////////////////////////////////////////////////////////////////
+    // AST Visitor
+    /////////////////////////////////////////////////////////////////////////////
 
     /////////////////////////////////////////////////////////////////////////////
     // Helper methods
