@@ -165,6 +165,9 @@ solver.z3.usePhantomReferences = false
 #
 # SPDX-License-Identifier: Apache-2.0
 
+# Iteration Count Limit
+Limit.CPAStatistics.countIterations = -1
+
 # Refiner that SlicingDelegatingRefiner should delegate to
 SlicingDelegatingRefiner.refiner = no default value
 
@@ -4468,6 +4471,10 @@ report.file = "Report.html"
 
 # output file for visualizing message exchange
 reportFile = "block_analysis/block_analysis.json"
+
+# write reproduction artifacts to disk
+reprArtifacts.export = true
+reprArtifacts.file = "artifacts.txt"
 
 # set path to file which contains the condition
 residualprogram.assumptionFile = no default value
