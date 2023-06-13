@@ -41,6 +41,11 @@ public class StatisticsValue<T> {
     return value;
   }
 
+  /**
+   * @param pValue The new value to set
+   * @throws InterruptedException In the limit implementation, we stop the verification run by
+   *     interrupting
+   */
   public void setValue(T pValue) throws InterruptedException {
     value = pValue;
     for (StatisticsValueUpdateListener<T> li : statisticsValueUpdateListeners) {
