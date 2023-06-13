@@ -309,7 +309,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     while (reachedSet.hasWaitingState()) {
       shutdownNotifier.shutdownIfNecessary();
 
-      // stats.countIterations.register(new StatisticsLimit<>("Iteration Limit", 1));
       stats.countIterations.setValue(stats.countIterations.getValue() + 1);
 
       // Pick next state using strategy
