@@ -53,12 +53,21 @@ import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatHist;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsLimit;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsValue;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CPAStatistics implements Statistics {
+
+    @Options(prefix = "Limit.CPAStatistics")
+    private static class LimitOptions {
+      @Option(description = "Iteration Count Limit")
+      Integer countIterations = -1;
+    }
+
+    private final LogManager logger;
 
     private Timer totalTimer = new Timer();
     private Timer chooseTimer = new Timer();
@@ -167,6 +176,26 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       out.println("  Time for stop operator:         " + stopTimer);
       out.println("  Time for adding to reached set: " + addTimer);
     }
+
+    private void registerLimits(LimitOptions limits) {
+      if (limits.countIterations != -1) {
+        countIterations.register(
+            new StatisticsLimit<>("Iteration Count Limit", limits.countIterations));
+      }
+    }
+
+    private CPAStatistics(LogManager pLogger, Configuration pConfig) {
+      logger = pLogger;
+      LimitOptions limits = new LimitOptions();
+
+      try {
+        pConfig.inject(limits);
+        this.registerLimits(limits);
+      } catch (InvalidConfigurationException e) {
+        logger.logUserException(Level.WARNING, e, "Statistics Limits could not be instantiated.");
+      }
+    }
+
   }
 
   @Options(prefix = "cpa")
@@ -191,6 +220,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private final ConfigurableProgramAnalysis cpa;
     private final LogManager logger;
     private final ShutdownNotifier shutdownNotifier;
+    private Configuration config;
 
     public CPAAlgorithmFactory(
         ConfigurableProgramAnalysis cpa,
@@ -202,6 +232,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       config.inject(this);
       this.cpa = cpa;
       this.logger = logger;
+      this.config = config;
       shutdownNotifier = pShutdownNotifier;
 
       if (forcedCoveringClass != null) {
@@ -213,7 +244,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
     @Override
     public CPAAlgorithm newInstance() {
-      return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, reportFalseAsUnknown);
+      return new CPAAlgorithm(
+          cpa, logger, config, shutdownNotifier, forcedCovering, reportFalseAsUnknown);
     }
   }
 
@@ -223,13 +255,12 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       Configuration config,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-
     return new CPAAlgorithmFactory(cpa, logger, config, pShutdownNotifier).newInstance();
   }
 
   private final ForcedCovering forcedCovering;
 
-  private final CPAStatistics stats = new CPAStatistics();
+  private final CPAStatistics stats;
 
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
@@ -245,6 +276,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   private CPAAlgorithm(
       ConfigurableProgramAnalysis cpa,
       LogManager logger,
+      Configuration config,
       ShutdownNotifier pShutdownNotifier,
       ForcedCovering pForcedCovering,
       boolean pIsImprecise) {
@@ -257,6 +289,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     shutdownNotifier = pShutdownNotifier;
     forcedCovering = pForcedCovering;
     status = AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(!pIsImprecise);
+    this.stats = new CPAStatistics(logger, config);
   }
 
   @Override
