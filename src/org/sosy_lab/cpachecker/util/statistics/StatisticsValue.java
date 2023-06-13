@@ -53,9 +53,6 @@ public class StatisticsValue<T> {
     }
   }
 
-  /// ** @param out the PrintStream to use for printing the statistics */
-  // public void printValue(PrintStream out) {}
-
   public void register(StatisticsValueUpdateListener<T> pStatisticsValueListener) {
     statisticsValueUpdateListeners.add(pStatisticsValueListener);
   }
