@@ -17,7 +17,7 @@ public class StatisticsLimit<T extends Comparable<T>> implements StatisticsValue
 
   public StatisticsLimit(String pname, T pLimit) {
     name = pname;
-    limit = pLimit;
+    this.setLimit(pLimit);
   }
 
   /**
