@@ -1,0 +1,46 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+[flake8]
+max-line-length = 88
+ignore =
+    # not clear whether f"{s!r}" is better than "'{s}'" and suggestion is invalid for non-string objects
+    B028,
+    # temporarily disabled for historic reasons: line length, naming
+    E501,N801,N802,N803,N806,N815,N816,
+    # do not match Black output
+    E203,W503,
+    # we need imports after fiddling with sys.path
+    E402,
+    # logging messages of exceptions is not problematic
+    G200,
+    # we have no isort config
+    I,
+    # "... if .. else ..." is fine
+    IF100,
+    # using a result variable instead of early return allows later addition of logic
+    R504,
+    # elif/else after return/raise/continue/break is not necessary but can be easier to read
+    R505,R506,R507,R508,
+    # no warnings about assert
+    S101,
+    # no warnings about XML parsing
+    S320,S410,
+    # no warnings about all uses of subprocess
+    S404,S603,S607,
+    # several scripts use print() for their output, so allow it
+    T001,T201,
+    # only relevant if pytest is used
+    PT,T003
+exclude =
+    # code copied by build system
+    build,
+    # Created locally by IDE plugins
+    .ropeproject,
+    # No Python files here
+    src

@@ -1,0 +1,16 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+format_version: '1.0'
+
+# old file name: linux-4.2-rc1.tar.xz-32_7a-sound--core--snd-pcm.ko-ldv_main1_false-unreach-label.cil.out.c
+input_files: 'linux-4.2-rc1.tar.xz-32_7a-sound--core--snd-pcm.ko-ldv_main1.cil.out.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp
+    expected_verdict: false

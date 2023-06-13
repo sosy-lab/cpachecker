@@ -1,0 +1,680 @@
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2018 Lokesh Nandanwar
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!-- Refer to the doc/ReportTemplateStyleGuide.md for Coding and Style Guide. They will let you write better code
+with considerably less effort -->
+
+<!DOCTYPE html>
+<html ng-app="report">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- METATAGS -->
+    <title>CPAchecker Report</title>
+    <!-- REPORT_CSS -->
+    <script>
+      <!-- REPORT_JS -->
+    </script>
+  </head>
+
+  <body
+    ng-controller="ReportController"
+    id="report-controller"
+    onload="window.init()"
+  >
+    <header class="header">
+      <a href="https://cpachecker.sosy-lab.org/">
+        <img class="logo" ng-src="{{logo}}" />
+      </a>
+      <h1>
+        Report for
+        <!-- REPORT_NAME -->
+      </h1>
+      <span class="badge badge-info generated">
+        <!-- GENERATED -->
+      </span>
+    </header>
+
+    <div class="modal" id="renderStateModal" role="dialog" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title text-center">Graphs Rendering Progress</h4>
+          </div>
+          <div class="modal-body">
+            <p class="loader">
+              Rendered CFA graphs : &nbsp;
+              <span id="cfa-modal"></span>
+            </p>
+            <p class="loader">
+              Rendered ARG graphs : &nbsp;
+              <span id="arg-modal"></span>
+            </p>
+            <p id="arg-modal-error" class="loader" style="display: none">
+              Render ARG Error Graph
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sections">
+      <section id="errorpath_section" ng-controller="ErrorpathController">
+        <header ng-controller="SearchController" class="text-center">
+          <div class="btn-group" role="group" aria-label="Button group">
+            <button
+              class="btn btn-success"
+              ng-click="errPathPrevClicked($event)"
+              data-toggle="tooltip"
+              data-placement="top"
+              title="Click here to move on Previous Line"
+            >
+              Prev
+            </button>
+            <button class="btn btn-warning" ng-click="errPathStartClicked()">
+              Start
+            </button>
+            <button
+              class="btn btn-success"
+              ng-click="errPathNextClicked($event)"
+              data-toggle="tooltip"
+              data-placement="bottom"
+              title="Click here to move on Next Line"
+            >
+              Next
+            </button>
+          </div>
+          <div
+            class="help_button"
+            data-toggle="tooltip"
+            data-placement="top"
+            title="Get help!"
+          >
+            <a
+              tabindex="0"
+              role="button"
+              data-container="body"
+              data-toggle="popover"
+              data-html="true"
+              data-placement="right"
+              data-trigger="focus"
+              data-content="{{help_errorpath}}"
+              class="btn btn-outline-info btn-lg help_button"
+            >
+              <i class="fas fa-question-circle"></i>
+            </a>
+          </div>
+          <div class="input-group input-group-sm">
+            <input
+              type="text"
+              ng-keydown="checkIfEnter($event)"
+              class="form-control search-input"
+              placeholder="Search for..."
+            />
+            <span class="input-group-btn">
+              <button
+                ng-click="searchFor()"
+                class="btn btn-light"
+                type="button"
+              >
+                <i class="fas fa-search"></i>
+              </button>
+            </span>
+          </div>
+          <div id="searchOptions">
+            <label for="optionExactMatch">
+              <input
+                id="optionExactMatch"
+                type="checkbox"
+                name="searchOption"
+              />
+              <strong>Find only exact matches</strong>
+            </label>
+          </div>
+          <!--shown iff property analysis.algorithm.FaultLocalization=true-->
+          <div
+            id="fault-localization-info"
+            ng-hide="hideFaults"
+            class="horizontal-div"
+          >
+            <button
+              id="fault-button"
+              class="btn btn-success"
+              ng-click="faultClicked()"
+              data-toggle="tooltip"
+              data-placement="bottom"
+              title="Click here to get more detailed information about the error"
+            >
+              Change view
+            </button>
+            <div
+              class="help_button"
+              data-toggle="tooltip"
+              data-placement="top"
+              title="Get help!"
+            >
+              <a
+                tabindex="0"
+                role="button"
+                data-container="body"
+                data-toggle="popover"
+                data-html="true"
+                data-placement="bottom"
+                data-trigger="focus"
+                data-content="{{help_fault_localization}}"
+                class="btn btn-outline-info btn-lg help_button"
+              >
+                <i class="fas fa-question-circle"></i>
+              </a>
+            </div>
+          </div>
+          <div id="matches">
+            <p class="markedValues">
+              Matches in value-assignements (V): {{numOfValueMatches}}
+            </p>
+            <p class="markedDescriptions">
+              Matches in edge-description: {{numOfDescriptionMatches}}
+            </p>
+          </div>
+        </header>
+        <div
+          class="fileContent"
+          ng-controller="ValueAssignmentsController"
+          id="value-assignment"
+        >
+          <table id="err-table" ng-hide="hideErrorTable">
+            <tr id="errpath-header" ng-hide="hideFaults">
+              <td><pre></pre></td>
+              <td><pre>Rank</pre></td>
+              <td><pre>Scope</pre></td>
+            </tr>
+            <tr id="errpath-{{$index}}" ng-repeat="line in errorPath">
+              <td
+                ng-if="line.valString"
+                ng-click="showValues($event)"
+                data-toggle="popover"
+                data-placement="right"
+                data-trigger="click"
+                data-content="{{line.valString}}"
+              >
+                <pre>-V-</pre>
+              </td>
+              <td ng-if="!line.valString"></td>
+              <td
+                ng-if="line.bestrank"
+                ng-hide="hideFaults"
+                class="rank"
+                tabindex="0"
+                data-trigger="focus"
+                data-toggle="popover"
+                data-placement="right"
+                data-content="{{line.bestreason}}"
+              >
+                <pre>{{line.bestrank}}</pre>
+              </td>
+              <td
+                ng-if="!line.bestrank"
+                ng-hide="hideFaults"
+                class="rank"
+                tabindex="0"
+              ></td>
+              <td class="disabled" ng-click="clickedErrpathElement($event)">
+                <pre class="make-pretty">{{line.desc}}</pre>
+              </td>
+            </tr>
+          </table>
+          <table
+            class="fault-table"
+            ng-show="hideErrorTable && hasPrecondition"
+          >
+            <tr>
+              <td class="fault-precond-header">
+                Precondition (initial variable assignment):
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <p class="precondition">{{precondition}}</p>
+              </td>
+            </tr>
+          </table>
+          <table
+            ng-show="hideErrorTable"
+            ng-click="clickedFaultLocElement($event)"
+            class="fault-table"
+            ng-repeat="fault in faults"
+            id="fault-{{$index}}"
+          >
+            <tr>
+              <td
+                class="fault-rank"
+                data-toggle="tooltip"
+                data-placement="bottom"
+                title="Rank"
+              >
+                {{fault.rank}}.
+              </td>
+              <td
+                class="fault-score"
+                data-toggle="tooltip"
+                data-placement="bottom"
+                title="Score"
+              >
+                {{fault.score}}
+              </td>
+              <td class="fault-details-header">Details:</td>
+            </tr>
+            <tr class="fault-details">
+              <td colspan="3" html="true">
+                <div ng-bind-html="htmlTrusted(fault.reason)"></div>
+
+                <details>
+                  <summary>
+                    <strong>Current values:</strong>
+                  </summary>
+                  <table id="fault-values" class="value-table">
+                    <tr>
+                      <th>Name</th>
+                      <th>Value</th>
+                    </tr>
+                    <tr ng-repeat="(variable,value) in fault.valDict">
+                      <td ng-bind-html="htmlTrusted(variable)"></td>
+                      <td ng-bind-html="htmlTrusted(value)"></td>
+                    </tr>
+                  </table>
+                </details>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </section>
+
+      <section id="externalFiles_section">
+        <ul class="nav nav-pills nav-tabs">
+          <li class="nav-item" id="toggle_button_error_path">
+            <label
+              class="switch"
+              style="margin-top: 5px"
+              data-toggle="tooltip"
+              data-placement="bottom"
+              title="Toggle slider to show/hide error path section"
+            >
+              <input
+                type="checkbox"
+                checked
+                id="toggle_error_path"
+                ng-click="toggleErrorPathSection($event)"
+              />
+              <span class="slider round"></span>
+            </label>
+          </li>
+          <li
+            class="nav-item"
+            style="padding: 10px"
+            id="toggle_button_error_path_placeholder"
+          >
+            <span
+              class="badge badge-warning"
+              style="font-size: 1.1em"
+              data-toggle="tooltip"
+              data-placement="top"
+              title="Toggle slider to show/hide error path section"
+              >Show Error Path Section</span
+            >
+          </li>
+          <li
+            class="nav-item"
+            ng-class="{active: tabIsSet(1)}"
+            data-toggle="tooltip"
+            data-placement="top"
+            title="Shows CFA (Control flow Automation) of the Program"
+          >
+            <a
+              class="nav-link active"
+              data-toggle="pill"
+              href
+              ng-click="setTab(1)"
+              id="set-tab-1"
+              >CFA</a
+            >
+          </li>
+          <li
+            class="nav-item"
+            ng-class="{active: tabIsSet(2)}"
+            data-toggle="tooltip"
+            data-placement="top"
+            title="Shows ARG (Abstract Reachability Graph) of the Program"
+          >
+            <a
+              class="nav-link"
+              data-toggle="pill"
+              href
+              ng-click="setTab(2)"
+              id="set-tab-2"
+              >ARG</a
+            >
+          </li>
+          <li
+            class="nav-item"
+            ng-class="{active: tabIsSet(3)}"
+            data-toggle="tooltip"
+            data-placement="top"
+            title="Click here for source code of the program"
+          >
+            <a
+              class="nav-link"
+              data-toggle="pill"
+              href
+              ng-click="setTab(3)"
+              id="set-tab-3"
+              >Source</a
+            >
+          </li>
+          <li class="nav-item" ng-class="{active: tabIsSet(4)}">
+            <a class="nav-link" data-toggle="pill" href ng-click="setTab(4)"
+              >Log</a
+            >
+          </li>
+          <li class="nav-item" ng-class="{active: tabIsSet(5)}">
+            <a class="nav-link" data-toggle="pill" href ng-click="setTab(5)"
+              >Statistics</a
+            >
+          </li>
+          <li class="nav-item" ng-class="{active: tabIsSet(6)}">
+            <a class="nav-link" data-toggle="pill" href ng-click="setTab(6)"
+              >Configurations</a
+            >
+          </li>
+          <li class="nav-item" ng-class="{active: tabIsSet(7)}">
+            <a class="nav-link" data-toggle="pill" href ng-click="setTab(7)"
+              >About</a
+            >
+          </li>
+          <div>
+            <button
+              id="full_screen_mode"
+              class="btn btn-outline-info btn-lg help_button"
+              ng-click="makeFullScreen()"
+            >
+              <i class="fas fa-expand"></i> Full Screen Mode
+            </button>
+          </div>
+          <div
+            class="help_button"
+            data-toggle="tooltip"
+            data-placement="top"
+            title="Get help!"
+          >
+            <a
+              tabindex="0"
+              role="button"
+              data-container="body"
+              data-toggle="popover"
+              data-html="true"
+              data-placement="bottom"
+              data-trigger="focus"
+              data-content="{{help_content}}"
+              class="btn btn-outline-info btn-lg help_button"
+            >
+              <i class="fas fa-question-circle"></i>
+            </a>
+          </div>
+        </ul>
+
+        <div id="cfa-toolbar" ng-controller="CFAToolbarController">
+          <nav class="navbar navbar-light bg-light">
+            <div class="nav-item">
+              <label>
+                <strong>Displayed CFA</strong>
+              </label>
+              <select
+                class="btn btn-outline-secondary selectpicker"
+                ng-options="f as f for f in functions"
+                ng-model="selectedCFAFunction"
+                ng-change="setCFAFunction()"
+              ></select>
+            </div>
+            <div class="nav-item">
+              <label>
+                <strong>Mouse Wheel Zoom</strong>
+              </label>
+              <span class="button-checkbox">
+                <button
+                  class="btn btn-outline-secondary"
+                  id="cfa-zoom-button"
+                  type="button"
+                  data-color="primary"
+                  ng-click="zoomControl()"
+                >
+                  <i class="far fa-square"></i>
+                </button>
+              </span>
+            </div>
+            <div class="nav-item">
+              <label>
+                <strong>Split Threshold</strong>
+              </label>
+              <input
+                type="text"
+                aria-label="Split Threshold"
+                id="cfa-split-threshold"
+              />
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                ng-click="redraw()"
+                data-toggle="tooltip"
+                data-placement="top"
+                title="Refresh Split Threshold"
+              >
+                <i class="fas fa-sync"></i>
+              </button>
+            </div>
+          </nav>
+        </div>
+
+        <div id="arg-toolbar" ng-controller="ARGToolbarController">
+          <nav class="navbar navbar-light bg-light">
+            <div class="nav-item">
+              <label>
+                <strong>Displayed ARG</strong>
+              </label>
+              <select
+                class="btn btn-outline-secondary selectpicker"
+                ng-options="s as s for s in argSelections"
+                ng-model="$root.displayedARG"
+                ng-change="displayARG()"
+              ></select>
+            </div>
+            <div class="nav-item">
+              <label>
+                <strong>Mouse Wheel Zoom</strong>
+              </label>
+              <span class="button-checkbox">
+                <button
+                  class="btn btn-outline-secondary"
+                  id="arg-zoom-button"
+                  type="button"
+                  data-color="primary"
+                  ng-click="argZoomControl()"
+                >
+                  <i class="far fa-square"></i>
+                </button>
+              </span>
+            </div>
+            <div class="nav-item">
+              <label>
+                <strong>Split Threshold</strong>
+              </label>
+              <input
+                type="text"
+                aria-label="Split Threshold"
+                id="arg-split-threshold"
+              />
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                ng-click="argRedraw()"
+                data-toggle="tooltip"
+                data-placement="top"
+                title="Refresh Split Threshold"
+              >
+                <i class="fas fa-sync"></i>
+              </button>
+            </div>
+          </nav>
+        </div>
+
+        <div id="cfa-container" ng-class="{active: tabIsSet(1)}"></div>
+
+        <div id="arg-container" ng-class="{active: tabIsSet(2)}"></div>
+
+        <div
+          class="fileContent content"
+          ng-show="tabIsSet(3)"
+          ng-class="{active: tabIsSet(3)}"
+          ng-controller="SourceController"
+        >
+          <div class="edit-line">
+            <div class="dropdown" id="dropdownMenu2">
+              <button
+                class="btn btn-outline-secondary dropdown-toggle"
+                type="button"
+                data-toggle="dropdown"
+                aria-haspopup="true"
+                aria-expanded="true"
+              >
+                Displayed Sourcefile
+                <span class="caret"></span>
+              </button>
+              <ul class="dropdown-menu pre-scrollable">
+                <li ng-repeat="file in sourceFiles">
+                  <a ng-click="setSourceFile($index)">{{file}}</a>
+                </li>
+              </ul>
+            </div>
+            <label>
+              <strong>{{sourceFiles[selectedSourceFile]}}</strong>
+            </label>
+          </div>
+          <!--SOURCE_CONTENT-->
+        </div>
+        <div
+          class="fileContent content"
+          ng-show="tabIsSet(4)"
+          ng-class="{active: tabIsSet(4)}"
+        >
+          <!--LOG-->
+        </div>
+        <div
+          class="fileContent content"
+          ng-show="tabIsSet(5)"
+          ng-class="{active: tabIsSet(5)}"
+        >
+          <!--STATISTICS-->
+        </div>
+        <div
+          class="fileContent content"
+          ng-show="tabIsSet(6)"
+          ng-class="{active: tabIsSet(6)}"
+        >
+          <!--CONFIGURATION-->
+        </div>
+        <div
+          class="fileContent content"
+          ng-show="tabIsSet(7)"
+          ng-class="{active: tabIsSet(7)}"
+          ng-controller="AboutController"
+        >
+          <h3>About</h3>
+          <p>
+            This table was generated by
+            <a
+              className="link"
+              href="https://gitlab.com/sosy-lab/software/cpachecker"
+              target="_blank"
+              rel="noopener noreferrer"
+              >CPAchecker</a
+            >. For feedback, questions, and bug reports please use our
+            <a
+              className="link"
+              href="https://gitlab.com/sosy-lab/software/cpachecker/-/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+              >issue tracker</a
+            >.
+          </p>
+          <p>
+            License:
+            <a
+              className="link"
+              href="https://www.apache.org/licenses/LICENSE-2.0"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Apache 2.0 License
+            </a>
+          </p>
+          <details id="dependency-details">
+            <summary>
+              This application includes third-party dependencies under different
+              licenses. Click here to view them.
+            </summary>
+            <div
+              ng-repeat="dependency in dependencies.dependencies"
+              class="dependency-container"
+            >
+              <h4>
+                <a
+                  ng-href="https://www.npmjs.com/package/{{dependency.name}}/v/{{dependency.version}}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{dependency.name}} {{dependency.version}}
+                </a>
+              </h4>
+              <p ng-if="dependency.repository">
+                Source:
+                <a
+                  ng-href="{{dependency.repository}}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{dependency.repository}}
+                </a>
+              </p>
+              <p ng-if="dependency.copyright">{{dependency.copyright}}</p>
+              <p>
+                License:
+                <span
+                  ng-repeat="licensePart in linkifyLicenses(dependency.licenses) track by $index"
+                  ng-bind-html="licensePart"
+                ></span>
+              </p>
+              <p ng-if="dependency.licenseId">
+                <details>
+                  <summary>Full text of license</summary>
+                  <pre class="license-text">
+{{dependencies.licenses[dependency.licenseId]}}</pre
+                  >
+                </details>
+              </p>
+            </div>
+          </details>
+        </div>
+      </section>
+    </div>
+    <div class="tool_tip" id="infoBox" style="z-index: 1; visibility: hidden">
+      <div id="insideBox">
+        <span id="boxContent">&nbsp;</span>
+      </div>
+    </div>
+  </body>
+</html>

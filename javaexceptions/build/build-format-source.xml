@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+This file is part of SoSy-Lab Java-Project Template,
+a collection of common files and build definitions for Java projects:
+https://gitlab.com/sosy-lab/software/java-project-template
+
+SPDX-FileCopyrightText: 2018-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="format-source" basedir=".">
+
+    <!-- Targets for formatting source code. -->
+
+    <!-- DO NOT EDIT LOCALLY!
+         Keep this file synchronized with
+         https://gitlab.com/sosy-lab/software/java-project-template
+    -->
+
+    <target name="format-source" depends="resolve-dependencies"
+        description="Reformat the whole source">
+        <fileset dir="${source.dir}" id="source.files">
+            <include name="**/*.java" />
+        </fileset>
+        <pathconvert property="source.files" refid="source.files" pathsep="' '"/>
+        <java fork="true" classname="com.google.googlejavaformat.java.Main">
+            <classpath>
+                <fileset dir="${ivy.lib.dir}" includes="format-source/*.jar"/>
+            </classpath>
+            <!-- Make it work under Java 17 until https://github.com/google/google-java-format/issues/787 is fixed. -->
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED"/>
+            <jvmarg value="--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED"/>
+            <jvmarg value="--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED"/>
+            <jvmarg value="--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED"/>
+            <arg value="-i"/>
+            <arg line="'${source.files}'"/>
+        </java>
+    </target>
+</project>

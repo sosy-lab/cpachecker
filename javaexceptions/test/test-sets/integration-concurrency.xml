@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="1">
+
+  <option name="-noout"/>
+  <option name="-heap">1500M</option>
+
+  <rundefinition/>
+
+  <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+
+  <tasks name="value-concurrency">
+    <option name="-valueAnalysis-concurrency"/>
+
+    <include>../programs/benchmarks/pthread-atomic/*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix000.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix009.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix031.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix034_pso.opt_tso.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix041_power.opt_pso.opt_rmo.opt_tso.oepc_tso.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix048_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt_tso.oepc_tso.opt-podwr000_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt_tso.oepc_tso.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix048_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt_tso.oepc_tso.opt-podwr001_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt_tso.oepc_tso.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi000_power.opt_pso.opt_rmo.opt.yml.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi001_power.opt_pso.opt_rmo.opt_tso.oepc_tso.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe006_*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe007_*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe010_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe028_*opt.yml</include>
+  </tasks>
+
+  <tasks name="value-concurrency-Refinement">
+    <option name="-valueAnalysis-concurrency"/>
+    <option name="-setprop">analysis.algorithm.CEGAR=true</option>
+    <option name="-setprop">cegar.refiner=cpa.value.refiner.ValueAnalysisRefiner</option>
+
+    <include>../programs/benchmarks/pthread-wmm/mix000.oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix009.oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix031.oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix034_power.oepc_power.opt_pso.oepc_rmo.oepc_rmo.opt_tso.oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix041_power.oepc_pso.oepc_rmo.oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix048_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt_tso.oepc_tso.opt-podwr000_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt_tso.oepc_tso.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix048_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt_tso.oepc_tso.opt-podwr001_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt_tso.oepc_tso.opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi000_power.opt_pso.opt_rmo.opt.yml.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi001_power.oepc_pso.oepc_rmo.oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe006_*oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe010_power.oepc_power.opt_pso.oepc_pso.opt_rmo.oepc_rmo.opt.yml</include>
+  </tasks>
+
+  <tasks name="bdd-concurrency">
+    <option name="-bddAnalysis-concurrency"/>
+
+    <include>../programs/benchmarks/pthread-wmm/rfi005.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi010.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe006_*thin000_*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe007_*thin001_*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe014_*.yml</include>
+    <include>../programs/benchmarks/ldv-races/race-1*.yml</include>
+    <include>../programs/benchmarks/ldv-races/race-4*.yml</include>
+  </tasks>
+
+  <tasks name="bmc-concurrency">
+    <option name="-bmc-concurrency"/>
+
+    <include>../programs/benchmarks/pthread-wmm/mix054_*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi002_*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/thin001_*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe035_*.yml</include>
+    <include>../programs/benchmarks/ldv-races/race-2*.yml</include>
+    <!-- exclude flapping timeouts -->
+    <exclude>../programs/benchmarks/pthread-wmm/rfi002_power.*.opt.yml</exclude>
+    <exclude>../programs/benchmarks/pthread-wmm/safe007_power.*-thin001_power.oepc.yml</exclude>
+  </tasks>
+
+  <tasks name="predicateAnalysis-concurrency">
+    <option name="-predicateAnalysis-concurrency"/>
+
+    <include>../programs/benchmarks/pthread/stack-*.yml</include>
+    <include>../programs/benchmarks/pthread/stack_longer-*.yml</include>
+    <include>../programs/benchmarks/pthread-divine/ring*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe036.yml</include>
+    <include>../programs/benchmarks/ldv-races/race-3*.yml</include>
+    <include>../programs/benchmarks/pthread-driver-races/char_generic*.yml</include>
+    <!-- exclude flapping timeouts -->
+    <exclude>../programs/benchmarks/pthread/stack-1.yml</exclude>
+    <exclude>../programs/benchmarks/pthread/stack_longer-1.yml</exclude>
+  </tasks>
+
+  <columns>
+    <column title="#reached">Size of reached set</column>
+  </columns>
+
+</benchmark>

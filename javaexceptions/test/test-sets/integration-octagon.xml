@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="1">
+
+  <option name="-noout"/>
+  <option name="-heap">1500M</option>
+
+  <rundefinition>
+    <option name="-octagonAnalysis-refiner"/>
+  </rundefinition>
+
+  <!-- Integer Tests -->
+  <tasks name="ControlFlowInteger">
+      <include>../programs/benchmarks/ntdrivers-simplified/*.cil.yml</include>
+      <include>../programs/benchmarks/openssl-simplified/*.cil.yml</include>
+      <include>../programs/benchmarks/locks/*.yml</include>
+      <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+      <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
+      <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
+  </tasks>
+  <tasks name="Sequentialized">
+      <include>../programs/benchmarks/systemc/*.cil.yml</include>
+      <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+      <exclude reason="timeout">../programs/benchmarks/systemc/token_ring.1*</exclude>
+      <exclude reason="timeout">../programs/benchmarks/systemc/transmitter.1*</exclude>
+      <exclude>../programs/benchmarks/systemc/transmitter.06.cil.yml</exclude> <!-- flapping timeout -->
+      <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
+      <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
+  </tasks>
+  <tasks name="OctagonRegression-int">
+      <includesfile>../programs/simple/octagon/octagon-int.set</includesfile>
+      <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+      <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
+      <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
+  </tasks>
+  <tasks>
+      <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+      <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
+      <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+      <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
+      <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
+      <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_linux-43_1a-drivers--usb--gadget--mv_udc.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout / OOM -->
+  </tasks>
+
+  <!-- Widening Tests -->
+  <tasks name="Loops">
+      <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+      <exclude reason="timeout">../programs/benchmarks/loop-invgen/*</exclude>
+      <exclude reason="timeout">../programs/benchmarks/loop-industry-pattern/*</exclude>
+      <exclude reason="timeout">../programs/benchmarks/loop-new/*</exclude>
+      <exclude reason="timeout">../programs/benchmarks/loop-crafted/*</exclude>
+      <exclude reason="timeout">../programs/benchmarks/loop-lit/*</exclude>
+      <exclude>../programs/benchmarks/loop-acceleration/array_2-1.yml</exclude> <!-- flapping timeout -->
+      <exclude>../programs/benchmarks/loop-acceleration/array_2-2.yml</exclude> <!-- flapping timeout -->
+      <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
+      <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
+      <option name="-setprop">analysis.algorithm.CEGAR=false</option>
+      <option name="-setprop">cpa.octagon.initialPrecisionType=STATIC_FULL</option>
+      <option name="-setprop">analysis.checkCounterexamples=true</option>
+      <option name="-setprop">counterexample.checker=CPACHECKER</option>
+      <option name="-setprop">counterexample.checker.config=config/cex-checks/octagonAnalysis-as-cex-check.properties</option>
+  </tasks>
+
+  <!-- Float Tests -->
+  <tasks name="OctagonRegression-float">
+      <includesfile>../programs/simple/octagon/octagon-float.set</includesfile>
+      <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+      <option name="-setprop">OctagonCPA.precision.trackFloatVariables=true</option>
+      <option name="-setprop">cpa.octagon.octagonLibrary=FLOAT</option>
+  </tasks>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">Size of reached set</column>
+  </columns>
+</benchmark>

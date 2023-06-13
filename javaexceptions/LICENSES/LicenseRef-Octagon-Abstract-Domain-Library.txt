@@ -1,0 +1,67 @@
+
+        THE OCTAGON ABSTRACT DOMAIN LIBRARY - LICENSE
+
+The Octagon Abstract Domain Library is Copyright (c) 2001 Antoine Mine'.
+
+This license applies to all files distributed in the original package,
+including all source code, libraries, binaries, and documentation, except
+the files that are part of the GNU autoconf, automake, and libtool
+software.
+
+By using, distributing, or modifying the Octagon Abstract Domain Library,
+you indicate that you understand and accept all the terms of this license.
+
+DISCLAIMER
+This library is provided 'as is' without warranty of any kind, either
+expressed or implied, including, but not limited to, warranties of
+merchantability and fitness for a particular purpose, warranties of
+correctness and absence of error of any kind.
+In no event will the author be liable for any damage caused by the use,
+or inability to use, of the Octagon Abstract Domain Library.
+
+USING
+The Octagon Abstract Domain Library is intended for academic use only.
+The Octagon Abstract Domain Library may be used freely, in original or
+modified form, in any academic software, provided the software notice specify
+explicitly that it uses the Octagon Abstract Domain Library, what part
+of it are used, how it was modified, if it was modified, and precisely
+what usage of the Octagon Abstract Domain Library is done in the
+software.
+Commercial use of the library is not possible without the explicit
+authorization of the authors of the original and modified parts of the
+library.
+
+COPYING
+The Octagon Abstract Domain Library may be freely distributed in its original,
+unmodified package form, as long as no fee is charged for the package.
+Whenever the Octagon Abstract Domain Library or portions of it are
+distributed, this license must be included in unmodified form, and all files
+must contain their original copyright notices.
+If only a portion of a file is being distributed, the appropriate copyright
+notice must be copied into it from the beginning of the file, and this
+license must still be included in unmodified form.
+If the whole library or part of it is distributed in compiled or processed
+form, the present license must be included, as well as a a reference to
+the official library web site: http://www.di.ens.fr/~mine/oct/ .
+
+MODIFYING
+The Octagon Abstract Domain Library files may be freely modified and these
+modified files distributed under the terms of the COPYING section, provided
+that these files remain under the terms of the present license, and
+all files carry their original copyright notice, in addition to the list
+of all modifications the were made and their respective authors.
+If a modified version of the library is distributed in source, compiled or 
+processed form, the present license applies to all unmodified and modified
+parts and you must provide a reference to the modified sources, as well
+as a reference to the official library web site: 
+http://www.di.ens.fr/~mine/oct/ .
+
+EXTERNAL TOOLS
+The Octagon Abstract Domain Library is designed to operate with external
+programs and libraries not provided in this package, including,
+but not limited to, any C or C++ compiler, the OCaml programming language,
+the New Polka Library, the GMP library
+These tools must be used according to their respective license.
+The present license does not apply to them.
+The author is not responsible for any problem encountered with these
+tools.

@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab : -->
+<project name="CPAchecker" basedir="." default="build"
+         xmlns:unless="ant:unless"
+         xmlns:ivy="antlib:org.apache.ivy.ant">
+    <!-- Include a file in which all properties can be overridden.
+         This file won't get checked in and can be used to change properties
+         locally for one machine if necessary. -->
+    <property file="build.properties"/>
+    <property environment="env"/>
+
+    <property name="version.base" value="2.2.1-svn"/> <!-- change here for a release -->
+
+    <!-- Customization of build process. -->
+    <property name="jar.file" value="cpachecker.jar"/>
+    <property name="junit.dir" value="output/junit"/>
+    <property name="configuration-checks.dir" value="output/configuration-checks"/>
+    <property name="class.main" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
+    <property name="jar.excludes" value=""/>
+    <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
+    <property name="ivy.configurations" value="build, runtime, test, format-source, spotbugs, checkstyle"/>
+    <property name="documentation.options.file" value="doc/ConfigurationOptions.txt"/>
+    <property name="source.release" value="17"/>
+
+    <!-- The following error-prone checks are disabled:
+         BadImport: we often import FluentIterable.from and we have a Checkstyle check instead
+         ReferenceEquality: TODO enable this and fix alarms (but there are many cases where reference equality is desired)
+         UnusedMethods: Most CPAs have private constructors that are called only via reflection
+         UnusedVariable: false alarms for private records: https://github.com/google/error-prone/issues/2713
+         -->
+    <property name="errorprone.options" value="
+        -Xep:BadImport:OFF
+        -Xep:ReferenceEquality:OFF
+        -Xep:BanSerializableRead:OFF
+        -Xep:UnusedMethod:OFF
+        -Xep:UnusedVariable:OFF
+        "/>
+
+    <import file="build/build-ivy.xml"/>
+    <import file="build/build-version-local.xml"/>
+    <import file="build/build-compile.xml"/>
+    <import file="build/build-jar.xml"/>
+    <import file="build/build-documentation-local.xml"/>
+    <import file="build/build-dist.xml"/>
+    <import file="build/build-junit.xml"/>
+    <import file="build/build-format-source.xml"/>
+    <import file="build/build-checkstyle.xml"/>
+    <import file="build/build-spotbugs.xml"/>
+    <import file="build/build-configuration-checks.xml"/>
+
+    <property name="version.file" value="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
+    <property name="verifiercloud.version" value="0.+"/> <!-- Version of VerifierCloud to use ("+" is wildcard). -->
+    <property name="verifiercloud.refresh" value="true"/> <!-- Lookup newest version of VerifierCloud on server each time. -->
+
+    <!-- Set of files to be copied from src to bin -->
+    <patternset id="source.additional">
+        <include name="**/*.properties" />
+        <include name="org/sosy_lab/cpachecker/core/counterexample/build/*" />
+        <include name="org/sosy_lab/cpachecker/core/counterexample/report.html" />
+    </patternset>
+
+    <path id="classpath">
+        <pathelement location="${class.dir}"/>
+        <fileset dir="lib" includes="*.jar"/>
+        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar"/>
+    </path>
+
+    <!-- Needs to include all annotation processors and error-prone -->
+    <path id="processorpath">
+        <fileset dir="${ivy.lib.dir}" includes="build/*.jar runtime/common.jar"/>
+    </path>
+
+    <!-- Main targets -->
+
+    <target name="clean">
+        <delete includeEmptyDirs="true">
+            <fileset dir="." includes="${class.dir}/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
+        </delete>
+
+        <!-- Clean subprojects -->
+        <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" target="clean" inheritAll="false"/>
+        <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" target="clean" inheritAll="false"/>
+        <ant antfile="src/org/sosy_lab/cpachecker/util/ltl/AntlrParser.xml" target="clean" inheritAll="false"/>
+        <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acsl/ACSLParserBuild.xml" target="clean" inheritAll="false"/>
+    </target>
+
+    <target name="build" depends="-warn-factorypath, build-project, build-documentation" description="Build"/>
+
+    <target name="forbiddenapis" depends="build-project" description="Check for usage of unwanted APIs">
+        <taskdef name="forbiddenapis"
+                classname="de.thetaphi.forbiddenapis.ant.AntTask"
+                classpath="${ivy.lib.dir}/build/forbiddenapis.jar"/>
+        <forbiddenapis
+                classpathref="classpath" dir="${class.dir}"
+                targetVersion="11"
+                suppressAnnotation="org.sosy_lab.common.annotations.SuppressForbidden">
+            <!-- explanation of bundled signatures:
+                 https://github.com/policeman-tools/forbidden-apis/wiki/BundledSignatures -->
+            <bundledsignatures name="jdk-deprecated"/>
+            <bundledsignatures name="jdk-non-portable"/>
+            <bundledsignatures name="jdk-reflection"/>
+            <bundledsignatures name="jdk-system-out"/>
+            <signaturesFileset file="build/forbiddenapis.txt"/>
+        </forbiddenapis>
+    </target>
+
+    <target name="resolve-benchmark-dependencies" depends="load-ivy" description="Retrieve dependencies for benchmark configuration" unless="ivy.disable">
+        <condition property="ivy.useCacheOnly" value="true" else="false"><not><istrue value="${verifiercloud.refresh}"/></not></condition>
+        <ivy:resolve conf="benchmark" log="download-only" resolveMode="dynamic" useCacheOnly="${ivy.useCacheOnly}" refresh="${verifiercloud.refresh}"/>
+        <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-benchmark/[artifact](-[classifier]).[ext]"/>
+    </target>
+
+    <target name="tests" depends="unit-tests, configuration-checks, python-unit-tests" description="Run all tests"/>
+
+    <target name="all-checks" description="Run all tests and checks">
+        <!-- We have to use antcall here to run clean twice. -->
+        <antcall target="clean"/>
+        <antcall target="build-project-ecj"/>
+        <antcall target="clean"/>
+        <antcall target="standard-checks"/>
+    </target>
+
+    <!-- Auxiliary targets -->
+
+    <target name="init" depends="create-version-file">
+        <echo message="Building ${ant.project.name} ${version.base}"/>
+    </target>
+
+    <target name="build-subprojects">
+            <echo message="Generate automaton parser if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
+            <echo message="Generate precision-rewriting parser if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" inheritAll="false"/>
+            <echo message="Generate antlr4 parser if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/util/ltl/AntlrParser.xml" inheritAll="false"/>
+            <echo message="Generate ACSL parser if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acsl/ACSLParserBuild.xml" inheritAll="false"/>
+    </target>
+
+    <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>
+
+    <available file=".factorypath" property="factorypath.present"/>
+    <target name="-warn-factorypath" unless="factorypath.present">
+        <echo level="warning">If you use Eclipse, please create a copy of .factorypath.template and name it .factorypath, (if necessary) adjust the path to your CPAchecker directory in it.</echo>
+        <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
+    </target>
+
+    <target name="standard-checks" depends="tests, spotbugs, checkstyle, forbiddenapis"/>
+
+    <target name="python-unit-tests" depends="build" description="Run unit tests of python scripts">
+        <!-- Tests are only executed if python is available, ignored otherwise. -->
+        <exec executable="python3"
+            failonerror="true"
+            failifexecutionfails="false">
+            <arg line="-m unittest discover scripts"/>
+        </exec>
+    </target>
+</project>

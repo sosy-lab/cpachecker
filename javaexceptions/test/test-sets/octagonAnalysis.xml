@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.4//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.4.dtd">
+<benchmark tool="cpachecker" timelimit="500 s" hardtimelimit="550 s" memlimit="32 GB" cpuCores="2">
+  <option name="-heap">2000M</option>
+  <option name="-noout"/>
+  <option name="-disable-java-assertions"/>
+
+  <tasks name="ControlFlow">
+    <include>../programs/benchmarks/ntdrivers-simplified/*.cil.yml</include>
+    <include>../programs/benchmarks/openssl-simplified/*.cil.yml</include>
+    <include>../programs/benchmarks/locks/*.yml</include>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ECA">
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <include>../programs/benchmarks/eca-rers2012/Problem0*.yml</include>
+  </tasks>
+  <tasks name="DeviceDrivers64">
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="Loops">
+    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="ProductLines">
+    <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks name="Sequentialized">
+    <include>../programs/benchmarks/systemc/*.cil.yml</include>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+<!-- Analyses with a single run -->
+
+ <rundefinition name="apronAnalysis-mergeSep">
+    <option name="-apronAnalysis"/>
+ </rundefinition>
+ <rundefinition name="octagonAnalysis-mergeSep">
+    <option name="-octagonAnalysis"/>
+ </rundefinition>
+ <rundefinition name="octagonAnalysis-mergeJoin">
+    <option name="-octagonAnalysis-mergeJoin-cexCheck"/>
+    <option name="-setprop">analysis.checkCounterexamples=false</option>
+ </rundefinition>
+ <rundefinition name="octagonAnalysis-mergeJoin-cexCheck">
+    <option name="-octagonAnalysis-mergeJoin-cexCheck"/>
+ </rundefinition>
+ <rundefinition name="octagonAnalysis-mergeJoinOnlyBlocks-cexCheck">
+    <option name="-octagonAnalysis-mergeJoin-cexCheck"/>
+    <option name="-setprop">cpa.octagon.mergeop.onlyMergeAtLoopHeads=true</option>
+ </rundefinition>
+ <rundefinition name="octagonAnalysis-mergeWidening">
+    <option name="-octagonAnalysis-mergeWidening-cexCheck"/>
+    <option name="-setprop">analysis.checkCounterexamples=false</option>
+ </rundefinition>
+ <rundefinition name="octagonAnalysis-mergeWidening-cexCheck">
+    <option name="-octagonAnalysis-mergeWidening-cexCheck"/>
+ </rundefinition>
+ <rundefinition name="octagonAnalysis-mergeWideningOnlyBlocks-cexCheck">
+    <option name="-octagonAnalysis-mergeWidening-cexCheck"/>
+    <option name="-setprop">cpa.octagon.mergeop.onlyMergeAtLoopHeads=true</option>
+ </rundefinition>
+  <rundefinition name="octagonAnalysis-refiner">
+    <option name="-octagonAnalysis-refiner"/>
+ </rundefinition>
+
+<!-- Analyses with a sequential combination of runs -->
+ <rundefinition name="octagonAnalysis-restart-int-refiner-widening-100_400">
+    <option name="-octagonAnalysis-restart-int"/>
+    <option name="-setprop">restartAlgorithm.configFiles=config/unmaintained/octagonAnalysis-mergeWidening-cexCheck-restart-int-100.properties,config/unmaintained/octagonAnalysis-refiner-restart-int.properties</option>
+ </rundefinition>
+ <rundefinition name="octagonAnalysis-restart-int-refiner-widening-100_350_50">
+    <option name="-octagonAnalysis-restart-int"/>
+    <option name="-setprop">restartAlgorithm.configFiles=config/unmaintained/octagonAnalysis-mergeWidening-cexCheck-restart-int-100.properties,config/unmaintained/octagonAnalysis-refiner-restart-int-350.properties,config/unmaintained/octagonAnalysis.properties</option>
+ </rundefinition>
+ <rundefinition name="octagonAnalysis-restart-int-refiner-join">
+    <option name="-octagonAnalysis-restart-int"/>
+    <option name="-setprop">restartAlgorithm.configFiles=config/unmaintained/octagonAnalysis-mergeJoin-cexCheck.properties,config/unmaintained/octagonAnalysis-refiner-restart-int.properties</option>
+ </rundefinition>
+ <rundefinition name="octagonanalysis-restart-int-refiner-widening-250_250">
+   <option name="-octagonAnalysis-restart-int"/>
+ </rundefinition>
+
+<!-- Analyses which were compared to the octagon ones in Bachelor thesis of Thomas Stieglmaier -->
+<!--
+ <rundefinition name="valueAnalysis-NoCegar">
+    <option name="-heap">29000M</option>
+    <option name="-valueAnalysis-NoCegar"/>
+    <option name="-setprop">analysis.checkCounterexamples=false</option>
+ </rundefinition>
+ <rundefinition name="valueAnalysis-Cegar">
+    <option name="-heap">29000M</option>
+    <option name="-valueAnalysis-Cegar"/>
+    <option name="-setprop">analysis.checkCounterexamples=false</option>
+ </rundefinition>
+ <rundefinition name="predicateAnalysis">
+    <option name="-heap">25000M</option>
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">analysis.checkCounterexamples=false</option>
+ </rundefinition>
+-->
+</benchmark>

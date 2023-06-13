@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+This file is part of SoSy-Lab Java-Project Template,
+a collection of common files and build definitions for Java projects:
+https://gitlab.com/sosy-lab/software/java-project-template
+
+SPDX-FileCopyrightText: 2018-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="jar" basedir=".">
+
+    <!-- Targets for generating JAR files. -->
+
+    <!-- DO NOT EDIT LOCALLY!
+         Keep this file synchronized with
+         https://gitlab.com/sosy-lab/software/java-project-template
+    -->
+
+    <!-- These properties can and should be overridden from including file. -->
+    <property name="class.main" value=""/>
+    <property name="project.url" value=""/>
+    <property name="jar.excludes" value="**/*Test.class **/*Test$*.class"/>
+    <property name="jar.sources.excludes" value="**/*Test.java"/>
+
+    <target name="jar" depends="determine-version,build" description="Create a runnable JAR file">
+        <property name="jar.file" value="${ivy.module}-${version}.jar"/>
+        <copy todir="${class.dir}"><fileset dir="." includes="META-INF/**"/></copy>
+        <manifestclasspath property="classpath.jar"
+                jarfile="${ivy.lib.dir}/${ivy.configuration.main}/${jar.file}"
+                maxParentLevels="0">
+            <classpath><fileset dir="${ivy.lib.dir}/${ivy.configuration.main}" includes="*.jar"/></classpath>
+        </manifestclasspath>
+        <jar basedir="${class.dir}/"
+                destfile="${jar.file}"
+                includes="**"
+                excludes="${jar.excludes}"
+                whenmanifestonly="fail">
+            <metainf dir="." includes="LICENSE"/>
+            <manifest>
+                <attribute name="Class-Path" value="${classpath.jar}"/>
+                <attribute name="Main-Class" value="${class.main}"/>
+                <attribute name="Implementation-Title" value="${ant.project.name}"/>
+                <attribute name="Implementation-Version" value="${version}"/>
+                <attribute name="Implementation-URL" value="${project.url}"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="sources" depends="determine-version, resolve-dependencies">
+        <jar destfile="${ivy.module}-${version}-sources.jar"
+                whenmanifestonly="fail">
+            <fileset dir="${source.dir}/" includes="**/*.java" excludes="${jar.sources.excludes}"/>
+            <fileset dir="${source.generated.dir}/" includes="**/*.java" excludes="${jar.sources.excludes}"/>
+            <metainf dir="." includes="LICENSE"/>
+            <manifest>
+                    <attribute name="Implementation-Title" value="${ant.project.name}"/>
+                    <attribute name="Implementation-Version" value="${version}"/>
+            </manifest>
+        </jar>
+    </target>
+</project>

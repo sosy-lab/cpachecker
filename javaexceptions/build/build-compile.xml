@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+This file is part of SoSy-Lab Java-Project Template,
+a collection of common files and build definitions for Java projects:
+https://gitlab.com/sosy-lab/software/java-project-template
+
+SPDX-FileCopyrightText: 2018-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="compile" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
+
+    <!-- Targets for compilation. -->
+
+    <!-- DO NOT EDIT LOCALLY!
+         Keep this file synchronized with
+         https://gitlab.com/sosy-lab/software/java-project-template
+    -->
+
+    <!-- These properties can be overridden from including file. -->
+    <property name="source.release" value="11"/>
+    <property name="source.dir" value="src"/>
+    <property name="source.generated.dir" value=".apt-generated"/>
+    <property name="class.dir" value="bin"/>
+    <!-- <property name="errorprone.disable" value=""/> --> <!-- Disable error-prone completely. -->
+    <property name="errorprone.options" value=""/>
+
+    <path id="processorpath">
+        <fileset dir="${ivy.lib.dir}" includes="build/*.jar"/>
+    </path>
+
+    <patternset id="source.additional">
+        <exclude name="**/*.java" />
+    </patternset>
+
+    <!-- error-prone config from https://errorprone.info/docs/installation#jdk-16 -->
+    <property name="errorprone.options.required" value="
+        -XDcompilePolicy=simple
+        -J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED
+        -J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED
+        -J--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED
+        -J--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED
+        -J--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED
+        -J--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED
+        -J--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED
+        -J--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED
+        -J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED
+        -J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED
+        "/>
+
+    <!-- We use error-prone as the compiler, cf. http://errorprone.info/ -->
+    <target name="build-project" unless="skipBuild" depends="build-dependencies">
+        <depend srcdir="${source.dir}" destdir="${class.dir}"/>
+        <mkdir dir="${source.generated.dir}"/>
+        <copy todir="${class.dir}">
+          <fileset dir="${source.dir}">
+            <patternset refid="source.additional" />
+          </fileset>
+        </copy>
+        <javac debug="true"
+               debuglevel="source,lines,vars"
+               destdir="${class.dir}"
+               release="${source.release}"
+               fork="true"
+               includeAntRuntime="false"
+               encoding="UTF-8">
+            <src path="${source.dir}"/>
+            <classpath refid="classpath"/>
+            <compilerarg value="-Xlint"/>
+            <compilerarg value="-Xlint:-fallthrough"/> <!-- checked by error-prone, too, and javac does not recognized $FALL-THROUGH$ -->
+            <compilerarg value="-Xlint:-serial"/> <!-- over 100 warnings that would need to be supressed -->
+            <compilerarg value="-Xlint:-processing"/>
+            <compilerarg value="-Xlint:-options"/> <!-- suppress warning about bootclasspath on newer JDK -->
+            <compilerarg value="-Werror" unless:set="compile.warn"/>
+            <compilerarg line="${errorprone.options.required}" unless:set="errorprone.disable"/>
+            <compilerarg value="-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode ${errorprone.options}" unless:set="errorprone.disable"/>
+            <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
+            <compilerarg value="-processorpath"/><compilerarg pathref="processorpath"/>
+        </javac>
+    </target>
+
+    <!-- Use error-prone as compiler and specify refaster file. -->
+    <target name="refaster" depends="build-dependencies">
+        <fail unless="refaster.rule.file" message="Specify rule file with -Drefaster.rule.file=..."/>
+        <property name="refaster.patch.file" value="${basedir}/error-prone.patch"/> <!-- hard-coded in error-prone -->
+        <delete file="${refaster.patch.file}" quiet="true"/>
+
+        <!-- We use a temp directory as destdir to make sure we compile all files. -->
+        <tempfile property="temp.dir" destdir="${java.io.tmpdir}" prefix="refaster-build-"/>
+        <mkdir dir="${temp.dir}"/>
+        <javac destdir="${temp.dir}"
+               release="${source.release}"
+               failonerror="false"
+               errorProperty="javac.failed"
+               createMissingPackageInfoClass="false"
+               fork="true"
+               includeAntRuntime="false"
+               encoding="UTF-8">
+            <src path="${source.dir}"/>
+            <classpath refid="classpath"/>
+            <compilerarg line="${errorprone.options.required}" unless:set="errorprone.disable"/>
+            <compilerarg value="-Xplugin:ErrorProne -XepPatchChecks:refaster:${refaster.rule.file} -XepPatchLocation:${basedir}" unless:set="errorprone.disable"/>
+            <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
+            <compilerarg value="-processorpath"/><compilerarg pathref="processorpath"/>
+            <compilerarg value="-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED"/>
+            <compilerarg value="-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED"/>
+        </javac>
+        <delete dir="${temp.dir}"/>
+        <fail if="javac.failed" message="Compilation failed"/>
+
+        <!-- Check result and provide instructions -->
+        <available property="refaster.patch.file.exists" file="${refaster.patch.file}"/>
+        <fail if="refaster.patch.file.exists" message="Refaster suggestions are in error-prone.patch, apply with 'patch -p0 &lt; ${refaster.patch.file}'. Make sure to format the code after applying the patch."/>
+        <echo message="Refaster found no suggestions." level="info"/>
+    </target>
+
+    <path id="ecj">
+        <fileset dir="${ivy.lib.dir}/build" includes="ecj.jar"/>
+    </path>
+
+    <target name="build-project-ecj" depends="build-dependencies" description="Build project with the Eclipse JDT compiler">
+        <depend srcdir="${source.dir}" destdir="${class.dir}"/>
+        <mkdir dir="${source.generated.dir}"/>
+
+        <copy file=".settings/org.eclipse.jdt.core.prefs" tofile="${ivy.lib.dir}/build/org.eclipse.jdt.core.prefs">
+            <!-- Convert all compiler warnings to errors. -->
+            <filterchain>
+                <replacetokens begintoken="=" endtoken="g">
+                    <token key="warnin" value="=error"/>
+                </replacetokens>
+            </filterchain>
+        </copy>
+
+        <javac debug="true"
+               debuglevel="source,lines,vars"
+               destdir="${class.dir}"
+               release="${source.release}"
+               compiler="org.eclipse.jdt.core.JDTCompilerAdapter"
+               includeAntRuntime="false"
+               encoding="UTF-8">
+            <src path="${source.dir}"/>
+            <classpath refid="classpath"/>
+            <compilerarg value="-properties"/>
+            <compilerarg value="${ivy.lib.dir}/build/org.eclipse.jdt.core.prefs"/>
+            <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
+            <compilerarg value="-processorpath"/><compilerarg pathref="processorpath"/>
+            <compilerclasspath refid="ecj"/>
+        </javac>
+    </target>
+</project>

@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
+<!--
+  Example file that demonstrates the use of CPAchecker.
+  This file can and should be used as a base for building own benchmark definitions.
+-->
+<benchmark tool="cpachecker" timelimit="900s" hardtimelimit="1000s" memlimit="8000 MB" cpuCores="4">
+
+  <!-- Note that all paths to ../../test/programs need to be changed if you move this file. -->
+
+  <!-- Global sourcefiles are used in every run definition. -->
+  <tasks name="locks">
+    <include>../../test/programs/benchmarks/locks/*_5*.yml</include>
+
+    <!-- Next line shows the use of a variable,
+    in this case it has no effect, because of the path '../' after it. -->
+    <include>../../test/programs/${benchmark_name}/../benchmarks/locks/*_6*.yml</include>
+
+    <!-- Files can be "included" and "excluded". -->
+    <include>../../test/programs/benchmarks/locks/*_1*.yml</include>
+    <exclude>../../test/programs/benchmarks/locks/*_13*.yml</exclude>
+  </tasks>
+
+  <tasks name="DeviceDrivers64">
+    <includesfile>../../test/programs/benchmarks/DeviceDrivers64.set</includesfile>
+    <!-- Do not forget to specify the -64 option for 64bit files. -->
+    <option name="-64"/>
+  </tasks>
+
+  <!-- Global options for all run definitions. -->
+  <!-- Set the Java heap size to some value lower than the memlimit.
+       Note that Java does not use SI units, but IEC units (factor 1024). -->
+  <option name="-heap">7000M</option>
+
+  <!--
+    Always use property files as specification
+    to guarantee correct interpretation of the results.
+    The following will use the file unreach-call.prp from directory `config/properties/.
+  -->
+  <propertyfile>../../config/properties/unreach-call.prp</propertyfile>
+
+
+  <!-- For final benchmarks for performance measurement,
+       enable benchmark mode (better performance due to disabled assertions).
+  -->
+  <!-- <option name="-benchmark"/> -->
+
+  <!--
+    Do not use the shortcut configurations such as -predicateAnalysis
+    or -explicitAnalysis, instead use the long names
+    to have more meaningful names in the result tables.
+  -->
+  <option name="-predicateAnalysis-PredAbsRefiner-ABEl"/>
+
+
+  <rundefinition name="noout">
+    <!-- Recommended option "-noout", as the CPAchecker output files
+         are normally not interesting for benchmarks. -->
+    <option name="-noout"/>
+  </rundefinition>
+
+  <rundefinition name="with-output-files">
+    <!-- Variables can appear in option values, too. -->
+    <option name="-setprop">output.path=test/results/${benchmark_name}.${benchmark_date}.output/${inputfile_name}/</option>
+  </rundefinition>
+
+
+  <!--
+    Search the CPAchecker output for some values.
+    The <column> tag has the pattern as content,
+    and the script will try to extract a numerical value from matching lines.
+    "numberOfDigits" gives the number of digits after the decimal separator,
+    "title" the name of the column in the table.
+    Both attributes are optional.
+    These tags are not necessary here,
+    statistics can still be extracted after the benchmark run.
+  <columns>
+    <column title="total" numberOfDigits="1">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+  </columns>
+  -->
+
+  <!--
+    There are two more top-level tags that are used only when the VerifierCloud is used:
+
+    <requiredfiles> can be used to specify additional files that are needed
+    for executing the benchmark. The tag may contain a path to a file or directory
+    that is transmitted to the worker. Wildcards, environment variables etc. are resolved.
+    The tag may appear several times, and can be placed inside the <benchmark>,
+    <rundefinition>, and <tasks> tags.
+
+    <require> can be used to select a specific set of worker machines. The attributes
+    "cpuModel" (giving a string that needs to be contained in the worker's CPU name),
+    "cpuCores" (giving the minimal number of CPU cores), and
+    "memory" (giving the minimal amount of memory in MB) can be specified (all optional).
+    The tag may appear several times, but each attribute may appear at most once
+    (so you can specify all attributes in a single tag or spread over several occurrences).
+  -->
+</benchmark>

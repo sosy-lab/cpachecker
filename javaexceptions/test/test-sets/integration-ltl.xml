@@ -1,0 +1,81 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="1">
+
+  <option name="-noout"/>
+  <option name="-heap">1000M</option>
+  <option name="-ltl"/>
+
+  <rundefinition/>
+
+  <tasks>
+    <include>../programs/ltl/simple/*.yml</include>
+    <propertyfile>../programs/ltl/simple/cav2015-inverted.prp</propertyfile>
+  </tasks>
+
+  <tasks>
+    <include>../programs/ltl/simple/*.yml</include>
+    <propertyfile>../programs/ltl/simple/cav2015.prp</propertyfile>
+  </tasks>
+
+  <tasks>
+    <include>../programs/ltl/simple/*.yml</include>
+    <propertyfile>../programs/ltl/simple/PotentialMinimizeSEVPABug.prp</propertyfile>
+  </tasks>
+
+  <tasks>
+    <include>../programs/ltl/simple/*.yml</include>
+    <propertyfile>../programs/ltl/simple/rers-test-inlined.prp</propertyfile>
+  </tasks>
+
+  <tasks>
+    <include>../programs/ltl/simple/*.yml</include>
+    <propertyfile>../programs/ltl/simple/rers-test-inlined_withtmp.prp</propertyfile>
+  </tasks>
+
+  <tasks>
+    <include>../programs/ltl/simple/*.yml</include>
+    <propertyfile>../programs/ltl/simple/rers-test.prp</propertyfile>
+  </tasks>
+
+  <tasks>
+    <include>../programs/ltl/simple/*.yml</include>
+    <propertyfile>../programs/ltl/simple/simple-1.prp</propertyfile>
+  </tasks>
+
+  <tasks>
+    <include>../programs/ltl/simple/*.yml</include>
+    <propertyfile>../programs/ltl/simple/simple-2.prp</propertyfile>
+  </tasks>
+
+  <tasks>
+    <include>../programs/ltl/simple/*.yml</include>
+    <propertyfile>../programs/ltl/simple/someNonterminating.prp</propertyfile>
+  </tasks>
+
+  <tasks>
+    <include>../programs/ltl/simple/*.yml</include>
+    <propertyfile>../programs/ltl/simple/trivial-1.prp</propertyfile>
+  </tasks>
+
+  <tasks>
+    <include>../programs/ltl/simple/*.yml</include>
+    <propertyfile>../programs/ltl/simple/trivial-2.prp</propertyfile>
+  </tasks>
+
+  <tasks>
+    <include>../programs/ltl/simple/*.yml</include>
+    <propertyfile>../programs/ltl/simple/trivial-3.prp</propertyfile>
+  </tasks>
+</benchmark>

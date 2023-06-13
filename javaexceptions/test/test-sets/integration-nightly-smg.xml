@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
+<benchmark tool="cpachecker" timelimit="150 s" hardtimelimit="200 s" memlimit="7 GB" cpuCores="2">
+
+  <option name="-noout"/>
+  <option name="-heap">6000M</option>
+
+  <rundefinition>
+    <option name="-smg"/>
+  </rundefinition>
+
+  <!--
+    We collect error- and proof-witness files for further steps in our BuildBot.
+    Currently we expect the following compressed witness files from a complete benchmark set:
+    - induction:    170M
+    - predicate:    600M
+    - value:        600M
+    - smg:           10M
+    - termination:  170M
+    - sv-comp18/19: 230M
+    CPAchecker can compress and handle compressed witnesses automatically.
+    Please disable compression for real SVComp benchmarks!
+  -->
+  <resultfiles>**.graphml*</resultfiles>
+  <option name="-setprop">cpa.arg.compressWitness=true</option>
+  <option name="-setprop">counterexample.export.compressWitness=true</option>
+  <option name="-setprop">counterexample.export.graphml=witness.graphml</option>
+  <option name="-setprop">cpa.arg.proofWitness=witness.graphml</option>
+  <option name="-setprop">termination.violation.witness=witness.graphml</option>
+
+  <tasks name="MemSafety-Arrays">
+    <includesfile>../programs/benchmarks/MemSafety-Arrays.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="MemSafety-Heap">
+    <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <exclude>../programs/benchmarks/ldv-memsafety/ArraysOfVariableLength2.yml</exclude> <!-- flapping timeout -->
+  </tasks>
+  <tasks name="MemSafety-LinkedLists">
+    <includesfile>../programs/benchmarks/MemSafety-LinkedLists.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="MemSafety-Other">
+    <includesfile>../programs/benchmarks/MemSafety-Other.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="MemSafety-Juliet">
+    <includesfile>../programs/benchmarks/MemSafety-Juliet.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <!-- Juliet tasks call external functions like "time" which are irrelevant for the task itself -->
+    <option name="-setprop">cpa.smg.handleUnknownFunctions=ASSUME_SAFE</option>
+  </tasks>
+
+  <tasks name="SoftwareSystems-BusyBox-MemSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox-MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-coreutils-MemSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-coreutils-MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-DeviceDriversLinux64-MemSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-OpenBSD-MemSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD-MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-uthash-MemSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-uthash-MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+</benchmark>
