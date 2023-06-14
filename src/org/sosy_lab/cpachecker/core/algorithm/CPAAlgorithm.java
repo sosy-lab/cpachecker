@@ -61,9 +61,19 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CPAStatistics implements Statistics {
 
+    //    @Options(prefix = "Limit.CPAStatistics")
+    //    private class Limit {
+    //      @Option(description = "Iteration Count Limit", name = "Iteration Count")
+    //      private void countIterationsLimit(@Nullable Integer value) {
+    //        if (value != null) {
+    //          countIterations.register(new StatisticsLimit<>("Iteration Count", value));
+    //        }
+    //      }
+    //    }
+
     @Options(prefix = "Limit.CPAStatistics")
     private static class LimitOptions {
-      @Option(description = "Iteration Count Limit")
+      @Option(secure = true, description = "Iteration Count Limit")
       Integer countIterations = -1;
     }
 
