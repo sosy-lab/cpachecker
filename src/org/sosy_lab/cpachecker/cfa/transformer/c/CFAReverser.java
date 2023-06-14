@@ -123,7 +123,8 @@ public class CFAReverser {
 
     private CFA createCfa() {
 
-      FunctionEntryNode reverseMainEntry = newDummyMain();
+      // create a dummy main
+      CFunctionEntryNode dummyReverseMainEntry = newDummyMain();
 
       // Reverse each Function's CFA
       for (Map.Entry<String, FunctionEntryNode> function : pCfa.getAllFunctions().entrySet()) {
@@ -139,16 +140,15 @@ public class CFAReverser {
 
       // Connect main entry to each target
       for (CFANode oldtarget : targets) {
-        pLog.log(Level.INFO, "OLD TARGET: " + oldtarget.toString());
         CFANode newtarget = nodeMap.get(oldtarget);
-        pLog.log(Level.INFO, "NEW TARGET: " + newtarget.toString());
         BlankEdge dummyEdge =
-            new BlankEdge("", FileLocation.DUMMY, reverseMainEntry, newtarget, "Target Dummy Edge");
+            new BlankEdge(
+                "", FileLocation.DUMMY, dummyReverseMainEntry, newtarget, "Target Dummy Edge");
         addToCFA(dummyEdge);
       }
 
       return new MutableCFA(
-          functions, nodes, pCfa.getMetadata().withMainFunctionEntry(reverseMainEntry));
+          functions, nodes, pCfa.getMetadata().withMainFunctionEntry(dummyReverseMainEntry));
     }
 
     // Reverse a single function's CFA.
@@ -175,29 +175,63 @@ public class CFAReverser {
       pLog.log(Level.INFO, "TRACE:");
 
       while (!waitList.isEmpty()) {
+        pLog.log(Level.INFO, "//======================================================");
         CFANode oldhead = waitList.remove();
+        CFANode newhead = nodeMap.get(oldhead);
 
-        if (oldhead instanceof FunctionEntryNode) {
-          continue;
+        if (oldhead instanceof CFunctionEntryNode) {
+          ((FunctionExitNode) newhead).setEntryNode(newEntry);
+          break;
         }
 
-        CFANode newhead = nodeMap.get(oldhead);
+        pLog.log(
+            Level.INFO,
+            "OLD HEAD: "
+                + oldhead.toString()
+                + oldhead.describeFileLocation()
+                + oldhead.getClass());
+        pLog.log(
+            Level.INFO,
+            "NEW HEAD: "
+                + newhead.toString()
+                + newhead.describeFileLocation()
+                + newhead.getClass());
         checkNotNull(newhead);
 
         nodes.put(funcName, newhead);
 
         for (CFAEdge oldEdge : CFAUtils.allEnteringEdges(oldhead)) {
-          pLog.log(Level.INFO, oldEdge.toString() + " " + oldEdge.getEdgeType());
-          locstack.push(newhead);
-
-          CFAEdge newedge = ((CCfaEdge) oldEdge).accept(edgeReverseVistor);
-
           CFANode oldNext = oldEdge.getPredecessor(); // forward edge
-          CFANode newNext = newedge.getSuccessor(); // reverse edge
 
-          nodeMap.put(oldNext, newNext);
-          pLog.log(Level.INFO, "newNext: " + newNext.toString());
-          addToCFA(newedge);
+          if (oldNext instanceof CFunctionEntryNode
+              && oldEntryNode.equals(pCfa.getMainFunction())) {
+
+            CFALabelNode label = new CFALabelNode(newDecl, "ERROR");
+            nodes.put(funcName, label);
+            BlankEdge newedge1 = new BlankEdge("", FileLocation.DUMMY, newhead, label, "");
+            addToCFA(newedge1);
+            CFANode newNext = newNode(oldNext);
+            BlankEdge newedge2 = new BlankEdge("", FileLocation.DUMMY, label, newNext, "");
+            addToCFA(newedge2);
+            nodeMap.put(oldNext, newNext);
+            nodes.put(funcName, newNext);
+          } else {
+
+            locstack.push(newhead);
+
+            CFAEdge newedge = ((CCfaEdge) oldEdge).accept(edgeReverseVistor);
+            pLog.log(Level.INFO, "OLD EDGE: " + oldEdge.toString() + " " + oldEdge.getEdgeType());
+            pLog.log(Level.INFO, "NEW EDGE: " + newedge.toString() + " " + newedge.getEdgeType());
+
+            CFANode newNext = newedge.getSuccessor(); // reverse edge
+
+            nodes.put(funcName, newNext);
+
+            nodeMap.put(oldNext, newNext);
+            pLog.log(Level.INFO, "oldNext: " + oldNext.toString() + oldNext.getClass());
+            pLog.log(Level.INFO, "newNext: " + newNext.toString() + newNext.getClass());
+            addToCFA(newedge);
+          }
 
           if (visited.add(oldNext)) {
             waitList.add(oldNext);
@@ -244,15 +278,19 @@ public class CFAReverser {
 
     private CFANode newNode(CFANode node) {
       if (node instanceof CFALabelNode) {
-        String labelName = ((CFALabelNode) node).getLabel();
+        String labelName = ((CFALabelNode) node).getLabel() + "_";
         AFunctionDeclaration funcDecl = funcDeclMap.get(((CFALabelNode) node).getFunction());
         return new CFALabelNode(funcDecl, labelName);
       } else if (node instanceof FunctionEntryNode) {
         AFunctionDeclaration funcDecl = funcDeclMap.get(node.getFunction());
-        return new CFANode(funcDecl);
+        return new FunctionExitNode(funcDecl);
       } else if (node instanceof FunctionExitNode) {
-        throw new IllegalStateException(
-            "FunctionExitNode should not be processed here." + node.toString());
+        CFANode exitNode = nodeMap.get(((FunctionExitNode) node).getEntryNode());
+        assert (exitNode instanceof FunctionExitNode);
+        CFunctionDeclaration fdef = (CFunctionDeclaration) node.getFunction();
+
+        return new CFunctionEntryNode(
+            FileLocation.DUMMY, fdef, (FunctionExitNode) exitNode, Optional.empty());
       } else {
         AFunctionDeclaration funcDecl = funcDeclMap.get(node.getFunction());
         return new CFANode(funcDecl);
