@@ -30,7 +30,9 @@ class BlockNodeCFAVisitor implements CFAVisitor {
 
   @Override
   public TraversalProcess visitEdge(CFAEdge edge) {
-    if (edge instanceof CFunctionCallEdge) return TraversalProcess.SKIP;
+    if (edge instanceof CFunctionCallEdge) {
+      return TraversalProcess.SKIP;
+    }
     tracker.track(edge);
     return TraversalProcess.CONTINUE;
   }

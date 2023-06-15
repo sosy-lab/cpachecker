@@ -39,7 +39,7 @@ public class ParallelDecompositionTest {
     final CFA created = creator.parseSourceAndCreateCFA("void main() { return; }");
     final ParallelBlockNodeDecomposition decomposer = new ParallelBlockNodeDecomposition();
     final BlockGraph decomposed = decomposer.decompose(created);
-    assertThat(decomposed.getNodes().size()).isEqualTo(1);
+    assertThat(decomposed.getNodes()).hasSize(1);
     for (BlockNode n : decomposed.getNodes()) {
       n.getEdges()
           .forEach(e -> assertThat(e.getEdgeType()).isNotEqualTo(CFAEdgeType.FunctionCallEdge));
@@ -58,7 +58,7 @@ public class ParallelDecompositionTest {
     final CFA created = creator.parseSourceAndCreateCFA(program);
     final ParallelBlockNodeDecomposition decomposer = new ParallelBlockNodeDecomposition();
     final BlockGraph decomposed = decomposer.decompose(created);
-    assertThat(decomposed.getNodes().size()).isEqualTo(3);
+    assertThat(decomposed.getNodes()).hasSize(3);
     for (BlockNode n : decomposed.getNodes()) {
       n.getEdges()
           .forEach(e -> assertThat(e.getEdgeType()).isNotEqualTo(CFAEdgeType.FunctionCallEdge));
