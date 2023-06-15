@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
-<benchmark tool="cpachecker" displayName="CPA/CoVeriTest" timelimit="15 min" memlimit="10 GB" cpuCores="4">
+<benchmark tool="cpachecker" displayName="CPA/CoVeriTest" timelimit="15 min" memlimit="10 GB" cpuCores="2">
 	<resultfiles>**/test-suite</resultfiles>
 	<option name="-benchmark" />
 	<option name="-heap">10000M</option>
