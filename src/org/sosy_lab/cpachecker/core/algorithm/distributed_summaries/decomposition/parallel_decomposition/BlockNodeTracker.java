@@ -42,11 +42,12 @@ class BlockNodeTracker {
   }
 
   BlockNodeWithoutGraphInformation finish() {
-    assert nodesInCurrentBlock.contains(first) &&
-        nodesInCurrentBlock.contains(last);
+    assert nodesInCurrentBlock.contains(first) && nodesInCurrentBlock.contains(last);
     BlockNodeWithoutGraphInformation blockNodeWithoutGraphInformation =
         new BlockNodeWithoutGraphInformation(
-            "L" + count++, first, last,
+            "L" + count++,
+            first,
+            last,
             ImmutableSet.copyOf(nodesInCurrentBlock),
             ImmutableSet.copyOf(edgesInCurrentBlock));
     first = null;

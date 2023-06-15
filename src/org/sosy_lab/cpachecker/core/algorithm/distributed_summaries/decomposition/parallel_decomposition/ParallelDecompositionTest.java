@@ -27,67 +27,59 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 public class ParallelDecompositionTest {
 
   /**
-   * Test that ParallelBlockNodeDecomposition decomposes a CFA into blocks that
-   * each represent a single function
+   * Test that ParallelBlockNodeDecomposition decomposes a CFA into blocks that each represent a
+   * single function
    */
   @Test
   public void testDecomposeMinimal()
-      throws InvalidConfigurationException, ParserException,
-             InterruptedException {
+      throws InvalidConfigurationException, ParserException, InterruptedException {
     final Configuration config =
         TestDataTools.configurationForTest().setOption("language", "C").build();
     final CFACreator creator = createTestingConfig(config);
-    final CFA created =
-        creator.parseSourceAndCreateCFA("void main() { return; }");
-    final ParallelBlockNodeDecomposition decomposer =
-        new ParallelBlockNodeDecomposition();
+    final CFA created = creator.parseSourceAndCreateCFA("void main() { return; }");
+    final ParallelBlockNodeDecomposition decomposer = new ParallelBlockNodeDecomposition();
     final BlockGraph decomposed = decomposer.decompose(created);
     assertThat(decomposed.getNodes().size()).isEqualTo(1);
     for (BlockNode n : decomposed.getNodes()) {
-      n.getEdges().forEach(e
-                           -> assertThat(e.getEdgeType())
-                                  .isNotEqualTo(CFAEdgeType.FunctionCallEdge));
+      n.getEdges()
+          .forEach(e -> assertThat(e.getEdgeType()).isNotEqualTo(CFAEdgeType.FunctionCallEdge));
     }
   }
 
   @Test
   public void testDecomposeMulti()
-      throws InvalidConfigurationException, ParserException,
-             InterruptedException {
+      throws InvalidConfigurationException, ParserException, InterruptedException {
     final Configuration config =
         TestDataTools.configurationForTest().setOption("language", "C").build();
     final CFACreator creator = createTestingConfig(config);
     final String program =
-        "void main() { return; } int foo(int x) { if (x > 0) { return 1; } else { return 0; }} int bar(){ return 1; }";
+        "void main() { return; } int foo(int x) { if (x > 0) { return 1; } else { return 0; }} int"
+            + " bar(){ return 1; }";
     final CFA created = creator.parseSourceAndCreateCFA(program);
-    final ParallelBlockNodeDecomposition decomposer =
-        new ParallelBlockNodeDecomposition();
+    final ParallelBlockNodeDecomposition decomposer = new ParallelBlockNodeDecomposition();
     final BlockGraph decomposed = decomposer.decompose(created);
     assertThat(decomposed.getNodes().size()).isEqualTo(3);
     for (BlockNode n : decomposed.getNodes()) {
-      n.getEdges().forEach(e
-                           -> assertThat(e.getEdgeType())
-                                  .isNotEqualTo(CFAEdgeType.FunctionCallEdge));
+      n.getEdges()
+          .forEach(e -> assertThat(e.getEdgeType()).isNotEqualTo(CFAEdgeType.FunctionCallEdge));
     }
   }
 
   @Test
   public void testDecomposeNested()
-      throws InvalidConfigurationException, ParserException,
-             InterruptedException {
+      throws InvalidConfigurationException, ParserException, InterruptedException {
     final Configuration config =
         TestDataTools.configurationForTest().setOption("language", "C").build();
     final CFACreator creator = createTestingConfig(config);
     final String program =
-        "void main() { return; } int foo(int x) { if (x > 0) { return bar(); } else { return 0; }} int bar(){ return 1; }";
+        "void main() { return; } int foo(int x) { if (x > 0) { return bar(); } else { return 0; }}"
+            + " int bar(){ return 1; }";
     final CFA created = creator.parseSourceAndCreateCFA(program);
-    final ParallelBlockNodeDecomposition decomposer =
-        new ParallelBlockNodeDecomposition();
+    final ParallelBlockNodeDecomposition decomposer = new ParallelBlockNodeDecomposition();
     final BlockGraph decomposed = decomposer.decompose(created);
     for (BlockNode n : decomposed.getNodes()) {
-      n.getEdges().forEach(e
-                           -> assertThat(e.getEdgeType())
-                                  .isNotEqualTo(CFAEdgeType.FunctionCallEdge));
+      n.getEdges()
+          .forEach(e -> assertThat(e.getEdgeType()).isNotEqualTo(CFAEdgeType.FunctionCallEdge));
       if (n.getFirst().getFunctionName().equals("bar")) {
         assertThat(getReturnEdgeCount(n)).isEqualTo(1);
       } else {
