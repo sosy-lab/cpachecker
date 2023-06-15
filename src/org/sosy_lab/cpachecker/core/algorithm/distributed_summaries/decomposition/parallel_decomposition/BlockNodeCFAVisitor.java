@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -31,8 +30,7 @@ class BlockNodeCFAVisitor implements CFAVisitor {
 
   @Override
   public TraversalProcess visitEdge(CFAEdge edge) {
-    if (edge instanceof CFunctionCallEdge || edge instanceof
-                                                 CFunctionReturnEdge)
+    if (edge instanceof CFunctionCallEdge)
       return TraversalProcess.SKIP;
     tracker.track(edge);
     return TraversalProcess.CONTINUE;

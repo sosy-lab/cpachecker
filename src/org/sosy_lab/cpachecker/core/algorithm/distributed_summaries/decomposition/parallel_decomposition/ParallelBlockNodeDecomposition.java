@@ -25,7 +25,7 @@ public class ParallelBlockNodeDecomposition
 
   @Override
   public BlockGraph decompose(CFA cfa) throws InterruptedException {
-    for (FunctionEntryNode f : cfa.getAllFunctions().values()){
+    for (FunctionEntryNode f : cfa.getAllFunctions().values()) {
       CFAEdgeDFSTraversal.dfs().traverseOnce(f, visitor);
       visitor.finish();
     }
