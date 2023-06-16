@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -29,6 +30,8 @@ public class BlockNodeWithoutGraphInformation {
       @NonNull CFANode pLast,
       @NonNull ImmutableSet<CFANode> pNodes,
       @NonNull ImmutableSet<CFAEdge> pEdges) {
+    Preconditions.checkArgument(pNodes.contains(pFirst), "First node is missing.");
+    Preconditions.checkArgument(pNodes.contains(pLast), "Last node is missing.");
     id = pId;
     first = pFirst;
     last = pLast;
