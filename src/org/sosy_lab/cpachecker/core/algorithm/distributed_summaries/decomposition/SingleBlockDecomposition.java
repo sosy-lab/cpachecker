@@ -24,7 +24,6 @@ public class SingleBlockDecomposition implements BlockSummaryCFADecomposer {
 
   @Override
   public BlockGraph decompose(CFA cfa) throws InterruptedException {
-    CFANode lastNode = null;
     ImmutableSet.Builder<CFAEdge> edges = ImmutableSet.builder();
     List<CFANode> waitlist = new ArrayList<>();
     Set<CFANode> seen = new LinkedHashSet<>();
@@ -34,10 +33,6 @@ public class SingleBlockDecomposition implements BlockSummaryCFADecomposer {
       if (seen.contains(current)) {
         continue;
       }
-      if (current.getNumLeavingEdges() == 0) {
-        assert lastNode == null;
-        lastNode = current;
-      }
       seen.add(current);
       for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(current)) {
         edges.add(leavingEdge);
@@ -45,14 +40,16 @@ public class SingleBlockDecomposition implements BlockSummaryCFADecomposer {
       }
     }
     assert seen.containsAll(cfa.nodes());
-    assert lastNode != null;
     return BlockGraph.fromBlockNodesWithoutGraphInformation(
         cfa,
         ImmutableSet.of(
             new BlockNodeWithoutGraphInformation(
                 "SB1",
                 cfa.getMainFunction(),
-                lastNode,
+                cfa.getMainFunction()
+                    .getExitNode()
+                    .orElseThrow(
+                        () -> new AssertionError("Main function has no unique exit node.")),
                 ImmutableSet.copyOf(cfa.nodes()),
                 edges.build())));
   }
