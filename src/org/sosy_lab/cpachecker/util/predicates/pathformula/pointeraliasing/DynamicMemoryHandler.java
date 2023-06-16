@@ -383,18 +383,26 @@ class DynamicMemoryHandler {
       throws UnrecognizedCodeException, InterruptedException {
     final Formula result = conv.makeBaseAddress(base, type);
     if (isZeroing) {
-      AssignmentHandler assignmentHandler =
-          new AssignmentHandler(
-              conv, edge, base, ssa, pts, constraints, errorConditions, regionMgr);
+      // the zeroing currently uses low-level SMT formulas, assigning zero to each simple location
+      // this is done recursively using the type parameter
+      // using low-level SMT formulas means that slice assignments cannot be used;
+      // this means that calloc cannot use encoded quantifiers
+      // TODO: rewrite dynamic memory handler to use high-level slice assignments and memset
+      AssignmentFormulaHandler assignmentFormulaHandler =
+          new AssignmentFormulaHandler(
+              conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
+      @SuppressWarnings("deprecation")
       final BooleanFormula initialization =
-          assignmentHandler.makeDestructiveAssignment(
+          assignmentFormulaHandler.makeDestructiveAssignment(
               type,
               CNumericTypes.SIGNED_CHAR,
               AliasedLocation.ofAddress(result),
               Value.ofValue(
                   conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR), 0)),
               true,
-              null);
+              null,
+              conv.bfmgr.makeTrue(),
+              false);
 
       constraints.addConstraint(initialization);
     }
