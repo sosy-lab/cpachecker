@@ -12,11 +12,11 @@
   <option name="-setprop">log.consoleLevel=SEVERE</option>
 
   <rundefinition name="Test-Comp23_coverage-error-call">
-    <propertyfile>../sv-benchmarks/c/properties/coverage-error-call.prp</propertyfile>
+    <propertyfile>../../test/programs/sv-benchmarks/c/properties/coverage-error-call.prp</propertyfile>
   </rundefinition>
 
   <rundefinition name="Test-Comp23_coverage-branches">
-    <propertyfile>../sv-benchmarks/c/properties/coverage-branches.prp</propertyfile>
+    <propertyfile>../../test/programs/sv-benchmarks/c/properties/coverage-branches.prp</propertyfile>
   </rundefinition>
 
 
