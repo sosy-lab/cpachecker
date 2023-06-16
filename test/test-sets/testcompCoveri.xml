@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
+<benchmark tool="cpachecker" displayName="CPA/CoVeriTest" timelimit="15 min" memlimit="15 GB" cpuCores="2">
+
+  <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz"/>
+
+  <resultfiles>**/test-suite</resultfiles>
+
+  <option name="-benchmark"/>
+  <option name="-heap">10000M</option>
+  <option name="-testcomp23"/>
+  <option name="-setprop">log.consoleLevel=SEVERE</option>
+
+  <rundefinition name="Test-Comp23_coverage-error-call">
+    <propertyfile>../sv-benchmarks/c/properties/coverage-error-call.prp</propertyfile>
+  </rundefinition>
+
+  <rundefinition name="Test-Comp23_coverage-branches">
+    <propertyfile>../sv-benchmarks/c/properties/coverage-branches.prp</propertyfile>
+  </rundefinition>
+
+
+  	<tasks name="ReachSafety-ControlFlow">
+		<include>../../test/programs/sv-benchmarks/c/ntdrivers-simplified/*.yml</include>
+		<include>../../test/programs/sv-benchmarks/c/openssl-simplified/*.yml</include>
+		<include>../../test/programs/sv-benchmarks/c/locks/*.yml</include>
+		<!-- 
+		<include>../../test/programs/sv-benchmarks/c/ntdrivers/*.yml</include>
+		-->
+	</tasks>
+
+</benchmark>
