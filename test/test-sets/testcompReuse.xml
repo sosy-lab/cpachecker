@@ -13,7 +13,7 @@
 		<option name="-testcomp23Reuse" />
 		<propertyfile>../../test/programs/sv-benchmarks/c/properties/coverage-branches.prp</propertyfile>
 	</rundefinition>
-	<!-- 
+	
   <rundefinition name="Test-Comp23_coverage-error-call">
     <propertyfile>../../test/programs/sv-benchmarks/c/properties/coverage-error-call.prp</propertyfile>
   </rundefinition>
@@ -22,7 +22,7 @@
     <option name="-testcomp23Reuse"/>
       <propertyfile>../../test/programs/sv-benchmarks/c/properties/coverage-error-call.prp</propertyfile>
   </rundefinition>
-	-->
+
 	
 	
 	<!-- 
