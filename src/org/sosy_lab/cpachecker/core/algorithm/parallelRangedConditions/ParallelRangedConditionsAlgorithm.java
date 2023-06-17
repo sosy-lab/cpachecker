@@ -13,12 +13,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -27,6 +31,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -53,6 +58,10 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
 
   @Option(description = "Path generation heuristic to use for Parallel Ranged Conditions.")
   private Heuristic.Type pathHeuristic = Heuristic.Type.PATHS_FILE;
+
+  @Option(description = "Assumption automaton out-file pattern")
+  @FileOption(Type.OUTPUT_FILE)
+  private @Nullable PathTemplate automatonOutput;
 
   private AlgorithmStatus combinedStatus = AlgorithmStatus.SOUND_AND_PRECISE;
 
@@ -114,6 +123,15 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
       analysesBuilder.add(
           createParallelAnalysis(
               String.format("Ranged Analysis #%s", i), i, singleConfig, singleSpecification));
+
+      if (automatonOutput != null) {
+        Path path = automatonOutput.getPath(i);
+        try (FileWriter writer = new FileWriter(path.toFile(), StandardCharsets.UTF_8)) {
+          condition.writeDotFile(writer);
+        } catch (IOException pE) {
+          throw new RuntimeException(pE);
+        }
+      }
     }
 
     setAnalyses(analysesBuilder.build());

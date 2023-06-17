@@ -4125,6 +4125,9 @@ parallelAlgorithm.configFiles = no default value
 # Assumption guiding automaton specification file
 parallelRangedConditionsAlgorithm.assumtionGuidingAutomatonFile = "config/specification/AssumptionGuidingAutomaton.spc"
 
+# Assumption automaton out-file pattern
+parallelRangedConditionsAlgorithm.automatonOutput = no default value
+
 # Used for "FIRST_BRANCHES" heuristic, will generate paths for all branches
 # up to this depth.
 parallelRangedConditionsAlgorithm.firstBranchesHeuristic.branchDepth = no default value
