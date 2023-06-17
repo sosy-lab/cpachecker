@@ -63,6 +63,10 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
   @FileOption(Type.OUTPUT_FILE)
   private @Nullable PathTemplate automatonOutput;
 
+  @Option(description = "Output file for saving used paths.")
+  @FileOption(Type.OUTPUT_FILE)
+  private @Nullable Path pathOutput = Path.of("RangedConditionsPaths.txt");
+
   private ParallelRangedConditionsAlgorithm(
       Configuration config,
       LogManager pLogger,
@@ -85,9 +89,20 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
     Heuristic heuristic = Heuristic.getHeuristic(pathHeuristic, pCfa, config, logger);
 
     List<CFAPath> cfaPaths = heuristic.generatePaths();
-    logger.log(Level.INFO, "RangedConditions Paths:");
-    for (CFAPath path : cfaPaths) {
-      logger.log(Level.INFO, path.toString());
+    if (pathOutput != null) {
+      try (FileWriter writer = new FileWriter(pathOutput.toFile(), StandardCharsets.UTF_8)) {
+        for (CFAPath path : cfaPaths) {
+          writer.write(path.toString() + System.lineSeparator());
+        }
+      } catch (IOException pE) {
+        logger.log(
+            Level.WARNING,
+            "Could not write generated Paths to file "
+                + pathOutput.toString()
+                + System.lineSeparator()
+                + "Error was: "
+                + pE.toString());
+      }
     }
 
     RangedConditionFactory conditionFactory = new RangedConditionFactory(pCfa);
@@ -132,7 +147,13 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
         try (FileWriter writer = new FileWriter(path.toFile(), StandardCharsets.UTF_8)) {
           condition.writeDotFile(writer);
         } catch (IOException pE) {
-          throw new RuntimeException(pE);
+          logger.log(
+              Level.WARNING,
+              "Could not write condition automata to file "
+                  + pathOutput.toString()
+                  + System.lineSeparator()
+                  + "Error was: "
+                  + pE.toString());
         }
       }
     }

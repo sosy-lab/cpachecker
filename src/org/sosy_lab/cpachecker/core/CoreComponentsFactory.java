@@ -516,6 +516,7 @@ public class CoreComponentsFactory {
               config, logger, shutdownNotifier, specification, cfa, aggregatedReachedSets);
 
     } else if (useParallelRangedConditionsAlgorithm) {
+      logger.log(Level.INFO, "Using Parallel Ranged Conditions Algorithm");
       algorithm =
           ParallelRangedConditionsAlgorithm.create(
               config, logger, shutdownNotifier, specification, cfa, aggregatedReachedSets);
