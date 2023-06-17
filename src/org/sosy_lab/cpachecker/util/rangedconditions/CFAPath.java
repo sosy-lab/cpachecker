@@ -38,6 +38,15 @@ public class CFAPath extends ArrayList<CFANode> implements Comparable<CFAPath> {
     return fromInts(pCFA, nodeNumbers.stream().map(Integer::valueOf).collect(ImmutableList.toImmutableList()));
   }
 
+  public static CFAPath fromInts(CFA pCfa, List<Integer> ints) {
+    CFAPath result = new CFAPath();
+    for (Integer i : ints) {
+      result.add(
+          pCfa.getAllNodes().stream().filter(elem -> elem.getNodeNumber() == i).findFirst().get());
+    }
+    return result;
+  }
+
   @Override
   public String toString() {
     return stream().map(elem -> elem.toString()).collect(Collectors.joining());
@@ -46,7 +55,7 @@ public class CFAPath extends ArrayList<CFANode> implements Comparable<CFAPath> {
   public Set<CFAPath> getPrefixes() {
     Set<CFAPath> resultSet = new HashSet<>();
 
-    for (int i = 1; i < size(); i++) {
+    for (int i = 1; i <= size(); i++) {
       resultSet.add(new CFAPath(subList(0, i)));
     }
 
@@ -65,15 +74,6 @@ public class CFAPath extends ArrayList<CFANode> implements Comparable<CFAPath> {
       }
     }
     return size() - other.size();
-  }
-
-  public static CFAPath fromInts(CFA pCfa, List<Integer> ints) {
-    CFAPath result = new CFAPath();
-    for (Integer i : ints) {
-      result.add(
-          pCfa.getAllNodes().stream().filter(elem -> elem.getNodeNumber() == i).findFirst().get());
-    }
-    return result;
   }
 
   public CFAPath copy() {
