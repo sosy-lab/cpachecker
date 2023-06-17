@@ -104,11 +104,15 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
       Automaton condition;
       try {
         if (i == 0) {
-          condition = conditionFactory.createForSmallestRange(cfaPaths.get(0));
+          condition =
+              conditionFactory.createForSmallestRange(cfaPaths.get(0), ImmutableSet.copyOf(cfaPaths));
         } else if (i == cfaPaths.size()) {
-          condition = conditionFactory.createForLargestRange(cfaPaths.get(i - 1));
+          condition =
+              conditionFactory.createForLargestRange(cfaPaths.get(i - 1), ImmutableSet.copyOf(cfaPaths));
         } else {
-          condition = conditionFactory.createForRange(cfaPaths.get(i - 1), cfaPaths.get(i));
+          condition =
+              conditionFactory.createForRange(
+                  cfaPaths.get(i - 1), cfaPaths.get(i), ImmutableSet.copyOf(cfaPaths));
         }
       } catch (InvalidAutomatonException exception) {
         throw new InvalidConfigurationException(

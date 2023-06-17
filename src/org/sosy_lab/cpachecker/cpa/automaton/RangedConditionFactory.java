@@ -32,21 +32,26 @@ public class RangedConditionFactory {
     cfa = pCfa;
   }
 
-  public Automaton createForSmallestRange(CFAPath pLargePath) throws InvalidAutomatonException {
+  public Automaton createForSmallestRange(CFAPath pLargePath, Set<CFAPath> otherPaths)
+      throws InvalidAutomatonException {
     CFAPath bot = new CFAPath(ImmutableList.of(cfa.getMainFunction()));
-    return createForRange(bot, pLargePath);
+    return createForRange(bot, pLargePath, otherPaths);
   }
 
-  public Automaton createForLargestRange(CFAPath pSmallPath) throws InvalidAutomatonException {
-    return createForRange(pSmallPath, CFAPath.TOP);
+  public Automaton createForLargestRange(CFAPath pSmallPath, Set<CFAPath> otherPaths)
+      throws InvalidAutomatonException {
+    return createForRange(pSmallPath, CFAPath.TOP, otherPaths);
   }
 
-  public Automaton createForRange(CFAPath pSmallPath, CFAPath pLargePath)
+  public Automaton createForRange(CFAPath pSmallPath, CFAPath pLargePath, Set<CFAPath> otherPaths)
       throws InvalidAutomatonException {
 
     Set<CFAPath> stateSet = new HashSet<>();
     stateSet.addAll(pSmallPath.getPrefixes());
     stateSet.addAll(pLargePath.getPrefixes());
+
+    // Add other paths prefixes as states. This is necessary for the PartialARGCombiner
+    otherPaths.forEach(path -> stateSet.addAll(path.getPrefixes()));
 
     List<AutomatonInternalState> states = new ArrayList<>();
 
