@@ -317,13 +317,7 @@ public final class Specification {
     Specification newSpec =
         Specification.fromFiles(newSpecFiles, cfa, config, logger, pShutdownNotifier);
 
-    return new Specification(
-        Sets.union(specificationFiles, newSpecFiles),
-        Sets.union(properties, newSpec.properties),
-        ImmutableListMultimap.<Path, Automaton>builder()
-            .putAll(pathToSpecificationAutomata)
-            .putAll(newSpec.pathToSpecificationAutomata)
-            .build());
+    return withAdditionalSpecification(newSpec);
   }
 
   /**
@@ -399,5 +393,15 @@ public final class Specification {
 
   public ImmutableListMultimap<Path, Automaton> getPathToSpecificationAutomata() {
     return pathToSpecificationAutomata;
+  }
+
+  public Specification withAdditionalSpecification(Specification pSpecification) {
+    return new Specification(
+        Sets.union(specificationFiles, pSpecification.specificationFiles),
+        Sets.union(properties, pSpecification.properties),
+        ImmutableListMultimap.<Path, Automaton>builder()
+            .putAll(pathToSpecificationAutomata)
+            .putAll(pSpecification.pathToSpecificationAutomata)
+            .build());
   }
 }
