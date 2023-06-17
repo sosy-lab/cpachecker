@@ -769,7 +769,7 @@ public class CoreComponentsFactory {
         || useParallelRangedConditionsAlgorithm) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
-      if (memorizeReachedAfterRestart || useParallelRangedConditionsAlgorithm) {
+      if (memorizeReachedAfterRestart) {
         reached = new HistoryForwardingReachedSet(reached);
       } else {
         reached = new ForwardingReachedSet(reached);

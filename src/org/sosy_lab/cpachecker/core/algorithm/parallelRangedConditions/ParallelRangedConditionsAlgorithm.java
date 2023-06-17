@@ -63,8 +63,6 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
   @FileOption(Type.OUTPUT_FILE)
   private @Nullable PathTemplate automatonOutput;
 
-  private AlgorithmStatus combinedStatus = AlgorithmStatus.SOUND_AND_PRECISE;
-
   private ParallelRangedConditionsAlgorithm(
       Configuration config,
       LogManager pLogger,
@@ -82,8 +80,9 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
 
     config.inject(this);
 
-    CFA cfa = checkNotNull(pCfa);
-    Heuristic heuristic = Heuristic.getHeuristic(pathHeuristic, cfa, config, logger);
+    checkNotNull(pCfa);
+
+    Heuristic heuristic = Heuristic.getHeuristic(pathHeuristic, pCfa, config, logger);
 
     List<CFAPath> cfaPaths = heuristic.generatePaths();
     logger.log(Level.INFO, "RangedConditions Paths:");
@@ -99,7 +98,7 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
 
     Specification specification =
         pSpecification.withAdditionalSpecificationFile(
-            ImmutableSet.of(assumtionGuidingAutomatonFile), cfa, config, pLogger, pShutdownNotifier);
+            ImmutableSet.of(assumtionGuidingAutomatonFile), pCfa, config, pLogger, pShutdownNotifier);
 
     for (int i = 0; i <= cfaPaths.size(); i++) {
       Automaton condition;
@@ -163,14 +162,28 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
       ReachedSet pReachedSet, List<ListenableFuture<ParallelAnalysisResult>> pFutures) {
     HistoryForwardingReachedSet reachedSet = (HistoryForwardingReachedSet) pReachedSet;
 
-    for (StatisticsEntry stat : stats.getAllAnalysesStats()) {
-      logger.log(
-          Level.INFO,
-          stat.name
-              + " found "
-              + stat.getReached().getTargetInformation().size()
-              + " target states.");
-      reachedSet.setDelegate(stat.getReached());
+    AlgorithmStatus combinedStatus = AlgorithmStatus.SOUND_AND_PRECISE;
+
+    for (ListenableFuture<ParallelAnalysisResult> future : pFutures) {
+      try {
+        ParallelAnalysisResult result = future.get();
+
+        reachedSet.setDelegate(result.getReached());
+        combinedStatus = combinedStatus.update(result.getStatus());
+
+        if (result.getReached().wasTargetReached()) {
+          logger.log(
+              Level.INFO,
+              "Analysis "
+                  + result.getAnalysisName()
+                  + " reached target. Skipping aggregation of following analyses.");
+          return result.getStatus();
+        }
+      } catch (InterruptedException | ExecutionException pE) {
+        logger.log(
+            Level.SEVERE,
+            "At least one parallel execution did not finish. Result may be inaccurate.");
+      }
     }
     return combinedStatus;
   }
@@ -181,16 +194,16 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
       List<ListenableFuture<ParallelAnalysisResult>> futures)
       throws InterruptedException, ExecutionException, Error {
     ParallelAnalysisResult result = singleFuture.get();
-    AlgorithmStatus singleStatus = result.getStatus();
-    if (result.getReached().wasTargetReached()) {
-      combinedStatus = combinedStatus.update(singleStatus.withSound(true));
-    } else {
-      combinedStatus = combinedStatus.update(singleStatus.withPrecise(true));
-    }
+
     if (result.hasValidReachedSet()) {
       logger.log(
           Level.INFO,
           result.getAnalysisName() + " finished successfully. Result: " + result.getStatus());
+      if (result.getReached().wasTargetReached()) {
+        futures.forEach(future -> future.cancel(true));
+        shutdownManager.requestShutdown(
+            "One analysis reached a target state, canceling remaining analyses.");
+      }
     } else if (!result.hasValidReachedSet()) {
       logger.log(Level.INFO, result.getAnalysisName() + " finished without usable result.");
     }
