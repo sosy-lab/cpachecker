@@ -51,8 +51,10 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
   Path assumtionGuidingAutomatonFile =
       Path.of("config/specification/AssumptionGuidingAutomaton.spc");
 
+  @Option(description = "Path generation heuristic to use for Parallel Ranged Conditions.")
+  private Heuristic.Type pathHeuristic = Heuristic.Type.PATHS_FILE;
+
   private AlgorithmStatus combinedStatus = AlgorithmStatus.SOUND_AND_PRECISE;
-  private final CFA cfa;
 
   private ParallelRangedConditionsAlgorithm(
       Configuration config,
@@ -71,10 +73,10 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
 
     config.inject(this);
 
-    cfa = checkNotNull(pCfa);
+    CFA cfa = checkNotNull(pCfa);
+    Heuristic heuristic = Heuristic.getHeuristic(pathHeuristic, cfa, config, logger);
 
-    List<CFAPath> cfaPaths =
-        ImmutableList.of(CFAPath.fromInts(pCfa, ImmutableList.of(1, 30, 31, 2, 3, 4, 5, 6, 9)));
+    List<CFAPath> cfaPaths = heuristic.generatePaths();
     logger.log(Level.INFO, "RangedConditions Paths:");
     for (CFAPath path : cfaPaths) {
       logger.log(Level.INFO, path.toString());
