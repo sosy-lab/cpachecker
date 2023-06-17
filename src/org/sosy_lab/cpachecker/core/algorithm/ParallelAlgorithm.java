@@ -115,6 +115,7 @@ public class ParallelAlgorithm extends AbstractParallelAlgorithm implements Stat
     ParallelAnalysisResult result = singleFuture.get();
     if (result.hasValidReachedSet() && finalResult == null) {
       finalResult = result;
+      hasValidResult = true;
       ((ParallelAlgorithmStatistics) stats).successfulAnalysisName = result.getAnalysisName();
 
       // cancel other computations

@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CompoundException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -78,6 +79,8 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
       new CopyOnWriteArrayList<>();
   private CFANode mainEntryNode = null;
   private ImmutableList<Callable<ParallelAnalysisResult>> analyses;
+
+  protected boolean hasValidResult = false;
 
   public AbstractParallelAlgorithm(
       LogManager pLogger,
@@ -159,8 +162,9 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
       ReachedSet pReachedSet, List<ListenableFuture<ParallelAnalysisResult>> pFutures);
 
   protected void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
-      throws InterruptedException, Error {
+      throws InterruptedException, Error, CPAException {
 
+    List<CPAException> exceptions = new ArrayList<>();
     for (ListenableFuture<ParallelAnalysisResult> f : Futures.inCompletionOrder(futures)) {
       try {
         handleSingleFutureResult(f, futures);
@@ -175,6 +179,7 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
             logger.logUserException(
                 Level.WARNING, cause, "Analysis not completed due to concurrency");
           }
+          exceptions.add((CPAException) cause);
 
         } else {
           // cancel other computations
@@ -187,6 +192,13 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
         }
       } catch (CancellationException e) {
         // do nothing, this is normal if we cancel other analyses
+      }
+    }
+    if (!hasValidResult && !exceptions.isEmpty()) {
+      if (exceptions.size() == 1) {
+        throw Iterables.getOnlyElement(exceptions);
+      } else {
+        throw new CompoundException(exceptions);
       }
     }
   }
@@ -421,30 +433,6 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
     reached.add(initialState, initialPrecision);
   }
 
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
-  }
-
-  public interface ReachedSetUpdateListener {
-
-    void updated(ReachedSet pReachedSet);
-  }
-
-  public interface ReachedSetUpdater {
-
-    void register(ReachedSetUpdateListener pReachedSetUpdateListener);
-
-    void unregister(ReachedSetUpdateListener pReachedSetUpdateListener);
-  }
-
-  public interface ConditionAdjustmentEventSubscriber {
-
-    void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa);
-
-    void adjustmentRefused(ConfigurableProgramAnalysis pCpa);
-  }
-
   protected static class ParallelAnalysisResult {
 
     private final @Nullable ReachedSet reached;
@@ -587,11 +575,19 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
     protected abstract Result determineAnalysisResult(Result pResult, String pActualAnalysisName);
   }
 
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
+  }
+
   protected static class StatisticsEntry {
 
-    public final String name;
     private final Collection<Statistics> subStatistics;
+
     private final AtomicReference<ReachedSet> reachedSet;
+
+    public final String name;
+
     private final @Nullable ThreadCpuTimeLimit rLimit;
 
     private final AtomicBoolean terminated;
@@ -612,5 +608,24 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
     public ReachedSet getReached() {
       return reachedSet.get();
     }
+  }
+
+  public interface ReachedSetUpdateListener {
+
+    void updated(ReachedSet pReachedSet);
+  }
+
+  public interface ReachedSetUpdater {
+
+    void register(ReachedSetUpdateListener pReachedSetUpdateListener);
+
+    void unregister(ReachedSetUpdateListener pReachedSetUpdateListener);
+  }
+
+  public interface ConditionAdjustmentEventSubscriber {
+
+    void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa);
+
+    void adjustmentRefused(ConfigurableProgramAnalysis pCpa);
   }
 }

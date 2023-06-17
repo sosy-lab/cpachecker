@@ -138,6 +138,10 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
     }
 
     setAnalyses(analysesBuilder.build());
+    // We have to invert the logic.
+    // The ParallelAlgorithm has a valid result when at least one result is valid,
+    // while the ParallelRangedConditionsAlgorithm has a valid result, when no result is invalid.
+    hasValidResult = true;
   }
 
   public static Algorithm create(
@@ -206,10 +210,17 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
       if (result.getReached().wasTargetReached()) {
         futures.forEach(future -> future.cancel(true));
         shutdownManager.requestShutdown(
-            "One analysis reached a target state, canceling remaining analyses.");
+            "Analysis "
+                + result.getAnalysisName()
+                + " reached a target state, canceling remaining analyses.");
       }
     } else if (!result.hasValidReachedSet()) {
       logger.log(Level.INFO, result.getAnalysisName() + " finished without usable result.");
+      futures.forEach(future -> future.cancel(true));
+      shutdownManager.requestShutdown(
+          "Analysis "
+              + result.getAnalysisName()
+              + " finished without usable result. Canceling remaining analyses.");
     }
   }
 
