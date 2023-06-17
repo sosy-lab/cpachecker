@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.rangedconditions;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -33,8 +34,8 @@ public class CFAPath extends ArrayList<CFANode> implements Comparable<CFAPath> {
   }
 
   public static CFAPath fromString(CFA pCFA, String pPathString) {
-    List<String> nodeNumbers = List.of(pPathString.split("\\s+"));
-    return fromInts(pCFA, nodeNumbers.stream().map(Integer::valueOf).collect(Collectors.toList()));
+    List<String> nodeNumbers = ImmutableList.copyOf(pPathString.split("\\s+"));
+    return fromInts(pCFA, nodeNumbers.stream().map(Integer::valueOf).collect(ImmutableList.toImmutableList()));
   }
 
   @Override

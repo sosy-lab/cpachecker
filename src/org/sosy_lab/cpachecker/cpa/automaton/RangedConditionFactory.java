@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -86,7 +87,7 @@ public class RangedConditionFactory {
     AutomatonInternalState nonAccepting =
         new AutomatonInternalState(STATE_NON_ACCEPTING, transitionsRejecting);
 
-    return Set.of(accepting, nonAccepting);
+    return ImmutableSet.of(accepting, nonAccepting);
   }
 
   private AutomatonTransition generateTransitionNonAccepting(
