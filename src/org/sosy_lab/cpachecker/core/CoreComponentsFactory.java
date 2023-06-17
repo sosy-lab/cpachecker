@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
+import org.sosy_lab.cpachecker.core.algorithm.parallelRangedConditions.ParallelRangedConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorithm;
@@ -207,6 +208,13 @@ public class CoreComponentsFactory {
           "Use analyses parallely. The resulting reachedset is the one of the first"
               + " analysis finishing in time. All other analyses are terminated.")
   private boolean useParallelAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "useParallelRangedConditions",
+      description =
+          "Use ranged conditions to split the workload and verify the work packages parallely.")
+  private boolean useParallelRangedConditionsAlgorithm = false;
 
   @Option(secure = true, description = "converts a witness to an ACSL annotated program")
   private boolean useWitnessToACSLAlgorithm = false;
@@ -507,6 +515,11 @@ public class CoreComponentsFactory {
           new ParallelAlgorithm(
               config, logger, shutdownNotifier, specification, cfa, aggregatedReachedSets);
 
+    } else if (useParallelRangedConditionsAlgorithm) {
+      algorithm =
+          ParallelRangedConditionsAlgorithm.create(
+              config, logger, shutdownNotifier, specification, cfa, aggregatedReachedSets);
+
     } else if (useWitnessToACSLAlgorithm) {
       algorithm = new WitnessToACSLAlgorithm(config, logger, shutdownNotifier, cfa);
 
@@ -752,10 +765,11 @@ public class CoreComponentsFactory {
         || useParallelAlgorithm
         || asConditionalVerifier
         || useFaultLocalizationWithDistanceMetrics
-        || useArrayAbstraction) {
+        || useArrayAbstraction
+        || useParallelRangedConditionsAlgorithm) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
-      if (memorizeReachedAfterRestart) {
+      if (memorizeReachedAfterRestart || useParallelRangedConditionsAlgorithm) {
         reached = new HistoryForwardingReachedSet(reached);
       } else {
         reached = new ForwardingReachedSet(reached);

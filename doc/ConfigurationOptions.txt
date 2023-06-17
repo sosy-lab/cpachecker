@@ -512,6 +512,10 @@ analysis.useLoopStructure = true
 # analysis finishing in time. All other analyses are terminated.
 analysis.useParallelAnalyses = false
 
+# Use ranged conditions to split the workload and verify the work packages
+# parallely.
+analysis.useParallelRangedConditions = false
+
 # generate random test cases
 analysis.useRandomTestCaseGeneratorAlgorithm = false
 

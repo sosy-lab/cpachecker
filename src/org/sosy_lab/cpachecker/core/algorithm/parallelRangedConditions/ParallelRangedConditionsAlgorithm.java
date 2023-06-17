@@ -11,11 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.parallelRangedConditions;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
@@ -88,7 +88,7 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
 
     Specification specification =
         pSpecification.withAdditionalSpecificationFile(
-            Set.of(assumtionGuidingAutomatonFile), cfa, config, pLogger, pShutdownNotifier);
+            ImmutableSet.of(assumtionGuidingAutomatonFile), cfa, config, pLogger, pShutdownNotifier);
 
     for (int i = 0; i <= cfaPaths.size(); i++) {
       Automaton condition;
