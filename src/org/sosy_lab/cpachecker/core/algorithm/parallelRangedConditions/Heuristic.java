@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.parallelRangedConditions;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -114,30 +113,40 @@ abstract class Heuristic {
     @Override
     public List<CFAPath> generatePaths() {
       List<CFAPath> paths =
-          recursiveFirstBranches(new CFAPath(), cfa.getMainFunction(), branchDepth);
+          recursiveFirstBranches(new CFAPath(ImmutableList.of(cfa.getMainFunction())), branchDepth);
 
       return paths.stream().sorted().collect(ImmutableList.toImmutableList());
     }
 
-    private List<CFAPath> recursiveFirstBranches(
-        CFAPath pPrefix, CFANode pCurrentNode, int pRemainingBranchDepth) {
-      pPrefix.add(pCurrentNode);
-      if (pRemainingBranchDepth == 0 || pCurrentNode.getNumLeavingEdges() == 0) {
-        return ImmutableList.of(pPrefix);
-      } else if (pCurrentNode.getNumLeavingEdges() == 1) {
-        return recursiveFirstBranches(
-            pPrefix, pCurrentNode.getLeavingEdge(0).getSuccessor(), pRemainingBranchDepth);
-      } else {
-        Builder<CFAPath> paths = new Builder<>();
-        for (int i = 0; i < pCurrentNode.getNumLeavingEdges(); i++) {
-          paths.addAll(
-              recursiveFirstBranches(
-                  pPrefix.copy(),
-                  pCurrentNode.getLeavingEdge(i).getSuccessor(),
-                  pRemainingBranchDepth - 1));
-        }
-        return paths.build();
+    private List<CFAPath> recursiveFirstBranches(CFAPath pCurrentPath, int pRemainingBranchDepth) {
+      CFANode currentNode = pCurrentPath.getLast();
+
+      if (currentNode.getNumLeavingEdges() == 0) {
+        return ImmutableList.of();
       }
+      if (currentNode.getNumLeavingEdges() == 1) {
+        pCurrentPath.add(currentNode.getLeavingEdge(0).getSuccessor());
+        return recursiveFirstBranches(pCurrentPath, pRemainingBranchDepth);
+      }
+
+      List<CFANode> successors = new ArrayList<>(currentNode.getNumLeavingEdges());
+      for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
+        successors.add(currentNode.getLeavingEdge(i).getSuccessor());
+      }
+
+      ImmutableList.Builder<CFAPath> generated = new ImmutableList.Builder<>();
+
+      for (CFANode successor : successors) {
+        CFAPath nextPath = pCurrentPath.copy();
+        nextPath.add(successor);
+        if (successor != Collections.min(successors)) {
+          generated.add(nextPath.copy());
+        }
+        if (pRemainingBranchDepth > 1) {
+          generated.addAll(recursiveFirstBranches(nextPath, pRemainingBranchDepth - 1));
+        }
+      }
+      return generated.build();
     }
   }
 
