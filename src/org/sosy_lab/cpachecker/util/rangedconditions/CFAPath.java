@@ -35,7 +35,8 @@ public class CFAPath extends ArrayList<CFANode> implements Comparable<CFAPath> {
 
   public static CFAPath fromString(CFA pCFA, String pPathString) {
     List<String> nodeNumbers = ImmutableList.copyOf(pPathString.split("\\s+"));
-    return fromInts(pCFA, nodeNumbers.stream().map(Integer::valueOf).collect(ImmutableList.toImmutableList()));
+    return fromInts(
+        pCFA, nodeNumbers.stream().map(Integer::valueOf).collect(ImmutableList.toImmutableList()));
   }
 
   public static CFAPath fromInts(CFA pCfa, List<Integer> ints) {

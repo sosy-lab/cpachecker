@@ -113,17 +113,23 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
 
     Specification specification =
         pSpecification.withAdditionalSpecificationFile(
-            ImmutableSet.of(assumtionGuidingAutomatonFile), pCfa, config, pLogger, pShutdownNotifier);
+            ImmutableSet.of(assumtionGuidingAutomatonFile),
+            pCfa,
+            config,
+            pLogger,
+            pShutdownNotifier);
 
     for (int i = 0; i <= cfaPaths.size(); i++) {
       Automaton condition;
       try {
         if (i == 0) {
           condition =
-              conditionFactory.createForSmallestRange(cfaPaths.get(0), ImmutableSet.copyOf(cfaPaths));
+              conditionFactory.createForSmallestRange(
+                  cfaPaths.get(0), ImmutableSet.copyOf(cfaPaths));
         } else if (i == cfaPaths.size()) {
           condition =
-              conditionFactory.createForLargestRange(cfaPaths.get(i - 1), ImmutableSet.copyOf(cfaPaths));
+              conditionFactory.createForLargestRange(
+                  cfaPaths.get(i - 1), ImmutableSet.copyOf(cfaPaths));
         } else {
           condition =
               conditionFactory.createForRange(
