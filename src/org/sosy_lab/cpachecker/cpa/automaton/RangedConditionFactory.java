@@ -18,7 +18,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchCFAEdgeNodes;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition.Builder;
 import org.sosy_lab.cpachecker.util.rangedconditions.CFAPath;
 
 public class RangedConditionFactory {
@@ -60,13 +59,12 @@ public class RangedConditionFactory {
       CFANode currentNode = state.getLast();
       for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
         CFANode successor = currentNode.getLeavingEdge(i).getSuccessor();
-        CFAPath newPath = new CFAPath(state);
-        newPath.add(successor);
+        CFAPath currentPath = CFAPath.append(state, successor);
 
-        if (stateSet.contains(newPath)) {
-          transitions.add(generateTransition(currentNode, successor, newPath));
-        } else if (newPath.compareTo(pSmallPath) < 0
-            || (pLargePath != CFAPath.TOP && newPath.compareTo(pLargePath) > 0)) {
+        if (stateSet.contains(currentPath)) {
+          transitions.add(generateTransition(currentNode, successor, currentPath));
+        } else if (currentPath.compareTo(pSmallPath) < 0
+            || (pLargePath != CFAPath.TOP && currentPath.compareTo(pLargePath) > 0)) {
           transitions.add(generateTransitionAccepting(currentNode, successor));
         } else {
           transitions.add(generateTransitionNonAccepting(currentNode, successor));
@@ -83,9 +81,11 @@ public class RangedConditionFactory {
 
   private Set<AutomatonInternalState> generateFinalStates() {
     ImmutableList<AutomatonTransition> transitionsAccepting =
-        ImmutableList.of(new Builder(AutomatonBoolExpr.TRUE, STATE_ACCEPTING).build());
+        ImmutableList.of(
+            new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, STATE_ACCEPTING).build());
     ImmutableList<AutomatonTransition> transitionsRejecting =
-        ImmutableList.of(new Builder(AutomatonBoolExpr.TRUE, STATE_NON_ACCEPTING).build());
+        ImmutableList.of(
+            new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, STATE_NON_ACCEPTING).build());
 
     AutomatonInternalState accepting =
         new AutomatonInternalState(STATE_ACCEPTING, transitionsAccepting);
@@ -114,7 +114,8 @@ public class RangedConditionFactory {
       CFANode pPredecessorNode, CFANode pSuccessorNode, String pTargetState) {
     AutomatonBoolExpr trigger =
         new MatchCFAEdgeNodes(pPredecessorNode.getNodeNumber(), pSuccessorNode.getNodeNumber());
-    AutomatonTransition.Builder transitionBuilder = new Builder(trigger, pTargetState);
+    AutomatonTransition.Builder transitionBuilder =
+        new AutomatonTransition.Builder(trigger, pTargetState);
     return transitionBuilder.build();
   }
 }

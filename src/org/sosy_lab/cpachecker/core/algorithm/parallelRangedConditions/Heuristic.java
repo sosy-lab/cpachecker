@@ -125,8 +125,9 @@ abstract class Heuristic {
         return ImmutableList.of();
       }
       if (currentNode.getNumLeavingEdges() == 1) {
-        pCurrentPath.add(currentNode.getLeavingEdge(0).getSuccessor());
-        return recursiveFirstBranches(pCurrentPath, pRemainingBranchDepth);
+        CFAPath newPath =
+            CFAPath.append(pCurrentPath, currentNode.getLeavingEdge(0).getSuccessor());
+        return recursiveFirstBranches(newPath, pRemainingBranchDepth);
       }
 
       List<CFANode> successors = new ArrayList<>(currentNode.getNumLeavingEdges());
@@ -137,10 +138,9 @@ abstract class Heuristic {
       ImmutableList.Builder<CFAPath> generated = new ImmutableList.Builder<>();
 
       for (CFANode successor : successors) {
-        CFAPath nextPath = pCurrentPath.copy();
-        nextPath.add(successor);
+        CFAPath nextPath = CFAPath.append(pCurrentPath, successor);
         if (successor != Collections.min(successors)) {
-          generated.add(nextPath.copy());
+          generated.add(nextPath);
         }
         if (pRemainingBranchDepth > 1) {
           generated.addAll(recursiveFirstBranches(nextPath, pRemainingBranchDepth - 1));
@@ -186,7 +186,7 @@ abstract class Heuristic {
     public List<CFAPath> generatePaths() {
       Set<CFAPath> paths = new HashSet<>(numPaths);
       for (int i = 0; i < numPaths * 2; i++) {
-        paths.add(generateSinglePath(cfa.getMainFunction(), new CFAPath()));
+        paths.add(generateSinglePath(cfa.getMainFunction(), new CFAPath.Builder(), 0));
         if (paths.size() == numPaths) {
           break;
         }
@@ -204,16 +204,21 @@ abstract class Heuristic {
       return sortedPaths;
     }
 
-    private CFAPath generateSinglePath(CFANode currentNode, CFAPath currentPath) {
-      currentPath.add(currentNode);
+    private CFAPath generateSinglePath(
+        CFANode currentNode, CFAPath.Builder pathBuilder, int currentLength) {
+      currentLength++;
+      pathBuilder.add(currentNode);
       int numLeaving = currentNode.getNumLeavingEdges();
-      if (numLeaving == 0 || currentPath.size() == maxLength) {
-        return currentPath;
+      if (numLeaving == 0 || currentLength == maxLength) {
+        return pathBuilder.build();
       } else if (numLeaving == 1) {
-        return generateSinglePath(currentNode.getLeavingEdge(0).getSuccessor(), currentPath);
+        return generateSinglePath(
+            currentNode.getLeavingEdge(0).getSuccessor(), pathBuilder, currentLength);
       } else {
         return generateSinglePath(
-            currentNode.getLeavingEdge(rand.nextInt(numLeaving)).getSuccessor(), currentPath);
+            currentNode.getLeavingEdge(rand.nextInt(numLeaving)).getSuccessor(),
+            pathBuilder,
+            currentLength);
       }
     }
   }
@@ -246,9 +251,12 @@ abstract class Heuristic {
       for (Loop loop : loops) {
         Set<CFAPath> incommingPaths = new HashSet<>();
         for (CFAEdge entryEdge : loop.getIncomingEdges()) {
-          Set<CFAPath> pathsForEdge = getPathsWithoutLoop(entryEdge.getPredecessor());
-          pathsForEdge.forEach(path -> path.add(entryEdge.getSuccessor()));
-          incommingPaths.addAll(pathsForEdge);
+          Set<CFAPath.Builder> pathsForEdge = getPathsWithoutLoop(entryEdge.getPredecessor());
+          pathsForEdge.forEach(pathBuilder -> pathBuilder.add(entryEdge.getSuccessor()));
+          incommingPaths.addAll(
+              pathsForEdge.stream()
+                  .map(pathBuilder -> pathBuilder.build())
+                  .collect(ImmutableSet.toImmutableSet()));
         }
 
         if (incommingPaths.isEmpty()) {
@@ -269,16 +277,33 @@ abstract class Heuristic {
       return limitPaths.stream().sorted().collect(ImmutableList.toImmutableList());
     }
 
+    private Set<CFAPath.Builder> getPathsWithoutLoop(CFANode targetNode) {
+      if (targetNode == cfa.getMainFunction()) {
+        return ImmutableSet.of(new CFAPath.Builder().add(targetNode));
+      }
+      Set<CFAPath.Builder> pathBuilders = new HashSet<>();
+      for (int i = 0; i < targetNode.getNumEnteringEdges(); i++) {
+        CFAEdge enteringEdge = targetNode.getEnteringEdge(i);
+        CFANode predecessor = enteringEdge.getPredecessor();
+        if (loopNodes.contains(predecessor)) {
+          // ignore paths leading to this loop, which traverse through other loops
+          continue;
+        }
+        pathBuilders.addAll(getPathsWithoutLoop(predecessor));
+      }
+      pathBuilders.forEach(path -> path.add(targetNode));
+      return pathBuilders;
+    }
+
     private CFAPath getLowerLimitPath(Loop loop, CFAPath path) {
       Set<CFANode> visited = new HashSet<>();
       CFANode currentNode = path.getLast();
-      CFAPath localPath = new CFAPath(path);
+      CFAPath.Builder pathBuilder = path.asBuilder();
       while (true) {
         if (!loop.getLoopNodes().contains(currentNode)) {
           break;
         } else {
           if (visited.contains(currentNode)) {
-            logger.log(Level.INFO, "minPath pre " + localPath);
             // The smallest path through the loop does not exit it. Return the original path, which
             // is the biggest path smaller than all paths that contain the loop.
             return path;
@@ -289,7 +314,7 @@ abstract class Heuristic {
             successorNodes.add(currentNode.getLeavingEdge(i).getSuccessor());
           }
           currentNode = Collections.min(successorNodes);
-          localPath.add(currentNode);
+          pathBuilder.add(currentNode);
         }
       }
       while (currentNode.getNumLeavingEdges() > 0) {
@@ -301,19 +326,18 @@ abstract class Heuristic {
           break;
         }
         currentNode = Collections.max(successors);
-        localPath.add(currentNode);
+        pathBuilder.add(currentNode);
       }
-      logger.log(Level.INFO, "minPath " + localPath);
-      return localPath;
+      return pathBuilder.build();
     }
 
     private Optional<CFAPath> getUpperLimitPath(Loop loop, CFAPath path) {
       Set<CFANode> visited = new HashSet<>();
       CFANode currentNode = path.getLast();
-      CFAPath localPath = new CFAPath(path);
+      CFAPath.Builder pathBuilder = path.asBuilder();
       while (!visited.contains(currentNode)) {
         if (!loop.getLoopNodes().contains(currentNode)) {
-          return Optional.of(localPath);
+          return Optional.of(pathBuilder.build());
         }
         visited.add(currentNode);
         Set<CFANode> successorNodes = new HashSet<>();
@@ -321,7 +345,7 @@ abstract class Heuristic {
           successorNodes.add(currentNode.getLeavingEdge(i).getSuccessor());
         }
         currentNode = Collections.max(successorNodes);
-        localPath.add(currentNode);
+        pathBuilder.add(currentNode);
       }
 
       // The largest path within the loop does not exit it. We need to backtrack the path leading to
@@ -330,7 +354,7 @@ abstract class Heuristic {
         CFANode current = path.get(i);
         CFANode predecessor = path.get(i - 1);
         if (predecessor.getNumLeavingEdges() == 1) {
-          // The predecessor to node i has only one succesor which is node i itself.
+          // The predecessor to node i has only one successor which is node i itself.
           continue;
         }
 
@@ -342,30 +366,13 @@ abstract class Heuristic {
           }
         }
         if (!candidates.isEmpty()) {
-          CFAPath limitPath = new CFAPath(path.subList(0, i - 1));
-          limitPath.add(Collections.min(candidates));
-          return Optional.of(limitPath);
+          CFAPath.Builder limitPathBuilder = new CFAPath.Builder();
+          limitPathBuilder.addAll(path.subList(0, i - 1));
+          limitPathBuilder.add(Collections.min(candidates));
+          return Optional.of(limitPathBuilder.build());
         }
       }
       return Optional.empty();
-    }
-
-    private Set<CFAPath> getPathsWithoutLoop(CFANode targetNode) {
-      if (targetNode == cfa.getMainFunction()) {
-        return ImmutableSet.of(new CFAPath(ImmutableList.of(targetNode)));
-      }
-      Set<CFAPath> paths = new HashSet<>();
-      for (int i = 0; i < targetNode.getNumEnteringEdges(); i++) {
-        CFAEdge enteringEdge = targetNode.getEnteringEdge(i);
-        CFANode predecessor = enteringEdge.getPredecessor();
-        if (loopNodes.contains(predecessor)) {
-          // ignore paths leading to this loop, which traverse through other loops
-          continue;
-        }
-        paths.addAll(getPathsWithoutLoop(predecessor));
-      }
-      paths.forEach(path -> path.add(targetNode));
-      return paths;
     }
   }
 }

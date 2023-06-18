@@ -9,28 +9,33 @@
 package org.sosy_lab.cpachecker.util.rangedconditions;
 
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class CFAPath extends ArrayList<CFANode> implements Comparable<CFAPath> {
-
-  private static final long serialVersionUID = -7969725228233578981L;
+public class CFAPath implements Comparable<CFAPath> {
 
   public static final CFAPath TOP = new CFATopPath();
+  private static final long serialVersionUID = -7969725228233578981L;
+  private final ImmutableList<CFANode> nodes;
 
   public CFAPath() {
-    super();
+    nodes = ImmutableList.of();
   }
 
   public CFAPath(Collection<CFANode> pPath) {
-    super();
-    addAll(pPath);
+    nodes = ImmutableList.copyOf(pPath);
+  }
+
+  public static CFAPath append(CFAPath pPath, CFANode pNode) {
+    Builder builder = new Builder();
+    builder.addAll(pPath.nodes);
+    builder.add(pNode);
+    return builder.build();
   }
 
   public static CFAPath fromString(CFA pCFA, String pPathString) {
@@ -40,27 +45,33 @@ public class CFAPath extends ArrayList<CFANode> implements Comparable<CFAPath> {
   }
 
   public static CFAPath fromInts(CFA pCfa, List<Integer> ints) {
-    CFAPath result = new CFAPath();
+    Builder path = new Builder();
     for (Integer i : ints) {
-      result.add(
+      path.add(
           pCfa.getAllNodes().stream().filter(elem -> elem.getNodeNumber() == i).findFirst().get());
     }
-    return result;
+    return path.build();
   }
 
   @Override
   public String toString() {
-    return stream().map(elem -> elem.toString()).collect(Collectors.joining());
+    return nodes.stream().map(elem -> elem.toString()).collect(Collectors.joining());
   }
 
   public Set<CFAPath> getPrefixes() {
-    Set<CFAPath> resultSet = new HashSet<>();
-
+    ImmutableSet.Builder<CFAPath> resultSetBuilder = new ImmutableSet.Builder<>();
     for (int i = 1; i <= size(); i++) {
-      resultSet.add(new CFAPath(subList(0, i)));
+      resultSetBuilder.add(new CFAPath(nodes.subList(0, i)));
     }
+    return resultSetBuilder.build();
+  }
 
-    return resultSet;
+  public int size() {
+    return nodes.size();
+  }
+
+  public CFANode get(int i) {
+    return nodes.get(i);
   }
 
   public CFANode getLast() {
@@ -69,6 +80,9 @@ public class CFAPath extends ArrayList<CFANode> implements Comparable<CFAPath> {
 
   @Override
   public int compareTo(CFAPath other) {
+    if (other instanceof CFATopPath) {
+      return -1;
+    }
     for (int i = 0; i < size() && i < other.size(); i++) {
       if (!get(i).equals(other.get(i))) {
         return get(i).compareTo(other.get(i));
@@ -77,11 +91,59 @@ public class CFAPath extends ArrayList<CFANode> implements Comparable<CFAPath> {
     return size() - other.size();
   }
 
-  public CFAPath copy() {
-    return new CFAPath(this);
+  @Override
+  public boolean equals(Object other) {
+    if (this == other) {
+      return true;
+    }
+    if (!(other instanceof CFAPath)) {
+      return false;
+    }
+
+    CFAPath path = (CFAPath) other;
+    return nodes.equals(path.nodes);
+  }
+
+  @Override
+  public int hashCode() {
+    return nodes.hashCode();
+  }
+
+  public Collection<CFANode> subList(int start, int end) {
+    return nodes.subList(start, end);
+  }
+
+  public Builder asBuilder() {
+    return new Builder().addAll(this.nodes);
+  }
+
+  public static class Builder {
+    private final ImmutableList.Builder<CFANode> builder = new ImmutableList.Builder<>();
+
+    public Builder add(CFANode element) {
+      builder.add(element);
+      return this;
+    }
+
+    public Builder addAll(Iterable<? extends CFANode> elements) {
+      builder.addAll(elements);
+      return this;
+    }
+
+    public CFAPath build() {
+      return new CFAPath(builder.build());
+    }
   }
 
   private static class CFATopPath extends CFAPath {
     private static final long serialVersionUID = -7512612535752666973L;
+
+    @Override
+    public int compareTo(CFAPath other) {
+      if (other instanceof CFATopPath) {
+        return 0;
+      }
+      return 1;
+    }
   }
 }
