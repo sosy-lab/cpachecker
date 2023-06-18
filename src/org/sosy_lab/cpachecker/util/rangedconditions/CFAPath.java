@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public class CFAPath implements Comparable<CFAPath> {
 
   public static final CFAPath TOP = new CFATopPath();
-  private static final long serialVersionUID = -7969725228233578981L;
   private final ImmutableList<CFANode> nodes;
 
   public CFAPath() {
@@ -136,7 +135,6 @@ public class CFAPath implements Comparable<CFAPath> {
   }
 
   private static class CFATopPath extends CFAPath {
-    private static final long serialVersionUID = -7512612535752666973L;
 
     @Override
     public int compareTo(CFAPath other) {
