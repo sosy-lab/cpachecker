@@ -40,6 +40,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -115,36 +116,43 @@ public final class LoopStructure implements Serializable {
     private ImmutableSet<CFAEdge> incomingEdges;
     private ImmutableSet<CFAEdge> outgoingEdges;
 
+    private final ReentrantLock computeSetLock = new ReentrantLock();
+
     private Loop(CFANode loopHead, Set<CFANode> pNodes) {
       loopHeads = ImmutableSet.of(loopHead);
       nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).add(loopHead).build();
     }
 
-    private synchronized void computeSets() {
-      if (innerLoopEdges != null) {
-        assert incomingEdges != null;
-        assert outgoingEdges != null;
-        return;
+    private void computeSets() {
+      computeSetLock.lock();
+      try {
+        if (innerLoopEdges != null) {
+          assert incomingEdges != null;
+          assert outgoingEdges != null;
+          return;
+        }
+
+        Set<CFAEdge> newIncomingEdges = new HashSet<>();
+        Set<CFAEdge> newOutgoingEdges = new HashSet<>();
+
+        for (CFANode n : nodes) {
+          CFAUtils.enteringEdges(n).copyInto(newIncomingEdges);
+          CFAUtils.leavingEdges(n).copyInto(newOutgoingEdges);
+        }
+
+        innerLoopEdges = Sets.intersection(newIncomingEdges, newOutgoingEdges).immutableCopy();
+        newIncomingEdges.removeAll(innerLoopEdges);
+        newIncomingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge));
+        newOutgoingEdges.removeAll(innerLoopEdges);
+        newOutgoingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionCallEdge));
+
+        assert !newIncomingEdges.isEmpty() : "Unreachable loop?";
+
+        incomingEdges = ImmutableSet.copyOf(newIncomingEdges);
+        outgoingEdges = ImmutableSet.copyOf(newOutgoingEdges);
+      } finally {
+        computeSetLock.unlock();
       }
-
-      Set<CFAEdge> newIncomingEdges = new HashSet<>();
-      Set<CFAEdge> newOutgoingEdges = new HashSet<>();
-
-      for (CFANode n : nodes) {
-        CFAUtils.enteringEdges(n).copyInto(newIncomingEdges);
-        CFAUtils.leavingEdges(n).copyInto(newOutgoingEdges);
-      }
-
-      innerLoopEdges = Sets.intersection(newIncomingEdges, newOutgoingEdges).immutableCopy();
-      newIncomingEdges.removeAll(innerLoopEdges);
-      newIncomingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge));
-      newOutgoingEdges.removeAll(innerLoopEdges);
-      newOutgoingEdges.removeIf(e -> e.getEdgeType().equals(CFAEdgeType.FunctionCallEdge));
-
-      assert !newIncomingEdges.isEmpty() : "Unreachable loop?";
-
-      incomingEdges = ImmutableSet.copyOf(newIncomingEdges);
-      outgoingEdges = ImmutableSet.copyOf(newOutgoingEdges);
     }
 
     private void addNodes(Loop l) {
