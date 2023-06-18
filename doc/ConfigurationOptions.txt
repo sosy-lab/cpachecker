@@ -4135,6 +4135,11 @@ parallelRangedConditionsAlgorithm.firstBranchesHeuristic.branchDepth = no defaul
 # Path generation heuristic to use for Parallel Ranged Conditions.
 parallelRangedConditionsAlgorithm.pathHeuristic = PATHS_FILE
   enum:     [PATHS_FILE, FIRST_BRANCHES, LOOPS, RANDOM]
+
+# Output file for saving used paths.
+parallelRangedConditionsAlgorithm.pathOutput = no default value
+
+# Path generation heuristic to use for Parallel Ranged Conditions.
 parallelRangedConditionsAlgorithm.pathsFileHeuristic.file = no default value
 
 # Maximum length of randomly generated paths. The actual length may be
