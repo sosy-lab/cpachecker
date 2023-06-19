@@ -196,14 +196,8 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
               @Override
               public int compare(
                   PathDistancePair<CFAEdge, Event> a, PathDistancePair<CFAEdge, Event> b) {
-                int aSum =
-                    a.getDistances().stream()
-                        .map(e -> e.getDistanceFromTheEnd())
-                        .reduce(0, Integer::sum);
-                int bSum =
-                    b.getDistances().stream()
-                        .map(e -> e.getDistanceFromTheEnd())
-                        .reduce(0, Integer::sum);
+                int aSum = a.getDistances().stream().mapToInt(Event::getDistanceFromTheEnd).sum();
+                int bSum = b.getDistances().stream().mapToInt(Event::getDistanceFromTheEnd).sum();
                 return Integer.compare(aSum, bSum);
               }
             });
