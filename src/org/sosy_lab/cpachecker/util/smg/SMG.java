@@ -1047,8 +1047,7 @@ public class SMG {
    * @return Set of all SMGHasValueEdges of this SMG.
    */
   public FluentIterable<SMGHasValueEdge> getHVEdges() {
-    return FluentIterable.from(hasValueEdges.values())
-        .transformAndConcat(edges -> FluentIterable.from(edges));
+    return FluentIterable.concat(hasValueEdges.values());
   }
 
   /**
