@@ -13,7 +13,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
@@ -42,9 +42,9 @@ public class TestTargetReductionSpanningSet {
                 constructSubsumptionGraph(pTargets, pCfa.getMainFunction()))));
   }
 
-  private ImmutableSet<CFAEdgeNode> constructSubsumptionGraph(
+  private ImmutableList<CFAEdgeNode> constructSubsumptionGraph(
       final Set<CFAEdge> pTargets, FunctionEntryNode pStartNode) {
-    ImmutableSet.Builder<CFAEdgeNode> nodeBuilder = ImmutableSet.builder();
+    ImmutableList.Builder<CFAEdgeNode> nodeBuilder = ImmutableList.builder();
 
     CFAEdgeNode node;
     Map<CFAEdge, CFAEdgeNode> edgeToNode = Maps.newHashMapWithExpectedSize(pTargets.size());
@@ -106,9 +106,9 @@ public class TestTargetReductionSpanningSet {
     return nodeBuilder.build();
   }
 
-  private ImmutableSet<Collection<CFAEdgeNode>> computeStronglyConnectedComponents(
-      final ImmutableSet<CFAEdgeNode> nodes) {
-    ImmutableSet.Builder<Collection<CFAEdgeNode>> componentsBuilder = ImmutableSet.builder();
+  private ImmutableList<Collection<CFAEdgeNode>> computeStronglyConnectedComponents(
+      final ImmutableList<CFAEdgeNode> nodes) {
+    ImmutableList.Builder<Collection<CFAEdgeNode>> componentsBuilder = ImmutableList.builder();
     Deque<CFAEdgeNode> ordered = new ArrayDeque<>(nodes.size());
 
     Set<CFAEdgeNode> visited = Sets.newHashSetWithExpectedSize(nodes.size());
@@ -141,9 +141,9 @@ public class TestTargetReductionSpanningSet {
     }
   }
 
-  private ImmutableSet<CFAEdgeNode> reduceSubsumptionGraph(
-      final ImmutableSet<Collection<CFAEdgeNode>> pComponents) {
-    ImmutableSet.Builder<CFAEdgeNode> nodeBuilder = ImmutableSet.builder();
+  private ImmutableList<CFAEdgeNode> reduceSubsumptionGraph(
+      final ImmutableList<Collection<CFAEdgeNode>> pComponents) {
+    ImmutableList.Builder<CFAEdgeNode> nodeBuilder = ImmutableList.builder();
 
     for (Collection<CFAEdgeNode> component : pComponents) {
       nodeBuilder.add(CFAEdgeNode.merge(component));
@@ -152,7 +152,7 @@ public class TestTargetReductionSpanningSet {
     return nodeBuilder.build();
   }
 
-  private Set<CFAEdge> getTestTargetsFromLeaves(final ImmutableSet<CFAEdgeNode> pNodes) {
+  private Set<CFAEdge> getTestTargetsFromLeaves(final ImmutableList<CFAEdgeNode> pNodes) {
     // set must not be immutable
     return new HashSet<>(
         FluentIterable.from(pNodes)
