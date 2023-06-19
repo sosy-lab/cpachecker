@@ -21,9 +21,7 @@ public class BackwardBMCAlgorithm implements Algorithm {
   private ConfigurableProgramAnalysis cpa;
 
   public BackwardBMCAlgorithm(
-      Algorithm pAlgorithm,
-      ConfigurableProgramAnalysis pCPA,
-      LogManager pLogger) {
+      Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA, LogManager pLogger) {
 
     logger = pLogger;
     algorithm = pAlgorithm;

@@ -182,6 +182,10 @@ algorithm.parallelBam.runningRSESeriesFile = "RSESeries.csv"
 # has finished, works only with PredicateCPA
 analysis.algorithm.BMC = false
 
+# use a backwards BMC like algorithm that checks for satisfiability after the
+# analysis has finished, works only with PredicateCPA
+analysis.algorithm.BackwardBMC = false
+
 # use CEGAR algorithm for lazy counter-example guided analysis
 # You need to specify a refiner with the cegar.refiner option.
 # Currently all refiner require the use of the ARGCPA.

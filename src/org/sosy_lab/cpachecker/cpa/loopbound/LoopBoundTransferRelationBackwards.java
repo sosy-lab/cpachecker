@@ -134,7 +134,7 @@ public class LoopBoundTransferRelationBackwards extends SingleEdgeTransferRelati
 
     // this assertion probably doesn't make sense anymore
     // Could be with old loop instead?
-    assert oldLoop == null || visitedLoops.contains(oldLoop);
+    assert newLoop == null || visitedLoops.contains(newLoop);
     for (Loop loop : visitedLoops) {
       state = state.visitLoopHead(loop);
       // Check if the bound for unrolling has been reached;
