@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.time.Timer;
@@ -79,7 +80,7 @@ public class TestTargetProvider implements Statistics {
 
     numNonOptimizedTargets = edges.size();
     if (trackCoverageOfRedundantTargets) {
-      uncoveredRedundantTargets = Sets.newLinkedHashSet(edges);
+      uncoveredRedundantTargets = new LinkedHashSet<>(edges);
     }
 
     optimizationTimer.start();
