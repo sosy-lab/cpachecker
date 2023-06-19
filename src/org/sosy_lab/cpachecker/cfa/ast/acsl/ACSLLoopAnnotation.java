@@ -20,18 +20,19 @@ import java.util.Map.Entry;
 public final class ACSLLoopAnnotation implements ACSLAnnotation {
 
   private final ACSLLoopInvariant lInvariant;
-  private final ImmutableMap<List<Behavior>, ACSLLoopInvariant> additionalInvariants;
+  private final ImmutableMap<ImmutableList<Behavior>, ACSLLoopInvariant> additionalInvariants;
 
   ACSLLoopAnnotation(ACSLLoopInvariant invariant) {
     this(invariant, ImmutableMap.of());
   }
 
-  ACSLLoopAnnotation(Map<List<Behavior>, ACSLLoopInvariant> pAdditionalInvariants) {
+  ACSLLoopAnnotation(Map<ImmutableList<Behavior>, ACSLLoopInvariant> pAdditionalInvariants) {
     this(new ACSLLoopInvariant(ACSLPredicate.getTrue()), pAdditionalInvariants);
   }
 
   ACSLLoopAnnotation(
-      ACSLLoopInvariant invariant, Map<List<Behavior>, ACSLLoopInvariant> pAdditionalInvariants) {
+      ACSLLoopInvariant invariant,
+      Map<ImmutableList<Behavior>, ACSLLoopInvariant> pAdditionalInvariants) {
     lInvariant = new ACSLLoopInvariant(invariant.getPredicate().simplify());
     additionalInvariants =
         ImmutableMap.copyOf(
@@ -67,7 +68,8 @@ public final class ACSLLoopAnnotation implements ACSLAnnotation {
     StringBuilder builder = new StringBuilder();
     builder.append(lInvariant.toString());
     if (!additionalInvariants.isEmpty()) {
-      for (Entry<List<Behavior>, ACSLLoopInvariant> entry : additionalInvariants.entrySet()) {
+      for (Entry<ImmutableList<Behavior>, ACSLLoopInvariant> entry :
+          additionalInvariants.entrySet()) {
         builder.append('\n').append("for ");
         Joiner.on(", ").appendTo(builder, entry.getKey().stream().map(x -> x.getName()).iterator());
         builder.append(':');
