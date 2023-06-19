@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
@@ -157,7 +158,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * @param pErrorIndicators possible candidates for the error
    * @return FaultLocalizationOutputs of the CFAEdges.
    */
-  public static Set<Fault> transform(Set<Set<CFAEdge>> pErrorIndicators) {
+  public static Set<Fault> transform(Set<ImmutableSet<CFAEdge>> pErrorIndicators) {
     Set<Fault> transformed = new HashSet<>();
     for (Set<CFAEdge> errorIndicator : pErrorIndicators) {
       transformed.add(

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -44,12 +45,12 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     BooleanFormula booleanTraceFormula = tf.toFormula(new SelectorTraceInterpreter(bmgr), true);
 
-    Set<Set<TraceAtom>> hard = new LinkedHashSet<>();
+    Set<ImmutableSet<TraceAtom>> hard = new LinkedHashSet<>();
 
     Set<TraceAtom> soft = new LinkedHashSet<>(tf.getTrace());
     int initSize = soft.size();
 
-    Set<TraceAtom> minUnsatCore = new LinkedHashSet<>();
+    ImmutableSet<TraceAtom> minUnsatCore = ImmutableSet.of();
 
     stats.totalTime.start();
     // loop as long as new unsat cores are found.
@@ -97,9 +98,9 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
    * @throws SolverException thrown if tf is satisfiable
    * @throws InterruptedException thrown if interrupted
    */
-  private Set<TraceAtom> getMinUnsatCore(
+  private ImmutableSet<TraceAtom> getMinUnsatCore(
       Set<TraceAtom> pSoftSet,
-      Set<Set<TraceAtom>> pHardSet,
+      Set<ImmutableSet<TraceAtom>> pHardSet,
       BooleanFormula pTraceFormula,
       FormulaContext pContext)
       throws SolverException, InterruptedException {
@@ -124,10 +125,10 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
         }
       }
     } while (changed);
-    return result;
+    return ImmutableSet.copyOf(result);
   }
 
-  private boolean isSubsetOrSupersetOf(Set<TraceAtom> pSet, Set<Set<TraceAtom>> pHardSet) {
+  private boolean isSubsetOrSupersetOf(Set<TraceAtom> pSet, Set<ImmutableSet<TraceAtom>> pHardSet) {
     stats.timeForSubSupCheck.start();
     try {
       for (Set<TraceAtom> hardSet : pHardSet) {
