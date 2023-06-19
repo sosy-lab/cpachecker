@@ -684,6 +684,18 @@ class CExpressionVisitorWithPointerAliasing
         if (functionName.equals("memcpy")
             || functionName.equals("memmove")
             || functionName.equals("memset")) {
+          if (!conv.options.enableMemoryAssignmentFunctions()) {
+            if (conv.options.isAllowedUnsupportedFunction(functionName)) {
+              // delegate, this will log a warning and model it as nondet
+              return Value.ofValue(delegate.visit(e));
+
+            } else {
+              throw new UnrecognizedCodeException(
+                  "Memory assignment function called but their handling is disabled. "
+                      + "Set cpa.predicate.enableMemoryAssignmentFunctions=true to enable.",
+                  e);
+            }
+          }
           MemoryManipulationFunctionHandler memoryFunctionHandler =
               new MemoryManipulationFunctionHandler(
                   conv, edge, functionName, ssa, pts, constraints, errorConditions, regionMgr);

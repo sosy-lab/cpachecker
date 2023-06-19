@@ -118,13 +118,6 @@ class MemoryManipulationFunctionHandler {
   CExpression handleMemoryAssignmentFunction(
       final String functionName, final CFunctionCallExpression functionCall)
       throws UnrecognizedCodeException, InterruptedException {
-    if (!conv.options.enableMemoryAssignmentFunctions()) {
-      throw new UnrecognizedCodeException(
-          "Memory assignment function called but their handling is disabled. "
-              + "Set cpa.predicate.enableMemoryAssignmentFunctions=true to enable.",
-          functionCall);
-    }
-
     // all of the functions have exactly three arguments
     // the first and third argument is the same for all functions
     final List<CExpression> arguments = functionCall.getParameterExpressions();
