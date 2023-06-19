@@ -2259,9 +2259,11 @@ cpa.predicate.handlePointerAliasing = true
 # assigning a fresh non-det address to it
 cpa.predicate.handleStringLiteralInitializers = false
 
-# Allows to ignore Concat and Extract Calls when Bitvector theory was
-# replaced with Integer or Rational.
-cpa.predicate.ignoreExtractConcat = true
+# Ignore Extract and Extend operations instead of encoding them with a UF
+# when Bitvector theory is replaced with Integer or Rational. This is unsound
+# but sometimes more practical in order to not make casts return
+# nondeterministic values.
+cpa.predicate.ignoreExtractExtend = true
 
 # Ignore fields that are not relevant for reachability properties. This is
 # unsound in case fields are accessed by pointer arithmetic with hard-coded
