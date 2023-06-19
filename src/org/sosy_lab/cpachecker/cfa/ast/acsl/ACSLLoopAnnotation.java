@@ -9,8 +9,10 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -31,13 +33,11 @@ public final class ACSLLoopAnnotation implements ACSLAnnotation {
   ACSLLoopAnnotation(
       ACSLLoopInvariant invariant, Map<List<Behavior>, ACSLLoopInvariant> pAdditionalInvariants) {
     lInvariant = new ACSLLoopInvariant(invariant.getPredicate().simplify());
-    ImmutableMap.Builder<List<Behavior>, ACSLLoopInvariant> builder =
-        ImmutableMap.builderWithExpectedSize(pAdditionalInvariants.size());
-    for (Entry<List<Behavior>, ACSLLoopInvariant> entry : pAdditionalInvariants.entrySet()) {
-      builder.put(
-          entry.getKey(), new ACSLLoopInvariant(entry.getValue().getPredicate().simplify()));
-    }
-    additionalInvariants = builder.buildOrThrow();
+    additionalInvariants =
+        ImmutableMap.copyOf(
+            Maps.transformValues(
+                pAdditionalInvariants,
+                loopInvariant -> new ACSLLoopInvariant(loopInvariant.getPredicate().simplify())));
   }
 
   @Override
@@ -47,11 +47,7 @@ public final class ACSLLoopAnnotation implements ACSLAnnotation {
 
   @Override
   public List<Behavior> getReferencedBehaviors() {
-    ImmutableList.Builder<Behavior> referencedBehaviors = ImmutableList.builder();
-    for (List<Behavior> behaviors : additionalInvariants.keySet()) {
-      referencedBehaviors.addAll(behaviors);
-    }
-    return referencedBehaviors.build();
+    return FluentIterable.concat(additionalInvariants.keySet()).toList();
   }
 
   @Override
