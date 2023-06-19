@@ -188,7 +188,7 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public boolean equals(Object o) {
-      if (!(o instanceof SMGRefineablePrecision) && !super.equals(o)) {
+      if (!(o instanceof SMGRefineablePrecision) || !super.equals(o)) {
         return false;
       }
       SMGRefineablePrecision other = (SMGRefineablePrecision) o;
