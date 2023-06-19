@@ -114,7 +114,7 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
       if (pObj instanceof NondeterminismNonAbstractionState other) {
         return nondetVariables.equals(other.nondetVariables);
       }
-      return super.equals(pObj);
+      return false;
     }
 
     @Override
@@ -169,7 +169,7 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
       if (pObj instanceof NondeterminismAbstractionState other) {
         return nondetVariablesPreAbstraction.equals(other.nondetVariablesPreAbstraction);
       }
-      return super.equals(pObj);
+      return false;
     }
 
     @Override

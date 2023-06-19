@@ -108,7 +108,7 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
 
     @Override
     public boolean equals(Object pObj) {
-      if (super.equals(pObj)) {
+      if (this == pObj) {
         return true;
       }
       if (!(pObj instanceof AutomatonIntVariable)) {
@@ -185,7 +185,7 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
 
     @Override
     public boolean equals(Object pObj) {
-      if (super.equals(pObj)) {
+      if (this == pObj) {
         return true;
       }
       if (!(pObj instanceof AutomatonSetVariable<?>)) {
