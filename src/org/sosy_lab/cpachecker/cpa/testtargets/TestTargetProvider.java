@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -36,7 +37,9 @@ public class TestTargetProvider implements Statistics {
   private final TestTargetType type;
   private final ImmutableSet<CFAEdge> initialTestTargets;
   private final Set<CFAEdge> uncoveredTargets;
+  private Set<CFAEdge> uncoveredRedundantTargets;
   private int numNonOptimizedTargets = -1;
+  private boolean trackCoverageOfRedundantTargets = false;
   private boolean printTargets = false;
   private boolean runParallel;
   private TestTargetAdaption optimization;
@@ -47,11 +50,13 @@ public class TestTargetProvider implements Statistics {
       final boolean pRunParallel,
       final TestTargetType pType,
       final String pTargetFun,
-      final TestTargetAdaption pGoalAdaption) {
+      final TestTargetAdaption pGoalAdaption,
+      final boolean pTrackRedundantTargets) {
     cfa = pCfa;
     runParallel = pRunParallel;
     type = pType;
     optimization = pGoalAdaption;
+    trackCoverageOfRedundantTargets = pTrackRedundantTargets;
 
     Predicate<CFAEdge> edgeCriterion =
         switch (type) {
@@ -73,6 +78,9 @@ public class TestTargetProvider implements Statistics {
     Set<CFAEdge> edges = Sets.newLinkedHashSet(CFAUtils.allEdges(pCfa).filter(criterion));
 
     numNonOptimizedTargets = edges.size();
+    if (trackCoverageOfRedundantTargets) {
+      uncoveredRedundantTargets = Sets.newLinkedHashSet(edges);
+    }
 
     optimizationTimer.start();
     try {
@@ -81,7 +89,18 @@ public class TestTargetProvider implements Statistics {
     } finally {
       optimizationTimer.stopIfRunning();
     }
+    if (trackCoverageOfRedundantTargets) {
+      uncoveredRedundantTargets.removeAll(edges);
+    } else {
+      uncoveredRedundantTargets = ImmutableSet.of();
+    }
     return edges;
+  }
+
+  public static void processTargetPath(CounterexampleInfo pCexInfo) {
+    if (instance != null && instance.trackCoverageOfRedundantTargets) {
+      instance.uncoveredRedundantTargets.removeAll(pCexInfo.getTargetPath().getFullPath());
+    }
   }
 
   public static int getTotalNumberOfTestTargets() {
@@ -103,23 +122,39 @@ public class TestTargetProvider implements Statistics {
       final boolean pRunParallel,
       final TestTargetType pType,
       final String pTargetFun,
-      TestTargetAdaption pTargetOptimization) {
+      TestTargetAdaption pTargetOptimization,
+      final boolean pTrackRedundantTargets) {
     if (instance == null
         || pCfa != instance.cfa
         || instance.type != pType
         || instance.optimization != pTargetOptimization) {
-      instance = new TestTargetProvider(pCfa, pRunParallel, pType, pTargetFun, pTargetOptimization);
+      instance =
+          new TestTargetProvider(
+              pCfa, pRunParallel, pType, pTargetFun, pTargetOptimization, pTrackRedundantTargets);
     }
     Preconditions.checkState(instance.runParallel || !pRunParallel);
+    Preconditions.checkState(instance.trackCoverageOfRedundantTargets || !pTrackRedundantTargets);
     return instance.uncoveredTargets;
   }
 
   public static String getCoverageInfo() {
     Preconditions.checkNotNull(instance);
-    return (instance.initialTestTargets.size() - instance.uncoveredTargets.size())
-        + " of "
-        + instance.initialTestTargets.size()
-        + " covered";
+    String targetCoverageInfo =
+        (instance.initialTestTargets.size() - instance.uncoveredTargets.size())
+            + " of "
+            + instance.initialTestTargets.size()
+            + " covered";
+    if (instance.trackCoverageOfRedundantTargets) {
+      return targetCoverageInfo
+          + "\n"
+          + (instance.numNonOptimizedTargets
+              - instance.uncoveredTargets.size()
+              - instance.uncoveredRedundantTargets.size())
+          + " of all"
+          + instance.initialTestTargets.size()
+          + " covered";
+    }
+    return targetCoverageInfo;
   }
 
   public static Statistics getTestTargetStatisitics(boolean pPrintTestGoalInfo) {

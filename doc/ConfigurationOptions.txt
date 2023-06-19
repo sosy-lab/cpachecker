@@ -4818,6 +4818,9 @@ testcase.targets.optimization.strategy = NONE
   enum:     [NONE, COVERED_NEXT_EDGE, BASIC_ESSENTIAL_EDGE, ESSENTIAL_EDGE_ORIGINAL,
              ESSENTIAL_EDGE, PORTFOLIO, SPANNING_SET, TESTCOMP]
 
+# enable to track coverage of test targets removed in optimization
+testcase.targets.optimization.trackAll = false
+
 # Which CFA edges to use as test targets
 testcase.targets.type = ASSUME
   enum:     [ASSUME, TEST_COMP_ASSUME, ERROR_CALL, FUN_CALL, STATEMENT]
