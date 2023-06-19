@@ -66,7 +66,7 @@ public final class JFieldAccess extends JIdExpression {
       return true;
     }
 
-    if (!(obj instanceof JFieldAccess) || super.equals(obj)) {
+    if (!(obj instanceof JFieldAccess) || !super.equals(obj)) {
       return false;
     }
 

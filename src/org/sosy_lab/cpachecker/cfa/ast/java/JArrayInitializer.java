@@ -87,7 +87,7 @@ public final class JArrayInitializer extends AbstractExpression implements JExpr
       return true;
     }
 
-    if (!(obj instanceof JArrayInitializer) || super.equals(obj)) {
+    if (!(obj instanceof JArrayInitializer) || !super.equals(obj)) {
       return false;
     }
 

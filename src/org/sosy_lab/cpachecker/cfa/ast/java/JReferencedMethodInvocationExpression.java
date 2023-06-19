@@ -68,7 +68,7 @@ public final class JReferencedMethodInvocationExpression extends JMethodInvocati
       return true;
     }
 
-    if (!(obj instanceof JReferencedMethodInvocationExpression) || super.equals(obj)) {
+    if (!(obj instanceof JReferencedMethodInvocationExpression) || !super.equals(obj)) {
       return false;
     }
 
