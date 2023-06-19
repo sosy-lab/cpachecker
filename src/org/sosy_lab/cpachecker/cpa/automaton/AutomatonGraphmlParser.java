@@ -1040,12 +1040,12 @@ public class AutomatonGraphmlParser {
 
     // Extract the information on the automaton ----
     Node nameAttribute = docDat.getGraph().getAttributes().getNamedItem("name");
-    String automatonName = WITNESS_AUTOMATON_NAME;
+    StringBuilder automatonName = new StringBuilder(WITNESS_AUTOMATON_NAME);
     if (nameAttribute != null) {
-      automatonName += "_" + nameAttribute.getTextContent();
+      automatonName.append("_").append(nameAttribute.getTextContent());
     }
     if (useUniqueName) {
-      automatonName += "_" + idGen.getFreshId();
+      automatonName.append("_").append(idGen.getFreshId());
     }
 
     Map<String, GraphMLState> states = new LinkedHashMap<>();
@@ -1073,7 +1073,7 @@ public class AutomatonGraphmlParser {
 
     AutomatonGraphmlParserState state =
         AutomatonGraphmlParserState.initialize(
-            automatonName,
+            automatonName.toString(),
             graphType,
             specType,
             states.values(),

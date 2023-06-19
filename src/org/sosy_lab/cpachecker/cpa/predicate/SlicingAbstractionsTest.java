@@ -163,10 +163,10 @@ public class SlicingAbstractionsTest {
 
     // result[3] will contain a suitable name for the test to display
     String modeString =
-        ((String) x.get(1)).replace("predicateAnalysis-", "").replace(".properties", "");
-    modeString += (solverMode == EMPTY_OPTIONS) ? "-bitvector" : "-linear";
-    modeString += (optimizeMode == EMPTY_OPTIONS) ? "-optimized" : "-unoptimized";
-    modeString += (minimalMode == EMPTY_OPTIONS) ? "-maximal" : "-minimal";
+        ((String) x.get(1)).replace("predicateAnalysis-", "").replace(".properties", "")
+            + (solverMode == EMPTY_OPTIONS ? "-bitvector" : "-linear")
+            + (optimizeMode == EMPTY_OPTIONS ? "-optimized" : "-unoptimized")
+            + (minimalMode == EMPTY_OPTIONS ? "-maximal" : "-minimal");
     result[3] = modeString;
 
     return result;
