@@ -128,7 +128,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     Pair<Integer, Integer> hasKey = Pair.of(firstSize, secoundSize);
     FunctionDeclaration<T> value = concatMethods.get(hasKey);
     if (value == null) {
-      value = createUnaryFunction("_concat(" + firstSize + "," + secoundSize + ")_");
+      value = createBinaryFunction("_concat(" + firstSize + "," + secoundSize + ")_");
       concatMethods.put(hasKey, value);
     }
     return value;
