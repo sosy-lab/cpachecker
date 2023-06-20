@@ -161,10 +161,16 @@ public abstract class PathTranslator {
       ARGState firstFunctionElement, Deque<FunctionBody> functionStack, CFANode predecessor) {
     // create the first stack element using the first element of the function
     CFunctionEntryNode functionStartNode = extractFunctionCallLocation(firstFunctionElement);
-    String freshFunctionName = getFreshFunctionName(functionStartNode);
+    String freshFunctionName = "empty";
+    if (functionStartNode != null) {
+      freshFunctionName = getFreshFunctionName(functionStartNode);
+    }
 
-    String lFunctionHeader =
-        functionStartNode.getFunctionDefinition().getType().toASTString(freshFunctionName);
+    String lFunctionHeader = "empty header";
+    if (functionStartNode != null) {
+      lFunctionHeader =
+          functionStartNode.getFunctionDefinition().getType().toASTString(freshFunctionName);
+    }
     // lFunctionHeader is for example "void foo_99(int a)"
 
     // create a new function
