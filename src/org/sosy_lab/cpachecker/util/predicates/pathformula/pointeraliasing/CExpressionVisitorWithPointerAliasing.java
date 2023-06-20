@@ -346,7 +346,7 @@ class CExpressionVisitorWithPointerAliasing
     if (isRevealingType(resultType)) {
       operand
           .accept(getPointerApproximatingVisitor())
-          .ifPresent((s) -> learnedPointerTypes.put(s, resultType));
+          .ifPresent(s -> learnedPointerTypes.put(s, resultType));
     }
 
     final CType operandType = typeHandler.getSimplifiedType(operand);
@@ -548,11 +548,11 @@ class CExpressionVisitorWithPointerAliasing
       if (isRevealingType(t1)) {
         exp.getOperand2()
             .accept(getPointerApproximatingVisitor())
-            .ifPresent((s) -> learnedPointerTypes.put(s, t1));
+            .ifPresent(s -> learnedPointerTypes.put(s, t1));
       } else if (isRevealingType(t2)) {
         exp.getOperand1()
             .accept(getPointerApproximatingVisitor())
-            .ifPresent((s) -> learnedPointerTypes.put(s, t2));
+            .ifPresent(s -> learnedPointerTypes.put(s, t2));
       }
     }
 

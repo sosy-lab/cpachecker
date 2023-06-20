@@ -1021,14 +1021,13 @@ public class SMG {
       SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
     return getHasValueEdgesByPredicate(
             pObject,
-            edge -> {
-              // edgeOffset <= pFieldOffset && pFieldOffset < edgeOffset + edgeSize
-              return (edge.getOffset().compareTo(pFieldOffset) <= 0
-                      && edge.getOffset().add(edge.getSizeInBits()).compareTo(pFieldOffset) > 0)
-                  // edgeOffset > pFieldOffset && edgeOffset < pSizeofInBits + pFieldOffset
-                  || (edge.getOffset().compareTo(pFieldOffset) > 0
-                      && edge.getOffset().compareTo(pFieldOffset.add(pSizeofInBits)) < 0);
-            })
+            edge ->
+                // edgeOffset <= pFieldOffset && pFieldOffset < edgeOffset + edgeSize
+                ((edge.getOffset().compareTo(pFieldOffset) <= 0
+                        && edge.getOffset().add(edge.getSizeInBits()).compareTo(pFieldOffset) > 0)
+                    // edgeOffset > pFieldOffset && edgeOffset < pSizeofInBits + pFieldOffset
+                    || (edge.getOffset().compareTo(pFieldOffset) > 0
+                        && edge.getOffset().compareTo(pFieldOffset.add(pSizeofInBits)) < 0)))
         .toSortedSet(Comparator.comparing(SMGHasValueEdge::getOffset));
   }
 

@@ -1218,7 +1218,7 @@ abstract class AbstractBMCAlgorithm
       reachedK = ImmutableMap.of();
     }
     int finalMaxK = maxK;
-    return (candidate) -> {
+    return candidate -> {
       if (candidate == TargetLocationCandidateInvariant.INSTANCE) {
         return true;
       }

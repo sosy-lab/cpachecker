@@ -955,8 +955,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       Iterable<AssumeEdge> pAssumeEdges, Set<CFANode> pLoopHeads) {
     return FluentIterable.from(pAssumeEdges)
         .transformAndConcat(
-            e -> {
-              return FluentIterable.from(pLoopHeads).transform(n -> new EdgeFormulaNegation(n, e));
-            });
+            e -> FluentIterable.from(pLoopHeads).transform(n -> new EdgeFormulaNegation(n, e)));
   }
 }

@@ -854,7 +854,7 @@ public class CFACreator {
     if (mainMethodValues.size() >= 2) {
       StringBuilder exceptionMessage = new StringBuilder();
       mainMethodValues.forEach(
-          (k) ->
+          k ->
               exceptionMessage
                   .append(((JMethodDeclaration) k.getFunctionDefinition()).getSimpleName())
                   .append("\n"));

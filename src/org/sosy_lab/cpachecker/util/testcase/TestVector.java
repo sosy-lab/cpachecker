@@ -165,13 +165,12 @@ public class TestVector {
 
   private static final Ordering<AParameterDeclaration> PARAMETER_ORDERING =
       Ordering.from(
-          (pA, pB) -> {
-            return ComparisonChain.start()
-                .compare(pA.getQualifiedName(), pB.getQualifiedName())
-                .compare(pA.getType(), pB.getType(), Ordering.usingToString())
-                .compare(pA.getFileLocation(), pB.getFileLocation())
-                .result();
-          });
+          (pA, pB) ->
+              ComparisonChain.start()
+                  .compare(pA.getQualifiedName(), pB.getQualifiedName())
+                  .compare(pA.getType(), pB.getType(), Ordering.usingToString())
+                  .compare(pA.getFileLocation(), pB.getFileLocation())
+                  .result());
 
   private static class ComparableFunctionDeclaration
       implements Comparable<ComparableFunctionDeclaration> {

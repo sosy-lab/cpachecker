@@ -255,13 +255,12 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
                   return ssaMap.allVariables().stream()
                       .filter(name -> !name.startsWith("*"))
                       .map(
-                          name -> {
-                            return pmgr.makeFormulaForUninstantiatedVariable(
-                                name,
-                                ssaMap.getType(name),
-                                pathFormula.getPointerTargetSet(),
-                                false);
-                          });
+                          name ->
+                              pmgr.makeFormulaForUninstantiatedVariable(
+                                  name,
+                                  ssaMap.getType(name),
+                                  pathFormula.getPointerTargetSet(),
+                                  false));
                 })
             .distinct()
             .collect(

@@ -140,7 +140,7 @@ class FromDiskEntryProvider implements AutoCloseable {
 
     // Load already present files
     try (DirectoryStream<Path> stream =
-        Files.newDirectoryStream(storeDirectory, (p) -> p.toFile().isFile())) {
+        Files.newDirectoryStream(storeDirectory, p -> p.toFile().isFile())) {
       for (Path file : stream) {
         loadEntries(file.toFile());
       }

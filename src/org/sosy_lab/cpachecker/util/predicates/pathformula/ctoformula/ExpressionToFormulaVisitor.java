@@ -925,9 +925,7 @@ public class ExpressionToFormulaVisitor
             inequalityBuiltin(
                 functionName,
                 parameters,
-                (e1, e2) -> {
-                  return conv.bfmgr.not(fpfmgr.equalWithFPSemantics(e1, e2));
-                },
+                (e1, e2) -> conv.bfmgr.not(fpfmgr.equalWithFPSemantics(e1, e2)),
                 fpfmgr);
 
         if (result != null) {

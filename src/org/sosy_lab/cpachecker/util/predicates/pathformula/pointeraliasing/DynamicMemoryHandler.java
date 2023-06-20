@@ -310,7 +310,7 @@ class DynamicMemoryHandler {
           conv.options.isSuccessfulZallocFunctionName(functionName),
           Optional.ofNullable(size)
               .map(
-                  (s) ->
+                  s ->
                       new CIntegerLiteralExpression(
                           parameter.getFileLocation(),
                           parameter.getExpressionType(),
@@ -598,9 +598,9 @@ class DynamicMemoryHandler {
       final CType type, final Optional<CIntegerLiteralExpression> sizeLiteral) {
     if (type instanceof CPointerType) {
       final CType tt = unwrapPointers(type);
-      return sizeLiteral.map((s) -> refineType(tt, s)).orElse(tt);
+      return sizeLiteral.map(s -> refineType(tt, s)).orElse(tt);
     } else if (type instanceof CArrayType) {
-      return sizeLiteral.map((s) -> refineType(type, s)).orElse(type);
+      return sizeLiteral.map(s -> refineType(type, s)).orElse(type);
     } else {
       throw new IllegalArgumentException("Either pointer or array type expected");
     }
@@ -672,7 +672,7 @@ class DynamicMemoryHandler {
                 final Optional<String> lhsPointer =
                     lhs.accept(new PointerApproximatingVisitor(typeHandler, edge));
                 lhsPointer.ifPresent(
-                    (s) -> {
+                    s -> {
                       pts.removeDeferredAllocationPointer(s)
                           .forEach(d -> handleDeferredAllocationPointerRemoval(s));
                       pts.addDeferredAllocationPointer(s, variable); // Now we track the LHS

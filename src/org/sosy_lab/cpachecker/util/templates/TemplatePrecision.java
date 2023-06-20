@@ -76,7 +76,7 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 public class TemplatePrecision implements Precision {
 
   private static final Comparator<Template> TEMPLATE_COMPARATOR =
-      Comparator.<Template>comparingInt((template) -> template.getLinearExpression().size())
+      Comparator.<Template>comparingInt(template -> template.getLinearExpression().size())
           .thenComparingInt(t -> t.toString().trim().startsWith("-") ? 1 : 0)
           .thenComparing(Template::toString);
 
