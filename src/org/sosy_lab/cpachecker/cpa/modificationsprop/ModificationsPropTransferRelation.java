@@ -266,9 +266,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
             final CFANode summaryGoal = stackminus.removeLast();
             if (summaryGoal != null) {
               for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
-                if (edgeInOriginal instanceof CFunctionReturnEdge
+                if (edgeInOriginal instanceof final CFunctionReturnEdge retOr
                     && edgeInOriginal.getSuccessor().equals(summaryGoal)) {
-                  final CFunctionReturnEdge retOr = (CFunctionReturnEdge) edgeInOriginal;
                   final CFunctionReturnEdge retMo = (CFunctionReturnEdge) pCfaEdge;
                   if (helper.inSameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
                     helper.logCase(
@@ -339,8 +338,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           }
           if (pCfaEdge instanceof CFunctionCallEdge) {
             for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
-              if (edgeInOriginal instanceof CFunctionCallEdge) {
-                final CFunctionCallEdge callOr = (CFunctionCallEdge) edgeInOriginal;
+              if (edgeInOriginal instanceof final CFunctionCallEdge callOr) {
                 final CFunctionCallEdge callMo = (CFunctionCallEdge) pCfaEdge;
                 final CFunctionEntryNode entryNodeOr = callOr.getSuccessor();
                 final CFunctionEntryNode entryNodeMo = callMo.getSuccessor();
