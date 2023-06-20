@@ -39,7 +39,7 @@ public class VariableCountScoring implements FaultScoring {
                         tokenCount.keySet(), FaultRankingUtils.findTokensInFault(fault)))
             + "]";
     return FaultInfo.rankInfo(
-        "Statements contains symbols also used in other faults: " + usedTokens,
+        "Statement contains symbols also used in other faults: " + usedTokens,
         scores.getOrDefault(fault, 0d));
   }
 
@@ -67,6 +67,9 @@ public class VariableCountScoring implements FaultScoring {
       String joined = Joiner.on(" ").join(FaultRankingUtils.findTokensInFault(fault));
       handleToken(
           joined, s -> scores.merge(fault, (double) tokenCount.getOrDefault(s, 0), Double::sum));
+    }
+    if (tokenCount.isEmpty()) {
+      faults.forEach(f -> scores.put(f, 1d));
     }
     FaultScoring.super.balancedScore(faults);
   }
