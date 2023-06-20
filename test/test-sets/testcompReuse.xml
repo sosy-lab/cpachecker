@@ -5,6 +5,8 @@
 	<option name="-benchmark" />
 	<option name="-heap">10000M</option>
 	<option name="-setprop">log.consoleLevel=INFO</option>
+	  <option name="-noout"/>
+  <option name="-disable-java-assertions"/>
 	<rundefinition name="Test-Comp23_coverage-branches">
 		<option name="-testcomp23" />
 		<propertyfile>../programs/benchmarks/c/properties/coverage-branches.prp</propertyfile>
