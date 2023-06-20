@@ -110,9 +110,7 @@ class AssignmentHandler {
     private SliceAssignment constructCanonical() {
       // make the slice expressions canonical
       return new SliceAssignment(
-          lhs.constructCanonical(),
-          relevancyLhs,
-          rhs().map(rhsSlice -> rhsSlice.constructCanonical()));
+          lhs.constructCanonical(), relevancyLhs, rhs().map(SliceExpression::constructCanonical));
     }
 
     private boolean isRelevant(CToFormulaConverterWithPointerAliasing pConv) {
@@ -209,12 +207,12 @@ class AssignmentHandler {
     // modifiers; this results in the same effective assignments, but the base encompasses more
     // fields which may be unionized, paving the way for assigning to relevant simple unionized
     // fields after converting to simple slice assignments
-    assignmentsStream = assignmentsStream.map(assignment -> assignment.constructCanonical());
+    assignmentsStream = assignmentsStream.map(SliceAssignment::constructCanonical);
 
     // apply Havoc abstraction: if Havoc abstraction is turned on
     // and LHS is not relevant, make it nondeterministic
     if (conv.options.useHavocAbstraction()) {
-      assignmentsStream = assignmentsStream.map(assignment -> applyHavocToAssignment(assignment));
+      assignmentsStream = assignmentsStream.map(this::applyHavocToAssignment);
     }
 
     final List<SliceAssignment> assignments = assignmentsStream.toList();

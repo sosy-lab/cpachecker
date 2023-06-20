@@ -149,7 +149,7 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
    * @return boolean formula as conjunct of all selector formulas
    */
   private BooleanFormula softSetFormula(Set<TraceAtom> softSet, BooleanFormulaManager bmgr) {
-    return softSet.stream().map(f -> f.getSelector()).collect(bmgr.toConjunction());
+    return softSet.stream().map(TraceAtom::getSelector).collect(bmgr.toConjunction());
   }
 
   @Override

@@ -156,7 +156,7 @@ public class TestTargetReductionSpanningSet {
     // set must not be immutable
     return new HashSet<>(
         FluentIterable.from(pNodes)
-            .filter(node -> node.isLeave())
+            .filter(CFAEdgeNode::isLeave)
             .transform(node -> node.representativeTarget)
             .toSet());
   }

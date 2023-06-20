@@ -378,7 +378,7 @@ class ASTLiteralConverter {
       case L:
       case LL:
         if (pType == ConstantType.DECIMAL) {
-          stream = stream.filter(x -> x.isSigned());
+          stream = stream.filter(Suffix::isSigned);
         }
         break;
 

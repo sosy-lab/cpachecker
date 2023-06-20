@@ -1158,7 +1158,7 @@ public class SMG {
                   && edge.pointsTo().equals(targetObject);
             })
         .findAny()
-        .map(entry -> entry.getKey());
+        .map(Entry::getKey);
   }
 
   /*

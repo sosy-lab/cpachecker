@@ -71,7 +71,8 @@ public final class ACSLLoopAnnotation implements ACSLAnnotation {
       for (Entry<ImmutableList<Behavior>, ACSLLoopInvariant> entry :
           additionalInvariants.entrySet()) {
         builder.append('\n').append("for ");
-        Joiner.on(", ").appendTo(builder, entry.getKey().stream().map(x -> x.getName()).iterator());
+        Joiner.on(", ")
+            .appendTo(builder, entry.getKey().stream().map(Behavior::getName).iterator());
         builder.append(':');
         builder.append(entry.getValue().toString());
       }

@@ -246,7 +246,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       ImmutableSet<MemoryLocation> relevantFormalVariables =
           pRelevantSdgNodes.stream()
               .filter(SdgProgramSlice::isFormalNode)
-              .map(node -> node.getVariable())
+              .map(CSystemDependenceGraph.Node::getVariable)
               .flatMap(Optional::stream)
               .collect(ImmutableSet.toImmutableSet());
 

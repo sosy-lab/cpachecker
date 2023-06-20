@@ -793,7 +793,7 @@ public class SMGTransferRelation
         /*Check for dereference errors in rValue*/
         List<SMGState> newStates =
             asSMGStateList(readValueToBeAssiged(pState.copyOf(), cfaEdge, rValue));
-        newStates.forEach(smgState -> smgState.unknownWrite());
+        newStates.forEach(SMGState::unknownWrite);
         result.addAll(newStates);
       } else {
         result.addAll(

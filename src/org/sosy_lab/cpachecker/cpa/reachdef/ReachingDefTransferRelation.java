@@ -305,7 +305,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
   private ImmutableSet<MemoryLocation> getParameters(CFunctionEntryNode pNode) {
     return Collections3.transformedImmutableSetCopy(
-        pNode.getFunctionParameters(), x -> MemoryLocation.forDeclaration(x));
+        pNode.getFunctionParameters(), MemoryLocation::forDeclaration);
   }
 
   private ReachingDefState handleReturnStatement(

@@ -115,7 +115,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
 
   private static ImmutableList<Fault> sortFaultsByIndexIfPresent(Collection<Fault> pFaults) {
     // stable sorting algorithm -> noop if intendedIndex is not set.
-    return ImmutableList.sortedCopyOf(Comparator.comparingInt(f -> f.getIntendedIndex()), pFaults);
+    return ImmutableList.sortedCopyOf(Comparator.comparingInt(Fault::getIntendedIndex), pFaults);
   }
 
   public static FaultLocalizationInfo withoutCounterexampleInfo(

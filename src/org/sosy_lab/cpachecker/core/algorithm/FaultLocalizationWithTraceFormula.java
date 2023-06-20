@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.ModifiedMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.OriginalMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.SingleUnsatCoreAlgorithm;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -307,7 +308,7 @@ public class FaultLocalizationWithTraceFormula
     try {
       // Collect all edges that do not evaluate to true
       final List<CFAEdge> edgeList =
-          transformedImmutableListCopy(assumptions, assumption -> assumption.getCFAEdge());
+          transformedImmutableListCopy(assumptions, CFAEdgeWithAssumptions::getCFAEdge);
 
       if (edgeList.isEmpty()) {
         logger.log(Level.INFO, "Can't find relevant edges in the error trace.");

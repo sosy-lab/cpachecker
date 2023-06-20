@@ -266,7 +266,7 @@ public class Trace extends ForwardingList<TraceAtom> {
   }
 
   public List<CFAEdge> toEdgeList() {
-    return Lists.transform(this, atom -> atom.correspondingEdge());
+    return Lists.transform(this, TraceAtom::correspondingEdge);
   }
 
   /**

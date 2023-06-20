@@ -110,12 +110,12 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
 
   @Override
   public AdjustablePrecision add(AdjustablePrecision pOtherPrecision) {
-    return adjustPrecisionWith(pOtherPrecision, (a, b) -> a.add(b));
+    return adjustPrecisionWith(pOtherPrecision, AdjustablePrecision::add);
   }
 
   @Override
   public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
-    return adjustPrecisionWith(pOtherPrecision, (a, b) -> a.subtract(b));
+    return adjustPrecisionWith(pOtherPrecision, AdjustablePrecision::subtract);
   }
 
   private AdjustablePrecision adjustPrecisionWith(

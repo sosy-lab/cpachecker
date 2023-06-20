@@ -339,7 +339,7 @@ public class AssumptionToEdgeAllocator {
         return "";
       } else {
         return Joiner.on(System.lineSeparator())
-            .join(Iterables.transform(assignments, a -> a.toASTString()));
+            .join(Iterables.transform(assignments, AExpressionStatement::toASTString));
       }
 
     } else {

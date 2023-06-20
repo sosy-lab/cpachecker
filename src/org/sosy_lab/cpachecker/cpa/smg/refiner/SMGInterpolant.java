@@ -74,7 +74,7 @@ public class SMGInterpolant implements Interpolant<Collection<SMGState>, SMGInte
     if (isFalse()) {
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
     } else {
-      return new HashSet<>(Collections2.transform(smgStates, s -> s.copyOf()));
+      return new HashSet<>(Collections2.transform(smgStates, UnmodifiableSMGState::copyOf));
     }
   }
 

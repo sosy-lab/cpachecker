@@ -133,7 +133,7 @@ public final class StatementContract implements ACSLAnnotation {
     if (!enclosingBehaviors.isEmpty()) {
       builder.append("for ");
       Joiner.on(", ")
-          .appendTo(builder, enclosingBehaviors.stream().map(x -> x.getName()).iterator());
+          .appendTo(builder, enclosingBehaviors.stream().map(Behavior::getName).iterator());
       builder.append(":\n");
     }
     builder.append(requiresClause.toString()).append('\n').append(ensuresClause.toString());

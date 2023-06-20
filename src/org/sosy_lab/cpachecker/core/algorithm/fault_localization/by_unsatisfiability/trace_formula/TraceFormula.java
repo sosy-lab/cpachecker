@@ -248,7 +248,7 @@ public class TraceFormula {
           .filter(
               atom ->
                   nondets.stream().anyMatch(name -> atom.getFormula().toString().contains(name)))
-          .transform(atom -> atom.correspondingEdge())
+          .transform(TraceAtom::correspondingEdge)
           .copyInto(preconditionEdges);
       precondition = precondition.replaceRelatedEdges(preconditionEdges);
     }

@@ -84,9 +84,9 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
       replace.add(distanceHelper.cleanPath(pCFAEdges));
     }
     successfulGeneratedPath = replace;
-    successfulGeneratedPath.removeIf(c -> c.isEmpty());
+    successfulGeneratedPath.removeIf(List::isEmpty);
 
-    if (successfulGeneratedPath.stream().allMatch(c -> c.isEmpty())) {
+    if (successfulGeneratedPath.stream().allMatch(List::isEmpty)) {
       return;
     }
 

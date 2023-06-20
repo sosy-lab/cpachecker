@@ -207,7 +207,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
         from(precisions).transformAndConcat(prec -> prec.getLocationInstancePredicates().entries()),
         from(precisions).transformAndConcat(prec -> prec.getLocalPredicates().entries()),
         from(precisions).transformAndConcat(prec -> prec.getFunctionPredicates().entries()),
-        from(precisions).transformAndConcat(prec -> prec.getGlobalPredicates()));
+        from(precisions).transformAndConcat(PredicatePrecision::getGlobalPredicates));
   }
 
   /**

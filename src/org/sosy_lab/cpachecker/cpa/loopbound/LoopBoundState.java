@@ -181,7 +181,7 @@ public class LoopBoundState
     int deepestIteration = getDeepestIteration();
     return FluentIterable.from(loopStack)
         .filter(l -> l.getMaxIterationCount() == deepestIteration)
-        .transformAndConcat(l -> l.getDeepestIterationLoops())
+        .transformAndConcat(LoopIterationState::getDeepestIterationLoops)
         .toSet();
   }
 

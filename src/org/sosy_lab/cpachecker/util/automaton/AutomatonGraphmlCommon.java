@@ -938,9 +938,9 @@ public final class AutomatonGraphmlCommon {
         FluentIterable.of(binaryExpression.getOperand1(), binaryExpression.getOperand2())
             .filter(AUnaryExpression.class)
             .filter(unaryExpr -> unaryExpr.getOperator() == UnaryOperator.AMPER)
-            .transform(unaryExpr -> unaryExpr.getOperand())
+            .transform(AUnaryExpression::getOperand)
             .filter(AIdExpression.class)
-            .transform(id -> id.getName())
+            .transform(AIdExpression::getName)
             .toSet();
     if (namesOnEdge.isEmpty()) {
       return false;

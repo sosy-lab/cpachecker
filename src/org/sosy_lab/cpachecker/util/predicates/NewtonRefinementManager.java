@@ -240,7 +240,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     // Filter pathlocations to only abstractionstate locations
     Iterator<PathLocation> abstractionLocations =
         pPathLocations.stream()
-            .filter(l -> l.hasAbstractionState())
+            .filter(PathLocation::hasAbstractionState)
             .collect(ImmutableList.toImmutableList())
             .iterator();
 

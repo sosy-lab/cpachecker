@@ -1340,7 +1340,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   /** Tests the equality of the values of two instances of {@link AutomatonIntExpr}. */
   static class IntEqTest extends IntBinaryTest {
     public IntEqTest(AutomatonIntExpr pA, AutomatonIntExpr pB) {
-      super(pA, pB, (a, b) -> a.equals(b), "==");
+      super(pA, pB, Integer::equals, "==");
     }
   }
 
@@ -1541,7 +1541,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   /** Boolean Equality */
   static class BoolEqTest extends BoolBinaryTest {
     public BoolEqTest(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-      super(pA, pB, (a, b) -> a.equals(b), "==");
+      super(pA, pB, Boolean::equals, "==");
     }
   }
 
