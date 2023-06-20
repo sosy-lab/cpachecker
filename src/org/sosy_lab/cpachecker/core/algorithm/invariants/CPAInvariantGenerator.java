@@ -115,13 +115,9 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator
 
   @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
   private final ShutdownRequestListener shutdownListener =
-      new ShutdownRequestListener() {
-
-        @Override
-        public void shutdownRequested(String pReason) {
-          if (!invariantGenerationFuture.isDone() && !programIsSafe) {
-            invariantGenerationFuture.cancel(true);
-          }
+      pReason -> {
+        if (!invariantGenerationFuture.isDone() && !programIsSafe) {
+          invariantGenerationFuture.cancel(true);
         }
       };
 

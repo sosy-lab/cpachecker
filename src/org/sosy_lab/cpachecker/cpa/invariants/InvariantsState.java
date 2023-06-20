@@ -1772,17 +1772,13 @@ public class InvariantsState
       final Predicate<MemoryLocation> pMemoryLocationPredicate) {
     final Set<Variable<CompoundInterval>> result = new LinkedHashSet<>();
     Predicate<NumeralFormula<CompoundInterval>> pCondition =
-        new Predicate<>() {
-
-          @Override
-          public boolean apply(NumeralFormula<CompoundInterval> pFormula) {
-            if (pFormula instanceof Variable) {
-              Variable<?> variable = (Variable<?>) pFormula;
-              MemoryLocation memoryLocation = variable.getMemoryLocation();
-              return pMemoryLocationPredicate.apply(memoryLocation) && !result.contains(variable);
-            }
-            return false;
+        pFormula -> {
+          if (pFormula instanceof Variable) {
+            Variable<?> variable = (Variable<?>) pFormula;
+            MemoryLocation memoryLocation = variable.getMemoryLocation();
+            return pMemoryLocationPredicate.apply(memoryLocation) && !result.contains(variable);
           }
+          return false;
         };
     CollectFormulasVisitor<CompoundInterval> collectVisitor =
         new CollectFormulasVisitor<>(pCondition);

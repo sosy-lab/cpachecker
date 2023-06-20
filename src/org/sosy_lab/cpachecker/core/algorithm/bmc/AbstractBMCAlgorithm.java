@@ -343,13 +343,9 @@ abstract class AbstractBMCAlgorithm
     invariantGenerator = invGen;
     if (addInvariantsByInduction) {
       propagateSafetyInterrupt =
-          new ShutdownRequestListener() {
-
-            @Override
-            public void shutdownRequested(String pReason) {
-              if (invGen.isProgramSafe()) {
-                pShutdownManager.requestShutdown(pReason);
-              }
+          pReason -> {
+            if (invGen.isProgramSafe()) {
+              pShutdownManager.requestShutdown(pReason);
             }
           };
       invariantGeneratorShutdownManager.getNotifier().register(propagateSafetyInterrupt);
@@ -1450,13 +1446,7 @@ abstract class AbstractBMCAlgorithm
 
       @Override
       public InvariantGeneratorHeadStart createFor(AbstractBMCAlgorithm pBmcAlgorithm) {
-        return new InvariantGeneratorHeadStart() {
-
-          @Override
-          public void waitForInvariantGenerator() throws InterruptedException {
-            // Return immediately
-          }
-        };
+        return () -> {}; // Returns immediately
       }
     },
 
