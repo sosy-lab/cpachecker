@@ -59,7 +59,7 @@ public class Constraint {
     vars.put(var, t);
   }
 
-  public void addVars(HashMap<String, Term> pVars) {
+  public void addVars(Map<String, Term> pVars) {
     vars.putAll(pVars);
   }
 
