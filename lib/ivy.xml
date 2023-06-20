@@ -102,8 +102,8 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="5.3.1" conf="test->default"/>
-        <dependency org="org.mockito" name="mockito-errorprone" rev="5.3.1" conf="build->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="5.4.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-errorprone" rev="5.4.0" conf="build->default"/>
 
         <!-- Antlr
              Parser generator. -->
@@ -117,9 +117,9 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Truth
              Library for writing literal assertions. -->
-        <dependency org="com.google.truth" name="truth" rev="1.1.4"
+        <dependency org="com.google.truth" name="truth" rev="1.1.5"
                     conf="test->default; contrib->sources"/>
-        <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="1.1.4"
+        <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="1.1.5"
                     conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
