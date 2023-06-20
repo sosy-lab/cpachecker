@@ -56,7 +56,7 @@ public class ApronMergeOperator {
   private ApronMergeOperator(ApronDomain pDomain, Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
-    this.domain = pDomain;
+    domain = pDomain;
   }
 
   @Options(prefix = "cpa.apron.mergeop")
