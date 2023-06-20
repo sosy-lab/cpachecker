@@ -571,7 +571,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     // "connect" the edge with its partition
     Set<String> var = Sets.newHashSetWithExpectedSize(1);
     var.add(varName);
-    dependencies.addAll(var, new HashSet<BigInteger>(), edge, 0);
+    dependencies.addAll(var, new HashSet<>(), edge, 0);
 
     // only simple types (int, long) are allowed for booleans, ...
     if (!(vdecl.getType() instanceof CSimpleType)) {

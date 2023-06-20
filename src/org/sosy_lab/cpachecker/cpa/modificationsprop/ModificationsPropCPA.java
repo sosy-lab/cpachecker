@@ -220,7 +220,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
       throws InterruptedException {
     // TODO do we really want to/need to start skipping at the beginning?
     return new ModificationsPropState(
-        node, cfaOrig.getMainFunction(), ImmutableSet.of(), new ArrayDeque<CFANode>(), helper);
+        node, cfaOrig.getMainFunction(), ImmutableSet.of(), new ArrayDeque<>(), helper);
   }
 
   @Override

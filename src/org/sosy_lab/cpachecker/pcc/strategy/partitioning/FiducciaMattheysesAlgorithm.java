@@ -63,7 +63,7 @@ public class FiducciaMattheysesAlgorithm {
       long g = computeGain(i);
       pGain.put(i, g);
       if (!pBuckets.containsKey(g)) {
-        pBuckets.put(g, new ArrayDeque<Integer>());
+        pBuckets.put(g, new ArrayDeque<>());
       }
       pBuckets.get(g).addFirst(i);
     }
@@ -122,7 +122,7 @@ public class FiducciaMattheysesAlgorithm {
     boolean success = pBucket.get(pGain.get(pNode)).removeFirstOccurrence(pNode);
     assert success;
     if (!pBucket.containsKey(pNewGain)) {
-      pBucket.put(pNewGain, new ArrayDeque<Integer>());
+      pBucket.put(pNewGain, new ArrayDeque<>());
     }
     pBucket.get(pNewGain).add(pNode);
     pGain.put(pNode, pNewGain);

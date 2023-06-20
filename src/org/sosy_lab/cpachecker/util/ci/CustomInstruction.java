@@ -602,9 +602,7 @@ public class CustomInstruction {
     }
 
     exp.getFunctionNameExpression()
-        .accept(
-            new StructureComparisonVisitor(
-                aexp.getFunctionNameExpression(), new HashMap<String, String>()));
+        .accept(new StructureComparisonVisitor(aexp.getFunctionNameExpression(), new HashMap<>()));
 
     List<CExpression> ciList = exp.getParameterExpressions();
     List<CExpression> aciList = aexp.getParameterExpressions();

@@ -96,7 +96,7 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
   }
 
   public void callFunction(String functionName) {
-    localVars.addLast(Pair.of(functionName, new ArrayList<String>()));
+    localVars.addLast(Pair.of(functionName, new ArrayList<>()));
   }
 
   public void returnFromFunction() {
