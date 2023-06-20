@@ -311,19 +311,6 @@ abstract class AbstractBMCAlgorithm
         invariantGeneratorShutdownManager =
             ShutdownManager.createWithParent(pShutdownManager.getNotifier());
       }
-      propagateSafetyInterrupt =
-          new ShutdownRequestListener() {
-
-            @Override
-            public void shutdownRequested(String pReason) {
-              if (invariantGenerator != null && invariantGenerator.isProgramSafe()) {
-                pShutdownManager.requestShutdown(pReason);
-              }
-            }
-          };
-      invariantGeneratorShutdownManager.getNotifier().register(propagateSafetyInterrupt);
-    } else {
-      propagateSafetyInterrupt = null;
     }
 
     if (pIsInvariantGenerator && addInvariantsByInduction) {
@@ -342,7 +329,7 @@ abstract class AbstractBMCAlgorithm
             String.format("Cannot load configuration from file %s", invariantGeneratorConfig), e);
       }
     }
-    invariantGenerator =
+    final InvariantGenerator invGen =
         invariantGenerationStrategy.createInvariantGenerator(
             invGenConfig,
             pLogger,
@@ -352,6 +339,23 @@ abstract class AbstractBMCAlgorithm
             pSpecification,
             pAggregatedReachedSets,
             targetLocationProvider);
+    // do not inline invGen, we need a local final variable for the ShutdownRequestListener
+    invariantGenerator = invGen;
+    if (addInvariantsByInduction) {
+      propagateSafetyInterrupt =
+          new ShutdownRequestListener() {
+
+            @Override
+            public void shutdownRequested(String pReason) {
+              if (invGen.isProgramSafe()) {
+                pShutdownManager.requestShutdown(pReason);
+              }
+            }
+          };
+      invariantGeneratorShutdownManager.getNotifier().register(propagateSafetyInterrupt);
+    } else {
+      propagateSafetyInterrupt = null;
+    }
     if (invariantGenerator instanceof ConditionAdjustmentEventSubscriber) {
       conditionAdjustmentEventSubscribers.add(
           (ConditionAdjustmentEventSubscriber) invariantGenerator);
