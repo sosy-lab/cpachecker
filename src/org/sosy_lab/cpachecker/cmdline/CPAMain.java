@@ -215,6 +215,13 @@ public class CPAMain {
   private static class BootstrapOptions {
     @Option(
         secure = true,
+        name = "reproArtefact",
+        description = "Use the following options specified in a Reproduction artefacts file.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path reproArtefact = null;
+
+    @Option(
+        secure = true,
         name = "memorysafety.config",
         description =
             "When checking for memory safety properties, "
@@ -395,6 +402,8 @@ public class CPAMain {
             .addConverter(FileOption.class, fileTypeConverter)
             .build();
 
+    config = handleReproOptions(config, cmdLineOptions);
+
     // Read witness file if present, switch to appropriate config and adjust cmdline options
     config = handleWitnessOptions(config, cmdLineOptions, configFile);
 
@@ -484,6 +493,24 @@ public class CPAMain {
       }
     }
     return frontendLanguage;
+  }
+
+  private static Configuration handleReproOptions(
+      Configuration pConfig, Map<String, String> pCmdLineOptions)
+      throws InvalidCmdlineArgumentException {
+    if (pCmdLineOptions.containsKey("reproArtefact")) {
+      try {
+        return Configuration.builder()
+            .copyFrom(pConfig)
+            .loadFromFile(pCmdLineOptions.get("reproArtefact"))
+            .build();
+      } catch (InvalidConfigurationException | IOException e) {
+        throw new InvalidCmdlineArgumentException(
+            "Could not read artefacts file: " + e.getMessage(), e);
+      }
+    } else {
+      return pConfig;
+    }
   }
 
   private static final ImmutableMap<Property, TestTargetType> TARGET_TYPES =
