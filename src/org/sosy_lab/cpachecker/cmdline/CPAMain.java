@@ -195,9 +195,6 @@ public class CPAMain {
       logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
     }
 
-    // TODO: Ludwig insert write to file here!! This comes from CPAcheckerResult which is returned
-    // by the run() function in CPAchecker.java
-    // far result:result.stats.getSubStatistics();
     saveArtifacts(result, options, logManager);
 
     System.out.flush();
