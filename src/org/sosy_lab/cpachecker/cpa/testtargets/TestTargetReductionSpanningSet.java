@@ -16,6 +16,9 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import de.uni_freiburg.informatik.ultimate.util.datastructures.ImmutableSet;
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -63,10 +66,11 @@ public class TestTargetReductionSpanningSet {
       nodeBuilder.add(node);
     }
 
-    /*try {
+    // TODO remove
+    try {
       TestTargetReductionUtils.drawGraph(Paths.get("subSumGraph.dot"), entryExit.getFirst());
     } catch (IOException e) {
-    }*/
+    }
 
     DomTree<CFANode> domTree =
         DomTree.forGraph(
@@ -76,6 +80,9 @@ public class TestTargetReductionSpanningSet {
             ? DomTree.forGraph(
                 CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf, entryExit.getSecond())
             : null;
+
+    ImmutableSet<CFAEdge> reachedFromExit =
+        getReachableFromExit(copyToTarget, entryExit.getSecond());
 
     for (CFAEdge targetPred : pTargets) {
       for (CFAEdge targetSucc : pTargets) {
@@ -90,6 +97,8 @@ public class TestTargetReductionSpanningSet {
                     targetToCopy.get(targetPred).getSuccessor(),
                     targetToCopy.get(targetSucc).getSuccessor())
                 || (inverseDomTree != null
+                    && reachedFromExit.contains(targetPred)
+                    && reachedFromExit.contains(targetSucc)
                     && inverseDomTree.isAncestorOf(
                         targetToCopy.get(targetPred).getSuccessor(),
                         targetToCopy.get(targetSucc).getSuccessor())))) {
@@ -104,6 +113,33 @@ public class TestTargetReductionSpanningSet {
     }
 
     return nodeBuilder.build();
+  }
+
+  private ImmutableSet<CFAEdge> getReachableFromExit(
+      final Map<CFAEdge, CFAEdge> pCopyToTarget, final CFANode pCopiedExit) {
+    Set<CFAEdge> reachableTargets = new HashSet<>(pCopyToTarget.size());
+    Set<CFANode> visited = new HashSet<>();
+    Deque<CFANode> waitlist = new ArrayDeque<>();
+    visited.add(pCopiedExit);
+    waitlist.add(pCopiedExit);
+
+    CFANode succ;
+    while (!waitlist.isEmpty()) {
+      succ = waitlist.poll();
+      for (CFANode pred : CFAUtils.allPredecessorsOf(succ)) {
+        if (visited.add(pred)) {
+          waitlist.add(pred);
+        }
+      }
+    }
+
+    for (Entry<CFAEdge, CFAEdge> mapEntry : pCopyToTarget.entrySet()) {
+      if (visited.contains(mapEntry.getKey().getSuccessor())) {
+        reachableTargets.add(mapEntry.getValue());
+      }
+    }
+
+    return ImmutableSet.of(reachableTargets);
   }
 
   private ImmutableList<Collection<CFAEdgeNode>> computeStronglyConnectedComponents(
