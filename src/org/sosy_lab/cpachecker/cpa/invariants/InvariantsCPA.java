@@ -586,7 +586,8 @@ public class InvariantsCPA
         for (CFAEdge leavingEdge : leavingEdges) {
           if (!leavingEdge.equals(pForbiddenEdge)) {
             CFANode successor = leavingEdge.getSuccessor();
-            if (continued |= visited.add(successor)) {
+            continued |= visited.add(successor);
+            if (continued) {
               waitlist.offer(successor);
             }
           }
