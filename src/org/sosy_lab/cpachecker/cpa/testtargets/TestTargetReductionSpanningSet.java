@@ -17,8 +17,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import de.uni_freiburg.informatik.ultimate.util.datastructures.ImmutableSet;
-import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -66,11 +64,11 @@ public class TestTargetReductionSpanningSet {
       nodeBuilder.add(node);
     }
 
-    // TODO remove
+    /*
     try {
       TestTargetReductionUtils.drawGraph(Paths.get("subSumGraph.dot"), entryExit.getFirst());
     } catch (IOException e) {
-    }
+    }*/
 
     DomTree<CFANode> domTree =
         DomTree.forGraph(
