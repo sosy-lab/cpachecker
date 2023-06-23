@@ -9,21 +9,20 @@
   <option name="-disable-java-assertions"/>
   
   
-    <rundefinition>
-    <option name="-testcomp23"/>
-  </rundefinition>
+
   
-  <!-- 
+  
+
 	<rundefinition name="Test-Comp23_coverage-branches">
 		<option name="-testcomp23" />
-		<propertyfile>../programs/benchmarks/c/properties/coverage-branches.prp</propertyfile>
+		
 	</rundefinition>
 	
 	<rundefinition name="Test-Comp23_coverage-branches-Reuse">
 		<option name="-testcomp23Reuse" />
-		<propertyfile>../programs/benchmarks/c/properties/coverage-branches.prp</propertyfile>
+		
 	</rundefinition>
-	-->
+	
 	<!-- 
   <rundefinition name="Test-Comp23_coverage-error-call">
     <propertyfile>../../test/programs/benchmarks/c/properties/coverage-error-call.prp</propertyfile>
