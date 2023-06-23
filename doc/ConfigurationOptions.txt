@@ -60,7 +60,7 @@ rootDirectory = "."
 # SPDX-License-Identifier: Apache-2.0
 
 # Further options for Boolector in addition to the default options. Format: 
-# "Optionname=value" with ’,’ to seperate options. Optionname and value can
+# "Optionname=value" with ?,? to seperate options. Optionname and value can
 # be found in BtorOption or Boolector C Api.Example:
 # "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
 solver.boolector.furtherOptions = ""
@@ -158,7 +158,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+# SPDX-FileCopyrightText: 2014-2017 Universit? Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
@@ -250,9 +250,6 @@ analysis.algorithm.proofCheckWithARGCMCStrategy = false
 # do analysis and then check if reached set fulfills property specified by
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
-
-# use Reverse CFA for Backward Reachability Analysis.
-analysis.algorithm.reverseTransitions = false
 
 # Use termination algorithm to prove (non-)termination. This needs the
 # TerminationCPA as root CPA and an automaton CPA with
