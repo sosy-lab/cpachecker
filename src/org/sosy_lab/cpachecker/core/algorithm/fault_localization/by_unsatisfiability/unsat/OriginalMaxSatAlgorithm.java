@@ -33,6 +33,12 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
   // Statistics
   private final MaxSatStatistics stats = new MaxSatStatistics();
 
+  private final boolean stopAfterFirstFault;
+
+  public OriginalMaxSatAlgorithm(boolean pStopAfterFirstFault) {
+    stopAfterFirstFault = pStopAfterFirstFault;
+  }
+
   @Override
   public Set<Fault> run(FormulaContext pContext, TraceFormula tf)
       throws CPATransferException, InterruptedException, SolverException, VerifyException {
@@ -45,7 +51,7 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
 
     // if selectors are reduced the set ensures to remove duplicates
     Set<TraceAtom> soft = new LinkedHashSet<>(tf.getTrace());
-    // if a selector is true (i. e. enabled) it cannot be part of the result set. This usually
+    // if a selector is true (i.e. enabled) it cannot be part of the result set. This usually
     // happens if the selector is a part of the pre-condition
     soft.removeIf(fc -> bmgr.isTrue(fc.getFormula()) || bmgr.isFalse(fc.getFormula()));
 
@@ -62,6 +68,9 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
               .transform(atom -> (FaultContribution) atom)
               .copyInto(new Fault()));
       soft.removeAll(complement);
+      if (stopAfterFirstFault) {
+        break;
+      }
     }
     stats.totalTime.stop();
     return hard;

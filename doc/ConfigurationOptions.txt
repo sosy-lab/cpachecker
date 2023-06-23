@@ -3833,6 +3833,12 @@ faultLocalization.by_traceformula.postConditionType = LAST_ASSUME_EDGES_ON_SAME_
 faultLocalization.by_traceformula.preconditionType = NONDETERMINISTIC_VARIABLES_ONLY
   enum:     [NONDETERMINISTIC_VARIABLES_ONLY, INITIAL_ASSIGNMENT, ALWAYS_TRUE]
 
+# Whether the found counterexample needs to be precise
+faultLocalization.by_traceformula.requirePreciseCounterexample = true
+
+# Whether to stop searching for further faults if first fault was found.
+faultLocalization.by_traceformula.stopAfterFirstFault = false
+
 # which algorithm to use
 faultLocalization.by_traceformula.type = UNSAT
   enum:     [UNSAT, MAXSAT, MAXORG, ERRINV]

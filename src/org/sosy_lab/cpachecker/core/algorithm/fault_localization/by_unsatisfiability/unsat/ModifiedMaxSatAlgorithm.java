@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -16,7 +18,6 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.logging.Level;
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
@@ -36,6 +37,11 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
 
   // Statistics
   private final MaxSatStatistics stats = new MaxSatStatistics();
+  private final boolean stopAfterFirstFault;
+
+  public ModifiedMaxSatAlgorithm(boolean pStopAfterFirstFault) {
+    stopAfterFirstFault = pStopAfterFirstFault;
+  }
 
   @Override
   public Set<Fault> run(FormulaContext pContext, TraceFormula tf)
@@ -65,6 +71,9 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
       // has bugs
       if (minUnsatCore.size() != initSize) {
         hard.add(minUnsatCore);
+        if (stopAfterFirstFault) {
+          break;
+        }
       }
     }
     stats.totalTime.stop();
@@ -78,7 +87,7 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
                     .transform(
                         fc -> fc.correspondingEdge().getFileLocation().getStartingLineInOrigin())
                     .toSortedList(Integer::compareTo));
-    return Collections3.transformedImmutableSetCopy(
+    return transformedImmutableSetCopy(
         hard,
         h ->
             FluentIterable.from(h)

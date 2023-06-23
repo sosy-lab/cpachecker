@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -167,13 +168,22 @@ public class TraceFormula {
     Solver solver = context.getSolver();
     FormulaManagerView fmgr = solver.getFormulaManager();
     BooleanFormulaManager bmgr = fmgr.getBooleanFormulaManager();
-    SSAMap initial = getTrace().get(0).getSsaMap();
-    SSAMap last = getTrace().get(getTrace().size() - 1).getSsaMap();
+    SSAMap initial = getTrace().getInitialSsaMap();
+    SSAMap last = getTrace().getLatestSsaMap();
     BooleanFormula formula =
         bmgr.and(
             fmgr.instantiate(fmgr.uninstantiate(precondition.getPrecondition()), initial),
             fmgr.instantiate(fmgr.uninstantiate(bmgr.not(postCondition.getPostCondition())), last));
-    return !solver.isUnsat(formula);
+    if (solver.isUnsat(formula)) {
+      context
+          .getLogger()
+          .logf(
+              Level.INFO,
+              "Found UNSAT core in pre- and pot-condition: %s",
+              solver.unsatCore(formula));
+      return false;
+    }
+    return true;
   }
 
   public PostCondition getPostCondition() {

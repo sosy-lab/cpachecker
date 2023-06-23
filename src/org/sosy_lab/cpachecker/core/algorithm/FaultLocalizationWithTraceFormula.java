@@ -155,6 +155,9 @@ public class FaultLocalizationWithTraceFormula
   @Option(description = "Whether the found counterexample needs to be precise")
   private boolean requirePreciseCounterexample = true;
 
+  @Option(description = "Whether to stop searching for further faults if first fault was found.")
+  private boolean stopAfterFirstFault = false;
+
   public FaultLocalizationWithTraceFormula(
       final Algorithm pStoreAlgorithm,
       final Configuration pConfig,
@@ -191,14 +194,19 @@ public class FaultLocalizationWithTraceFormula
 
     faultAlgorithm =
         switch (algorithmType) {
-          case MAXORG -> new OriginalMaxSatAlgorithm();
-          case MAXSAT -> new ModifiedMaxSatAlgorithm();
+          case MAXORG -> new OriginalMaxSatAlgorithm(stopAfterFirstFault);
+          case MAXSAT -> new ModifiedMaxSatAlgorithm(stopAfterFirstFault);
           case ERRINV -> new ErrorInvariantsAlgorithm(pShutdownNotifier, pConfig, logger);
           case UNSAT -> new SingleUnsatCoreAlgorithm();
         };
   }
 
   public void checkOptions() throws InvalidConfigurationException {
+    if (stopAfterFirstFault
+        && (algorithmType == AlgorithmType.ERRINV || algorithmType == AlgorithmType.UNSAT)) {
+      throw new InvalidConfigurationException(
+          "The option 'stopAfterFirstFault' requires MAXORG or MAXSAT as algorithmType");
+    }
     if (!algorithmType.equals(AlgorithmType.ERRINV) && options.makeFlowSensitive()) {
       throw new InvalidConfigurationException(
           "The option 'makeFlowSensitive' (flow-sensitive trace formula) requires the error"
