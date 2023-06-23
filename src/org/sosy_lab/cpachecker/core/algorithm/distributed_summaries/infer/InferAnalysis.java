@@ -1,0 +1,137 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.BlockSummaryAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFADecomposer;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.parallel_decomposition.ParallelBlockNodeDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryBlockSummaryConnectionProvider;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusAndResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorkerBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorkerBuilder.Components;
+import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+@Options(prefix = "infer")
+public class InferAnalysis extends BlockSummaryAnalysis
+    implements Algorithm, StatisticsProvider, Statistics {
+
+  public InferAnalysis(
+      Configuration pConfig,
+      LogManager pLogger,
+      CFA pInitialCFA,
+      ShutdownManager pShutdownManager,
+      Specification pSpecification)
+      throws InvalidConfigurationException {
+    super(pConfig, pLogger, pInitialCFA, pShutdownManager, pSpecification);
+  }
+
+  @Override
+  public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
+    logger.log(Level.INFO, "Starting infer analysis...");
+    try {
+      // create blockGraph and reduce to relevant parts
+      BlockSummaryCFADecomposer decomposer = new ParallelBlockNodeDecomposition();
+      BlockGraph blockGraph = decomposer.decompose(initialCFA);
+      blockGraph.checkConsistency(shutdownManager.getNotifier());
+      Modification modification =
+          BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
+      CFA cfa = modification.cfa();
+      blockGraph = modification.blockGraph();
+      logger.logf(
+          Level.INFO,
+          "Decomposed CFA in %d blocks using parallel decomposition.",
+          blockGraph.getNodes().size());
+
+      // create workers
+      Collection<BlockNode> blocks = blockGraph.getNodes();
+      BlockSummaryWorkerBuilder builder =
+          new BlockSummaryWorkerBuilder(
+                  cfa,
+                  new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()),
+                  specification)
+              .createAdditionalConnections(1)
+              .addInferRootWorker(blockGraph.getRoot(), options, blocks.size());
+      for (BlockNode distinctNode : blocks) {
+        averageNumberOfEdges.setNextValue(distinctNode.getEdges().size());
+        builder = builder.addInferWorker(distinctNode, options);
+      }
+
+      if (spawnUtilWorkers) {
+        builder = builder.addVisualizationWorker(blockGraph, options);
+      }
+
+      Components components = builder.build();
+
+      numberWorkers.setNextValue(components.actors().size());
+
+      // run workers
+      for (BlockSummaryActor worker : components.actors()) {
+        Thread thread = new Thread(worker, worker.getId());
+        thread.setDaemon(true);
+        thread.start();
+      }
+
+      // listen to messages
+      try (BlockSummaryConnection mainThreadConnection = components.connections().get(0)) {
+        InferObserverWorker observer =
+            new InferObserverWorker("observer", mainThreadConnection, options, blocks.size());
+        // blocks the thread until result message is received
+        StatusAndResult resultPair = observer.observe();
+        Result result = resultPair.result();
+        stats.putAll(observer.getStats());
+        if (result == Result.FALSE) {
+          ARGState state = (ARGState) reachedSet.getFirstState();
+          assert state != null;
+          CompositeState cState = (CompositeState) state.getWrappedState();
+          Precision initialPrecision = reachedSet.getPrecision(state);
+          assert cState != null;
+          List<AbstractState> states = new ArrayList<>(cState.getWrappedStates());
+          states.add(DummyTargetState.withoutTargetInformation());
+          reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);
+        } else if (result == Result.TRUE) {
+          reachedSet.clear();
+        }
+        return resultPair.status();
+      }
+    } catch (InvalidConfigurationException | IOException e) {
+      logger.logException(Level.SEVERE, e, "Infer analysis stopped unexpectedly.");
+      throw new CPAException("Component Analysis ran into an error.", e);
+    } finally {
+      logger.log(Level.INFO, "Infer analysis finished.");
+    }
+  }
+}

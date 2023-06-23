@@ -25,14 +25,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class BlockSummaryObserverWorker extends BlockSummaryWorker {
 
   private final BlockSummaryConnection connection;
-  private final StatusObserver statusObserver;
-  private boolean shutdown;
-  private Optional<Result> result;
-  private Optional<String> errorMessage;
+  protected final StatusObserver statusObserver;
+  protected boolean shutdown;
+  protected Optional<Result> result;
+  protected Optional<String> errorMessage;
 
-  private final Map<String, Map<String, Object>> stats = new HashMap<>();
+  protected final Map<String, Map<String, Object>> stats = new HashMap<>();
 
-  private final int numberOfBlocks;
+  protected final int numberOfBlocks;
 
   public record StatusAndResult(AlgorithmStatus status, Result result) {}
 
@@ -120,7 +120,7 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
       statusMap = new HashMap<>();
     }
 
-    private void updateStatus(BlockSummaryMessage pMessage) {
+    public void updateStatus(BlockSummaryMessage pMessage) {
       pMessage
           .getOptionalStatus()
           .ifPresent(status -> statusMap.put(pMessage.getUniqueBlockId(), status));

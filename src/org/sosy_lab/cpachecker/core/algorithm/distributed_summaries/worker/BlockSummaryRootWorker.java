@@ -105,7 +105,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
         shutdown = true;
         yield ImmutableSet.of();
       }
-      case STATISTICS, BLOCK_POSTCONDITION, ERROR_CONDITION_UNREACHABLE -> ImmutableSet.of();
+      default -> ImmutableSet.of();
     };
   }
 

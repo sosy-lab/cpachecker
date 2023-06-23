@@ -79,19 +79,19 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 @Options(prefix = "distributedSummaries")
 public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Statistics {
 
-  private final Configuration configuration;
-  private final LogManager logger;
-  private final CFA initialCFA;
-  private final ShutdownManager shutdownManager;
-  private final Specification specification;
-  private final BlockSummaryAnalysisOptions options;
+  protected final Configuration configuration;
+  protected final LogManager logger;
+  protected final CFA initialCFA;
+  protected final ShutdownManager shutdownManager;
+  protected final Specification specification;
+  protected final BlockSummaryAnalysisOptions options;
 
-  private final Map<String, Object> stats;
+  protected final Map<String, Object> stats;
 
-  private final StatInt numberWorkers = new StatInt(StatKind.MAX, "Number of worker");
-  private final StatInt averageNumberOfEdges =
+  protected final StatInt numberWorkers = new StatInt(StatKind.MAX, "Number of worker");
+  protected final StatInt averageNumberOfEdges =
       new StatInt(StatKind.AVG, "Average number of edges in block");
-  private final StatInt numberWorkersWithoutAbstraction =
+  protected final StatInt numberWorkersWithoutAbstraction =
       new StatInt(StatKind.MAX, "Worker without abstraction");
 
   @Option(
@@ -108,20 +108,20 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           "Whether to spawn util workers. "
               + "Util workers listen to every message and create visual output for debugging. "
               + "Workers consume resources and should not be used for benchmarks.")
-  private boolean spawnUtilWorkers = true;
+  protected boolean spawnUtilWorkers = true;
 
   @Option(
       description =
           "Change the queue type. ERRROR_CONDITION prioritizes the processing"
               + " ofErrorConditionMessages. DEFAULT does not differ between PostCondition and"
               + " ErrorCondition messages.")
-  private QueueType queue = QueueType.DEFAULT;
+  protected QueueType queue = QueueType.DEFAULT;
 
   @Option(
       description =
           "The number of blocks is dependent by the number of functions in the program."
               + "A tolerance of 1 means, that we subtract 1 of the total number of functions.")
-  private int tolerance = 0;
+  protected int tolerance = 0;
 
   private enum DecompositionType {
     LINEAR_DECOMPOSITION,
@@ -152,7 +152,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     stats = new HashMap<>();
   }
 
-  private Supplier<BlockingQueue<BlockSummaryMessage>> getQueueSupplier() {
+  protected Supplier<BlockingQueue<BlockSummaryMessage>> getQueueSupplier() {
     return switch (queue) {
       case ERROR_CONDITION -> () -> new BlockSummaryPrioritizeErrorConditionQueue();
       case DEFAULT -> () -> new BlockSummaryDefaultQueue();

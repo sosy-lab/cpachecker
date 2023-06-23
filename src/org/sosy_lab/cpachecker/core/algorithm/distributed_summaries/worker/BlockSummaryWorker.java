@@ -61,7 +61,7 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
     }
   }
 
-  void broadcastOrLogException(Collection<BlockSummaryMessage> pMessage) {
+  public void broadcastOrLogException(Collection<BlockSummaryMessage> pMessage) {
     try {
       broadcast(pMessage);
     } catch (InterruptedException e) {
@@ -99,11 +99,11 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
     return logger;
   }
 
-  int getReceivedMessages() {
+  public int getReceivedMessages() {
     return receivedMessages.getUpdateCount();
   }
 
-  int getSentMessages() {
+  public int getSentMessages() {
     return sentMessages.getUpdateCount();
   }
 }

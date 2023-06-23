@@ -298,7 +298,18 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
      * Messages of this type transport results of a forward analysis. See {@link
      * BlockSummaryPostConditionMessage}.
      */
-    BLOCK_POSTCONDITION
+    BLOCK_POSTCONDITION,
+
+    /**
+     * Messages of this type transport the result from the root worker indicating a proof was found
+     */
+    INFER_ROOT_PROOF,
+
+    /**
+     * Messages of this type transport the result from the root worker indicating violations were
+     * found
+     */
+    INFER_ROOT_VIOLATIONS
   }
 
   public static class MessageConverter {
