@@ -921,23 +921,26 @@ class AssignmentFormulaHandler {
       final String targetName = lvalue.asUnaliased().getVariableName();
       final int newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
 
-      Formula newVariable = fmgr.makeVariable(targetType, targetName, newIndex);
-
       if (rhs != null) {
+        Formula newVariable = fmgr.makeVariable(targetType, targetName, newIndex);
         result = fmgr.assignment(newVariable, rhs);
       } else {
         result = bfmgr.makeTrue();
       }
 
-      // add the condition
-      // either the condition holds and the assignment should be done,
-      // or the condition does not hold and the previous value should be copied
-      final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
-      Formula oldVariable = fmgr.makeVariable(targetType, targetName, oldIndex);
+      // This check is in principle redundant, but is required in order to avoid #1102.
+      if (!bfmgr.isTrue(condition)) {
+        // add the condition
+        // either the condition holds and the assignment should be done,
+        // or the condition does not hold and the previous value should be copied
+        final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
+        Formula oldVariable = fmgr.makeVariable(targetType, targetName, oldIndex);
 
-      BooleanFormula retainmentAssignment = fmgr.assignment(newVariable, oldVariable);
+        Formula newVariable = fmgr.makeVariable(targetType, targetName, newIndex);
+        BooleanFormula retainmentAssignment = fmgr.assignment(newVariable, oldVariable);
 
-      result = conv.bfmgr.ifThenElse(condition, result, retainmentAssignment);
+        result = conv.bfmgr.ifThenElse(condition, result, retainmentAssignment);
+      }
 
     } else { // Aliased LHS
       MemoryRegion region = lvalue.asAliased().getMemoryRegion();
