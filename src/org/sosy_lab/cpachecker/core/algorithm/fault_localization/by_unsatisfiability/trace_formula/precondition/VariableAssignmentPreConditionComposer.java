@@ -159,10 +159,7 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
         if (modelAssignment.getName().startsWith("__VERIFIER_nondet_")) {
           precond = bmgr.and(precond, formula);
           nondetVariables.add(modelAssignment.getName());
-        } else if (modelAssignment
-            .getKey()
-            .toString()
-            .contains("__FAULT_LOCALIZATION_precondition")) {
+        } else if (modelAssignment.getName().startsWith("__FAULT_LOCALIZATION_precondition")) {
           precond = bmgr.and(precond, formula);
         }
       }
