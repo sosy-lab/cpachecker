@@ -457,7 +457,7 @@ public class CoreComponentsFactory {
         && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
-        && (useBMC || useIMC || useInvariantExportAlgorithm);
+        && (useBMC || useBackwardBMC || useIMC || useInvariantExportAlgorithm);
   }
 
   public Algorithm createAlgorithm(
@@ -618,8 +618,8 @@ public class CoreComponentsFactory {
       }
 
       if (useBackwardBMC) {
-        // verifyNotNull(shutdownManager);
-        algorithm = new BackwardBMCAlgorithm(algorithm, cpa, logger);
+        verifyNotNull(shutdownManager);
+        algorithm = new BackwardBMCAlgorithm(algorithm, cpa, logger, shutdownManager, cfa);
       }
 
       if (useIMC) {
