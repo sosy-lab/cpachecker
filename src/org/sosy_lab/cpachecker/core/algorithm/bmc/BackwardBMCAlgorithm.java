@@ -8,24 +8,27 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class BackwardBMCAlgorithm implements Algorithm {
@@ -35,6 +38,11 @@ public class BackwardBMCAlgorithm implements Algorithm {
   private ConfigurableProgramAnalysis cpa;
   private CFA cfa;
 
+  private final FormulaManagerView fmgr;
+  private final PathFormulaManager pmgr;
+  private final BooleanFormulaManagerView bfmgr;
+  private final Solver solver;
+
   protected final ShutdownNotifier shutdownNotifier;
   private final TargetLocationProvider targetLocationProvider;
 
@@ -43,12 +51,21 @@ public class BackwardBMCAlgorithm implements Algorithm {
       ConfigurableProgramAnalysis pCPA,
       LogManager pLogger,
       final ShutdownManager pShutdownManager,
-      CFA pCFA) {
+      CFA pCFA)
+      throws InvalidConfigurationException {
 
     logger = pLogger;
     algorithm = pAlgorithm;
     cpa = pCPA;
     cfa = pCFA;
+
+    @SuppressWarnings("resource")
+    PredicateCPA predCpa =
+        CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, BackwardBMCAlgorithm.class);
+    solver = predCpa.getSolver();
+    fmgr = solver.getFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
+    pmgr = predCpa.getPathFormulaManager();
 
     shutdownNotifier = pShutdownManager.getNotifier();
     // is this the right target location provider?
@@ -62,44 +79,34 @@ public class BackwardBMCAlgorithm implements Algorithm {
     AlgorithmStatus status;
     status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
 
-    // is this correct? How will we get path formulas of loop heads?
-    Optional<AbstractState> optTarget = getTarget(reachedSet);
-    AbstractState target;
-    if (optTarget.isPresent()) {
-      // this is the main entry
-      target = optTarget.get();
-    } else {
+    AbstractState targetState = getTarget(reachedSet);
+    if (targetState == null) {
+      // No target state found
       return status;
     }
+    FluentIterable<AbstractState> loopHeads = getAbstractLoopHeads(reachedSet);
 
-    Set<AbstractState> loopHeads = getAbstractLoopHeads(reachedSet);
-
-    // We only have a path formula, as we do not use abstractions?
-    // Why is the path formula just 'true'?
-    BooleanFormula program =
-        AbstractStates.extractStateByType(target, PredicateAbstractState.class)
-            .getPathFormula()
-            .getFormula();
+    BooleanFormula targetFormula =
+        BMCHelper.createFormulaFor(
+            FluentIterable.of(targetState),
+            bfmgr,
+            Optional.ofNullable(shutdownNotifier));
+    BooleanFormula loopHeadFormula =
+        BMCHelper.createFormulaFor(loopHeads, bfmgr, Optional.ofNullable(shutdownNotifier));
 
     return status;
   }
 
-  private Optional<AbstractState> getTarget(final ReachedSet reachedSet) {
-    // Should be only one target state, the main entry
-    return FluentIterable.from(reachedSet).filter(AbstractStates::isTargetState).first();
+  /**
+   * May return null if no target state found
+   */
+  private AbstractState getTarget(final ReachedSet reachedSet) {
+    // Should be only one target state: the main entry
+    return FluentIterable.from(reachedSet).filter(AbstractStates::isTargetState).first().orNull();
   }
 
-  private Set<AbstractState> getAbstractLoopHeads(final ReachedSet reachedSet) {
-    Set<CFANode> loopHeadNodes = BMCHelper.getLoopHeads(cfa, targetLocationProvider);
-    Set<AbstractState> abstractLoopHeads = new HashSet<>();
-    for (AbstractState abstractState : reachedSet) {
-      // can we assume only one location per abstract state?
-      CFANode loc = AbstractStates.extractLocation(abstractState);
-      if (loopHeadNodes.contains(loc)) {
-        abstractLoopHeads.add(abstractState);
-      }
-    }
-
-    return abstractLoopHeads;
+  private FluentIterable<AbstractState> getAbstractLoopHeads(final ReachedSet reachedSet) {
+    return AbstractStates
+        .filterLocations(reachedSet, BMCHelper.getLoopHeads(cfa, targetLocationProvider));
   }
 }
