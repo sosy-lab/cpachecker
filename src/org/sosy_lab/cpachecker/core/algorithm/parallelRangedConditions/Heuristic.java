@@ -100,7 +100,8 @@ abstract class Heuristic {
         description =
             "Used for \"FIRST_BRANCHES\" heuristic, will generate paths for all branches up to this"
                 + " depth.",
-        required = true)
+        required = true,
+        secure = true)
     @IntegerOption(min = 1)
     private int branchDepth;
 
@@ -160,17 +161,19 @@ abstract class Heuristic {
         description =
             "The number of paths, the random heuristic should generate. The number of ranges for"
                 + " the ranged conditions algorithm is one more than this.",
-        required = true)
+        required = true,
+        secure = true)
     @IntegerOption(min = 1)
     private int numPaths;
 
-    @Option(description = "Seed for the random number generator")
+    @Option(description = "Seed for the random number generator", secure = true)
     private Long seed = 0L;
 
     @Option(
         description =
             "Maximum length of randomly generated paths. The actual length may be shorter, when the"
-                + " path encounters the end of the program.")
+                + " path encounters the end of the program.",
+        secure = true)
     @IntegerOption(min = 1)
     private int maxLength = 100;
 

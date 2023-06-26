@@ -56,14 +56,16 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
   Path assumtionGuidingAutomatonFile =
       Path.of("config/specification/AssumptionGuidingAutomaton.spc");
 
-  @Option(description = "Path generation heuristic to use for Parallel Ranged Conditions.")
+  @Option(
+      description = "Path generation heuristic to use for Parallel Ranged Conditions.",
+      secure = true)
   private Heuristic.Type pathHeuristic = Heuristic.Type.PATHS_FILE;
 
-  @Option(description = "Assumption automaton out-file pattern")
+  @Option(description = "Assumption automaton out-file pattern", secure = true)
   @FileOption(Type.OUTPUT_FILE)
   private @Nullable PathTemplate automatonOutput;
 
-  @Option(description = "Output file for saving used paths.")
+  @Option(description = "Output file for saving used paths.", secure = true)
   @FileOption(Type.OUTPUT_FILE)
   private @Nullable Path pathOutput = Path.of("RangedConditionsPaths.txt");
 
