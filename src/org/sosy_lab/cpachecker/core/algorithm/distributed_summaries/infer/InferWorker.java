@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -78,8 +77,8 @@ public class InferWorker extends BlockSummaryWorker {
   public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage message)
       throws InterruptedException, CPAException, SolverException {
     // TODO receive messages from the root worker
-  // TODO FIX THIS LOL
-    return Collections.emptySet();
+    // TODO FIX THIS LOL
+    return ImmutableSet.of();
   }
 
   @Override

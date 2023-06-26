@@ -1,7 +1,15 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
@@ -26,7 +34,7 @@ public class InferRootWorker extends BlockSummaryWorker {
     super("infer-root-worker-" + pId, pOptions);
     numWorkers = pNumWorkers; // TODO MAKE THIS REFLECT USE
     // TODO LIST PATHS (LIST OF NODE LIST)
-    workerResults = Collections.emptySet();
+    workerResults = ImmutableSet.of();
     connection = pConnection;
     isProof = true;
     shutdown = false;
@@ -48,9 +56,9 @@ public class InferRootWorker extends BlockSummaryWorker {
     if (workerResults.size() == numWorkers) {
       // TODO add actual results to the payload body
       shutdown = true;
-      return Collections.singleton(isProof ? proofResult() : violationResult());
+      return ImmutableSet.of(isProof ? proofResult() : violationResult());
     } else {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
   }
 
