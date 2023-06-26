@@ -380,7 +380,7 @@ class CExpressionVisitorWithPointerAliasing
    */
   @Override
   public Expression visit(final CIdExpression e) throws UnrecognizedCodeException {
-    if (e.getDeclaration() instanceof CEnumerator enumerator) {
+    if (e.getDeclaration() instanceof CEnumerator) {
       return visitDefault(e); // delegate to super class
     }
     final CType resultType = typeHandler.getSimplifiedType(e);
