@@ -853,25 +853,32 @@ public class CPAMain {
       try (PrintWriter file =
           new PrintWriter(
               new BufferedWriter(new FileWriter(options.exportArtifactsFile.toFile()))); ) {
-        // MoreFiles.createParentDirectories(options.exportArtefactsFile);
+        // MoreFiles.createParentDirectories(options.exportArtifactsFile);
         Properties reprProp = new Properties();
         substats.forEach(
             substat -> {
-              String subname = substat.getName();
-              if (subname == "CPA algorithm") {
+              String subname = substat.getPrefix();
+              if (subname != null) {
                 List<StatisticsValue<?>> statvals = substat.getStatistics();
                 statvals.forEach(
-                    statval -> {
-                      String statname = statval.getName();
-                      String statvalue = String.valueOf(statval.getValue());
-                      reprProp.setProperty(subname + "." + statname, statvalue);
+                    stat -> {
+                      String statsymbol = stat.getSymbol();
+                      String statname = stat.getName();
+                      String statid = "";
+                      if (statsymbol.isEmpty()) {
+                        statid = statname;
+                      } else {
+                        statid = statsymbol;
+                      }
+                      String statvalue = String.valueOf(stat.getValue());
+                      reprProp.setProperty(subname + "." + statid, statvalue);
                     });
               }
             });
         reprProp.store(file, "CPAchecker Artifacts file");
 
       } catch (IOException e) {
-        logManager.logUserException(Level.WARNING, e, "Could not write artefacts to file");
+        logManager.logUserException(Level.WARNING, e, "Could not write artifacts to file");
       }
     }
   }
