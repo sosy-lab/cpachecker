@@ -619,6 +619,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(new Stats());
+
     if (strategy instanceof StatisticsProvider) {
       ((StatisticsProvider) strategy).collectStatistics(pStatsCollection);
     }
@@ -632,7 +633,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     @Override
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
       StatisticsWriter w0 = writingStatisticsTo(out);
-
+      pathChecker.printStatistics(out, result, reached);
       int numberOfRefinements = totalRefinement.getUpdateCount();
       w0.put("Number of predicate refinements", totalRefinement.getUpdateCount());
       StatisticsWriter w1 = w0.beginLevel();
