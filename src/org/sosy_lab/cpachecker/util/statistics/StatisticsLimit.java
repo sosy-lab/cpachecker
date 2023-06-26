@@ -47,8 +47,16 @@ public class StatisticsLimit<T extends Comparable<T>> implements StatisticsValue
    * @param pStatisticsValue A Statistics Value
    * @return True if the limit has been exceeded.
    */
-  public boolean isExceeded(StatisticsValue<T> pStatisticsValue) {
+  /*  public boolean isExceeded(StatisticsValue<T> pStatisticsValue) {
     if (pStatisticsValue.getValue().compareTo(limit) >= 0) {
+      return true;
+    } else {
+      return false;
+    }
+  }*/
+
+  public boolean isExceeded(StatisticsValue<T> pStatisticsValue) {
+    if (pStatisticsValue.getValue().compareTo(limit) > 0) {
       return true;
     } else {
       return false;
