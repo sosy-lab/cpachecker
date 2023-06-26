@@ -11,11 +11,14 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -24,13 +27,12 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.BlockSummaryAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFADecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraphModification.Modification;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.parallel_decomposition.ParallelBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryBlockSummaryConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusAndResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorkerBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorkerBuilder.Components;
@@ -44,10 +46,31 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
 @Options(prefix = "infer")
 public class InferAnalysis extends BlockSummaryAnalysis
     implements Algorithm, StatisticsProvider, Statistics {
+
+  private final CFA initialCFA;
+  private final LogManager logger;
+  private final Specification specification;
+  private final ShutdownManager shutdownManager;
+  private final BlockSummaryAnalysisOptions options;
+
+  private final Map<String, Object> stats;
+
+  private final StatInt numberWorkers = new StatInt(StatKind.MAX, "Number of worker");
+  private final StatInt averageNumberOfEdges =
+      new StatInt(StatKind.AVG, "Average number of edges in block");
+
+  @Option(
+      description =
+          "Whether to spawn util workers. "
+              + "Util workers listen to every message and create visual output for debugging. "
+              + "Workers consume resources and should not be used for benchmarks.")
+  private boolean spawnUtilWorkers = true;
 
   public InferAnalysis(
       Configuration pConfig,
@@ -57,6 +80,12 @@ public class InferAnalysis extends BlockSummaryAnalysis
       Specification pSpecification)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pInitialCFA, pShutdownManager, pSpecification);
+    initialCFA = pInitialCFA;
+    logger = pLogger;
+    specification = pSpecification;
+    shutdownManager = pShutdownManager;
+    options = new BlockSummaryAnalysisOptions(pConfig);
+    stats = new HashMap<>();
   }
 
   @Override
@@ -67,10 +96,6 @@ public class InferAnalysis extends BlockSummaryAnalysis
       BlockSummaryCFADecomposer decomposer = new ParallelBlockNodeDecomposition();
       BlockGraph blockGraph = decomposer.decompose(initialCFA);
       blockGraph.checkConsistency(shutdownManager.getNotifier());
-      Modification modification =
-          BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
-      CFA cfa = modification.cfa();
-      blockGraph = modification.blockGraph();
       logger.logf(
           Level.INFO,
           "Decomposed CFA in %d blocks using parallel decomposition.",
@@ -80,7 +105,7 @@ public class InferAnalysis extends BlockSummaryAnalysis
       Collection<BlockNode> blocks = blockGraph.getNodes();
       BlockSummaryWorkerBuilder builder =
           new BlockSummaryWorkerBuilder(
-                  cfa,
+                  initialCFA,
                   new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()),
                   specification)
               .createAdditionalConnections(1)

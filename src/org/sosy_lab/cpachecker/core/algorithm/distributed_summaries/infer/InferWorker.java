@@ -78,6 +78,7 @@ public class InferWorker extends BlockSummaryWorker {
   public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage message)
       throws InterruptedException, CPAException, SolverException {
     // TODO receive messages from the root worker
+  // TODO FIX THIS LOL
     return Collections.emptySet();
   }
 

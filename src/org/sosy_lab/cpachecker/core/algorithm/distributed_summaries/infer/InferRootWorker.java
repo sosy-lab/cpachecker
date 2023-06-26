@@ -24,7 +24,8 @@ public class InferRootWorker extends BlockSummaryWorker {
       BlockSummaryAnalysisOptions pOptions,
       int pNumWorkers) {
     super("infer-root-worker-" + pId, pOptions);
-    numWorkers = pNumWorkers;
+    numWorkers = pNumWorkers; // TODO MAKE THIS REFLECT USE
+    // TODO LIST PATHS (LIST OF NODE LIST)
     workerResults = Collections.emptySet();
     connection = pConnection;
     isProof = true;
