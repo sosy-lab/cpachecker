@@ -927,8 +927,7 @@ public class CustomInstruction {
     private void compareSimpleTypes(
         final CIdExpression ciExp, final Number aciExpValue, final CSimpleType aciType)
         throws AppliedCustomInstructionParsingFailedException {
-      if (ciExp.getExpressionType() instanceof CSimpleType) {
-        CSimpleType ciST = (CSimpleType) ciExp.getExpressionType();
+      if (ciExp.getExpressionType() instanceof CSimpleType ciST) {
 
         if (isValidSimpleType(ciST, aciType)) {
           if (!ciVarToAciVar.containsKey(ciExp.getDeclaration().getQualifiedName())) {

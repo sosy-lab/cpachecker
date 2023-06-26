@@ -185,8 +185,7 @@ public class CFunctionPointerResolver implements StatisticsProvider {
       }
       cfa.edges().forEach(varCollector::visitEdge);
       for (Pair<ADeclaration, String> decl : pGlobalVars) {
-        if (decl.getFirst() instanceof CVariableDeclaration) {
-          CVariableDeclaration varDecl = (CVariableDeclaration) decl.getFirst();
+        if (decl.getFirst() instanceof CVariableDeclaration varDecl) {
           varCollector.visitDeclaration(varDecl);
         }
       }

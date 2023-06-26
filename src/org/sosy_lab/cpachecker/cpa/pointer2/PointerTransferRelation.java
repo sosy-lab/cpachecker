@@ -345,8 +345,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
   private PointerState handleStatementEdge(PointerState pState, CStatementEdge pCfaEdge)
       throws UnrecognizedCodeException {
-    if (pCfaEdge.getStatement() instanceof CAssignment) {
-      CAssignment assignment = (CAssignment) pCfaEdge.getStatement();
+    if (pCfaEdge.getStatement() instanceof CAssignment assignment) {
 
       if (assignment instanceof CFunctionCallAssignmentStatement) {
         // we don't consider summary edges, so if we encounter a function call assignment edge,

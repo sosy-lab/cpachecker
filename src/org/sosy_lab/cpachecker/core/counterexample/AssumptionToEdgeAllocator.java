@@ -677,9 +677,7 @@ public class AssumptionToEdgeAllocator {
       fieldNameList.add(FIRST, reference.getFieldName());
     }
 
-    if (reference.getFieldOwner() instanceof CIdExpression) {
-
-      CIdExpression idExpression = (CIdExpression) reference.getFieldOwner();
+    if (reference.getFieldOwner() instanceof CIdExpression idExpression) {
       if (ForwardingTransferRelation.isGlobal(idExpression)) {
         return new FieldReference(idExpression.getName(), fieldNameList);
       } else {
