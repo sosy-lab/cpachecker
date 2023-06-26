@@ -326,13 +326,13 @@ public class CPAMain {
 
     @Option(
         secure = true,
-        name = "reprArtifacts.export",
+        name = "reproArtifacts.export",
         description = "write reproduction artifacts to disk")
     private boolean exportArtifacts = true;
 
     @Option(
         secure = true,
-        name = "reprArtifacts.file",
+        name = "reproArtifacts.file",
         description = "write reproduction artifacts to disk")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path exportArtifactsFile = Path.of("artifacts.txt");
