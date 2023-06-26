@@ -56,6 +56,15 @@ public interface Statistics {
   @Nullable String getName();
 
   /**
+   * Define a properties prefix for this group of statistics.
+   *
+   * @return A String that gets used as a prefix in the artifacts file.
+   */
+  default String getPrefix() {
+    return this.getClass().getSimpleName();
+  }
+
+  /**
    * Get all Statistics-values that are collected in a specific Statistics instance.
    *
    * @return A List of StatisticsValue
