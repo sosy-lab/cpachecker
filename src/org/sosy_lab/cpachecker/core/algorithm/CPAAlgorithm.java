@@ -88,7 +88,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private Timer addTimer = new Timer();
     private Timer forcedCoveringTimer = new Timer();
 
-    private StatisticsValue<Integer> countIterations = new StatisticsValue<>("Iteration Count", 0);
+    private StatisticsValue<Integer> countIterations =
+        new StatisticsValue<>("countIterations", "Iteration Count", 0);
     private int maxWaitlistSize = 0;
     private long countWaitlistSize = 0;
     private int countSuccessors = 0;

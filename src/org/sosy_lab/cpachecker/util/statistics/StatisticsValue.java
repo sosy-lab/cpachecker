@@ -17,7 +17,8 @@ import java.util.Collection;
  */
 public class StatisticsValue<T> {
 
-  private String name;
+  private String symbol = "";
+  private String name = "";
   private T value;
 
   private final Collection<StatisticsValueUpdateListener<T>> statisticsValueUpdateListeners =
@@ -26,6 +27,22 @@ public class StatisticsValue<T> {
   public StatisticsValue(String pName, T pValue) {
     name = pName;
     value = pValue;
+  }
+
+  public StatisticsValue(String pSymbol, String pName, T pValue) {
+    symbol = pSymbol;
+    name = pName;
+    value = pValue;
+  }
+
+  /**
+   * Get the symbol for this statistics value. Often, statistics have one distinct symbol pointing
+   * to them. This is used as an identifier for a statistics limit.
+   *
+   * @return A String with a symbol name.
+   */
+  public String getSymbol() {
+    return symbol;
   }
 
   /**
