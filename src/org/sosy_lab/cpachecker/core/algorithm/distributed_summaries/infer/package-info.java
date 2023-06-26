@@ -7,8 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Infer is a distributed analysis that uses the CPAchecker framework. 
- * It is based on the Infer static analysis library created by Facebook with the same name  
+ * Infer is a distributed analysis that uses the CPAchecker framework. It is based on the Infer
+ * static analysis library created by Facebook with the same name
  */
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
-

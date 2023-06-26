@@ -51,7 +51,7 @@ public class InferRootWorker extends BlockSummaryWorker {
       case BLOCK_POSTCONDITION -> {
         workerResults.add(pMessage.getUniqueBlockId());
       }
-      default -> {}
+      default -> { }
     }
     if (workerResults.size() == numWorkers) {
       // TODO add actual results to the payload body
