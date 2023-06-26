@@ -3762,6 +3762,10 @@ enabledanalysis.allowLazyRefinement = false
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
 
+# write reproduction artifacts to disk
+exportArtifacts.export = true
+exportArtifacts.file = "artifacts.txt"
+
 # Ranking algorithm to use for fault localization
 faultLocalization.by_coverage.type = TARANTULA
   enum:     [TARANTULA, DSTAR, OCHIAI]
@@ -4472,14 +4476,9 @@ report.file = "Report.html"
 # output file for visualizing message exchange
 reportFile = "block_analysis/block_analysis.json"
 
-# write reproduction artifacts to disk
-reproArtifacts.export = true
-
 # Use one of the following options specified in a Reproduction artifacts file
 # as a limit.
-# write reproduction artifacts to disk
 reproArtifacts.file = no default value
-reproArtifacts.file = "artifacts.txt"
 
 # Use the following stat in the reproArtifacts file as a limit.
 reproArtifacts.limit = ""

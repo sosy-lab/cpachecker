@@ -326,13 +326,13 @@ public class CPAMain {
 
     @Option(
         secure = true,
-        name = "reproArtifacts.export",
+        name = "exportArtifacts.export",
         description = "write reproduction artifacts to disk")
     private boolean exportArtifacts = true;
 
     @Option(
         secure = true,
-        name = "reproArtifacts.file",
+        name = "exportArtifacts.file",
         description = "write reproduction artifacts to disk")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path exportArtifactsFile = Path.of("artifacts.txt");
@@ -875,7 +875,7 @@ public class CPAMain {
       try (PrintWriter file =
           new PrintWriter(
               new BufferedWriter(new FileWriter(options.exportArtifactsFile.toFile()))); ) {
-        // MoreFiles.createParentDirectories(options.exportArtifactsFile);
+        MoreFiles.createParentDirectories(options.exportArtifactsFile);
         Properties reprProp = new Properties();
         substats.forEach(
             substat -> {
