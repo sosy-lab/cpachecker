@@ -22,8 +22,10 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.io.MoreFiles;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -209,16 +211,25 @@ public class CPAMain {
 
   private static final String SPECIFICATION_OPTION = "specification";
   private static final String ENTRYFUNCTION_OPTION = "analysis.entryFunction";
+  private static final String REPROFILE_OPTION = "reproArtifacts.file";
+  private static final String REPROLIMIT_OPTION = "reproArtifacts.limit";
   public static final String APPROACH_NAME_OPTION = "analysis.name";
 
   @Options
   private static class BootstrapOptions {
     @Option(
         secure = true,
-        name = "reproArtefact",
-        description = "Use the following options specified in a Reproduction artefacts file.")
+        name = REPROFILE_OPTION,
+        description =
+            "Use one of the following options specified in a Reproduction artifacts file as a limit.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
-    private @Nullable Path reproArtefact = null;
+    private @Nullable Path reproArtifactsFile = null;
+
+    @Option(
+        secure = true,
+        name = REPROLIMIT_OPTION,
+        description = "Use the following stat in the reproArtifacts file as a limit.")
+    private String reproArtifactsLimit = "";
 
     @Option(
         secure = true,
@@ -498,19 +509,30 @@ public class CPAMain {
   private static Configuration handleReproOptions(
       Configuration pConfig, Map<String, String> pCmdLineOptions)
       throws InvalidCmdlineArgumentException {
-    if (pCmdLineOptions.containsKey("reproArtefact")) {
-      try {
-        return Configuration.builder()
-            .copyFrom(pConfig)
-            .loadFromFile(pCmdLineOptions.get("reproArtefact"))
-            .build();
+    String reproArtifactsFile = pCmdLineOptions.get(REPROFILE_OPTION);
+    String reproArtifactsLimit = pCmdLineOptions.get(REPROLIMIT_OPTION);
+
+    if (reproArtifactsFile != null && !reproArtifactsLimit.equals("")) {
+      String limitname = "Limit." + reproArtifactsLimit;
+      String limitvalue = null;
+
+      try (BufferedReader file = new BufferedReader(new FileReader(reproArtifactsFile)); ) {
+          Properties prop = new Properties();
+          prop.load(file);
+        limitvalue = prop.getProperty(reproArtifactsLimit);
+        if (limitvalue != null) {
+          return Configuration.builder()
+              .copyFrom(pConfig)
+              .setOptions(pCmdLineOptions)
+              .setOption(limitname, limitvalue)
+              .build();
+        }
       } catch (InvalidConfigurationException | IOException e) {
         throw new InvalidCmdlineArgumentException(
-            "Could not read artefacts file: " + e.getMessage(), e);
+            "Could not read artifacts file: " + e.getMessage(), e);
       }
-    } else {
-      return pConfig;
     }
+    return pConfig;
   }
 
   private static final ImmutableMap<Property, TestTargetType> TARGET_TYPES =
