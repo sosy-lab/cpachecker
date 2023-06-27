@@ -52,10 +52,7 @@ public abstract sealed class ACSLPredicate implements ACSLLogicExpression
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof ACSLPredicate other) {
-      return negated == other.negated;
-    }
-    return false;
+    return obj instanceof ACSLPredicate other && negated == other.negated;
   }
 
   @Override

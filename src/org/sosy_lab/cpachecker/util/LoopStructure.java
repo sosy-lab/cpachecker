@@ -264,10 +264,9 @@ public final class LoopStructure implements Serializable {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof Loop other) {
-        return loopHeads.equals(other.loopHeads) && nodes.equals(other.nodes);
-      }
-      return false;
+      return pObj instanceof Loop other
+          && loopHeads.equals(other.loopHeads)
+          && nodes.equals(other.nodes);
     }
 
     @Override

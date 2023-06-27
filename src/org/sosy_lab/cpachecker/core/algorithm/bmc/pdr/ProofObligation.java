@@ -264,15 +264,13 @@ abstract class ProofObligation implements Iterable<ProofObligation>, Comparable<
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof ProofObligation other) {
-      return frameIndex == other.frameIndex
-          && nSpuriousTransitions == other.nSpuriousTransitions
-          && blockedConcreteCti.equals(other.blockedConcreteCti)
-          && blockedAbstractCti.equals(other.blockedAbstractCti)
-          && length == other.length
-          && getViolatedInvariant().equals(other.getViolatedInvariant());
-    }
-    return false;
+    return pOther instanceof ProofObligation other
+        && frameIndex == other.frameIndex
+        && nSpuriousTransitions == other.nSpuriousTransitions
+        && blockedConcreteCti.equals(other.blockedConcreteCti)
+        && blockedAbstractCti.equals(other.blockedAbstractCti)
+        && length == other.length
+        && getViolatedInvariant().equals(other.getViolatedInvariant());
   }
 
   @Override

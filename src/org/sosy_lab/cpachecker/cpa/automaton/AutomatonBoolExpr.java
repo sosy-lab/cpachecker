@@ -306,12 +306,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof EpsilonMatch other) {
-        return expr.equals(other.expr)
-            && forward == other.forward
-            && continueAtBranching == other.continueAtBranching;
-      }
-      return false;
+      return o instanceof EpsilonMatch other
+          && expr.equals(other.expr)
+          && forward == other.forward
+          && continueAtBranching == other.continueAtBranching;
     }
 
     static AutomatonBoolExpr forwardEpsilonMatch(
@@ -461,11 +459,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof MatchFunctionPointerAssumeCase other) {
-        return matchAssumeCase.equals(other.matchAssumeCase)
-            && matchFunctionCall.equals(other.matchFunctionCall);
-      }
-      return false;
+      return pOther instanceof MatchFunctionPointerAssumeCase other
+          && matchAssumeCase.equals(other.matchAssumeCase)
+          && matchFunctionCall.equals(other.matchFunctionCall);
     }
 
     @Override
@@ -1042,10 +1038,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof MatchLocationDescriptor other) {
-        return mainEntry.equals(other.mainEntry) && matchDescriptor.equals(other.matchDescriptor);
-      }
-      return false;
+      return pOther instanceof MatchLocationDescriptor other
+          && mainEntry.equals(other.mainEntry)
+          && matchDescriptor.equals(other.matchDescriptor);
     }
   }
 
@@ -1220,10 +1215,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object pOther) {
-      if (pOther instanceof CPAQuery other) {
-        return cpaName.equals(other.cpaName) && queryString.equals(other.queryString);
-      }
-      return false;
+      return pOther instanceof CPAQuery other
+          && cpaName.equals(other.cpaName)
+          && queryString.equals(other.queryString);
     }
   }
 
@@ -1330,10 +1324,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       if (this == o) {
         return true;
       }
-      if (o instanceof IntBinaryTest other) {
-        return a.equals(other.a) && b.equals(other.b) && repr.equals(other.repr);
-      }
-      return false;
+      return o instanceof IntBinaryTest other
+          && a.equals(other.a)
+          && b.equals(other.b)
+          && repr.equals(other.repr);
     }
   }
 
@@ -1531,10 +1525,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       if (this == o) {
         return true;
       }
-      if (o instanceof BoolBinaryTest other) {
-        return a.equals(other.a) && b.equals(other.b) && repr.equals(other.repr);
-      }
-      return false;
+      return o instanceof BoolBinaryTest other
+          && a.equals(other.a)
+          && b.equals(other.b)
+          && repr.equals(other.repr);
     }
   }
 

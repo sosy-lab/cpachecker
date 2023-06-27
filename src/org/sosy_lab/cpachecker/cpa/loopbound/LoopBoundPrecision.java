@@ -67,10 +67,9 @@ public class LoopBoundPrecision implements Precision {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof LoopBoundPrecision other) {
-      return trackStack == other.trackStack && maxLoopIterations == other.maxLoopIterations;
-    }
-    return false;
+    return pOther instanceof LoopBoundPrecision other
+        && trackStack == other.trackStack
+        && maxLoopIterations == other.maxLoopIterations;
   }
 
   @Override

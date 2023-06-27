@@ -514,12 +514,10 @@ class PointerTargetSetManager {
      * <p>We check for UNION-type with special fieldnames.
      */
     private static boolean isAlreadyMergedCompositeType(final CType type) {
-      if (type instanceof CCompositeType compositeType) {
-        return compositeType.getKind() == ComplexTypeKind.UNION
-            && !compositeType.getMembers().isEmpty()
-            && compositeType.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0));
-      }
-      return false;
+      return type instanceof CCompositeType compositeType
+          && compositeType.getKind() == ComplexTypeKind.UNION
+          && !compositeType.getMembers().isEmpty()
+          && compositeType.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0));
     }
   }
 

@@ -282,10 +282,9 @@ public class SymbolEncoding {
 
     @Override
     public boolean equals(Object other) {
-      if (other instanceof Type<?> t) {
-        return returnType.equals(t.returnType) && parameterTypes.equals(t.parameterTypes);
-      }
-      return false;
+      return other instanceof Type<?> t
+          && returnType.equals(t.returnType)
+          && parameterTypes.equals(t.parameterTypes);
     }
 
     @Override

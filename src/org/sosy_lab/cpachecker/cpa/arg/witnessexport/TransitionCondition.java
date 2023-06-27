@@ -221,11 +221,9 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof Scope other) {
-        return functionName.equals(other.functionName)
-            && usedDeclarations.equals(other.usedDeclarations);
-      }
-      return false;
+      return pOther instanceof Scope other
+          && functionName.equals(other.functionName)
+          && usedDeclarations.equals(other.usedDeclarations);
     }
 
     @Override
@@ -325,9 +323,6 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
   }
 
   private static boolean isGlobalVarDecl(@Nullable ASimpleDeclaration pDecl) {
-    if (pDecl instanceof AVariableDeclaration varDecl) {
-      return varDecl.isGlobal();
-    }
-    return false;
+    return pDecl instanceof AVariableDeclaration varDecl && varDecl.isGlobal();
   }
 }

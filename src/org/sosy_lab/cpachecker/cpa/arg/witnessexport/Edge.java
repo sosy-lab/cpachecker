@@ -69,13 +69,11 @@ public class Edge implements Comparable<Edge> {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof Edge other) {
-      return hashCode == other.hashCode
-          && source.equals(other.source)
-          && target.equals(other.target)
-          && label.equals(other.label);
-    }
-    return false;
+    return pOther instanceof Edge other
+        && hashCode == other.hashCode
+        && source.equals(other.source)
+        && target.equals(other.target)
+        && label.equals(other.label);
   }
 
   public String getSource() {

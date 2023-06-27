@@ -147,11 +147,9 @@ public class TestVector {
     if (this == pObj) {
       return true;
     }
-    if (pObj instanceof TestVector other) {
-      return inputFunctionValues.equals(other.inputFunctionValues)
-          && inputVariableValues.equals(other.inputVariableValues);
-    }
-    return false;
+    return pObj instanceof TestVector other
+        && inputFunctionValues.equals(other.inputFunctionValues)
+        && inputVariableValues.equals(other.inputVariableValues);
   }
 
   @Override
@@ -306,10 +304,9 @@ public class TestVector {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof TargetTestVector other) {
-        return edgeToTarget.equals(other.edgeToTarget) && testVector.equals(other.testVector);
-      }
-      return false;
+      return pObj instanceof TargetTestVector other
+          && edgeToTarget.equals(other.edgeToTarget)
+          && testVector.equals(other.testVector);
     }
   }
 }

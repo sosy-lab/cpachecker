@@ -962,10 +962,8 @@ public class SMGCPAExpressionEvaluator {
       return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
 
-    if (rValueType instanceof CElaboratedType type) {
-      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
-    }
-    return false;
+    return rValueType instanceof CElaboratedType type
+        && type.getKind() != CComplexType.ComplexTypeKind.ENUM;
   }
 
   /**

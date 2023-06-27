@@ -48,10 +48,9 @@ public class LessThan<ConstantType> implements BooleanFormula<ConstantType> {
     if (this == o) {
       return true;
     }
-    if (o instanceof LessThan<?> other) {
-      return getOperand1().equals(other.getOperand1()) && getOperand2().equals(other.getOperand2());
-    }
-    return false;
+    return o instanceof LessThan<?> other
+        && getOperand1().equals(other.getOperand1())
+        && getOperand2().equals(other.getOperand2());
   }
 
   @Override

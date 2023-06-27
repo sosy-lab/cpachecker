@@ -461,13 +461,11 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
 
     @Override
     public boolean equals(Object q) {
-      if (q instanceof Interval compare) {
-        return compare.start == start
-            && compare.end == end
-            && invariant.equals(compare.invariant)
-            && super.equals(q);
-      }
-      return false;
+      return q instanceof Interval compare
+          && compare.start == start
+          && compare.end == end
+          && invariant.equals(compare.invariant)
+          && super.equals(q);
     }
 
     public BooleanFormula getInvariant() {
