@@ -54,10 +54,7 @@ public enum SIGN implements Serializable {
   }
 
   public boolean covers(SIGN sign) {
-    if ((sign.numVal | numVal) == numVal) {
-      return true;
-    }
-    return false;
+    return (sign.numVal | numVal) == numVal;
   }
 
   public boolean intersects(SIGN sign) {

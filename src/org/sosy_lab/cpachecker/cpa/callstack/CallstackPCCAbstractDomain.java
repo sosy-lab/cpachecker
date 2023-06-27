@@ -36,9 +36,6 @@ public class CallstackPCCAbstractDomain implements AbstractDomain {
     if (state1 == null || state2 == null) {
       return false;
     }
-    if (state1.sameStateInProofChecking(state2)) {
-      return true;
-    }
-    return false;
+    return state1.sameStateInProofChecking(state2);
   }
 }

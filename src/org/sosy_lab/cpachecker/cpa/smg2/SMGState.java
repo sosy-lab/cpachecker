@@ -752,11 +752,7 @@ public class SMGState
       return false;
     }
     StackFrame stackframe = frames.peek();
-    if (stackframe.getVariables().containsKey(pVarName)) {
-      return true;
-    }
-
-    return false;
+    return stackframe.getVariables().containsKey(pVarName);
   }
 
   /**

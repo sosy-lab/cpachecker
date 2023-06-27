@@ -296,10 +296,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   private boolean isLoopHead(LocationState location) {
-    if (maybeLoops.isPresent() && maybeLoops.orElseThrow().contains(location.getLocationNode())) {
-      return true;
-    }
-    return false;
+    return maybeLoops.isPresent() && maybeLoops.orElseThrow().contains(location.getLocationNode());
   }
 
   private boolean checkAbstractListAt(LocationState location) {
