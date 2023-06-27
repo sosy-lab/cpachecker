@@ -270,7 +270,7 @@ public class ReportGenerator {
         Writer writer = IO.openOutputFile(reportPath, StandardCharsets.UTF_8)) {
 
       String line;
-      while (null != (line = reader.readLine())) {
+      while ((line = reader.readLine()) != null) {
         if (line.contains("CONFIGURATION")) {
           insertConfiguration(writer);
         } else if (line.contains("REPORT_CSS")) {
@@ -305,7 +305,7 @@ public class ReportGenerator {
         Resources.asCharSource(Resources.getResource(getClass(), file), StandardCharsets.UTF_8)
             .openBufferedStream(); ) {
       String line;
-      while (null != (line = reader.readLine())) {
+      while ((line = reader.readLine()) != null) {
         writer.write(line);
         writer.write('\n');
       }
@@ -531,7 +531,7 @@ public class ReportGenerator {
                 + sourceFileNumber
                 + ")\">\n<table>\n");
         String line;
-        while (null != (line = source.readLine())) {
+        while ((line = source.readLine()) != null) {
           line = "<td><pre class=\"prettyprint\">" + htmlEscaper().escape(line) + "  </pre></td>";
           writer.write(
               "<tr id=\"source-"
