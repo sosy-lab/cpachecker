@@ -76,13 +76,7 @@ public final class JArrayType extends AArrayType implements JReferenceType {
       return true;
     }
 
-    if (!(obj instanceof JArrayType) || !super.equals(obj)) {
-      return false;
-    }
-
-    JArrayType other = (JArrayType) obj;
-
-    return dimension == other.dimension;
+    return obj instanceof JArrayType other && super.equals(obj) && dimension == other.dimension;
   }
 
   @Override

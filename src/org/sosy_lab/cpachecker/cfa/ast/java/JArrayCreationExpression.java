@@ -104,12 +104,9 @@ public final class JArrayCreationExpression extends AbstractExpression implement
       return true;
     }
 
-    if (!(obj instanceof JArrayCreationExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    JArrayCreationExpression other = (JArrayCreationExpression) obj;
-
-    return Objects.equals(other.initializer, initializer) && Objects.equals(other.length, length);
+    return obj instanceof JArrayCreationExpression other
+        && super.equals(obj)
+        && Objects.equals(other.initializer, initializer)
+        && Objects.equals(other.length, length);
   }
 }

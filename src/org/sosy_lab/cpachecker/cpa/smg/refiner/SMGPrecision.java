@@ -185,11 +185,9 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public boolean equals(Object o) {
-      if (!(o instanceof SMGRefineablePrecision) || !super.equals(o)) {
-        return false;
-      }
-      SMGRefineablePrecision other = (SMGRefineablePrecision) o;
-      return trackedMemoryPaths.equals(other.trackedMemoryPaths)
+      return o instanceof SMGRefineablePrecision other
+          && super.equals(o)
+          && trackedMemoryPaths.equals(other.trackedMemoryPaths)
           && trackedStackVariables.equals(other.trackedStackVariables)
           && abstractionBlocks.equals(other.abstractionBlocks);
     }
