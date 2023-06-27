@@ -38,25 +38,27 @@ public class CallstackStateEqualsWrapper {
     if (!(o instanceof CallstackStateEqualsWrapper)) {
       return false;
     }
-    CallstackState other = ((CallstackStateEqualsWrapper) o).getState();
-    CallstackState tmp = state;
-    if (other.getDepth() != tmp.getDepth()) {
+    CallstackStateEqualsWrapper other = (CallstackStateEqualsWrapper) o;
+    return stackLocationsAreEqual(state, other.getState());
+  }
+
+  private static boolean stackLocationsAreEqual(CallstackState a, CallstackState b) {
+    if (a.getDepth() != b.getDepth()) {
       return false;
     }
 
     // check the whole stack
-    while (tmp != null) {
-      if (other == tmp) {
+    while (a != null) {
+      if (a == b) {
         return true;
       }
-      if (!other.getCallNode().equals(tmp.getCallNode())
-          || !other.getCurrentFunction().equals(tmp.getCurrentFunction())) {
+      if (!a.getCallNode().equals(b.getCallNode())
+          || !a.getCurrentFunction().equals(b.getCurrentFunction())) {
         return false;
       }
-      other = other.getPreviousState();
-      tmp = tmp.getPreviousState();
+      a = a.getPreviousState();
+      b = b.getPreviousState();
     }
-
     return true;
   }
 
