@@ -54,9 +54,6 @@ public class TargetRecord {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
     return obj instanceof TargetRecord other
         && Objects.equals(fileHash, other.fileHash)
         && Objects.equals(type, other.type)

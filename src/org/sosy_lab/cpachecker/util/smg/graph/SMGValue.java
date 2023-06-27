@@ -90,9 +90,6 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
 
   @Override
   public boolean equals(Object other) {
-    if (other == null) {
-      return false;
-    }
     return other instanceof SMGValue otherObj && id == otherObj.id;
   }
 

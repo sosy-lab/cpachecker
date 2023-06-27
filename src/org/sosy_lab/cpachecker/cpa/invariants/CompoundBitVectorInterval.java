@@ -599,9 +599,6 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     if (this == pOther) {
       return true;
     }
-    if (pOther == null) {
-      return false;
-    }
     return pOther instanceof CompoundBitVectorInterval other
         && info.equals(other.info)
         && Arrays.equals(intervals, other.intervals);

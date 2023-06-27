@@ -134,11 +134,6 @@ public final class NondeterministicFiniteAutomaton<T> {
       if (this == pOther) {
         return true;
       }
-
-      if (pOther == null) {
-        return false;
-      }
-
       return pOther instanceof NondeterministicFiniteAutomaton<?>.Edge lEdge
           && lEdge.mSource.equals(mSource)
           && lEdge.mTarget.equals(mTarget)

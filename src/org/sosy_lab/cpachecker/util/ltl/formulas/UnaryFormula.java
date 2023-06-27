@@ -34,9 +34,6 @@ public abstract class UnaryFormula implements LtlFormula {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
     return obj instanceof UnaryFormula other
         && getSymbol().equals(other.getSymbol())
         && operand.equals(other.operand);

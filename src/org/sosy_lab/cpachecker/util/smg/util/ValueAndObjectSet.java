@@ -31,9 +31,6 @@ public class ValueAndObjectSet {
 
   @Override
   public boolean equals(Object other) {
-    if (other == null) {
-      return false;
-    }
     return other instanceof ValueAndObjectSet otherSMGaV
         && getObjectSet().equals(otherSMGaV.getObjectSet())
         && value.equals(otherSMGaV.getValue());

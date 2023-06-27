@@ -50,9 +50,6 @@ public abstract class AbstractEntry {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
     return obj instanceof AbstractEntry other && Objects.equals(entryType, other.entryType);
   }
 }

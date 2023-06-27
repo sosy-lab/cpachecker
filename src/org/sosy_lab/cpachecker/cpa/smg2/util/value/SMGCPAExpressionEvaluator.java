@@ -1259,9 +1259,6 @@ public class SMGCPAExpressionEvaluator {
    * @param value {@link Value} to be checked.
    */
   public static boolean valueIsAddressExprOrVariableOffset(@Nullable Value value) {
-    if (value == null) {
-      return false;
-    }
     return value instanceof AddressExpression
         || ((value instanceof SymbolicIdentifier)
             && ((SymbolicIdentifier) value).getRepresentedLocation().isPresent());

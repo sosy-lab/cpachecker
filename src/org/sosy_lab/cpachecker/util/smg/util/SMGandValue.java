@@ -34,9 +34,6 @@ public class SMGandValue {
 
   @Override
   public boolean equals(Object other) {
-    if (other == null) {
-      return false;
-    }
     return other instanceof SMGandValue otherSMGaV
         && smg.equals(otherSMGaV.getSMG())
         && value.equals(otherSMGaV.getValue());

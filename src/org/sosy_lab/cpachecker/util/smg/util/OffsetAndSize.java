@@ -33,9 +33,6 @@ public class OffsetAndSize {
 
   @Override
   public boolean equals(Object other) {
-    if (other == null) {
-      return false;
-    }
     return other instanceof OffsetAndSize otherOffsetAndSize
         && size.equals(otherOffsetAndSize.getSize())
         && offset.equals(otherOffsetAndSize.getOffset());
