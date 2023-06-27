@@ -120,13 +120,7 @@ public class OctagonInterval {
 
     OctagonInterval other = (OctagonInterval) obj;
 
-    if (isEmpty() && other.isEmpty()) {
-      return true;
-    } else if (isEmpty() || other.isEmpty()) {
-      return false;
-    }
-
-    return low.isEqual(other.low) && high.isEqual(other.high);
+    return isEmpty() == other.isEmpty() && low.isEqual(other.low) && high.isEqual(other.high);
   }
 
   public boolean isSingular() {

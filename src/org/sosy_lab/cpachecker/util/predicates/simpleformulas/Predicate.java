@@ -86,15 +86,14 @@ public final class Predicate {
       return false;
     }
 
-    if (pOther.getClass() == getClass()) {
-      Predicate lOther = (Predicate) pOther;
-
-      return (mLeftTerm.equals(lOther.mLeftTerm)
-          && mRightTerm.equals(lOther.mRightTerm)
-          && mComparison.equals(lOther.mComparison));
+    if (pOther.getClass() != getClass()) {
+      return false;
     }
+    Predicate lOther = (Predicate) pOther;
 
-    return false;
+    return mLeftTerm.equals(lOther.mLeftTerm)
+        && mRightTerm.equals(lOther.mRightTerm)
+        && mComparison.equals(lOther.mComparison);
   }
 
   @Override

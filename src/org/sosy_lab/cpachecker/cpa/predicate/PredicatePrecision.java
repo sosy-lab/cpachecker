@@ -413,17 +413,18 @@ public final class PredicatePrecision implements AdjustablePrecision {
   public boolean equals(Object pObj) {
     if (pObj == this) {
       return true;
-    } else if (pObj == null) {
-      return false;
-    } else if (!pObj.getClass().equals(this.getClass())) {
-      return false;
-    } else {
-      PredicatePrecision other = (PredicatePrecision) pObj;
-      return getLocationInstancePredicates().equals(other.getLocationInstancePredicates())
-          && getLocalPredicates().equals(other.getLocalPredicates())
-          && getFunctionPredicates().equals(other.getFunctionPredicates())
-          && getGlobalPredicates().equals(other.getGlobalPredicates());
     }
+    if (pObj == null) {
+      return false;
+    }
+    if (!pObj.getClass().equals(this.getClass())) {
+      return false;
+    }
+    PredicatePrecision other = (PredicatePrecision) pObj;
+    return getLocationInstancePredicates().equals(other.getLocationInstancePredicates())
+        && getLocalPredicates().equals(other.getLocalPredicates())
+        && getFunctionPredicates().equals(other.getFunctionPredicates())
+        && getGlobalPredicates().equals(other.getGlobalPredicates());
   }
 
   @Override

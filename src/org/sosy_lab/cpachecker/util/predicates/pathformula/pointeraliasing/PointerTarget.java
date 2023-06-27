@@ -59,18 +59,18 @@ public final class PointerTarget implements Serializable {
   public boolean equals(Object other) {
     if (this == other) {
       return true;
-    } else if (!(other instanceof PointerTarget)) {
-      return false;
-    } else {
-      final PointerTarget o = (PointerTarget) other;
-      return properOffset == o.properOffset
-          && containerOffset == o.containerOffset
-          && base.equals(o.base)
-          && (containerType != null
-              ? o.containerType != null
-                  && containerType.getCanonicalType().equals(o.containerType.getCanonicalType())
-              : o.containerType == null);
     }
+    if (!(other instanceof PointerTarget)) {
+      return false;
+    }
+    final PointerTarget o = (PointerTarget) other;
+    return properOffset == o.properOffset
+        && containerOffset == o.containerOffset
+        && base.equals(o.base)
+        && (containerType != null
+            ? o.containerType != null
+                && containerType.getCanonicalType().equals(o.containerType.getCanonicalType())
+            : o.containerType == null);
   }
 
   @Override

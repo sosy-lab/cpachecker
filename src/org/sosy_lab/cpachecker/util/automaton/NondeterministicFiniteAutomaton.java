@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 public final class NondeterministicFiniteAutomaton<T> {
@@ -142,18 +143,12 @@ public final class NondeterministicFiniteAutomaton<T> {
         return false;
       }
 
-      @SuppressWarnings("unchecked")
-      Edge lEdge = (Edge) pOther;
+      NondeterministicFiniteAutomaton<?>.Edge lEdge =
+          (NondeterministicFiniteAutomaton<?>.Edge) pOther;
 
-      if (lEdge.mSource.equals(mSource) && lEdge.mTarget.equals(mTarget)) {
-        if (mLabel == null) {
-          return lEdge.mLabel == null;
-        } else {
-          return mLabel.equals(lEdge.mLabel);
-        }
-      }
-
-      return false;
+      return lEdge.mSource.equals(mSource)
+          && lEdge.mTarget.equals(mTarget)
+          && Objects.equals(mLabel, lEdge.mLabel);
     }
   }
 
