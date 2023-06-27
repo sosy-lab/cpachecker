@@ -200,6 +200,7 @@ public class BAMCacheImpl implements BAMCache {
       if (this == pObj) {
         return true;
       }
+      // TODO Timing every equals() seems like a lot of potential overhead.
       equalsTimer.start();
       try {
         return pObj instanceof AbstractStateHash other

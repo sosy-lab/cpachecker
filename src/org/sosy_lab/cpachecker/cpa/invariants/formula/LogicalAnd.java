@@ -43,6 +43,7 @@ public class LogicalAnd<ConstantType> implements BooleanFormula<ConstantType> {
       return true;
     }
     if (o instanceof LogicalAnd<?> other) {
+      // And is commutative.
       return (getOperand1().equals(other.getOperand1())
               && getOperand2().equals(other.getOperand2()))
           || (getOperand1().equals(other.getOperand2())

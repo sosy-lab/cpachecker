@@ -108,6 +108,7 @@ public abstract sealed class ACSLPredicate implements ACSLLogicExpression
 
     @Override
     public boolean equals(Object obj) {
+      // Sanity check that this is a singleton.
       if (obj instanceof TRUE) {
         assert obj == singleton && this == singleton;
         return true;
@@ -166,6 +167,7 @@ public abstract sealed class ACSLPredicate implements ACSLLogicExpression
 
     @Override
     public boolean equals(Object obj) {
+      // Sanity check that this is a singleton.
       if (obj instanceof FALSE) {
         assert obj == singleton && this == singleton;
         return true;
