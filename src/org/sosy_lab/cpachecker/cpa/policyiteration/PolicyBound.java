@@ -131,7 +131,7 @@ public final class PolicyBound {
     if (this == other) {
       return true;
     }
-    if (other == null || other.getClass() != getClass()) {
+    if (other == null || getClass() != other.getClass()) {
       return false;
     }
     PolicyBound o = (PolicyBound) other;

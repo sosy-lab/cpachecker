@@ -412,7 +412,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
     if (this == pObj) {
       return true;
     }
-    if (pObj == null || pObj.getClass() != getClass()) {
+    if (pObj == null || getClass() != pObj.getClass()) {
       return false;
     }
     PredicatePrecision other = (PredicatePrecision) pObj;

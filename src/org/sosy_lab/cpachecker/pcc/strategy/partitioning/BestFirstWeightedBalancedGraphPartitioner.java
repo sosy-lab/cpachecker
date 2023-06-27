@@ -114,7 +114,7 @@ public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalanc
       if (this == obj) {
         return true;
       }
-      if (obj == null || obj.getClass() != getClass()) {
+      if (obj == null || getClass() != obj.getClass()) {
         return false;
       }
       NodePriority compNode = (NodePriority) obj;
