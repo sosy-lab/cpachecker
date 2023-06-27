@@ -232,10 +232,7 @@ public final class PredefinedTypes {
     if (type instanceof JSimpleType) {
       return ((JSimpleType) type).getType().isIntegerType();
     }
-    if (type instanceof CSimpleType) {
-      return ((CSimpleType) type).getType().isIntegerType();
-    }
-    return false;
+    return type instanceof CSimpleType && ((CSimpleType) type).getType().isIntegerType();
   }
 
   private static boolean functionMatchesExactType(

@@ -628,10 +628,8 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
     if (pOther == null) {
       return false;
     }
-    if (pOther instanceof CompoundMathematicalInterval) {
-      return Arrays.equals(intervals, ((CompoundMathematicalInterval) pOther).intervals);
-    }
-    return false;
+    return pOther instanceof CompoundMathematicalInterval
+        && Arrays.equals(intervals, ((CompoundMathematicalInterval) pOther).intervals);
   }
 
   @Override

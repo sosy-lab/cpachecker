@@ -336,11 +336,9 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
   private static boolean isStructOrUnion(Type pType) {
     Type type = pType instanceof CType ? ((CType) pType).getCanonicalType() : pType;
-    if (type instanceof CComplexType) {
-      return EnumSet.of(ComplexTypeKind.STRUCT, ComplexTypeKind.UNION)
-          .contains(((CComplexType) type).getKind());
-    }
-    return false;
+    return type instanceof CComplexType
+        && EnumSet.of(ComplexTypeKind.STRUCT, ComplexTypeKind.UNION)
+            .contains(((CComplexType) type).getKind());
   }
 
   private PointerState handleStatementEdge(PointerState pState, CStatementEdge pCfaEdge)

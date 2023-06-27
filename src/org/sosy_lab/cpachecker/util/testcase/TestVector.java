@@ -203,10 +203,8 @@ public class TestVector {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof ComparableFunctionDeclaration) {
-        return declaration.equals(((ComparableFunctionDeclaration) pObj).declaration);
-      }
-      return false;
+      return pObj instanceof ComparableFunctionDeclaration
+          && declaration.equals(((ComparableFunctionDeclaration) pObj).declaration);
     }
 
     @Override
@@ -249,10 +247,8 @@ public class TestVector {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof ComparableVariableDeclaration) {
-        return declaration.equals(((ComparableVariableDeclaration) pObj).declaration);
-      }
-      return false;
+      return pObj instanceof ComparableVariableDeclaration
+          && declaration.equals(((ComparableVariableDeclaration) pObj).declaration);
     }
 
     @Override
