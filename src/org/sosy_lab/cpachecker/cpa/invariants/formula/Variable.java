@@ -36,8 +36,7 @@ public class Variable<ConstantType> extends AbstractFormula<ConstantType>
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof Variable) {
-      Variable<?> other = (Variable<?>) pOther;
+    if (pOther instanceof Variable<?> other) {
       return getTypeInfo().equals(other.getTypeInfo())
           && getMemoryLocation().equals(other.getMemoryLocation());
     }

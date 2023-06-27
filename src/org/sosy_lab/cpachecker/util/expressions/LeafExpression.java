@@ -74,8 +74,7 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
     if (this == pObj) {
       return true;
     }
-    if (pObj instanceof LeafExpression) {
-      LeafExpression<?> other = (LeafExpression<?>) pObj;
+    if (pObj instanceof LeafExpression<?> other) {
       return assumeTruth == other.assumeTruth && expression.equals(other.expression);
     }
     return false;

@@ -59,8 +59,7 @@ class IfThenElse<ConstantType> extends AbstractFormula<ConstantType> {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof IfThenElse) {
-      IfThenElse<?> other = (IfThenElse<?>) pOther;
+    if (pOther instanceof IfThenElse<?> other) {
       return getCondition().equals(other.getCondition())
           && getPositiveCase().equals(other.getPositiveCase())
           && getNegativeCase().equals(other.getNegativeCase());

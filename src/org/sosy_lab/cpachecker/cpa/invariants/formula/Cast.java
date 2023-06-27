@@ -39,8 +39,7 @@ class Cast<ConstantType> extends AbstractFormula<ConstantType> {
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof Cast) {
-      Cast<?> other = (Cast<?>) pOther;
+    if (pOther instanceof Cast<?> other) {
       return getTypeInfo().equals(other.getTypeInfo()) && getCasted().equals(other.getCasted());
     }
     return false;

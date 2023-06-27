@@ -57,8 +57,7 @@ public class Constant<T> extends AbstractFormula<T> implements NumeralFormula<T>
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof Constant) {
-      Constant<?> other = (Constant<?>) pOther;
+    if (pOther instanceof Constant<?> other) {
       return getTypeInfo().equals(other.getTypeInfo()) && getValue().equals(other.getValue());
     }
     return false;

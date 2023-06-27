@@ -139,14 +139,8 @@ public final class NondeterministicFiniteAutomaton<T> {
         return false;
       }
 
-      if (!(pOther instanceof NondeterministicFiniteAutomaton.Edge)) {
-        return false;
-      }
-
-      NondeterministicFiniteAutomaton<?>.Edge lEdge =
-          (NondeterministicFiniteAutomaton<?>.Edge) pOther;
-
-      return lEdge.mSource.equals(mSource)
+      return pOther instanceof NondeterministicFiniteAutomaton<?>.Edge lEdge
+          && lEdge.mSource.equals(mSource)
           && lEdge.mTarget.equals(mTarget)
           && Objects.equals(mLabel, lEdge.mLabel);
     }
