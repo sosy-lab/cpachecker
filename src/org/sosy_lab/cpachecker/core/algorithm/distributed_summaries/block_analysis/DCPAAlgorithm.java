@@ -66,7 +66,6 @@ public class DCPAAlgorithm {
   private boolean isInfeasible;
   private boolean alreadyReportedInfeasibility;
   private Precision blockStartPrecision;
-  private Precision blockEndPrecision;
   private boolean hasSentFirstMessages;
 
   public DCPAAlgorithm(
@@ -96,7 +95,6 @@ public class DCPAAlgorithm {
     assert dcpa != null : "Distribution of " + cpa.getClass().getSimpleName() + " not implemented.";
     blockStartPrecision =
         dcpa.getInitialPrecision(block.getFirst(), StateSpacePartition.getDefaultPartition());
-    blockEndPrecision = blockStartPrecision;
     startState = dcpa.getInitialState(block.getFirst(), StateSpacePartition.getDefaultPartition());
 
     // handle predecessors
@@ -256,7 +254,6 @@ public class DCPAAlgorithm {
     assert reachedSet.getFirstState() != null;
     if (reachedSet.getLastState() != null) {
       blockStartPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
-      blockEndPrecision = reachedSet.getPrecision(reachedSet.getLastState());
     }
     // no feasible path to block end ==> block end is unreachable and successors
     // can remove this block from their predecessor set.
@@ -317,10 +314,6 @@ public class DCPAAlgorithm {
     boolean storage = isInfeasible;
     isInfeasible = false;
     return storage;
-  }
-
-  Precision getPrecisionAtBlockEnd() {
-    return blockEndPrecision;
   }
 
   public DistributedConfigurableProgramAnalysis getDCPA() {

@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.block.BlockEntryReachedTargetInformation;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -40,15 +39,11 @@ public class DCPAAlgorithms {
   private DCPAAlgorithms() {}
 
   static Optional<CFANode> abstractStateToLocation(AbstractState state) {
-    LocationState locState = AbstractStates.extractStateByType(state, LocationState.class);
-    if (locState != null) {
-      return Optional.of(locState.getLocationNode());
-    }
-    BlockState blockState = AbstractStates.extractStateByType(state, BlockState.class);
-    if (blockState != null) {
-      return Optional.of(blockState.getLocationNode());
-    }
-    return Optional.empty();
+    return Optional.ofNullable(AbstractStates.extractLocation(state))
+        .or(
+            () ->
+                Optional.ofNullable(AbstractStates.extractStateByType(state, BlockState.class))
+                    .map(BlockState::getLocationNode));
   }
 
   /**
