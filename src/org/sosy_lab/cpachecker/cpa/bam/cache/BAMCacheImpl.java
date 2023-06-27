@@ -197,11 +197,11 @@ public class BAMCacheImpl implements BAMCache {
 
     @Override
     public boolean equals(Object pObj) {
-      if (!(pObj instanceof AbstractStateHash)) {
-        return false;
-      }
       if (this == pObj) {
         return true;
+      }
+      if (!(pObj instanceof AbstractStateHash)) {
+        return false;
       }
       AbstractStateHash other = (AbstractStateHash) pObj;
       equalsTimer.start();

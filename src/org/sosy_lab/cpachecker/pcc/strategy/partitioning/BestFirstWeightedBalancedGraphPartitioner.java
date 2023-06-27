@@ -111,11 +111,11 @@ public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalanc
 
     @Override
     public boolean equals(Object obj) {
-      if (obj == null) {
-        return false;
-      }
       if (this == obj) {
         return true;
+      }
+      if (obj == null) {
+        return false;
       }
 
       if (obj.getClass() != this.getClass()) {
