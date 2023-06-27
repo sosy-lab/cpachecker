@@ -27,7 +27,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
 
     @Override
     public boolean equals(final Object o) {
-      if (o == this) {
+      if (this == o) {
         return true;
       }
 
@@ -72,7 +72,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
 
     @Override
     public boolean equals(final Object o) {
-      if (o == this) {
+      if (this == o) {
         return true;
       } else if (!(o instanceof Variable)) {
         return false;
@@ -127,7 +127,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
 
     @Override
     public boolean equals(final Object o) {
-      if (o == this) {
+      if (this == o) {
         return true;
       } else if (!(o instanceof Field)) {
         return false;

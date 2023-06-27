@@ -141,7 +141,7 @@ public class CongruenceState
     if (!(o instanceof CongruenceState)) {
       return false;
     }
-    if (o == this) {
+    if (this == o) {
       return true;
     }
     CongruenceState other = (CongruenceState) o;

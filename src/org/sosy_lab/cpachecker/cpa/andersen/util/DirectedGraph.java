@@ -180,7 +180,7 @@ public class DirectedGraph {
 
     @Override
     public boolean equals(Object other) {
-      if (other == this) {
+      if (this == other) {
         return true;
       }
       if (!(other instanceof DirectedGraph.Edge)) {

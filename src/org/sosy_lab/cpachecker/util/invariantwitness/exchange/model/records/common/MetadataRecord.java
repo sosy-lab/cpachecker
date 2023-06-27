@@ -65,7 +65,7 @@ public class MetadataRecord {
 
   @Override
   public boolean equals(Object o) {
-    if (o == this) {
+    if (this == o) {
       return true;
     }
     if (!(o instanceof MetadataRecord)) {

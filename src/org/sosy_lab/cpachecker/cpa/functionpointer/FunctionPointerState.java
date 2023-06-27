@@ -220,7 +220,7 @@ public class FunctionPointerState
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj == this) {
+    if (this == pObj) {
       return true;
     } else if (!(pObj instanceof FunctionPointerState)) {
       return false;

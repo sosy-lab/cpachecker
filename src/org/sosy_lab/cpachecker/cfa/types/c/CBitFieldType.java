@@ -142,7 +142,7 @@ public final class CBitFieldType implements CType {
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj == this) {
+    if (this == pObj) {
       return true;
     }
     if (pObj instanceof CBitFieldType other) {

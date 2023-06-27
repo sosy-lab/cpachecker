@@ -68,7 +68,7 @@ public class TaskRecord {
 
   @Override
   public boolean equals(Object o) {
-    if (o == this) {
+    if (this == o) {
       return true;
     }
     if (!(o instanceof TaskRecord)) {

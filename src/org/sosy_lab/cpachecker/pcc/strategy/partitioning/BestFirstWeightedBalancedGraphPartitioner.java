@@ -114,7 +114,7 @@ public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalanc
       if (obj == null) {
         return false;
       }
-      if (obj == this) {
+      if (this == obj) {
         return true;
       }
 

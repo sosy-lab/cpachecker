@@ -138,7 +138,7 @@ public final class CSimpleType implements CType, Serializable {
    */
   @Override
   public boolean equals(@Nullable Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 

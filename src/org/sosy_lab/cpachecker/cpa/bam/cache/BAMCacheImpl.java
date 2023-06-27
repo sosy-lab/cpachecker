@@ -200,7 +200,7 @@ public class BAMCacheImpl implements BAMCache {
       if (!(pObj instanceof AbstractStateHash)) {
         return false;
       }
-      if (pObj == this) {
+      if (this == pObj) {
         return true;
       }
       AbstractStateHash other = (AbstractStateHash) pObj;

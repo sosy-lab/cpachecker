@@ -29,7 +29,7 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
 
   @Override
   public boolean equals(Object other) {
-    if (other == this) {
+    if (this == other) {
       return true;
     } else if (!(other instanceof CompositePrecision)) {
       return false;

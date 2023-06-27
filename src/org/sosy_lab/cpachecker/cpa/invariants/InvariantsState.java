@@ -1325,7 +1325,7 @@ public class InvariantsState
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj == this) {
+    if (this == pObj) {
       return true;
     }
     if (!(pObj instanceof InvariantsState)) {

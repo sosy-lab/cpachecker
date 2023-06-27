@@ -50,7 +50,7 @@ public class ReturnIdentifier extends VariableIdentifier implements GeneralIdent
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
-    if (pO == this) {
+    if (this == pO) {
       return 0;
     } else {
       return -1;

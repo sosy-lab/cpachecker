@@ -58,7 +58,7 @@ public final class CArrayDesignator extends CDesignator {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 

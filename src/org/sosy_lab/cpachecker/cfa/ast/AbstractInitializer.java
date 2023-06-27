@@ -25,7 +25,7 @@ public abstract class AbstractInitializer extends AbstractAstNode implements AIn
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 

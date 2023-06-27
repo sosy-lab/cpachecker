@@ -71,7 +71,7 @@ public final class CProblemType implements CType {
    */
   @Override
   public boolean equals(@Nullable Object obj) {
-    if (obj == this) {
+    if (this == obj) {
       return true;
     }
 

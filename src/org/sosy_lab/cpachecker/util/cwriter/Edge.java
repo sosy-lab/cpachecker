@@ -51,7 +51,7 @@ class Edge implements Comparable<Edge> {
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj == this) {
+    if (this == pObj) {
       return true;
     }
     if (pObj instanceof Edge) {

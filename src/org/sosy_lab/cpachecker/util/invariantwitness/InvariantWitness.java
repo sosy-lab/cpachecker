@@ -59,7 +59,7 @@ public class InvariantWitness {
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj == this) {
+    if (this == pObj) {
       return true;
     }
 

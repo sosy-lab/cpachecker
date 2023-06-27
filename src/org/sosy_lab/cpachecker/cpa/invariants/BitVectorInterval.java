@@ -379,7 +379,7 @@ public class BitVectorInterval implements BitVectorType {
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj == this) {
+    if (this == pObj) {
       return true;
     } else if (!(pObj instanceof BitVectorInterval)) {
       return false;
