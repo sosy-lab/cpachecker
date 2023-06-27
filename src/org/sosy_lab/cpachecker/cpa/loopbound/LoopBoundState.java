@@ -122,12 +122,9 @@ public class LoopBoundState
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof LoopBoundState)) {
-      return false;
-    }
-
-    LoopBoundState other = (LoopBoundState) obj;
-    return stopIt == other.stopIt && loopStack.equals(other.loopStack);
+    return obj instanceof LoopBoundState other
+        && stopIt == other.stopIt
+        && loopStack.equals(other.loopStack);
   }
 
   @Override

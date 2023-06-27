@@ -82,15 +82,10 @@ public abstract class AbstractFunctionType implements AFunctionType {
       return true;
     }
 
-    if (!(obj instanceof AbstractFunctionType)) {
-      return false;
-    }
-
-    AbstractFunctionType other = (AbstractFunctionType) obj;
-
     // We don't compare takesVarArgs here,
     // because it's not really relevant for type equality.
-    return Objects.equals(parameters, other.parameters)
+    return obj instanceof AbstractFunctionType other
+        && Objects.equals(parameters, other.parameters)
         && Objects.equals(returnType, other.returnType);
   }
 

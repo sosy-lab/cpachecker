@@ -41,11 +41,9 @@ public abstract class PropositionalFormula implements LtlFormula {
     if (obj == null) {
       return false;
     }
-    if (!(obj instanceof PropositionalFormula)) {
-      return false;
-    }
-    PropositionalFormula other = (PropositionalFormula) obj;
-    return getSymbol().equals(other.getSymbol()) && children.equals(other.children);
+    return obj instanceof PropositionalFormula other
+        && getSymbol().equals(other.getSymbol())
+        && children.equals(other.children);
   }
 
   public abstract String getSymbol();

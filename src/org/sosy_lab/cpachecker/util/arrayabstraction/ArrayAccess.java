@@ -298,12 +298,9 @@ final class ArrayAccess {
       return true;
     }
 
-    if (!(pObject instanceof ArrayAccess)) {
-      return false;
-    }
-
-    ArrayAccess other = (ArrayAccess) pObject;
-    return type == other.type && Objects.equals(expression, other.expression);
+    return pObject instanceof ArrayAccess other
+        && type == other.type
+        && Objects.equals(expression, other.expression);
   }
 
   @Override

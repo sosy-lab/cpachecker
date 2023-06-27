@@ -142,13 +142,8 @@ public final class CSimpleType implements CType, Serializable {
       return true;
     }
 
-    if (!(obj instanceof CSimpleType)) {
-      return false;
-    }
-
-    CSimpleType other = (CSimpleType) obj;
-
-    return isComplex == other.isComplex
+    return obj instanceof CSimpleType other
+        && isComplex == other.isComplex
         && isConst == other.isConst
         && isVolatile == other.isVolatile
         && isImaginary == other.isImaginary

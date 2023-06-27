@@ -71,11 +71,8 @@ public class TaskRecord {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof TaskRecord)) {
-      return false;
-    }
-    TaskRecord invariantStoreEntryTask = (TaskRecord) o;
-    return Objects.equals(inputFiles, invariantStoreEntryTask.inputFiles)
+    return o instanceof TaskRecord invariantStoreEntryTask
+        && Objects.equals(inputFiles, invariantStoreEntryTask.inputFiles)
         && Objects.equals(inputFileHashes, invariantStoreEntryTask.inputFileHashes)
         && Objects.equals(specification, invariantStoreEntryTask.specification)
         && Objects.equals(dataModel, invariantStoreEntryTask.dataModel)

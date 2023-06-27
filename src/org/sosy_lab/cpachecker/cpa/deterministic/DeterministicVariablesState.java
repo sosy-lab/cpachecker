@@ -112,13 +112,8 @@ public class DeterministicVariablesState
       return true;
     }
 
-    if (!(obj instanceof DeterministicVariablesState)) {
-      return false;
-    }
-
-    DeterministicVariablesState other = (DeterministicVariablesState) obj;
-
-    return Objects.equals(deterministicVariables, other.deterministicVariables);
+    return obj instanceof DeterministicVariablesState other
+        && Objects.equals(deterministicVariables, other.deterministicVariables);
   }
 
   @Override

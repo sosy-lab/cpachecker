@@ -258,12 +258,9 @@ public class SimpleInterval {
   public boolean equals(Object pObj) {
     if (this == pObj) {
       return true;
-    } else if (!(pObj instanceof SimpleInterval)) {
-      return false;
     }
-
-    SimpleInterval other = (SimpleInterval) pObj;
-    return Objects.equals(lowerBound, other.lowerBound)
+    return pObj instanceof SimpleInterval other
+        && Objects.equals(lowerBound, other.lowerBound)
         && Objects.equals(upperBound, other.upperBound);
   }
 

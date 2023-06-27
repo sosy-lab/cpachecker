@@ -84,11 +84,8 @@ public class CustomInstruction {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof CustomInstruction)) {
-      return false;
-    }
-    CustomInstruction other = (CustomInstruction) obj;
-    return Objects.equals(ciEndNodes, other.ciEndNodes)
+    return obj instanceof CustomInstruction other
+        && Objects.equals(ciEndNodes, other.ciEndNodes)
         && Objects.equals(ciStartNode, other.ciStartNode)
         && Objects.equals(inputVariables, other.inputVariables)
         && Objects.equals(outputVariables, other.outputVariables);

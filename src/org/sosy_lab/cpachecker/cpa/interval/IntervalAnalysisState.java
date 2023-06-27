@@ -456,12 +456,9 @@ public class IntervalAnalysisState
         return true;
       }
 
-      if (!(pObj instanceof IntervalPseudoPartitionKey)) {
-        return false;
-      }
-
-      IntervalPseudoPartitionKey other = (IntervalPseudoPartitionKey) pObj;
-      return size == other.size && absoluteDistance.equals(other.absoluteDistance);
+      return pObj instanceof IntervalPseudoPartitionKey other
+          && size == other.size
+          && absoluteDistance.equals(other.absoluteDistance);
     }
 
     @Override

@@ -93,11 +93,7 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
     if (other == null) {
       return false;
     }
-    if (!(other instanceof SMGValue)) {
-      return false;
-    }
-    SMGValue otherObj = (SMGValue) other;
-    return id == otherObj.id;
+    return other instanceof SMGValue otherObj && id == otherObj.id;
   }
 
   @Override

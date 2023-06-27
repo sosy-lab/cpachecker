@@ -311,11 +311,7 @@ public class RTTState extends AbstractAppender implements LatticeAbstractState<R
     if (this == other) {
       return true;
     }
-    if (!(other instanceof RTTState)) {
-      return false;
-    }
-    RTTState otherElement = (RTTState) other;
-    return otherElement.constantsMap.equals(constantsMap);
+    return other instanceof RTTState otherElement && otherElement.constantsMap.equals(constantsMap);
   }
 
   @Override

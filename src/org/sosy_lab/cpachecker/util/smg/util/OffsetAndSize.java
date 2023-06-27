@@ -36,11 +36,8 @@ public class OffsetAndSize {
     if (other == null) {
       return false;
     }
-    if (!(other instanceof OffsetAndSize)) {
-      return false;
-    }
-    OffsetAndSize otherOffsetAndSize = (OffsetAndSize) other;
-    return size.equals(otherOffsetAndSize.getSize())
+    return other instanceof OffsetAndSize otherOffsetAndSize
+        && size.equals(otherOffsetAndSize.getSize())
         && offset.equals(otherOffsetAndSize.getOffset());
   }
 

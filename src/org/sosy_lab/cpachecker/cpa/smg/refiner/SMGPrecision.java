@@ -81,11 +81,8 @@ public abstract class SMGPrecision implements Precision {
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof SMGPrecision)) {
-      return false;
-    }
-    SMGPrecision other = (SMGPrecision) o;
-    return threshold == other.threshold
+    return o instanceof SMGPrecision other
+        && threshold == other.threshold
         && maxLength == other.maxLength
         && options.equals(other.options);
   }
@@ -293,11 +290,8 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public boolean equals(Object obj) {
-      if (!(obj instanceof SMGPrecisionAbstractionOptions)) {
-        return false;
-      }
-      SMGPrecisionAbstractionOptions other = (SMGPrecisionAbstractionOptions) obj;
-      return fieldAbstraction == other.fieldAbstraction
+      return obj instanceof SMGPrecisionAbstractionOptions other
+          && fieldAbstraction == other.fieldAbstraction
           && heapAbstraction == other.heapAbstraction
           && stackAbstraction == other.stackAbstraction;
     }

@@ -217,13 +217,7 @@ public class OctagonIntValue extends OctagonNumericValue<Long> {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof OctagonIntValue)) {
-      return false;
-    }
-
-    OctagonIntValue other = (OctagonIntValue) obj;
-
-    return value.equals(other.value);
+    return obj instanceof OctagonIntValue other && value.equals(other.value);
   }
 
   @Override

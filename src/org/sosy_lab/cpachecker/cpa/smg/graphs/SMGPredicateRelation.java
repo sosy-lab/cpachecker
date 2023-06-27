@@ -53,11 +53,9 @@ public final class SMGPredicateRelation {
       if (this == pO) {
         return true;
       }
-      if (!(pO instanceof SMGValuesPair)) {
-        return false;
-      }
-      SMGValuesPair that = (SMGValuesPair) pO;
-      return first.equals(that.first) && second.equals(that.second);
+      return pO instanceof SMGValuesPair that
+          && first.equals(that.first)
+          && second.equals(that.second);
     }
 
     @Override
@@ -332,12 +330,8 @@ public final class SMGPredicateRelation {
       if (this == pO) {
         return true;
       }
-      if (!(pO instanceof SymbolicRelation)) {
-        return false;
-      }
-
-      SymbolicRelation relation = (SymbolicRelation) pO;
-      return valueOne.equals(relation.valueOne)
+      return pO instanceof SymbolicRelation relation
+          && valueOne.equals(relation.valueOne)
           && valueTwo.equals(relation.valueTwo)
           && operator == relation.operator;
     }
@@ -404,12 +398,8 @@ public final class SMGPredicateRelation {
       if (this == pO) {
         return true;
       }
-      if (!(pO instanceof ExplicitRelation)) {
-        return false;
-      }
-
-      ExplicitRelation relation = (ExplicitRelation) pO;
-      return symbolicValue.equals(relation.symbolicValue)
+      return pO instanceof ExplicitRelation relation
+          && symbolicValue.equals(relation.symbolicValue)
           && explicitValue.equals(relation.explicitValue)
           && operator == relation.operator;
     }

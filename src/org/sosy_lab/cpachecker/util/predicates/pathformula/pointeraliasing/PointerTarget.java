@@ -60,11 +60,8 @@ public final class PointerTarget implements Serializable {
     if (this == other) {
       return true;
     }
-    if (!(other instanceof PointerTarget)) {
-      return false;
-    }
-    final PointerTarget o = (PointerTarget) other;
-    return properOffset == o.properOffset
+    return other instanceof PointerTarget o
+        && properOffset == o.properOffset
         && containerOffset == o.containerOffset
         && base.equals(o.base)
         && (containerType != null

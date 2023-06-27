@@ -141,10 +141,6 @@ public class CongruenceState
     if (this == o) {
       return true;
     }
-    if (!(o instanceof CongruenceState)) {
-      return false;
-    }
-    CongruenceState other = (CongruenceState) o;
-    return other.data.equals(data);
+    return o instanceof CongruenceState other && other.data.equals(data);
   }
 }

@@ -57,11 +57,8 @@ public class TargetRecord {
     if (obj == null) {
       return false;
     }
-    if (!(obj instanceof TargetRecord)) {
-      return false;
-    }
-    TargetRecord other = (TargetRecord) obj;
-    return Objects.equals(fileHash, other.fileHash)
+    return obj instanceof TargetRecord other
+        && Objects.equals(fileHash, other.fileHash)
         && Objects.equals(type, other.type)
         && Objects.equals(uuid, other.uuid);
   }

@@ -34,11 +34,9 @@ public class ValueAndObjectSet {
     if (other == null) {
       return false;
     }
-    if (!(other instanceof ValueAndObjectSet)) {
-      return false;
-    }
-    ValueAndObjectSet otherSMGaV = (ValueAndObjectSet) other;
-    return getObjectSet().equals(otherSMGaV.getObjectSet()) && value.equals(otherSMGaV.getValue());
+    return other instanceof ValueAndObjectSet otherSMGaV
+        && getObjectSet().equals(otherSMGaV.getObjectSet())
+        && value.equals(otherSMGaV.getValue());
   }
 
   @Override

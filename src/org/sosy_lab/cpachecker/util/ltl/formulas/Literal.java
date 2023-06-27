@@ -55,11 +55,7 @@ public final class Literal implements LtlFormula {
     if (obj == null) {
       return false;
     }
-    if (!(obj instanceof Literal)) {
-      return false;
-    }
-    Literal other = (Literal) obj;
-    return atom.equals(other.atom) && negated == other.negated;
+    return obj instanceof Literal other && atom.equals(other.atom) && negated == other.negated;
   }
 
   public String getAtom() {

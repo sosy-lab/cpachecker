@@ -397,11 +397,9 @@ public class ReachingDefState
       if (this == obj) {
         return true;
       }
-      if (!(obj instanceof ProgramDefinitionPoint)) {
-        return false;
-      }
-      ProgramDefinitionPoint other = (ProgramDefinitionPoint) obj;
-      return Objects.equals(entry, other.entry) && Objects.equals(exit, other.exit);
+      return obj instanceof ProgramDefinitionPoint other
+          && Objects.equals(entry, other.entry)
+          && Objects.equals(exit, other.exit);
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {

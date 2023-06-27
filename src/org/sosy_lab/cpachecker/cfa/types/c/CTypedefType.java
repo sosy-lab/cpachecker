@@ -100,13 +100,8 @@ public final class CTypedefType implements CType, Serializable {
       return true;
     }
 
-    if (!(obj instanceof CTypedefType)) {
-      return false;
-    }
-
-    CTypedefType other = (CTypedefType) obj;
-
-    return Objects.equals(name, other.name)
+    return obj instanceof CTypedefType other
+        && Objects.equals(name, other.name)
         && isConst == other.isConst
         && isVolatile == other.isVolatile
         && Objects.equals(realType, other.realType);

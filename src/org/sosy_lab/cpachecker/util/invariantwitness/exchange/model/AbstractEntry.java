@@ -53,10 +53,6 @@ public abstract class AbstractEntry {
     if (obj == null) {
       return false;
     }
-    if (!(obj instanceof AbstractEntry)) {
-      return false;
-    }
-    AbstractEntry other = (AbstractEntry) obj;
-    return Objects.equals(entryType, other.entryType);
+    return obj instanceof AbstractEntry other && Objects.equals(entryType, other.entryType);
   }
 }

@@ -1210,11 +1210,8 @@ public class SMG {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof SMG)) {
-      return false;
-    }
-    SMG other = (SMG) obj;
-    return Objects.equals(hasValueEdges, other.hasValueEdges)
+    return obj instanceof SMG other
+        && Objects.equals(hasValueEdges, other.hasValueEdges)
         && Objects.equals(smgObjects, other.smgObjects)
         && Objects.equals(pointsToEdges, other.pointsToEdges)
         && Objects.equals(smgValues, other.smgValues);

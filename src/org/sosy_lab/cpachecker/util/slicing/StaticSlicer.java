@@ -365,13 +365,9 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
           return true;
         }
 
-        if (!(pObject instanceof ActualNode)) {
-          return false;
-        }
-
-        ActualNode other = (ActualNode) pObject;
-
-        return Objects.equals(edge, other.edge) && Objects.equals(variable, other.variable);
+        return pObject instanceof ActualNode other
+            && Objects.equals(edge, other.edge)
+            && Objects.equals(variable, other.variable);
       }
     }
   }

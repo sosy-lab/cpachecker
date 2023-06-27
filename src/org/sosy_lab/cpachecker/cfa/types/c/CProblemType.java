@@ -75,13 +75,7 @@ public final class CProblemType implements CType {
       return true;
     }
 
-    if (!(obj instanceof CProblemType)) {
-      return false;
-    }
-
-    CProblemType other = (CProblemType) obj;
-
-    return Objects.equals(typeName, other.typeName);
+    return obj instanceof CProblemType other && Objects.equals(typeName, other.typeName);
   }
 
   @Override

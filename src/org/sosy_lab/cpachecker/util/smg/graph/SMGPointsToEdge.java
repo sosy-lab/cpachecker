@@ -63,11 +63,8 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
 
   @Override
   public boolean equals(Object other) {
-    if (!(other instanceof SMGPointsToEdge)) {
-      return false;
-    }
-    SMGPointsToEdge otherEdge = (SMGPointsToEdge) other;
-    return otherEdge.offset.equals(offset)
+    return other instanceof SMGPointsToEdge otherEdge
+        && otherEdge.offset.equals(offset)
         && otherEdge.pointsToObject.equals(pointsToObject)
         && targetSpecifier.equals(otherEdge.targetSpecifier);
   }

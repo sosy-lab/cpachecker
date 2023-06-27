@@ -76,11 +76,9 @@ public class CompletenessClause {
     if (this == other) {
       return true;
     }
-    if (!(other instanceof CompletenessClause)) {
-      return false;
-    }
-    CompletenessClause that = (CompletenessClause) other;
-    return Objects.equals(behaviors, that.behaviors) && kind == that.kind;
+    return other instanceof CompletenessClause that
+        && Objects.equals(behaviors, that.behaviors)
+        && kind == that.kind;
   }
 
   @Override

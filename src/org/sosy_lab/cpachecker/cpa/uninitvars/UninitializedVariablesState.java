@@ -115,13 +115,9 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
     if (this == o) {
       return true;
     }
-    if (!(o instanceof UninitializedVariablesState)) {
-      return false;
-    }
-
-    UninitializedVariablesState otherElement = (UninitializedVariablesState) o;
-
-    return globalVars.equals(otherElement.globalVars) && localVars.equals(otherElement.localVars);
+    return o instanceof UninitializedVariablesState otherElement
+        && globalVars.equals(otherElement.globalVars)
+        && localVars.equals(otherElement.localVars);
   }
 
   @Override

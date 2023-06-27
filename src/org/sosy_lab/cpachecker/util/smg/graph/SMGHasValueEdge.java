@@ -62,11 +62,8 @@ public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
 
   @Override
   public boolean equals(Object other) {
-    if (!(other instanceof SMGHasValueEdge)) {
-      return false;
-    }
-    SMGHasValueEdge otherEdge = (SMGHasValueEdge) other;
-    return otherEdge.offset.equals(offset)
+    return other instanceof SMGHasValueEdge otherEdge
+        && otherEdge.offset.equals(offset)
         && otherEdge.value.equals(value)
         && sizeInBits.equals(otherEdge.sizeInBits);
   }

@@ -35,11 +35,8 @@ public class CallstackStateEqualsWrapper {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof CallstackStateEqualsWrapper)) {
-      return false;
-    }
-    CallstackStateEqualsWrapper other = (CallstackStateEqualsWrapper) o;
-    return stackLocationsAreEqual(state, other.getState());
+    return o instanceof CallstackStateEqualsWrapper other
+        && stackLocationsAreEqual(state, other.getState());
   }
 
   private static boolean stackLocationsAreEqual(CallstackState a, CallstackState b) {

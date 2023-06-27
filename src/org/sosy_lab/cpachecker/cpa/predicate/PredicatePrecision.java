@@ -80,11 +80,9 @@ public final class PredicatePrecision implements AdjustablePrecision {
       if (this == obj) {
         return true;
       }
-      if (!(obj instanceof LocationInstance)) {
-        return false;
-      }
-      LocationInstance other = (LocationInstance) obj;
-      return instance == other.instance && location.equals(other.location);
+      return obj instanceof LocationInstance other
+          && instance == other.instance
+          && location.equals(other.location);
     }
 
     @Override

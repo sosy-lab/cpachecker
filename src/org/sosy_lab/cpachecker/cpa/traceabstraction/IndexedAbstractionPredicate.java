@@ -36,12 +36,9 @@ class IndexedAbstractionPredicate implements Comparable<IndexedAbstractionPredic
       return true;
     }
 
-    if (!(pOther instanceof IndexedAbstractionPredicate)) {
-      return false;
-    }
-
-    IndexedAbstractionPredicate other = (IndexedAbstractionPredicate) pOther;
-    return index == other.index && Objects.equals(predicate, other.predicate);
+    return pOther instanceof IndexedAbstractionPredicate other
+        && index == other.index
+        && Objects.equals(predicate, other.predicate);
   }
 
   @Override

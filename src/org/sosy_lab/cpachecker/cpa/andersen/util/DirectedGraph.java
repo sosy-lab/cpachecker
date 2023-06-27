@@ -183,11 +183,7 @@ public class DirectedGraph {
       if (this == other) {
         return true;
       }
-      if (!(other instanceof DirectedGraph.Edge)) {
-        return false;
-      }
-      DirectedGraph.Edge o = (DirectedGraph.Edge) other;
-      return src.equals(o.src) && dest.equals(o.dest);
+      return other instanceof DirectedGraph.Edge o && src.equals(o.src) && dest.equals(o.dest);
     }
 
     @Override
