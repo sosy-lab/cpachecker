@@ -49,4 +49,10 @@ public final class IDExpression extends LeftHandSide {
     }
     return obj instanceof IDExpression && super.equals(obj);
   }
+
+  @Override
+  public int hashCode() {
+    // equals() checks nothing more than super.equals() and type.
+    return super.hashCode();
+  }
 }
