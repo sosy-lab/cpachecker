@@ -44,10 +44,8 @@ public class SMGUseFieldVertice implements SMGUseVertice {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof SMGUseFieldVertice)) {
-      return false;
-    }
-    SMGUseFieldVertice other = (SMGUseFieldVertice) obj;
-    return argPos == other.argPos && Objects.equals(field, other.field);
+    return obj instanceof SMGUseFieldVertice other
+        && argPos == other.argPos
+        && Objects.equals(field, other.field);
   }
 }

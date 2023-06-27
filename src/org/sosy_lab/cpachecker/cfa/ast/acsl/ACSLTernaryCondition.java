@@ -73,13 +73,11 @@ public final class ACSLTernaryCondition extends ACSLPredicate {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLTernaryCondition other) {
-      return super.equals(o)
-          && condition.equals(other.condition)
-          && then.equals(other.then)
-          && otherwise.equals(other.otherwise);
-    }
-    return false;
+    return o instanceof ACSLTernaryCondition other
+        && super.equals(o)
+        && condition.equals(other.condition)
+        && then.equals(other.then)
+        && otherwise.equals(other.otherwise);
   }
 
   @Override

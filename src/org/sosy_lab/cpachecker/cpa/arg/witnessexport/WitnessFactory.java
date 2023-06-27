@@ -1974,10 +1974,9 @@ class WitnessFactory implements EdgeAppender {
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof LoopEntryInfo other) {
-        return Objects.equals(getLoopHead(), other.getLoopHead()) && gotoLoop == other.gotoLoop;
-      }
-      return false;
+      return pOther instanceof LoopEntryInfo other
+          && Objects.equals(getLoopHead(), other.getLoopHead())
+          && gotoLoop == other.gotoLoop;
     }
 
     @Override

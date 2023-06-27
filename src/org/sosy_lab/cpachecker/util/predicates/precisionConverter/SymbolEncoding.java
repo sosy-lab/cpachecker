@@ -280,14 +280,11 @@ public class SymbolEncoding {
       return returnType + " " + parameterTypes;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public boolean equals(Object other) {
-      if (other instanceof Type) {
-        Type<T> t = (Type<T>) other;
-        return returnType.equals(t.returnType) && parameterTypes.equals(t.parameterTypes);
-      }
-      return false;
+      return other instanceof Type<?> t
+          && returnType.equals(t.returnType)
+          && parameterTypes.equals(t.parameterTypes);
     }
 
     @Override

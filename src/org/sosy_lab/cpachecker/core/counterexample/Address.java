@@ -191,12 +191,8 @@ public abstract class Address {
 
     @Override
     public boolean equals(Object pObj) {
-
-      if (pObj instanceof ConcreteAddress) {
-        return addressValue.equals(((ConcreteAddress) pObj).addressValue);
-      }
-
-      return false;
+      return pObj instanceof ConcreteAddress
+          && addressValue.equals(((ConcreteAddress) pObj).addressValue);
     }
 
     @Override
@@ -317,12 +313,8 @@ public abstract class Address {
 
     @Override
     public boolean equals(Object pObj) {
-
-      if (pObj instanceof SymbolicAddress) {
-        return symbolicAddress.equals(((SymbolicAddress) pObj).symbolicAddress);
-      }
-
-      return false;
+      return pObj instanceof SymbolicAddress
+          && symbolicAddress.equals(((SymbolicAddress) pObj).symbolicAddress);
     }
 
     @Override

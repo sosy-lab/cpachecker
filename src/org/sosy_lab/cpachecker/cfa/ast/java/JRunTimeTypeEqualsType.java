@@ -95,13 +95,9 @@ public final class JRunTimeTypeEqualsType extends AbstractExpression implements 
       return true;
     }
 
-    if (!(obj instanceof JRunTimeTypeEqualsType) || !super.equals(obj)) {
-      return false;
-    }
-
-    JRunTimeTypeEqualsType other = (JRunTimeTypeEqualsType) obj;
-
-    return Objects.equals(other.runTimeTypeExpression, runTimeTypeExpression)
+    return obj instanceof JRunTimeTypeEqualsType other
+        && super.equals(obj)
+        && Objects.equals(other.runTimeTypeExpression, runTimeTypeExpression)
         && Objects.equals(other.typeDef, typeDef);
   }
 }

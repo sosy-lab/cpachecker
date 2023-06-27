@@ -53,10 +53,6 @@ public final class CReturnStatement extends AbstractReturnStatement implements C
       return true;
     }
 
-    if (!(obj instanceof CReturnStatement)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CReturnStatement && super.equals(obj);
   }
 }

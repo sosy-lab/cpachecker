@@ -160,16 +160,14 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof PartialTransitionRelation other) {
-      return startLocation.equals(other.startLocation)
-          && bfmgr.equals(other.bfmgr)
-          && fmgr.equals(other.fmgr)
-          && pmgr.equals(other.pmgr)
-          && reachedSet.equals(other.reachedSet)
-          && logger.equals(other.logger)
-          && loopHeads.equals(other.loopHeads);
-    }
-    return false;
+    return pOther instanceof PartialTransitionRelation other
+        && startLocation.equals(other.startLocation)
+        && bfmgr.equals(other.bfmgr)
+        && fmgr.equals(other.fmgr)
+        && pmgr.equals(other.pmgr)
+        && reachedSet.equals(other.reachedSet)
+        && logger.equals(other.logger)
+        && loopHeads.equals(other.loopHeads);
   }
 
   @Override

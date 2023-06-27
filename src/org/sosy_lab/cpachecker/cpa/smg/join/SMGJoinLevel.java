@@ -48,11 +48,7 @@ public class SMGJoinLevel implements Comparable<SMGJoinLevel> {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof SMGJoinLevel)) {
-      return false;
-    }
-    SMGJoinLevel other = (SMGJoinLevel) obj;
-    return level1 == other.level1 && level2 == other.level2;
+    return obj instanceof SMGJoinLevel other && level1 == other.level1 && level2 == other.level2;
   }
 
   @Override

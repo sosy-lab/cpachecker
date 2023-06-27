@@ -49,11 +49,7 @@ public final class CTypeDefDeclaration extends CTypeDeclaration {
       return true;
     }
 
-    if (!(obj instanceof CTypeDefDeclaration)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CTypeDefDeclaration && super.equals(obj);
   }
 
   @Override

@@ -232,11 +232,8 @@ public class SMGInterpolant implements Interpolant<Collection<SMGState>, SMGInte
       if (this == obj) {
         return true;
       }
-      if (!(obj instanceof SMGPrecisionIncrement)) {
-        return false;
-      }
-      SMGPrecisionIncrement other = (SMGPrecisionIncrement) obj;
-      return Objects.equals(abstractionBlock, other.abstractionBlock)
+      return obj instanceof SMGPrecisionIncrement other
+          && Objects.equals(abstractionBlock, other.abstractionBlock)
           && Objects.equals(pathsToTrack, other.pathsToTrack)
           && Objects.equals(stackVariablesToTrack, other.stackVariablesToTrack);
     }

@@ -51,12 +51,8 @@ public abstract class AFunctionCallStatement extends AbstractStatement implement
       return true;
     }
 
-    if (!(obj instanceof AFunctionCallStatement) || !super.equals(obj)) {
-      return false;
-    }
-
-    AFunctionCallStatement other = (AFunctionCallStatement) obj;
-
-    return Objects.equals(other.functionCall, functionCall);
+    return obj instanceof AFunctionCallStatement other
+        && super.equals(obj)
+        && Objects.equals(other.functionCall, functionCall);
   }
 }

@@ -78,14 +78,11 @@ class DeferredAllocation implements Serializable {
     if (this == other) {
       return true;
     }
-    if (!(other instanceof DeferredAllocation)) {
-      return false;
-    }
-    final DeferredAllocation otherPool = (DeferredAllocation) other;
     // isZeroed and size can be different in case of merging two paths with different allocations,
     // currently base indices are not globally unique (see #215 for why it should be this way)
     // pointedBy is not counted as this is a helper field, not a characteristic of the allocation
-    return base.equals(otherPool.base)
+    return other instanceof DeferredAllocation otherPool
+        && base.equals(otherPool.base)
         && isZeroed == otherPool.isZeroed
         && size.equals(otherPool.size);
   }

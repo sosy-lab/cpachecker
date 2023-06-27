@@ -157,9 +157,6 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
     if (this == pOther) {
       return true;
     }
-    if (pOther == null) {
-      return false;
-    }
     return pOther instanceof StatisticsState other && locationNode.equals(other.locationNode);
     // && covered.equals(other.covered)
   }

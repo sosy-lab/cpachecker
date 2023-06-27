@@ -85,11 +85,7 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
       return true;
     }
 
-    if (!(obj instanceof CFunctionDeclaration)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CFunctionDeclaration && super.equals(obj);
   }
 
   @Override

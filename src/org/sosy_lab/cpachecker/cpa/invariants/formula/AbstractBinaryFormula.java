@@ -59,7 +59,7 @@ abstract class AbstractBinaryFormula<ConstantType> extends AbstractFormula<Const
     if (this == o) {
       return true;
     }
-    if (this.getClass().equals(o.getClass())) { // equality for subclasses
+    if (getClass().equals(o.getClass())) { // equality for subclasses
       AbstractBinaryFormula<?> other = (AbstractBinaryFormula<?>) o;
       if (!getTypeInfo().equals(other.getTypeInfo())) {
         return false;

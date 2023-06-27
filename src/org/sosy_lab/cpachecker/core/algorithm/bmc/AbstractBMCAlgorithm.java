@@ -1363,17 +1363,20 @@ abstract class AbstractBMCAlgorithm
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof Obligation other) {
+
+      if (pOther instanceof Obligation other
+          && blockingClause.equals(other.blockingClause)
+          && weakenings.equals(other.weakenings)) {
+
+        // If we have a causing obligation we can just delegate the rest to it.
         if (causingObligation == null) {
           return other.causingObligation == null
-              && causingCandidateInvariant.equals(other.causingCandidateInvariant)
-              && blockingClause.equals(other.blockingClause)
-              && weakenings.equals(other.weakenings);
+              && causingCandidateInvariant.equals(other.causingCandidateInvariant);
+        } else {
+          return causingObligation.equals(other.causingObligation);
         }
-        return causingObligation.equals(other.causingObligation)
-            && blockingClause.equals(other.blockingClause)
-            && weakenings.equals(other.weakenings);
       }
+
       return false;
     }
 

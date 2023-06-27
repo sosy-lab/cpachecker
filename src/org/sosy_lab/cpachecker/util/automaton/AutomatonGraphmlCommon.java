@@ -632,11 +632,8 @@ public final class AutomatonGraphmlCommon {
   }
 
   public static boolean isFunctionStartDummyEdge(CFAEdge pEdge) {
-    if (!(pEdge instanceof BlankEdge)) {
-      return false;
-    }
-    BlankEdge edge = (BlankEdge) pEdge;
-    return edge.getDescription().equals("Function start dummy edge");
+    return pEdge instanceof BlankEdge edge
+        && edge.getDescription().equals("Function start dummy edge");
   }
 
   public static String getArchitecture(MachineModel pMachineModel) {
@@ -754,11 +751,8 @@ public final class AutomatonGraphmlCommon {
       return false;
     }
     CFAEdge successorEdge = successorEdges.iterator().next();
-    if (!(successorEdge instanceof BlankEdge)) {
-      return false;
-    }
-    BlankEdge blankSuccessorEdge = (BlankEdge) successorEdge;
-    return blankSuccessorEdge.getDescription().equals("default");
+    return successorEdge instanceof BlankEdge blankSuccessorEdge
+        && blankSuccessorEdge.getDescription().equals("default");
   }
 
   public static class SwitchDetector implements CFAVisitor {
@@ -915,10 +909,7 @@ public final class AutomatonGraphmlCommon {
   }
 
   public static boolean isSplitAssumption(CFAEdge pEdge) {
-    if (!(pEdge instanceof AssumeEdge)) {
-      return false;
-    }
-    return ((AssumeEdge) pEdge).isArtificialIntermediate();
+    return pEdge instanceof AssumeEdge && ((AssumeEdge) pEdge).isArtificialIntermediate();
   }
 
   public static boolean isPointerCallAssumption(CFAEdge pEdge) {

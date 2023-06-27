@@ -58,12 +58,9 @@ public abstract class ACastExpression extends AbstractLeftHandSide {
       return true;
     }
 
-    if (!(obj instanceof ACastExpression) || !super.equals(obj)) {
-      return false;
-    }
-
-    ACastExpression other = (ACastExpression) obj;
-
-    return Objects.equals(other.operand, operand) && Objects.equals(other.castType, castType);
+    return obj instanceof ACastExpression other
+        && super.equals(obj)
+        && Objects.equals(other.operand, operand)
+        && Objects.equals(other.castType, castType);
   }
 }

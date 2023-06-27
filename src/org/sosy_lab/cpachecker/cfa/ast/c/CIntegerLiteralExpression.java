@@ -80,10 +80,6 @@ public final class CIntegerLiteralExpression extends AIntegerLiteralExpression
       return true;
     }
 
-    if (!(obj instanceof CIntegerLiteralExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CIntegerLiteralExpression && super.equals(obj);
   }
 }

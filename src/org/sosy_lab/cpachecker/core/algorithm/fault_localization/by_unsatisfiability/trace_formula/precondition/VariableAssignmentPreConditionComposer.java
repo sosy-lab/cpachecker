@@ -208,9 +208,7 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
     }
 
     // must only be initialized with literals
-    if (initializer instanceof CInitializerExpression expression) {
-      return expression.getExpression() instanceof CLiteralExpression;
-    }
-    return false;
+    return initializer instanceof CInitializerExpression expression
+        && expression.getExpression() instanceof CLiteralExpression;
   }
 }

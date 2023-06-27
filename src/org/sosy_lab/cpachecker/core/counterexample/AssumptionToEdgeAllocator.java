@@ -656,11 +656,8 @@ public class AssumptionToEdgeAllocator {
       return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
 
-    if (rValueType instanceof CCompositeType type) {
-      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
-    }
-
-    return false;
+    return rValueType instanceof CCompositeType type
+        && type.getKind() != CComplexType.ComplexTypeKind.ENUM;
   }
 
   // TODO Move to Utility?
@@ -906,11 +903,8 @@ public class AssumptionToEdgeAllocator {
         return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
       }
 
-      if (rValueType instanceof CCompositeType type) {
-        return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
-      }
-
-      return false;
+      return rValueType instanceof CCompositeType type
+          && type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
 
     private class AddressValueVisitor implements CLeftHandSideVisitor<Address, NoException> {

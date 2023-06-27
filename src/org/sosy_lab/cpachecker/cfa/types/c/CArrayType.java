@@ -132,24 +132,21 @@ public final class CArrayType extends AArrayType implements CType {
       return true;
     }
 
-    if (!(obj instanceof CArrayType) || !super.equals(obj)) {
-      return false;
-    }
+    if (obj instanceof CArrayType other
+        && isConst == other.isConst
+        && isVolatile == other.isVolatile
+        && super.equals(obj)) {
 
-    CArrayType other = (CArrayType) obj;
-
-    if (length instanceof CIntegerLiteralExpression lengthValue
-        && other.length instanceof CIntegerLiteralExpression otherLengthValue) {
-      if (!lengthValue.getValue().equals(otherLengthValue.getValue())) {
-        return false;
-      }
-    } else {
-      if (!Objects.equals(length, other.length)) {
-        return false;
+      // If lengths are constants, compare their values directly (ignores type of expression).
+      if (length instanceof CIntegerLiteralExpression lengthValue
+          && other.length instanceof CIntegerLiteralExpression otherLengthValue) {
+        return lengthValue.getValue().equals(otherLengthValue.getValue());
+      } else {
+        return Objects.equals(length, other.length);
       }
     }
 
-    return isConst == other.isConst && isVolatile == other.isVolatile;
+    return false;
   }
 
   @Override

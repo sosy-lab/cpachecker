@@ -359,10 +359,7 @@ public class Trace extends ForwardingList<TraceAtom> {
 
     @Override
     public boolean equals(Object pO) {
-      if (pO instanceof TraceAtom atom) {
-        return index == atom.index && super.equals(pO);
-      }
-      return false;
+      return pO instanceof TraceAtom atom && index == atom.index && super.equals(pO);
     }
 
     @Override

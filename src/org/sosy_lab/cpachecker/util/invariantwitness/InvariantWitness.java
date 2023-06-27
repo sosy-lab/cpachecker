@@ -59,16 +59,12 @@ public class InvariantWitness {
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj == this) {
+    if (this == pObj) {
       return true;
     }
 
-    if (!(pObj instanceof InvariantWitness)) {
-      return false;
-    }
-    InvariantWitness other = (InvariantWitness) pObj;
-
-    return other.formula.equals(formula)
+    return pObj instanceof InvariantWitness other
+        && other.formula.equals(formula)
         && other.location.equals(location)
         && other.node.equals(node);
   }

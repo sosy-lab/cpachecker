@@ -201,10 +201,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   private boolean isFloatingPointType(CType pType) {
-    if (pType instanceof CSimpleType) {
-      return ((CSimpleType) pType).getType().isFloatingPointType();
-    }
-    return false;
+    return pType instanceof CSimpleType && ((CSimpleType) pType).getType().isFloatingPointType();
   }
 
   @Override

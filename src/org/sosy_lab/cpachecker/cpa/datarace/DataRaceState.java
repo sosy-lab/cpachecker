@@ -129,11 +129,8 @@ public class DataRaceState implements AbstractQueryableState {
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof DataRaceState)) {
-      return false;
-    }
-    DataRaceState that = (DataRaceState) pO;
-    return hasDataRace == that.hasDataRace
+    return pO instanceof DataRaceState that
+        && hasDataRace == that.hasDataRace
         && memoryAccesses.equals(that.memoryAccesses)
         && accessesWithSubsequentWrites.equals(that.accessesWithSubsequentWrites)
         && threadInfo.equals(that.threadInfo)

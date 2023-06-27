@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.counterexample;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 /**
@@ -16,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
  * calculate an address for it. Every left hand side has to be distinct, thats why only variables
  * and field references without pointer references are allowed to be represented by this class.
  */
-public abstract class LeftHandSide {
+public abstract sealed class LeftHandSide permits FieldReference, IDExpression {
 
   private final String name;
   private final String functionName;
@@ -63,10 +64,20 @@ public abstract class LeftHandSide {
   }
 
   @Override
-  public abstract boolean equals(Object pObj);
+  public boolean equals(Object pObj) {
+    return pObj instanceof LeftHandSide other
+        && Objects.equals(functionName, other.functionName)
+        && Objects.equals(name, other.name);
+  }
 
   @Override
-  public abstract int hashCode();
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + Objects.hashCode(functionName);
+    result = prime * result + Objects.hashCode(name);
+    return result;
+  }
 
   @Override
   public String toString() {

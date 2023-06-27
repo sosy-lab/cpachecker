@@ -47,11 +47,7 @@ public final class CComplexTypeDeclaration extends CTypeDeclaration {
       return true;
     }
 
-    if (!(obj instanceof CComplexTypeDeclaration)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CComplexTypeDeclaration && super.equals(obj);
   }
 
   @Override

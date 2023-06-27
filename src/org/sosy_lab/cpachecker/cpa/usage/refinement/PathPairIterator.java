@@ -163,7 +163,7 @@ public class PathPairIterator
     if (checkIsUsageUnreachable(secondUsage)) {
       unreacheableUsages.add(secondUsage);
     }
-    pResult.addInfo(this.getClass(), unreacheableUsages);
+    pResult.addInfo(getClass(), unreacheableUsages);
   }
 
   @Override

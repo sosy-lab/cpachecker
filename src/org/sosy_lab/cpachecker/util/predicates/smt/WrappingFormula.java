@@ -51,7 +51,7 @@ abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
   @Override
   @SuppressWarnings("EqualsGetClass") // on purpose, case-class structure with single equals()
   public final boolean equals(Object pObj) {
-    if ((pObj == null) || !getClass().equals(pObj.getClass())) {
+    if ((pObj == null) || getClass() != pObj.getClass()) {
       return false;
     }
 

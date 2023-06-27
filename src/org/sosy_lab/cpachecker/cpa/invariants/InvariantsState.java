@@ -1325,13 +1325,10 @@ public class InvariantsState
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj == this) {
+    if (this == pObj) {
       return true;
     }
-    if (!(pObj instanceof InvariantsState)) {
-      return false;
-    }
-    return equalsState((InvariantsState) pObj);
+    return pObj instanceof InvariantsState && equalsState((InvariantsState) pObj);
   }
 
   private boolean equalsState(InvariantsState pOther) {
@@ -1922,11 +1919,9 @@ public class InvariantsState
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof Tools) {
-        // All tools are derived from the factory
-        return compoundIntervalManagerFactory.equals(((Tools) pObj).compoundIntervalManagerFactory);
-      }
-      return false;
+      // All tools are derived from the factory
+      return pObj instanceof Tools
+          && compoundIntervalManagerFactory.equals(((Tools) pObj).compoundIntervalManagerFactory);
     }
 
     @Override
