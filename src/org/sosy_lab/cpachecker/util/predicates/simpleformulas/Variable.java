@@ -25,7 +25,7 @@ public final class Variable implements Term {
     if (this == pOther) {
       return true;
     }
-    if (pOther == null || !pOther.getClass().equals(getClass())) {
+    if (pOther == null || pOther.getClass() != getClass()) {
       return false;
     }
 

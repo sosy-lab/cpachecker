@@ -431,7 +431,7 @@ public final class ValueAnalysisState
     if (this == other) {
       return true;
     }
-    if (other == null || !getClass().equals(other.getClass())) {
+    if (other == null || getClass() != other.getClass()) {
       return false;
     }
 

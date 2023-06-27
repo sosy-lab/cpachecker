@@ -85,7 +85,7 @@ public final class Interval implements Serializable {
 
   @Override
   public boolean equals(Object other) {
-    if (other == null || !getClass().equals(other.getClass())) {
+    if (other == null || getClass() != other.getClass()) {
       return false;
     }
     Interval another = (Interval) other;
