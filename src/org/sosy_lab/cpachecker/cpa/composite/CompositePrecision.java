@@ -31,11 +31,9 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
   public boolean equals(Object other) {
     if (this == other) {
       return true;
-    } else if (!(other instanceof CompositePrecision)) {
-      return false;
     }
-
-    return precisions.equals(((CompositePrecision) other).precisions);
+    return other instanceof CompositePrecision
+        && precisions.equals(((CompositePrecision) other).precisions);
   }
 
   @Override

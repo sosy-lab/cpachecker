@@ -90,11 +90,7 @@ public final class JConstructorDeclaration extends JMethodDeclaration {
       return true;
     }
 
-    if (!(obj instanceof JConstructorDeclaration)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JConstructorDeclaration && super.equals(obj);
   }
 
   public static JConstructorDeclaration createUnresolvedConstructorDeclaration() {

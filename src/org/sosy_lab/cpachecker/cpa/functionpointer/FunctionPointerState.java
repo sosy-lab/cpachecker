@@ -222,10 +222,9 @@ public class FunctionPointerState
   public boolean equals(Object pObj) {
     if (this == pObj) {
       return true;
-    } else if (!(pObj instanceof FunctionPointerState)) {
-      return false;
     }
-    return pointerVariableValues.equals(((FunctionPointerState) pObj).pointerVariableValues);
+    return pObj instanceof FunctionPointerState
+        && pointerVariableValues.equals(((FunctionPointerState) pObj).pointerVariableValues);
   }
 
   @Override

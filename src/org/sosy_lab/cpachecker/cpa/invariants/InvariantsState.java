@@ -1328,10 +1328,7 @@ public class InvariantsState
     if (this == pObj) {
       return true;
     }
-    if (!(pObj instanceof InvariantsState)) {
-      return false;
-    }
-    return equalsState((InvariantsState) pObj);
+    return pObj instanceof InvariantsState && equalsState((InvariantsState) pObj);
   }
 
   private boolean equalsState(InvariantsState pOther) {

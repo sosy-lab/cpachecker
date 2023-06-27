@@ -909,10 +909,7 @@ public final class AutomatonGraphmlCommon {
   }
 
   public static boolean isSplitAssumption(CFAEdge pEdge) {
-    if (!(pEdge instanceof AssumeEdge)) {
-      return false;
-    }
-    return ((AssumeEdge) pEdge).isArtificialIntermediate();
+    return pEdge instanceof AssumeEdge && ((AssumeEdge) pEdge).isArtificialIntermediate();
   }
 
   public static boolean isPointerCallAssumption(CFAEdge pEdge) {

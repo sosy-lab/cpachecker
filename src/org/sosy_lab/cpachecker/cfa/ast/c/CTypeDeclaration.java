@@ -56,10 +56,6 @@ public abstract sealed class CTypeDeclaration extends AbstractDeclaration implem
       return true;
     }
 
-    if (!(obj instanceof CTypeDeclaration)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CTypeDeclaration && super.equals(obj);
   }
 }

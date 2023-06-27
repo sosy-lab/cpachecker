@@ -29,10 +29,6 @@ public abstract class AbstractInitializer extends AbstractAstNode implements AIn
       return true;
     }
 
-    if (!(obj instanceof AbstractInitializer)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof AbstractInitializer && super.equals(obj);
   }
 }

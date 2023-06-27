@@ -36,10 +36,6 @@ public abstract class AbstractLeftHandSide extends AbstractExpression implements
       return true;
     }
 
-    if (!(obj instanceof AbstractLeftHandSide)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof AbstractLeftHandSide && super.equals(obj);
   }
 }
