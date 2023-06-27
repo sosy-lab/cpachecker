@@ -134,7 +134,7 @@ public class CallstackState
 
     throw new InvalidQueryException(
         String.format(
-            "Evaluating %s not supported by %s", pProperty, this.getClass().getCanonicalName()));
+            "Evaluating %s not supported by %s", pProperty, getClass().getCanonicalName()));
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
