@@ -138,11 +138,9 @@ public final class CArrayType extends AArrayType implements CType {
 
     CArrayType other = (CArrayType) obj;
 
-    if (length instanceof CIntegerLiteralExpression
-        && other.length instanceof CIntegerLiteralExpression) {
-      if (!((CIntegerLiteralExpression) length)
-          .getValue()
-          .equals(((CIntegerLiteralExpression) other.length).getValue())) {
+    if (length instanceof CIntegerLiteralExpression lengthValue
+        && other.length instanceof CIntegerLiteralExpression otherLengthValue) {
+      if (!lengthValue.getValue().equals(otherLengthValue.getValue())) {
         return false;
       }
     } else {
