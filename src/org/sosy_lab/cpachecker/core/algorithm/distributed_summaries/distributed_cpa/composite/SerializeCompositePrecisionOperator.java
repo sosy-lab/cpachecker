@@ -37,11 +37,13 @@ public class SerializeCompositePrecisionOperator implements SerializePrecisionOp
       CompositePrecision wrapped = (CompositePrecision) pPrecision;
       for (Precision wrappedPrecision : wrapped.getWrappedPrecisions()) {
         for (DistributedConfigurableProgramAnalysis value : registered.values()) {
-          if (value
-              .getInitialPrecision(
-                  CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition())
+          if (wrappedPrecision
               .getClass()
-              .equals(wrappedPrecision.getClass())) {
+              .isAssignableFrom(
+                  value
+                      .getInitialPrecision(
+                          CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition())
+                      .getClass())) {
             payload =
                 payload.addAllEntries(
                     value.getSerializePrecisionOperator().serializePrecision(wrappedPrecision));

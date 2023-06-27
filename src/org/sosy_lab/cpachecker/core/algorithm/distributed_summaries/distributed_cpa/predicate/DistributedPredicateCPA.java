@@ -16,7 +16,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.AlwaysProceed;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
@@ -35,15 +34,12 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   private final DeserializePredicateStateOperator deserialize;
 
   private final DeserializePrecisionOperator deserializePrecisionOperator;
-  private final ProceedOperator proceed;
 
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA, BlockNode pNode, CFA pCFA, AnalysisDirection pDirection) {
     predicateCPA = pPredicateCPA;
     serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, pDirection);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
-
-    proceed = new AlwaysProceed();
     serializePrecisionOperator =
         new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());
     ImmutableMap.Builder<Integer, CFANode> idToNodeMap = ImmutableMap.builder();
@@ -79,7 +75,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
 
   @Override
   public ProceedOperator getProceedOperator() {
-    return proceed;
+    return ProceedOperator.always();
   }
 
   @Override

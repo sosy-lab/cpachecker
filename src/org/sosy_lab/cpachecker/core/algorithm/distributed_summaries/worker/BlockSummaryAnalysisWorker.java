@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
@@ -107,22 +106,15 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
   }
 
   @Override
-  public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage message)
-      throws InterruptedException, CPAException, SolverException {
+  public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage message) {
     switch (message.getType()) {
       case ERROR_CONDITION -> {
-        backwardAnalysisTime.start();
         try {
-          ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
-          if (((BlockSummaryErrorConditionMessage) message).isFirst()
-              && message.getBlockId().equals(block.getId())) {
-            answers.addAll(dcpaAlgorithm.reportUnreachableBlockEnd());
-          }
-          return answers
-              .addAll(
-                  dcpaBackwardAlgorithm.runAnalysisForMessage(
-                      (BlockSummaryErrorConditionMessage) message))
-              .build();
+          backwardAnalysisTime.start();
+          return dcpaBackwardAlgorithm.runAnalysisForMessage(
+              (BlockSummaryErrorConditionMessage) message);
+        } catch (Exception | Error e) {
+          return ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getBlockId(), e));
         } finally {
           backwardAnalysisTime.stop();
         }
@@ -131,6 +123,8 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
         try {
           forwardAnalysisTime.start();
           return dcpaAlgorithm.runAnalysisForMessage((BlockSummaryPostConditionMessage) message);
+        } catch (Exception | Error e) {
+          return ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getBlockId(), e));
         } finally {
           forwardAnalysisTime.stop();
         }

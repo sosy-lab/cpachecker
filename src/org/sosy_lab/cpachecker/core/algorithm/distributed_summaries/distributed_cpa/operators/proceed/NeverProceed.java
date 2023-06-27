@@ -13,6 +13,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public class NeverProceed implements ProceedOperator {
 
+  NeverProceed() {}
+
   @Override
   public BlockSummaryMessageProcessing proceedForward(AbstractState pState) {
     return proceed(pState);

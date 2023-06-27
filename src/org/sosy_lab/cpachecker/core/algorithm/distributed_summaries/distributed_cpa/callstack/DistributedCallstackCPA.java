@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.AlwaysProceed;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -34,7 +33,6 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
 
   private final SerializeOperator serialize;
   private final DeserializeOperator deserialize;
-  private final ProceedOperator proceed;
 
   private final BlockNode blockNode;
 
@@ -49,7 +47,6 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
     callstackCPA = pCallstackCPA;
     cfa = pCFA;
     blockNode = pBlockNode;
-    proceed = new AlwaysProceed();
     serialize = new SerializeCallstackStateOperator();
     deserialize = new DeserializeCallstackStateOperator(pCallstackCPA, pIdToNodeMap::get);
   }
@@ -94,7 +91,7 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
 
   @Override
   public ProceedOperator getProceedOperator() {
-    return proceed;
+    return ProceedOperator.always();
   }
 
   @Override

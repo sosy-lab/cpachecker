@@ -12,6 +12,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public class AlwaysProceed implements ProceedOperator {
+
+  AlwaysProceed() {}
+
   @Override
   public BlockSummaryMessageProcessing proceedForward(AbstractState pState) {
     return proceed(pState);

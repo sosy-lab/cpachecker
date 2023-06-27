@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DistributedBlockCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DistributedFunctionPointerCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value.DistributedValueAnalysisCPA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
@@ -29,6 +30,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class DCPAFactory {
@@ -71,7 +73,18 @@ public class DCPAFactory {
     if (pCPA instanceof CompositeCPA compositeCPA) {
       return distribute(compositeCPA, pBlockNode, pDirection, pCFA, integerToNodeMap);
     }
+    if (pCPA instanceof ValueAnalysisCPA valueCPA) {
+      return distribute(valueCPA);
+    }
+    /* TODO: implement support for LocationCPA and LocationBackwardCPA
+    as soon as targetCFANode is not required anymore */
+    // creates CPA for every thread without communication
     return null;
+  }
+
+  private static DistributedConfigurableProgramAnalysis distribute(
+      ValueAnalysisCPA pValueAnalysisCPA) {
+    return new DistributedValueAnalysisCPA(pValueAnalysisCPA);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

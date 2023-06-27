@@ -45,4 +45,12 @@ public interface ProceedOperator {
    */
   BlockSummaryMessageProcessing proceed(AbstractState pState)
       throws InterruptedException, SolverException;
+
+  static ProceedOperator always() {
+    return new AlwaysProceed();
+  }
+
+  static ProceedOperator never() {
+    return new NeverProceed();
+  }
 }

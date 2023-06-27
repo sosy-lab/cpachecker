@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.AlwaysProceed;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -25,7 +24,6 @@ public class DistributedFunctionPointerCPA
 
   private final SerializeOperator serialize;
   private final DeserializeOperator deserialize;
-  private final ProceedOperator proceed;
 
   private final FunctionPointerCPA functionPointerCPA;
 
@@ -34,7 +32,6 @@ public class DistributedFunctionPointerCPA
     functionPointerCPA = pParentCPA;
     serialize = new SerializeFunctionPointerStateOperator();
     deserialize = new DeserializeFunctionPointerStateOperator(pParentCPA, pIntegerCFANodeMap);
-    proceed = new AlwaysProceed();
   }
 
   @Override
@@ -49,7 +46,7 @@ public class DistributedFunctionPointerCPA
 
   @Override
   public ProceedOperator getProceedOperator() {
-    return proceed;
+    return ProceedOperator.always();
   }
 
   @Override
