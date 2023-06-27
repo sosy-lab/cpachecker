@@ -955,7 +955,7 @@ public class CustomInstruction {
     }
 
     private boolean isValidSimpleType(final CSimpleType ciST, final CSimpleType pAciType) {
-      if (ciST.isComplex() == pAciType.isComplex()
+      return ciST.isComplex() == pAciType.isComplex()
           && ciST.isConst() == pAciType.isConst()
           && ciST.isImaginary() == pAciType.isImaginary()
           && ciST.isLong() == pAciType.isLong()
@@ -970,10 +970,7 @@ public class CustomInstruction {
           && ciST.isLong() == ciST.isLongLong()
           && ciST.isLongLong() == ciST.isShort()
           && ciST.isShort() == ciST.isSigned()
-          && ciST.isSigned() == ciST.isUnsigned()) {
-        return true;
-      }
-      return false;
+          && ciST.isSigned() == ciST.isUnsigned();
     }
 
     @Override

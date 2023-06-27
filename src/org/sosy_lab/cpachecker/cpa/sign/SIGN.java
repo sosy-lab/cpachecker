@@ -58,10 +58,7 @@ public enum SIGN implements Serializable {
   }
 
   public boolean intersects(SIGN sign) {
-    if ((sign.numVal & numVal) != 0) {
-      return true;
-    }
-    return false;
+    return (sign.numVal & numVal) != 0;
   }
 
   public static SIGN min(SIGN sign0, SIGN sign1) {

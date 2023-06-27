@@ -66,13 +66,9 @@ public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
       return false;
     }
     SMGHasValueEdge otherEdge = (SMGHasValueEdge) other;
-    if (otherEdge.offset.equals(offset)
+    return otherEdge.offset.equals(offset)
         && otherEdge.value.equals(value)
-        && sizeInBits.equals(otherEdge.sizeInBits)) {
-      return true;
-    }
-
-    return false;
+        && sizeInBits.equals(otherEdge.sizeInBits);
   }
 
   @Override

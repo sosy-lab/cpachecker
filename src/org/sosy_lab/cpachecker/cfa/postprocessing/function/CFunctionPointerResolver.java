@@ -390,12 +390,9 @@ public class CFunctionPointerResolver implements StatisticsProvider {
     }
 
     private boolean checkParameterEdge(AStatement stmt) {
-      if (stmt instanceof CFunctionCall
+      return stmt instanceof CFunctionCall
           && !isFunctionPointerCall((CFunctionCall) stmt)
-          && getParameter((CFunctionCall) stmt) != null) {
-        return true;
-      }
-      return false;
+          && getParameter((CFunctionCall) stmt) != null;
     }
   }
 

@@ -300,10 +300,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   private boolean checkAbstractListAt(LocationState location) {
-    if (options.abstractAtFunction(location) || isLoopHead(location)) {
-      return true;
-    }
-    return false;
+    return options.abstractAtFunction(location) || isLoopHead(location);
   }
 
   /**
