@@ -200,13 +200,11 @@ public class BAMCacheImpl implements BAMCache {
       if (this == pObj) {
         return true;
       }
-      if (!(pObj instanceof AbstractStateHash)) {
-        return false;
-      }
-      AbstractStateHash other = (AbstractStateHash) pObj;
       equalsTimer.start();
       try {
-        return context.equals(other.context) && wrappedHash.equals(other.wrappedHash);
+        return pObj instanceof AbstractStateHash other
+            && context.equals(other.context)
+            && wrappedHash.equals(other.wrappedHash);
       } finally {
         equalsTimer.stop();
       }

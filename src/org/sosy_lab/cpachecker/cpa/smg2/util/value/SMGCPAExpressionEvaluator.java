@@ -1260,8 +1260,8 @@ public class SMGCPAExpressionEvaluator {
    */
   public static boolean valueIsAddressExprOrVariableOffset(@Nullable Value value) {
     return value instanceof AddressExpression
-        || ((value instanceof SymbolicIdentifier)
-            && ((SymbolicIdentifier) value).getRepresentedLocation().isPresent());
+        || (value instanceof SymbolicIdentifier identifier
+            && identifier.getRepresentedLocation().isPresent());
   }
 
   // Get canonical type information

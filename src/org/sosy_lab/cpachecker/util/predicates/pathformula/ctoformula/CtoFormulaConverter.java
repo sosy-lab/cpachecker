@@ -1002,13 +1002,8 @@ public class CtoFormulaConverter {
   }
 
   private boolean isSimple(CType pType) {
-    if (pType instanceof CSimpleType) {
-      return true;
-    }
-    if ((pType instanceof CBitFieldType type) && (type.getType() instanceof CSimpleType)) {
-      return true;
-    }
-    return false;
+    return pType instanceof CSimpleType
+        || (pType instanceof CBitFieldType type && type.getType() instanceof CSimpleType);
   }
 
   /**

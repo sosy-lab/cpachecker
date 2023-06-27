@@ -1919,11 +1919,9 @@ public class InvariantsState
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof Tools) {
-        // All tools are derived from the factory
-        return compoundIntervalManagerFactory.equals(((Tools) pObj).compoundIntervalManagerFactory);
-      }
-      return false;
+      // All tools are derived from the factory
+      return pObj instanceof Tools
+          && compoundIntervalManagerFactory.equals(((Tools) pObj).compoundIntervalManagerFactory);
     }
 
     @Override

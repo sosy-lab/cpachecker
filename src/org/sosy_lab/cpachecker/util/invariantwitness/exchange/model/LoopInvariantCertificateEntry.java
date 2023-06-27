@@ -91,10 +91,8 @@ public class LoopInvariantCertificateEntry extends AbstractEntry {
     if (this == obj) {
       return true;
     }
-    if (!super.equals(obj)) {
-      return false;
-    }
-    return obj instanceof LoopInvariantCertificateEntry other
+    return super.equals(obj)
+        && obj instanceof LoopInvariantCertificateEntry other
         && Objects.equals(certification, other.certification)
         && Objects.equals(metadata, other.metadata)
         && Objects.equals(target, other.target);
