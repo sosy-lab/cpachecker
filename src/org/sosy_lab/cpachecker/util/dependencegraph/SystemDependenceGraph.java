@@ -1015,12 +1015,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       if (this == pObject) {
         return true;
       }
-
-      if (pObject == null) {
-        return false;
-      }
-
-      if (getClass() != pObject.getClass()) {
+      if (pObject == null || getClass() != pObject.getClass()) {
         return false;
       }
 
@@ -1465,12 +1460,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       if (this == pObject) {
         return true;
       }
-
-      if (pObject == null) {
-        return false;
-      }
-
-      if (getClass() != pObject.getClass()) {
+      if (pObject == null || getClass() != pObject.getClass()) {
         return false;
       }
 

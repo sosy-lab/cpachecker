@@ -81,12 +81,7 @@ public final class Predicate {
     if (this == pOther) {
       return true;
     }
-
-    if (pOther == null) {
-      return false;
-    }
-
-    if (pOther.getClass() != getClass()) {
+    if (pOther == null || pOther.getClass() != getClass()) {
       return false;
     }
     Predicate lOther = (Predicate) pOther;

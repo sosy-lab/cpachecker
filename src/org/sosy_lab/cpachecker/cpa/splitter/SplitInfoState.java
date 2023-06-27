@@ -139,10 +139,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
       if (this == obj) {
         return true;
       }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
+      if (obj == null || getClass() != obj.getClass()) {
         return false;
       }
       SequenceSplitInfoState other = (SequenceSplitInfoState) obj;
@@ -230,10 +227,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
       if (this == obj) {
         return true;
       }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
+      if (obj == null || getClass() != obj.getClass()) {
         return false;
       }
       SetSplitInfoState other = (SetSplitInfoState) obj;

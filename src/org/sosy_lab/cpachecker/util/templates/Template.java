@@ -118,10 +118,7 @@ public final class Template {
     if (this == o) {
       return true;
     }
-    if (o == null) {
-      return false;
-    }
-    if (o.getClass() != this.getClass()) {
+    if (o == null || o.getClass() != this.getClass()) {
       return false;
     }
     Template other = (Template) o;

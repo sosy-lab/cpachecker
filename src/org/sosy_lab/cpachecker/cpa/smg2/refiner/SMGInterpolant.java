@@ -304,12 +304,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     if (this == obj) {
       return true;
     }
-
-    if (obj == null) {
-      return false;
-    }
-
-    if (getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
 

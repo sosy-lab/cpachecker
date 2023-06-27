@@ -224,10 +224,7 @@ public class AutomatonState
     if (this == pObj) {
       return true;
     }
-    if (pObj == null) {
-      return false;
-    }
-    if (!pObj.getClass().equals(this.getClass())) {
+    if (pObj == null || !pObj.getClass().equals(this.getClass())) {
       return false;
     }
 
@@ -332,10 +329,7 @@ public class AutomatonState
       if (this == pObj) {
         return true;
       }
-      if (pObj == null) {
-        return false;
-      }
-      if (!pObj.getClass().equals(this.getClass())) {
+      if (pObj == null || !pObj.getClass().equals(this.getClass())) {
         return false;
       }
       AutomatonUnknownState otherState = (AutomatonUnknownState) pObj;

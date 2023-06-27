@@ -25,12 +25,7 @@ public final class Constant implements Term {
     if (this == pOther) {
       return true;
     }
-
-    if (pOther == null) {
-      return false;
-    }
-
-    if (!pOther.getClass().equals(getClass())) {
+    if (pOther == null || !pOther.getClass().equals(getClass())) {
       return false;
     }
 
