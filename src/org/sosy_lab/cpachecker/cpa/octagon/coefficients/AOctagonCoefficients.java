@@ -73,10 +73,6 @@ public abstract class AOctagonCoefficients implements IOctagonCoefficients {
       return true;
     }
 
-    if (!(other instanceof AOctagonCoefficients)) {
-      return false;
-    }
-
-    return true;
+    return other instanceof AOctagonCoefficients;
   }
 }

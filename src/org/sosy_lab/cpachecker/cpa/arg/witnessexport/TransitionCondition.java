@@ -161,11 +161,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
       }
     }
 
-    if (!scope.mergeWith(pLabel.scope).isPresent()) {
-      return false;
-    }
-
-    return true;
+    return scope.mergeWith(pLabel.scope).isPresent();
   }
 
   @Override

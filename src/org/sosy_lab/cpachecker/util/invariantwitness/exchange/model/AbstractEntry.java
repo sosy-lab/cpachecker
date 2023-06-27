@@ -57,9 +57,6 @@ public abstract class AbstractEntry {
       return false;
     }
     AbstractEntry other = (AbstractEntry) obj;
-    if (!Objects.equals(entryType, other.entryType)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(entryType, other.entryType);
   }
 }

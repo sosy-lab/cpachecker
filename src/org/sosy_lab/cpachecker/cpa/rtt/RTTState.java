@@ -292,11 +292,7 @@ public class RTTState extends AbstractAppender implements LatticeAbstractState<R
     }
 
     // Is this neccessary?
-    if (!getClassObjectStack().equals(other.getClassObjectStack())) {
-      return false;
-    }
-
-    return true;
+    return getClassObjectStack().equals(other.getClassObjectStack());
   }
 
   public static RTTState copyOf(RTTState old) {

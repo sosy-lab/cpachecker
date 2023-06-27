@@ -146,10 +146,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
         return false;
       }
       SequenceSplitInfoState other = (SequenceSplitInfoState) obj;
-      if (!Arrays.equals(inSplit, other.inSplit)) {
-        return false;
-      }
-      return true;
+      return Arrays.equals(inSplit, other.inSplit);
     }
   }
 

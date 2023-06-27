@@ -61,16 +61,9 @@ public class TargetRecord {
       return false;
     }
     TargetRecord other = (TargetRecord) obj;
-    if (!Objects.equals(fileHash, other.fileHash)) {
-      return false;
-    }
-    if (!Objects.equals(type, other.type)) {
-      return false;
-    }
-    if (!Objects.equals(uuid, other.uuid)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(fileHash, other.fileHash)
+        && Objects.equals(type, other.type)
+        && Objects.equals(uuid, other.uuid);
   }
 
   @Override

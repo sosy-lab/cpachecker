@@ -72,16 +72,9 @@ public class LoopInvariantEntry extends AbstractEntry {
       return false;
     }
     LoopInvariantEntry other = (LoopInvariantEntry) obj;
-    if (!Objects.equals(location, other.location)) {
-      return false;
-    }
-    if (!Objects.equals(loopInvariant, other.loopInvariant)) {
-      return false;
-    }
-    if (!Objects.equals(metadata, other.metadata)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(location, other.location)
+        && Objects.equals(loopInvariant, other.loopInvariant)
+        && Objects.equals(metadata, other.metadata);
   }
 
   @Override
