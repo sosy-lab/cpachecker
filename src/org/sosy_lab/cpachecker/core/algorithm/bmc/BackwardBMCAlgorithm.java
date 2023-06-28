@@ -82,6 +82,11 @@ public class BackwardBMCAlgorithm implements Algorithm {
   public AlgorithmStatus run(final ReachedSet reachedSet)
       throws CPAException, InterruptedException {
 
+    if (reachedSet.size() == 0) {
+      logger.log(Level.INFO, "No starting error location found, terminating analysis.");
+      return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+    }
+
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
 
       AlgorithmStatus status;
@@ -100,6 +105,11 @@ public class BackwardBMCAlgorithm implements Algorithm {
       BooleanFormula loopHeadFormula =
           BMCHelper.createFormulaFor(loopHeads, bfmgr, Optional.ofNullable(shutdownNotifier));
 
+      logger.log(Level.INFO, loopHeads.toString());
+
+      logger.log(Level.INFO, targetFormula.toString());
+      logger.log(Level.INFO, loopHeadFormula.toString());
+
       final boolean targetSafe;
       stats.satCheck.start();
       try {
@@ -111,6 +121,8 @@ public class BackwardBMCAlgorithm implements Algorithm {
         stats.satCheck.stop();
       }
 
+      prover.pop();
+
       final boolean loopHeadsSafe;
       try {
         prover.push(loopHeadFormula);
@@ -119,8 +131,8 @@ public class BackwardBMCAlgorithm implements Algorithm {
         throw new CPAException("Solver Failure " + e.getMessage(), e);
       }
 
-      logger.logf(Level.FINER, "Target path formula unsatisfiable: %b", targetSafe);
-      logger.logf(Level.FINER, "Loophead path formula unsatisfiable: %b", loopHeadsSafe);
+      logger.logf(Level.INFO, "Target path formula unsatisfiable: %b", targetSafe);
+      logger.logf(Level.INFO, "Loophead path formula unsatisfiable: %b", loopHeadsSafe);
       return status;
     }
   }
