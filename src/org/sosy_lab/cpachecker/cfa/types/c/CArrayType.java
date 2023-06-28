@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Objects;
@@ -28,11 +27,6 @@ public final class CArrayType extends AArrayType implements CType {
 
   public CArrayType(boolean pConst, boolean pVolatile, CType pType, @Nullable CExpression pLength) {
     super(pType);
-
-    if (pLength instanceof CIntegerLiteralExpression lengthExp) {
-      checkArgument(lengthExp.getValue().signum() >= 0, "Illegal negative array size %s", pLength);
-    }
-
     isConst = pConst;
     isVolatile = pVolatile;
     length = pLength;

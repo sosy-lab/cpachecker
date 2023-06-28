@@ -366,9 +366,9 @@ public class SMGTransferRelation
       }
       // handle string argument
       if (exp instanceof CStringLiteralExpression strExp) {
-        cParamType = strExp.getExpressionType();
+        cParamType = strExp.transformTypeToArrayType();
 
-        String name = strExp.getContentWithoutNullTerminator() + " string literal";
+        String name = strExp.getContentString() + " string literal";
 
         SMGRegion stringObj = initialNewState.getHeap().getObjectForVisibleVariable(name);
 
@@ -1141,8 +1141,8 @@ public class SMGTransferRelation
     if (realCType instanceof CCompositeType || pLValueType instanceof CPointerType) {
       // create a new global region for string literal expression
       List<SMGState> smgStates = new ArrayList<>();
-      CArrayType cParamType = pExpression.getExpressionType();
-      String name = pExpression.getContentWithoutNullTerminator() + " string literal";
+      CType cParamType = pExpression.transformTypeToArrayType();
+      String name = pExpression.getContentString() + " string literal";
       SMGRegion region = pNewState.getHeap().getObjectForVisibleVariable(name);
 
       if (region != null) {
@@ -1180,7 +1180,7 @@ public class SMGTransferRelation
                 pEdge,
                 pNewObject,
                 pOffset,
-                pExpression.getExpressionType().asPointerType(),
+                pExpression.getExpressionType(),
                 newInitializer));
       }
 
@@ -1188,7 +1188,7 @@ public class SMGTransferRelation
     }
     // create char array from string and call list init
     List<CInitializer> charInitialziers = new ArrayList<>();
-    CArrayType arrayType = pExpression.getExpressionType();
+    CArrayType arrayType = pExpression.transformTypeToArrayType();
     for (CCharLiteralExpression charLiteralExp : pExpression.expandStringLiteral(arrayType)) {
       charInitialziers.add(new CInitializerExpression(pFileLocation, charLiteralExp));
     }

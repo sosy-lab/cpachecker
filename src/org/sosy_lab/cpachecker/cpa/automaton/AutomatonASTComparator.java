@@ -220,7 +220,7 @@ class AutomatonASTComparator {
       return createMatcher(
           CStringLiteralExpression.class,
           exp,
-          compareField(exp, CStringLiteralExpression::getContentWithNullTerminator));
+          compareField(exp, CStringLiteralExpression::getValue));
     }
 
     @Override

@@ -83,7 +83,7 @@ class ASTLiteralConverter {
         return parseFloatLiteral(fileLoc, type, valueStr, e);
 
       case IASTLiteralExpression.lk_string_literal:
-        return new CStringLiteralExpression(fileLoc, valueStr);
+        return new CStringLiteralExpression(fileLoc, type, valueStr);
 
       default:
         throw parseContext.parseError("Unknown literal", e);

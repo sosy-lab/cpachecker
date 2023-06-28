@@ -77,7 +77,7 @@ class RHSPointerAddressVisitor extends PointerVisitor {
     List<SMGAddressValueAndState> result = new ArrayList<>();
     SMGState smgState = getInitialSmgState();
 
-    String name = pStringLiteralExpression.getContentWithoutNullTerminator() + " string literal";
+    String name = pStringLiteralExpression.getContentString() + " string literal";
     SMGRegion region = smgState.getHeap().getObjectForVisibleVariable(name);
 
     if (region != null) {
@@ -88,7 +88,7 @@ class RHSPointerAddressVisitor extends PointerVisitor {
 
     smgState = getInitialSmgState();
     // create a new global region for string literal expression
-    CArrayType cParamType = pStringLiteralExpression.getExpressionType();
+    CArrayType cParamType = pStringLiteralExpression.transformTypeToArrayType();
     region =
         smgState.addGlobalVariable(
             smgExpressionEvaluator.machineModel.getSizeofInBits(cParamType).longValue(), name);

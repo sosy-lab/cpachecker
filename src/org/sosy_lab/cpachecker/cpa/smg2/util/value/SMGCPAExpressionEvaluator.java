@@ -1621,8 +1621,12 @@ public class SMGCPAExpressionEvaluator {
       CInitializer init = pVarDecl.getInitializer();
       if (init instanceof CInitializerExpression) {
         CExpression initExpr = ((CInitializerExpression) init).getExpression();
-        if (initExpr instanceof CStringLiteralExpression stringLit) {
-          typeSizeInBits = BigInteger.valueOf(8).multiply(BigInteger.valueOf(stringLit.getSize()));
+        if (initExpr instanceof CStringLiteralExpression) {
+          typeSizeInBits =
+              BigInteger.valueOf(8)
+                  .multiply(
+                      BigInteger.valueOf(
+                          (((CStringLiteralExpression) initExpr).getContentString().length() + 1)));
         } else {
           throw new SMGException(
               "Could not determine correct type size for an array for initializer expression: "
@@ -1932,9 +1936,8 @@ public class SMGCPAExpressionEvaluator {
     // write the String into it, make a pointer to the beginning and save that in the char *.
     if (pCurrentExpressionType instanceof CPointerType) {
       // create a new memory region for the string (right hand side)
-      CArrayType stringArrayType = pExpression.getExpressionType();
-      String stringVarName =
-          "_" + pExpression.getContentWithoutNullTerminator() + "_STRING_LITERAL";
+      CType stringArrayType = pExpression.transformTypeToArrayType();
+      String stringVarName = "_" + pExpression.getContentString() + "_STRING_LITERAL";
       // If the var exists we change the name and create a new one
       // (Don't reuse an old variable! They might be different from the new one!)
       int num = 0;
@@ -1989,7 +1992,7 @@ public class SMGCPAExpressionEvaluator {
       throws CPATransferException {
     // Create a char array from string and call list init
     ImmutableList.Builder<CInitializer> charArrayInitialziersBuilder = ImmutableList.builder();
-    CArrayType arrayType = pExpression.getExpressionType();
+    CArrayType arrayType = pExpression.transformTypeToArrayType();
     for (CCharLiteralExpression charLiteralExp : pExpression.expandStringLiteral(arrayType)) {
       charArrayInitialziersBuilder.add(new CInitializerExpression(pFileLocation, charLiteralExp));
     }

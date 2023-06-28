@@ -139,7 +139,7 @@ class AssignmentHandler {
       final @Nullable CRightHandSide rhs,
       final boolean useOldSSAIndicesIfAliased)
       throws UnrecognizedCodeException, InterruptedException {
-    if (!conv.isRelevantLeftHandSide(lhsForChecking, Optional.ofNullable(rhs))) {
+    if (!conv.isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
       return conv.bfmgr.makeTrue();
     }
@@ -518,12 +518,16 @@ class AssignmentHandler {
             ? Integer.min(options.maxArrayLength(), lvalueLength.orElseThrow())
             : options.defaultArrayLength();
 
-    // There are three cases of assignment to an array
+    // There are two cases of assignment to an array
     // - Initialization with a value (possibly nondet), useful for stack declarations and memset
     // - Array assignment as part of a structure assignment
-    // - Assignment of a string literal
     final CType newRvalueType;
     if (rvalue.isValue()) {
+      checkArgument(
+          isSimpleType(rvalueType),
+          "Impossible assignment of %s with type %s to array:",
+          rvalue,
+          rvalueType);
       if (rvalue.isNondetValue()) {
         newRvalueType =
             isSimpleType(lvalueElementType) ? lvalueElementType : CNumericTypes.SIGNED_CHAR;

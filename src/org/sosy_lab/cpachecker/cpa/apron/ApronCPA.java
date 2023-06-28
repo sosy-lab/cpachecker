@@ -17,10 +17,12 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -52,7 +54,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.ApronManager;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.apron")
@@ -248,7 +249,8 @@ public final class ApronCPA implements ProofCheckerCPA, StatisticsProvider {
       return mapping;
     }
 
-    Map<Integer, CFANode> idToCfaNode = CFAUtils.getMappingFromNodeIDsToCFANodes(cfa);
+    Map<Integer, CFANode> idToCfaNode = createMappingForCFANodes(cfa);
+    final Pattern CFA_NODE_PATTERN = Pattern.compile("N([0-9][0-9]*)");
 
     CFANode location = getDefaultLocation(idToCfaNode);
     for (String currentLine : contents) {
@@ -257,7 +259,7 @@ public final class ApronCPA implements ProofCheckerCPA, StatisticsProvider {
 
       } else if (currentLine.endsWith(":")) {
         String scopeSelectors = currentLine.substring(0, currentLine.indexOf(":"));
-        Matcher matcher = CFAUtils.CFA_NODE_NAME_PATTERN.matcher(scopeSelectors);
+        Matcher matcher = CFA_NODE_PATTERN.matcher(scopeSelectors);
         if (matcher.matches()) {
           location = idToCfaNode.get(Integer.parseInt(matcher.group(1)));
         }
@@ -272,6 +274,14 @@ public final class ApronCPA implements ProofCheckerCPA, StatisticsProvider {
 
   private CFANode getDefaultLocation(Map<Integer, CFANode> idToCfaNode) {
     return idToCfaNode.values().iterator().next();
+  }
+
+  private Map<Integer, CFANode> createMappingForCFANodes(CFA pCfa) {
+    Map<Integer, CFANode> idToNodeMap = new HashMap<>();
+    for (CFANode n : pCfa.nodes()) {
+      idToNodeMap.put(n.getNodeNumber(), n);
+    }
+    return idToNodeMap;
   }
 
   @Override

@@ -935,7 +935,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         actualLength = initList.getInitializers().size();
       } else if (initializer instanceof CInitializerExpression initExp
           && initExp.getExpression() instanceof CStringLiteralExpression initStringLiteral) {
-        actualLength = initStringLiteral.getSize();
+        actualLength = initStringLiteral.getContentString().length() + 1;
       } else {
         actualLength = null;
       }
@@ -1363,8 +1363,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @return Whether a left hand side is relevant for the analysis.
    */
   @Override
-  protected boolean isRelevantLeftHandSide(CLeftHandSide pLhs, Optional<CRightHandSide> pRhs) {
-    return super.isRelevantLeftHandSide(pLhs, pRhs);
+  protected boolean isRelevantLeftHandSide(CLeftHandSide pLhs) {
+    return super.isRelevantLeftHandSide(pLhs);
   }
 
   protected boolean isRelevantField(

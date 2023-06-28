@@ -8,30 +8,31 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-import static com.google.common.base.Verify.verify;
-
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public final class CStringLiteralExpression extends AStringLiteralExpression
     implements CLiteralExpression {
 
   private static final long serialVersionUID = 2656216584704518185L;
 
-  public CStringLiteralExpression(FileLocation pFileLocation, String pValue) {
-    super(pFileLocation, computeType(pValue, pFileLocation), pValue);
+  public CStringLiteralExpression(FileLocation pFileLocation, CType pType, String pValue) {
+    super(pFileLocation, pType, pValue);
   }
 
-  /** Returns the type as <code>char[]</code> including the correct length. */
   @Override
-  public CArrayType getExpressionType() {
-    return (CArrayType) super.getExpressionType();
+  public CType getExpressionType() {
+    return (CType) super.getExpressionType();
   }
 
   @Override
@@ -54,43 +55,9 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
     return getValue();
   }
 
-  /**
-   * Use either {@link #toASTString()} (if you want the syntactic representation including quotes)
-   * or {@link #getContentWithNullTerminator()} (if you want the actual content) or {@link
-   * #getContentWithoutNullTerminator()} (if you want the actual content but without the including
-   * null terminator).
-   */
-  @Override
-  @Deprecated
-  public String getValue() {
-    return super.getValue();
-  }
-
-  /**
-   * Returns the content of this string literal including the null terminator. This is the actual
-   * semantics of a string literal according to the C standard.
-   */
-  public String getContentWithNullTerminator() {
-    return getContentWithoutNullTerminator() + "\0";
-  }
-
-  /**
-   * Returns the content of this string literal, but removes the null terminator first. Typically
-   * one would use {@link #getContentWithNullTerminator()} instead, use this only in special cases.
-   */
-  public String getContentWithoutNullTerminator() {
+  public String getContentString() {
     String literal = getValue();
-    verify(literal.charAt(0) == '"');
-    verify(literal.charAt(literal.length() - 1) == '"');
     return literal.substring(1, literal.length() - 1);
-  }
-
-  /** Returns the size in bytes of the represented string. */
-  public int getSize() {
-    // without quotes but plus null terminator
-    int value = getValue().length() - 2 + 1;
-    assert value == getContentWithNullTerminator().length();
-    return value;
   }
 
   @Override
@@ -122,9 +89,9 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
    * @return List of character-literal expressions
    */
   public List<CCharLiteralExpression> expandStringLiteral(final CArrayType type) {
-    // The string literal is is always NULL terminated, but a string in an array might be not.
-    // We handle this below.
-    final String s = getContentWithoutNullTerminator();
+    // The string is either NULL terminated, or not.
+    // If the length is not provided explicitly, NULL termination is used
+    final String s = getContentString();
     final int length = type.getLengthAsInt().orElse(s.length() + 1);
     assert length >= s.length();
 
@@ -147,10 +114,26 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
     return result;
   }
 
-  private static CArrayType computeType(String astString, FileLocation pFileLocation) {
+  public CArrayType transformTypeToArrayType() throws UnrecognizedCodeException {
+
     CExpression length =
         new CIntegerLiteralExpression(
-            pFileLocation, CNumericTypes.INT, BigInteger.valueOf(astString.length() - 2 + 1));
-    return new CArrayType(false, false, CTypes.withConst(CNumericTypes.CHAR), length);
+            getFileLocation(),
+            new CSimpleType(
+                false, false, CBasicType.INT, false, false, false, false, false, false, false),
+            BigInteger.valueOf(getValue().length() - 1));
+
+    if (getExpressionType() instanceof CArrayType) {
+      CArrayType arrayType = (CArrayType) getExpressionType();
+      if (arrayType.getLengthAsInt().orElse(0) == 0) {
+        arrayType = new CArrayType(false, false, arrayType.getType(), length);
+      }
+      return arrayType;
+    } else if (getExpressionType() instanceof CPointerType) {
+      return new CArrayType(false, false, ((CPointerType) getExpressionType()).getType(), length);
+    } else {
+      throw new UnrecognizedCodeException(
+          "Assigning string literal to " + getExpressionType(), this);
+    }
   }
 }

@@ -207,7 +207,7 @@ public class CExpressionToOrinalCodeVisitor implements CExpressionVisitor<String
       return substitute;
     }
     // Includes quotation marks
-    return pStringLiteralExpression.toASTString();
+    return pStringLiteralExpression.getValue();
   }
 
   @Override
