@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.collect.FluentIterable;
 import java.util.Optional;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -25,11 +26,13 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class BackwardBMCAlgorithm implements Algorithm {
 
@@ -39,9 +42,11 @@ public class BackwardBMCAlgorithm implements Algorithm {
   private CFA cfa;
 
   private final FormulaManagerView fmgr;
-  private final PathFormulaManager pmgr;
+  // private final PathFormulaManager pmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
+
+  private BMCStatistics stats;
 
   protected final ShutdownNotifier shutdownNotifier;
   private final TargetLocationProvider targetLocationProvider;
@@ -55,6 +60,7 @@ public class BackwardBMCAlgorithm implements Algorithm {
       throws InvalidConfigurationException {
 
     logger = pLogger;
+    stats = new BMCStatistics();
     algorithm = pAlgorithm;
     cpa = pCPA;
     cfa = pCFA;
@@ -65,7 +71,7 @@ public class BackwardBMCAlgorithm implements Algorithm {
     solver = predCpa.getSolver();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    pmgr = predCpa.getPathFormulaManager();
+    // pmgr = predCpa.getPathFormulaManager();
 
     shutdownNotifier = pShutdownManager.getNotifier();
     // is this the right target location provider?
@@ -76,37 +82,57 @@ public class BackwardBMCAlgorithm implements Algorithm {
   public AlgorithmStatus run(final ReachedSet reachedSet)
       throws CPAException, InterruptedException {
 
-    AlgorithmStatus status;
-    status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
 
-    AbstractState targetState = getTarget(reachedSet);
-    if (targetState == null) {
-      // No target state found
+      AlgorithmStatus status;
+      status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
+
+      AbstractState targetState = getTarget(reachedSet);
+      if (targetState == null) {
+        // No target state found
+        return status;
+      }
+      FluentIterable<AbstractState> loopHeads = getAbstractLoopHeads(reachedSet);
+
+      BooleanFormula targetFormula =
+          BMCHelper.createFormulaFor(
+              FluentIterable.of(targetState), bfmgr, Optional.ofNullable(shutdownNotifier));
+      BooleanFormula loopHeadFormula =
+          BMCHelper.createFormulaFor(loopHeads, bfmgr, Optional.ofNullable(shutdownNotifier));
+
+      final boolean targetSafe;
+      stats.satCheck.start();
+      try {
+        prover.push(targetFormula);
+        targetSafe = prover.isUnsat();
+      } catch (SolverException e) {
+        throw new CPAException("Solver Failure " + e.getMessage(), e);
+      } finally {
+        stats.satCheck.stop();
+      }
+
+      final boolean loopHeadsSafe;
+      try {
+        prover.push(loopHeadFormula);
+        loopHeadsSafe = prover.isUnsat();
+      } catch (SolverException e) {
+        throw new CPAException("Solver Failure " + e.getMessage(), e);
+      }
+
+      logger.logf(Level.FINER, "Target path formula unsatisfiable: %b", targetSafe);
+      logger.logf(Level.FINER, "Loophead path formula unsatisfiable: %b", loopHeadsSafe);
       return status;
     }
-    FluentIterable<AbstractState> loopHeads = getAbstractLoopHeads(reachedSet);
-
-    BooleanFormula targetFormula =
-        BMCHelper.createFormulaFor(
-            FluentIterable.of(targetState),
-            bfmgr,
-            Optional.ofNullable(shutdownNotifier));
-    BooleanFormula loopHeadFormula =
-        BMCHelper.createFormulaFor(loopHeads, bfmgr, Optional.ofNullable(shutdownNotifier));
-
-    return status;
   }
 
-  /**
-   * May return null if no target state found
-   */
+  /** May return null if no target state found */
   private AbstractState getTarget(final ReachedSet reachedSet) {
     // Should be only one target state: the main entry
     return FluentIterable.from(reachedSet).filter(AbstractStates::isTargetState).first().orNull();
   }
 
   private FluentIterable<AbstractState> getAbstractLoopHeads(final ReachedSet reachedSet) {
-    return AbstractStates
-        .filterLocations(reachedSet, BMCHelper.getLoopHeads(cfa, targetLocationProvider));
+    return AbstractStates.filterLocations(
+        reachedSet, BMCHelper.getLoopHeads(cfa, targetLocationProvider));
   }
 }

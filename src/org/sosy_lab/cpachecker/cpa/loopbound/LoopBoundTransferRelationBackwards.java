@@ -104,21 +104,6 @@ public class LoopBoundTransferRelationBackwards extends SingleEdgeTransferRelati
     // get predecessor instead of successor
     CFANode loc = pCfaEdge.getPredecessor();
 
-    // If the edge was an incoming edge to a loop
-    // and we are going backwards, then we are leaving the loop.
-    // So, loopEntryEdges instead of loopExitEdges
-    Loop oldLoop = loopEntryEdges.get(pCfaEdge);
-    if (oldLoop != null) {
-      state = state.exit(oldLoop);
-    }
-
-    if (pCfaEdge instanceof FunctionReturnEdge) {
-      // Such edges may be real loop-exit edges "while () { return; }",
-      // but never loop-entry edges.
-      // Return here because they might be mis-classified as entry edges.
-      return Collections.singleton(state);
-    }
-
     Loop newLoop = null;
     if (precision.shouldTrackStack()) {
       // Push a new loop onto the stack if we enter it
@@ -129,11 +114,23 @@ public class LoopBoundTransferRelationBackwards extends SingleEdgeTransferRelati
       }
     }
 
+    if (pCfaEdge instanceof FunctionReturnEdge) {
+      // Such edges may be real loop-exit edges "while () { return; }",
+      // but never loop-entry edges.
+      // Return here because they might be mis-classified as entry edges.
+      return Collections.singleton(state);
+    }
+
+    // If the edge was an incoming edge to a loop
+    // and we are going backwards, then we are leaving the loop.
+    Loop oldLoop = loopEntryEdges.get(pCfaEdge);
+    if (oldLoop != null) {
+      state = state.exit(oldLoop);
+    }
+
     // Check if we need to increment the loop counter
     Collection<Loop> visitedLoops = loopHeads.get(loc);
 
-    // this assertion probably doesn't make sense anymore
-    // Could be with old loop instead?
     assert newLoop == null || visitedLoops.contains(newLoop);
     for (Loop loop : visitedLoops) {
       state = state.visitLoopHead(loop);
