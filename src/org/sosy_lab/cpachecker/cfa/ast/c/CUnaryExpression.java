@@ -98,10 +98,6 @@ public final class CUnaryExpression extends AUnaryExpression implements CExpress
       return true;
     }
 
-    if (!(obj instanceof CUnaryExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CUnaryExpression && super.equals(obj);
   }
 }

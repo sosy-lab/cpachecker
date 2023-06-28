@@ -44,10 +44,7 @@ public final class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinke
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     SMGDoublyLinkedListShape other = (SMGDoublyLinkedListShape) obj;

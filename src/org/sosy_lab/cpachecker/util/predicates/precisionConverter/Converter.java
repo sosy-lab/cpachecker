@@ -97,7 +97,7 @@ public class Converter {
 
   private static Pair<String, Type<FormulaType<?>>> wrap(String s) {
     // return dummy type with size 0
-    return Pair.of(s, new Type<FormulaType<?>>(FormulaType.getBitvectorTypeWithSize(0)));
+    return Pair.of(s, new Type<>(FormulaType.getBitvectorTypeWithSize(0)));
   }
 
   public enum PrecisionConverter {

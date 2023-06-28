@@ -173,7 +173,7 @@ public class ARGUtils {
    * @return A path from root to lastElement.
    */
   public static ARGPath getOnePathTo(ARGState pLastElement) {
-    return getOnePathFromTo((x) -> x.getParents().isEmpty(), pLastElement);
+    return getOnePathFromTo(x -> x.getParents().isEmpty(), pLastElement);
   }
 
   public static Optional<ARGPath> getOnePathTo(

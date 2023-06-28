@@ -228,7 +228,7 @@ public class SMGCPABuiltins {
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
         return Collections3.transformedImmutableListCopy(
-            checkedStates, state -> ValueAndSMGState.ofUnknownValue(state));
+            checkedStates, ValueAndSMGState::ofUnknownValue);
 
       case "realloc":
         return evaluateRealloc(cFCExpression, pState, pCfaEdge);
@@ -494,7 +494,7 @@ public class SMGCPABuiltins {
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
         return Collections3.transformedImmutableListCopy(
-            checkedStates, state -> ValueAndSMGState.ofUnknownValue(state));
+            checkedStates, ValueAndSMGState::ofUnknownValue);
       default:
         throw new UnsupportedOperationException(
             "Unhandled function in cpa.smg2.SMGCPABuiltins.handleUnknownFunction(): "

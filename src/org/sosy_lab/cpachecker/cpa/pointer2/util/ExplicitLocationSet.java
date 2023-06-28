@@ -128,6 +128,7 @@ public class ExplicitLocationSet implements LocationSet, Iterable<MemoryLocation
 
   @Override
   public boolean equals(Object pO) {
+    // FIXME violates contract because it is not symmetric with LocationSetBot.equals()
     if (this == pO) {
       return true;
     }

@@ -365,11 +365,8 @@ public final class Specification {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof Specification)) {
-      return false;
-    }
-    Specification other = (Specification) obj;
-    return pathToSpecificationAutomata.equals(other.pathToSpecificationAutomata);
+    return obj instanceof Specification other
+        && pathToSpecificationAutomata.equals(other.pathToSpecificationAutomata);
   }
 
   @Override

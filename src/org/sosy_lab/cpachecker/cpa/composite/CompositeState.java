@@ -202,11 +202,8 @@ public class CompositeState
         return true;
       }
 
-      if (!(pObj instanceof CompositePartitionKey)) {
-        return false;
-      }
-
-      return Arrays.equals(keys, ((CompositePartitionKey) pObj).keys);
+      return pObj instanceof CompositePartitionKey
+          && Arrays.equals(keys, ((CompositePartitionKey) pObj).keys);
     }
 
     @Override
@@ -236,11 +233,8 @@ public class CompositeState
         return true;
       }
 
-      if (!(pObj instanceof CompositePseudoPartitionKey)) {
-        return false;
-      }
-
-      return Arrays.equals(keys, ((CompositePseudoPartitionKey) pObj).keys);
+      return pObj instanceof CompositePseudoPartitionKey
+          && Arrays.equals(keys, ((CompositePseudoPartitionKey) pObj).keys);
     }
 
     @Override

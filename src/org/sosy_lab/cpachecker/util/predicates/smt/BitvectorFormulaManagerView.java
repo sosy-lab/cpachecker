@@ -185,8 +185,8 @@ public class BitvectorFormulaManagerView extends BaseManagerView
   }
 
   @Override
-  public BitvectorFormula concat(BitvectorFormula pNumber, BitvectorFormula pAppend) {
-    return manager.concat(pNumber, pAppend);
+  public BitvectorFormula concat(BitvectorFormula pPrefix, BitvectorFormula pSuffix) {
+    return manager.concat(pPrefix, pSuffix);
   }
 
   @Override

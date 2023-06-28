@@ -196,13 +196,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
 
   @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
   private final ShutdownRequestListener shutdownListener =
-      new ShutdownRequestListener() {
-
-        @Override
-        public void shutdownRequested(String pReason) {
-          invariantGenerationFuture.cancel(true);
-        }
-      };
+      pReason -> invariantGenerationFuture.cancel(true);
 
   public static KInductionInvariantGenerator create(
       final Configuration pConfig,
@@ -955,8 +949,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       Iterable<AssumeEdge> pAssumeEdges, Set<CFANode> pLoopHeads) {
     return FluentIterable.from(pAssumeEdges)
         .transformAndConcat(
-            e -> {
-              return FluentIterable.from(pLoopHeads).transform(n -> new EdgeFormulaNegation(n, e));
-            });
+            e -> FluentIterable.from(pLoopHeads).transform(n -> new EdgeFormulaNegation(n, e)));
   }
 }

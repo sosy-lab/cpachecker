@@ -280,18 +280,21 @@ public final class DOTBuilder2 {
         int from = edge.getPredecessor().getNodeNumber();
         Integer virtFuncCallNodeId = virtFuncCallEdges.get(from).get(0);
 
-        String ret =
-            virtFuncCallNodeId + " [shape=\"component\" label=\"" + calledFunction + "\"]\n";
-        ret +=
+        StringBuilder sb = new StringBuilder();
+        sb.append(virtFuncCallNodeId);
+        sb.append(" [shape=\"component\" label=\"");
+        sb.append(calledFunction);
+        sb.append("\"]\n");
+        sb.append(
             String.format(
                 "%d -> %d [label=\"%s\" fontname=\"Courier New\"]%n",
-                from, virtFuncCallNodeId, getEdgeText(edge));
+                from, virtFuncCallNodeId, getEdgeText(edge)));
 
         int to = edge.getSuccessor().getNodeNumber();
-        ret +=
+        sb.append(
             String.format(
-                "%d -> %d [label=\"\" fontname=\"Courier New\"]%n", virtFuncCallNodeId, to);
-        return ret;
+                "%d -> %d [label=\"\" fontname=\"Courier New\"]%n", virtFuncCallNodeId, to));
+        return sb.toString();
       }
 
       return String.format(

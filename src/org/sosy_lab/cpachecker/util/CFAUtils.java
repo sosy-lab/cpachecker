@@ -603,7 +603,7 @@ public class CFAUtils {
   public static ImmutableSet<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
     ImmutableSet<FileLocation> result =
         from(getAstNodesFromCfaEdge(pEdge))
-            .transformAndConcat(node -> traverseRecursively(node))
+            .transformAndConcat(CFAUtils::traverseRecursively)
             .transform(AAstNode::getFileLocation)
             .append(pEdge.getFileLocation())
             .filter(FileLocation::isRealLocation)

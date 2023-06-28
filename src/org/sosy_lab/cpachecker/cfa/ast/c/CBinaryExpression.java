@@ -199,12 +199,8 @@ public final class CBinaryExpression extends ABinaryExpression implements CExpre
       return true;
     }
 
-    if (!(obj instanceof CBinaryExpression)) {
-      return false;
-    }
-
-    final CBinaryExpression other = (CBinaryExpression) obj;
-
-    return Objects.equals(other.calculationType, calculationType) && super.equals(obj);
+    return obj instanceof CBinaryExpression other
+        && Objects.equals(other.calculationType, calculationType)
+        && super.equals(obj);
   }
 }

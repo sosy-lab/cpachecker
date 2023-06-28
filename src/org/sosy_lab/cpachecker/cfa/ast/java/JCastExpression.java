@@ -63,10 +63,6 @@ public final class JCastExpression extends ACastExpression implements JExpressio
       return true;
     }
 
-    if (!(obj instanceof JCastExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof JCastExpression && super.equals(obj);
   }
 }

@@ -854,7 +854,7 @@ public class CFACreator {
     if (mainMethodValues.size() >= 2) {
       StringBuilder exceptionMessage = new StringBuilder();
       mainMethodValues.forEach(
-          (k) ->
+          k ->
               exceptionMessage
                   .append(((JMethodDeclaration) k.getFunctionDefinition()).getSimpleName())
                   .append("\n"));
@@ -1068,8 +1068,7 @@ public class CFACreator {
     // first, collect all variables which do have an explicit initializer
     Set<String> initializedVariables = new HashSet<>();
     for (Pair<ADeclaration, String> p : globalVars) {
-      if (p.getFirst() instanceof AVariableDeclaration) {
-        AVariableDeclaration v = (AVariableDeclaration) p.getFirst();
+      if (p.getFirst() instanceof AVariableDeclaration v) {
         if (v.getInitializer() != null) {
           initializedVariables.add(v.getName());
         }

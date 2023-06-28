@@ -57,11 +57,7 @@ public abstract class Constraint {
     if (this == other) {
       return true;
     }
-    if (!(other instanceof Constraint)) {
-      return false;
-    }
-    Constraint o = (Constraint) other;
-    return subVar.equals(o.subVar) && superVar.equals(o.superVar);
+    return other instanceof Constraint o && subVar.equals(o.subVar) && superVar.equals(o.superVar);
   }
 
   @Override

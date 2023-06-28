@@ -472,7 +472,7 @@ class DynamicBindingCreator {
 
     JClassOrInterfaceType definingType = overridesThisMethod.getDefiningType();
 
-    // Create condition which represents this.getClass().equals(functionClass.getClass())
+    // Create condition which represents getClass().equals(functionClass.getClass())
     createConditionEdges(
         prevNode,
         successfulNode,

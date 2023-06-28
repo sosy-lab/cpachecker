@@ -1713,6 +1713,19 @@ cpa.constraints.mergeType = SEP
 # Whether to perform SAT checks only for the last added constraint
 cpa.constraints.minimalSatCheck = true
 
+# enable if variables from value precision should be considered in variable's
+# scope instead of scope specified in precision
+cpa.constraints.refinement.applyInScope = false
+
+# derive an initial constraint precision from value precision stored in this
+# file
+cpa.constraints.refinement.initialValuePrecisionFile = no default value
+
+# enable to track constraints based on value precision only if all variables
+# occurring in constraint are relevant in variable precision. If disabled it
+# is sufficient that one variable is relevant.
+cpa.constraints.refinement.mustTrackAll = false
+
 # Type of precision to use. Has to be LOCATION if PredicateExtractionRefiner
 # is used.
 cpa.constraints.refinement.precisionType = CONSTRAINTS
@@ -2193,6 +2206,10 @@ cpa.predicate.direction = FORWARD
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
+# Enable handling of functions memset, memcopy, memmove. If disabled, using
+# these functions will result in an error.
+cpa.predicate.enableMemoryAssignmentFunctions = false
+
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
 # specified theory is used to approximate bitvectors. This can be used for
 # solvers that do not support bitvectors, or for increased performance. If
@@ -2249,9 +2266,11 @@ cpa.predicate.handlePointerAliasing = true
 # assigning a fresh non-det address to it
 cpa.predicate.handleStringLiteralInitializers = false
 
-# Allows to ignore Concat and Extract Calls when Bitvector theory was
-# replaced with Integer or Rational.
-cpa.predicate.ignoreExtractConcat = true
+# Ignore Extract and Extend operations instead of encoding them with a UF
+# when Bitvector theory is replaced with Integer or Rational. This is unsound
+# but sometimes more practical in order to not make casts return
+# nondeterministic values.
+cpa.predicate.ignoreExtractExtend = true
 
 # Ignore fields that are not relevant for reachability properties. This is
 # unsound in case fields are accessed by pointer arithmetic with hard-coded
@@ -2263,6 +2282,11 @@ cpa.predicate.ignoreIrrelevantVariables = true
 
 # do not include assumptions of states into path formula during strengthening
 cpa.predicate.ignoreStateAssumptions = false
+
+# Prevent functions memset, memcopy, memmove from stopping verification if
+# there is unrecognized code. Instead, they will just be skipped (unsound).
+# Only relevant if enableMemoryAssignmentFunctions is set to true.
+cpa.predicate.ignoreUnrecognizedCodeInMemoryAssignmentFunctions = false
 
 # Add computed invariants to the precision. Invariants do not need to be
 # generated with the PredicateCPA they can also be given from outside.
@@ -3816,6 +3840,12 @@ faultLocalization.by_traceformula.postConditionType = LAST_ASSUME_EDGES_ON_SAME_
 faultLocalization.by_traceformula.preconditionType = NONDETERMINISTIC_VARIABLES_ONLY
   enum:     [NONDETERMINISTIC_VARIABLES_ONLY, INITIAL_ASSIGNMENT, ALWAYS_TRUE]
 
+# Whether the found counterexample needs to be precise
+faultLocalization.by_traceformula.requirePreciseCounterexample = true
+
+# Whether to stop searching for further faults if first fault was found.
+faultLocalization.by_traceformula.stopAfterFirstFault = false
+
 # which algorithm to use
 faultLocalization.by_traceformula.type = UNSAT
   enum:     [UNSAT, MAXSAT, MAXORG, ERRINV]
@@ -4800,6 +4830,9 @@ testcase.targets.funName = no default value
 testcase.targets.optimization.strategy = NONE
   enum:     [NONE, COVERED_NEXT_EDGE, BASIC_ESSENTIAL_EDGE, ESSENTIAL_EDGE_ORIGINAL,
              ESSENTIAL_EDGE, PORTFOLIO, SPANNING_SET, TESTCOMP]
+
+# enable to track coverage of test targets removed in optimization
+testcase.targets.optimization.trackAll = false
 
 # Which CFA edges to use as test targets
 testcase.targets.type = ASSUME

@@ -27,7 +27,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
 
     @Override
     public boolean equals(final Object o) {
-      if (o == this) {
+      if (this == o) {
         return true;
       }
 
@@ -72,7 +72,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
 
     @Override
     public boolean equals(final Object o) {
-      if (o == this) {
+      if (this == o) {
         return true;
       } else if (!(o instanceof Variable)) {
         return false;
@@ -127,7 +127,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
 
     @Override
     public boolean equals(final Object o) {
-      if (o == this) {
+      if (this == o) {
         return true;
       } else if (!(o instanceof Field)) {
         return false;
@@ -196,7 +196,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
       return (Variable) this;
     } else {
       throw new ClassCastException(
-          "Tried to match " + this.getClass().getName() + " with " + Variable.class.getName());
+          "Tried to match " + getClass().getName() + " with " + Variable.class.getName());
     }
   }
 
@@ -205,7 +205,7 @@ abstract class VariableOrField implements Comparable<VariableOrField> {
       return (Field) this;
     } else {
       throw new ClassCastException(
-          "Tried to match " + this.getClass().getName() + " with " + Field.class.getName());
+          "Tried to match " + getClass().getName() + " with " + Field.class.getName());
     }
   }
 

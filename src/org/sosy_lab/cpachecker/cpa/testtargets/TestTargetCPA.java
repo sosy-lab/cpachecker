@@ -62,6 +62,12 @@ public class TestTargetCPA extends AbstractCPA {
 
   @Option(
       secure = true,
+      name = "targets.optimization.trackAll",
+      description = "enable to track coverage of test targets removed in optimization")
+  private boolean trackRedundantTargets = false;
+
+  @Option(
+      secure = true,
       name = "targets.edge",
       description =
           "CFA edge if only a specific edge should be considered, e.g., in counterexample check")
@@ -86,7 +92,12 @@ public class TestTargetCPA extends AbstractCPA {
         new TestTargetTransferRelation(
             targetEdge == null
                 ? TestTargetProvider.getTestTargets(
-                    pCfa, runParallel, targetType, targetFun, targetOptimization)
+                    pCfa,
+                    runParallel,
+                    targetType,
+                    targetFun,
+                    targetOptimization,
+                    trackRedundantTargets)
                 : findTargetEdge(pCfa));
   }
 

@@ -59,7 +59,7 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
   @Override
   public boolean isFeasible(final ARGPath pPath, final S pStartingPoint)
       throws CPAException, InterruptedException {
-    return isFeasible(pPath, pStartingPoint, new ArrayDeque<S>());
+    return isFeasible(pPath, pStartingPoint, new ArrayDeque<>());
   }
 
   @Override

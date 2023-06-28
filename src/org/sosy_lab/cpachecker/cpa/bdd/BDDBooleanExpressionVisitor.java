@@ -98,8 +98,7 @@ public class BDDBooleanExpressionVisitor extends DefaultCExpressionVisitor<Regio
 
   @Override
   public Region visit(CIdExpression idExp) {
-    if (idExp.getDeclaration() instanceof CEnumerator) {
-      CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
+    if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
       return getNum(enumerator.getValue());
     }
 

@@ -14,6 +14,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
@@ -118,10 +119,7 @@ public class SMG implements UnmodifiableSMG {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     SMG other = (SMG) obj;
@@ -489,7 +487,7 @@ public class SMG implements UnmodifiableSMG {
    *     object to NULL value
    */
   @Override
-  public TreeMap<Long, Long> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
+  public NavigableMap<Long, Long> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
 
     SMGEdgeHasValueFilter nullValueFilter =
         SMGEdgeHasValueFilter.objectFilter(pObj)
@@ -535,7 +533,7 @@ public class SMG implements UnmodifiableSMG {
   private boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, long size) {
     long expectedMinClear = pOffset + size;
 
-    TreeMap<Long, Long> nullEdgesOffsetToSize = getNullEdgesMapOffsetToSizeForObject(pObject);
+    NavigableMap<Long, Long> nullEdgesOffsetToSize = getNullEdgesMapOffsetToSizeForObject(pObject);
     Entry<Long, Long> floorEntry = nullEdgesOffsetToSize.floorEntry(pOffset);
     return (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= expectedMinClear);
   }

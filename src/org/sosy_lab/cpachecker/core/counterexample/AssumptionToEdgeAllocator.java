@@ -339,7 +339,7 @@ public class AssumptionToEdgeAllocator {
         return "";
       } else {
         return Joiner.on(System.lineSeparator())
-            .join(Iterables.transform(assignments, a -> a.toASTString()));
+            .join(Iterables.transform(assignments, AExpressionStatement::toASTString));
       }
 
     } else {
@@ -656,11 +656,8 @@ public class AssumptionToEdgeAllocator {
       return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
 
-    if (rValueType instanceof CCompositeType type) {
-      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
-    }
-
-    return false;
+    return rValueType instanceof CCompositeType type
+        && type.getKind() != CComplexType.ComplexTypeKind.ENUM;
   }
 
   // TODO Move to Utility?
@@ -677,9 +674,7 @@ public class AssumptionToEdgeAllocator {
       fieldNameList.add(FIRST, reference.getFieldName());
     }
 
-    if (reference.getFieldOwner() instanceof CIdExpression) {
-
-      CIdExpression idExpression = (CIdExpression) reference.getFieldOwner();
+    if (reference.getFieldOwner() instanceof CIdExpression idExpression) {
       if (ForwardingTransferRelation.isGlobal(idExpression)) {
         return new FieldReference(idExpression.getName(), fieldNameList);
       } else {
@@ -908,11 +903,8 @@ public class AssumptionToEdgeAllocator {
         return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
       }
 
-      if (rValueType instanceof CCompositeType type) {
-        return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
-      }
-
-      return false;
+      return rValueType instanceof CCompositeType type
+          && type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
 
     private class AddressValueVisitor implements CLeftHandSideVisitor<Address, NoException> {

@@ -70,10 +70,8 @@ public final class CAddressOfLabelExpression extends AbstractExpression implemen
       return true;
     }
 
-    if (!(obj instanceof CAddressOfLabelExpression)) {
-      return false;
-    }
-
-    return label.equals(((CAddressOfLabelExpression) obj).label) && super.equals(obj);
+    return obj instanceof CAddressOfLabelExpression
+        && label.equals(((CAddressOfLabelExpression) obj).label)
+        && super.equals(obj);
   }
 }

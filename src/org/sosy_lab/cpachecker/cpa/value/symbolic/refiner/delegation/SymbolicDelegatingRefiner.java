@@ -80,12 +80,12 @@ public class SymbolicDelegatingRefiner implements ARGBasedRefiner, StatisticsPro
         CPAs.retrieveCPAOrFail(pCpa, ConstraintsCPA.class, SymbolicValueAnalysisRefiner.class);
 
     final Configuration config = valueAnalysisCpa.getConfiguration();
+    final CFA cfa = valueAnalysisCpa.getCFA();
+    final LogManager logger = valueAnalysisCpa.getLogger();
 
     valueAnalysisCpa.injectRefinablePrecision();
-    constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config));
+    constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config, cfa, logger));
 
-    final LogManager logger = valueAnalysisCpa.getLogger();
-    final CFA cfa = valueAnalysisCpa.getCFA();
     final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
     final SymbolicStrongestPostOperator symbolicStrongestPost =

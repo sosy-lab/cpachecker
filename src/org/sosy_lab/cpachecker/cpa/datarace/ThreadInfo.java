@@ -44,11 +44,10 @@ public class ThreadInfo {
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof ThreadInfo)) {
-      return false;
-    }
-    ThreadInfo that = (ThreadInfo) pO;
-    return epoch == that.epoch && running == that.running && threadId.equals(that.threadId);
+    return pO instanceof ThreadInfo that
+        && epoch == that.epoch
+        && running == that.running
+        && threadId.equals(that.threadId);
   }
 
   @Override

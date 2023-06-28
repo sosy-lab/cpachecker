@@ -270,9 +270,7 @@ public class AutomatonGraphmlParser {
   public Automaton parseAutomatonFile(Path pInputFile)
       throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
-        MoreFiles.asByteSource(pInputFile),
-        inputStream -> parseAutomatonFile(inputStream),
-        e -> new WitnessParseException(e));
+        MoreFiles.asByteSource(pInputFile), this::parseAutomatonFile, WitnessParseException::new);
   }
 
   /**
@@ -1040,12 +1038,12 @@ public class AutomatonGraphmlParser {
 
     // Extract the information on the automaton ----
     Node nameAttribute = docDat.getGraph().getAttributes().getNamedItem("name");
-    String automatonName = WITNESS_AUTOMATON_NAME;
+    StringBuilder automatonName = new StringBuilder(WITNESS_AUTOMATON_NAME);
     if (nameAttribute != null) {
-      automatonName += "_" + nameAttribute.getTextContent();
+      automatonName.append("_").append(nameAttribute.getTextContent());
     }
     if (useUniqueName) {
-      automatonName += "_" + idGen.getFreshId();
+      automatonName.append("_").append(idGen.getFreshId());
     }
 
     Map<String, GraphMLState> states = new LinkedHashMap<>();
@@ -1073,7 +1071,7 @@ public class AutomatonGraphmlParser {
 
     AutomatonGraphmlParserState state =
         AutomatonGraphmlParserState.initialize(
-            automatonName,
+            automatonName.toString(),
             graphType,
             specType,
             states.values(),
@@ -2144,8 +2142,8 @@ public class AutomatonGraphmlParser {
       throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
         MoreFiles.asByteSource(pPath),
-        inputStream -> getWitnessType(inputStream),
-        e -> new WitnessParseException(e));
+        AutomatonGraphmlParser::getWitnessType,
+        WitnessParseException::new);
   }
 
   private static AutomatonGraphmlCommon.WitnessType getWitnessType(InputStream pInputStream)

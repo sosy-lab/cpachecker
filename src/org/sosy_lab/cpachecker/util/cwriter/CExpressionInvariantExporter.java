@@ -329,8 +329,7 @@ public class CExpressionInvariantExporter {
   private int compareInvariantKeys(
       final Pair<String, Integer> key1, final Pair<String, Integer> key2) {
     if (key1.getFirst().equals(key2.getFirst())) {
-      return Comparator.<Pair<String, Integer>>comparingInt(key -> key.getSecond())
-          .compare(key1, key2);
+      return Comparator.<Pair<String, Integer>>comparingInt(Pair::getSecond).compare(key1, key2);
     } else {
       return key1.getFirst().compareTo(key2.getFirst());
     }

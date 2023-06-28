@@ -31,11 +31,9 @@ public final class LockIdentifierWithVariable extends LockIdentifier {
 
   @Override
   public boolean equals(Object obj) {
-    if (!super.equals(obj)) {
-      return false;
-    }
-    LockIdentifierWithVariable other = (LockIdentifierWithVariable) obj;
-    return Objects.equals(varName, other.varName);
+    return obj instanceof LockIdentifierWithVariable other
+        && super.equals(obj)
+        && Objects.equals(varName, other.varName);
   }
 
   @Override

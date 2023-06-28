@@ -26,10 +26,7 @@ public class ACSLType {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLType other) {
-      return typeName.equals(other.getTypeName());
-    }
-    return false;
+    return o instanceof ACSLType other && typeName.equals(other.getTypeName());
   }
 
   @Override

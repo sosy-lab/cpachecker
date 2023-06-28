@@ -1566,14 +1566,11 @@ public class CFABuilder {
    * </ul>
    */
   private boolean pointerOf(CType pPotentialPointer, CType pPotentialPointee) {
-    if (pPotentialPointer instanceof CPointerType) {
-      return ((CPointerType) pPotentialPointer)
-          .getType()
-          .getCanonicalType()
-          .equals(pPotentialPointee.getCanonicalType());
-    } else {
-      return false;
-    }
+    return pPotentialPointer instanceof CPointerType
+        && ((CPointerType) pPotentialPointer)
+            .getType()
+            .getCanonicalType()
+            .equals(pPotentialPointee.getCanonicalType());
   }
 
   private String getName(final Value pValue) {
@@ -1752,13 +1749,7 @@ public class CFABuilder {
 
     if (pItem.canBeTransformedFromGetElementPtrToString()) {
       String constant = pItem.getGetElementPtrAsString();
-      CType constCharType =
-          new CSimpleType(
-              true, false, CBasicType.CHAR, false, false, false, false, false, false, false);
-
-      CType stringType = new CPointerType(false, false, constCharType);
-
-      return new CStringLiteralExpression(fileLocation, stringType, '"' + constant + '"');
+      return new CStringLiteralExpression(fileLocation, '"' + constant + '"');
     }
 
     CType currentType = typeConverter.getCType(startPointer.typeOf());

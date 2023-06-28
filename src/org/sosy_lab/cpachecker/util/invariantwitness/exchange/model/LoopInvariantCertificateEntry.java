@@ -91,22 +91,10 @@ public class LoopInvariantCertificateEntry extends AbstractEntry {
     if (this == obj) {
       return true;
     }
-    if (!super.equals(obj)) {
-      return false;
-    }
-    if (!(obj instanceof LoopInvariantCertificateEntry)) {
-      return false;
-    }
-    LoopInvariantCertificateEntry other = (LoopInvariantCertificateEntry) obj;
-    if (!Objects.equals(certification, other.certification)) {
-      return false;
-    }
-    if (!Objects.equals(metadata, other.metadata)) {
-      return false;
-    }
-    if (!Objects.equals(target, other.target)) {
-      return false;
-    }
-    return true;
+    return super.equals(obj)
+        && obj instanceof LoopInvariantCertificateEntry other
+        && Objects.equals(certification, other.certification)
+        && Objects.equals(metadata, other.metadata)
+        && Objects.equals(target, other.target);
   }
 }

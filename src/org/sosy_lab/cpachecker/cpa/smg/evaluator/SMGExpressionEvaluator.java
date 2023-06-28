@@ -273,11 +273,8 @@ public class SMGExpressionEvaluator {
       return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
     }
 
-    if (rValueType instanceof CCompositeType type) {
-      return type.getKind() != CComplexType.ComplexTypeKind.ENUM;
-    }
-
-    return false;
+    return rValueType instanceof CCompositeType type
+        && type.getKind() != CComplexType.ComplexTypeKind.ENUM;
   }
 
   public SMGExplicitValue evaluateExplicitValueV2(

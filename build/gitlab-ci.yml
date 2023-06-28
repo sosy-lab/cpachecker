@@ -218,7 +218,7 @@ reuse:
   dependencies: []
   needs: []
   image:
-    name: fsfe/reuse:latest
+    name: fsfe/reuse:1
     entrypoint: [""]
   script:
     - reuse lint

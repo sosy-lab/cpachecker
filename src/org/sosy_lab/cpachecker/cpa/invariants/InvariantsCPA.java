@@ -574,6 +574,8 @@ public class InvariantsCPA
 
   private static boolean mustReach(
       CFANode pStart, final CFANode pTarget, final CFAEdge pForbiddenEdge) {
+    // FIXME: Unclear whether this method does what it should do. Cf.
+    // https://gitlab.com/sosy-lab/software/cpachecker/-/commit/eb3e7ab32fc2e61edabd4d1ec2838fc6be072905
     Set<CFANode> visited = new HashSet<>();
     visited.add(pStart);
     Queue<CFANode> waitlist = new ArrayDeque<>();
@@ -586,7 +588,8 @@ public class InvariantsCPA
         for (CFAEdge leavingEdge : leavingEdges) {
           if (!leavingEdge.equals(pForbiddenEdge)) {
             CFANode successor = leavingEdge.getSuccessor();
-            if (continued |= visited.add(successor)) {
+            continued |= visited.add(successor);
+            if (continued) {
               waitlist.offer(successor);
             }
           }

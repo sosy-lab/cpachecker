@@ -752,11 +752,7 @@ public class SMGState
       return false;
     }
     StackFrame stackframe = frames.peek();
-    if (stackframe.getVariables().containsKey(pVarName)) {
-      return true;
-    }
-
-    return false;
+    return stackframe.getVariables().containsKey(pVarName);
   }
 
   /**
@@ -1292,19 +1288,14 @@ public class SMGState
       return false;
     }
 
-    if (otherObj instanceof SMGSinglyLinkedListSegment
-        && thisObj instanceof SMGSinglyLinkedListSegment) {
-      SMGSinglyLinkedListSegment thisSLL = (SMGSinglyLinkedListSegment) thisObj;
-      SMGSinglyLinkedListSegment otherSLL = (SMGSinglyLinkedListSegment) otherObj;
+    if (otherObj instanceof SMGSinglyLinkedListSegment otherSLL
+        && thisObj instanceof SMGSinglyLinkedListSegment thisSLL) {
       if (thisSLL.getMinLength() >= otherSLL.getMinLength()
           && thisSLL.getNextOffset().compareTo(otherSLL.getNextOffset()) == 0
           && thisSLL.getHeadOffset().compareTo(otherSLL.getHeadOffset()) == 0) {
 
-        if (otherObj instanceof SMGDoublyLinkedListSegment
-            && thisObj instanceof SMGDoublyLinkedListSegment) {
-          SMGDoublyLinkedListSegment thisDLL = (SMGDoublyLinkedListSegment) thisObj;
-          SMGDoublyLinkedListSegment otherDLL = (SMGDoublyLinkedListSegment) otherObj;
-
+        if (otherObj instanceof SMGDoublyLinkedListSegment otherDLL
+            && thisObj instanceof SMGDoublyLinkedListSegment thisDLL) {
           if (thisDLL.getPrevOffset().compareTo(otherDLL.getPrevOffset()) != 0) {
             // Check that the values are equal and that the back pointer is as well
             return false;
@@ -1342,8 +1333,7 @@ public class SMGState
       throws SMGException {
     // one is an abstracted list, the other is not, we check this by materializing the abstracted
     // as long as the concrete allows
-    if (thisObj instanceof SMGSinglyLinkedListSegment) {
-      SMGSinglyLinkedListSegment thisSLL = (SMGSinglyLinkedListSegment) thisObj;
+    if (thisObj instanceof SMGSinglyLinkedListSegment thisSLL) {
       if (thisSLL.getMinLength() <= 1) {
         // TODO: merge with the case below (important: don't switch this and other!!!)
         // For == 1 the next pointer might not be correct as the list materializes for reads as
@@ -1398,8 +1388,7 @@ public class SMGState
       }
     }
 
-    if (otherObj instanceof SMGSinglyLinkedListSegment) {
-      SMGSinglyLinkedListSegment otherSLL = (SMGSinglyLinkedListSegment) otherObj;
+    if (otherObj instanceof SMGSinglyLinkedListSegment otherSLL) {
       if (otherSLL.getMinLength() <= 1) {
         // For == 1 the next pointer might not be correct as the list materializes for reads as
         // well
@@ -2362,10 +2351,7 @@ public class SMGState
   }
 
   private boolean isFloatingPointType(CType pType) {
-    if (pType instanceof CSimpleType) {
-      return ((CSimpleType) pType).getType().isFloatingPointType();
-    }
-    return false;
+    return pType instanceof CSimpleType && ((CSimpleType) pType).getType().isFloatingPointType();
   }
 
   private boolean isFloatingPointType(Value value) {
@@ -3892,8 +3878,7 @@ public class SMGState
   public Optional<Value> transformAddressIntoNumericValue(Value addressValue) {
     BigInteger offset = BigInteger.ZERO;
     SMGObject target;
-    if (addressValue instanceof AddressExpression) {
-      AddressExpression addressExpr = ((AddressExpression) addressValue);
+    if (addressValue instanceof AddressExpression addressExpr) {
       if (addressExpr.getOffset().isNumericValue()) {
         offset = addressExpr.getOffset().asNumericValue().bigIntegerValue();
       } else {

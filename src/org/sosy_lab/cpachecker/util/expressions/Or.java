@@ -52,11 +52,9 @@ public class Or<LeafType> extends AbstractExpressionTree<LeafType>
     if (this == pObj) {
       return true;
     }
-    if (pObj instanceof Or) {
-      Or<?> other = (Or<?>) pObj;
-      return hashCode == other.hashCode && operands.equals(other.operands);
-    }
-    return false;
+    return pObj instanceof Or<?> other
+        && hashCode == other.hashCode
+        && operands.equals(other.operands);
   }
 
   public static <LeafType> ExpressionTree<LeafType> of(

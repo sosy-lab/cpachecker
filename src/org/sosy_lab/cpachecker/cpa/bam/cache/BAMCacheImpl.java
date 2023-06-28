@@ -197,16 +197,15 @@ public class BAMCacheImpl implements BAMCache {
 
     @Override
     public boolean equals(Object pObj) {
-      if (!(pObj instanceof AbstractStateHash)) {
-        return false;
-      }
-      if (pObj == this) {
+      if (this == pObj) {
         return true;
       }
-      AbstractStateHash other = (AbstractStateHash) pObj;
+      // TODO Timing every equals() seems like a lot of potential overhead.
       equalsTimer.start();
       try {
-        return context.equals(other.context) && wrappedHash.equals(other.wrappedHash);
+        return pObj instanceof AbstractStateHash other
+            && context.equals(other.context)
+            && wrappedHash.equals(other.wrappedHash);
       } finally {
         equalsTimer.stop();
       }

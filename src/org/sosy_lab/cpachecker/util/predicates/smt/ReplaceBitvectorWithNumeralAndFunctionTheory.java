@@ -59,9 +59,10 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   @Option(
       secure = true,
       description =
-          "Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with"
-              + " Integer or Rational.")
-  private boolean ignoreExtractConcat = true;
+          "Ignore Extract and Extend operations instead of encoding them with a UF when Bitvector"
+              + " theory is replaced with Integer or Rational. This is unsound but sometimes more"
+              + " practical in order to not make casts return nondeterministic values.")
+  private boolean ignoreExtractExtend = true;
 
   ReplaceBitvectorWithNumeralAndFunctionTheory(
       FormulaWrappingHandler pWrappingHandler,
@@ -128,7 +129,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     Pair<Integer, Integer> hasKey = Pair.of(firstSize, secoundSize);
     FunctionDeclaration<T> value = concatMethods.get(hasKey);
     if (value == null) {
-      value = createUnaryFunction("_concat(" + firstSize + "," + secoundSize + ")_");
+      value = createBinaryFunction("_concat(" + firstSize + "," + secoundSize + ")_");
       concatMethods.put(hasKey, value);
     }
     return value;
@@ -340,9 +341,6 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
     int secoundLength = getLength(pSecound);
     FormulaType<BitvectorFormula> returnType =
         getBitvectorTypeWithSize(firstLength + secoundLength);
-    if (ignoreExtractConcat) {
-      return wrap(returnType, unwrap(pSecound));
-    }
     FunctionDeclaration<T> concatUfDecl = getConcatDecl(firstLength, secoundLength);
     return makeUf(returnType, concatUfDecl, pFirst, pSecound);
   }
@@ -350,7 +348,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   @Override
   public BitvectorFormula extract(BitvectorFormula pFirst, int pMsb, int pLsb) {
     FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(pMsb + 1 - pLsb);
-    if (ignoreExtractConcat) {
+    if (ignoreExtractExtend) {
       return wrap(returnType, unwrap(pFirst));
     }
     FunctionDeclaration<T> extractUfDecl = getExtractDecl(pMsb, pLsb);
@@ -361,7 +359,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   public BitvectorFormula extend(BitvectorFormula pNumber, int pExtensionBits, boolean pSigned) {
     FormulaType<BitvectorFormula> returnType =
         getBitvectorTypeWithSize(getLength(pNumber) + pExtensionBits);
-    if (ignoreExtractConcat) {
+    if (ignoreExtractExtend) {
       return wrap(returnType, unwrap(pNumber));
     }
     FunctionDeclaration<T> extendUfDecl = getUFDecl("extend", pExtensionBits, pSigned);

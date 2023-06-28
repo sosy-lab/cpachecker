@@ -310,7 +310,7 @@ class DynamicMemoryHandler {
           conv.options.isSuccessfulZallocFunctionName(functionName),
           Optional.ofNullable(size)
               .map(
-                  (s) ->
+                  s ->
                       new CIntegerLiteralExpression(
                           parameter.getFileLocation(),
                           parameter.getExpressionType(),
@@ -383,18 +383,26 @@ class DynamicMemoryHandler {
       throws UnrecognizedCodeException, InterruptedException {
     final Formula result = conv.makeBaseAddress(base, type);
     if (isZeroing) {
-      AssignmentHandler assignmentHandler =
-          new AssignmentHandler(
-              conv, edge, base, ssa, pts, constraints, errorConditions, regionMgr);
+      // the zeroing currently uses low-level SMT formulas, assigning zero to each simple location
+      // this is done recursively using the type parameter
+      // using low-level SMT formulas means that slice assignments cannot be used;
+      // this means that calloc cannot use encoded quantifiers
+      // TODO: rewrite dynamic memory handler to use high-level slice assignments and memset
+      AssignmentFormulaHandler assignmentFormulaHandler =
+          new AssignmentFormulaHandler(
+              conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
+      @SuppressWarnings("deprecation")
       final BooleanFormula initialization =
-          assignmentHandler.makeDestructiveAssignment(
+          assignmentFormulaHandler.makeDestructiveAssignment(
               type,
               CNumericTypes.SIGNED_CHAR,
               AliasedLocation.ofAddress(result),
               Value.ofValue(
                   conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR), 0)),
               true,
-              null);
+              null,
+              conv.bfmgr.makeTrue(),
+              false);
 
       constraints.addConstraint(initialization);
     }
@@ -590,9 +598,9 @@ class DynamicMemoryHandler {
       final CType type, final Optional<CIntegerLiteralExpression> sizeLiteral) {
     if (type instanceof CPointerType) {
       final CType tt = unwrapPointers(type);
-      return sizeLiteral.map((s) -> refineType(tt, s)).orElse(tt);
+      return sizeLiteral.map(s -> refineType(tt, s)).orElse(tt);
     } else if (type instanceof CArrayType) {
-      return sizeLiteral.map((s) -> refineType(type, s)).orElse(type);
+      return sizeLiteral.map(s -> refineType(type, s)).orElse(type);
     } else {
       throw new IllegalArgumentException("Either pointer or array type expected");
     }
@@ -664,7 +672,7 @@ class DynamicMemoryHandler {
                 final Optional<String> lhsPointer =
                     lhs.accept(new PointerApproximatingVisitor(typeHandler, edge));
                 lhsPointer.ifPresent(
-                    (s) -> {
+                    s -> {
                       pts.removeDeferredAllocationPointer(s)
                           .forEach(d -> handleDeferredAllocationPointerRemoval(s));
                       pts.addDeferredAllocationPointer(s, variable); // Now we track the LHS

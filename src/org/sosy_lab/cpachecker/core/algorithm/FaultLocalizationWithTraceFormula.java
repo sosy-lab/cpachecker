@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.ModifiedMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.OriginalMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.SingleUnsatCoreAlgorithm;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -151,6 +152,12 @@ public class FaultLocalizationWithTraceFormula
       description = "whether to include variables beginning with __FAULT_LOCALIZATION_precondition")
   private boolean includeDeclared = true;
 
+  @Option(description = "Whether the found counterexample needs to be precise")
+  private boolean requirePreciseCounterexample = true;
+
+  @Option(description = "Whether to stop searching for further faults if first fault was found.")
+  private boolean stopAfterFirstFault = false;
+
   public FaultLocalizationWithTraceFormula(
       final Algorithm pStoreAlgorithm,
       final Configuration pConfig,
@@ -187,14 +194,19 @@ public class FaultLocalizationWithTraceFormula
 
     faultAlgorithm =
         switch (algorithmType) {
-          case MAXORG -> new OriginalMaxSatAlgorithm();
-          case MAXSAT -> new ModifiedMaxSatAlgorithm();
+          case MAXORG -> new OriginalMaxSatAlgorithm(stopAfterFirstFault);
+          case MAXSAT -> new ModifiedMaxSatAlgorithm(stopAfterFirstFault);
           case ERRINV -> new ErrorInvariantsAlgorithm(pShutdownNotifier, pConfig, logger);
           case UNSAT -> new SingleUnsatCoreAlgorithm();
         };
   }
 
   public void checkOptions() throws InvalidConfigurationException {
+    if (stopAfterFirstFault
+        && (algorithmType == AlgorithmType.ERRINV || algorithmType == AlgorithmType.UNSAT)) {
+      throw new InvalidConfigurationException(
+          "The option 'stopAfterFirstFault' requires MAXORG or MAXSAT as algorithmType");
+    }
     if (!algorithmType.equals(AlgorithmType.ERRINV) && options.makeFlowSensitive()) {
       throw new InvalidConfigurationException(
           "The option 'makeFlowSensitive' (flow-sensitive trace formula) requires the error"
@@ -256,11 +268,21 @@ public class FaultLocalizationWithTraceFormula
       logger.log(Level.INFO, "Starting fault localization...");
       for (CounterexampleInfo info : counterExamples) {
         logger.log(Level.INFO, "Find explanations for fault #" + info.getUniqueId());
-        if (!info.isPreciseCounterExample() || info.isSpurious()) {
+        if (info.isSpurious()) {
           logger.logf(
               Level.INFO,
-              "Algorithm found a spurious or imprecise counterexample. Cannot continue fault"
+              "Algorithm found a spurious counterexample. Cannot continue fault"
                   + " localization on counterexample %s...",
+              info.getUniqueId());
+          continue;
+        }
+        if (!requirePreciseCounterexample && !info.isPreciseCounterExample()) {
+          logger.logf(
+              Level.INFO,
+              "Algorithm found an imprecise counterexample. Cannot continue fault localization on"
+                  + " counterexample %s. Set"
+                  + " faultLocalization.by_traceformula.requirePreciseCounterexample=false to run"
+                  + " fault localization anyways.",
               info.getUniqueId());
           continue;
         }
@@ -273,44 +295,48 @@ public class FaultLocalizationWithTraceFormula
     return status;
   }
 
-  private FaultScoring getScoring(TraceFormula pTraceFormula) {
-    switch (algorithmType) {
-      case MAXORG:
-        // fall-through
-      case MAXSAT:
-        return FaultRankingUtils.concatHeuristics(
-            new VariableCountScoring(),
-            new SetSizeScoring(),
-            new MinimalLineDistanceScoring(
-                pTraceFormula.getPostCondition().getEdgesForPostCondition().get(0)));
-      case ERRINV:
-        // fall-through
-      case UNSAT:
-        return FaultRankingUtils.concatHeuristics(
-            new EdgeTypeScoring(), new CallHierarchyScoring(pTraceFormula.getTrace().toEdgeList()));
-      default:
-        throw new AssertionError("The specified algorithm type does not exist");
+  private List<CFAEdge> fromImpreciseCounterexample(CounterexampleInfo pInfo) {
+    return pInfo.getTargetPath().getFullPath();
+  }
+
+  private List<CFAEdge> fromPreciseCounterexample(CounterexampleInfo pInfo) {
+    // Run the algorithm and create a CFAPathWithAssumptions to the last reached state.
+    CFAPathWithAssumptions assumptions = pInfo.getCFAPathWithAssignments();
+    if (assumptions.isEmpty()) {
+      logger.log(Level.INFO, "The analysis returned no assumptions for a precise counterexample.");
+      return ImmutableList.of();
     }
+
+    // Collect all edges that do not evaluate to true
+    return transformedImmutableListCopy(assumptions, CFAEdgeWithAssumptions::getCFAEdge);
+  }
+
+  private FaultScoring getScoring(TraceFormula pTraceFormula) {
+    return switch (algorithmType) {
+        // fall-through
+      case MAXORG, MAXSAT -> FaultRankingUtils.concatHeuristics(
+          new VariableCountScoring(),
+          new SetSizeScoring(),
+          new MinimalLineDistanceScoring(
+              pTraceFormula.getPostCondition().getEdgesForPostCondition().get(0)));
+        // fall-through
+      case ERRINV, UNSAT -> FaultRankingUtils.concatHeuristics(
+          new EdgeTypeScoring(), new CallHierarchyScoring(pTraceFormula.getTrace().toEdgeList()));
+      default -> throw new AssertionError("The specified algorithm type does not exist");
+    };
   }
 
   private void runAlgorithm(CounterexampleInfo pInfo, FaultLocalizerWithTraceFormula pAlgorithm)
       throws CPAException, InterruptedException {
-
-    // Run the algorithm and create a CFAPathWithAssumptions to the last reached state.
-    CFAPathWithAssumptions assumptions = pInfo.getCFAPathWithAssignments();
-    if (assumptions.isEmpty()) {
-      logger.log(
-          Level.INFO, "The analysis returned no assumptions. Fault localization not possible.");
-      return;
-    }
-
     try {
-      // Collect all edges that do not evaluate to true
-      final List<CFAEdge> edgeList =
-          transformedImmutableListCopy(assumptions, assumption -> assumption.getCFAEdge());
-
+      List<CFAEdge> edgeList =
+          pInfo.isPreciseCounterExample()
+              ? fromPreciseCounterexample(pInfo)
+              : fromImpreciseCounterexample(pInfo);
       if (edgeList.isEmpty()) {
-        logger.log(Level.INFO, "Can't find relevant edges in the error trace.");
+        logger.log(
+            Level.INFO,
+            "Can't find relevant edges in the error trace. Fault Localization not possible.");
         return;
       }
 

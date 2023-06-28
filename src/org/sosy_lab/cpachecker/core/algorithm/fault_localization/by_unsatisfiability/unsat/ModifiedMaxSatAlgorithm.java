@@ -8,14 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.logging.Level;
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
@@ -35,6 +37,11 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
 
   // Statistics
   private final MaxSatStatistics stats = new MaxSatStatistics();
+  private final boolean stopAfterFirstFault;
+
+  public ModifiedMaxSatAlgorithm(boolean pStopAfterFirstFault) {
+    stopAfterFirstFault = pStopAfterFirstFault;
+  }
 
   @Override
   public Set<Fault> run(FormulaContext pContext, TraceFormula tf)
@@ -44,12 +51,12 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     BooleanFormula booleanTraceFormula = tf.toFormula(new SelectorTraceInterpreter(bmgr), true);
 
-    Set<Set<TraceAtom>> hard = new LinkedHashSet<>();
+    Set<ImmutableSet<TraceAtom>> hard = new LinkedHashSet<>();
 
     Set<TraceAtom> soft = new LinkedHashSet<>(tf.getTrace());
     int initSize = soft.size();
 
-    Set<TraceAtom> minUnsatCore = new LinkedHashSet<>();
+    ImmutableSet<TraceAtom> minUnsatCore = ImmutableSet.of();
 
     stats.totalTime.start();
     // loop as long as new unsat cores are found.
@@ -64,6 +71,9 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
       // has bugs
       if (minUnsatCore.size() != initSize) {
         hard.add(minUnsatCore);
+        if (stopAfterFirstFault) {
+          break;
+        }
       }
     }
     stats.totalTime.stop();
@@ -77,7 +87,7 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
                     .transform(
                         fc -> fc.correspondingEdge().getFileLocation().getStartingLineInOrigin())
                     .toSortedList(Integer::compareTo));
-    return Collections3.transformedImmutableSetCopy(
+    return transformedImmutableSetCopy(
         hard,
         h ->
             FluentIterable.from(h)
@@ -97,9 +107,9 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
    * @throws SolverException thrown if tf is satisfiable
    * @throws InterruptedException thrown if interrupted
    */
-  private Set<TraceAtom> getMinUnsatCore(
+  private ImmutableSet<TraceAtom> getMinUnsatCore(
       Set<TraceAtom> pSoftSet,
-      Set<Set<TraceAtom>> pHardSet,
+      Set<ImmutableSet<TraceAtom>> pHardSet,
       BooleanFormula pTraceFormula,
       FormulaContext pContext)
       throws SolverException, InterruptedException {
@@ -124,10 +134,10 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
         }
       }
     } while (changed);
-    return result;
+    return ImmutableSet.copyOf(result);
   }
 
-  private boolean isSubsetOrSupersetOf(Set<TraceAtom> pSet, Set<Set<TraceAtom>> pHardSet) {
+  private boolean isSubsetOrSupersetOf(Set<TraceAtom> pSet, Set<ImmutableSet<TraceAtom>> pHardSet) {
     stats.timeForSubSupCheck.start();
     try {
       for (Set<TraceAtom> hardSet : pHardSet) {
@@ -148,7 +158,7 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
    * @return boolean formula as conjunct of all selector formulas
    */
   private BooleanFormula softSetFormula(Set<TraceAtom> softSet, BooleanFormulaManager bmgr) {
-    return softSet.stream().map(f -> f.getSelector()).collect(bmgr.toConjunction());
+    return softSet.stream().map(TraceAtom::getSelector).collect(bmgr.toConjunction());
   }
 
   @Override

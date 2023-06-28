@@ -30,6 +30,7 @@ import java.util.logging.Level;
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
@@ -453,7 +454,7 @@ non terminal EnsuresClause ens_clause;
 non terminal AssumesClause ass_clause;
 non terminal ACSLLoopInvariant loop_clauses;
 non terminal CompletenessClause completeness_clause;
-non terminal Map<List<Behavior>, ACSLLoopInvariant> loop_behaviors;
+non terminal Map<ImmutableList<Behavior>, ACSLLoopInvariant> loop_behaviors;
 non terminal List<String> behavior_identifiers, identifiers;
 non terminal Behavior behavior;
 non terminal ACSLPredicate predicate;
@@ -491,33 +492,31 @@ annotation ::= fcontract:f ANNOTATION_END     {: RESULT = f; :}
             | assertion:a ANNOTATION_END      {: RESULT = a; :}
             | SYNTAXERROR {: RESULT = new InvalidAnnotation(); :};
 assertion ::= NEXTCONTRACT ASSERT predicate:p SEMI PRED_START                        {: RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.ASSERT, p); :}
-            | NEXTCONTRACT behavior_identifiers:i ASSERT predicate:p SEMI PRED_START {: List<Behavior> enclosingBehaviors = new ArrayList<>();
-                                                                                        for(String id : i) { enclosingBehaviors.add(parser.getBehavior(id)); }
+            | NEXTCONTRACT behavior_identifiers:i ASSERT predicate:p SEMI PRED_START {: ImmutableList<Behavior> enclosingBehaviors =
+                                                                                            Collections3.transformedImmutableListCopy(i, parser::getBehavior);
                                                                                         RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.ASSERT, enclosingBehaviors, p); :}
             | NEXTCONTRACT CHECK predicate:p SEMI PRED_START                         {: RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.CHECK, p); :}
-            | NEXTCONTRACT behavior_identifiers:i CHECK predicate:p SEMI PRED_START {: List<Behavior> enclosingBehaviors = new ArrayList<>();
-                                                                             for(String id : i) { enclosingBehaviors.add(parser.getBehavior(id)); }
+            | NEXTCONTRACT behavior_identifiers:i CHECK predicate:p SEMI PRED_START {: ImmutableList<Behavior> enclosingBehaviors =
+                                                                                           Collections3.transformedImmutableListCopy(i, parser::getBehavior);
                                                                              RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.CHECK, enclosingBehaviors, p); :};
 loopannotation ::= NEXTCONTRACT loop_clauses:c loop_behaviors:b {: RESULT = new ACSLLoopAnnotation(c, b); :}
                 | NEXTCONTRACT loop_behaviors:b                 {: RESULT = new ACSLLoopAnnotation(b); :}
                 | NEXTCONTRACT loop_clauses:c                   {: RESULT = new ACSLLoopAnnotation(c); :};
 fcontract ::= NEXTCONTRACT clauses:c                {: RESULT = c.build(); :};
 scontract ::= NEXTCONTRACT behavior_identifiers:i clauses:c
-                                                    {: List<Behavior> enclosingBehaviors = new ArrayList<>();
-                                                       for(String id : i) { enclosingBehaviors.add(parser.getBehavior(id)); }
+                                                    {: ImmutableList<Behavior> enclosingBehaviors =
+                                                           Collections3.transformedImmutableListCopy(i, parser::getBehavior);
                                                        RESULT = StatementContract.fromFunctionContract(enclosingBehaviors, c.build()); :};
 behavior_identifiers ::= FOR identifiers:i COLON PRED_START {: RESULT = i; :};
 identifiers ::= identifiers:is COMMA IDENTIFIER:i    {: is.add(i); RESULT = is; :}
             | IDENTIFIER:i      {: List<String> identifiers = new ArrayList<>();
                                    identifiers.add(i); RESULT = identifiers; :};
-loop_behaviors ::= loop_behaviors:b behavior_identifiers:i loop_clauses:c   {: List<Behavior> holdsFor = new ArrayList<>(i.size());
-                                                                               for(String id : i) {
-                                                                               holdsFor.add(parser.getBehavior(id)); }
+loop_behaviors ::= loop_behaviors:b behavior_identifiers:i loop_clauses:c   {: ImmutableList<Behavior> holdsFor =
+                                                                                   Collections3.transformedImmutableListCopy(i, parser::getBehavior);
                                                                                b.put(holdsFor, c); RESULT = b; :}
-                | behavior_identifiers:i loop_clauses:c                     {: Map<List<Behavior>, ACSLLoopInvariant> loopBehaviors = new HashMap<>();
-                                                                               List<Behavior> holdsFor = new ArrayList<>(i.size());
-                                                                               for(String id : i) {
-                                                                               holdsFor.add(parser.getBehavior(id)); }
+                | behavior_identifiers:i loop_clauses:c                     {: Map<ImmutableList<Behavior>, ACSLLoopInvariant> loopBehaviors = new HashMap<>();
+                                                                               ImmutableList<Behavior> holdsFor =
+                                                                                   Collections3.transformedImmutableListCopy(i, parser::getBehavior);
                                                                                loopBehaviors.put(holdsFor, c); RESULT = loopBehaviors; :};
 loop_clauses ::= loop_clauses:c LINVARIANT predicate:p SEMI PRED_START {: RESULT = c.and(p); :}
             | LINVARIANT predicate:p SEMI PRED_START                   {: assert p.isAllowedIn(ACSLLoopInvariant.class); RESULT = new ACSLLoopInvariant(p); :};
@@ -536,12 +535,12 @@ behavior ::= BEHAVIOR IDENTIFIER:i COLON PRED_START behavior_body:bb   {: bb.set
                                                                           parser.putBehavior(b); RESULT = b; :};
 completeness_clauses ::= completeness_clauses:cs completeness_clause:c  {: cs.add(c); RESULT = cs; :}
                         | /* nothing */                                 {: RESULT = new HashSet<>(); :};
-completeness_clause ::= COMPLETE_BEHAVIORS identifiers:i SEMI PRED_START {: List<Behavior> behaviors = new ArrayList<>(i.size());
-                                                               for (String id : i) { behaviors.add(parser.getBehavior(id)); }
+completeness_clause ::= COMPLETE_BEHAVIORS identifiers:i SEMI PRED_START {: ImmutableList<Behavior> behaviors =
+                                                                   Collections3.transformedImmutableListCopy(i, parser::getBehavior);
                                                                RESULT = new CompletenessClause(behaviors, CompletenessClause.RelationKind.COMPLETE); :}
                         | COMPLETE_BEHAVIORS SEMI PRED_START {: RESULT = new CompletenessClause(ImmutableList.of(), CompletenessClause.RelationKind.COMPLETE); :}
-                        | DISJOINT_BEHAVIORS identifiers:i SEMI PRED_START {: List<Behavior> behaviors = new ArrayList<>(i.size());
-                                                               for (String id : i) { behaviors.add(parser.getBehavior(id)); }
+                        | DISJOINT_BEHAVIORS identifiers:i SEMI PRED_START {: ImmutableList<Behavior> behaviors =
+                                                                   Collections3.transformedImmutableListCopy(i, parser::getBehavior);
                                                                RESULT = new CompletenessClause(behaviors, CompletenessClause.RelationKind.DISJOINT); :}
                         | DISJOINT_BEHAVIORS SEMI PRED_START {: RESULT = new CompletenessClause(ImmutableList.of(), CompletenessClause.RelationKind.DISJOINT); :};
 behavior_body ::= ass_clauses:a req_clauses:r ens_clauses:e

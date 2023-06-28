@@ -93,13 +93,15 @@ public class FinalAssumeEdgesOnSameLinePostConditionComposer implements PostCond
           "Cannot extract post-condition from counterexample: " + pCounterexample);
     }
     postConditionEdges = Lists.reverse(postConditionEdges);
-    postConditionEdges.forEach(
-        edge ->
-            context
-                .getLogger()
-                .log(
-                    Level.FINEST,
-                    "tfpostcondition=" + edge.getFileLocation().getStartingLineInOrigin()));
+    if (context.getLogger().wouldBeLogged(Level.FINEST)) {
+      postConditionEdges.forEach(
+          edge ->
+              context
+                  .getLogger()
+                  .log(
+                      Level.FINEST,
+                      "tfpostcondition=" + edge.getFileLocation().getStartingLineInOrigin()));
+    }
     return new PostCondition(
         postConditionEdges,
         Lists.reverse(irrelevant),

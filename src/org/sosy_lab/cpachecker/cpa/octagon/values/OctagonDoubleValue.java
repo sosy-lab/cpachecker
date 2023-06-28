@@ -199,13 +199,7 @@ public class OctagonDoubleValue extends OctagonNumericValue<Double> {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof OctagonDoubleValue)) {
-      return false;
-    }
-
-    OctagonDoubleValue other = (OctagonDoubleValue) obj;
-
-    return value.equals(other.value);
+    return obj instanceof OctagonDoubleValue other && value.equals(other.value);
   }
 
   @Override
