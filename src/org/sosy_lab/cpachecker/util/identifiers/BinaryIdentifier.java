@@ -14,9 +14,9 @@ import java.util.Objects;
 import java.util.Set;
 
 public final class BinaryIdentifier implements AbstractIdentifier {
-  final AbstractIdentifier id1;
-  final AbstractIdentifier id2;
-  final int dereference;
+  private final AbstractIdentifier id1;
+  private final AbstractIdentifier id2;
+  private final int dereference;
 
   public BinaryIdentifier(AbstractIdentifier i1, AbstractIdentifier i2, int deref) {
     id1 = i1;

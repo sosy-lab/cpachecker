@@ -16,9 +16,9 @@ import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
 public abstract sealed class SingleIdentifier implements AbstractIdentifier
     permits FunctionIdentifier, StructureIdentifier, VariableIdentifier {
 
-  protected String name;
-  protected CType type;
-  protected int dereference;
+  protected final String name;
+  protected final CType type;
+  protected final int dereference;
 
   protected SingleIdentifier(String nm, CType tp, int deref) {
     name = nm;

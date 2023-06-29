@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 @SuppressWarnings("EqualsGetClass") // should be refactored
 public sealed class StructureIdentifier extends SingleIdentifier permits StructureFieldIdentifier {
 
-  protected AbstractIdentifier owner;
+  protected final AbstractIdentifier owner;
 
   public StructureIdentifier(String pNm, CType pTp, int dereference, AbstractIdentifier own) {
     super(pNm, pTp, dereference);
