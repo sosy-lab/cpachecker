@@ -12,6 +12,8 @@ set -euo pipefail
 IFS=$'\n\t'
 shopt -s globstar
 
+DIR="$(dirname "$0")/.."
+
 # This checks for "equals()" implementations where the body is not one of the following:
 # - a single "return" statement", or
 # - a "if (foo != null || getClass() != foo.getClass())" check followed by a variable declaration with a cast and a single "return" statement, or
@@ -29,7 +31,7 @@ FORBIDDEN_EQUALS_METHOD='\n( *)public (?:final )?boolean equals\((?:final )?(?:@
 # because it changes the line separator of grep to \0.
 # We require -P because the regexp uses negative look-ahead assertions.
 
-if grep -q -z -P "$FORBIDDEN_EQUALS_METHOD" src/**/*.java; then
+if grep -q -z -P "$FORBIDDEN_EQUALS_METHOD" "$DIR/src"/**/*.java; then
   cat >&2 <<'EOF'
 Implementation of equals() found that does not conform to one of our standard patterns.
 Please either use a record, or use our standard pattern for equals(),
@@ -39,6 +41,6 @@ More information is in doc/StyleGuide.md
 These equals() implementations should be treated in this way:
 
 EOF
-  grep -o -z --color=always -P "$FORBIDDEN_EQUALS_METHOD" src/**/*.java | tr '\0' '\n'
+  grep -o -z --color=always -P "$FORBIDDEN_EQUALS_METHOD" "$DIR/src"/**/*.java | tr '\0' '\n'
   exit 1
 fi
