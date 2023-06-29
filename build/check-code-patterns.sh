@@ -14,6 +14,25 @@ shopt -s globstar
 
 DIR="$(dirname "$0")/.."
 
+if ( command -v git && git rev-parse --is-inside-work-tree ) > /dev/null 2>&1; then
+  # We use git ls-files instead of recursive grep because many people
+  # have lots of other files inside their CPAchecker directory,
+  # and scanning these could take a long time.
+  FORBIDDEN_CPACHECKER_SPELLING='CPA( c| C|C)hecker'
+  if [ ! -z "$(git ls-files -z "$DIR" | xargs -0 grep -I -P "$FORBIDDEN_CPACHECKER_SPELLING")" ]; then
+    cat >&2 <<'EOF'
+The only correct spelling of "CPAchecker" is exactly like this,
+i.e., with a lowercase second "c" and no whitespace in the middle.
+Please correct the following occurrences:
+
+EOF
+    git ls-files -z "$DIR" | xargs -0 grep -I -P --color=always "$FORBIDDEN_CPACHECKER_SPELLING" || true
+    echo
+    ERROR=1
+  fi
+fi
+
+
 # This checks for "equals()" implementations where the body is not one of the following:
 # - a single "return" statement", or
 # - a "if (foo != null || getClass() != foo.getClass())" check followed by a variable declaration with a cast and a single "return" statement, or
