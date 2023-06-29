@@ -760,13 +760,8 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
         return true;
       }
 
-      if (!(pObject instanceof Node)) {
-        return false;
-      }
-
-      Node<?, ?, ?> other = (Node<?, ?, ?>) pObject;
-
-      return id == other.id
+      return pObject instanceof Node<?, ?, ?> other
+          && id == other.id
           && hash == other.hash
           && type == other.type
           && Objects.equals(procedure, other.procedure)
@@ -825,12 +820,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
         return true;
       }
 
-      if (!(pObject instanceof GraphNode)) {
-        return false;
-      }
-
-      GraphNode<?, ?> other = (GraphNode<?, ?>) pObject;
-      return node.equals(other.node);
+      return pObject instanceof GraphNode<?, ?> other && node.equals(other.node);
     }
 
     @Override
