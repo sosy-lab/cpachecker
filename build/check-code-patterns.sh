@@ -21,7 +21,7 @@ shopt -s globstar
 # - anything of the above preceded by a "this == null" check, or
 # - a single "throw new UnsupportedOperationException".
 # 
-FORBIDDEN_EQUALS_METHOD='\n( *)public boolean equals\((@Nullable )?Object ([^() ;]*)\) {\n(?!(\n* *if \(this == \3\) {\n *return true;\n *})?(\n* *if \((\3 == null|\!super\.equals\(\3\)) \|\| getClass\(\) \!= \3\.getClass\(\)\) {\n *return false;\n *}\n* *([^(){};=]*) ([^ (){};]*) = \(\7\) \3;)?\n* *(\/\/|return|if \(\3 instanceof [^ (){};]* [^ (){};]*(\n* *\&\& [^{};]*)?\) {\n* *\/\/) |\n* *throw new UnsupportedOperationException)(.|\n)*?\n\1}'
+FORBIDDEN_EQUALS_METHOD='\n( *)public boolean equals\((?:final )?(@Nullable )?Object ([^() ;]*)\) {\n(?!(\n* *if \(this == \3\) {\n *return true;\n *})?(\n* *if \((\3 == null|\!super\.equals\(\3\)) \|\| getClass\(\) \!= \3\.getClass\(\)\) {\n *return false;\n *}\n* *([^(){};=]*) ([^ (){};]*) = \(\7\) \3;)?\n* *(\/\/|return|if \(\3 instanceof [^ (){};]* [^ (){};]*(\n* *\&\& [^{};]*)?\) {\n* *\/\/) |\n* *throw new UnsupportedOperationException)(.|\n)*?\n\1}'
 
 # With "grep -z" we can use regexp to match across lines,
 # because it changes the line separator of grep to \0.
