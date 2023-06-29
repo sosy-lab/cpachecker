@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
  * Represents an approximation of a node in dependency graph i.e. variable, field or `top' (unknown
  * location).
  */
-abstract class VariableOrField implements Comparable<VariableOrField> {
+abstract sealed class VariableOrField implements Comparable<VariableOrField> {
   private static final class Unknown extends VariableOrField {
     private Unknown() {}
 

@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
  * A graph-based representation of memory-structures. The most important part is the bipartite
  * directed graph of {@link SMGValue}s and {@link SMGObject}s connected by {@link SMGEdge}s.
  */
-public class SMG implements UnmodifiableSMG {
+public sealed class SMG implements UnmodifiableSMG permits CLangSMG {
   private PersistentSet<SMGObject> objects;
   private PersistentSet<SMGValue> values;
   private SMGHasValueEdges hv_edges;

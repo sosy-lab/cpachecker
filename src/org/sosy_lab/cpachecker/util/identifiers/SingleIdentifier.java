@@ -13,7 +13,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
 
 @SuppressWarnings("EqualsGetClass") // should be refactored
-public abstract class SingleIdentifier implements AbstractIdentifier {
+public abstract sealed class SingleIdentifier implements AbstractIdentifier
+    permits FunctionIdentifier, StructureIdentifier, VariableIdentifier {
 
   protected String name;
   protected CType type;
