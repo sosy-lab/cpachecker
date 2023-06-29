@@ -33,6 +33,22 @@ EOF
 fi
 
 
+FORBIDDEN_OUTPUT='System\.(out|err)\.print'
+
+if grep -q -P "$FORBIDDEN_OUTPUT" "$DIR/src"/**/*.java; then
+  cat >&2 <<'EOF'
+Use of System.out or System.err found. We do not want raw output,
+please use proper logging as described in doc/Logging.md
+(https://gitlab.com/sosy-lab/software/cpachecker/-/blob/trunk/doc/Logging.md).
+Please fix the following cases:
+
+EOF
+  grep --color=always -P "$FORBIDDEN_OUTPUT" "$DIR/src"/**/*.java
+  echo
+  ERROR=1
+fi
+
+
 # This checks for "equals()" implementations where the body is not one of the following:
 # - a single "return" statement", or
 # - a "if (foo != null || getClass() != foo.getClass())" check followed by a variable declaration with a cast and a single "return" statement, or
