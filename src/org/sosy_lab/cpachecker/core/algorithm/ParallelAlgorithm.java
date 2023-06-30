@@ -23,6 +23,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -159,7 +160,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     } finally {
       // Wait some time so that all threads are shut down and we have a happens-before relation
       // (necessary for statistics).
-      if (!awaitTermination(exec, 10, TimeUnit.SECONDS)) {
+      if (!Uninterruptibles.awaitTerminationUninterruptibly(exec, 10, TimeUnit.SECONDS)) {
         logger.log(Level.WARNING, "Not all threads are terminated although we have a result.");
       }
 
@@ -172,28 +173,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
-  }
-
-  private static boolean awaitTermination(
-      ListeningExecutorService exec, long timeout, TimeUnit unit) {
-    long timeoutNanos = unit.toNanos(timeout);
-    long endNanos = System.nanoTime() + timeoutNanos;
-
-    boolean interrupted = Thread.interrupted();
-    try {
-      while (true) {
-        try {
-          return exec.awaitTermination(timeoutNanos, TimeUnit.NANOSECONDS);
-        } catch (InterruptedException e) {
-          interrupted = false;
-          timeoutNanos = Math.max(0, endNanos - System.nanoTime());
-        }
-      }
-    } finally {
-      if (interrupted) {
-        Thread.currentThread().interrupt();
-      }
-    }
   }
 
   @SuppressWarnings("checkstyle:IllegalThrows")
