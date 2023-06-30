@@ -38,8 +38,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.ProverEnvironment;
-import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "backwardBMC")
@@ -53,13 +51,11 @@ public class BackwardBMCAlgorithm implements Algorithm {
   private boolean simplifyBooleanFormula = false;
 
   private LogManager logger;
-  private Configuration config;
   private Algorithm algorithm;
   private ConfigurableProgramAnalysis cpa;
   private CFA cfa;
 
   private final FormulaManagerView fmgr;
-  // private final PathFormulaManager pmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
 
@@ -80,7 +76,6 @@ public class BackwardBMCAlgorithm implements Algorithm {
     pConfig.inject(this, BackwardBMCAlgorithm.class);
 
     logger = pLogger;
-    config = pConfig;
     stats = new BMCStatistics();
     algorithm = pAlgorithm;
     cpa = pCPA;
@@ -92,10 +87,8 @@ public class BackwardBMCAlgorithm implements Algorithm {
     solver = predCpa.getSolver();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    // pmgr = predCpa.getPathFormulaManager();
 
     shutdownNotifier = pShutdownManager.getNotifier();
-    // is this the right target location provider?
     targetLocationProvider = new CachingTargetLocationProvider(shutdownNotifier, logger, cfa);
   }
 
@@ -108,62 +101,57 @@ public class BackwardBMCAlgorithm implements Algorithm {
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
 
-    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+    AlgorithmStatus status;
 
-      do {
+    do {
+      status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
 
-        AlgorithmStatus status;
-        status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
+      if (FluentIterable.from(reachedSet)
+          .skip(1) // first state of reached is always an abstraction state, so skip it
+          .filter(Predicates.not(AbstractStates::isTargetState)) // target states may be
+          // abstraction states
+          .anyMatch(PredicateAbstractState::containsAbstractionState)) {
 
-        if (FluentIterable.from(reachedSet)
-            .skip(1) // first state of reached is always an abstraction state, so skip it
-            .filter(Predicates.not(AbstractStates::isTargetState)) // target states may be
-            // abstraction states
-            .anyMatch(PredicateAbstractState::containsAbstractionState)) {
+        logger.log(
+            Level.WARNING,
+            "Backward BMC algorithm does not work with abstractions. Could not check for"
+                + " satisfiability!");
+        return status;
+      }
+      shutdownNotifier.shutdownIfNecessary();
 
-          logger.log(
-              Level.WARNING,
-              "Backward BMC algorithm does not work with abstractions. Could not check for"
-                  + " satisfiability!");
-          return status;
-        }
-        shutdownNotifier.shutdownIfNecessary();
+      FluentIterable<AbstractState> targetState = getTarget(reachedSet);
+      if (targetState.isEmpty()) {
+        logger.log(Level.INFO, "No path to target found...");
+        return status;
+      }
+      FluentIterable<AbstractState> loopHeads = getAbstractLoopHeads(reachedSet);
 
-        FluentIterable<AbstractState> targetState = getTarget(reachedSet);
-        if (targetState.isEmpty()) {
-          // No target state found
-          return status;
-        }
-        FluentIterable<AbstractState> loopHeads = getAbstractLoopHeads(reachedSet);
+      final boolean targetSafe = isSafe(targetState, solver);
+      final boolean loopHeadsSafe = isSafe(loopHeads, solver);
 
-        final boolean targetSafe = isSafe(targetState, prover);
-        final boolean loopHeadsSafe = isSafe(loopHeads, prover);
+      // if all targets and loop heads are safe, the result is sound
+      if (targetSafe && loopHeadsSafe) {
+        InterpolationHelper.removeUnreachableTargetStates(reachedSet);
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
+      // if we have a satisfiable path to target, the error is reachable
+      if (!targetSafe) {
+        return AlgorithmStatus.UNSOUND_AND_PRECISE;
+      }
 
-        // if all loop heads are unsatisfiable, the result is sound
-        if (targetSafe && loopHeadsSafe) {
-          // How do we get the right result?
-          reachedSet.remove(targetState.get(0));
-          return AlgorithmStatus.SOUND_AND_PRECISE;
-        }
-        // if we have a satisfiable path to target, target is reachable
-        if (!targetSafe) {
-          return AlgorithmStatus.SOUND_AND_PRECISE;
-        }
+    } while (status.isSound() && adjustConditions());
 
-      } while (adjustConditions());
-    }
-
-    return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+    // Could not find a path to target within unrolling bound
+    return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
-  /** May return null if no target state found */
   private FluentIterable<AbstractState> getTarget(final ReachedSet reachedSet) {
-    // Should be only one target state: the main entry; do we check this?
     return FluentIterable.from(reachedSet).filter(AbstractStates::isTargetState);
   }
 
   // Returns disjunction of path formulas
-  private boolean isSafe(FluentIterable<AbstractState> pStates, ProverEnvironment pProver)
+  private boolean isSafe(FluentIterable<AbstractState> pStates, Solver pSolver)
       throws CPAException, InterruptedException {
     BooleanFormula formula =
         BMCHelper.createFormulaFor(pStates, bfmgr, Optional.ofNullable(shutdownNotifier));
@@ -183,15 +171,12 @@ public class BackwardBMCAlgorithm implements Algorithm {
     stats.satCheck.start();
     final boolean safe;
     try {
-      pProver.push(formula);
-      safe = pProver.isUnsat();
+      safe = pSolver.isUnsat(formula);
     } catch (SolverException e) {
       throw new CPAException("Solver Failure " + e.getMessage(), e);
     } finally {
       stats.satCheck.stop();
     }
-
-    pProver.pop();
 
     return safe;
   }
