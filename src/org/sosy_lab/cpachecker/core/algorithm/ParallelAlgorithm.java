@@ -160,7 +160,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     } finally {
       // Wait some time so that all threads are shut down and we have a happens-before relation
       // (necessary for statistics).
-      if (!Uninterruptibles.awaitTerminationUninterruptibly(exec, 10, TimeUnit.SECONDS)) {
+      // Time limit here should be somewhat shorter than in ForceTerminationOnShutdown.
+      if (!Uninterruptibles.awaitTerminationUninterruptibly(exec, 8, TimeUnit.SECONDS)) {
         logger.log(Level.WARNING, "Not all threads are terminated although we have a result.");
       }
 
