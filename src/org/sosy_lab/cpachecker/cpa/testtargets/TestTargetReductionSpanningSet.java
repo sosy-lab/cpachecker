@@ -79,8 +79,12 @@ public class TestTargetReductionSpanningSet {
                 CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf, entryExit.getSecond())
             : null;
 
-    ImmutableSet<CFAEdge> reachedFromExit =
-        getReachableFromExit(copyToTarget, entryExit.getSecond());
+    ImmutableSet<CFAEdge> reachedFromExit;
+    if (entryExit.getSecond() == null) {
+      reachedFromExit = ImmutableSet.empty();
+    } else {
+      reachedFromExit = getReachableFromExit(copyToTarget, entryExit.getSecond());
+    }
 
     for (CFAEdge targetPred : pTargets) {
       for (CFAEdge targetSucc : pTargets) {
