@@ -583,6 +583,8 @@ public class CFAReverser {
                     edge.isArtificialIntermediate());
 
             addToCFA(assumeEdge);
+
+            createAbortCall(curr, assumeEdge);
             curr = next;
 
             pLog.log(Level.INFO, "NEWEDGE: " + assumeEdge.toString());
@@ -597,11 +599,12 @@ public class CFAReverser {
                   new CStatementEdge("", assignStmt, FileLocation.DUMMY, curr, next);
               addToCFA(assignmentEdge);
               pLog.log(Level.INFO, "NEWEDGE: " + assignmentEdge.toString());
+              curr = next;
             }
           }
         }
 
-        BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, next, to, "AFTER ASSUME");
+        BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "AFTER ASSUME");
         addToCFA(blankEdge);
 
         return to;
@@ -773,7 +776,6 @@ public class CFAReverser {
 
         // left hand side
         lvalue.accept(lfinder);
-        // curr = lfinder.initNewVar(curr);
 
         CBinaryExpression assumeExpr =
             new CBinaryExpression(
@@ -832,36 +834,6 @@ public class CFAReverser {
         private LeftVariableFinder(HashSet<String> rightVars) {
           this.rightVars = rightVars;
           this.newVars = new HashSet<>();
-        }
-
-        private CFANode _initNewVar(CFANode from) {
-
-          CFANode curr = from;
-          CFANode next = null;
-          for (String newvar : newVars) {
-            CVariableDeclaration decl = variables.get(newvar);
-            next = new CFANode(curr.getFunction());
-            nodes.put(next.getFunctionName(), next);
-            CDeclarationEdge ndeclEdge =
-                new CDeclarationEdge("", FileLocation.DUMMY, curr, next, decl);
-            addToCFA(ndeclEdge);
-            curr = next;
-
-            CFunctionCallExpression ndetCallExpr = createNoDetCallExpr(decl.getType());
-            CLeftHandSide varid = new CIdExpression(FileLocation.DUMMY, decl);
-            CFunctionCallAssignmentStatement ndetAssign =
-                new CFunctionCallAssignmentStatement(FileLocation.DUMMY, varid, ndetCallExpr);
-
-            next = new CFANode(curr.getFunction());
-            nodes.put(next.getFunctionName(), next);
-            CStatementEdge ndetEdge =
-                new CStatementEdge("", ndetAssign, FileLocation.DUMMY, curr, next);
-
-            addToCFA(ndetEdge);
-            curr = next;
-          }
-
-          return curr;
         }
 
         private void createNewVar(CVariableDeclaration decl) {
@@ -960,34 +932,6 @@ public class CFAReverser {
 
         private ExprVariableFinder() {
           this.newVars = new HashSet<>();
-        }
-
-        private CFANode _initNewVars(CFANode from) {
-          CFANode curr = from;
-          CFANode next = null;
-          for (String newvar : newVars) {
-            CVariableDeclaration decl = variables.get(newvar);
-
-            next = new CFANode(curr.getFunction());
-            nodes.put(next.getFunctionName(), next);
-            CDeclarationEdge ndeclEdge =
-                new CDeclarationEdge("", FileLocation.DUMMY, curr, next, decl);
-            addToCFA(ndeclEdge);
-            curr = next;
-
-            CFunctionCallExpression ndetCallExpr = createNoDetCallExpr(decl.getType());
-            CLeftHandSide varid = new CIdExpression(FileLocation.DUMMY, decl);
-            CFunctionCallAssignmentStatement ndetAssign =
-                new CFunctionCallAssignmentStatement(FileLocation.DUMMY, varid, ndetCallExpr);
-
-            next = new CFANode(curr.getFunction());
-            nodes.put(next.getFunctionName(), next);
-            CStatementEdge ndetEdge =
-                new CStatementEdge("", ndetAssign, FileLocation.DUMMY, curr, next);
-            addToCFA(ndetEdge);
-            curr = next;
-          }
-          return curr;
         }
 
         private void createNewVar(CVariableDeclaration decl) {
