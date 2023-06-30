@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -52,6 +53,7 @@ public class BackwardBMCAlgorithm implements Algorithm {
   private boolean simplifyBooleanFormula = false;
 
   private LogManager logger;
+  private Configuration config;
   private Algorithm algorithm;
   private ConfigurableProgramAnalysis cpa;
   private CFA cfa;
@@ -69,12 +71,16 @@ public class BackwardBMCAlgorithm implements Algorithm {
   public BackwardBMCAlgorithm(
       Algorithm pAlgorithm,
       ConfigurableProgramAnalysis pCPA,
+      Configuration pConfig,
       LogManager pLogger,
       final ShutdownManager pShutdownManager,
       CFA pCFA)
       throws InvalidConfigurationException {
 
+    pConfig.inject(this, BackwardBMCAlgorithm.class);
+
     logger = pLogger;
+    config = pConfig;
     stats = new BMCStatistics();
     algorithm = pAlgorithm;
     cpa = pCPA;

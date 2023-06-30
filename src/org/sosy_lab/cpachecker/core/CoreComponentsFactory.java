@@ -619,7 +619,7 @@ public class CoreComponentsFactory {
 
       if (useBackwardBMC) {
         verifyNotNull(shutdownManager);
-        algorithm = new BackwardBMCAlgorithm(algorithm, cpa, logger, shutdownManager, cfa);
+        algorithm = new BackwardBMCAlgorithm(algorithm, cpa, config, logger, shutdownManager, cfa);
       }
 
       if (useIMC) {

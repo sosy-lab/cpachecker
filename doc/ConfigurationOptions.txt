@@ -162,6 +162,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -586,6 +587,10 @@ assumptions.file = "assumptions.txt"
 # If it is enabled, check if a state that should lead to false state indeed
 # has successors.
 assumptions.removeNonExploredWithoutSuccessors = false
+
+# Try to simplify the structure of formulas for the sat check of Backward
+# BMC. The improvement depends on the underlying SMT solver.
+backwardBMC.simplifyBooleanFormula = false
 
 # comma-separated list of files with specifications that should be used 
 # in a backwards analysis; used if the analysis starts at the target states!
