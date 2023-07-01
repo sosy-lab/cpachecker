@@ -137,13 +137,14 @@ public class CFAReverser {
     private final Map<CFANode, CFANode> nodeMap;
     private final ImmutableSet<CFANode> targets;
     private final Set<CFANode> newTargets;
+    private final Map<String, CFunctionDeclaration> funcDecls;
     private static CType intType =
         new CSimpleType(
             false, false, CBasicType.INT, false, false, false, false, false, false, false);
     private static CType boolType =
         new CSimpleType(
             false, false, CBasicType.BOOL, false, false, false, false, false, false, false);
-    private static CType voidType = CVoidType.VOID;
+    // private static CType voidType = CVoidType.VOID;
 
     private CfaBuilder(
         Configuration pConfiguration,
@@ -160,6 +161,7 @@ public class CFAReverser {
       this.nodes = TreeMultimap.create();
       this.funcDeclMap = new HashMap<>();
       this.nodeMap = new HashMap<>();
+      this.funcDecls = new HashMap<>();
       // Search for the target in the original CFA
       this.targets = targetFinder.tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pSpec);
       this.newTargets = new HashSet<>();
@@ -379,8 +381,8 @@ public class CFAReverser {
         CFANode curr = newDummyNode;
         CFANode next = null;
 
-        for (String newvar : variables.keySet()) {
-          CVariableDeclaration decl = variables.get(newvar);
+        for (Map.Entry<String, CVariableDeclaration> entry : variables.entrySet()) {
+          CVariableDeclaration decl = entry.getValue();
           next = new CFANode(curr.getFunction());
           nodes.put(next.getFunctionName(), next);
           CDeclarationEdge ndeclEdge =
@@ -412,6 +414,17 @@ public class CFAReverser {
           nodes.put(funcName, dummyTarget);
           curr = dummyTarget;
           next = null;
+
+          // Initialize all function after entering the target.
+          for (Map.Entry<String, CFunctionDeclaration> e : funcDecls.entrySet()) {
+            next = new CFANode(curr.getFunction());
+            nodes.put(next.getFunctionName(), next);
+            CDeclarationEdge declEdge =
+                new CDeclarationEdge(e.getKey(), FileLocation.DUMMY, curr, next, e.getValue());
+
+            addToCFA(declEdge);
+            curr = next;
+          }
           for (String newvar : variables.keySet()) {
             CVariableDeclaration decl = variables.get(newvar);
             next = new CFANode(curr.getFunction());
@@ -563,70 +576,7 @@ public class CFAReverser {
 
             addToCFA(assumeEdge);
 
-            // createAbortCall(curr, assumeEdge);
             curr = next;
-
-            /*  next = new CFANode(curr.getFunction());
-            nodes.put(next.getFunctionName(), next);
-
-            CExpression three = new CIntegerLiteralExpression(FileLocation.DUMMY, intType, BigInteger.valueOf(3));
-
-            CExpression one = new CIntegerLiteralExpression(FileLocation.DUMMY, intType, BigInteger.valueOf(1));
-
-            CExpression assumeOne = new CBinaryExpression(FileLocation.DUMMY,
-            boolType, boolType, newOp1, one, BinaryOperator.EQUALS);
-
-            CAssumeEdge assumeOneEdge = new CAssumeEdge("", FileLocation.DUMMY, curr, next, assumeOne, true, false, false);
-
-            addToCFA(assumeOneEdge);
-
-            curr = next;
-
-
-            next = new CFANode(curr.getFunction());
-            nodes.put(next.getFunctionName(), next);
-
-            CExpression assumeThree = new CBinaryExpression(FileLocation.DUMMY,
-            boolType, boolType, newOp1, three, BinaryOperator.EQUALS);
-
-            CAssumeEdge assumeThreeEdge = new CAssumeEdge("", FileLocation.DUMMY, curr, next, assumeThree, true, false, false);
-
-            addToCFA(assumeThreeEdge);
-            curr = next;  */
-
-            // CExpressionAssignmentStatement stmt = new
-            // CExpressionAssignmentStatement(FileLocation.DUMMY, newOp1, three);
-            // CStatementEdge stmtEdge = new CStatementEdge("", stmt, FileLocation.DUMMY, curr,
-            // next);
-            // addToCFA(stmtEdge);
-
-            /*
-            curr = next;
-            next = new CFANode(curr.getFunction());
-            nodes.put(next.getFunctionName(), next);
-
-
-            CExpression assumeOne = new CBinaryExpression(FileLocation.DUMMY,
-            boolType, boolType, newOp1, one, BinaryOperator.EQUALS);
-
-            CAssumeEdge assumeThreeEdge = new CAssumeEdge("", FileLocation.DUMMY, curr, next, assumeOne, true, false, false);
-
-
-            addToCFA(assumeThreeEdge);*/
-
-            // curr = next;
-
-            if ((operator.equals(BinaryOperator.EQUALS) && edge.getTruthAssumption())
-                || (operator.equals(BinaryOperator.NOT_EQUALS) && !edge.getTruthAssumption())) {
-              next = new CFANode(curr.getFunction());
-              nodes.put(next.getFunctionName(), next);
-              CExpressionAssignmentStatement assignStmt =
-                  new CExpressionAssignmentStatement(FileLocation.DUMMY, newOp1, newOp2);
-              CStatementEdge assignmentEdge =
-                  new CStatementEdge("", assignStmt, FileLocation.DUMMY, curr, next);
-              addToCFA(assignmentEdge);
-              curr = next;
-            }
           }
         }
 
@@ -635,76 +585,6 @@ public class CFAReverser {
 
         return to;
       }
-
-      /*
-      private CFANode handleBinaryAssumption(CAssumeEdge edge, CBinaryExpression expr, CFANode from, CFANode to){
-
-        CFANode curr = from;
-
-        CExpression op1 = expr.getOperand1();
-        CExpression op2 = expr.getOperand2();
-        BinaryOperator operator = expr.getOperator();
-
-        Boolean assumption = edge.getTruthAssumption();
-
-        CExpression newOp1 = op1;
-        CExpression newOp2 = op2;
-
-
-        if (op1 instanceof CIdExpression) {
-          String varid = ((CIdExpression) op1).getName();
-          newOp1 = new CIdExpression(FileLocation.DUMMY, variables.get(varid));
-        }
-
-        if (op2 instanceof CIdExpression) {
-          String varid = ((CIdExpression) op1).getName();
-          newOp2 = new CIdExpression(FileLocation.DUMMY, variables.get(varid));
-        }
-
-
-
-        CExpression assumeExpr =
-                new CBinaryExpression(
-                    FileLocation.DUMMY, boolType, boolType, newOp1, newOp2, operator);
-
-        CFANode next = new CFANode(curr.getFunction());
-        nodes.put(next.getFunctionName(), next);
-
-        CAssumeEdge assumeEdge =
-                new CAssumeEdge(
-                    edge.getRawStatement(),
-                    edge.getFileLocation(),
-                    curr,
-                    next,
-                    assumeExpr,
-                    edge.getTruthAssumption(),
-                    edge.isSwapped(),
-                    edge.isArtificialIntermediate());
-
-        addToCFA(assumeEdge);
-
-        createAbortCall(curr, assumeEdge);// TODO: do we really need this?
-
-        curr = next;
-
-        // Add an assignment
-        if ((operator.equals(BinaryOperator.EQUALS) && assumption)
-            || (operator.equals(BinaryOperator.NOT_EQUALS) && !assumption)) {
-
-              next = new CFANode(curr.getFunction());
-              nodes.put(next.getFunctionName(), next);
-              CExpressionAssignmentStatement assignStmt =
-                  new CExpressionAssignmentStatement(FileLocation.DUMMY, (CLeftHandSide) newOp1, newOp2);
-
-
-        }
-
-        BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "AFTER ASSUME");
-        addToCFA(blankEdge);
-
-
-        return null;
-      }*/
 
       private CFANode reverseBlankEdge(BlankEdge edge) {
         CFANode from = nodeMap.get(edge.getSuccessor());
@@ -759,6 +639,7 @@ public class CFAReverser {
                 + " "
                 + decl.getInitializer().toASTString()
                 + decl.getName());
+        pLog.log(Level.INFO, "INITIALIZER: " + decl.getInitializer().toASTString());
 
         String var = decl.getName();
 
@@ -795,12 +676,8 @@ public class CFAReverser {
 
           // curr = rfinder.initNewVars(from);
 
-          CFANode next;
-          if (nodeMap.containsKey(edge.getPredecessor())) {
-            next = nodeMap.get(edge.getPredecessor());
-          } else {
-            next = new CFANode(curr.getFunction());
-          }
+          CFANode next = new CFANode(curr.getFunction());
+          nodes.put(next.getFunctionName(), next);
 
           CLeftHandSide lvalue = new CIdExpression(FileLocation.DUMMY, variables.get(var));
 
@@ -813,9 +690,33 @@ public class CFAReverser {
           addToCFA(trueEdge);
 
           pLog.log(Level.INFO, "NEWEDGE: " + trueEdge);
-          createAbortCall(curr, trueEdge); // false then abort
+          // createAbortCall(curr, trueEdge); // false then abort
 
-          return next;
+          curr = next;
+
+          CFunctionCallExpression ndetCallExpr = createNoDetCallExpr(decl.getType());
+          CFunctionCallAssignmentStatement ndetAssign =
+              new CFunctionCallAssignmentStatement(FileLocation.DUMMY, lvalue, ndetCallExpr);
+
+          next = new CFANode(curr.getFunction());
+          nodes.put(next.getFunctionName(), next);
+          CStatementEdge ndetEdge =
+              new CStatementEdge("", ndetAssign, FileLocation.DUMMY, curr, next);
+
+          addToCFA(ndetEdge);
+          curr = next;
+
+          CFANode to;
+          if (nodeMap.containsKey(edge.getPredecessor())) {
+            to = nodeMap.get(edge.getPredecessor());
+          } else {
+            to = new CFANode(curr.getFunction());
+          }
+
+          BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "AFTER RESET");
+          addToCFA(blankEdge);
+
+          return to;
         }
 
         return null;
@@ -878,7 +779,7 @@ public class CFAReverser {
         addToCFA(trueEdge);
         pLog.log(Level.INFO, "TRUEEDGE: " + trueEdge);
 
-        createAbortCall(curr, trueEdge); // false then abort
+        // createAbortCall(curr, trueEdge); // false then abort
 
         curr = next;
 
@@ -1162,18 +1063,24 @@ public class CFAReverser {
 
     private CFunctionCallExpression createNoDetCallExpr(CType type) {
       String funcName = "__VERIFIER_nondet_" + type;
-      CFunctionType functype = new CFunctionType(type, ImmutableList.of(), false);
+      CFunctionDeclaration decl = funcDecls.get(funcName);
+      if (decl == null) {
+        CFunctionType functype = new CFunctionType(type, ImmutableList.of(), false);
+        decl =
+            new CFunctionDeclaration(
+                FileLocation.DUMMY, functype, funcName, ImmutableList.of(), ImmutableSet.of());
+        funcDecls.put(funcName, decl);
+      }
 
-      CFunctionDeclaration decl =
-          new CFunctionDeclaration(
-              FileLocation.DUMMY, functype, funcName, ImmutableList.of(), ImmutableSet.of());
+      checkNotNull(decl);
+
       CExpression funcexpr = new CIdExpression(FileLocation.DUMMY, decl);
 
       return new CFunctionCallExpression(
           FileLocation.DUMMY, type, funcexpr, ImmutableList.of(), decl);
     }
 
-    private void createAbortCall(CFANode curr, CAssumeEdge trueEdge) {
+    /*private void _createAbortCall(CFANode curr, CAssumeEdge trueEdge) {
       CFANode falseNode = new CFANode(curr.getFunction());
       nodes.put(curr.getFunctionName(), falseNode);
 
@@ -1209,6 +1116,6 @@ public class CFAReverser {
           new CStatementEdge("abort", callStmt, FileLocation.DUMMY, falseNode, callNode);
 
       addToCFA(callEdge);
-    }
+    }*/
   }
 }
