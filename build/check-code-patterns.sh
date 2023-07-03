@@ -13,6 +13,7 @@ IFS=$'\n\t'
 shopt -s globstar
 
 DIR="$(dirname "$0")/.."
+ERROR=0
 
 if ( command -v git && git rev-parse --is-inside-work-tree ) > /dev/null 2>&1; then
   # We use git ls-files instead of recursive grep because many people
@@ -77,5 +78,8 @@ These equals() implementations should be treated in this way:
 
 EOF
   grep -o -z --color=always -P "$FORBIDDEN_EQUALS_METHOD" "$DIR/src"/**/*.java | tr '\0' '\n'
-  exit 1
+  echo
+  ERROR=1
 fi
+
+[ "$ERROR" -eq 0 ] || exit 1
