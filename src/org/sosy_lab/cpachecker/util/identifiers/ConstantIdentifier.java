@@ -81,6 +81,7 @@ public final class ConstantIdentifier implements AbstractIdentifier {
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
+    // FIXME cf. #1110
     if (pO instanceof ReturnIdentifier) {
       return 1;
     } else if (pO instanceof ConstantIdentifier) {

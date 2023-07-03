@@ -50,6 +50,7 @@ public final class ReturnIdentifier extends VariableIdentifier implements Genera
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
+    // FIXME cf. #1110
     if (this == pO) {
       return 0;
     } else {

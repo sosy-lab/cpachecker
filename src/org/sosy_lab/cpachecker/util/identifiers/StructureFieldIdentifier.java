@@ -68,6 +68,7 @@ public sealed class StructureFieldIdentifier extends StructureIdentifier
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
+    // FIXME cf. #1110
     if (pO instanceof GlobalVariableIdentifier || pO instanceof LocalVariableIdentifier) {
       return -1;
     } else if (pO instanceof StructureFieldIdentifier) {

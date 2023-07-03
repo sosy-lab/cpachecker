@@ -39,6 +39,7 @@ public sealed class GlobalVariableIdentifier extends VariableIdentifier
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
+    // FIXME cf. #1110
     if (pO instanceof GlobalVariableIdentifier) {
       return super.compareTo(pO);
     } else {

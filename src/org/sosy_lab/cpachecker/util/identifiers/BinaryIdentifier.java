@@ -88,6 +88,7 @@ public final class BinaryIdentifier implements AbstractIdentifier {
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
+    // FIXME cf. #1110
     if (pO instanceof SingleIdentifier) {
       return -1;
     } else if (pO instanceof BinaryIdentifier) {

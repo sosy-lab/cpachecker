@@ -20,6 +20,7 @@ public final class FunctionIdentifier extends SingleIdentifier {
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
+    // FIXME cf. #1110
     if (pO instanceof FunctionIdentifier) {
       return super.compareTo(pO);
     } else {

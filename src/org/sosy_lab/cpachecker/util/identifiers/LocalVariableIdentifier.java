@@ -70,6 +70,7 @@ public sealed class LocalVariableIdentifier extends VariableIdentifier
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
+    // FIXME cf. #1110
     if (pO instanceof LocalVariableIdentifier) {
       int result = super.compareTo(pO);
       if (result != 0) {
