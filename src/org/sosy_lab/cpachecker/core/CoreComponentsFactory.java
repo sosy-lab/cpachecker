@@ -497,6 +497,11 @@ public class CoreComponentsFactory {
       logger.log(Level.INFO, "Using Conditional Verifier");
       algorithm =
           new ConditionalVerifierAlgorithm(config, logger, shutdownNotifier, specification, cfa);
+    } else if (useParallelRangedConditionsAlgorithm) {
+      logger.log(Level.INFO, "Using Parallel Ranged Conditions Algorithm");
+      algorithm =
+          ParallelRangedConditionsAlgorithm.create(
+              config, logger, shutdownNotifier, specification, cfa, aggregatedReachedSets);
     } else if (useHeuristicSelectionAlgorithm) {
       logger.log(Level.INFO, "Using heuristics to select analysis");
       algorithm = new SelectionAlgorithm(cfa, shutdownNotifier, config, specification, logger);
@@ -513,12 +518,6 @@ public class CoreComponentsFactory {
     } else if (useParallelAlgorithm) {
       algorithm =
           new ParallelAlgorithm(
-              config, logger, shutdownNotifier, specification, cfa, aggregatedReachedSets);
-
-    } else if (useParallelRangedConditionsAlgorithm) {
-      logger.log(Level.INFO, "Using Parallel Ranged Conditions Algorithm");
-      algorithm =
-          ParallelRangedConditionsAlgorithm.create(
               config, logger, shutdownNotifier, specification, cfa, aggregatedReachedSets);
 
     } else if (useWitnessToACSLAlgorithm) {
