@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.traceabstraction;
 
+import static com.google.common.base.Verify.verify;
+
 import java.util.Objects;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
@@ -43,16 +45,13 @@ class IndexedAbstractionPredicate implements Comparable<IndexedAbstractionPredic
 
   @Override
   public int compareTo(IndexedAbstractionPredicate pOther) {
-    int result = Integer.compare(index, pOther.index);
-    if (result == 0 && !predicate.equals(pOther.predicate)) {
-      throw new AssertionError(
-          String.format(
-              "IndexedAbstractionPredicates that have the same indices should be equal%nThis:"
-                  + " %s%nOther: %s",
-              this, pOther));
-    }
-
-    return result;
+    verify(
+        index != pOther.index || predicate.equals(pOther.predicate),
+        "IndexedAbstractionPredicates that have the same indices should be equal%n"
+            + "This: %s%nOther: %s",
+        this,
+        pOther);
+    return Integer.compare(index, pOther.index);
   }
 
   @Override
