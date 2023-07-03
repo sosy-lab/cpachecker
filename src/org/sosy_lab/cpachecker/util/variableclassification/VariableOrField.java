@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
  * Represents an approximation of a node in dependency graph i.e. variable, field or `top' (unknown
  * location).
  */
-abstract sealed class VariableOrField implements Comparable<VariableOrField> {
+abstract sealed class VariableOrField {
   private static final class Unknown extends VariableOrField {
     private Unknown() {}
 
@@ -32,20 +32,6 @@ abstract sealed class VariableOrField implements Comparable<VariableOrField> {
       }
 
       return o instanceof Unknown;
-    }
-
-    @Override
-    public int compareTo(final VariableOrField other) {
-      if (this == other) {
-        return 0;
-      } else if (other instanceof Variable) {
-        return -1;
-      } else if (other instanceof Field) {
-        return -1;
-      } else {
-        checkNotNull(other);
-        throw new AssertionError("Should not happen: all cases are covered above");
-      }
     }
 
     @Override
@@ -76,22 +62,6 @@ abstract sealed class VariableOrField implements Comparable<VariableOrField> {
         return true;
       }
       return o instanceof Variable other && scopedName.equals(other.scopedName);
-    }
-
-    @Override
-    public int compareTo(final VariableOrField other) {
-      if (this == other) {
-        return 0;
-      } else if (other instanceof Unknown) {
-        return 1;
-      } else if (other instanceof Field) {
-        return -1;
-      } else if (other instanceof Variable) {
-        return scopedName.compareTo(((Variable) other).scopedName);
-      } else {
-        checkNotNull(other);
-        throw new AssertionError("Should not happen: all cases are covered above");
-      }
     }
 
     @Override
@@ -129,23 +99,6 @@ abstract sealed class VariableOrField implements Comparable<VariableOrField> {
       return o instanceof Field other
           && composite.equals(other.composite)
           && name.equals(other.name);
-    }
-
-    @Override
-    public int compareTo(final VariableOrField other) {
-      if (this == other) {
-        return 0;
-      } else if (other instanceof Unknown) {
-        return 1;
-      } else if (other instanceof Variable) {
-        return 1;
-      } else if (other instanceof Field o) {
-        final int result = composite.getQualifiedName().compareTo(o.composite.getQualifiedName());
-        return result != 0 ? result : name.compareTo(o.name);
-      } else {
-        checkNotNull(other);
-        throw new AssertionError("Should not happen: all cases are covered above");
-      }
     }
 
     @Override
@@ -208,7 +161,4 @@ abstract sealed class VariableOrField implements Comparable<VariableOrField> {
 
   @Override
   public abstract int hashCode();
-
-  @Override
-  public abstract int compareTo(final VariableOrField other);
 }
