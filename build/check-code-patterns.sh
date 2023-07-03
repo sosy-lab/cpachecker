@@ -82,4 +82,34 @@ EOF
   ERROR=1
 fi
 
+
+# This checks for "compareTo()" implementations where the body is not one of the following:
+# - a single "return ComparisonChain.start()...", or
+# - a single delegation to a "compare" utility method in the classes Arrays, Double, Integer, Long
+#   (could be extended if required), or
+# - a single delegation to a Comparator created with the static methods in the Comparator class, or
+# - a single delegation to another "compareTo" method,
+# - anything preceded by a comment, or
+# - anything of the above preceded by a variable declaration with a cast of the parameter, or
+# - anything of the above preceded by an identity or equality check with a "return 0;", or
+# - anything of the above preceded by a "checkArgument()" or "verify()" check.
+#
+FORBIDDEN_COMPARETO_METHOD='\n( *)public (?:final )?int compareTo\((?:final )?([^();]*) ([^() ;]*)\) {\n(?!(?: *if \((?:this == \3|[^{};]*\.equals\([^{};]*\))\) {\n *return 0;\n *}| *(?:Preconditions\.)?checkArgument\([^{};]*\);| *(?:Verify\.)?verify\([^{};]*\);| *([^(){} ;]*) [^(){} ;]* = \(\4\) \3;|\n)*( *return ComparisonChain\.start\(\)| *return (?:Arrays|Double|Integer|Long|Comparator\.[^{};]*)\.compare\(| *return [^{};]*\.compareTo\()| *// )(?:.|\n)*?\n\1}'
+
+if grep -q -z -P "$FORBIDDEN_COMPARETO_METHOD" "$DIR/src"/**/*.java; then
+  cat >&2 <<'EOF'
+Implementation of compareTo() found that does not conform to one of our standard patterns.
+Please use one of our standard patterns for compareTo(),
+i.e., typically a ComparisonChain, a utility method, or an existing comparator,
+or add a comment that indicates why the complex form is required in your case.
+More information is in doc/StyleGuide.md
+(https://gitlab.com/sosy-lab/software/cpachecker/-/blob/trunk/doc/StyleGuide.md#compareTo-methods).
+These compareTo() implementations should be treated in this way:
+
+EOF
+  grep -o -z --color=always -P "$FORBIDDEN_COMPARETO_METHOD" "$DIR/src"/**/*.java | tr '\0' '\n'
+  echo
+  ERROR=1
+fi
+
 [ "$ERROR" -eq 0 ] || exit 1

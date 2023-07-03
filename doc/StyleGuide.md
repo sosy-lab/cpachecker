@@ -303,3 +303,31 @@ public void equals(@Nullable Object pOther) {
 If this still does not fit,
 please refactor the implementation by extracting code into utility methods
 and add comments. A comment in the beginning will also silence the CI check.
+
+### compareTo methods
+
+Writing a correct `compareTo()` implementation can be tricky.
+It needs to ensure that it fulfills the contract of `compareTo()`
+and is consistent with `equals()`.
+Implementations should thus rely as much on existing utilities
+as possible, for example on `compare` methods in classes
+like `Arrays`, `Integer`, `Long`, etc.,
+on comparators built with the static methods in `Comparator` or `Ordering`,
+or use `ComparisonChain`.
+In particular, do not implement a lexicographic ordering
+on collections on your own!
+`ComparisonChain` is the recommended standard pattern for `compareTo`
+if delegation to a single utility method is not enough,
+e.g., because more than one field needs to be compared:
+```java
+public int compareTo(MyClass other) {
+  return ComparisonChain.start()
+    .compare(field1, other.field1)
+    .compare(field2, other.field2)
+    .result();
+}
+```
+
+If neither `ComparisonChain` or one of the utilities fit,
+please refactor the implementation by extracting code into utility methods
+and add comments. A comment in the beginning will also silence the CI check.
