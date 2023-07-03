@@ -13,7 +13,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import java.util.Iterator;
+import com.google.common.collect.Ordering;
 import java.util.List;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -184,21 +184,15 @@ public final class UsageInfo implements Comparable<UsageInfo> {
     Preconditions.checkArgument(
         compatibleStates.size() == pO.compatibleStates.size(),
         "Different compatible states in usages are not supported");
-    Iterator<CompatibleState> iterator = compatibleStates.iterator();
-    Iterator<CompatibleState> otherIterator = pO.compatibleStates.iterator();
-
-    while (iterator.hasNext()) {
-      CompatibleState currentState = iterator.next();
-      CompatibleState otherState = otherIterator.next();
-      Preconditions.checkArgument(
-          currentState.getClass() == otherState.getClass(),
-          "Different compatible states in usages are not supported");
-      // Revert order to negate the result:
-      // Usages without locks are more convenient to analyze
-      result = otherState.compareTo(currentState);
-      if (result != 0) {
-        return result;
-      }
+    result =
+        Ordering.<CompatibleState>natural()
+            // Revert order to negate the result:
+            // Usages without locks are more convenient to analyze
+            .reverse()
+            .lexicographical()
+            .compare(compatibleStates, pO.compatibleStates);
+    if (result != 0) {
+      return result;
     }
 
     result = core.node.compareTo(pO.core.node);

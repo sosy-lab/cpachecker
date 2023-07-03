@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Ordering;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -81,15 +82,9 @@ public final class UsagePoint implements Comparable<UsagePoint> {
       return result;
     }
     Preconditions.checkArgument(compatibleNodes.size() == o.compatibleNodes.size());
-    for (int i = 0; i < compatibleNodes.size(); i++) {
-      CompatibleNode currentNode = compatibleNodes.get(i);
-      CompatibleNode otherNode = o.compatibleNodes.get(i);
-      result = currentNode.compareTo(otherNode);
-      if (result != 0) {
-        return result;
-      }
-    }
-    return result;
+    return Ordering.<CompatibleNode>natural()
+        .lexicographical()
+        .compare(compatibleNodes, o.compatibleNodes);
   }
 
   // TODO CompareTo? with enums
