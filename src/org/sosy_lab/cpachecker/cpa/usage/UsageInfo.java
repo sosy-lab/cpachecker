@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.usage;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
@@ -176,45 +177,33 @@ public final class UsageInfo implements Comparable<UsageInfo> {
 
   @Override
   public int compareTo(UsageInfo pO) {
-    int result;
-
     if (this == pO) {
       return 0;
     }
     Preconditions.checkArgument(
         compatibleStates.size() == pO.compatibleStates.size(),
         "Different compatible states in usages are not supported");
-    result =
-        Ordering.<CompatibleState>natural()
+    return ComparisonChain.start()
+        .compare(
             // Revert order to negate the result:
             // Usages without locks are more convenient to analyze
-            .reverse()
-            .lexicographical()
-            .compare(compatibleStates, pO.compatibleStates);
-    if (result != 0) {
-      return result;
-    }
+            compatibleStates, pO.compatibleStates, Ordering.natural().reverse().lexicographical())
+        .compare(core.node, pO.core.node)
+        .compare(core.accessType, pO.core.accessType)
 
-    result = core.node.compareTo(pO.core.node);
-    if (result != 0) {
-      return result;
-    }
-    result = core.accessType.compareTo(pO.core.accessType);
-    if (result != 0) {
-      return result;
-    }
-    /* We can't use key states for ordering, because the treeSets can't understand,
-     * that old refined usage with zero key state is the same as new one
-     */
-    if (core.id != null && pO.core.id != null) {
-      // Identifiers may not be equal here:
-      // if (a.b > c.b)
-      // FieldIdentifiers are the same (when we add to container),
-      // but full identifiers (here) are not equal
-      // TODO should we distinguish them?
+        /* We can't use key states for ordering, because the treeSets can't understand,
+         * that old refined usage with zero key state is the same as new one
 
-    }
-    return 0;
+        if (core.id != null && pO.core.id != null) {
+          // Identifiers may not be equal here:
+          // if (a.b > c.b)
+          // FieldIdentifiers are the same (when we add to container),
+          // but full identifiers (here) are not equal
+          // TODO should we distinguish them?
+
+        }
+        */
+        .result();
   }
 
   public UsageInfo copy() {

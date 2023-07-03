@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
 import java.util.List;
 import java.util.Objects;
@@ -77,14 +78,11 @@ public final class UsagePoint implements Comparable<UsagePoint> {
   public int compareTo(UsagePoint o) {
     // It is very important to compare at first the accesses, because an algorithm base on this
     // suggestion
-    int result = access.compareTo(o.access);
-    if (result != 0) {
-      return result;
-    }
     Preconditions.checkArgument(compatibleNodes.size() == o.compatibleNodes.size());
-    return Ordering.<CompatibleNode>natural()
-        .lexicographical()
-        .compare(compatibleNodes, o.compatibleNodes);
+    return ComparisonChain.start()
+        .compare(access, o.access)
+        .compare(compatibleNodes, o.compatibleNodes, Ordering.natural().lexicographical())
+        .result();
   }
 
   // TODO CompareTo? with enums
