@@ -13,6 +13,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import java.math.BigInteger;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -22,6 +23,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -98,12 +100,14 @@ public class BackwardBMCAlgorithm implements Algorithm {
 
     if (reachedSet.isEmpty()) {
       logger.log(Level.INFO, "No starting error locations found...");
-      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+      return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
     }
 
     AlgorithmStatus status;
+    int it = 0;
 
     do {
+      it++;
       status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
 
       if (FluentIterable.from(reachedSet)
@@ -125,18 +129,20 @@ public class BackwardBMCAlgorithm implements Algorithm {
         logger.log(Level.INFO, "No path to target found...");
         return status;
       }
-      FluentIterable<AbstractState> loopHeads = getAbstractLoopHeads(reachedSet);
+      FluentIterable<AbstractState> loopHeads = getRecentLoopHeadStates(reachedSet, it);
 
       final boolean targetSafe = isSafe(targetState, solver);
       final boolean loopHeadsSafe = isSafe(loopHeads, solver);
 
-      // if all targets and loop heads are safe, the result is sound
-      if (targetSafe && loopHeadsSafe) {
+      if (targetSafe) {
         InterpolationHelper.removeUnreachableTargetStates(reachedSet);
-        return AlgorithmStatus.SOUND_AND_PRECISE;
+        // if all targets and loop heads are safe, the result is sound
+        if (loopHeadsSafe) {
+          return AlgorithmStatus.SOUND_AND_PRECISE;
+        }
       }
-      // if we have a satisfiable path to target, the error is reachable
-      if (!targetSafe) {
+      // target not safe: found error path
+      else {
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
 
@@ -150,9 +156,9 @@ public class BackwardBMCAlgorithm implements Algorithm {
     return FluentIterable.from(reachedSet).filter(AbstractStates::isTargetState);
   }
 
-  // Returns disjunction of path formulas
   private boolean isSafe(FluentIterable<AbstractState> pStates, Solver pSolver)
       throws CPAException, InterruptedException {
+    // Returns disjunction of path formulas
     BooleanFormula formula =
         BMCHelper.createFormulaFor(pStates, bfmgr, Optional.ofNullable(shutdownNotifier));
 
@@ -177,13 +183,15 @@ public class BackwardBMCAlgorithm implements Algorithm {
     } finally {
       stats.satCheck.stop();
     }
-
     return safe;
   }
 
-  private FluentIterable<AbstractState> getAbstractLoopHeads(final ReachedSet reachedSet) {
-    return AbstractStates.filterLocations(
-        reachedSet, BMCHelper.getLoopHeads(cfa, targetLocationProvider));
+  private FluentIterable<AbstractState> getRecentLoopHeadStates(
+      final ReachedSet reachedSet, final int pIt) {
+    Set<CFANode> loopHeadNodes = BMCHelper.getLoopHeads(cfa, targetLocationProvider);
+    FluentIterable<AbstractState> allLoopHeadStates =
+        AbstractStates.filterLocations(reachedSet, loopHeadNodes);
+    return BMCHelper.filterIteration(allLoopHeadStates, pIt, loopHeadNodes);
   }
 
   /**
