@@ -45,6 +45,17 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWr
 import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
 import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 
+/**
+ * Rudimentary version of InvariantExportAlgorithm.
+ *
+ * <p>The algorithm basically mimics BMC with auxiliary invariants, but exports them instead of
+ * using them for BMC. The goal is to use the invariants for coop. verification (through the
+ * invariant store).
+ *
+ * <p>The algorithm is rudimentary because it is only a proof of concept impl. Most missing parts
+ * are marked with todo comments in the code. There is an example configuration
+ * (invariantExport.prop) for trying out the new algorithm.
+ */
 @Options(prefix = "invariantStore")
 public class InvariantExportAlgorithm implements Algorithm {
 
