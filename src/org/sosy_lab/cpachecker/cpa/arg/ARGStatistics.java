@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantWitnessWriter;
 
 @Options(prefix = "cpa.arg")
 public class ARGStatistics implements Statistics {
@@ -115,6 +116,10 @@ public class ARGStatistics implements Statistics {
       name = "compressWitness",
       description = "compress the produced correctness-witness automata using GZIP compression.")
   private boolean compressWitness = true;
+
+  @Option(secure = true, name = "yamlProofWitness", description = "export a proof as .yaml file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path yamlProofWitness = null;
 
   @Option(
       secure = true,
@@ -193,6 +198,7 @@ public class ARGStatistics implements Statistics {
   private ARGToDotWriter refinementGraphWriter = null;
   private final @Nullable CEXExporter cexExporter;
   private final WitnessExporter argWitnessExporter;
+  private final InvariantWitnessWriter invariantWitnessWriter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
   private final ARGToPixelsWriter argToBitmapExporter;
@@ -226,6 +232,13 @@ public class ARGStatistics implements Statistics {
     }
 
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
+
+    try {
+      invariantWitnessWriter =
+          InvariantWitnessWriter.getWriter(config, cfa, pSpecification, pLogger);
+    } catch (IOException e) {
+      throw new InvalidConfigurationException("InvariantWitnessWriter could not be created", e);
+    }
 
     if (counterexampleOptions.disabledCompletely()) {
       cexExporter = null;
@@ -394,6 +407,10 @@ public class ARGStatistics implements Statistics {
                 Predicates.alwaysTrue(),
                 BiPredicates.alwaysTrue(),
                 argWitnessExporter.getProofInvariantProvider());
+
+        if (witness != null && yamlProofWitness != null) {
+          invariantWitnessWriter.exportProofWitnessAsInvariantWitnesses(witness, yamlProofWitness);
+        }
 
         if (proofWitness != null) {
           Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);

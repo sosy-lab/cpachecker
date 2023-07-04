@@ -1409,6 +1409,9 @@ cpa.arg.witness.removeInsufficientEdges = true
 # Verification witness: Revert escaping/renaming of functions for threads?
 cpa.arg.witness.revertThreadFunctionRenaming = false
 
+# export a proof as .yaml file
+cpa.arg.yamlProofWitness = no default value
+
 # signal the analysis to break in case the given number of error state is
 # reached. Use -1 to disable this limit.
 cpa.automaton.breakOnTargetState = 1

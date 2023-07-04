@@ -41,8 +41,10 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
+import org.sosy_lab.cpachecker.util.invariantwitness.WitnessToYamlWitnessConverter;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InformationRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
@@ -172,6 +174,12 @@ public final class InvariantWitnessWriter {
     } catch (IOException e) {
       logger.logfException(WARNING, e, "Invariant witness export to %s failed.", outFile);
     }
+  }
+
+  public void exportProofWitnessAsInvariantWitnesses(Witness witness, Path outFile) {
+    WitnessToYamlWitnessConverter conv = new WitnessToYamlWitnessConverter(logger);
+    Collection<InvariantWitness> invariantWitnesses = conv.convertProofWitness(witness);
+    exportInvariantWitnesses(invariantWitnesses, outFile);
   }
 
   /**
