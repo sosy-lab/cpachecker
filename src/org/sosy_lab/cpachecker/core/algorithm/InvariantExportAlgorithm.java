@@ -164,7 +164,7 @@ public class InvariantExportAlgorithm implements Algorithm {
     return ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
   }
 
-  private void exportWitnesses(final Set<InvariantWitness> witnesses) throws IOException {
+  private void exportWitnesses(final Set<InvariantWitness> witnesses) {
     // TODO: Possibly run multithreaded ?
     if (witnesses.isEmpty()) {
       return;

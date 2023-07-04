@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange;
 
+import static java.util.logging.Level.WARNING;
+
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -23,6 +25,7 @@ import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -148,24 +151,42 @@ public final class InvariantWitnessWriter {
   }
 
   /**
+   * Exports the given invariant witnesses in the invariant-witness format through the configured
+   * channel. The export is (in most cases) an IO operation and thus expensive and might be
+   * blocking.
+   *
+   * @param invariantWitnesses Collection of the {@link InvariantWitness}es to export
+   * @throws IllegalArgumentException If the invariant witness is (semantically - according to the
+   *     definition of the invariant-witness format) invalid.
+   */
+  public void exportInvariantWitnesses(
+      Collection<InvariantWitness> invariantWitnesses, Path outFile) {
+    logger.logf(
+        Level.INFO, "Exporting %d invariant witnesses to %s", invariantWitnesses.size(), outFile);
+    try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
+      for (InvariantWitness invariantWitness : invariantWitnesses) {
+        LoopInvariantEntry entry = invariantWitnessToStoreEnty(invariantWitness);
+        String entryYaml = mapper.writeValueAsString(ImmutableList.of(entry));
+        writer.write(entryYaml);
+      }
+    } catch (IOException e) {
+      logger.logfException(WARNING, e, "Invariant witness export to %s failed.", outFile);
+    }
+  }
+
+  /**
    * Exports the given invariant witness in the invariant-witness format through the configured
    * channel. The export is (in most cases) an IO operation and thus expensive and might be
    * blocking.
    *
    * @param invariantWitness Witness to export
-   * @throws IOException If writing the witness is not possible
    * @throws IllegalArgumentException If the invariant witness is (semantically - according to the
    *     definition of the invariant-witness format) invalid.
    */
-  public void exportInvariantWitness(InvariantWitness invariantWitness) throws IOException {
+  public void exportInvariantWitness(InvariantWitness invariantWitness) {
     LoopInvariantEntry entry = invariantWitnessToStoreEnty(invariantWitness);
-    String entryYaml = mapper.writeValueAsString(ImmutableList.of(entry));
-
     Path outFile = outDir.resolve(entry.getMetadata().getUuid() + ".invariantwitness.yaml");
-    logger.log(Level.INFO, "Exporting invariant", outFile);
-    try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
-      writer.write(entryYaml);
-    }
+    exportInvariantWitnesses(ImmutableList.of(invariantWitness), outFile);
   }
 
   private LoopInvariantEntry invariantWitnessToStoreEnty(InvariantWitness invariantWitness) {
