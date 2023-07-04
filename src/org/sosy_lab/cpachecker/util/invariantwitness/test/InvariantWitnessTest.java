@@ -53,7 +53,7 @@ public class InvariantWitnessTest {
       if (e instanceof ViolationSequenceEntry) {
         List<WaypointRecord> sequence = ((ViolationSequenceEntry) e).getSequence();
         assertThat(sequence).hasSize(6);
-        assertThat(sequence.get(0).getConstraint().getString().equals("(x >= 1024U)"));
+        assertThat(sequence.get(0).getConstraint().getString()).isEqualTo("(x >= 1024U)");
       }
     }
   }

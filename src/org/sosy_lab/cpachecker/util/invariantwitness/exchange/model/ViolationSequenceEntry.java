@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import java.util.List;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
 
@@ -21,12 +21,12 @@ public class ViolationSequenceEntry extends AbstractEntry {
   private final MetadataRecord metadata;
 
   @JsonProperty("sequence")
-  private final List<WaypointRecord> sequence;
+  private final ImmutableList<WaypointRecord> sequence;
 
   public ViolationSequenceEntry(
       @JsonProperty("entry_type") String entryType,
       @JsonProperty("metadata") MetadataRecord metadata,
-      @JsonProperty("sequence") List<WaypointRecord> sequence) {
+      @JsonProperty("sequence") ImmutableList<WaypointRecord> sequence) {
     super(entryType);
     this.metadata = metadata;
     this.sequence = sequence;
@@ -36,7 +36,7 @@ public class ViolationSequenceEntry extends AbstractEntry {
     return metadata;
   }
 
-  public List<WaypointRecord> getSequence() {
+  public ImmutableList<WaypointRecord> getSequence() {
     return sequence;
   }
 }

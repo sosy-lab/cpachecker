@@ -53,6 +53,7 @@ public class WaypointRecord {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object pOther) {
     if (this == pOther) {
       return true;
