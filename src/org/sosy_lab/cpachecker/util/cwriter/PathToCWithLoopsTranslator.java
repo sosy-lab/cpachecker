@@ -162,7 +162,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
     if (loopsInPathToRecreate.isEmpty()
         || loopsInPathToRecreate.keySet().stream()
             .noneMatch(loop -> loop.getLoopNodes().contains(predecessor))) {
-      functionName = getFreshFunctionName(functionStartNode);
+      functionName = getFreshFunctionName(functionStartNode.getFunctionDefinition());
     }
 
     String lFunctionHeader =
