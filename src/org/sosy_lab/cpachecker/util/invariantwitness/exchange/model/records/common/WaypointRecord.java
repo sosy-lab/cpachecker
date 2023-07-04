@@ -53,14 +53,14 @@ public class WaypointRecord {
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (o == this) {
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
       return true;
     }
-    if (!(o instanceof LocationRecord)) {
+    if (pOther == null || getClass() != pOther.getClass()) {
       return false;
     }
-    WaypointRecord other = (WaypointRecord) o;
+    WaypointRecord other = (WaypointRecord) pOther;
     return type.equals(other.type)
         && action.equals(other.action)
         && constraint.equals(other.constraint)
