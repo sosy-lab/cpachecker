@@ -115,23 +115,18 @@ public class InvariantExportAlgorithm implements Algorithm {
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
 
     generator.start(cfa.getMainFunction());
-    try {
-      // TODO replace polling with a smarter strategy!
-      for (int i = 0; i < Integer.MAX_VALUE; i++) {
-        handleNewInvariants();
-
-        Thread.sleep(2000);
-      }
+    // TODO replace polling with a smarter strategy!
+    for (int i = 0; i < Integer.MAX_VALUE; i++) {
       handleNewInvariants();
-    } catch (IOException e) {
-      logger.logException(Level.SEVERE, e, "Cannot write inavariant witnesses");
-      generator.cancel();
+
+      Thread.sleep(2000);
     }
+    handleNewInvariants();
 
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  private void handleNewInvariants() throws IOException, InterruptedException {
+  private void handleNewInvariants() throws InterruptedException {
     shutdownNotifier.shutdownIfNecessary();
     if (!generator.isStarted()) {
       return;
