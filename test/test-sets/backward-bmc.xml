@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="70 s" memlimit="5 GB" cpuCores="2">
+  <option name="-heap">13000M</option>
+  <option name="-stack" reason="CVC4 needs a larger stack">50M</option>
+  <option name="-noout"/>
+  <option name="-benchmark"/>
+  <option name="-backward-bmc"/>
+  <option name="-spec">MainEntry</option>
+  <option name="-setprop">cpa.predicate.useArraysForHeap=false</option>
+
+  <!-- SV-Comp files assume that malloc always succeeds -->
+  <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+
+  <tasks name="ReachSafety-Loops">
+    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+  </tasks>
+  
+  <rundefinition name="k1-mathsat5">
+    <option name="-setprop">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="-setprop">solver.solver=mathsat5</option>
+  </rundefinition>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">Size of reached set</column>
+    <column title="targets">Number of target states</column>
+    <column title="sat check time">Time for final sat check</column>
+    <column title="assertions check time">Time for bounding assertions check</column>
+  </columns>
+</benchmark>
