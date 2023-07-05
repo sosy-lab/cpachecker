@@ -33,7 +33,7 @@ public class InvariantWitnessTest {
   public static final String TEST_DIR_PATH = "test/witness/";
 
   @Test
-  public void TestParsingInvariantWitnessAndCertificate()
+  public void testParsingInvariantWitnessAndCertificate()
       throws JsonParseException, JsonMappingException, IOException {
     Queue<AbstractEntry> loadedEntries = testParsingFile("loop_invariant_and_certificate.yml");
     for (AbstractEntry e : loadedEntries) {
@@ -46,7 +46,7 @@ public class InvariantWitnessTest {
   }
 
   @Test
-  public void TestParsingViolationWitness()
+  public void testParsingViolationWitness()
       throws JsonParseException, JsonMappingException, IOException {
     Queue<AbstractEntry> loadedEntries = testParsingFile("violation-witness.yml");
     for (AbstractEntry e : loadedEntries) {
