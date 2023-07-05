@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 
 public abstract class VariableTrackingPrecision implements Precision, Serializable {
 
+  private static final long serialVersionUID = 3519749852981762195L;
+
   /**
    * This method creates a precision which cannot be refined, all decisions about the tracking of
    * variables depend on the configuration options and the variable classification.

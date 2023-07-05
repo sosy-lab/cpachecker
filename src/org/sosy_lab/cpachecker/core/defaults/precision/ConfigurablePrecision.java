@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 @Options(prefix = "precision")
 public class ConfigurablePrecision extends VariableTrackingPrecision {
 
+  private static final long serialVersionUID = -7214782838688818781L;
+
   @Option(
       secure = true,
       name = "variableBlacklist",

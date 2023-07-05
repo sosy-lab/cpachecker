@@ -20,6 +20,9 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 class LocalizedRefinablePrecision extends RefinablePrecision {
+
+  private static final long serialVersionUID = 3393114585368750179L;
+
   /**
    * the immutable collection that determines which variables are tracked at a specific location -
    * if it is null, all variables are tracked
