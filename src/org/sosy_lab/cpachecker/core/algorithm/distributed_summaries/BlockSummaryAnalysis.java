@@ -143,7 +143,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       Specification pSpecification)
       throws InvalidConfigurationException {
     configuration = pConfig;
-    configuration.inject(this);
+    configuration.inject(this, BlockSummaryAnalysis.class);
     logger = pLogger;
     initialCFA = pInitialCFA;
     shutdownManager = pShutdownManager;

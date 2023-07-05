@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
 
 import java.time.Instant;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithms;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 
@@ -24,6 +26,8 @@ public class InferRootProofMessage extends BlockSummaryMessage {
 
   public static BlockSummaryMessage newInferRootProof(
       String pUniqueBlockId, int pTargetNodeNumber, BlockSummaryMessagePayload pPayload) {
-    return new InferRootProofMessage(pUniqueBlockId, pTargetNodeNumber, pPayload, Instant.now());
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+    BlockSummaryMessagePayload payload = DCPAAlgorithms.appendStatus(status, pPayload);
+    return new InferRootProofMessage(pUniqueBlockId, pTargetNodeNumber, payload, Instant.now());
   }
 }

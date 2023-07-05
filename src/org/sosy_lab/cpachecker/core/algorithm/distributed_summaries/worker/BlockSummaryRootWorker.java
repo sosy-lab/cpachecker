@@ -81,7 +81,9 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
             pShutdownManager,
             pNode);
     // never needs precision
-    dcpa = DCPAFactory.distribute(parts.cpa(), pNode, AnalysisDirection.FORWARD, pCfa);
+    dcpa =
+        DCPAFactory.distribute(
+            parts.cpa(), pNode, AnalysisDirection.FORWARD, pCfa, pOptions.getParentConfig());
     topState =
         Objects.requireNonNull(parts.cpa())
             .getInitialState(root.getLast(), StateSpacePartition.getDefaultPartition());

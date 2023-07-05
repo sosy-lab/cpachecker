@@ -18,7 +18,7 @@ public class BlockNode extends BlockNodeWithoutGraphInformation {
   private final ImmutableSet<String> successorIds;
   private final CFANode abstractionLocation;
 
-  BlockNode(
+  public BlockNode(
       String pId,
       CFANode pFirst,
       CFANode pLast,

@@ -9,6 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -20,11 +24,13 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer.InferSerializePredicateStateOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 
+@Options(prefix = "cpa.predicate")
 public class DistributedPredicateCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
   private final PredicateCPA predicateCPA;
@@ -37,10 +43,30 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   private final DeserializePrecisionOperator deserializePrecisionOperator;
   private final ProceedOperator proceed;
 
+  private final Configuration config;
+
+  public enum Serializer {
+    DEFAULT, // TODO discuss other serializers with Matthias
+    INFER
+  }
+
+  @Option(
+      description = "Which serializer to use for distributed CPA",
+      secure = true,
+      name = "serializer")
+  private Serializer serializer = Serializer.DEFAULT;
+
   public DistributedPredicateCPA(
-      PredicateCPA pPredicateCPA, BlockNode pNode, CFA pCFA, AnalysisDirection pDirection) {
+      PredicateCPA pPredicateCPA,
+      BlockNode pNode,
+      CFA pCFA,
+      AnalysisDirection pDirection,
+      Configuration pConfig)
+      throws InvalidConfigurationException {
+    config = pConfig;
+    config.inject(this);
     predicateCPA = pPredicateCPA;
-    serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, pDirection);
+    serialize = initSerializer(pCFA, pDirection);
     deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
 
     proceed = new AlwaysProceed();
@@ -103,5 +129,13 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
         .getFormulaManager()
         .getBooleanFormulaManager()
         .isTrue(predicateAbstractState.getPathFormula().getFormula());
+  }
+
+  private SerializeOperator initSerializer(CFA pCFA, AnalysisDirection pDirection) {
+    return
+        switch (serializer) {
+          case DEFAULT -> new SerializePredicateStateOperator(predicateCPA, pCFA, pDirection);
+          case INFER -> new InferSerializePredicateStateOperator(predicateCPA, pCFA);
+        };
   }
 }

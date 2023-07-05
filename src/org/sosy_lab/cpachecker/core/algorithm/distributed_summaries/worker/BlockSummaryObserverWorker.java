@@ -30,9 +30,9 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
   protected Optional<Result> result;
   protected Optional<String> errorMessage;
 
-  protected final Map<String, Map<String, Object>> stats = new HashMap<>();
+  private final Map<String, Map<String, Object>> stats = new HashMap<>();
 
-  protected final int numberOfBlocks;
+  private final int numberOfBlocks;
 
   public record StatusAndResult(AlgorithmStatus status, Result result) {}
 
@@ -116,7 +116,7 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
 
     private final Map<String, AlgorithmStatus> statusMap;
 
-    private StatusObserver() {
+    public StatusObserver() {
       statusMap = new HashMap<>();
     }
 

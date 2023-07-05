@@ -55,9 +55,12 @@ public class BlockSummaryDefaultQueue extends ForwardingBlockingQueue<BlockSumma
     while (!queue.isEmpty()) {
       BlockSummaryMessage message = queue.take();
       switch (message.getType()) {
-        case STATISTICS, FOUND_RESULT, ERROR, ERROR_CONDITION_UNREACHABLE -> highestPriority.add(
-            message);
-        case ERROR_CONDITION, BLOCK_POSTCONDITION -> next.add(message);
+        case STATISTICS,
+            FOUND_RESULT,
+            ERROR,
+            ERROR_CONDITION_UNREACHABLE,
+            INFER_ROOT_PROOF -> highestPriority.add(message);
+        case ERROR_CONDITION, BLOCK_POSTCONDITION, INFER_ROOT_VIOLATIONS -> next.add(message);
       }
     }
     if (!highestPriority.isEmpty()) {

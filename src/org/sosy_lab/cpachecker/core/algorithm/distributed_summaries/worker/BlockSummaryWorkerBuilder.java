@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnectionProvider;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer.InferOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer.InferRootWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer.InferWorker;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -87,7 +88,7 @@ public class BlockSummaryWorkerBuilder {
 
   @CanIgnoreReturnValue
   public BlockSummaryWorkerBuilder addInferWorker(
-      BlockNode pNode, BlockSummaryAnalysisOptions pOptions) {
+      BlockNode pNode, InferOptions pOptions) {
     workerGenerators.add(
         connection ->
             new InferWorker(
@@ -103,7 +104,7 @@ public class BlockSummaryWorkerBuilder {
 
   @CanIgnoreReturnValue
   public BlockSummaryWorkerBuilder addInferRootWorker(
-      BlockNode pNode, BlockSummaryAnalysisOptions pOptions, int numWorkers) {
+      BlockNode pNode, InferOptions pOptions, int numWorkers) {
     workerGenerators.add(
         connection -> new InferRootWorker(nextId(pNode.getId()), connection, pOptions, numWorkers));
     return this;

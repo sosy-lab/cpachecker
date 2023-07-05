@@ -94,7 +94,7 @@ public class DCPAAlgorithms {
     return violationStates.build();
   }
 
-  static BlockSummaryMessagePayload appendStatus(
+  public static BlockSummaryMessagePayload appendStatus(
       AlgorithmStatus pStatus, BlockSummaryMessagePayload pCurrentPayload) {
     return BlockSummaryMessagePayload.builder()
         .addAllEntries(pCurrentPayload)

@@ -78,7 +78,7 @@ public class DCPABackwardAlgorithm {
     initialPrecision = reachedSet.getPrecision(Objects.requireNonNull(reachedSet.getFirstState()));
 
     block = pBlock;
-    dcpa = DCPAFactory.distribute(cpa, pBlock, AnalysisDirection.BACKWARD, pCFA);
+    dcpa = DCPAFactory.distribute(cpa, pBlock, AnalysisDirection.BACKWARD, pCFA, pConfiguration);
     logger = pLogger;
     forwardAnalysis = pForwardAnalysis;
   }

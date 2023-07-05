@@ -63,9 +63,14 @@ public class BlockSummaryPrioritizeErrorConditionQueue
     while (!queue.isEmpty()) {
       BlockSummaryMessage message = queue.take();
       switch (message.getType()) {
-        case STATISTICS, FOUND_RESULT, ERROR, ERROR_CONDITION_UNREACHABLE -> highestPriority.add(
-            message);
-        case ERROR_CONDITION, BLOCK_POSTCONDITION -> next.get(message.getType()).add(message);
+        case STATISTICS,
+            FOUND_RESULT,
+            ERROR,
+            ERROR_CONDITION_UNREACHABLE,
+            INFER_ROOT_PROOF -> highestPriority.add(message);
+        case ERROR_CONDITION, BLOCK_POSTCONDITION, INFER_ROOT_VIOLATIONS -> next.get(
+                message.getType())
+            .add(message);
       }
     }
     if (!highestPriority.isEmpty()) {

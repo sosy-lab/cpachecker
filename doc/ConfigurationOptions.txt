@@ -225,6 +225,9 @@ analysis.algorithm.impact = false
 # Import faults stored in a JSON format.
 analysis.algorithm.importFaults = false
 
+# Distribute predicate analysis to multiple workers using infer
+analysis.algorithm.infer = false
+
 # use nontermination witness validator to check a violation witness for
 # termination
 analysis.algorithm.nonterminationWitnessCheck = false
@@ -2635,6 +2638,10 @@ cpa.predicate.satCheck = 0
 # precision adjustment. This property is required in proof checking.
 cpa.predicate.satCheckAtAbstraction = false
 
+# Which serializer to use for distributed CPA
+cpa.predicate.serializer = DEFAULT
+  enum:     [DEFAULT, INFER]
+
 # Call 'simplify' on generated formulas.
 cpa.predicate.simplifyGeneratedPathFormulas = false
 
@@ -3953,6 +3960,14 @@ imc.removeUnreachableStopStates = false
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
+
+# Whether to spawn util workers. Util workers listen to every message and
+# create visual output for debugging. Workers consume resources and should
+# not be used for benchmarks.
+infer.spawnUtilWorkers = true
+
+# Configuration for forward analysis in computation of distributed summaries
+infer.worker.forwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-infer.properties"
 
 # Configuration file for the K-Induction algorithm for checking candidates on
 # invariance.

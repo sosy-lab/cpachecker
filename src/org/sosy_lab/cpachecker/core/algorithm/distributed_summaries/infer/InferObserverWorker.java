@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryExceptionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -31,20 +32,21 @@ public class InferObserverWorker extends BlockSummaryObserverWorker {
   public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage) {
     switch (pMessage.getType()) {
       case INFER_ROOT_PROOF -> {
+        shutdown = true;
+        result = Optional.of(Result.TRUE);
         statusObserver.updateStatus(pMessage);
-        // TODO: Implement
       }
       case INFER_ROOT_VIOLATIONS -> {
+        shutdown = true;
+        result = Optional.of(Result.FALSE);
         statusObserver.updateStatus(pMessage);
-        // TODO: Implement
       }
       case ERROR -> {
         shutdown = true;
         errorMessage = Optional.of(((BlockSummaryExceptionMessage) pMessage).getErrorMessage());
       }
-      default -> throw new AssertionError("Unknown message type: " + pMessage.getType());
+      default -> {}
     }
-    shutdown = true;
     return ImmutableList.of();
   }
 }

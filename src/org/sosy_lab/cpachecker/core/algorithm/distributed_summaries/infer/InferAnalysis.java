@@ -57,7 +57,8 @@ public class InferAnalysis extends BlockSummaryAnalysis
   private final LogManager logger;
   private final Specification specification;
   private final ShutdownManager shutdownManager;
-  private final BlockSummaryAnalysisOptions options;
+  private final InferOptions options;
+  private final BlockSummaryAnalysisOptions blockSummaryOptions;
 
   private final Map<String, Object> stats;
 
@@ -84,7 +85,8 @@ public class InferAnalysis extends BlockSummaryAnalysis
     logger = pLogger;
     specification = pSpecification;
     shutdownManager = pShutdownManager;
-    options = new BlockSummaryAnalysisOptions(pConfig);
+    options = new InferOptions(pConfig);
+    blockSummaryOptions = new BlockSummaryAnalysisOptions(pConfig);
     stats = new HashMap<>();
   }
 
@@ -116,7 +118,7 @@ public class InferAnalysis extends BlockSummaryAnalysis
       }
 
       if (spawnUtilWorkers) {
-        builder = builder.addVisualizationWorker(blockGraph, options);
+        builder = builder.addVisualizationWorker(blockGraph, blockSummaryOptions);
       }
 
       Components components = builder.build();
@@ -133,7 +135,8 @@ public class InferAnalysis extends BlockSummaryAnalysis
       // listen to messages
       try (BlockSummaryConnection mainThreadConnection = components.connections().get(0)) {
         InferObserverWorker observer =
-            new InferObserverWorker("observer", mainThreadConnection, options, blocks.size());
+            new InferObserverWorker(
+                "observer", mainThreadConnection, blockSummaryOptions, blocks.size());
         // blocks the thread until result message is received
         StatusAndResult resultPair = observer.observe();
         Result result = resultPair.result();

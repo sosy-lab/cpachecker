@@ -54,14 +54,14 @@ public class InferWorker extends BlockSummaryWorker {
    */
   public InferWorker(
       String pId,
-      BlockSummaryAnalysisOptions pOptions,
+      InferOptions pOptions,
       BlockSummaryConnection pConnection,
       BlockNode pBlock,
       CFA pCFA,
       Specification pSpecification,
       ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
-    super("infer-worker-" + pId, pOptions);
+    super("infer-worker-" + pId, new BlockSummaryAnalysisOptions(pOptions.getParentConfig()));
     block = pBlock;
     connection = pConnection;
 
@@ -94,7 +94,8 @@ public class InferWorker extends BlockSummaryWorker {
   @Override
   public void run() {
     try {
-      broadcast(dcpaAlgorithm.runInitialAnalysis());
+      Collection<BlockSummaryMessage> messages = dcpaAlgorithm.runInitialAnalysis();
+      broadcast(messages);
       super.run();
     } catch (CPAException e) {
       getLogger().logException(Level.SEVERE, e, "Worker stopped working...");

@@ -167,7 +167,7 @@ public class BlockGraph {
     return new BlockGraph(root, blockNodes);
   }
 
-  private static Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation>
+  protected static Multimap<BlockNodeWithoutGraphInformation, BlockNodeWithoutGraphInformation>
       findLoopPredecessors(
           BlockNodeWithoutGraphInformation pRoot,
           Collection<? extends BlockNodeWithoutGraphInformation> pNodes) {

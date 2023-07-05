@@ -88,7 +88,7 @@ public class DCPAAlgorithm {
     algorithm = parts.algorithm();
     cpa = parts.cpa();
     block = pBlock;
-    dcpa = DCPAFactory.distribute(cpa, pBlock, AnalysisDirection.FORWARD, pCFA);
+    dcpa = DCPAFactory.distribute(cpa, pBlock, AnalysisDirection.FORWARD, pCFA, pConfiguration);
     // prepare reached set and initial elements
     reachedSet = parts.reached();
     checkNotNull(reachedSet, "BlockAnalysis requires the initial reachedSet");
@@ -300,11 +300,7 @@ public class DCPAAlgorithm {
         throw new AssertionError(
             "States need to have a location but this one does not: " + targetState);
       }
-      BlockSummaryMessagePayload initial =
-          dcpa.getSerializeOperator()
-              .serialize(
-                  dcpa.getInitialState(
-                      targetNode.orElseThrow(), StateSpacePartition.getDefaultPartition()));
+      BlockSummaryMessagePayload initial = dcpa.getSerializeOperator().serialize(targetState);
       initial = DCPAAlgorithms.appendStatus(status, initial);
       answers.add(
           BlockSummaryMessage.newErrorConditionMessage(

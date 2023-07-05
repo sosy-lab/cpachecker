@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import java.util.Map;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -47,11 +49,13 @@ public class DCPAFactory {
       ConfigurableProgramAnalysis pCPA,
       BlockNode pBlockNode,
       AnalysisDirection pDirection,
-      CFA pCFA) {
+      CFA pCFA,
+      Configuration pConfig)
+      throws InvalidConfigurationException {
     ImmutableMap<Integer, CFANode> integerToNodeMap =
         ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
     if (pCPA instanceof PredicateCPA predicateCPA) {
-      return distribute(predicateCPA, pBlockNode, pDirection, pCFA);
+      return distribute(predicateCPA, pBlockNode, pDirection, pCFA, pConfig);
     }
     if (pCPA instanceof CallstackCPA callstackCPA) {
       return distribute(callstackCPA, pBlockNode, pCFA, integerToNodeMap);
@@ -66,10 +70,10 @@ public class DCPAFactory {
       return distribute(backwardBlockCPA, pBlockNode, integerToNodeMap, pDirection);
     }
     if (pCPA instanceof ARGCPA argCPA) {
-      return distribute(argCPA, pBlockNode, pDirection, pCFA);
+      return distribute(argCPA, pBlockNode, pDirection, pCFA, pConfig);
     }
     if (pCPA instanceof CompositeCPA compositeCPA) {
-      return distribute(compositeCPA, pBlockNode, pDirection, pCFA, integerToNodeMap);
+      return distribute(compositeCPA, pBlockNode, pDirection, pCFA, integerToNodeMap, pConfig);
     }
     return null;
   }
@@ -91,8 +95,13 @@ public class DCPAFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      PredicateCPA pPredicateCPA, BlockNode pBlockNode, AnalysisDirection pDirection, CFA pCFA) {
-    return new DistributedPredicateCPA(pPredicateCPA, pBlockNode, pCFA, pDirection);
+      PredicateCPA pPredicateCPA,
+      BlockNode pBlockNode,
+      AnalysisDirection pDirection,
+      CFA pCFA,
+      Configuration pConfiguration)
+      throws InvalidConfigurationException {
+    return new DistributedPredicateCPA(pPredicateCPA, pBlockNode, pCFA, pDirection, pConfiguration);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
@@ -113,13 +122,15 @@ public class DCPAFactory {
       BlockNode pBlockNode,
       AnalysisDirection pDirection,
       CFA pCFA,
-      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
+      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap,
+      Configuration pConfig)
+      throws InvalidConfigurationException {
     ImmutableMap.Builder<
             Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
         builder = ImmutableMap.builder();
     for (ConfigurableProgramAnalysis wrappedCPA : pCompositeCPA.getWrappedCPAs()) {
       DistributedConfigurableProgramAnalysis dcpa =
-          distribute(wrappedCPA, pBlockNode, pDirection, pCFA);
+          distribute(wrappedCPA, pBlockNode, pDirection, pCFA, pConfig);
       if (dcpa == null) {
         continue;
       }
@@ -130,10 +141,19 @@ public class DCPAFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      ARGCPA pARGCPA, BlockNode pBlockNode, AnalysisDirection pDirection, CFA pCFA) {
+      ARGCPA pARGCPA,
+      BlockNode pBlockNode,
+      AnalysisDirection pDirection,
+      CFA pCFA,
+      Configuration pConfig)
+      throws InvalidConfigurationException {
     return new DistributedARGCPA(
         pARGCPA,
         distribute(
-            Iterables.getOnlyElement(pARGCPA.getWrappedCPAs()), pBlockNode, pDirection, pCFA));
+            Iterables.getOnlyElement(pARGCPA.getWrappedCPAs()),
+            pBlockNode,
+            pDirection,
+            pCFA,
+            pConfig));
   }
 }

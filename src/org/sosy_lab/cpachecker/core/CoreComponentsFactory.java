@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.BlockSummaryAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer.InferAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
@@ -383,6 +384,12 @@ public class CoreComponentsFactory {
       name = "algorithm.configurableComponents",
       description = "Distribute predicate analysis to multiple workers")
   private boolean useConfigurableComponents = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.infer",
+      description = "Distribute predicate analysis to multiple workers using infer")
+  private boolean useInfer = false;
 
   @Option(
       secure = true,
@@ -716,6 +723,16 @@ public class CoreComponentsFactory {
       if (useConfigurableComponents) {
         algorithm =
             new BlockSummaryAnalysis(
+                config,
+                logger,
+                cfa,
+                ShutdownManager.createWithParent(shutdownNotifier),
+                specification);
+      }
+
+      if (useInfer) {
+        algorithm =
+            new InferAnalysis(
                 config,
                 logger,
                 cfa,

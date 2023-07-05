@@ -223,7 +223,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     return targetNodeNumber;
   }
 
-  protected BlockSummaryMessagePayload getPayload() {
+  public BlockSummaryMessagePayload getPayload() {
     return payload;
   }
 
