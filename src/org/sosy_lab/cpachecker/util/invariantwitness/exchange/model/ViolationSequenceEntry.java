@@ -9,24 +9,24 @@
 package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
-import com.google.errorprone.annotations.Immutable;
+import java.util.List;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.MetadataRecord;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.WaypointRecord;
 
-@Immutable
+// TODO: find out how to serialize ImmutableList such that we can mark this class as @Immutable by
+// making sequence an ImmutableList
 public class ViolationSequenceEntry extends AbstractEntry {
 
   @JsonProperty("metadata")
   private final MetadataRecord metadata;
 
   @JsonProperty("sequence")
-  private final ImmutableList<WaypointRecord> sequence;
+  private final List<WaypointRecord> sequence;
 
   public ViolationSequenceEntry(
       @JsonProperty("entry_type") String entryType,
       @JsonProperty("metadata") MetadataRecord metadata,
-      @JsonProperty("sequence") ImmutableList<WaypointRecord> sequence) {
+      @JsonProperty("sequence") List<WaypointRecord> sequence) {
     super(entryType);
     this.metadata = metadata;
     this.sequence = sequence;
@@ -36,7 +36,7 @@ public class ViolationSequenceEntry extends AbstractEntry {
     return metadata;
   }
 
-  public ImmutableList<WaypointRecord> getSequence() {
+  public List<WaypointRecord> getSequence() {
     return sequence;
   }
 }
