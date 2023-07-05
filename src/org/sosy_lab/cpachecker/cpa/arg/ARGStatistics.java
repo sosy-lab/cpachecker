@@ -235,7 +235,9 @@ public class ARGStatistics implements Statistics {
 
     try {
       invariantWitnessWriter =
-          InvariantWitnessWriter.getWriter(config, cfa, pSpecification, pLogger);
+          yamlProofWitness != null
+              ? InvariantWitnessWriter.getWriter(config, cfa, pSpecification, pLogger)
+              : null;
     } catch (IOException e) {
       throw new InvalidConfigurationException("InvariantWitnessWriter could not be created", e);
     }
