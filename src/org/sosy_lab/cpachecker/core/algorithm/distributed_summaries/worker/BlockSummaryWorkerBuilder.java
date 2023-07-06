@@ -87,8 +87,7 @@ public class BlockSummaryWorkerBuilder {
   }
 
   @CanIgnoreReturnValue
-  public BlockSummaryWorkerBuilder addInferWorker(
-      BlockNode pNode, InferOptions pOptions) {
+  public BlockSummaryWorkerBuilder addInferWorker(BlockNode pNode, InferOptions pOptions) {
     workerGenerators.add(
         connection ->
             new InferWorker(

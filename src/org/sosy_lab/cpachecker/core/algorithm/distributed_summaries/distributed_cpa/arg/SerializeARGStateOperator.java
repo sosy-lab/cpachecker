@@ -48,7 +48,7 @@ public class SerializeARGStateOperator implements SerializeOperator {
     ImmutableSet.Builder<CFANode> builder = ImmutableSet.builder();
     Optional<CounterexampleInfo> info = pState.getCounterexampleInformation();
     if (info.isPresent()) {
-      PathIterator iterator = info.get().getTargetPath().fullPathIterator();
+      PathIterator iterator = info.orElseThrow().getTargetPath().fullPathIterator();
       do {
         builder.add(iterator.getLocation());
       } while (iterator.advanceIfPossible());

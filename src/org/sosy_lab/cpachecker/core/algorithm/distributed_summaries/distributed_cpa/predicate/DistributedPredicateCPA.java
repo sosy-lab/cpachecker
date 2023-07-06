@@ -132,10 +132,9 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   }
 
   private SerializeOperator initSerializer(CFA pCFA, AnalysisDirection pDirection) {
-    return
-        switch (serializer) {
-          case DEFAULT -> new SerializePredicateStateOperator(predicateCPA, pCFA, pDirection);
-          case INFER -> new InferSerializePredicateStateOperator(predicateCPA, pCFA);
-        };
+    return switch (serializer) {
+      case DEFAULT -> new SerializePredicateStateOperator(predicateCPA, pCFA, pDirection);
+      case INFER -> new InferSerializePredicateStateOperator(predicateCPA, pCFA);
+    };
   }
 }
