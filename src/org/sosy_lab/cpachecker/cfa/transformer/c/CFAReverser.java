@@ -236,6 +236,8 @@ public class CFAReverser {
         nodeMap.put(oldExitNode, initDoneNode);
         nodes.put(funcName, initDoneNode);
 
+        int branchCnt = 0; // how many branching in this function
+
         // =============================================================================
         // BFS the old CFA and create the new CFA
         Set<CFANode> visited = new HashSet<>();
@@ -262,37 +264,36 @@ public class CFAReverser {
           nodes.put(funcName, newhead);
 
           Boolean usingBranch = false;
-          CVariableDeclaration ndetDecl = null;
+          CVariableDeclaration ndetBranchVarDecl = null;
+          CIdExpression ndetBranchVarExpr = null;
 
           // Create Branching
+          // newhead -> branchNode -> assume1 -> newNext1
+          //                       -> assume2 -> newNext2
           if (CFAUtils.allEnteringEdges(oldhead).size() > 1) {
+            branchCnt += 1;
             usingBranch = true;
             // Create a ndet variable
-            ndetDecl =
+            ndetBranchVarDecl =
                 new CVariableDeclaration(
                     FileLocation.DUMMY,
                     false,
                     CStorageClass.AUTO,
                     intType,
-                    "TMP_BRANCHING_REVERSE_CFA",
-                    "TMP_BRANCHING_REVERSE_CFA",
-                    "TMP_BRANCHING_REVERSE_CFA",
+                    "TMP_BRANCHING_REVERSE_CFA" + branchCnt,
+                    "TMP_BRANCHING_REVERSE_CFA" + branchCnt,
+                    newDecl.getName() + "::" + "TMP_BRANCHING_REVERSE_CFA" + branchCnt,
                     null);
 
+            variables.put("TMP_BRANCHING_REVERSE_CFA", ndetBranchVarDecl);
+            ndetBranchVarExpr = new CIdExpression(FileLocation.DUMMY, ndetBranchVarDecl);
             CFANode branchNode = new CFANode(newhead.getFunction());
-            nodes.put(funcName, branchNode);
-
-            CFunctionCallExpression ndetCallExpr = createNoDetCallExpr(intType);
-
-            CIdExpression varid = new CIdExpression(FileLocation.DUMMY, ndetDecl);
-            CFunctionCallAssignmentStatement ndetAssign =
-                new CFunctionCallAssignmentStatement(FileLocation.DUMMY, varid, ndetCallExpr);
-
-            CStatementEdge branchEdge =
-                new CStatementEdge(
-                    "BRANCHING", ndetAssign, FileLocation.DUMMY, newhead, branchNode);
-            addToCFA(branchEdge);
+            nodes.put(branchNode.getFunctionName(), branchNode);
+            BlankEdge blankEdge =
+                new BlankEdge("", FileLocation.DUMMY, newhead, branchNode, "NON DET BRANCNING");
+            addToCFA(blankEdge);
             newhead = branchNode;
+            // newhead = createNoDetAssign(ndetBranchVarExpr, newhead);
           }
 
           int branchid = 0;
@@ -316,38 +317,18 @@ public class CFAReverser {
               nodeMap.put(oldNext, newNext);
               nodes.put(funcName, newNext);
             } else {
-              if (usingBranch) {
-                CFANode assumeNode = new CFANode(newhead.getFunction());
-                nodes.put(funcName, assumeNode);
-                CExpression lvalue = new CIdExpression(FileLocation.DUMMY, ndetDecl);
-                CIntegerLiteralExpression rvalue =
-                    new CIntegerLiteralExpression(
-                        FileLocation.DUMMY, intType, BigInteger.valueOf(branchid++));
 
-                CBinaryExpression assumeExpr =
-                    new CBinaryExpression(
-                        FileLocation.DUMMY,
-                        boolType,
-                        intType,
-                        lvalue,
-                        rvalue,
-                        BinaryOperator.EQUALS);
-                CAssumeEdge assumeEdge =
-                    new CAssumeEdge(
-                        "",
-                        FileLocation.DUMMY,
-                        newhead,
-                        assumeNode,
-                        assumeExpr,
-                        true,
-                        false,
-                        false);
-                addToCFA(assumeEdge);
-                nodeMap.put(oldhead, assumeNode);
+              if (usingBranch) {
+                CIntegerLiteralExpression ndetBranchIdExpr =
+                    new CIntegerLiteralExpression(
+                        FileLocation.DUMMY, intType, BigInteger.valueOf(branchid));
+                branchid += 1;
+                CFANode branchIdHead =
+                    createAssumeEdge(ndetBranchVarExpr, ndetBranchIdExpr, newhead, true);
+                nodeMap.put(oldhead, branchIdHead); // change the edge head temporarily
               }
 
               CFANode newNext = reverseEdge((CCfaEdge) oldEdge);
-
               nodes.put(funcName, newNext);
               nodeMap.put(oldNext, newNext);
             }
@@ -397,14 +378,11 @@ public class CFAReverser {
           curr = next;
         }
 
-        BlankEdge blank = new BlankEdge("", FileLocation.DUMMY, curr, initDoneNode, "init Done");
-        addToCFA(blank);
-
         // TODO: create ndet branching for target
         if (localTargets.size() != 0) {
           for (CFANode localTarget : localTargets) {
             BlankEdge jumpTargetEdge =
-                new BlankEdge("", FileLocation.DUMMY, initDoneNode, localTarget, "jump to target");
+                new BlankEdge("", FileLocation.DUMMY, curr, localTarget, "jump to target");
             addToCFA(jumpTargetEdge);
           }
         }
