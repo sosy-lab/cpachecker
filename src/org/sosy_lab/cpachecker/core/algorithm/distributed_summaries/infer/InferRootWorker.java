@@ -31,7 +31,7 @@ public class InferRootWorker extends BlockSummaryWorker {
   private Set<String> workerResults;
   private ImmutableSet.Builder<ImmutableSet<CFANode>> violationPathsBuilder;
 
-  private final String VIOLATION_PATHS = "violation_paths";
+  private static final String VIOLATION_PATHS = "violation_paths";
 
   public InferRootWorker(
       String pId, BlockSummaryConnection pConnection, InferOptions pOptions, int pNumBlocks)
@@ -61,7 +61,7 @@ public class InferRootWorker extends BlockSummaryWorker {
       case BLOCK_POSTCONDITION -> {
         workerResults.add(pMessage.getUniqueBlockId());
       }
-      default -> {}
+      default -> { }
     }
     if (workerResults.size() == numBlocks) {
 

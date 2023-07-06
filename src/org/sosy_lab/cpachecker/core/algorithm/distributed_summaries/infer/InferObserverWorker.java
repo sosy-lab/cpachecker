@@ -45,7 +45,7 @@ public class InferObserverWorker extends BlockSummaryObserverWorker {
         shutdown = true;
         errorMessage = Optional.of(((BlockSummaryExceptionMessage) pMessage).getErrorMessage());
       }
-      default -> {}
+      default -> { }
     }
     return ImmutableList.of();
   }
