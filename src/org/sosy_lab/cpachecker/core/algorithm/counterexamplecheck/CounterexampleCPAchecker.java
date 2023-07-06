@@ -123,26 +123,26 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
               + " available")
   private boolean replaceCexWithCexFromCheck = false;
 
-  private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
+//  private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
 
-  private WitnessExporter witnessExporter;
+//  private WitnessExporter witnessExporter;
 
   public CounterexampleCPAchecker(
-      Configuration config,
+      Configuration config_p,
       Specification pSpecification,
-      LogManager logger,
+      LogManager logger_p,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
       Function<ARGState, Optional<CounterexampleInfo>> pGetCounterexampleInfo)
       throws InvalidConfigurationException {
-    this.logger = logger;
-    this.config = config;
+    this.logger = logger_p;
+    this.config = config_p;
     specification = pSpecification;
-    config.inject(this);
+    config_p.inject(this);
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
-    getCounterexampleInfo = Objects.requireNonNull(pGetCounterexampleInfo);
-    witnessExporter = new WitnessExporter(config, logger, specification, cfa);
+    Objects.requireNonNull(pGetCounterexampleInfo);
+    new WitnessExporter(config_p, logger_p, specification, cfa);
   }
 
   @Override
@@ -176,16 +176,18 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       ARGState pRootState, ARGState pErrorState, Set<ARGState> pErrorPathStates, Path automatonFile)
       throws IOException, CPAException, InterruptedException {
 
-    final Predicate<ARGState> relevantState = Predicates.in(pErrorPathStates);
-    final Witness witness =
+//    final Predicate<ARGState> relevantState = Predicates.in(pErrorPathStates);
+    /*final Witness witness =
         witnessExporter.generateErrorWitness(
             pRootState,
             relevantState,
             BiPredicates.bothSatisfy(relevantState),
             getCounterexampleInfo.apply(pErrorState).orElse(null));
-    try (Writer w = IO.openOutputFile(automatonFile, Charset.defaultCharset())) {
-      WitnessToOutputFormatsUtils.writeToGraphMl(witness, w);
-    }
+
+     */
+    //try (Writer w = IO.openOutputFile(automatonFile, Charset.defaultCharset())) {
+    //  WitnessToOutputFormatsUtils.writeToGraphMl(witness, w);
+    //}
 
     // We assume only one initial node for an analysis, even for mutli-threaded tasks.
     CFANode entryNode = Iterables.getOnlyElement(extractLocations(pRootState));

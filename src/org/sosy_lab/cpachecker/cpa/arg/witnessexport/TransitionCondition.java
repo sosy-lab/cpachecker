@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2016  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -68,7 +83,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
         newMap.put(e.getKey(), e.getValue());
       }
     }
-    return newMap == null ? tc : new TransitionCondition(newMap, newScope.orElseThrow());
+    return newMap == null ? tc : new TransitionCondition(newMap, newScope.get());
   }
 
   public TransitionCondition removeAndCopy(final KeyDef pKey) {
@@ -87,7 +102,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
       return true;
     }
     return pOther instanceof TransitionCondition
-        && keyValues.equals(((TransitionCondition) pOther).keyValues)
+        && this.keyValues.equals(((TransitionCondition) pOther).keyValues)
         && scope.equals(((TransitionCondition) pOther).scope);
   }
 
@@ -127,10 +142,11 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
       return true;
     }
     boolean ignoreAssumptionScope =
-        !keyValues.containsKey(KeyDef.ASSUMPTION)
-            || !pLabel.keyValues.containsKey(KeyDef.ASSUMPTION);
+        !keyValues.keySet().contains(KeyDef.ASSUMPTION)
+            || !pLabel.keyValues.keySet().contains(KeyDef.ASSUMPTION);
     boolean ignoreInvariantScope =
-        !keyValues.containsKey(KeyDef.INVARIANT) || !pLabel.keyValues.containsKey(KeyDef.INVARIANT);
+        !keyValues.keySet().contains(KeyDef.INVARIANT)
+        || !pLabel.keyValues.keySet().contains(KeyDef.INVARIANT);
 
     final EnumSet<KeyDef> keyDefs;
     if (!keyValues.isEmpty()) {
@@ -194,7 +210,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     return EMPTY;
   }
 
-  static class Scope implements Comparable<Scope> {
+  class Scope implements Comparable<Scope> {
 
     private final Optional<String> functionName;
 
@@ -219,7 +235,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     }
 
     public String getFunctionName() {
-      return functionName.orElseThrow();
+      return functionName.get();
     }
 
     public Collection<ASimpleDeclaration> getUsedDeclarations() {
@@ -259,7 +275,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     public int compareTo(Scope pOther) {
       return ComparisonChain.start()
           .compareTrueFirst(isGlobal(), pOther.isGlobal())
-          .compare(functionName.orElseThrow(), pOther.functionName.orElseThrow())
+          .compare(functionName.get(), pOther.functionName.get())
           .compare(
               usedDeclarations,
               pOther.usedDeclarations,
@@ -295,8 +311,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
         Optional<String> pNewFunctionName, Collection<ASimpleDeclaration> pUsedDeclarations) {
       final Optional<String> newFunctionName;
       if (pNewFunctionName.isPresent()) {
-        if (functionName.isPresent()
-            && !functionName.orElseThrow().equals(pNewFunctionName.orElseThrow())) {
+        if (functionName.isPresent() && !functionName.get().equals(pNewFunctionName.get())) {
           return Optional.empty();
         }
         if (!functionName.isPresent() && !usedDeclarations.isEmpty()) {

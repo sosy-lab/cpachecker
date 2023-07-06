@@ -47,7 +47,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
+import net.bytebuddy.pool.TypePool.Empty;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.annotations.SuppressForbidden;
@@ -229,30 +231,7 @@ public class ReportGenerator {
   }
 
   private void extractWitness(Result pResult, CFA pCfa, UnmodifiableReachedSet pReached) {
-    if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
-      ImmutableSet<ARGState> rootStates = ARGUtils.getRootStates(pReached);
-      if (rootStates.size() != 1) {
-        logger.log(Level.FINER, "Could not determine ARG root for witness view");
-        return;
-      }
-      ARGState rootState = rootStates.iterator().next();
-      try {
-        WitnessExporter argWitnessExporter =
-            new WitnessExporter(config, logger, Specification.alwaysSatisfied(), pCfa);
-        witnessOptional =
-            Optional.of(
-                argWitnessExporter.generateProofWitness(
-                    rootState,
-                    Predicates.alwaysTrue(),
-                    BiPredicates.alwaysTrue(),
-                    argWitnessExporter.getProofInvariantProvider()));
-      } catch (InvalidConfigurationException e) {
-        logger.logUserException(Level.WARNING, e, "Could not generate witness for witness view");
-      } catch (InterruptedException e) {
-        logger.logUserException(
-            Level.WARNING, e, "Could not generate witness for witness view due to interruption");
-      }
-    }
+      logger.log(Level.FINER, "Extract witness is disabled", pResult, pCfa, pReached);
   }
 
   private void fillOutTemplate(

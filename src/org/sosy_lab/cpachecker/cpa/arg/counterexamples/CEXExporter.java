@@ -70,12 +70,6 @@ public class CEXExporter {
 
   @Option(
       secure = true,
-      name = "compressWitness",
-      description = "compress the produced error-witness automata using GZIP compression.")
-  private boolean compressWitness = true;
-
-  @Option(
-      secure = true,
       name = "codeStyle",
       description = "exports either CMBC format or a concrete path program")
   private CounterexampleExportType codeStyle = CounterexampleExportType.CBMC;
@@ -96,8 +90,6 @@ public class CEXExporter {
 
   private final CEXExportOptions options;
   private final LogManager logger;
-  private final WitnessExporter witnessExporter;
-  private final ExtendedWitnessExporter extendedWitnessExporter;
   private final HarnessExporter harnessExporter;
   private TestCaseExporter testExporter;
 
@@ -113,8 +105,6 @@ public class CEXExporter {
     config.inject(this);
     options = pOptions;
     logger = pLogger;
-    witnessExporter = checkNotNull(pWitnessExporter);
-    extendedWitnessExporter = checkNotNull(pExtendedWitnessExporter);
 
     if (!options.disabledCompletely()) {
       cexFilter =
@@ -284,49 +274,7 @@ public class CEXExporter {
       }
     }
 
-    try {
-      final Witness witness =
-          witnessExporter.generateErrorWitness(
-              rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
-
-      writeErrorPathFile(
-          options.getWitnessFile(),
-          uniqueId,
-          (Appender)
-              pApp -> {
-                WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp);
-              },
-          compressWitness);
-
-      writeErrorPathFile(
-          options.getWitnessDotFile(),
-          uniqueId,
-          (Appender)
-              pApp -> {
-                WitnessToOutputFormatsUtils.writeToDot(witness, pApp);
-              },
-          compressWitness);
-    } catch (InterruptedException e) {
-      logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
-    }
-
-    if (options.getExtendedWitnessFile() != null) {
-      try {
-        Witness extWitness =
-            extendedWitnessExporter.generateErrorWitness(
-                rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
-        writeErrorPathFile(
-            options.getExtendedWitnessFile(),
-            uniqueId,
-            (Appender)
-                pAppendable -> {
-                  WitnessToOutputFormatsUtils.writeToGraphMl(extWitness, pAppendable);
-                },
-            compressWitness);
-      } catch (InterruptedException e) {
-        logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
-      }
-    }
+    logger.log(Level.WARNING, "Could not export witness, error witness export is disables");
 
     writeErrorPathFile(
         options.getTestHarnessFile(),

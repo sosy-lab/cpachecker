@@ -23,6 +23,7 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -382,34 +383,42 @@ public class ARGStatistics implements Statistics {
         Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.of());
 
     if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
-      try {
-        final Witness witness =
-            argWitnessExporter.generateProofWitness(
-                rootState,
-                Predicates.alwaysTrue(),
-                BiPredicates.alwaysTrue(),
-                argWitnessExporter.getProofInvariantProvider());
-
         if (proofWitness != null) {
-          Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
-          WitnessToOutputFormatsUtils.writeWitness(
-              witnessFile,
-              compressWitness,
-              pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
-              logger);
+          try {
+            Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
+            Appender content =
+                pAppendable ->
+                {
+                  try {
+                    argWitnessExporter.writeProofWitness(
+                        pAppendable, rootState, Predicates.alwaysTrue(), BiPredicates.alwaysTrue());
+                  } catch (InterruptedException pE) {
+                    throw new RuntimeException(pE);
+                  }
+                };
+            if (!compressWitness) {
+              IO.writeFile(witnessFile, StandardCharsets.UTF_8, content);
+            } else {
+              witnessFile = witnessFile.resolveSibling(witnessFile.getFileName() + ".gz");
+              IO.writeGZIPFile(witnessFile, StandardCharsets.UTF_8, content);
+            }
+          } catch (IOException e) {
+            logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+          }
         }
 
         if (proofWitnessDot != null) {
+          /*
           Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitnessDot);
           WitnessToOutputFormatsUtils.writeWitness(
               witnessFile,
               compressWitness,
               pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
-              logger);
+              logger);*/
         }
-      } catch (InterruptedException e) {
-        logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
-      }
+//      } catch (InterruptedException e) {
+//        logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
+//     }
     }
 
     if (argFile != null) {

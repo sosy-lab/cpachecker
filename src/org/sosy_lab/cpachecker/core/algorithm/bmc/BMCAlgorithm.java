@@ -87,10 +87,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Nullable
   private Path invariantsExport = null;
 
-  private final Configuration config;
+//  private final Configuration config;
   private final CFA cfa;
 
-  private final WitnessExporter argWitnessExporter;
+  //private final WitnessExporter argWitnessExporter;
 
   public BMCAlgorithm(
       Algorithm pAlgorithm,
@@ -117,10 +117,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         pAggregatedReachedSets);
     pConfig.inject(this);
 
-    config = pConfig;
+//    config = pConfig;
     cfa = pCFA;
 
-    argWitnessExporter = new WitnessExporter(config, logger, specification, cfa);
+//    argWitnessExporter = new WitnessExporter(config, logger, specification, cfa);
   }
 
   @Override
@@ -210,8 +210,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                       ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
                 }
               }
-              final ExpressionTreeSupplier expSup = tmpExpressionTreeSupplier;
-              try (Writer w = IO.openOutputFile(invariantsExport, StandardCharsets.UTF_8)) {
+//              final ExpressionTreeSupplier expSup = tmpExpressionTreeSupplier;
+/*              try (Writer w = IO.openOutputFile(invariantsExport, StandardCharsets.UTF_8)) {
                 final Witness generatedWitness =
                     argWitnessExporter.generateProofWitness(
                         rootState,
@@ -231,14 +231,12 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                             return result;
                           }
                         });
-                WitnessToOutputFormatsUtils.writeToGraphMl(generatedWitness, w);
+                throw new RuntimeException("BMC witness writing disabled");
+                //WitnessToOutputFormatsUtils.writeToGraphMl(generatedWitness, w);
               } catch (IOException e) {
                 logger.logUserException(
                     Level.WARNING, e, "Could not write invariants to file " + invariantsExport);
-              } catch (InterruptedException e) {
-                logger.logUserException(
-                    Level.WARNING, e, "Could not export witness due to interruption");
-              }
+              }*/
             }
           }
 

@@ -133,12 +133,12 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   @FileOption(Type.OUTPUT_FILE)
   private Path violationWitnessDot = Path.of("nontermination_witness.dot");
 
-  @Option(
+/*  @Option(
       secure = true,
       name = "compressWitness",
       description = "compress the produced violation-witness automata using GZIP compression.")
   private boolean compressWitness = true;
-
+*/
   private final int totalLoops;
 
   private final Set<Loop> analysedLoops = Sets.newConcurrentHashSet();
@@ -155,7 +155,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   private final LogManager logger;
 
-  private final WitnessExporter witnessExporter;
+  //private final WitnessExporter witnessExporter;
   private final LocationStateFactory locFac;
   private @Nullable Loop nonterminatingLoop = null;
 
@@ -166,8 +166,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     logger = checkNotNull(pLogger);
     totalLoops = pTotalNumberOfLoops;
 
-    witnessExporter =
-        new WitnessExporter(
+      new WitnessExporter(
             pConfig,
             pLogger,
             Specification.alwaysSatisfied()
@@ -454,21 +453,22 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     Collection<ARGState> cexStates =
         copyStem(cexInfo.getTargetPath(), newRoot, loopStart, loopStartInCEX);
 
-    NonTerminationArgument arg = nonTerminationArguments.get(nonterminatingLoop);
-    ExpressionTree<Object> quasiInvariant = buildInvariantFrom(arg);
-
+//    NonTerminationArgument arg = nonTerminationArguments.get(nonterminatingLoop);
+//    ExpressionTree<Object> quasiInvariant = buildInvariantFrom(arg);
+/*
     Function<? super ARGState, ExpressionTree<Object>> provideQuasiInvariant =
         (ARGState argState) -> {
           if (Objects.equals(argState, loopStartInCEX)) {
             return quasiInvariant;
           }
           return ExpressionTrees.getTrue();
-        };
+        };*/
 
     cexStates.addAll(addCEXLoopingPartToARG(loopStartInCEX));
 
-    Predicate<? super ARGState> relevantStates = Predicates.in(cexStates);
+//    Predicate<? super ARGState> relevantStates = Predicates.in(cexStates);
 
+      /*
     try {
       final Witness witness =
           witnessExporter.generateTerminationErrorWitness(
@@ -497,6 +497,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       logger.logUserException(
           WARNING, e, "Could not export termination witness due to interruption");
     }
+
+       */
   }
 
   private Collection<ARGState> copyStem(
