@@ -209,25 +209,26 @@ public class CFAReverser {
         String funcName = oldEntryNode.getFunctionName();
 
         CFunctionDeclaration oldDecl = oldEntryNode.getFunctionDefinition();
-        CFunctionDeclaration newDecl = newDeclaration(oldDecl);
+        CFunctionDeclaration newDecl = reverseFunctionDeclaration(oldDecl);
+        funcDeclMap.put(oldDecl, newDecl);
 
         FunctionExitNode oldExitNode = oldEntryNode.getExitNode().orElseThrow();
 
         CFunctionEntryNode newEntry =
             new CFunctionEntryNode(FileLocation.DUMMY, newDecl, null, Optional.empty());
+        nodes.put(funcName, newEntry);
 
         CFANode initStartNode = new CFANode(newDecl); // node before variable initialization
-
-        nodes.put(funcName, newEntry);
         nodes.put(funcName, initStartNode);
 
-        funcDeclMap.put(oldDecl, newDecl);
-
+        // initStartNode --> int i --> initDoneNode --> target
         BlankEdge initStartEdge =
-            new BlankEdge(
-                "", FileLocation.DUMMY, newEntry, initStartNode, "variable initialization start");
+            new BlankEdge("", FileLocation.DUMMY, newEntry, initStartNode, "INIT GLOBAL VARS");
 
         addToCFA(initStartEdge);
+
+        CFANode varInitStartNode = new CFANode(newDecl);
+        nodes.put(varInitStartNode.getFunctionName(), varInitStartNode);
 
         // node after function initialization.
         // real function body begin here
@@ -235,12 +236,12 @@ public class CFAReverser {
         nodeMap.put(oldExitNode, initDoneNode);
         nodes.put(funcName, initDoneNode);
 
+        // =============================================================================
         // BFS the old CFA and create the new CFA
         Set<CFANode> visited = new HashSet<>();
         Deque<CFANode> waitList = new ArrayDeque<>();
         waitList.add(oldExitNode);
         visited.add(oldExitNode);
-        pLog.log(Level.INFO, "TRACE:");
 
         Set<CFANode> localTargets = new HashSet<>();
 
@@ -250,7 +251,6 @@ public class CFAReverser {
 
           if (oldhead instanceof CFunctionEntryNode) {
             ((FunctionExitNode) newhead).setEntryNode(newEntry);
-            break;
           }
 
           if (targets.contains(oldhead)) {
@@ -342,7 +342,6 @@ public class CFAReverser {
                         true,
                         false,
                         false);
-                pLog.log(Level.INFO, "ASSUMMING: " + assumeEdge);
                 addToCFA(assumeEdge);
                 nodeMap.put(oldhead, assumeNode);
               }
@@ -359,7 +358,8 @@ public class CFAReverser {
           }
         }
 
-        // Initialize all variables and function after entering the function.
+        // =============================================================================
+        // Declare function
         CFANode curr = initStartNode;
         CFANode next = null;
 
@@ -375,24 +375,36 @@ public class CFAReverser {
         next = new CFANode(curr.getFunction());
         nodes.put(next.getFunctionName(), next);
         CDeclarationEdge funcDeclEdge =
-            new CDeclarationEdge("", FileLocation.DUMMY, curr, next, newDecl);
+            new CDeclarationEdge("", newDecl.getFileLocation(), curr, next, newDecl);
+        pLog.log(Level.INFO, "func decl: " + funcDeclEdge);
         addToCFA(funcDeclEdge);
         curr = next;
 
+        BlankEdge functionStartDummyEdge =
+            new BlankEdge(
+                "", FileLocation.DUMMY, curr, varInitStartNode, "Function start dummy edge");
+        addToCFA(functionStartDummyEdge);
+        curr = varInitStartNode;
+
+        // =============================================================================
+        // Declare variable
         for (CVariableDeclaration decl : variables.values()) {
           next = new CFANode(curr.getFunction());
           nodes.put(next.getFunctionName(), next);
           CDeclarationEdge ndeclEdge =
-              new CDeclarationEdge("", FileLocation.DUMMY, curr, next, decl);
+              new CDeclarationEdge("", decl.getFileLocation(), curr, next, decl);
           addToCFA(ndeclEdge);
           curr = next;
         }
+
+        BlankEdge blank = new BlankEdge("", FileLocation.DUMMY, curr, initDoneNode, "init Done");
+        addToCFA(blank);
 
         // TODO: create ndet branching for target
         if (localTargets.size() != 0) {
           for (CFANode localTarget : localTargets) {
             BlankEdge jumpTargetEdge =
-                new BlankEdge("", FileLocation.DUMMY, curr, localTarget, "jump to target");
+                new BlankEdge("", FileLocation.DUMMY, initDoneNode, localTarget, "jump to target");
             addToCFA(jumpTargetEdge);
           }
         }
@@ -433,9 +445,9 @@ public class CFAReverser {
       /////////////////////////////////////////////////////////////////////////////
       // New Node Creator
       /////////////////////////////////////////////////////////////////////////////
-      private CFunctionDeclaration newDeclaration(CFunctionDeclaration fdef) {
+      private CFunctionDeclaration reverseFunctionDeclaration(CFunctionDeclaration fdef) {
         return new CFunctionDeclaration(
-            FileLocation.DUMMY,
+            fdef.getFileLocation(),
             fdef.getType(),
             fdef.getName(),
             fdef.getOrigName(),
@@ -467,7 +479,7 @@ public class CFAReverser {
       // Assume Edge
       /////////////////////////////////////////////////////////////////////////////
       private CFANode reverseAssumeEdge(CAssumeEdge edge) {
-        pLog.log(Level.INFO, "HANDLING: " + edge);
+        pLog.log(Level.INFO, "assume edge: " + edge);
         CFANode from = nodeMap.get(edge.getSuccessor());
         CFANode to;
 
@@ -555,18 +567,17 @@ public class CFAReverser {
         if (decl instanceof CTypeDeclaration) {
           return null;
         } else if (decl instanceof CFunctionDeclaration) {
-          return reverseFuncDeclEdge(edge, (CFunctionDeclaration) decl);
+          return reverseFuncDeclEdge(edge);
         } else {
           return reverseVarDeclEdge(edge, (CVariableDeclaration) decl);
         }
       }
 
-      private CFANode reverseFuncDeclEdge(CDeclarationEdge edge, CFunctionDeclaration decl) {
+      private CFANode reverseFuncDeclEdge(CDeclarationEdge edge) {
         CFANode from = nodeMap.get(edge.getSuccessor());
         CFANode to = newNode(edge.getPredecessor());
-        CDeclarationEdge newedge =
-            new CDeclarationEdge(edge.getRawStatement(), edge.getFileLocation(), from, to, decl);
-        addToCFA(newedge);
+        BlankEdge blank = new BlankEdge("", FileLocation.DUMMY, from, to, "Original Func Decl");
+        addToCFA(blank);
         return to;
       }
 
@@ -579,7 +590,7 @@ public class CFAReverser {
           String name = decl.getName();
           CVariableDeclaration newdecl =
               new CVariableDeclaration(
-                  FileLocation.DUMMY,
+                  decl.getFileLocation(),
                   decl.isGlobal(),
                   decl.getCStorageClass(),
                   decl.getType(),
@@ -610,8 +621,7 @@ public class CFAReverser {
           CExpression rhs = rvalue.accept(rfinder);
 
           CLeftHandSide lhs = new CIdExpression(FileLocation.DUMMY, variables.get(var));
-
-          curr = createAssumeEqualEdge(lhs, rhs, curr);
+          curr = createAssumeEdge(lhs, rhs, curr, true);
 
           BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "");
           addToCFA(blankEdge);
@@ -660,7 +670,7 @@ public class CFAReverser {
           to = new CFANode(curr.getFunction());
         }
 
-        curr = createAssumeEqualEdge(lhs, rhs, curr);
+        curr = createAssumeEdge(lhs, rhs, curr, true);
 
         // reset the left side
         if (rfinder.tmpVarMap.size() == 0) {
@@ -685,20 +695,9 @@ public class CFAReverser {
         checkNotNull(from);
         CExpression lvalue = stmt.getLeftHandSide();
         CFunctionCallExpression rvalue = stmt.getRightHandSide();
-        pLog.log(Level.INFO, "lvalue:" + lvalue.toASTString());
-        pLog.log(Level.INFO, "rvalue:" + rvalue.toASTString());
-        pLog.log(
-            Level.INFO,
-            rvalue.getDeclaration() + "FUNC NAME: " + rvalue.getFunctionNameExpression());
-        pLog.log(
-            Level.INFO, rvalue.getExpressionType() + " PARAS: " + rvalue.getParameterExpressions());
-        pLog.log(
-            Level.INFO,
-            rvalue.getDeclaration().getAttributes() + rvalue.getDeclaration().getName());
-        pLog.log(
-            Level.INFO,
-            rvalue.getDeclaration().getOrigName() + rvalue.getDeclaration().getQualifiedName());
-        pLog.log(Level.INFO, "rvalue:" + rvalue.getClass());
+        pLog.log(Level.INFO, "call assign stmt: " + stmt);
+        pLog.log(Level.INFO, "lvalue:" + lvalue + " " + lvalue.getClass());
+        pLog.log(Level.INFO, "rvalue:" + rvalue + " " + rvalue.getClass());
 
         return null;
       }
@@ -723,19 +722,16 @@ public class CFAReverser {
           String name = decl.getName();
           assert !variables.containsKey(name);
 
-          CIntegerLiteralExpression zero =
-              new CIntegerLiteralExpression(FileLocation.DUMMY, intType, BigInteger.valueOf(0));
-
           CVariableDeclaration newDecl =
               new CVariableDeclaration(
-                  FileLocation.DUMMY,
-                  decl.isGlobal(),
+                  decl.getFileLocation(),
+                  false,
                   decl.getCStorageClass(),
                   decl.getType(),
                   name,
                   name,
                   name,
-                  new CInitializerExpression(FileLocation.DUMMY, zero));
+                  null);
           variables.put(name, newDecl);
           return newDecl;
         }
@@ -843,23 +839,21 @@ public class CFAReverser {
 
         private CVariableDeclaration createNewVar(CVariableDeclaration decl) {
           String name = decl.getName();
-          CIntegerLiteralExpression zero =
-              new CIntegerLiteralExpression(FileLocation.DUMMY, intType, BigInteger.valueOf(0));
           CVariableDeclaration newDecl =
               new CVariableDeclaration(
-                  FileLocation.DUMMY,
-                  decl.isGlobal(),
+                  decl.getFileLocation(),
+                  false,
                   decl.getCStorageClass(),
                   decl.getType(),
                   name,
                   name,
                   name,
-                  new CInitializerExpression(FileLocation.DUMMY, zero));
+                  null);
           variables.put(name, newDecl);
           return newDecl;
         }
 
-        private CExpression handleVarDecl(CVariableDeclaration decl) {
+        private CExpression handleVarDecl(CIdExpression expr, CVariableDeclaration decl) {
           String name = decl.getName();
 
           CVariableDeclaration newDecl = variables.get(name);
@@ -871,7 +865,7 @@ public class CFAReverser {
             newDecl = createTmpVar(decl);
           }
 
-          return new CIdExpression(FileLocation.DUMMY, newDecl);
+          return new CIdExpression(expr.getFileLocation(), newDecl);
         }
 
         @Override
@@ -880,7 +874,7 @@ public class CFAReverser {
           CSimpleDeclaration decl = pIastIdExpression.getDeclaration();
 
           if (decl instanceof CVariableDeclaration) {
-            return handleVarDecl((CVariableDeclaration) decl);
+            return handleVarDecl(pIastIdExpression, (CVariableDeclaration) decl);
           }
 
           return null;
@@ -1049,7 +1043,8 @@ public class CFAReverser {
       return next;
     }
 
-    private CFANode createAssumeEqualEdge(CExpression lExpr, CExpression rExpr, CFANode curr) {
+    private CFANode createAssumeEdge(
+        CExpression lExpr, CExpression rExpr, CFANode curr, boolean assume) {
 
       CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(MachineModel.LINUX64, pLog);
       CExpression assumeExpr =
@@ -1059,7 +1054,7 @@ public class CFAReverser {
       nodes.put(next.getFunctionName(), next);
 
       CAssumeEdge assumeEdge =
-          new CAssumeEdge("", FileLocation.DUMMY, curr, next, assumeExpr, true, false, true);
+          new CAssumeEdge("", FileLocation.DUMMY, curr, next, assumeExpr, assume, false, true);
 
       addToCFA(assumeEdge);
       curr = next;

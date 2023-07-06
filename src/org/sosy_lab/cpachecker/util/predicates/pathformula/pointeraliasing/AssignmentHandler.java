@@ -139,10 +139,10 @@ class AssignmentHandler {
       final @Nullable CRightHandSide rhs,
       final boolean useOldSSAIndicesIfAliased)
       throws UnrecognizedCodeException, InterruptedException {
-    if (!conv.isRelevantLeftHandSide(lhsForChecking)) {
-      // Optimization for unused variables and fields
-      return conv.bfmgr.makeTrue();
-    }
+    // if (!conv.isRelevantLeftHandSide(lhsForChecking)) {
+    // Optimization for unused variables and fields
+    // return conv.bfmgr.makeTrue();
+    // }
 
     final CType rhsType =
         rhs != null ? typeHandler.getSimplifiedType(rhs) : CNumericTypes.SIGNED_CHAR;
