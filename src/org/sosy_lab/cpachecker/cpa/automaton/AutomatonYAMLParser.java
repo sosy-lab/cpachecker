@@ -65,15 +65,6 @@ public class AutomatonYAMLParser {
   private InvariantsSpecificationAutomatonBuilder invariantsSpecAutomaton =
       InvariantsSpecificationAutomatonBuilder.NO_ISA;
 
-  @Option(secure = true, description = "Match the character offset within the file.")
-  private boolean matchOffset = true;
-
-  @Option(
-      secure = true,
-      description =
-          "Match the line numbers within the origin (mapping done by preprocessor line markers).")
-  private boolean matchOriginLine = true;
-
   @Option(secure = true, description = "File for exporting the witness automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path automatonDumpFile = null;
