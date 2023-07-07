@@ -1105,7 +1105,7 @@ public class AutomatonGraphmlParser {
     return state;
   }
 
-  private GraphMLDocumentData parseXML(InputStream pInputStream)
+  public static GraphMLDocumentData parseXML(InputStream pInputStream)
       throws WitnessParseException, IOException {
 
     // Parse the XML document ----
@@ -1992,7 +1992,7 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  private static class GraphMLDocumentData {
+  public static class GraphMLDocumentData {
 
     private final Node graph;
 
@@ -2251,12 +2251,12 @@ public class AutomatonGraphmlParser {
   }
 
   @FunctionalInterface
-  private interface InputHandler<T, E extends Throwable> {
+  public interface InputHandler<T, E extends Throwable> {
 
     T handleInput(InputStream pInputStream) throws E, IOException, InterruptedException;
   }
 
-  private static <T, E extends Throwable> T handlePotentiallyGZippedInput(
+  public static <T, E extends Throwable> T handlePotentiallyGZippedInput(
       ByteSource pInputSource,
       InputHandler<T, E> pInputHandler,
       Function<IOException, E> pExceptionHandler)
