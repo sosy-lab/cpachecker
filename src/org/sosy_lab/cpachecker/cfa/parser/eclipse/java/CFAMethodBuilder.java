@@ -29,6 +29,7 @@ import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BooleanLiteral;
 import org.eclipse.jdt.core.dom.BreakStatement;
+import org.eclipse.jdt.core.dom.CatchClause;
 import org.eclipse.jdt.core.dom.ConditionalExpression;
 import org.eclipse.jdt.core.dom.ContinueStatement;
 import org.eclipse.jdt.core.dom.DoStatement;
@@ -47,6 +48,7 @@ import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
 import org.eclipse.jdt.core.dom.SwitchCase;
 import org.eclipse.jdt.core.dom.SwitchStatement;
+import org.eclipse.jdt.core.dom.TryStatement;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import org.sosy_lab.common.log.LogManager;
@@ -123,6 +125,12 @@ class CFAMethodBuilder extends ASTVisitor {
   // Data structure for handling switch-statements
   private final Deque<JExpression> switchExprStack = new ArrayDeque<>();
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
+
+  // Data structure for handling try & catch blocks
+  private final Deque<CFANode> tryStartStack = new ArrayDeque<>();
+  private final Deque<CFANode> tryNextStack = new ArrayDeque<>();
+  private final Deque<CFANode> catchStartStack = new ArrayDeque<>();
+  private final Deque<CFANode> catchNextStack = new ArrayDeque<>();
 
   // Data structures for label , continue , break
   private final Map<String, CFALabelNode> labelMap = new HashMap<>();
@@ -2661,5 +2669,29 @@ class CFAMethodBuilder extends ASTVisitor {
     addToCFA(edge);
 
     locStack.push(nextNode);
+  }
+
+  @Override
+  public boolean visit(TryStatement ts) {
+    FileLocation fileloc = astCreator.getFileLocation(ts);
+    final CFANode prevNode = locStack.pop();
+
+    final CFANode tryStart = new CFANode(cfa.getFunction());
+    cfaNodes.add(tryStart);
+    tryStartStack.push(tryStart);
+
+    locStack.push(tryStart);
+
+    final BlankEdge blankEdge = new BlankEdge("", fileloc, prevNode, tryStart, "try");
+    addToCFA(blankEdge);
+
+    ts.getBody().accept(this);
+    return VISIT_CHILDREN;
+  }
+
+  @Override
+  public boolean visit(CatchClause cc) {
+    cc.getBody().accept(this);
+    return SKIP_CHILDREN;
   }
 }
