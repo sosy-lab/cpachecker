@@ -674,11 +674,11 @@ public class CPAMain {
       Optional<WitnessType> optionalWitnessType =
           AutomatonGraphmlParser.getWitnessTypeIfXML(options.witness);
       if (optionalWitnessType.isPresent()) {
-        witnessType = optionalWitnessType.get();
+        witnessType = optionalWitnessType.orElseThrow();
       } else {
         optionalWitnessType = AutomatonYAMLParser.getWitnessTypeIfYAML(options.witness);
         if (optionalWitnessType.isPresent()) {
-          witnessType = optionalWitnessType.get();
+          witnessType = optionalWitnessType.orElseThrow();
         } else {
           throw new InvalidConfigurationException(
               "The Witness format found for " + options.witness + " is currently not supported.");
