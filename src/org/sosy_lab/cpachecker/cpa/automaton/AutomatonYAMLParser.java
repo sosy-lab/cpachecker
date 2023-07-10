@@ -134,7 +134,7 @@ public class AutomatonYAMLParser {
     return Optional.of(WitnessType.CORRECTNESS_WITNESS);
   }
 
-  public static boolean isYAML(Path pPath)
+  public static boolean isYAMLWitness(Path pPath)
       throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
         MoreFiles.asByteSource(pPath),
@@ -147,11 +147,6 @@ public class AutomatonYAMLParser {
           }
         },
         WitnessParseException::new);
-  }
-
-  public static boolean isYAMLWitness(Path pPath)
-      throws InvalidConfigurationException, InterruptedException {
-    return isYAML(pPath);
   }
 
   public Automaton parseAutomatonFile(Path pInputFile)
