@@ -166,8 +166,8 @@ public class AutomatonYAMLParser {
       Predicate<FileLocation> pLocationDescriptor,
       Scope pScope) {
     Scope result = pScope;
-    if (result instanceof CProgramScope) {
-      result = ((CProgramScope) result).withLocationDescriptor(pLocationDescriptor);
+    if (result instanceof CProgramScope r) {
+      result = r.withLocationDescriptor(pLocationDescriptor);
       if (pExplicitScope.isPresent() || !pFunctionStack.isEmpty()) {
         final String functionName;
         if (pExplicitScope.isPresent()) {
@@ -175,7 +175,7 @@ public class AutomatonYAMLParser {
         } else {
           functionName = pFunctionStack.peek();
         }
-        result = ((CProgramScope) result).withFunctionScope(functionName);
+        result = r.withFunctionScope(functionName);
       }
     }
     return result;
@@ -200,9 +200,7 @@ public class AutomatonYAMLParser {
     List<AutomatonTransition> transitions = new ArrayList<>();
 
     for (AbstractEntry entry : entries) {
-      if (entry instanceof LoopInvariantEntry) {
-        LoopInvariantEntry loopInvariantEntry = (LoopInvariantEntry) entry;
-
+      if (entry instanceof LoopInvariantEntry loopInvariantEntry) {
         Optional<String> resultFunction =
             Optional.of(loopInvariantEntry.getLocation().getFunction());
 
