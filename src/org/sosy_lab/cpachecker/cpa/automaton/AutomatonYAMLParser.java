@@ -190,7 +190,7 @@ public class AutomatonYAMLParser {
       throws InvalidConfigurationException, IOException, InterruptedException {
     List<AbstractEntry> entries = parseYAML(pInputStream);
 
-    String automatonName = "";
+    String automatonName = "No Loop Invariant Present";
     Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
     String entryStateId = "singleState";
 

@@ -234,9 +234,9 @@ public final class Specification {
               + "annotated program is probably unrelated to this task";
       automata = ImmutableList.of(acslParser.parseAsAutomaton());
     } else if (AutomatonYAMLParser.isYAMLWitness(specFile)) {
-      AutomatonYAMLParser graphmlParser =
+      AutomatonYAMLParser yamlParser =
           new AutomatonYAMLParser(config, logger, pShutdownNotifier, cfa, scope);
-      automata = ImmutableList.of(graphmlParser.parseAutomatonFile(specFile));
+      automata = ImmutableList.of(yamlParser.parseAutomatonFile(specFile));
     } else {
       automata =
           AutomatonParser.parseAutomatonFile(
