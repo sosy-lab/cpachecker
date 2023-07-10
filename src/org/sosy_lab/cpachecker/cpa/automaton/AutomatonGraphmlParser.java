@@ -2112,21 +2112,6 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  public static boolean isXML(Path pPath)
-      throws InvalidConfigurationException, InterruptedException {
-    return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
-        MoreFiles.asByteSource(pPath),
-        (x) -> {
-          try {
-            AutomatonGraphmlParser.parseXML(x);
-            return true;
-          } catch (Exception e) {
-            return false;
-          }
-        },
-        WitnessParseException::new);
-  }
-
   public static boolean isGraphmlAutomaton(Path pPath) throws IOException {
     SAXParser saxParser;
     try {
