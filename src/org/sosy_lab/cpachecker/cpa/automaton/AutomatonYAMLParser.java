@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.FluentIterable;
@@ -143,7 +144,7 @@ public class AutomatonYAMLParser {
           try {
             AutomatonYAMLParser.parseYAML(x);
             return true;
-          } catch (IOException e) {
+          } catch (JsonProcessingException e) {
             return false;
           }
         },

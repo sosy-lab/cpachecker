@@ -30,6 +30,7 @@ import java.io.InputStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -2139,10 +2140,16 @@ public class AutomatonGraphmlParser {
   }
 
   public static Optional<AutomatonGraphmlCommon.WitnessType> getWitnessTypeIfXML(Path pPath)
-      throws InvalidConfigurationException, InterruptedException {
+      throws InvalidConfigurationException, InterruptedException, IOException {
     try {
       return Optional.of(getWitnessType(pPath));
     } catch (WitnessParseException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof NoSuchFileException exception) {
+        throw exception;
+      } else if (cause instanceof FileNotFoundException exception) {
+        throw exception;
+      }
       return Optional.empty();
     }
   }
