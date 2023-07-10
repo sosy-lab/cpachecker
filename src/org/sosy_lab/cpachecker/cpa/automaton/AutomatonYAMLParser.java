@@ -135,6 +135,26 @@ public class AutomatonYAMLParser {
         WitnessParseException::new);
   }
 
+  public static boolean isYAML(Path pPath)
+      throws InvalidConfigurationException, InterruptedException {
+    return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
+        MoreFiles.asByteSource(pPath),
+        (x) -> {
+          try {
+            AutomatonYAMLParser.parseYAML(x);
+            return true;
+          } catch (Exception e) {
+            return false;
+          }
+        },
+        WitnessParseException::new);
+  }
+
+  public static boolean isYAMLWitness(Path pPath)
+      throws InvalidConfigurationException, InterruptedException {
+    return isYAML(pPath);
+  }
+
   public Automaton parseAutomatonFile(Path pInputFile)
       throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
