@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonYAMLParser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.invariantwitness.Utils;
 import org.sosy_lab.cpachecker.util.ltl.Ltl2BuechiConverter;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
 import org.sosy_lab.cpachecker.util.ltl.LtlParser;
@@ -234,7 +233,7 @@ public final class Specification {
           : "CFAs of task program and annotated program differ, "
               + "annotated program is probably unrelated to this task";
       automata = ImmutableList.of(acslParser.parseAsAutomaton());
-    } else if (Utils.isYAMLWitness(specFile)) {
+    } else if (AutomatonYAMLParser.isYAMLWitness(specFile)) {
       AutomatonYAMLParser graphmlParser =
           new AutomatonYAMLParser(config, logger, pShutdownNotifier, cfa, scope);
       automata = ImmutableList.of(graphmlParser.parseAutomatonFile(specFile));
