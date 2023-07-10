@@ -337,6 +337,14 @@ analysis.interprocedural = true
 # Runs an algorithm that produces and exports invariants
 analysis.invariantExport = false
 
+# for benchmarking, the argument to -spec needs to be defined in the task
+# definitions. However, the goal of the backwards analysis is mostly not
+# equivalent to the defined specifications in the benchmark set. With this
+# property, the argument of -spec will be used to find target states if
+# analysis.initialStatesFor=TARGET. The backward specification will then be
+# used to create the CPA algorithm.
+analysis.invertSpecifications = false
+
 # the machine model, which determines the sizes of types like int
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64, ARM, ARM64]
