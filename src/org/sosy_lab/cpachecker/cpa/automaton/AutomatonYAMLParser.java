@@ -143,7 +143,7 @@ public class AutomatonYAMLParser {
           try {
             AutomatonYAMLParser.parseYAML(x);
             return true;
-          } catch (Exception e) {
+          } catch (IOException e) {
             return false;
           }
         },
