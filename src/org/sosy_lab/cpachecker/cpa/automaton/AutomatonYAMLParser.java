@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.MoreFiles;
@@ -115,24 +116,22 @@ public class AutomatonYAMLParser {
     return entries;
   }
 
-  private static WitnessType getWitnessType(InputStream pInputStream) throws IOException {
-    // Parse the YAML document
-    List<AbstractEntry> entries = parseYAML(pInputStream);
-    for (AbstractEntry e : entries) {
-      if (e instanceof ViolationSequenceEntry) {
-        return WitnessType.VIOLATION_WITNESS;
-      }
+  public static Optional<WitnessType> getWitnessTypeIfYAML(Path pPath) throws InterruptedException {
+    List<AbstractEntry> entries;
+    try {
+      entries = AutomatonGraphmlParser.handlePotentiallyGZippedInput(
+              MoreFiles.asByteSource(pPath),
+              AutomatonYAMLParser::parseYAML,
+              WitnessParseException::new);
+    } catch (WitnessParseException e) {
+      return Optional.empty();
     }
 
-    return WitnessType.CORRECTNESS_WITNESS;
-  }
+    if (FluentIterable.from(entries).anyMatch(e -> e instanceof ViolationSequenceEntry)) {
+      return Optional.of(WitnessType.VIOLATION_WITNESS);
+    }
 
-  public static WitnessType getWitnessType(Path pPath)
-      throws InvalidConfigurationException, InterruptedException {
-    return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
-        MoreFiles.asByteSource(pPath),
-        AutomatonYAMLParser::getWitnessType,
-        WitnessParseException::new);
+    return Optional.of(WitnessType.CORRECTNESS_WITNESS);
   }
 
   public static boolean isYAML(Path pPath)

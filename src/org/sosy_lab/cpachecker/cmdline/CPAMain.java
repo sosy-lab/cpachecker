@@ -71,7 +71,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonYAMLParser;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
-import org.sosy_lab.cpachecker.util.invariantwitness.Utils;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 @SuppressForbidden("System.out in this class is ok")
@@ -672,13 +671,18 @@ public class CPAMain {
       appendWitnessToSpecificationOption(options, overrideOptions);
     } else {
       WitnessType witnessType;
-      if (Utils.isXML(options.witness)) {
-        witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
-      } else if (Utils.isYAML(options.witness)) {
-        witnessType = AutomatonYAMLParser.getWitnessType(options.witness);
+      Optional<WitnessType> optionalWitnessType =
+          AutomatonGraphmlParser.getWitnessTypeIfXML(options.witness);
+      if (optionalWitnessType.isPresent()) {
+        witnessType = optionalWitnessType.get();
       } else {
-        throw new InvalidConfigurationException(
-            "The Witness format found for " + options.witness + " is currently not supported.");
+        optionalWitnessType = AutomatonYAMLParser.getWitnessTypeIfYAML(options.witness);
+        if (optionalWitnessType.isPresent()) {
+          witnessType = optionalWitnessType.get();
+        } else {
+          throw new InvalidConfigurationException(
+              "The Witness format found for " + options.witness + " is currently not supported.");
+        }
       }
       switch (witnessType) {
         case VIOLATION_WITNESS:

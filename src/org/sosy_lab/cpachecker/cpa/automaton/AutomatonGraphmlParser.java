@@ -2153,6 +2153,15 @@ public class AutomatonGraphmlParser {
     }
   }
 
+  public static Optional<AutomatonGraphmlCommon.WitnessType> getWitnessTypeIfXML(Path pPath)
+      throws InvalidConfigurationException, InterruptedException {
+    try {
+      return Optional.of(getWitnessType(pPath));
+    } catch (WitnessParseException e) {
+      return Optional.empty();
+    }
+  }
+
   public static AutomatonGraphmlCommon.WitnessType getWitnessType(Path pPath)
       throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
