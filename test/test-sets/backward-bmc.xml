@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
-<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="5 GB" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
   <option name="-heap">13000M</option>
   <option name="-stack" reason="CVC4 needs a larger stack">50M</option>
   <option name="-noout"/>
