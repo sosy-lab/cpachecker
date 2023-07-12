@@ -1697,10 +1697,10 @@ cpa.congruence.useCachingPathFormulaManager = true
 cpa.constraints.cache = true
 
 # Whether to use subset caching
-cpa.constraints.cacheSubsets = true
+cpa.constraints.cacheSubsets = false
 
 # Whether to use superset caching
-cpa.constraints.cacheSupersets = true
+cpa.constraints.cacheSupersets = false
 
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
