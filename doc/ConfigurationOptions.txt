@@ -3605,7 +3605,7 @@ cpa.value.symbolic.refinement.strategy = CONSTRAINTS_FIRST
   enum:     [CONSTRAINTS_FIRST, VALUES_FIRST, ALTERNATING, VALUES_ONLY]
 
 # Whether to simplify symbolic expressions, if possible.
-cpa.value.symbolic.simplifySymbolics = true
+cpa.value.symbolic.simplifySymbolics = false
 
 # Track Java array values in explicit value analysis. This may be costly if
 # the verified program uses big or lots of arrays. Arrays in C programs will
