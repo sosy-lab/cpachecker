@@ -3,7 +3,7 @@ This file is part of CPAchecker,
 a tool for configurable software verification:
 https://cpachecker.sosy-lab.org
 
-SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
 
 SPDX-License-Identifier: Apache-2.0
 -->
@@ -24,24 +24,23 @@ Just run CPAchecker with the environment variable
 Time profiling
 --------------
 
-CPAchecker has internal time statistics, which are dumped into Statistics.txt.
-With -stats or statistics.print=true they are printed to the console, too.
+CPAchecker has internal time statistics, which are dumped into the output file `Statistics.txt`.
+With the command-line argument `-stats` or the configuration option `statistics.print=true`
+they are printed to the console, too.
 
 VisualVM can profile CPU usage, but only with sampling.
 It can only connect to a running process, so profiling of startup is not possible.
 
-1. Start VisualVM (`jvisualvm` from Ubuntu package `visualvm`).
+1. Start VisualVM (`visualvm` from Ubuntu package `visualvm`).
 2. Run CPAchecker.
 3. In VisualVM, connect to CPAchecker process, switch to tab `Sampler`
    and press `CPU` button.
 4. Settings (for example sampling frequency and method filter)
    can be configured after setting the `Settings` checkbox in the upper right corner.
-   
-Documentation:
 
- - http://visualvm.java.net/profiler.html
- - https://blogs.oracle.com/nbprofiler/entry/profiling_with_visualvm_part_1
- - https://blogs.oracle.com/nbprofiler/entry/profiling_with_visualvm_part_2
+More information:
+ - [documentation](https://htmlpreview.github.io/?https://raw.githubusercontent.com/visualvm/visualvm.java.net.backup/master/www/profiler.html)
+ - tutorial part [1](https://web.archive.org/web/20190117031705/https://blogs.oracle.com/nbprofiler/profiling-with-visualvm,-part-1) and [2](https://web.archive.org/web/20210414222507/https://blogs.oracle.com/nbprofiler/profiling-with-visualvm,-part-2)
 
 
 Memory profiling
@@ -49,7 +48,7 @@ Memory profiling
 
 For graphing memory consumption over time:
 
-1. Start VisualVM (`jvisualvm` from Ubuntu package `visualvm`).
+1. Start VisualVM (`visualvm` from Ubuntu package `visualvm`).
 2. In "Tools" -> "Plugins", install "Visual GC" plugin.
 3. Run CPAchecker.
 4. In VisualVM, connect to CPAchecker process,
@@ -59,9 +58,10 @@ For viewing heap statistics (object count and memory usage per type):
 
 1. Run `jmap -histo <PID>` where `<PID>` is the process ID of the running
    java process. This prints statistics of a current snapshot of the heap.
-   
-Documentation: https://docs.oracle.com/javase/8/docs/technotes/tools/windows/jmap.html
 
+More information:
+- [documentation](https://docs.oracle.com/en/java/javase/17/troubleshoot/diagnostic-tools.html#GUID-2E915FE8-A8A6-47C5-BA1D-4CC85174E818)
+- [man page](https://docs.oracle.com/en/java/javase/17/docs/specs/man/jmap.html)
 
 For viewing detailed heap content after an `OutOfMemoryError`:
 
@@ -72,8 +72,10 @@ For viewing detailed heap content after an `OutOfMemoryError`:
 3. Analyze the heap dump with one of the following tools:
    - VisualVM (Package visualvm)
      Run "visualvm" and open the produced file.
-     Documentation: http://visualvm.java.net/heapdump.html, http://visualvm.java.net/oqlhelp.html
-   - [Eclipse Memory Analyzer](http://eclipse.org/mat/)
+     More information:
+     - [Browsing heap dumps](https://htmlpreview.github.io/?https://raw.githubusercontent.com/visualvm/visualvm.java.net.backup/master/www/heapdump.html)
+     - [Querying heap dumps with OQL](https://htmlpreview.github.io/?https://raw.githubusercontent.com/visualvm/visualvm.java.net.backup/master/www/oqlhelp.html)
+   - [Eclipse Memory Analyzer](https://eclipse.dev/mat/)
      This is an Eclipse plugin which provides nice graphical browsing through the heap dump
      and has several useful reports like memory leaks, wasted memory etc.
 
@@ -83,11 +85,12 @@ Further options
 CPAchecker exports several values via the JMX interface.
 These can be watched during the runtime of CPAchecker.
 
-1. Start VisualVM (`jvisualvm` from Ubuntu package `visualvm`).
+1. Start VisualVM (`visualvm` from Ubuntu package `visualvm`).
 2. In "Tools" -> "Plugins", install "VisualVM-MBeans" plugin.
 3. Run CPAchecker.
 4. In VisualVM, connect to CPAchecker process, switch to "MBeans" tab,
    and browse to the values you are interested in.
 5. By double-clicking on a numerical value you can open a chart with this value per time.
 
-Documentation: http://visualvm.java.net/mbeans_tab.html
+More information:
+- [documentation](https://htmlpreview.github.io/?https://raw.githubusercontent.com/visualvm/visualvm.java.net.backup/master/www/mbeans_tab.html)
