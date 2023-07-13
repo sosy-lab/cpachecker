@@ -198,7 +198,7 @@ SPDX-License-Identifier: Apache-2.0
         </dependency>
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
-        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.18.0"/>
+        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.20.0"/>
 
     </dependencies>
 </ivy-module>
