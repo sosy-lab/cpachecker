@@ -27,22 +27,7 @@ Time profiling
 CPAchecker has internal time statistics, which are dumped into Statistics.txt.
 With -stats or statistics.print=true they are printed to the console, too.
 
-Hprof can profile CPU usage:
-
-1. Set the option `-agentlib:hprof=cpu=times` for the Java VM.
-   1. When running from Eclipse: Insert the option into the box
-      "VM arguments"  of the run configuration.
-   2. When running from command line: Set the environment variable
-      `JAVA_VM_ARGUMENTS` to this value by executing
-      `export JAVA_VM_ARGUMENTS="-javaagent:-agentlib:hprof=cpu=times"`
-2. Run CPAchecker.
-3. Open the text file `java*.hprof.txt` and look at the times there.
-   Unfortunately this is hard to read and does not give a nice, browsable,
-   tree-like overview of the methods and the call tree.
-   
-Documentation: http://docs.oracle.com/javase/8/docs/technotes/samples/hprof.html
-
-VisualVM can also profile CPU usage, but only with sampling.
+VisualVM can profile CPU usage, but only with sampling.
 It can only connect to a running process, so profiling of startup is not possible.
 
 1. Start VisualVM (`jvisualvm` from Ubuntu package `visualvm`).
@@ -77,14 +62,6 @@ For viewing heap statistics (object count and memory usage per type):
    
 Documentation: https://docs.oracle.com/javase/8/docs/technotes/tools/windows/jmap.html
 
-For viewing heap statistics for a complete CPAchecker run:
-
-1. Set the option `-agentlib:hprof=heap=sites,depth=0` for the Java VM
-   as described above.
-2. Run CPAchecker.
-3. Open the file `java.hprof.txt` in the CPAchecker directory.
-
-Documentation: http://docs.oracle.com/javase/8/docs/technotes/samples/hprof.html
 
 For viewing detailed heap content after an `OutOfMemoryError`:
 
@@ -96,8 +73,6 @@ For viewing detailed heap content after an `OutOfMemoryError`:
    - VisualVM (Package visualvm)
      Run "visualvm" and open the produced file.
      Documentation: http://visualvm.java.net/heapdump.html, http://visualvm.java.net/oqlhelp.html
-   - HAT [Heap Analysis Tool](https://docs.oracle.com/javase/8/docs/technotes/tools/unix/jhat.html)
-     Run `jhat java_pid<PID>.hprof` and open http://localhost:7000/ with your web browser.
    - [Eclipse Memory Analyzer](http://eclipse.org/mat/)
      This is an Eclipse plugin which provides nice graphical browsing through the heap dump
      and has several useful reports like memory leaks, wasted memory etc.
