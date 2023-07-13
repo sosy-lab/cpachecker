@@ -85,9 +85,6 @@ while [ $# -gt 0 ]; do
        shift
        JAVA_STACK_SIZE=$1
        ;;
-   "-profile")
-       JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -XX:StartFlightRecording=filename=output/FlightRecorderProfiling.jfr,dumponexit=true"
-       ;;
    "-debug")
        JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
        ;;
