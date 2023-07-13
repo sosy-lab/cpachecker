@@ -27,8 +27,19 @@ Java Flight Recorder
 [Java Flight Recorder](https://access.redhat.com/documentation/en-us/openjdk/17/html-single/using_jdk_flight_recorder_with_openjdk/index)
 profiles time and memory consumption of individual methods and objects.
 To profile CPAchecker with Java Flight Recorder,
-pass the relevant options to CPAchecker through environment variable `JAVA_VM_ARGUMENTS`.
-For example:
+set environment variable
+
+```
+JAVA_VM_ARGUMENTS="-XX:StartFlightRecording=filename=recording.jfr,dumponexit=true"
+```
+
+This records profiling samples during the full CPAchecker run and stores the recording in file `recording.jfr`.
+It saves all recorded data when the JVM exits.
+
+Recordings can be opened and analyzed with [Java Mission Control](https://github.com/openjdk/jmc)
+or directly in IntelliJ IDEA.
+
+### Example run
 
 ```
 > JAVA_VM_ARGUMENTS="-XX:StartFlightRecording=filename=recording.jfr,dumponexit=true" scripts/cpa.sh -predicateAnalysis doc/examples/example_bug.c
@@ -45,12 +56,6 @@ Using the following resource limits: CPU-time limit of 900s (ResourceLimitChecke
 CPAchecker 2.2.1-svn-44103M / predicateAnalysis (OpenJDK 64-Bit Server VM 19.0.2) started (CPAchecker.run, INFO)
 [.. more output ..]
 ```
-
-This executes CPAchecker with Java Flight Recorder and stores the recording in file `recording.jfr`.
-It saves all recorded data when the JVM exits.
-
-Recordings can be opened and analyzed with [Java Mission Control](https://github.com/openjdk/jmc)
-or directly in IntelliJ IDEA.
 
 
 Time profiling
