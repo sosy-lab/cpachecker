@@ -39,10 +39,6 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
   @Override
   public BlockGraph decompose(CFA cfa) throws InterruptedException {
     ImmutableSet.Builder<BlockNodeWithoutGraphInformation> builder = ImmutableSet.builder();
-    Map<Integer, CFANode> idToNodeMap = new HashMap<>();
-    for (CFANode allNode : cfa.nodes()) {
-      idToNodeMap.put(allNode.getNodeNumber(), allNode);
-    }
 
     Set<CFANode> nodes = new HashSet<>();
     Set<CFAEdge> edges = new HashSet<>();
