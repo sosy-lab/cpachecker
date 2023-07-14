@@ -364,11 +364,11 @@ public class CFAReverser {
         CFANode curr = initStartNode;
         CFANode next = null;
 
-        for (Map.Entry<String, CFunctionDeclaration> e : funcDecls.entrySet()) {
+        for (CFunctionDeclaration decl : funcDecls.values()) {
           next = new CFANode(curr.getFunction());
           nodes.put(next.getFunctionName(), next);
           CDeclarationEdge declEdge =
-              new CDeclarationEdge("", FileLocation.DUMMY, curr, next, e.getValue());
+              new CDeclarationEdge("", FileLocation.DUMMY, curr, next, decl);
           addToCFA(declEdge);
           curr = next;
         }
@@ -427,7 +427,7 @@ public class CFAReverser {
         addToCFA(initDoneEdge);
 
         curr = targetBranchNode;
-        if (localTargets.size() != 0) {
+        if (!localTargets.isEmpty()) {
           for (CFANode localTarget : localTargets) {
             CIntegerLiteralExpression lastBranchID =
                 new CIntegerLiteralExpression(
