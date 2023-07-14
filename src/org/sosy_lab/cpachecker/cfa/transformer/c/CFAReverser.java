@@ -141,11 +141,6 @@ public class CFAReverser {
     private static CType intType =
         new CSimpleType(
             false, false, CBasicType.INT, false, false, false, false, false, false, false);
-    private static CType boolType =
-        new CSimpleType(
-            false, false, CBasicType.BOOL, false, false, false, false, false, false, false);
-
-    // private static CType voidType = CVoidType.VOID;
 
     private CfaBuilder(
         Configuration pConfiguration,
@@ -506,50 +501,22 @@ public class CFAReverser {
         pLog.log(Level.INFO, "assume edge: " + edge);
 
         CExpression expr = edge.getExpression();
-
         ExprVariableFinder finder = new ExprVariableFinder(new HashSet<>());
         expr.accept(finder);
 
-        CFANode curr = from;
-        CFANode next = new CFANode(curr.getFunction());
-        nodes.put(curr.getFunctionName(), next);
+        CExpression assumeExpr = expr.accept(finder);
 
-        CExpression assumeExpr = null;
-
-        CLeftHandSide newOp1 = null;
-        if (expr instanceof CBinaryExpression) {
-
-          CExpression op1 = ((CBinaryExpression) expr).getOperand1();
-          CExpression op2 = ((CBinaryExpression) expr).getOperand2();
-          BinaryOperator operator = ((CBinaryExpression) expr).getOperator();
-          CExpression newOp2;
-          if (op1 instanceof CIdExpression) {
-            String varid = ((CIdExpression) op1).getName();
-            newOp1 = new CIdExpression(FileLocation.DUMMY, variables.get(varid));
-            newOp2 = op2;
-            assumeExpr =
-                new CBinaryExpression(
-                    FileLocation.DUMMY, boolType, intType, newOp1, newOp2, operator);
-
-            CAssumeEdge assumeEdge =
-                new CAssumeEdge(
-                    edge.getRawStatement(),
-                    edge.getFileLocation(),
-                    curr,
-                    next,
-                    assumeExpr,
-                    edge.getTruthAssumption(),
-                    edge.isSwapped(),
-                    edge.isArtificialIntermediate());
-
-            addToCFA(assumeEdge);
-
-            curr = next;
-          }
-        }
-
-        BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "AFTER ASSUME");
-        addToCFA(blankEdge);
+        CAssumeEdge assumeEdge =
+            new CAssumeEdge(
+                "",
+                FileLocation.DUMMY,
+                from,
+                to,
+                assumeExpr,
+                edge.getTruthAssumption(),
+                edge.isSwapped(),
+                edge.isArtificialIntermediate());
+        addToCFA(assumeEdge);
       }
 
       private void reverseBlankEdge(BlankEdge edge, CFANode from, CFANode to) {
@@ -1054,7 +1021,7 @@ public class CFAReverser {
       nodes.put(next.getFunctionName(), next);
 
       CAssumeEdge assumeEdge =
-          new CAssumeEdge("", FileLocation.DUMMY, curr, next, assumeExpr, assume, false, true);
+          new CAssumeEdge("", FileLocation.DUMMY, curr, next, assumeExpr, assume, false, false);
 
       addToCFA(assumeEdge);
       curr = next;
