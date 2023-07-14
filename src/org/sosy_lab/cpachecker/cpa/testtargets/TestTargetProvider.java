@@ -151,8 +151,8 @@ public class TestTargetProvider implements Statistics {
           + (instance.numNonOptimizedTargets
               - instance.uncoveredTargets.size()
               - instance.uncoveredRedundantTargets.size())
-          + " of all"
-          + instance.initialTestTargets.size()
+          + " of all "
+          + instance.numNonOptimizedTargets
           + " covered";
     }
     return targetCoverageInfo;
