@@ -26,9 +26,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class FunctionDecomposer implements BlockSummaryCFADecomposer {
 
-  public FunctionDecomposer(ShutdownNotifier pShutdownNotifier) {
-  }
-
   private static int idCount = 0;
 
   @Override

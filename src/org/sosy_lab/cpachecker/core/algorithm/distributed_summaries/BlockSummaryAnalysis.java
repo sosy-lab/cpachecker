@@ -168,7 +168,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     Predicate<CFANode> isBlockEnd = n -> blockOperator.isBlockEnd(n, -1);
     return switch (decompositionType) {
       case LINEAR_DECOMPOSITION -> new LinearBlockNodeDecomposition(isBlockEnd);
-      case FUNCTION_DECOMPOSITION -> new FunctionDecomposer(shutdownManager.getNotifier());
+      case FUNCTION_DECOMPOSITION -> new FunctionDecomposer();
       case MERGE_DECOMPOSITION -> {
         long numberOfRealFunctions =
             FluentIterable.from(initialCFA.getAllFunctions().entrySet())
@@ -209,7 +209,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       if (decompositionType == DecompositionType.FUNCTION_DECOMPOSITION) {
         //Consistency check doesn´t work for Function Decomposer (more than one root node)
 
-    }else {
+    } else {
         blockGraph.checkConsistency(shutdownManager.getNotifier());
       }
       Modification modification =
