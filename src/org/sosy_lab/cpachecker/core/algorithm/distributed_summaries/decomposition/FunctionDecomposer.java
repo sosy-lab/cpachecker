@@ -70,7 +70,7 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
 
         }
       }
-      Preconditions.checkArgument(nodes.contains(value.getExitNode().get()));
+      Preconditions.checkArgument(nodes.contains(value.getExitNode().orElseThrow()));
       BlockNodeWithoutGraphInformation nodeMetaData =
           new BlockNodeWithoutGraphInformation("Function " + value.getFunctionName() + " " + idCount++, value, exitNode,
               ImmutableSet.copyOf(nodes), ImmutableSet.copyOf(edges));
