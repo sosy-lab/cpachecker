@@ -10,9 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -28,10 +26,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class FunctionDecomposer implements BlockSummaryCFADecomposer {
 
-  private final ShutdownNotifier shutdownNotifier;
-
   public FunctionDecomposer(ShutdownNotifier pShutdownNotifier) {
-    shutdownNotifier = pShutdownNotifier;
   }
 
   private static int idCount = 0;
@@ -57,22 +52,21 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
           nodes.add(temp);
           continue;
         }
-        for (CFAEdge e: CFAUtils.allLeavingEdges(temp)) {
+        for (CFAEdge e : CFAUtils.allLeavingEdges(temp)) {
 
 
           //Check if Function Call Edge or Duplicate
-          if(nodes.contains(temp) || e instanceof FunctionCallEdge) {
-            //Ignore
-          }
+          if (nodes.contains(temp) || e instanceof FunctionCallEdge) {
+            //Ignore this case
 
-          //Check if Summary Edge
-          else if (e instanceof CFunctionSummaryEdge) {
+            //Check if Summary Edge
+          } else if (e instanceof CFunctionSummaryEdge) {
             edges.add(e);
             nodes.add(temp);
             waitlist.add(e.getSuccessor());
-          }
 
-          else {
+
+          } else {
             edges.add(e);
             nodes.add(temp);
             waitlist.add(e.getSuccessor());
@@ -91,6 +85,6 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
       edges.clear();
     }
 
-    return BlockGraph.fromBlockNodesWithoutGraphInformation(cfa,builder.build());
+    return BlockGraph.fromBlockNodesWithoutGraphInformation(cfa, builder.build());
   }
 }

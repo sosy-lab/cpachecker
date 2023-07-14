@@ -206,10 +206,12 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       // create blockGraph and reduce to relevant parts
       BlockSummaryCFADecomposer decomposer = getDecomposer();
       BlockGraph blockGraph = decomposer.decompose(initialCFA);
-      if(decompositionType == DecompositionType.FUNCTION_DECOMPOSITION){
+      if (decompositionType == DecompositionType.FUNCTION_DECOMPOSITION) {
         //Consistency check doesn´t work for Function Decomposer (more than one root node)
+
+    }else {
+        blockGraph.checkConsistency(shutdownManager.getNotifier());
       }
-      else{blockGraph.checkConsistency(shutdownManager.getNotifier());}
       Modification modification =
           BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
       ImmutableSet<CFANode> abstractionDeadEnds = modification.unableToAbstract();
