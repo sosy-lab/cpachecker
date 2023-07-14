@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.NavigableSet;

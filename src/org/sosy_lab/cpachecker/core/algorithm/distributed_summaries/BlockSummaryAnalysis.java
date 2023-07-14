@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFADecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BridgeDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.FunctionDecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeBlockNodesDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
@@ -101,7 +102,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               + " MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION. The final"
               + " number of blocks should converge to the number of functions in the program."
               + " NO_DECOMPOSITION creates one block around the CFA.")
-  private DecompositionType decompositionType = DecompositionType.LINEAR_DECOMPOSITION;
+  private DecompositionType decompositionType = DecompositionType.FUNCTION_DECOMPOSITION;
 
   @Option(
       description =
@@ -125,6 +126,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
 
   private enum DecompositionType {
     LINEAR_DECOMPOSITION,
+    FUNCTION_DECOMPOSITION,
     MERGE_DECOMPOSITION,
     BRIDGE_DECOMPOSITION,
     NO_DECOMPOSITION
@@ -166,6 +168,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     Predicate<CFANode> isBlockEnd = n -> blockOperator.isBlockEnd(n, -1);
     return switch (decompositionType) {
       case LINEAR_DECOMPOSITION -> new LinearBlockNodeDecomposition(isBlockEnd);
+      case FUNCTION_DECOMPOSITION -> new FunctionDecomposer(shutdownManager.getNotifier());
       case MERGE_DECOMPOSITION -> {
         long numberOfRealFunctions =
             FluentIterable.from(initialCFA.getAllFunctions().entrySet())
@@ -203,7 +206,10 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       // create blockGraph and reduce to relevant parts
       BlockSummaryCFADecomposer decomposer = getDecomposer();
       BlockGraph blockGraph = decomposer.decompose(initialCFA);
-      blockGraph.checkConsistency(shutdownManager.getNotifier());
+      if(decompositionType == DecompositionType.FUNCTION_DECOMPOSITION){
+        //Consistency check doesn´t work for Function Decomposer (more than one root node)
+      }
+      else{blockGraph.checkConsistency(shutdownManager.getNotifier());}
       Modification modification =
           BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
       ImmutableSet<CFANode> abstractionDeadEnds = modification.unableToAbstract();
