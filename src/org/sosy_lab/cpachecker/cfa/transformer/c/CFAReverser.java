@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -75,7 +74,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -341,16 +339,14 @@ public class CFAReverser {
                 branchNode =
                     createAssumeEdge(ndetBranchVarExpr, ndetBranchIdExpr, branchNode, false);
 
-                nodeMap.put(oldhead, branchIdHead); // change the edge head temporarily
+                newhead = branchIdHead;
               }
 
-              CFANode newNext = reverseEdge((CCfaEdge) oldEdge);
+              CFANode newNext = reverseEdge(oldEdge, newhead);
 
               checkNotNull(newNext);
-
               nodes.put(funcName, newNext);
               nodeMap.put(oldNext, newNext);
-              nodeMap.put(oldhead, newhead);
             }
 
             if (visited.add(oldNext)) {
@@ -456,15 +452,22 @@ public class CFAReverser {
       /////////////////////////////////////////////////////////////////////////////
       // Edge Reverser
       /////////////////////////////////////////////////////////////////////////////
-      private CFANode reverseEdge(CCfaEdge edge) {
+      private CFANode reverseEdge(CFAEdge edge, CFANode from) {
+
+        CFANode to;
+        if (nodeMap.containsKey(edge.getPredecessor())) {
+          to = nodeMap.get(edge.getPredecessor());
+        } else {
+          to = new CFANode(from.getFunction());
+        }
 
         pLog.log(Level.INFO, "Reversing: " + edge + " " + edge.getClass());
         if (edge instanceof BlankEdge) {
-          return reverseBlankEdge((BlankEdge) edge);
+          reverseBlankEdge((BlankEdge) edge, from, to);
         } else if (edge instanceof CDeclarationEdge) {
-          return reverseDeclEdge((CDeclarationEdge) edge);
+          reverseDeclEdge((CDeclarationEdge) edge, from, to);
         } else if (edge instanceof CAssumeEdge) {
-          return reverseAssumeEdge((CAssumeEdge) edge);
+          reverseAssumeEdge((CAssumeEdge) edge, from, to);
         } else if (edge instanceof CFunctionCallEdge) {
           pLog.log(Level.INFO, "CFunctionCallEdge: " + edge);
         } else if (edge instanceof CFunctionReturnEdge) {
@@ -477,10 +480,10 @@ public class CFAReverser {
           pLog.log(Level.INFO, "CFunctionSummaryStatementEdge: " + edge);
         } else {
           pLog.log(Level.INFO, "CStatementEdge: " + edge);
-          return reverseStmtEdge((CStatementEdge) edge);
+          reverseStmtEdge((CStatementEdge) edge, from, to);
         }
 
-        return null;
+        return to;
       }
 
       /////////////////////////////////////////////////////////////////////////////
@@ -496,44 +499,16 @@ public class CFAReverser {
             fdef.getAttributes());
       }
 
-      private CFANode newNode(CFANode node) {
-        if (node instanceof CFALabelNode) {
-          String labelName = ((CFALabelNode) node).getLabel() + "_";
-          AFunctionDeclaration funcDecl = funcDeclMap.get(((CFALabelNode) node).getFunction());
-          return new CFALabelNode(funcDecl, labelName);
-        } else if (node instanceof FunctionEntryNode) {
-          AFunctionDeclaration funcDecl = funcDeclMap.get(node.getFunction());
-          return new FunctionExitNode(funcDecl);
-        } else if (node instanceof FunctionExitNode) {
-          CFANode exitNode = nodeMap.get(((FunctionExitNode) node).getEntryNode());
-          assert (exitNode instanceof FunctionExitNode);
-          CFunctionDeclaration fdef = (CFunctionDeclaration) node.getFunction();
-          return new CFunctionEntryNode(
-              FileLocation.DUMMY, fdef, (FunctionExitNode) exitNode, Optional.empty());
-        } else {
-          AFunctionDeclaration funcDecl = funcDeclMap.get(node.getFunction());
-          return new CFANode(funcDecl);
-        }
-      }
-
       /////////////////////////////////////////////////////////////////////////////
       // Assume Edge
       /////////////////////////////////////////////////////////////////////////////
-      private CFANode reverseAssumeEdge(CAssumeEdge edge) {
+      private void reverseAssumeEdge(CAssumeEdge edge, CFANode from, CFANode to) {
         pLog.log(Level.INFO, "assume edge: " + edge);
-        CFANode from = nodeMap.get(edge.getSuccessor());
-        CFANode to;
 
         CExpression expr = edge.getExpression();
 
         ExprVariableFinder finder = new ExprVariableFinder(new HashSet<>());
         expr.accept(finder);
-
-        if (nodeMap.containsKey(edge.getPredecessor())) {
-          to = nodeMap.get(edge.getPredecessor());
-        } else {
-          to = new CFANode(from.getFunction());
-        }
 
         CFANode curr = from;
         CFANode next = new CFANode(curr.getFunction());
@@ -575,55 +550,37 @@ public class CFAReverser {
 
         BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "AFTER ASSUME");
         addToCFA(blankEdge);
-
-        return to;
       }
 
-      private CFANode reverseBlankEdge(BlankEdge edge) {
-        CFANode from = nodeMap.get(edge.getSuccessor());
-        CFANode to;
-
-        if (nodeMap.containsKey(edge.getPredecessor())) {
-          to = nodeMap.get(edge.getPredecessor());
-        } else {
-          to = new CFANode(from.getFunction());
-        }
-
-        BlankEdge newedge =
+      private void reverseBlankEdge(BlankEdge edge, CFANode from, CFANode to) {
+        BlankEdge blankEdge =
             new BlankEdge(
-                edge.getRawStatement() + "_",
-                edge.getFileLocation(),
+                "REV_" + edge.getRawStatement(),
+                FileLocation.DUMMY,
                 from,
                 to,
-                edge.getDescription() + "_");
-        addToCFA(newedge);
-
-        pLog.log(Level.INFO, "NEWEDGE: " + newedge);
-        return to;
+                "REV_" + edge.getDescription());
+        addToCFA(blankEdge);
       }
 
-      private CFANode reverseDeclEdge(CDeclarationEdge edge) {
+      private void reverseDeclEdge(CDeclarationEdge edge, CFANode from, CFANode to) {
         CDeclaration decl = edge.getDeclaration();
-
         if (decl instanceof CTypeDeclaration) {
-          return null;
+          pLog.log(Level.INFO, "TYPE DECL not support" + decl);
         } else if (decl instanceof CFunctionDeclaration) {
-          return reverseFuncDeclEdge(edge);
+          reverseFuncDeclEdge(edge, from, to);
         } else {
-          return reverseVarDeclEdge(edge, (CVariableDeclaration) decl);
+          reverseVarDeclEdge((CVariableDeclaration) decl, from, to);
         }
       }
 
-      private CFANode reverseFuncDeclEdge(CDeclarationEdge edge) {
-        CFANode from = nodeMap.get(edge.getSuccessor());
-        CFANode to = newNode(edge.getPredecessor());
-        BlankEdge blank = new BlankEdge("", FileLocation.DUMMY, from, to, "Original Func Decl");
-        addToCFA(blank);
-        return to;
+      private void reverseFuncDeclEdge(CDeclarationEdge edge, CFANode from, CFANode to) {
+        BlankEdge blankEdge =
+            new BlankEdge("", FileLocation.DUMMY, from, to, edge.getDescription());
+        addToCFA(blankEdge);
       }
 
-      private CFANode reverseVarDeclEdge(CDeclarationEdge edge, CVariableDeclaration decl) {
-        CFANode from = nodeMap.get(edge.getSuccessor());
+      private void reverseVarDeclEdge(CVariableDeclaration decl, CFANode from, CFANode to) {
 
         String var = decl.getName();
 
@@ -645,13 +602,6 @@ public class CFAReverser {
         // Creating the Assume Edge
         CFANode curr = from;
 
-        CFANode to;
-        if (nodeMap.containsKey(edge.getPredecessor())) {
-          to = nodeMap.get(edge.getPredecessor());
-        } else {
-          to = new CFANode(from.getFunction());
-        }
-
         CInitializer init = decl.getInitializer();
 
         if (init instanceof CInitializerExpression) {
@@ -666,27 +616,21 @@ public class CFAReverser {
 
           BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "");
           addToCFA(blankEdge);
-
-          return to;
         }
-
-        return null;
       }
 
-      private CFANode reverseStmtEdge(CStatementEdge edge) {
-        CFANode from = nodeMap.get(edge.getSuccessor());
-        CFANode to = nodeMap.get(edge.getPredecessor());
+      private void reverseStmtEdge(CStatementEdge edge, CFANode from, CFANode to) {
+
         CStatement stmt = edge.getStatement();
         if (stmt instanceof CExpressionAssignmentStatement) {
-          return handleExprAssignStmt((CExpressionAssignmentStatement) stmt, from, to);
+          handleExprAssignStmt((CExpressionAssignmentStatement) stmt, from, to);
         } else if (stmt instanceof CExpressionStatement) {
-          return handleExprStmt((CExpressionStatement) stmt, from, to);
+          handleExprStmt((CExpressionStatement) stmt, from, to);
         } else if (stmt instanceof CFunctionCallAssignmentStatement) {
-          return handleCallAssignStmt((CFunctionCallAssignmentStatement) stmt, from);
+          handleCallAssignStmt((CFunctionCallAssignmentStatement) stmt, from);
         } else if (stmt instanceof CFunctionCallStatement) {
-          return handleCallStmt((CFunctionCallStatement) stmt, from);
+          handleCallStmt((CFunctionCallStatement) stmt, from);
         }
-        return null;
       }
 
       /////////////////////////////////////////////////////////////////////////////
@@ -694,7 +638,7 @@ public class CFAReverser {
       /////////////////////////////////////////////////////////////////////////////
       private CFANode handleExprAssignStmt(
           CExpressionAssignmentStatement stmt, CFANode from, CFANode to) {
-
+        checkNotNull(from, to);
         CLeftHandSide lvalue = stmt.getLeftHandSide();
         CExpression rvalue = stmt.getRightHandSide();
 
@@ -707,9 +651,6 @@ public class CFAReverser {
         CExpression rhs = rvalue.accept(rfinder);
 
         CFANode curr = from;
-        if (to == null) {
-          to = new CFANode(curr.getFunction());
-        }
 
         curr = createAssumeEdge(lhs, rhs, curr, true);
 
@@ -729,14 +670,12 @@ public class CFAReverser {
       }
 
       private CFANode handleExprStmt(CExpressionStatement stmt, CFANode from, CFANode to) {
+        checkNotNull(from, to);
         ExprVariableFinder finder = new ExprVariableFinder(new HashSet<>());
         CExpression expr = stmt.getExpression().accept(finder);
 
         CExpressionStatement exprStatement = new CExpressionStatement(FileLocation.DUMMY, expr);
 
-        if (to == null) {
-          to = new CFANode(from.getFunction());
-        }
         CStatementEdge stmtEdge =
             new CStatementEdge("", exprStatement, FileLocation.DUMMY, from, to);
         addToCFA(stmtEdge);
