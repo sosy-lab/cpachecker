@@ -67,7 +67,6 @@ public class TestTargetMinimizerEssential {
     Map<CFANode, CFANode> origCFANodeToCopyMap = new HashMap<>();
     CFANode currentNode;
 
-
     Queue<CFANode> waitlist = new ArrayDeque<>();
     // start with function entry point
     origCFANodeToCopyMap.put(pEntryNode, CFANode.newDummyCFANode());
@@ -77,7 +76,7 @@ public class TestTargetMinimizerEssential {
       // get next node in the queue
       currentNode = waitlist.poll();
 
-      if(currentNode.getNumLeavingEdges() == 0) {
+      if (currentNode.getNumLeavingEdges() == 0) {
         CFANode currentNodeFinal = currentNode;
         pEntryNode
             .getExitNode()
