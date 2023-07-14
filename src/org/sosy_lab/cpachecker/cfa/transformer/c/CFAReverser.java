@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -92,6 +93,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 
@@ -189,6 +191,16 @@ public class CFAReverser {
               functions, nodes, pCfa.getMetadata().withMainFunctionEntry(reverseMainEntry));
 
       newMutableCfa.entryNodes().forEach(CFAReversePostorder::assignIds);
+
+      LoopStructure loopStructure = null;
+      try {
+        loopStructure = LoopStructure.getLoopStructure(newMutableCfa);
+        pLog.log(Level.INFO, "FOUND LOOP COUNT: " + loopStructure.getCount());
+      } catch (Exception e) {
+        pLog.log(Level.WARNING, "failed to get the loop structure" + e);
+      }
+      newMutableCfa.setLoopStructure(loopStructure);
+
       return newMutableCfa;
     }
 
@@ -266,10 +278,11 @@ public class CFAReverser {
           Boolean usingBranch = false;
           CVariableDeclaration ndetBranchVarDecl = null;
           CIdExpression ndetBranchVarExpr = null;
+          CFANode branchNode = null;
 
           // Create Branching
-          // newhead -> branchNode -> assume1 -> newNext1
-          //                       -> assume2 -> newNext2
+          // newhead  -> branchID1 -> newNext1
+          //          -> branchID2 -> newNext2
           if (CFAUtils.allEnteringEdges(oldhead).size() > 1) {
             branchCnt += 1;
             usingBranch = true;
@@ -287,13 +300,7 @@ public class CFAReverser {
 
             variables.put("TMP_BRANCHING_REVERSE_CFA", ndetBranchVarDecl);
             ndetBranchVarExpr = new CIdExpression(FileLocation.DUMMY, ndetBranchVarDecl);
-            CFANode branchNode = new CFANode(newhead.getFunction());
-            nodes.put(branchNode.getFunctionName(), branchNode);
-            BlankEdge blankEdge =
-                new BlankEdge("", FileLocation.DUMMY, newhead, branchNode, "NON DET BRANCNING");
-            addToCFA(blankEdge);
-            newhead = branchNode;
-            // newhead = createNoDetAssign(ndetBranchVarExpr, newhead);
+            branchNode = createNoDetAssign(ndetBranchVarExpr, newhead);
           }
 
           int branchid = 0;
@@ -304,33 +311,46 @@ public class CFAReverser {
             if (oldNext instanceof CFunctionEntryNode
                 && oldEntryNode.equals(pCfa.getMainFunction())) {
               // insert the error label
+              CFALabelNode errorLabelNode = new CFALabelNode(newDecl, "ERROR");
+              nodes.put(funcName, errorLabelNode);
 
-              CFALabelNode label = new CFALabelNode(newDecl, "ERROR");
-              nodes.put(funcName, label);
-              BlankEdge newedge1 =
-                  new BlankEdge("ERROR", FileLocation.DUMMY, newhead, label, "ERROR");
-              addToCFA(newedge1);
-              CFANode newNext = newNode(oldNext);
-              BlankEdge newedge2 =
-                  new BlankEdge("", FileLocation.DUMMY, label, newNext, "AFTER ERROR");
-              addToCFA(newedge2);
-              nodeMap.put(oldNext, newNext);
-              nodes.put(funcName, newNext);
+              BlankEdge errorLabelEdge =
+                  new BlankEdge("ERROR", FileLocation.DUMMY, newhead, errorLabelNode, "ERROR");
+              addToCFA(errorLabelEdge);
+
+              FunctionExitNode newExit = new FunctionExitNode(newDecl);
+
+              BlankEdge exitEdge =
+                  new BlankEdge("", FileLocation.DUMMY, errorLabelNode, newExit, "return");
+
+              addToCFA(exitEdge);
+              nodeMap.put(oldNext, newExit);
+              nodes.put(funcName, newExit);
+
             } else {
-
+              // branch = 0
               if (usingBranch) {
+                pLog.log(Level.INFO, "OLDHEAD TYPE: " + (oldhead instanceof CFATerminationNode));
                 CIntegerLiteralExpression ndetBranchIdExpr =
                     new CIntegerLiteralExpression(
                         FileLocation.DUMMY, intType, BigInteger.valueOf(branchid));
                 branchid += 1;
                 CFANode branchIdHead =
-                    createAssumeEdge(ndetBranchVarExpr, ndetBranchIdExpr, newhead, true);
+                    createAssumeEdge(ndetBranchVarExpr, ndetBranchIdExpr, branchNode, true);
+
+                branchNode =
+                    createAssumeEdge(ndetBranchVarExpr, ndetBranchIdExpr, branchNode, false);
+
                 nodeMap.put(oldhead, branchIdHead); // change the edge head temporarily
               }
 
               CFANode newNext = reverseEdge((CCfaEdge) oldEdge);
+
+              checkNotNull(newNext);
+
               nodes.put(funcName, newNext);
               nodeMap.put(oldNext, newNext);
+              nodeMap.put(oldhead, newhead);
             }
 
             if (visited.add(oldNext)) {
@@ -366,7 +386,21 @@ public class CFAReverser {
                 "", FileLocation.DUMMY, curr, varInitStartNode, "Function start dummy edge");
         addToCFA(functionStartDummyEdge);
         curr = varInitStartNode;
-
+        // =============================================================================
+        // Create a ndet variable for target branching
+        CVariableDeclaration targetBranchVarDecl =
+            new CVariableDeclaration(
+                FileLocation.DUMMY,
+                false,
+                CStorageClass.AUTO,
+                intType,
+                "TARGET_BRANCHING_REVERSE_CFA" + branchCnt,
+                "TARGET_BRANCHING_REVERSE_CFA" + branchCnt,
+                newDecl.getName() + "::" + "TARGET_BRANCHING_REVERSE_CFA" + branchCnt,
+                null);
+        variables.put("TMP_BRANCHING_REVERSE_CFA", targetBranchVarDecl);
+        CIdExpression targetBranchVarExpr =
+            new CIdExpression(FileLocation.DUMMY, targetBranchVarDecl);
         // =============================================================================
         // Declare variable
         for (CVariableDeclaration decl : variables.values()) {
@@ -378,12 +412,41 @@ public class CFAReverser {
           curr = next;
         }
 
-        // TODO: create ndet branching for target
+        // =============================================================================
+        // Create non det branch for each target
+        CFANode targetBranchNode = curr;
+
+        int targetCnt = 0;
+        CIntegerLiteralExpression targetBranchID =
+            new CIntegerLiteralExpression(
+                FileLocation.DUMMY, intType, BigInteger.valueOf(targetCnt));
+        curr = createAssumeEdge(targetBranchVarExpr, targetBranchID, curr, true);
+        curr = createAssumeEdge(targetBranchVarExpr, targetBranchVarExpr, curr, false);
+        BlankEdge initDoneEdge =
+            new BlankEdge("init done", FileLocation.DUMMY, curr, initDoneNode, "INIT DONE");
+        addToCFA(initDoneEdge);
+
+        curr = targetBranchNode;
         if (localTargets.size() != 0) {
           for (CFANode localTarget : localTargets) {
+            CIntegerLiteralExpression lastBranchID =
+                new CIntegerLiteralExpression(
+                    FileLocation.DUMMY, intType, BigInteger.valueOf(targetCnt));
+            curr = createAssumeEdge(targetBranchVarExpr, lastBranchID, curr, false);
+            targetCnt += 1;
+            CIntegerLiteralExpression currBranchID =
+                new CIntegerLiteralExpression(
+                    FileLocation.DUMMY, intType, BigInteger.valueOf(targetCnt));
+            curr = createAssumeEdge(targetBranchVarExpr, currBranchID, curr, true);
             BlankEdge jumpTargetEdge =
-                new BlankEdge("", FileLocation.DUMMY, curr, localTarget, "jump to target");
+                new BlankEdge(
+                    "",
+                    FileLocation.DUMMY,
+                    curr,
+                    localTarget,
+                    "jump to target [" + targetCnt + "]");
             addToCFA(jumpTargetEdge);
+            curr = targetBranchNode;
           }
         }
 
@@ -655,6 +718,7 @@ public class CFAReverser {
           curr = createNoDetAssign(lhs, curr);
         } else { // i <- tmp_i;
           curr = rfinder.createTmpAssignEdge(curr);
+          curr = rfinder.resetTmpVar(curr);
         }
 
         // exit this edge
@@ -796,22 +860,30 @@ public class CFAReverser {
           return curr;
         }
 
+        private CFANode resetTmpVar(CFANode from) {
+          CFANode curr = from;
+          for (String tmpVar : tmpVarMap.values()) {
+            CIdExpression tmpExpr = new CIdExpression(FileLocation.DUMMY, variables.get(tmpVar));
+            curr = createNoDetAssign(tmpExpr, curr);
+          }
+          return curr;
+        }
+
         private CVariableDeclaration createTmpVar(CVariableDeclaration decl) {
-          String name = decl.getName();
-          String tmpName = "TMP__" + name;
-          CType ty = decl.getType();
+          String varName = decl.getName();
+          String tmpName = "REV_TMP__" + varName;
           CVariableDeclaration tmpDecl =
               new CVariableDeclaration(
                   FileLocation.DUMMY,
                   decl.isGlobal(),
                   decl.getCStorageClass(),
-                  ty,
+                  decl.getType(),
                   tmpName,
-                  decl.getOrigName(),
-                  decl.getQualifiedName(),
+                  "REV_TMP__" + decl.getOrigName(),
+                  "REV_TMP__" + decl.getQualifiedName(),
                   null);
           variables.put(tmpName, tmpDecl);
-          tmpVarMap.put(name, tmpName);
+          tmpVarMap.put(varName, tmpName);
           return tmpDecl;
         }
 
