@@ -680,7 +680,7 @@ public class CFAReverser {
         if (stmt instanceof CExpressionAssignmentStatement) {
           return handleExprAssignStmt((CExpressionAssignmentStatement) stmt, from, to);
         } else if (stmt instanceof CExpressionStatement) {
-          return handleExprStmt((CExpressionStatement) stmt, from);
+          return handleExprStmt((CExpressionStatement) stmt, from, to);
         } else if (stmt instanceof CFunctionCallAssignmentStatement) {
           return handleCallAssignStmt((CFunctionCallAssignmentStatement) stmt, from);
         } else if (stmt instanceof CFunctionCallStatement) {
@@ -695,7 +695,7 @@ public class CFAReverser {
       private CFANode handleExprAssignStmt(
           CExpressionAssignmentStatement stmt, CFANode from, CFANode to) {
 
-        CIdExpression lvalue = (CIdExpression) stmt.getLeftHandSide();
+        CLeftHandSide lvalue = stmt.getLeftHandSide();
         CExpression rvalue = stmt.getRightHandSide();
 
         // left hand side
@@ -728,9 +728,20 @@ public class CFAReverser {
         return to;
       }
 
-      private CFANode handleExprStmt(CExpressionStatement stmt, CFANode from) {
-        checkNotNull(stmt, from);
-        return null;
+      private CFANode handleExprStmt(CExpressionStatement stmt, CFANode from, CFANode to) {
+        ExprVariableFinder finder = new ExprVariableFinder(new HashSet<>());
+        CExpression expr = stmt.getExpression().accept(finder);
+
+        CExpressionStatement exprStatement = new CExpressionStatement(FileLocation.DUMMY, expr);
+
+        if (to == null) {
+          to = new CFANode(from.getFunction());
+        }
+        CStatementEdge stmtEdge =
+            new CStatementEdge("", exprStatement, FileLocation.DUMMY, from, to);
+        addToCFA(stmtEdge);
+
+        return to;
       }
 
       private CFANode handleCallAssignStmt(CFunctionCallAssignmentStatement stmt, CFANode from) {
