@@ -67,6 +67,7 @@ public class TestTargetMinimizerEssential {
     Map<CFANode, CFANode> origCFANodeToCopyMap = new HashMap<>();
     CFANode currentNode;
 
+
     Queue<CFANode> waitlist = new ArrayDeque<>();
     // start with function entry point
     origCFANodeToCopyMap.put(pEntryNode, CFANode.newDummyCFANode());
@@ -75,6 +76,26 @@ public class TestTargetMinimizerEssential {
     while (!waitlist.isEmpty()) {
       // get next node in the queue
       currentNode = waitlist.poll();
+
+      if(currentNode.getNumLeavingEdges() == 0) {
+        CFANode currentNodeFinal = currentNode;
+        pEntryNode
+            .getExitNode()
+            .ifPresent(
+                exitNode -> {
+                  if (!origNodesCopied.contains(exitNode)) {
+                    origCFANodeToCopyMap.put(exitNode, CFANode.newDummyCFANode(""));
+                    waitlist.add(exitNode);
+                    origNodesCopied.add(exitNode);
+                  }
+                  CFAEdge copyEdge =
+                      new DummyCFAEdge(
+                          origCFANodeToCopyMap.get(currentNodeFinal),
+                          origCFANodeToCopyMap.get(exitNode));
+                  origCFANodeToCopyMap.get(currentNodeFinal).addLeavingEdge(copyEdge);
+                  origCFANodeToCopyMap.get(exitNode).addEnteringEdge(copyEdge);
+                });
+      }
 
       // create copies of all outgoing edges and the nodes they go into if they dont yet exist
       for (CFAEdge currentEdge : CFAUtils.leavingEdges(currentNode)) {
