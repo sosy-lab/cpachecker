@@ -3747,11 +3747,11 @@ differential.variableSetMerge = false
 # point. MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION.
 # The final number of blocks should converge to the number of functions in
 # the program. NO_DECOMPOSITION creates one block around the CFA.
+# FUNCTION_DECOMPOSITION creates for each function an own block.
 distributedSummaries.decompositionType = FUNCTION_DECOMPOSITION
-  enum:     [LINEAR_DECOMPOSITION, FUNCTION_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
-             NO_DECOMPOSITION]
+  enum:     [LINEAR_DECOMPOSITION, FUNCTION_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION, NO_DECOMPOSITION]
 
-# Change the queue type. ERRROR_CONDITION prioritizes the processing
+# Change the queue type. ERROR_CONDITION prioritizes the processing
 # ofErrorConditionMessages. DEFAULT does not differ between PostCondition and
 # ErrorCondition messages.
 distributedSummaries.queue = DEFAULT
