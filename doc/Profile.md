@@ -21,6 +21,43 @@ Just run CPAchecker with the environment variable
 `JAVA_VM_ARGUMENTS=-XX:-PerfDisableSharedMem` set to enable this again.
 
 
+Java Flight Recorder
+--------------------
+
+[Java Flight Recorder](https://access.redhat.com/documentation/en-us/openjdk/17/html-single/using_jdk_flight_recorder_with_openjdk/index)
+profiles time and memory consumption of individual methods and objects.
+To profile CPAchecker with Java Flight Recorder,
+set environment variable
+
+```
+JAVA_VM_ARGUMENTS="-XX:StartFlightRecording=filename=recording.jfr,dumponexit=true"
+```
+
+This records profiling samples during the full CPAchecker run and stores the recording in file `recording.jfr`.
+It saves all recorded data when the JVM exits.
+
+Recordings can be opened and analyzed with [Java Mission Control](https://github.com/openjdk/jmc)
+or directly in IntelliJ IDEA.
+
+### Example run
+
+```
+> JAVA_VM_ARGUMENTS="-XX:StartFlightRecording=filename=recording.jfr,dumponexit=true" scripts/cpa.sh -predicateAnalysis doc/examples/example_bug.c
+Running CPAchecker with default heap size (1200M). Specify a larger value with -heap if you have more RAM.
+Running CPAchecker with default stack size (1024k). Specify a larger value with -stack if needed.
+Running CPAchecker with the following extra VM options: -XX:StartFlightRecording=filename=recording.jfr,dumponexit=true
+[0.494s][info][jfr,startup] Started recording 1. No limit specified, using maxsize=250MB as default.
+[0.494s][info][jfr,startup] 
+[0.494s][info][jfr,startup] Use jcmd 455011 JFR.dump name=1 to copy recording data to file.
+Language C detected and set for analysis (CPAMain.detectFrontendLanguageIfNecessary, INFO)
+
+Using the following resource limits: CPU-time limit of 900s (ResourceLimitChecker.fromConfiguration, INFO)
+
+CPAchecker 2.2.1-svn-44103M / predicateAnalysis (OpenJDK 64-Bit Server VM 19.0.2) started (CPAchecker.run, INFO)
+[.. more output ..]
+```
+
+
 Time profiling
 --------------
 
