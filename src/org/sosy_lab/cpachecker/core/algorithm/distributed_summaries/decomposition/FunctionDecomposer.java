@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -53,14 +52,7 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
 
           //Check if Function Call Edge or Duplicate
           if (nodes.contains(temp) || e instanceof FunctionCallEdge) {
-            //Ignore this case
-
-            //Check if Summary Edge
-          } else if (e instanceof CFunctionSummaryEdge) {
-            edges.add(e);
-            nodes.add(temp);
-            waitlist.add(e.getSuccessor());
-
+            //Ignore this cases
 
           } else {
             edges.add(e);
