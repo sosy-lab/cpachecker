@@ -207,9 +207,9 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
       BlockSummaryCFADecomposer decomposer = getDecomposer();
       BlockGraph blockGraph = decomposer.decompose(initialCFA);
       if (decompositionType == DecompositionType.FUNCTION_DECOMPOSITION) {
-        //Consistency check doesn´t work for Function Decomposer (more than one root node)
+        // Consistency check doesn´t work for Function Decomposer (more than one root node)
 
-    } else {
+      } else {
         blockGraph.checkConsistency(shutdownManager.getNotifier());
       }
       Modification modification =
