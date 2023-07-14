@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class FunctionDecomposer implements BlockSummaryCFADecomposer {
 
-  private static int idCount = 0;
+  private int idCount = 0;
 
   @Override
   public BlockGraph decompose(CFA cfa) throws InterruptedException {
