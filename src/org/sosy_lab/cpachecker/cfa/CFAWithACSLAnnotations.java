@@ -10,14 +10,12 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
-import java.util.Collection;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ForwardingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 public class CFAWithACSLAnnotations extends ForwardingCfaNetwork implements CFA {
