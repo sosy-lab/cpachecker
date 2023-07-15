@@ -113,6 +113,13 @@ public class AutomatonYAMLParser {
   }
 
   public static List<AbstractEntry> parseYAML(InputStream pInputStream) throws IOException {
+    // Currently we assume that an empty witness is also valid. A empty witness corresponds to an
+    // empty list of entries. How this should be interpreted to see the type of a witness i.e.
+    // Violation or Correctness is unclear
+    if (pInputStream.available() == 0) {
+      return new ArrayList<>();
+    }
+
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     mapper.findAndRegisterModules();
     List<AbstractEntry> entries =
