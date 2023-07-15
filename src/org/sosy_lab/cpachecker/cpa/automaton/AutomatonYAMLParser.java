@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.ViolationSequenceEntry;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.InformationRecord;
 
 @Options(prefix = "witness")
 public class AutomatonYAMLParser {
@@ -192,73 +191,51 @@ public class AutomatonYAMLParser {
     List<AbstractEntry> entries = parseYAML(pInputStream);
 
     String automatonName = "No Loop Invariant Present";
+    Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
     String entryStateId = "singleState";
 
-    Map<Integer, LoopInvariantEntry> lineToInvariant = new HashMap<>();
+    List<AutomatonTransition> transitions = new ArrayList<>();
+
     for (AbstractEntry entry : entries) {
       if (entry instanceof LoopInvariantEntry loopInvariantEntry) {
-        Integer line = loopInvariantEntry.getLocation().getLine();
-        if (lineToInvariant.containsKey(line)) {
-          lineToInvariant.put(
-              line,
-              new LoopInvariantEntry(
-                  loopInvariantEntry.getEntryType(),
-                  loopInvariantEntry.getMetadata(),
-                  loopInvariantEntry.getLocation(),
-                  new InformationRecord(
-                      "("
-                          + loopInvariantEntry.getLoopInvariant().getString()
-                          + ")"
-                          + " || "
-                          + "("
-                          + lineToInvariant.get(line).getLoopInvariant().getString()
-                          + ")",
-                      loopInvariantEntry.getLoopInvariant().getType(),
-                      loopInvariantEntry.getLoopInvariant().getFormat())));
-        } else {
-          lineToInvariant.put(line, loopInvariantEntry);
+        Optional<String> resultFunction =
+            Optional.of(loopInvariantEntry.getLocation().getFunction());
+
+        LineMatcher lineMatcher =
+            new LineMatcher(
+                Optional.empty(), // TODO: Is this correct?
+                loopInvariantEntry.getLocation().getLine(),
+                loopInvariantEntry.getLocation().getLine());
+
+        Deque<String> callStack = new ArrayDeque<>();
+        callStack.push(loopInvariantEntry.getLocation().getFunction());
+
+        Scope candidateScope = determineScope(resultFunction, callStack, lineMatcher, scope);
+
+        ExpressionTree<AExpression> invariant =
+            CParserUtils.parseStatementsAsExpressionTree(
+                ImmutableSet.of(loopInvariantEntry.getLoopInvariant().getString()),
+                resultFunction,
+                cparser,
+                candidateScope,
+                parserTools);
+
+        if (invariant.equals(ExpressionTrees.getTrue())) {
+          continue;
         }
+
+        transitions.add(
+            new AutomatonTransition.Builder(
+                    new CheckCoversLines(
+                        ImmutableSet.of(loopInvariantEntry.getLocation().getLine())),
+                    entryStateId)
+                .withCandidateInvariants(invariant)
+                .build());
+        automatonName = loopInvariantEntry.getMetadata().getUuid();
       } else {
         throw new WitnessParseException(
             "The witness contained other statements than Loop Invariants!");
       }
-    }
-
-    List<AutomatonTransition> transitions = new ArrayList<>();
-
-    for (LoopInvariantEntry loopInvariantEntry : lineToInvariant.values()) {
-      Optional<String> function = Optional.of(loopInvariantEntry.getLocation().getFunction());
-      Integer line = loopInvariantEntry.getLocation().getLine();
-
-      LineMatcher lineMatcher =
-          new LineMatcher(
-              Optional.empty(), // TODO: Is this correct?
-              line,
-              line);
-
-      Deque<String> callStack = new ArrayDeque<>();
-      callStack.push(loopInvariantEntry.getLocation().getFunction());
-
-      Scope candidateScope = determineScope(function, callStack, lineMatcher, scope);
-
-      ExpressionTree<AExpression> invariant =
-          CParserUtils.parseStatementsAsExpressionTree(
-              ImmutableSet.of(loopInvariantEntry.getLoopInvariant().getString()),
-              function,
-              cparser,
-              candidateScope,
-              parserTools);
-
-      if (invariant.equals(ExpressionTrees.getTrue())) {
-        continue;
-      }
-
-      transitions.add(
-          new AutomatonTransition.Builder(new CheckCoversLines(ImmutableSet.of(line)), entryStateId)
-              .withCandidateInvariants(invariant)
-              .build());
-
-      automatonName = loopInvariantEntry.getMetadata().getUuid();
     }
 
     List<AutomatonInternalState> automatonStates =
@@ -266,7 +243,7 @@ public class AutomatonYAMLParser {
 
     Automaton automaton;
     try {
-      automaton = new Automaton(automatonName, new HashMap<>(), automatonStates, entryStateId);
+      automaton = new Automaton(automatonName, automatonVariables, automatonStates, entryStateId);
     } catch (InvalidAutomatonException e) {
       throw new WitnessParseException(
           "The witness automaton generated from the provided YAML Witness is invalid!", e);
