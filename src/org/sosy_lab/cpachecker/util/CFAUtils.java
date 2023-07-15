@@ -614,7 +614,7 @@ public class CFAUtils {
                     .transform(e -> CFAUtils.getFileLocationsFromCfaEdge(e)))
             .toSet();
 
-    for (FileLocation file1: allFileLocationFirstNode) {
+    for (FileLocation file1 : allFileLocationFirstNode) {
       for (FileLocation file2 : allFileLocationSecondtNode) {
         // Check if the ranges overlap
         if (file1.getStartingLineInOrigin() <= file2.getEndingLineInOrigin()

@@ -237,7 +237,11 @@ public class AutomatonYAMLParser {
 
         ExpressionTree<AExpression> invariant =
             CParserUtils.parseStatementsAsExpressionTree(
-                ImmutableSet.of(invariantString), resultFunction, cparser, candidateScope, parserTools);
+                ImmutableSet.of(invariantString),
+                resultFunction,
+                cparser,
+                candidateScope,
+                parserTools);
 
         if (invariant.equals(ExpressionTrees.getTrue())) {
           continue;
@@ -245,9 +249,7 @@ public class AutomatonYAMLParser {
 
         transitions.add(
             new AutomatonTransition.Builder(
-                    new CheckCoversLines(
-                        ImmutableSet.of(line)),
-                    entryStateId)
+                    new CheckCoversLines(ImmutableSet.of(line)), entryStateId)
                 .withCandidateInvariants(invariant)
                 .build());
         automatonName = loopInvariantEntry.getMetadata().getUuid();
