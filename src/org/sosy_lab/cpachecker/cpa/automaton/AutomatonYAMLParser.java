@@ -25,9 +25,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -49,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParse
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -196,16 +199,29 @@ public class AutomatonYAMLParser {
 
     List<AutomatonTransition> transitions = new ArrayList<>();
 
+    Map<Integer, Set<Pair<String, String>>> lineToSeenInvariants = new HashMap<>();
+
     for (AbstractEntry entry : entries) {
       if (entry instanceof LoopInvariantEntry loopInvariantEntry) {
         Optional<String> resultFunction =
             Optional.of(loopInvariantEntry.getLocation().getFunction());
+        String invariantString = loopInvariantEntry.getLoopInvariant().getString();
+        Integer line = loopInvariantEntry.getLocation().getLine();
 
-        LineMatcher lineMatcher =
-            new LineMatcher(
-                Optional.empty(), // TODO: Is this correct?
-                loopInvariantEntry.getLocation().getLine(),
-                loopInvariantEntry.getLocation().getLine());
+        if (!lineToSeenInvariants.containsKey(line)) {
+          lineToSeenInvariants.put(line, new HashSet<>());
+        }
+
+        // Parsing is expensive for long invariants, we therefore try to reduce it
+        Pair<String, String> lookupKey = Pair.of(resultFunction.orElseThrow(), invariantString);
+
+        if (lineToSeenInvariants.get(line).contains(lookupKey)) {
+          continue;
+        } else {
+          lineToSeenInvariants.get(line).add(lookupKey);
+        }
+
+        LineMatcher lineMatcher = new LineMatcher(Optional.empty(), line, line);
 
         Deque<String> callStack = new ArrayDeque<>();
         callStack.push(loopInvariantEntry.getLocation().getFunction());
@@ -214,11 +230,7 @@ public class AutomatonYAMLParser {
 
         ExpressionTree<AExpression> invariant =
             CParserUtils.parseStatementsAsExpressionTree(
-                ImmutableSet.of(loopInvariantEntry.getLoopInvariant().getString()),
-                resultFunction,
-                cparser,
-                candidateScope,
-                parserTools);
+                ImmutableSet.of(invariantString), resultFunction, cparser, candidateScope, parserTools);
 
         if (invariant.equals(ExpressionTrees.getTrue())) {
           continue;
@@ -227,7 +239,7 @@ public class AutomatonYAMLParser {
         transitions.add(
             new AutomatonTransition.Builder(
                     new CheckCoversLines(
-                        ImmutableSet.of(loopInvariantEntry.getLocation().getLine())),
+                        ImmutableSet.of(line)),
                     entryStateId)
                 .withCandidateInvariants(invariant)
                 .build());
