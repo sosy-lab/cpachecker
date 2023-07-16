@@ -48,6 +48,7 @@ import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
 import org.eclipse.jdt.core.dom.SwitchCase;
 import org.eclipse.jdt.core.dom.SwitchStatement;
+import org.eclipse.jdt.core.dom.ThrowStatement;
 import org.eclipse.jdt.core.dom.TryStatement;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
@@ -61,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JCatchInformation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
@@ -127,10 +129,11 @@ class CFAMethodBuilder extends ASTVisitor {
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
 
   // Data structure for handling try & catch blocks
-  private final Deque<CFANode> tryStartStack = new ArrayDeque<>();
-  private final Deque<CFANode> tryNextStack = new ArrayDeque<>();
-  private final Deque<CFANode> catchStartStack = new ArrayDeque<>();
-  private final Deque<CFANode> catchNextStack = new ArrayDeque<>();
+  private final Deque<CFANode> tryBlockStack = new ArrayDeque<>();
+  private final Deque<Set<CatchClause>> catchBlockStack = new ArrayDeque<>();
+  private final Deque<List<JCatchInformation>> catchNodes = new ArrayDeque<>();
+  // private final Deque<List<CFAEdge>> catchEdges = new ArrayDeque<>();
+  private boolean catchClauseHandling = false;
 
   // Data structures for label , continue , break
   private final Map<String, CFALabelNode> labelMap = new HashMap<>();
@@ -179,7 +182,6 @@ class CFAMethodBuilder extends ASTVisitor {
    */
   @Override
   public boolean visit(MethodDeclaration mDeclaration) {
-
     if (!locStack.isEmpty()) {
       throw new CFAGenerationRuntimeException("Nested method declarations?");
     }
@@ -201,10 +203,8 @@ class CFAMethodBuilder extends ASTVisitor {
       // more than one time
 
       // TODO insert super Constructor if not explicit given.
-
       mDeclaration.getBody().accept(this);
     }
-
     return SKIP_CHILDREN;
   }
 
@@ -254,6 +254,7 @@ class CFAMethodBuilder extends ASTVisitor {
     cfa = startNode;
 
     final CFANode nextNode = new CFANode(fdef);
+
     cfaNodes.add(nextNode);
     locStack.push(nextNode);
 
@@ -504,7 +505,6 @@ class CFAMethodBuilder extends ASTVisitor {
           new JDeclarationEdge(
               rawSignature, fileLocation, prevNode, nextNode, (JDeclaration) sideeffect);
     }
-
     addToCFA(previous);
   }
 
@@ -741,6 +741,7 @@ class CFAMethodBuilder extends ASTVisitor {
     }
   }
 
+  // TODO hier erstmal alle expression statements die innerhalb des catch sind in extra nodes packen
   @Override
   public boolean visit(ExpressionStatement expressionStatement) {
 
@@ -749,8 +750,13 @@ class CFAMethodBuilder extends ASTVisitor {
 
     // When else is not in a block (else Statement)
     handleElseCondition(expressionStatement);
+    CFANode prevNode = null;
 
-    CFANode prevNode = locStack.pop();
+    if (catchClauseHandling) {
+      prevNode = locStack.peek();
+    } else {
+      prevNode = locStack.pop();
+    }
 
     JStatement statement = astCreator.convert(expressionStatement);
 
@@ -772,8 +778,9 @@ class CFAMethodBuilder extends ASTVisitor {
     String rawSignature = expressionStatement.toString();
 
     CFANode lastNode = new CFANode(cfa.getFunction());
-
-    cfaNodes.add(lastNode);
+    if (!catchClauseHandling) {
+      cfaNodes.add(lastNode);
+    }
 
     if (astCreator.getConditionalExpression() != null) {
 
@@ -806,15 +813,48 @@ class CFAMethodBuilder extends ASTVisitor {
             lastNode);
 
       } else {
+        JStatementEdge edge = null;
+        if (tryBlockStack.isEmpty() && !catchClauseHandling) {
+          edge =
+              new JStatementEdge(
+                  rawSignature, statement, statement.getFileLocation(), nextNode, lastNode);
 
-        JStatementEdge edge =
-            new JStatementEdge(
-                rawSignature, statement, statement.getFileLocation(), nextNode, lastNode);
-        addToCFA(edge);
+          addToCFA(edge);
+          locStack.push(lastNode);
+
+        } else if (!tryBlockStack.isEmpty() && !catchClauseHandling) {
+
+          CFANode start = new CFANode(catchNodes.peek().get(0).getNode().getFunction());
+
+          JStatementEdge startEdge =
+              new JStatementEdge(
+                  catchNodes.peek().get(0).getRawStatement(),
+                  catchNodes.peek().get(0).getStatement(),
+                  catchNodes.peek().get(0).getFileLocation(),
+                  nextNode,
+                  lastNode);
+
+          edge =
+              new JStatementEdge(
+                  rawSignature, statement, statement.getFileLocation(), lastNode, start);
+          cfaNodes.add(start);
+          addToCFA(startEdge);
+          addToCFA(edge);
+          locStack.push(start);
+        }
+
+        if (catchClauseHandling) {
+          catchNodes
+              .peek()
+              .add(
+                  new JCatchInformation(
+                      lastNode, rawSignature, statement, statement.getFileLocation(), false));
+        }
       }
     }
+    if (!catchClauseHandling) {
+    }
 
-    locStack.push(lastNode);
     return SKIP_CHILDREN;
   }
 
@@ -1901,6 +1941,7 @@ class CFAMethodBuilder extends ASTVisitor {
     }
 
     switchCaseStack.push(notCaseNode); // for later cases, only reachable through jumps
+
     locStack.push(caseNode);
 
     // blank edge connecting rootNode with caseNode
@@ -2392,6 +2433,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     CFANode nextNode = new CFANode(cfa.getFunction());
     cfaNodes.add(nextNode);
+
     locStack.push(nextNode);
   }
 
@@ -2435,6 +2477,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     CFANode nextNode = new CFANode(cfa.getFunction());
     cfaNodes.add(nextNode);
+
     locStack.push(nextNode);
   }
 
@@ -2452,6 +2495,7 @@ class CFAMethodBuilder extends ASTVisitor {
     addToCFA(blankEdge);
 
     CFANode nextNode = new CFANode(cfa.getFunction());
+
     locStack.push(nextNode);
   }
 
@@ -2672,26 +2716,97 @@ class CFAMethodBuilder extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(TryStatement ts) {
-    FileLocation fileloc = astCreator.getFileLocation(ts);
-    final CFANode prevNode = locStack.pop();
+  public boolean visit(TryStatement tryStatement) {
 
-    final CFANode tryStart = new CFANode(cfa.getFunction());
-    cfaNodes.add(tryStart);
-    tryStartStack.push(tryStart);
+    final CFANode tryBlockStart = new CFANode(cfa.getFunction());
+    tryBlockStack.push(tryBlockStart);
 
-    locStack.push(tryStart);
+    addCatchClauses(tryStatement);
 
-    final BlankEdge blankEdge = new BlankEdge("", fileloc, prevNode, tryStart, "try");
-    addToCFA(blankEdge);
+    tryStatement.getBody().accept(this);
 
-    ts.getBody().accept(this);
-    return VISIT_CHILDREN;
+    return SKIP_CHILDREN;
+  }
+
+  private void addCatchClauses(TryStatement tryStatement) {
+    HashSet<CatchClause> catchClauses = new HashSet<>();
+    for (Object cc : tryStatement.catchClauses()) {
+      CatchClause temp = (CatchClause) cc;
+      catchClauses.add(temp);
+    }
+    catchBlockStack.add(catchClauses);
+    for (CatchClause cc : catchBlockStack.peek()) {
+      cc.accept(this);
+    }
+  }
+
+  @Override
+  public void endVisit(TryStatement tryStatement) {
+    int stackSize = tryBlockStack.size();
+    tryBlockStack.pop();
+    assert tryBlockStack.size() == stackSize - 1;
   }
 
   @Override
   public boolean visit(CatchClause cc) {
+    assert catchBlockStack.peek().contains(cc) == true;
+    catchNodes.add(new ArrayList<JCatchInformation>());
+    // Frage: zweite Expression JClassLiteralExpression?
+
+    // JExpression e =
+    //   new JBinaryExpression(FileLocation.DUMMY, JSimpleType.getBoolean(), , new
+    // JNullLiteralExpression(FileLocation.DUMMY) ,
+    // BinaryOperator.EQUALS);
+    // FileLocation, JType, JExpression, JExpression, Binaryoperator
+    // catchNodes.peek().add(new JCatchInformation());
+
+    // JSimpleDeclaration jsd = new JVariableDeclaration();
+    // FileLocation,boolean,JType,String,String,String, AInitializer, boolean
+
+    // JIdExpression jie = new JIdExpression(FileLocation.DUMMY,,);
+    // FileLocation,JType,String,JSimpleDeclaration
+
+    // JRunTimeTypeExpression jre = new JVariableRunTimeType(FileLocation.DUMMY,);
+    // FileLocation, JIdExpression
+
+    // JExpression et = new JRunTimeTypeEqualsType(FileLocation.DUMMY,,);
+    // FileLocation, JRunTimeTypeExpression, JReferenceType
+
+    catchClauseHandling = true;
     cc.getBody().accept(this);
+    return SKIP_CHILDREN;
+  }
+
+  @Override
+  public void endVisit(CatchClause cc) {
+    catchBlockStack.peek().remove(cc);
+    if (catchBlockStack.peek().isEmpty()) {
+      catchBlockStack.pop();
+    }
+    catchClauseHandling = false;
+  }
+
+  @Override
+  public boolean visit(ThrowStatement throwStatement) {
+
+    FileLocation fileloc = astCreator.getFileLocation(throwStatement);
+
+    CFANode prevNode = locStack.pop();
+    CFANode throwNode = new CFANode(cfa.getFunction());
+
+    cfaNodes.add(throwNode);
+
+    locStack.push(throwNode);
+
+    final BlankEdge blankEdge =
+        new BlankEdge(
+            "MainApp_helper = " + throwStatement.getExpression() + ";",
+            fileloc,
+            prevNode,
+            throwNode,
+            "MainApp_helper = " + throwStatement.getExpression() + ";");
+
+    addToCFA(blankEdge);
     return SKIP_CHILDREN;
   }
 }

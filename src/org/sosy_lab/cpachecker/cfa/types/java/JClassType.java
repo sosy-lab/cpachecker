@@ -58,7 +58,7 @@ public final class JClassType extends JClassOrInterfaceType {
   private final Set<JInterfaceType> implementedInterfaces;
   private final Set<JClassType> directSubClasses = new HashSet<>();
 
-  JClassType(
+  public JClassType(
       String fullyQualifiedName,
       String pSimpleName,
       final VisibilityModifier pVisibility,
