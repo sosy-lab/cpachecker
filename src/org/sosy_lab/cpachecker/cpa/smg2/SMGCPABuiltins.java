@@ -680,14 +680,15 @@ public class SMGCPABuiltins {
           continue;
         } else if (options.isErrorOnUnknownMemoryAllocation()) {
           // Error for CEGAR to learn the variable
-          // TODO: this is bad! For truly unknown variables this also just plainly errors
+          // TODO: this is bad! For truly unknown variables this also just plainly errors. Think of
+          // a better way
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
                   currentState.withMemoryLeak(
-                      "Dummy error for malloc() with unknown size.", ImmutableList.of())));
+                      "Plain memory error for malloc with symbolic size.", ImmutableList.of())));
           continue;
         } else {
-          throw new SMGException(
+          throw new AssertionError(
               "An allocation function was called with a symbolic size. This is not supported"
                   + " currently by the SMG2 analysis. Try GuessSizeOfUnknownMemorySize.");
         }
