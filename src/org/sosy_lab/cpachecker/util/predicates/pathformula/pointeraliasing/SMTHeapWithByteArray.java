@@ -200,12 +200,13 @@ class SMTHeapWithByteArray implements SMTHeap {
       FormulaType<I> addressType,
       BitvectorType targetType) {
     final int bitLength = targetType.getSize();
+    assert (bitLength > 0);
 
     // compute the number of bytes, even partially filled ones
     final int numPartialBytes = (bitLength / BYTE_SIZE) + ((bitLength % BYTE_SIZE) != 0 ? 1 : 0);
 
-    // the result is a zero-length bitvector at first
-    BitvectorFormula result = bfmgr.makeBitvector(0, 0);
+    // the result is a null at first, it will be assigned to by the first partial byte
+    BitvectorFormula result = null;
 
     // iterate through all partial bytes
     for (int partialByte = 0; partialByte < numPartialBytes; partialByte++) {
@@ -234,11 +235,16 @@ class SMTHeapWithByteArray implements SMTHeap {
       }
 
       // concatenate with result
+      if (result != null) {
       result =
           (endianness == ByteOrder.BIG_ENDIAN)
               ? bfmgr.concat(result, partialByteFormula)
               : bfmgr.concat(partialByteFormula, result);
+      } else {
+        result = partialByteFormula;
+      }
     }
+    assert (result != null);
 
     return result;
   }
@@ -263,6 +269,7 @@ class SMTHeapWithByteArray implements SMTHeap {
 
     // split the element into bytes
     final int bitLength = bfmgr.getLength(value);
+    assert (bitLength > 0);
 
     // compute the number of bytes, even partially filled ones
     final int numPartialBytes = (bitLength / BYTE_SIZE) + ((bitLength % BYTE_SIZE) != 0 ? 1 : 0);
