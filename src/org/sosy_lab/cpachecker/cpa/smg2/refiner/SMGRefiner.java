@@ -190,7 +190,11 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
             pShutdownNotifier,
             pCfa),
         SMGInterpolantManager.getInstance(
-            new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger, pCfa),
+            new SMGOptions(pConfig),
+            pCfa.getMachineModel(),
+            pLogger,
+            pCfa,
+            pFeasibilityChecker.isRefineMemorySafety()),
         pPathExtractor,
         pConfig,
         pLogger);

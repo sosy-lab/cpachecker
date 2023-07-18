@@ -4905,6 +4905,9 @@ undefinedFunctionsCollector.stubsFile = "stubs.c"
 # select an analysis from a set of analyses after unknown result
 useCompositionAnalysis = false
 
+# Whether or not one wants to refine MemorySafety errors.
+util.refinement.refineMemorySafety = false
+
 # Instead of comments, output the assertions into the original program as
 # violations to unreach_call.prp
 wacsl.makeDirectAssertions = false
