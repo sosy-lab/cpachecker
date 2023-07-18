@@ -259,12 +259,17 @@ class AssignmentHandler {
       final SingleRhsPartialAssignment partialAssignment =
           new SingleRhsPartialAssignment(partialLhs, partialRhs);
 
-      // convert span assignment to progenitor; this will retain the meaning of the assignment, but
-      // the LHS type will be the coarsest possible
-      final SingleRhsPartialAssignment progenitorPartialAssignment =
-          convertPartialAssignmentToProgenitor(partialAssignment);
+      if (options.useByteArrayForHeap()) {
+        // we do not need to convert to progenitor, unions are resolved implicitly by the byte array
+        partialAssignments.add(partialAssignment);
+      } else {
+        // convert span assignment to progenitor; this will retain the meaning of the assignment,
+        // but the LHS type will be the coarsest possible
+        final SingleRhsPartialAssignment progenitorPartialAssignment =
+            convertPartialAssignmentToProgenitor(partialAssignment);
 
-      partialAssignments.add(progenitorPartialAssignment);
+        partialAssignments.add(progenitorPartialAssignment);
+      }
     }
 
     // generate simple slice assignments to resolve assignments to structures and arrays
