@@ -91,5 +91,4 @@ public interface FeasibilityChecker<S extends AbstractState> {
   public default boolean isRefineMemorySafety() {
     return false;
   }
-  ;
 }
