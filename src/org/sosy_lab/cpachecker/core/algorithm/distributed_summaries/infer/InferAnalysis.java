@@ -25,9 +25,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.BlockSummaryAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockSummaryCFADecomposer;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.parallel_decomposition.ParallelBlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.parallel_decomposition.ParallelBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryBlockSummaryConnectionProvider;
@@ -95,8 +94,8 @@ public class InferAnalysis extends BlockSummaryAnalysis
     logger.log(Level.INFO, "Starting infer analysis...");
     try {
       // create blockGraph and reduce to relevant parts
-      BlockSummaryCFADecomposer decomposer = new ParallelBlockNodeDecomposition();
-      BlockGraph blockGraph = decomposer.decompose(initialCFA);
+      ParallelBlockNodeDecomposition decomposer = new ParallelBlockNodeDecomposition();
+      ParallelBlockGraph blockGraph = decomposer.decompose(initialCFA);
       blockGraph.checkConsistency(shutdownManager.getNotifier());
       logger.logf(
           Level.INFO,

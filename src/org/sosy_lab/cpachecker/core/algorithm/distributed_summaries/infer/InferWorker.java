@@ -11,17 +11,18 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorker;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -30,11 +31,13 @@ public class InferWorker extends BlockSummaryWorker {
 
   private final BlockNode block;
 
-  private final DCPAAlgorithm dcpaAlgorithm;
+  private final InferDCPAAlgorithm dcpaAlgorithm;
 
   private boolean shutdown;
 
   private final BlockSummaryConnection connection;
+
+  private final String blockEntryFunction;
 
   /**
    * {@link InferWorker}s trigger CEGAR refinement using forward and backward analyses to find a
@@ -64,20 +67,37 @@ public class InferWorker extends BlockSummaryWorker {
     super("infer-worker-" + pId, new BlockSummaryAnalysisOptions(pOptions.getParentConfig()));
     block = pBlock;
     connection = pConnection;
+    blockEntryFunction = block.getFirst().getFunctionName();
 
     Configuration forwardConfiguration =
         Configuration.builder().loadFromFile(pOptions.getForwardConfiguration()).build();
 
     dcpaAlgorithm =
-        new DCPAAlgorithm(
+        new InferDCPAAlgorithm(
             getLogger(), pBlock, pCFA, pSpecification, forwardConfiguration, pShutdownManager);
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage message)
       throws InterruptedException, CPAException, SolverException {
-    // TODO receive messages from the root worker
-    // TODO FIX THIS LOL
+
+    ImmutableSet<String> calledFunctions =
+        (ImmutableSet<String>)
+            message
+                .getPayload()
+                .getOrDefault(InferDCPAAlgorithm.CALLED_FUNCTIONS, ImmutableSet.of());
+    if (!calledFunctions.contains(blockEntryFunction)) {
+      return ImmutableSet.of();
+    }
+
+    switch (message.getType()) {
+      case ERROR_CONDITION -> {
+        AbstractState state = dcpaAlgorithm.getDCPA().getDeserializeOperator().deserialize(message);
+        dcpaAlgorithm.runAnalysisUnderCondition(Optional.of(state));
+      }
+      default -> {}
+    }
     return ImmutableSet.of();
   }
 

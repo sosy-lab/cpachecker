@@ -155,7 +155,7 @@ public class BlockState
     return blockNode.getLast().equals(node);
   }
 
-  private boolean isStartNodeOfBlock() {
+  protected boolean isStartNodeOfBlock() {
     return blockNode.getFirst().equals(node);
   }
 

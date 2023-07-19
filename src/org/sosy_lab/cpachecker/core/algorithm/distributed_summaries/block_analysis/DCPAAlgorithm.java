@@ -189,8 +189,8 @@ public class DCPAAlgorithm {
    * @throws CPAException thrown if CPA runs into an error
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
    */
-  Collection<BlockSummaryMessage> runAnalysisUnderCondition(Optional<AbstractState> errorCondition)
-      throws CPAException, InterruptedException {
+  public Collection<BlockSummaryMessage> runAnalysisUnderCondition(
+      Optional<AbstractState> errorCondition) throws CPAException, InterruptedException {
     // merge all states into the reached set
     prepareReachedSet();
 
@@ -271,13 +271,7 @@ public class DCPAAlgorithm {
           FluentIterable.from(result.getBlockEnds())
               .filter(m -> filter || !hasSentFirstMessages || !dcpa.isTop(m))
               .transform(state -> dcpa.serialize(state, reachedSet.getPrecision(state)))
-              .transform(
-                  p ->
-                      BlockSummaryMessage.newBlockPostCondition(
-                          block.getId(),
-                          block.getLast().getNodeNumber(),
-                          DCPAAlgorithms.appendStatus(status, p),
-                          true)));
+              .transform(p -> createPostConditionMessage(p)));
     } else {
       answers.addAll(reportUnreachableBlockEnd());
     }
@@ -291,7 +285,15 @@ public class DCPAAlgorithm {
     return answers.build();
   }
 
-  private Collection<BlockSummaryMessage> createErrorConditionMessages(Set<ARGState> violations)
+  protected BlockSummaryMessage createPostConditionMessage(BlockSummaryMessagePayload pPayload) {
+    return BlockSummaryMessage.newBlockPostCondition(
+        block.getId(),
+        block.getLast().getNodeNumber(),
+        DCPAAlgorithms.appendStatus(status, pPayload),
+        true);
+  }
+
+  protected Collection<BlockSummaryMessage> createErrorConditionMessages(Set<ARGState> violations)
       throws InterruptedException {
     ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
     for (ARGState targetState : violations) {

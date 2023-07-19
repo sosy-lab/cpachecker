@@ -13,14 +13,19 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Predicate;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.SerializeARGStateOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorker;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class InferRootWorker extends BlockSummaryWorker {
@@ -30,18 +35,24 @@ public class InferRootWorker extends BlockSummaryWorker {
   private final int numBlocks;
   private Set<String> workerResults;
   private ImmutableSet.Builder<ImmutableSet<CFANode>> violationPathsBuilder;
+  private final int expectedStrengthens;
 
   private static final String VIOLATION_PATHS = "violation_paths";
 
   public InferRootWorker(
-      String pId, BlockSummaryConnection pConnection, InferOptions pOptions, int pNumBlocks)
-      throws InvalidConfigurationException {
+      String pId,
+      BlockSummaryConnection pConnection,
+      InferOptions pOptions,
+      int pNumBlocks,
+      CFA pCfa)
+      throws InvalidConfigurationException, InterruptedException {
     super("infer-root-worker-" + pId, new BlockSummaryAnalysisOptions(pOptions.getParentConfig()));
     numBlocks = pNumBlocks;
     violationPathsBuilder = ImmutableSet.builder();
     workerResults = new HashSet<>();
     connection = pConnection;
     shutdown = false;
+    expectedStrengthens = getGxpectedStrengthens(pCfa);
   }
 
   @Override
@@ -61,7 +72,7 @@ public class InferRootWorker extends BlockSummaryWorker {
       case BLOCK_POSTCONDITION -> {
         workerResults.add(pMessage.getUniqueBlockId());
       }
-      default -> { }
+      default -> {}
     }
     if (workerResults.size() == numBlocks) {
 
@@ -102,5 +113,14 @@ public class InferRootWorker extends BlockSummaryWorker {
             .addEntry(VIOLATION_PATHS, pViolationPaths)
             .buildPayload();
     return InferRootViolationsMessage.newInferRootViolations("root", 0, payload);
+  }
+
+  private int getGxpectedStrengthens(CFA pCfa) throws InterruptedException {
+    BlockOperator blockOperator = new BlockOperator();
+    Predicate<CFANode> isBlockEnd = n -> blockOperator.isBlockEnd(n, -1);
+    LinearBlockNodeDecomposition decomposition = new LinearBlockNodeDecomposition(isBlockEnd);
+    BlockGraph linearGraph = decomposition.decompose(pCfa);
+
+    return 0;
   }
 }

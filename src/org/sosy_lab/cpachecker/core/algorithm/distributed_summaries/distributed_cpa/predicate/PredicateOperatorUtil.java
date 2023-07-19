@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -120,6 +122,121 @@ public class PredicateOperatorUtil {
         pPathFormulaManager.makeEmptyPathFormulaWithContext(
             substituted.ssaMap(), PointerTargetSet.emptyPointerTargetSet()),
         substituted.booleanFormula());
+  }
+
+  /**
+   * Uninstantiated a path formula by removing all SSA indices. The lowest SSA index strips the
+   * variable name such that x@1 -> x All other SSA indices are mutated such that x@n -> x.n This
+   * does not change the semantics of the formula but allow the formula to be used as a condition.
+   *
+   * @param pPathFormula an arbitrary path formula
+   * @param pFormulaManagerView the formula manager with the correct context
+   * @return a boolean formula with no instantiated variables and an SSA map containing all
+   *     variables mapped to index 1.
+   */
+  public static SubstitutedBooleanFormula uninstantiateInfer(
+      PathFormula pPathFormula, FormulaManagerView pFormulaManagerView) {
+    BooleanFormula booleanFormula = pPathFormula.getFormula();
+    SSAMap ssaMap = pPathFormula.getSsa();
+    Map<String, Formula> variableToFormula = pFormulaManagerView.extractVariables(booleanFormula);
+    Map<Formula, Formula> substitutions = new HashMap<>();
+    for (Entry<String, Formula> stringFormulaEntry : variableToFormula.entrySet()) {
+      String name = stringFormulaEntry.getKey();
+      Formula formula = stringFormulaEntry.getValue();
+
+      List<String> nameAndIndex =
+          Splitter.on(FormulaManagerView.INDEX_SEPARATOR).limit(2).splitToList(name);
+      if (nameAndIndex.size() < 2
+          || nameAndIndex.get(1).isEmpty()
+          || name.contains(INDEX_SEPARATOR)
+          || nameAndIndex.get(1).equals("1")) {
+        substitutions.put(
+            formula,
+            pFormulaManagerView.makeVariable(pFormulaManagerView.getFormulaType(formula), name));
+        continue;
+      }
+      name = nameAndIndex.get(0);
+      int index = Integer.parseInt(nameAndIndex.get(1));
+      substitutions.put(
+          formula,
+          pFormulaManagerView.makeVariable(
+              pFormulaManagerView.getFormulaType(formula), name + INDEX_SEPARATOR + index));
+    }
+    return new SubstitutedBooleanFormula(
+        pFormulaManagerView.uninstantiate(
+            pFormulaManagerView.substitute(booleanFormula, substitutions)),
+        ssaMap);
+  }
+
+  /* linkFormula is used by infer to link the variables created during strengthening back to
+   * the most recent SSA index from an original formula
+   * If no variables with INDEX_SEPARATOR (.) exist in the formula the formula remains unchanged
+   */
+  public static PathFormula linkedFormula(
+      PathFormula pPathFormula, FormulaManagerView pFormulaManagerView) {
+    SSAMap ssa = pPathFormula.getSsa();
+    BooleanFormula pathFormula = pPathFormula.getFormula();
+    BooleanFormula formulaBuilder = pFormulaManagerView.getBooleanFormulaManager().makeTrue();
+    SSAMapBuilder ssaBuilder = ssa.builder();
+    ImmutableSet<String> newFormulaVars =
+        ImmutableSet.copyOf(pFormulaManagerView.extractVariables(pathFormula).keySet());
+
+    for (String var : ssa.allVariables()) {
+      int highestUninstantiatedIndex = highestUninstantiatedIndex(newFormulaVars, var);
+      if (highestUninstantiatedIndex == -1) {
+        // If the value never got updated in the strengthening formula then no need to add anything
+        continue;
+      }
+      int newIndex = ssa.getIndex(var) + 1;
+
+      // x@max+1
+      BooleanFormula newLhs =
+          pFormulaManagerView.makeVariable(
+              pFormulaManagerView.getFormulaType(formulaBuilder), var, newIndex);
+
+      // x.uninstantiatedMax
+      BooleanFormula newRhs =
+          pFormulaManagerView.makeVariableWithoutSSAIndex(
+              pFormulaManagerView.getFormulaType(formulaBuilder),
+              var + INDEX_SEPARATOR + highestUninstantiatedIndex);
+
+      // x@max+1 = x.uninstatiatedMax
+      BooleanFormula newEqual = pFormulaManagerView.makeEqual(newLhs, newRhs);
+
+      // builder ^ x@max+1 = x.uninstantiatedMax
+      formulaBuilder = pFormulaManagerView.makeAnd(formulaBuilder, newEqual);
+      ssaBuilder = ssaBuilder.setIndex(var, ssa.getType(var), newIndex);
+    }
+
+    // original ^ builder
+    BooleanFormula finalFormula = pFormulaManagerView.makeAnd(pathFormula, formulaBuilder);
+
+    SSAMap finalSsa = ssaBuilder.build();
+    PathFormula returnFormula =
+        pPathFormula
+            .withFormula(finalFormula)
+            .withContext(finalSsa, pPathFormula.getPointerTargetSet());
+    return returnFormula;
+  }
+
+  // utility method that searches for for the highest <idx> for a variable of the form
+  // <varName>.<idx>
+  // If no variable of the form <varName>.<idx> exists, then it returns -1
+  private static int highestUninstantiatedIndex(Set<String> varsWithIndices, String varName) {
+    // Iterate through all variables and find the highest index for the variable
+    int highestIndex = -1;
+    for (String name : varsWithIndices) {
+      List<String> nameAndIndex = Splitter.on(INDEX_SEPARATOR).limit(2).splitToList(name);
+      name = nameAndIndex.get(0);
+      if (nameAndIndex.size() < 2 || nameAndIndex.get(1).isEmpty() || !varName.equals(name)) {
+        continue;
+      }
+      int index = Integer.parseInt(nameAndIndex.get(1));
+      if (index > highestIndex) {
+        highestIndex = index;
+      }
+    }
+    return highestIndex;
   }
 
   public record SubstitutedBooleanFormula(BooleanFormula booleanFormula, SSAMap ssaMap) {}

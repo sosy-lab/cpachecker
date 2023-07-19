@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateOperatorUtil;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
@@ -428,7 +429,11 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
     PathFormula previousPathFormula = pElement.getPathFormula();
     PathFormula newPathFormula = pathFormulaManager.makeAnd(previousPathFormula, formula);
 
-    return replacePathFormula(pElement, newPathFormula);
+    // when using infer, the variables in uninstantiatedPredicates are not linked to the pathFormula
+    // this function links them
+    PathFormula linkedFormula = PredicateOperatorUtil.linkedFormula(newPathFormula, fmgr);
+
+    return replacePathFormula(pElement, linkedFormula);
   }
 
   /** Returns a new state with a given pathFormula. All other fields stay equal. */
