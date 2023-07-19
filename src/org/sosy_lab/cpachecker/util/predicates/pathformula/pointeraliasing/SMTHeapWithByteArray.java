@@ -236,10 +236,10 @@ class SMTHeapWithByteArray implements SMTHeap {
 
       // concatenate with result
       if (result != null) {
-      result =
-          (endianness == ByteOrder.BIG_ENDIAN)
-              ? bfmgr.concat(result, partialByteFormula)
-              : bfmgr.concat(partialByteFormula, result);
+        result =
+            (endianness == ByteOrder.BIG_ENDIAN)
+                ? bfmgr.concat(result, partialByteFormula)
+                : bfmgr.concat(partialByteFormula, result);
       } else {
         result = partialByteFormula;
       }

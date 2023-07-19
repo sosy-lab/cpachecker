@@ -259,7 +259,6 @@ class AssignmentHandler {
       final SingleRhsPartialAssignment partialAssignment =
           new SingleRhsPartialAssignment(partialLhs, partialRhs);
 
-
       if (options.useByteArrayForHeap()) {
         // we do not need to convert to progenitor if we are assigning to the byte array, as all
         // types will read and write from the same array
@@ -273,7 +272,8 @@ class AssignmentHandler {
         }
 
         if (!assignmentToUnaliasedExists) {
-          // we do not need to convert to progenitor, unions are resolved implicitly by the byte array
+          // we do not need to convert to progenitor, unions are resolved implicitly by the byte
+          // array
           partialAssignments.add(partialAssignment);
           continue;
         }
