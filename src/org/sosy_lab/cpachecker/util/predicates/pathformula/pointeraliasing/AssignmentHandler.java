@@ -259,8 +259,28 @@ class AssignmentHandler {
       final SingleRhsPartialAssignment partialAssignment =
           new SingleRhsPartialAssignment(partialLhs, partialRhs);
 
-      // convert span assignment to progenitor; this will retain the meaning of the assignment, but
-      // the LHS type will be the coarsest possible
+
+      if (options.useByteArrayForHeap()) {
+        // we do not need to convert to progenitor if we are assigning to the byte array, as all
+        // types will read and write from the same array
+        // however, that does not apply to unaliased locations, so we need to make sure that there
+        // are no assignments to them if we want to skip the conversion to progenitor
+
+        boolean assignmentToUnaliasedExists = false;
+        for (ResolvedSlice lhsResolvedBase : lhsBaseResolutionMap.values()) {
+          assignmentToUnaliasedExists =
+              assignmentToUnaliasedExists || lhsResolvedBase.expression().isUnaliasedLocation();
+        }
+
+        if (!assignmentToUnaliasedExists) {
+          // we do not need to convert to progenitor, unions are resolved implicitly by the byte array
+          partialAssignments.add(partialAssignment);
+          continue;
+        }
+      }
+
+      // convert span assignment to progenitor; this will retain the meaning of the assignment,
+      // but the LHS type will be the coarsest possible
       final SingleRhsPartialAssignment progenitorPartialAssignment =
           convertPartialAssignmentToProgenitor(partialAssignment);
 
