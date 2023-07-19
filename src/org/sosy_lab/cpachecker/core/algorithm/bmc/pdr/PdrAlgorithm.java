@@ -92,6 +92,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
@@ -1146,7 +1147,9 @@ public class PdrAlgorithm implements Algorithm {
         ARGState root = (ARGState) pReachedSet.getFirstState();
 
         try {
-          targetPath = pmgr.getARGPathFromModel(model, root);
+          targetPath =
+              pmgr.getARGPathFromModel(
+                  model, root, ARGUtils.getAllStatesOnPathsTo(targetStates)::contains);
         } catch (IllegalArgumentException e) {
           logger.logUserException(Level.WARNING, e, "Could not create error path");
           return;
