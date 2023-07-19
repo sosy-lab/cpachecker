@@ -310,19 +310,13 @@ public class CEXExporter {
         writeErrorPathFile(
             options.getWitnessFile(),
             uniqueId,
-            (Appender)
-                pApp -> {
-                  WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp);
-                },
+            (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
             compressWitness);
 
         writeErrorPathFile(
             options.getWitnessDotFile(),
             uniqueId,
-            (Appender)
-                pApp -> {
-                  WitnessToOutputFormatsUtils.writeToDot(witness, pApp);
-                },
+            (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
             compressWitness);
       } catch (InterruptedException e) {
         logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
@@ -338,9 +332,7 @@ public class CEXExporter {
             options.getExtendedWitnessFile(),
             uniqueId,
             (Appender)
-                pAppendable -> {
-                  WitnessToOutputFormatsUtils.writeToGraphMl(extWitness, pAppendable);
-                },
+                pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(extWitness, pAppendable),
             compressWitness);
       } catch (InterruptedException e) {
         logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");

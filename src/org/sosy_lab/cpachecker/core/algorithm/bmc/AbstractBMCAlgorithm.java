@@ -865,10 +865,7 @@ abstract class AbstractBMCAlgorithm
       Set<ARGState> targetStates =
           from(pReachedSet).filter(AbstractStates::isTargetState).filter(ARGState.class).toSet();
       Set<ARGState> redundantStates = filterAncestors(targetStates, AbstractStates::isTargetState);
-      redundantStates.forEach(
-          state -> {
-            state.removeFromARG();
-          });
+      redundantStates.forEach(ARGState::removeFromARG);
       pReachedSet.removeAll(redundantStates);
 
       try (Model model = pProver.getModel()) {
