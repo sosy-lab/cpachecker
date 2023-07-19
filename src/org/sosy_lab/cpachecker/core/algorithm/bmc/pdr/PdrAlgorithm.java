@@ -1136,7 +1136,7 @@ public class PdrAlgorithm implements Algorithm {
 
       Set<ARGState> targetStates =
           from(pReachedSet).filter(AbstractStates::isTargetState).filter(ARGState.class).toSet();
-      Set<ARGState> redundantStates = filterAncestors(targetStates, AbstractStates::isTargetState);
+      Set<ARGState> redundantStates = filterAncestors(targetStates);
       redundantStates.forEach(ARGState::removeFromARG);
       pReachedSet.removeAll(redundantStates);
 
