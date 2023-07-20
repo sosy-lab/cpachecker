@@ -40,8 +40,8 @@ public interface FaultScoring {
       infos.add(info);
       fault.addInfo(info);
     }
-    if (overallScore <= 0d) {
-      throw new AssertionError("Given an arbitrary ranking, the sum of all scores should be > 0.");
+    if (overallScore < 0d) {
+      throw new AssertionError("Given an arbitrary ranking, the sum of all scores should be >= 0.");
     }
     for (RankInfo info : infos) {
       info.setScore(info.getScore() / overallScore);
