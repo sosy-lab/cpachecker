@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -115,6 +114,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @SuppressWarnings("hiding")
   final ShutdownNotifier shutdownNotifier = super.shutdownNotifier;
 
+  @SuppressWarnings("hiding")
+  final AnalysisDirection direction = super.direction;
+
   private final @Nullable ArrayFormulaManagerView afmgr;
   final TypeHandlerWithPointerAliasing typeHandler;
   final PointerTargetSetManager ptsMgr;
@@ -131,8 +133,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final LogManager logger,
       final ShutdownNotifier pShutdownNotifier,
       final TypeHandlerWithPointerAliasing pTypeHandler,
-      final AnalysisDirection pDirection)
-      throws InvalidConfigurationException {
+      final AnalysisDirection pDirection) {
     super(
         pOptions,
         formulaManagerView,
@@ -143,10 +144,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         pTypeHandler,
         pDirection);
 
-    if (pDirection == AnalysisDirection.BACKWARD) {
-      throw new InvalidConfigurationException(
-          "Backward formula construction is not yet implemented for pointer aliasing.");
-    }
+    // if (pDirection == AnalysisDirection.BACKWARD) {
+    // throw new InvalidConfigurationException(
+    // "Backward formula construction is not yet implemented for pointer aliasing.");
+    // }
 
     variableClassification = pVariableClassification;
     options = pOptions;

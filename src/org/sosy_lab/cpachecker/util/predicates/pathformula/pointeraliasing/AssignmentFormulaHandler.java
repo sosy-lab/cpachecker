@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -919,7 +920,10 @@ class AssignmentFormulaHandler {
       assert !useOldSSAIndices;
 
       final String targetName = lvalue.asUnaliased().getVariableName();
-      final int newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
+      final int newIndex =
+          conv.direction == AnalysisDirection.FORWARD
+              ? conv.makeFreshIndex(targetName, lvalueType, ssa)
+              : conv.getIndex(targetName, rvalueType, ssa);
 
       if (rhs != null) {
         Formula newVariable = fmgr.makeVariable(targetType, targetName, newIndex);
@@ -964,7 +968,10 @@ class AssignmentFormulaHandler {
           rhs = conv.makeNondet(nondetName, rvalueType, ssa, constraints);
           rhs = conv.makeCast(rvalueType, lvalueType, rhs, constraints, edge);
         }
-        newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
+        newIndex =
+            conv.direction == AnalysisDirection.FORWARD
+                ? conv.makeFreshIndex(targetName, lvalueType, ssa)
+                : conv.getIndex(targetName, rvalueType, ssa);
 
       } else {
         assert updatedRegions != null : "UF encoding needs to update regions for new indices";
@@ -972,7 +979,10 @@ class AssignmentFormulaHandler {
         // For UFs, we use a new index without storing it such that we use the same index
         // for multiple writes that are part of the same assignment.
         // The new index will be stored in the SSAMap later.
-        newIndex = conv.getFreshIndex(targetName, lvalueType, ssa);
+        newIndex =
+            conv.direction == AnalysisDirection.FORWARD
+                ? conv.getFreshIndex(targetName, lvalueType, ssa)
+                : conv.getIndex(targetName, rvalueType, ssa);
       }
 
       final Formula address = lvalue.asAliased().getAddress();
