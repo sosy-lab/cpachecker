@@ -17,9 +17,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -62,7 +63,7 @@ public class ConstraintsSolver {
       secure = true,
       description = "Whether to perform SAT checks only for the last added constraint",
       name = "minimalSatCheck")
-  private boolean performMinimalSatCheck = true;
+  private boolean performMinimalSatCheck = false;
 
   @Option(
       secure = true,
@@ -71,7 +72,7 @@ public class ConstraintsSolver {
   private boolean doCaching = true;
 
   @Option(secure = true, description = "Resolve definite assignments", name = "resolveDefinites")
-  private boolean resolveDefinites = true;
+  private boolean resolveDefinites = false;
 
   private ConstraintsCache cache;
   private Solver solver;
@@ -89,6 +90,8 @@ public class ConstraintsSolver {
 
   private ConstraintsStatistics stats;
 
+  private Deque<Constraint> currentConstraintsOnProver = new ArrayDeque<>();
+
   public ConstraintsSolver(
       final Configuration pConfig,
       final Solver pSolver,
@@ -105,6 +108,7 @@ public class ConstraintsSolver {
     converter = pConverter;
     locator = SymbolicIdentifierLocator.getInstance();
     stats = pStats;
+    prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
 
     if (doCaching) {
       cache = new MatchingConstraintsCache();
@@ -146,9 +150,9 @@ public class ConstraintsSolver {
       Boolean unsat = null; // assign null to fail fast if assignment is missed
       Set<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
 
-      Collection<BooleanFormula> constraintsAsFormulas =
+      Map<Constraint, BooleanFormula> constraintsAsFormulas =
           getFullFormula(relevantConstraints, pFunctionName);
-      CacheResult res = cache.getCachedResult(constraintsAsFormulas);
+      CacheResult res = cache.getCachedResult(constraintsAsFormulas.values());
 
       if (res.isUnsat()) {
         unsat = true;
@@ -158,11 +162,15 @@ public class ConstraintsSolver {
         pConstraints.setModel(res.getModelAssignment());
 
       } else {
-        prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
-        BooleanFormula definitesAndConstraints =
-            combineWithDefinites(constraintsAsFormulas, pConstraints);
-        prover.push(definitesAndConstraints);
+        try {
+          stats.timeForProverPreparation.start();
+          prepareProverForCheck(constraintsAsFormulas);
+        } finally {
+          stats.timeForProverPreparation.stop();
+        }
 
+        // TODO: make def assignments work
+        //prover.push(getDefAssignmentsFormula(pConstraints));
         try {
           stats.timeForSatCheck.start();
           unsat = prover.isUnsat();
@@ -173,7 +181,7 @@ public class ConstraintsSolver {
         if (!unsat) {
           ImmutableList<ValueAssignment> newModelAsAssignment = prover.getModelAssignments();
           pConstraints.setModel(newModelAsAssignment);
-          cache.addSat(constraintsAsFormulas, newModelAsAssignment);
+          cache.addSat(constraintsAsFormulas.values(), newModelAsAssignment);
           // doing this while the complete formula is still on the prover environment stack is
           // cheaper than performing another complete SAT check when the assignment is really
           // requested
@@ -193,24 +201,56 @@ public class ConstraintsSolver {
               : "Unsat with definite assignment, but not without. Definite assignment: "
                   + pConstraints.getDefiniteAssignment();
 
-          cache.addUnsat(constraintsAsFormulas);
+          cache.addUnsat(constraintsAsFormulas.values());
         }
       }
+
+      // pop definite assignments. this can only happen after the model produced by the unsat-check
+      // is not used anymore
+      //prover.pop();
 
       return unsat;
 
     } finally {
-      closeProver();
       stats.timeForSolving.stop();
     }
   }
 
-  private BooleanFormula combineWithDefinites(
-      Collection<BooleanFormula> pConstraintsAsFormulas, ConstraintsState pConstraints) {
-
-    BooleanFormula singleConstraintFormula = booleanFormulaManager.and(pConstraintsAsFormulas);
-    BooleanFormula definites = getDefAssignmentsFormula(pConstraints);
-    return booleanFormulaManager.and(definites, singleConstraintFormula);
+  private void prepareProverForCheck(Map<Constraint, BooleanFormula> constraintsAsFormulas)
+      throws InterruptedException {
+    Set<Constraint> relevantConstraints = new HashSet<>(constraintsAsFormulas.keySet());
+    int kept = 0;
+    int removed = 0;
+    // this iterator goes from the bottom of the stack to the top
+    Iterator<Constraint> it = currentConstraintsOnProver.descendingIterator();
+    while (it.hasNext()) {
+      Constraint constraintOnStack = it.next();
+      if (relevantConstraints.contains(constraintOnStack)) {
+        relevantConstraints.remove(constraintOnStack);
+        kept++;
+      } else {
+        // continue with popping the remaining elements from the stack, including the current
+        // element
+        removed++;
+        it.remove();
+        prover.pop();
+        break;
+      }
+    }
+    while (it.hasNext()) {
+      it.next();
+      it.remove();
+      prover.pop();
+      removed++;
+    }
+    if (kept + removed > 0) {
+      stats.reuseRatio.setNextValue((double) kept / (kept + removed));
+    }
+    for (Constraint c : relevantConstraints) {
+      BooleanFormula f = constraintsAsFormulas.get(c);
+      currentConstraintsOnProver.push(c);
+      prover.push(f);
+    }
   }
 
   private BooleanFormula getDefAssignmentsFormula(ConstraintsState pConstraints) {
@@ -292,6 +332,7 @@ public class ConstraintsSolver {
     for (ValueAssignment val : pModel) {
       if (SymbolicValues.isSymbolicTerm(val.getName())
           && (existingDefinites.contains(val) || isOnlySatisfyingAssignment(val))) {
+        stats.definiteAssignmentsFound.inc();
         newDefinites.add(val);
       }
     }
@@ -324,16 +365,16 @@ public class ConstraintsSolver {
    * @throws UnrecognizedCodeException see {@link FormulaCreator#createFormula(Constraint)}
    * @throws InterruptedException see {@link FormulaCreator#createFormula(Constraint)}
    */
-  private Collection<BooleanFormula> getFullFormula(
+  private Map<Constraint, BooleanFormula> getFullFormula(
       Collection<Constraint> pConstraints, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException {
 
-    List<BooleanFormula> formulas = new ArrayList<>(pConstraints.size());
+    Map<Constraint, BooleanFormula> formulas = new HashMap<>();
     for (Constraint c : pConstraints) {
       if (!constraintFormulas.containsKey(c)) {
         constraintFormulas.put(c, createConstraintFormulas(c, pFunctionName));
       }
-      formulas.add(constraintFormulas.get(c));
+      formulas.put(c, constraintFormulas.get(c));
     }
 
     return formulas;
@@ -358,18 +399,17 @@ public class ConstraintsSolver {
 
   private final class MatchingConstraintsCache implements ConstraintsCache {
 
-    // TODO This should use an immutable data structure as key, and not Collection but List/Set
-    private Map<Collection<BooleanFormula>, CacheResult> cacheMap = new HashMap<>();
+    private final Map<ImmutableSet<BooleanFormula>, CacheResult> cacheMap = new HashMap<>();
 
     @Override
-    @SuppressWarnings("CollectionUndefinedEquality") // TODO there is a bug here
     public CacheResult getCachedResult(Collection<BooleanFormula> pConstraints) {
+      ImmutableSet<BooleanFormula> constraints = ImmutableSet.copyOf(pConstraints);
       stats.cacheLookups.inc();
       stats.directCacheLookupTime.start();
       try {
-        if (cacheMap.containsKey(pConstraints)) {
+        if (cacheMap.containsKey(constraints)) {
           stats.directCacheHits.inc();
-          return cacheMap.get(pConstraints);
+          return cacheMap.get(constraints);
 
         } else {
           return CacheResult.getUnknown();
@@ -391,7 +431,7 @@ public class ConstraintsSolver {
     }
 
     private void add(Collection<BooleanFormula> pConstraints, CacheResult pResult) {
-      cacheMap.put(pConstraints, pResult);
+      cacheMap.put(ImmutableSet.copyOf(pConstraints), pResult);
     }
   }
 

@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatDouble;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -36,10 +37,11 @@ public class ConstraintsStatistics implements Statistics {
       new StatTimer(StatKind.SUM, "Time for independent computation");
   public final StatTimer timeForDefinitesComputation =
       new StatTimer(StatKind.SUM, "Time for resolving definites");
+  public StatCounter definiteAssignmentsFound =
+      new StatCounter("Number of definite assignments found");
   public final StatTimer timeForModelReuse =
       new StatTimer(StatKind.SUM, "Time for model re-use attempts");
-  public final StatTimer timeForSatCheck = new StatTimer(StatKind.SUM, "Time for SMT check");
-  public final StatCounter modelReuseSuccesses = new StatCounter("Successful model re-uses");
+  public final StatTimer timeForSatCheck = new StatTimer(StatKind.SUM, "Time for SMT checks");
 
   public StatCounter cacheLookups = new StatCounter("Cache lookups");
   public StatTimer directCacheLookupTime = new StatTimer(StatKind.SUM, "Direct cache lookup time");
@@ -58,6 +60,11 @@ public class ConstraintsStatistics implements Statistics {
 
   public StatCounter constraintsRemovedInMerge =
       new StatCounter("Number of constraints removed in merge");
+  public StatDouble reuseRatio =
+      new StatDouble(
+          StatKind.AVG,
+          "Ratio of prover reuses (number of reused constraints / number of constraints)");
+  public StatTimer timeForProverPreparation = new StatTimer(StatKind.SUM, "Time for stack setup");
 
   private String name;
 
@@ -86,10 +93,13 @@ public class ConstraintsStatistics implements Statistics {
         .beginLevel()
         .putIfUpdatedAtLeastOnce(timeForIndependentComputation)
         .putIfUpdatedAtLeastOnce(timeForModelReuse)
+        .put("Number of SMT checks", timeForSatCheck.getUpdateCount())
         .putIfUpdatedAtLeastOnce(timeForSatCheck)
         .putIfUpdatedAtLeastOnce(timeForDefinitesComputation)
         .endLevel()
-        .putIfUpdatedAtLeastOnce(modelReuseSuccesses)
+        .putIfUpdatedAtLeastOnce(definiteAssignmentsFound)
+        .put(timeForProverPreparation)
+        .put(reuseRatio)
         .spacer() // Direct constraints solver cache
         .putIf(cacheLookups.getUpdateCount() > 0, cacheLookups)
         .putIf(cacheLookups.getUpdateCount() > 0, directCacheHits)

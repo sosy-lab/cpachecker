@@ -1711,7 +1711,7 @@ cpa.constraints.mergeType = SEP
   enum:     [SEP, JOIN_FITTING_CONSTRAINT]
 
 # Whether to perform SAT checks only for the last added constraint
-cpa.constraints.minimalSatCheck = true
+cpa.constraints.minimalSatCheck = false
 
 # enable if variables from value precision should be considered in variable's
 # scope instead of scope specified in precision
@@ -1740,7 +1740,7 @@ cpa.constraints.removeOutdated = true
 cpa.constraints.removeTrivial = false
 
 # Resolve definite assignments
-cpa.constraints.resolveDefinites = true
+cpa.constraints.resolveDefinites = false
 
 # When to check the satisfiability of constraints
 cpa.constraints.satCheckStrategy = AT_ASSUME
