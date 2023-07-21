@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
+import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,13 +56,13 @@ import org.sosy_lab.java_smt.api.SolverException;
  * states formula and BRS with formula describing states that violate specification. The idea is
  * that FRS overapproximates reachability vector of states reachable from initial states,
  * on the other hand BRS overapproximates states that can reach violating states. In each iteration
- * the algorithm performs two phases - Local and Global streghtening. Let FRS = F0,F1,F2...,Fn
- * and BRS = B0,B1,B2...,Bn, the Local streghtening phase checks if Fi ∧ TR ∧ Bj is unsatisfiable,
+ * the algorithm performs two phases - Local and Global strengthening. Let FRS = F0,F1,F2...,Fn
+ * and BRS = B0,B1,B2...,Bn, the Local strengthening phase checks if Fi ∧ TR ∧ Bj is unsatisfiable,
  * if yes, then there is no counterexample of length n+1. In such case, it propagates the
  * "reason of unsatisfiability" via interpolants up to Fn+1, Bn+1 and proceeds into another
- * iteration. If no such (i,j) is found, it switches to Global streghtening phase. It performs BMC
+ * iteration. If no such (i,j) is found, it switches to Global strengthening phase. It performs BMC
  * and iteratively unrolls formula INIT ∧ TR ∧ ... ∧ TR ∧ Bn-i to check for satisfiability.
- * If some of the formulae is unsatisfiable, it creates interpolation sequence and streghtens
+ * If some of the formulae is unsatisfiable, it creates interpolation sequence and strengthens
  * F0,...,Fi. If all of the formulae are satisfiable, BMC finds a counterexample.
  *<p/>
  */
@@ -203,7 +204,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         (forwardReachVector, backwardReachVector, false);
 
     do {
-      dualSequence = localStreghteningPhase(dualSequence);
+      dualSequence = localStrengtheningPhase(dualSequence, partitionedFormulas);
     } while (adjustConditions());
     return null;
   }
@@ -215,9 +216,116 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return Collections.singletonList(pPartitionedFormulas.getAssertionFormula());
   }
 
-  private DualInterpolationSequence localStreghteningPhase
-      (DualInterpolationSequence pDualSequence) {
-    return null;
+  private DualInterpolationSequence localStrengtheningPhase
+      (DualInterpolationSequence pDualSequence, PartitionedFormulas pPartitionedFormulas)
+      throws CPAException, SolverException, InterruptedException {
+    int indexOfLocalContradiction;
+    indexOfLocalContradiction = findIndexOfUnsatisfiableLocalCheck
+        (pDualSequence, pPartitionedFormulas);
+    if (indexOfLocalContradiction == -1) {
+      // No local strengthening point was found, switch to Global phase
+      pDualSequence.setLocallyUnsafe();
+      return pDualSequence;
+    }
+    // Local strengthening point was found, propagate the reason for contradiction to the end
+    // of sequences.
+    pDualSequence.setLocallySafe();
+    pDualSequence = iterativeLocalStrengthening
+        (pDualSequence, pPartitionedFormulas, indexOfLocalContradiction);
+    return pDualSequence;
+  }
+  private DualInterpolationSequence iterativeLocalStrengthening
+      (DualInterpolationSequence pDualSequence, PartitionedFormulas pPartitionedFormulas,
+       int pIndexOfLocalContradiction)
+      throws CPAException, InterruptedException {
+    int lastIndexOfSequences = pDualSequence.getForwardReachVector().size() - 1;
+    int indexFRS = pIndexOfLocalContradiction;
+    int indexBRS = lastIndexOfSequences - pIndexOfLocalContradiction;
+
+    while (indexFRS < lastIndexOfSequences) {
+      BooleanFormula resultingForwardFormula = pDualSequence.getForwardReachVector().get(indexFRS + 1);
+      BooleanFormula interpolant = constructForwardInterpolant
+          (pDualSequence, pPartitionedFormulas, indexFRS);
+      resultingForwardFormula = bfmgr.and(resultingForwardFormula, interpolant);
+      pDualSequence.updateForwardReachVector(resultingForwardFormula, indexFRS + 1);
+      indexFRS++;
+    }
+    BooleanFormula newForwardReachFormula =  constructForwardInterpolant
+        (pDualSequence, pPartitionedFormulas, indexFRS);
+    pDualSequence.increaseForwardReachVector(newForwardReachFormula);
+
+    while (indexBRS < lastIndexOfSequences) {
+      BooleanFormula resultingBackwardFormula = pDualSequence.getBackwardReachVector().get(indexBRS + 1);
+      BooleanFormula interpolant = constructBackwardInterpolant
+          (pDualSequence, pPartitionedFormulas, indexBRS);
+      resultingBackwardFormula = bfmgr.and(resultingBackwardFormula, interpolant);
+      pDualSequence.updateBackwardReachVector(resultingBackwardFormula, indexBRS + 1);
+      indexBRS++;
+    }
+    BooleanFormula newBackwardReachFormula =  constructBackwardInterpolant
+        (pDualSequence, pPartitionedFormulas, indexFRS);
+    pDualSequence.increaseBackwardReachVector(newBackwardReachFormula);
+    return pDualSequence;
+  }
+  private BooleanFormula constructForwardInterpolant(DualInterpolationSequence pDualSequence,
+                                        PartitionedFormulas pPartitionedFormulas, int pIndex)
+      throws CPAException, InterruptedException {
+    int lastIndexOfSequences = pDualSequence.getForwardReachVector().size() - 1;
+    List<BooleanFormula> transitionFormulae = pPartitionedFormulas.getLoopFormulas();
+    BooleanFormula forwardFormula = pDualSequence.getForwardReachVector().get(pIndex);
+    BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector()
+        .get(lastIndexOfSequences - pIndex);
+
+    Optional<ImmutableList<BooleanFormula>> interpolants =
+        itpMgr.interpolate(ImmutableList.of(
+            bfmgr.and(forwardFormula, transitionFormulae.get(pIndex)), backwardFormula));
+    assert interpolants.isPresent();
+    assert interpolants.orElseThrow().size() == 2;
+    BooleanFormula interpolant = interpolants.orElseThrow().get(1);
+
+    return interpolant;
+  }
+  private BooleanFormula constructBackwardInterpolant(DualInterpolationSequence pDualSequence,
+                                                        PartitionedFormulas pPartitionedFormulas, int pIndex)
+      throws CPAException, InterruptedException {
+    int lastIndexOfSequences = pDualSequence.getBackwardReachVector().size() - 1;
+    List<BooleanFormula> transitionFormulae = pPartitionedFormulas.getLoopFormulas();
+    BooleanFormula forwardFormula = pDualSequence.getForwardReachVector()
+        .get(lastIndexOfSequences - pIndex);
+    BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector().get(pIndex);
+
+    Optional<ImmutableList<BooleanFormula>> interpolants =
+        itpMgr.interpolate(ImmutableList.of
+            (bfmgr.and(backwardFormula, transitionFormulae.get(pIndex)), forwardFormula));
+    assert interpolants.isPresent();
+    assert interpolants.orElseThrow().size() == 2;
+    BooleanFormula interpolant = interpolants.orElseThrow().get(1);
+
+    return interpolant;
+  }
+  private int findIndexOfUnsatisfiableLocalCheck(DualInterpolationSequence pDualSequence,
+                                                 PartitionedFormulas pPartitionedFormulas)
+      throws SolverException, InterruptedException {
+    List<BooleanFormula> FRS = pDualSequence.getForwardReachVector();
+    List<BooleanFormula> BRS = pDualSequence.getBackwardReachVector();
+    List<BooleanFormula> transitionFormulae = pPartitionedFormulas.getLoopFormulas();
+    int n = FRS.size();
+
+    for (int i = FRS.size() - 1; i >= 0; i--) {
+      boolean isNotReachableWithOneTransition;
+      stats.assertionsCheck.start();
+
+      try {
+        isNotReachableWithOneTransition =
+            solver.isUnsat(bfmgr.and(FRS.get(i), BRS.get(n-i), transitionFormulae.get(i)));
+      } finally {
+        stats.assertionsCheck.stop();
+      }
+      if (isNotReachableWithOneTransition) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   private void fallBackToBMC(final String pReason) {
