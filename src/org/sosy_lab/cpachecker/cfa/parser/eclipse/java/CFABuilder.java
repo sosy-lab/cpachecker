@@ -107,14 +107,6 @@ class CFABuilder extends ASTVisitor {
       ADeclaration declaration = entry.getValue();
       p = entry.getValue().getFileLocation().getFileName();
 
-      // entfernen wenn ich das mit java.lang.object gefixt hab
-      if (entry.getValue().getType() instanceof JClassType) {
-        JClassType tmp = (JClassType) entry.getValue().getType();
-        for (JClassType jTemp : tmp.getAllSuperClasses()) {
-          tempObject = jTemp;
-        }
-      }
-
       result.add(Pair.of(declaration, entry.getKey()));
     }
 
@@ -131,7 +123,7 @@ class CFABuilder extends ASTVisitor {
             false,
             false,
             false,
-            tempObject,
+            JClassType.getTypeOfObject(),
             newSet);
 
     JNullLiteralExpression tempNull = new JNullLiteralExpression(fl);

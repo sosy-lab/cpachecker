@@ -2751,8 +2751,9 @@ class CFAMethodBuilder extends ASTVisitor {
   public boolean visit(CatchClause cc) {
     assert catchBlockStack.peek().contains(cc) == true;
     catchNodes.add(new ArrayList<JCatchInformation>());
-    // Frage: zweite Expression JClassLiteralExpression?
 
+    // JExpression d = new JFieldAccess();
+    // FileLocation,JType,String,JFieldDeclaration,JIdExpression
     // JExpression e =
     //   new JBinaryExpression(FileLocation.DUMMY, JSimpleType.getBoolean(), , new
     // JNullLiteralExpression(FileLocation.DUMMY) ,
