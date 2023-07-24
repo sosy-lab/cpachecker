@@ -214,7 +214,7 @@ public class InvariantsCPA
   private final StateToFormulaWriter writer;
 
   private final CompoundIntervalManagerFactory compoundIntervalManagerFactory =
-      CompoundBitVectorIntervalManagerFactory.FORBID_SIGNED_WRAP_AROUND;
+      CompoundBitVectorIntervalManagerFactory.forbidSignedWrapAround();
 
   private final EdgeAnalyzer edgeAnalyzer;
 
