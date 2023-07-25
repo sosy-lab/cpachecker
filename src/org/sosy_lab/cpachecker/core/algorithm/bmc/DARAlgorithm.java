@@ -225,6 +225,9 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       // If LoopFormulas are empty, then no Target state is reachable in ARG, which means the program
       // is safe.
       if (partitionedFormulas.getLoopFormulas().size() == 0) {
+        InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+        InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
+            pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
 
