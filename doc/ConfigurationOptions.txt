@@ -158,6 +158,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
@@ -187,6 +188,10 @@ analysis.algorithm.BMC = false
 # You need to specify a refiner with the cegar.refiner option.
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
+
+# use dual approximated reachability model checking algorithm, works only
+# with PredicateCPA and large-block encoding
+analysis.algorithm.DAR = false
 
 # use McMillan's interpolation-based model checking algorithm, works only
 # with PredicateCPA and large-block encoding
@@ -3663,6 +3668,19 @@ custominstructions.requirementsStateClassName = no default value
 # which are in turn also counted to the last loop.
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
+
+# toggle asserting targets at every iteration for DAR
+dar.assertTargetsAtEveryIteration = false
+
+# toggle checking whether the safety property is inductive
+dar.checkPropertyInductiveness = false
+
+# toggle falling back if interpolation or forward-condition is disabled
+dar.fallBack = true
+
+# toggle which strategy is used for computing fixed points in order to verify
+# programs with loops. If it is not set to true, DAR is not used.
+dar.isDAREnabled = true
 
 # When checking for the data race property, use this configuration file
 # instead of the current one.
