@@ -87,6 +87,9 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle removing unreachable stop states in ARG")
   private boolean removeUnreachableStopStates = false;
 
+  @Option(secure = true, description = "toggle checking forward conditions")
+  private boolean checkForwardConditions = true;
+
   @Option(secure = true, description = "toggle checking whether the safety property is inductive")
   private boolean checkPropertyInductiveness = false;
 
@@ -241,6 +244,22 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           logger.log(Level.FINE, "A target state is reached by BMC");
           analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
           return AlgorithmStatus.UNSOUND_AND_PRECISE;
+        }
+      }
+      // Forward-condition check
+      if (checkForwardConditions) {
+        stats.assertionsCheck.start();
+        final boolean isStopStateUnreachable;
+        try {
+          isStopStateUnreachable =
+              solver.isUnsat(InterpolationHelper.buildBoundingAssertionFormula(bfmgr, pReachedSet));
+        } finally {
+          stats.assertionsCheck.stop();
+        }
+        if (isStopStateUnreachable) {
+          logger.log(Level.FINE, "The program cannot be further unrolled");
+          InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+          return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
       shutdownNotifier.shutdownIfNecessary();
