@@ -11,31 +11,24 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.function.Predicate;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.SerializeARGStateOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorker;
-import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class InferRootWorker extends BlockSummaryWorker {
 
   private final BlockSummaryConnection connection;
   private boolean shutdown;
-  private final int numBlocks;
-  private Set<String> workerResults;
-  private ImmutableSet.Builder<ImmutableSet<CFANode>> violationPathsBuilder;
+  // private ImmutableSet.Builder<ImmutableSet<CFANode>> violationPathsBuilder;
+  // private Map<String, ImmutableSet<CFANode>> violationPaths;
   private final int expectedStrengthens;
+  private int strengthenCounter;
+  private final String functionEntry;
 
   private static final String VIOLATION_PATHS = "violation_paths";
 
@@ -44,47 +37,59 @@ public class InferRootWorker extends BlockSummaryWorker {
       BlockSummaryConnection pConnection,
       InferOptions pOptions,
       int pNumBlocks,
-      CFA pCfa)
-      throws InvalidConfigurationException, InterruptedException {
+      int pExpectedStrengthens,
+      String pFunctionEntry)
+      throws InvalidConfigurationException {
     super("infer-root-worker-" + pId, new BlockSummaryAnalysisOptions(pOptions.getParentConfig()));
-    numBlocks = pNumBlocks;
-    violationPathsBuilder = ImmutableSet.builder();
-    workerResults = new HashSet<>();
+    // violationPathsBuilder = ImmutableSet.builder();
     connection = pConnection;
     shutdown = false;
-    expectedStrengthens = getGxpectedStrengthens(pCfa);
+    functionEntry = pFunctionEntry;
+    if(pNumBlocks == 1) {
+      expectedStrengthens = 1;
+    } else {
+      expectedStrengthens = pExpectedStrengthens + 1;
+    }
+    strengthenCounter = 0;
   }
 
   @Override
   @SuppressWarnings("unchecked")
   public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage)
       throws InterruptedException, SolverException, IOException {
-    switch (pMessage.getType()) {
-      case ERROR_CONDITION -> {
-        BlockSummaryMessagePayload payload = pMessage.getPayload();
-        if (payload.containsKey(SerializeARGStateOperator.COUNTEREXAMPLE_PATH)) {
-          Object obj = payload.get(SerializeARGStateOperator.COUNTEREXAMPLE_PATH);
-          ImmutableSet<CFANode> path = (ImmutableSet<CFANode>) obj;
-          violationPathsBuilder.add(path);
-        }
-        workerResults.add(pMessage.getUniqueBlockId());
-      }
-      case BLOCK_POSTCONDITION -> {
-        workerResults.add(pMessage.getUniqueBlockId());
-      }
-      default -> {}
-    }
-    if (workerResults.size() == numBlocks) {
 
-      shutdown = true;
-      ImmutableSet<ImmutableSet<CFANode>> violationPaths = violationPathsBuilder.build();
-      if (violationPaths.isEmpty()) {
-        return ImmutableSet.of(proofResult());
-      } else {
-        return ImmutableSet.of(violationResult(violationPaths));
-      }
-    } else {
+    if (!messageFromEntryFunction(pMessage)) {
       return ImmutableSet.of();
+    }
+
+    strengthenCounter++;
+
+    if (strengthenCounter < expectedStrengthens) {
+      return ImmutableSet.of();
+    } else {
+      return switch (pMessage.getType()) {
+        case ERROR_CONDITION -> {
+          // BlockSummaryMessagePayload payload = pMessage.getPayload();
+          // if (payload.containsKey(SerializeARGStateOperator.COUNTEREXAMPLE_PATH)) {
+          //   Object obj = payload.get(SerializeARGStateOperator.COUNTEREXAMPLE_PATH);
+          //   ImmutableSet<CFANode> path = (ImmutableSet<CFANode>) obj;
+          //   violationPathsBuilder.add(path);
+          //   violationPaths.put(pMessage.getUniqueBlockId(), path);
+          // } else {
+          //   violationPaths.put(pMessage.getUniqueBlockId(), ImmutableSet.of());
+          // }
+          yield ImmutableSet.of(violationResult(ImmutableSet.of()));
+        }
+        case BLOCK_POSTCONDITION -> {
+          // violationPaths.remove(pMessage.getUniqueBlockId());
+          yield ImmutableSet.of(proofResult());
+        }
+        default -> {
+          // TODO we shouldn't get here. Maybe throw an error
+          shutdown = true;
+          yield ImmutableSet.of();
+        }
+      };
     }
   }
 
@@ -115,12 +120,9 @@ public class InferRootWorker extends BlockSummaryWorker {
     return InferRootViolationsMessage.newInferRootViolations("root", 0, payload);
   }
 
-  private int getGxpectedStrengthens(CFA pCfa) throws InterruptedException {
-    BlockOperator blockOperator = new BlockOperator();
-    Predicate<CFANode> isBlockEnd = n -> blockOperator.isBlockEnd(n, -1);
-    LinearBlockNodeDecomposition decomposition = new LinearBlockNodeDecomposition(isBlockEnd);
-    BlockGraph linearGraph = decomposition.decompose(pCfa);
-
-    return 0;
+  private boolean messageFromEntryFunction(BlockSummaryMessage pMessage) {
+    String messageFunction =
+        (String) pMessage.getPayload().getOrDefault(InferDCPAAlgorithm.MESSAGE_FUNCTION, "");
+    return messageFunction.equals(functionEntry);
   }
 }

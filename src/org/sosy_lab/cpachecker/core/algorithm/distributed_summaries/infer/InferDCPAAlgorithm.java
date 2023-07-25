@@ -39,9 +39,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 /** The same as {@link DCPAAlgorithm} but adds called functions to ErrorConditionMessage payloads */
 public class InferDCPAAlgorithm extends DCPAAlgorithm {
 
-  public static final String CALLED_FUNCTIONS = "calledFunctions";
+  public static final String MESSAGE_FUNCTION = "messageFunction";
 
-  private final Set<String> callees;
+  // private final Set<String> callees;
+  private final String functionName;
   private final BlockNode block;
   private AlgorithmStatus status;
   private final ConfigurableProgramAnalysis cpa;
@@ -63,7 +64,7 @@ public class InferDCPAAlgorithm extends DCPAAlgorithm {
             pLogger, pSpecification, pCFA, pConfiguration, pShutdownManager, pBlock);
     cpa = parts.cpa();
     dcpa = DCPAFactory.distribute(cpa, pBlock, AnalysisDirection.FORWARD, pCFA, pConfiguration);
-    callees = getCalledFunctions();
+    functionName = pBlock.getFirst().getFunctionName();
   }
 
   @Override
@@ -80,7 +81,7 @@ public class InferDCPAAlgorithm extends DCPAAlgorithm {
       initial =
           BlockSummaryMessagePayload.builder()
               .addAllEntries(initial)
-              .addEntry(CALLED_FUNCTIONS, callees)
+              .addEntry(MESSAGE_FUNCTION, functionName)
               .buildPayload();
       initial = DCPAAlgorithms.appendStatus(status, initial);
       answers.add(
@@ -95,7 +96,7 @@ public class InferDCPAAlgorithm extends DCPAAlgorithm {
     BlockSummaryMessagePayload payload =
         BlockSummaryMessagePayload.builder()
             .addAllEntries(pPayload)
-            .addEntry(CALLED_FUNCTIONS, callees)
+            .addEntry(MESSAGE_FUNCTION, functionName)
             .buildPayload();
     return BlockSummaryMessage.newBlockPostCondition(
         block.getId(),

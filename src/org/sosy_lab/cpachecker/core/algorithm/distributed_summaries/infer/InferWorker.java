@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.infer;
 
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import com.google.common.collect.FluentIterable;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -37,8 +39,6 @@ public class InferWorker extends BlockSummaryWorker {
 
   private final BlockSummaryConnection connection;
 
-  private final String blockEntryFunction;
-
   /**
    * {@link InferWorker}s trigger CEGAR refinement using forward and backward analyses to find a
    * verification verdict.
@@ -62,12 +62,12 @@ public class InferWorker extends BlockSummaryWorker {
       BlockNode pBlock,
       CFA pCFA,
       Specification pSpecification,
-      ShutdownManager pShutdownManager)
+      ShutdownManager pShutdownManager
+      )
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
     super("infer-worker-" + pId, new BlockSummaryAnalysisOptions(pOptions.getParentConfig()));
     block = pBlock;
     connection = pConnection;
-    blockEntryFunction = block.getFirst().getFunctionName();
 
     Configuration forwardConfiguration =
         Configuration.builder().loadFromFile(pOptions.getForwardConfiguration()).build();
@@ -77,28 +77,25 @@ public class InferWorker extends BlockSummaryWorker {
             getLogger(), pBlock, pCFA, pSpecification, forwardConfiguration, pShutdownManager);
   }
 
+  /*
+   * In the context of Infer, processMessage is a strengthening operation on a block
+   */
   @Override
   @SuppressWarnings("unchecked")
   public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage message)
       throws InterruptedException, CPAException, SolverException {
 
-    ImmutableSet<String> calledFunctions =
-        (ImmutableSet<String>)
-            message
-                .getPayload()
-                .getOrDefault(InferDCPAAlgorithm.CALLED_FUNCTIONS, ImmutableSet.of());
-    if (!calledFunctions.contains(blockEntryFunction)) {
+    if (!isCalled(message)) {
       return ImmutableSet.of();
     }
 
-    switch (message.getType()) {
-      case ERROR_CONDITION -> {
+    return switch (message.getType()) {
+      case ERROR_CONDITION, BLOCK_POSTCONDITION -> {
         AbstractState state = dcpaAlgorithm.getDCPA().getDeserializeOperator().deserialize(message);
-        dcpaAlgorithm.runAnalysisUnderCondition(Optional.of(state));
+        yield dcpaAlgorithm.runAnalysisUnderCondition(Optional.of(state));
       }
-      default -> {}
-    }
-    return ImmutableSet.of();
+      default -> ImmutableSet.of();
+    };
   }
 
   @Override
@@ -123,8 +120,6 @@ public class InferWorker extends BlockSummaryWorker {
           ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getBlockId(), e)));
     } catch (InterruptedException e) {
       getLogger().logException(Level.SEVERE, e, "Thread interrupted unexpectedly.");
-    } finally {
-      shutdown = true;
     }
   }
 
@@ -135,5 +130,17 @@ public class InferWorker extends BlockSummaryWorker {
   @Override
   public String toString() {
     return "Worker{block=" + block + ", finished=" + shutdownRequested() + '}';
+  }
+
+  private boolean isCalled(BlockSummaryMessage message) {
+    String messageFunction = (String) message.getPayload().getOrDefault(InferDCPAAlgorithm.MESSAGE_FUNCTION, "");
+    return calledFunctions().contains(messageFunction);
+  }
+
+  private ImmutableSet<String> calledFunctions() {
+    return FluentIterable.from(block.getEdges())
+        .filter(FunctionSummaryEdge.class)
+        .transform(edge -> edge.getFunctionEntry().getFunctionName())
+        .toSet();
   }
 }

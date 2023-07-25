@@ -103,9 +103,20 @@ public class BlockSummaryWorkerBuilder {
 
   @CanIgnoreReturnValue
   public BlockSummaryWorkerBuilder addInferRootWorker(
-      BlockNode pNode, InferOptions pOptions, int numWorkers) {
+      BlockNode pNode,
+      InferOptions pOptions,
+      int numWorkers,
+      int pExpectedStrengthens,
+      String pFunctionEntry) {
     workerGenerators.add(
-        connection -> new InferRootWorker(nextId(pNode.getId()), connection, pOptions, numWorkers));
+        connection ->
+            new InferRootWorker(
+                nextId(pNode.getId()),
+                connection,
+                pOptions,
+                numWorkers,
+                pExpectedStrengthens,
+                pFunctionEntry));
     return this;
   }
 
