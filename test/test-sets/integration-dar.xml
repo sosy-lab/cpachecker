@@ -15,7 +15,7 @@
     <option name="-heap">2000M</option>
 
     <rundefinition>
-        <option name="-config">config/bmc-interpolationDualSequence</option>
+        <option name="-bmc-interpolationDualSequence"/>
         <option name="-setprop">dar.fallBack=false</option>
     </rundefinition>
 
