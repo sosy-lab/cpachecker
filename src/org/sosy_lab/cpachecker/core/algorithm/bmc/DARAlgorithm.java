@@ -84,6 +84,9 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       description = "toggle falling back if interpolation or forward-condition is disabled")
   private boolean fallBack = true;
 
+  @Option(secure = true, description = "toggle removing unreachable stop states in ARG")
+  private boolean removeUnreachableStopStates = false;
+
   @Option(secure = true, description = "toggle checking whether the safety property is inductive")
   private boolean checkPropertyInductiveness = false;
 
@@ -174,7 +177,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
-    if (!cfa.getAllLoopHeads().isPresent()) {
+    if (cfa.getAllLoopHeads().orElseThrow().size() < 1) {
       if (isDAREnabled) {
         logger.log(
             Level.WARNING, "Disable interpolation as loop structure could not be determined");
@@ -218,7 +221,6 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       stats.bmcPreparation.start();
       try {
         BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
-        BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
       } finally {
         stats.bmcPreparation.stop();
       }
@@ -243,12 +245,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       shutdownNotifier.shutdownIfNecessary();
 
-      if (getCurrentMaxLoopIterations() > 1) {
-        partitionedFormulas.collectFormulasFromARG(pReachedSet);
-      }
-
       // DAR
-      if (isDAREnabled) {
+      if (isDAREnabled && !InterpolationHelper.checkAndAdjustARG
+          (logger, cpa, bfmgr, solver, pReachedSet, removeUnreachableStopStates)) {
+        partitionedFormulas.collectFormulasFromARG(pReachedSet);
         // If LoopFormulas are empty, then no Target state is reachable in ARG, which means the program
         // is safe.
         if (partitionedFormulas.getLoopFormulas().size() == 0) {
