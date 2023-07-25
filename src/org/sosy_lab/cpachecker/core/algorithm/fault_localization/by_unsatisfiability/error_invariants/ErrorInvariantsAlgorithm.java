@@ -12,7 +12,6 @@ import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.VerifyException;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -132,11 +131,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
 
   @Override
   public Set<Fault> run(FormulaContext context, TraceFormula tf)
-      throws CPAException,
-          InterruptedException,
-          SolverException,
-          VerifyException,
-          InvalidConfigurationException {
+      throws CPAException, InterruptedException, SolverException, InvalidConfigurationException {
     errorTrace = tf;
     maps = elementAndList(tf.getTrace().getInitialSsaMap(), tf.getTrace().toSSAMapList());
     totalTime.start();

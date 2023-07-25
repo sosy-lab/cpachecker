@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat;
 
-import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.trace.Trace.TraceAtom;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -40,8 +39,7 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
   }
 
   @Override
-  public Set<Fault> run(FormulaContext pContext, TraceFormula tf)
-      throws CPATransferException, InterruptedException, SolverException, VerifyException {
+  public Set<Fault> run(FormulaContext pContext, TraceFormula tf) throws SolverException {
 
     Solver solver = pContext.getSolver();
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
@@ -58,19 +56,28 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
     Set<TraceAtom> complement;
     stats.totalTime.start();
     // loop as long as new maxsat cores are found.
-    while (true) {
-      complement = coMSS(soft, hard, booleanTraceFormula, pContext);
-      if (complement.isEmpty()) {
-        break;
+    try {
+      while (true) {
+        if (pContext.getShutdownNotifier().shouldShutdown()) {
+          break;
+        }
+        complement = coMSS(soft, hard, booleanTraceFormula, pContext);
+        if (complement.isEmpty()) {
+          break;
+        }
+        hard.add(
+            FluentIterable.from(complement)
+                .transform(atom -> (FaultContribution) atom)
+                .copyInto(new Fault()));
+        soft.removeAll(complement);
+        if (stopAfterFirstFault) {
+          break;
+        }
       }
-      hard.add(
-          FluentIterable.from(complement)
-              .transform(atom -> (FaultContribution) atom)
-              .copyInto(new Fault()));
-      soft.removeAll(complement);
-      if (stopAfterFirstFault) {
-        break;
-      }
+    } catch (InterruptedException e) {
+      pContext
+          .getLogger()
+          .logfException(Level.WARNING, e, "Stopping fault localization after interruption.");
     }
     stats.totalTime.stop();
     return hard;
