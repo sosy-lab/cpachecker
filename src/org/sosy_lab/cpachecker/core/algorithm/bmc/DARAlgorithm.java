@@ -222,6 +222,11 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       shutdownNotifier.shutdownIfNecessary();
       partitionedFormulas.collectFormulasFromARG(pReachedSet);
+      // If LoopFormulas are empty, then no Target state is reachable in ARG, which means the program
+      // is safe.
+      if (partitionedFormulas.getLoopFormulas().size() == 0) {
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
 
       localStrengtheningPhase(dualSequence, partitionedFormulas);
       if (dualSequence.isLocallyUnsafe()) {
@@ -405,6 +410,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     List<BooleanFormula> FRS = pDualSequence.getForwardReachVector();
     List<BooleanFormula> BRS = pDualSequence.getBackwardReachVector();
     List<BooleanFormula> transitionFormulae = pPartitionedFormulas.getLoopFormulas();
+
     int n = FRS.size() - 1;
 
     for (int i = FRS.size() - 1; i >= 0; i--) {
