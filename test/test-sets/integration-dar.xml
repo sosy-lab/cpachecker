@@ -14,12 +14,12 @@
     <option name="-noout"/>
     <option name="-heap">2000M</option>
 
-    <rundefinition>
+    <rundefinition name="dar">
         <option name="-bmc-interpolationDualSequence"/>
         <option name="-setprop">dar.fallBack=false</option>
     </rundefinition>
 
-    <rundefinition>
+    <rundefinition name="imc">
         <option name="-bmc-interpolation"/>
         <option name="-setprop">imc.fallBack=false</option>
     </rundefinition>
