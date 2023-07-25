@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -213,59 +214,67 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     do {
       shutdownNotifier.shutdownIfNecessary();
-      //Unrolling once, so that we can obtain TR formula for another iteration from PartitionedFormulas
+      // Unrolling twice, so that we can obtain TR formula for another iteration from PartitionedFormulas
       stats.bmcPreparation.start();
       try {
+        BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
         BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
       } finally {
         stats.bmcPreparation.stop();
       }
+      // BMC
+      try (ProverEnvironment bmcProver =
+               solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+        BooleanFormula targetFormula =
+            InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
+        stats.satCheck.start();
+        final boolean isTargetStateReachable;
+        try {
+          bmcProver.push(targetFormula);
+          isTargetStateReachable = !bmcProver.isUnsat();
+        } finally {
+          stats.satCheck.stop();
+        }
+        if (isTargetStateReachable) {
+          logger.log(Level.FINE, "A target state is reached by BMC");
+          analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
+          return AlgorithmStatus.UNSOUND_AND_PRECISE;
+        }
+      }
       shutdownNotifier.shutdownIfNecessary();
-      partitionedFormulas.collectFormulasFromARG(pReachedSet);
-      // If LoopFormulas are empty, then no Target state is reachable in ARG, which means the program
-      // is safe.
-      if (partitionedFormulas.getLoopFormulas().size() == 0) {
-        InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
-        InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
-            pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
-        return AlgorithmStatus.SOUND_AND_PRECISE;
+
+      if (getCurrentMaxLoopIterations() > 1) {
+        partitionedFormulas.collectFormulasFromARG(pReachedSet);
       }
 
-      localStrengtheningPhase(dualSequence, partitionedFormulas);
-      if (dualSequence.isLocallyUnsafe()) {
-        //TODO: Add Global phase, but in the meanwhile, try to just test it with BMC
-        // (it should do the same, but slower)
-
-        // BMC Global Phase to validate local unsafety (keep this as option and compare later with
-        // Global phase from paper)
-        try (ProverEnvironment bmcProver =
-                 solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-          BooleanFormula targetFormula =
-              InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
-          stats.satCheck.start();
-          final boolean isTargetStateReachable;
-          try {
-            bmcProver.push(targetFormula);
-            isTargetStateReachable = !bmcProver.isUnsat();
-          } finally {
-            stats.satCheck.stop();
-          }
-          if (isTargetStateReachable) {
-            logger.log(Level.FINE, "A target state is reached by BMC");
-            analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
-            return AlgorithmStatus.UNSOUND_AND_PRECISE;
-          }
-        }
-
-        // Global Phase verified that there is no counterexample.
-        List<BooleanFormula> itpSequence = getInterpolationSequence(partitionedFormulas);
-        updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence);
-        iterativeLocalStrengthening(dualSequence, partitionedFormulas, 0);
-        if (checkFixedPoint(dualSequence)) {
+      // DAR
+      if (isDAREnabled) {
+        // If LoopFormulas are empty, then no Target state is reachable in ARG, which means the program
+        // is safe.
+        if (partitionedFormulas.getLoopFormulas().size() == 0) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
               pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
           return AlgorithmStatus.SOUND_AND_PRECISE;
+        }
+
+        localStrengtheningPhase(dualSequence, partitionedFormulas);
+        if (dualSequence.isLocallyUnsafe()) {
+          //TODO: Add Global phase, but in the meanwhile, try to just test it with BMC
+          // (it should do the same, but slower)
+
+          // BMC Global Phase to validate local unsafety (keep this as option and compare later with
+          // Global phase from paper) BMC has already verified, that the program is safe in
+          // current number of steps, so we can perform interpolation.
+          List<BooleanFormula> itpSequence = getInterpolationSequence(partitionedFormulas);
+          updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence);
+          iterativeLocalStrengthening(dualSequence, partitionedFormulas, 0);
+          if (checkFixedPoint(dualSequence)) {
+            InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+            InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
+                pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
+            return AlgorithmStatus.SOUND_AND_PRECISE;
+          }
         }
       }
       InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
@@ -473,6 +482,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       reachVector.set(i, bfmgr.and(image, itp));
     }
     logger.log(Level.ALL, "Updated reachability vector:", reachVector);
+  }
+
+  private int getCurrentMaxLoopIterations() {
+    return CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
   }
 
   private void fallBackToBMC(final String pReason) {
