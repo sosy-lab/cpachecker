@@ -405,7 +405,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     List<BooleanFormula> FRS = pDualSequence.getForwardReachVector();
     List<BooleanFormula> BRS = pDualSequence.getBackwardReachVector();
     List<BooleanFormula> transitionFormulae = pPartitionedFormulas.getLoopFormulas();
-    int n = FRS.size();
+    int n = FRS.size() - 1;
 
     for (int i = FRS.size() - 1; i >= 0; i--) {
       boolean isNotReachableWithOneTransition;
