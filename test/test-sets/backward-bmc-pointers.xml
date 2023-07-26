@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
+  <option name="-heap">13000M</option>
+  <option name="-noout"/>
+  <option name="-benchmark"/>
+
+  <!-- SV-Comp files assume that malloc always succeeds -->
+  <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+  
+  <rundefinition name="NO-pointer-aliasing">
+    <option name="-backward-bmc-incremental"/>
+    <option name="-setprop">cpa.loopbound.maxLoopIterationsUpperBound=0</option>
+    <!-- We use invertSpecifications to use unreach-call on a backward analysis -->
+    <option name="-setprop">analysis.invertSpecifications=true</option>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+  </rundefinition>
+  
+  <rundefinition name="pointer-aliasing">
+    <option name="-backward-bmc-incremental"/>
+    <option name="-setprop">cpa.loopbound.maxLoopIterationsUpperBound=0</option>
+    <!-- We use invertSpecifications to use unreach-call on a backward analysis -->
+    <option name="-setprop">analysis.invertSpecifications=true</option>
+    <option name="-setprop">cpa.predicate.handlePointerAliasing=true</option>
+  </rundefinition>
+
+
+  <tasks name="ReachSafety-Arrays">
+    <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+</benchmark>
