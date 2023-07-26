@@ -923,7 +923,8 @@ class AssignmentFormulaHandler {
       final int newIndex =
           conv.direction == AnalysisDirection.FORWARD
               ? conv.makeFreshIndex(targetName, lvalueType, ssa)
-              : conv.getIndex(targetName, rvalueType, ssa);
+                // in backward analysis we have already incremented the index
+              : conv.getIndex(targetName, lvalueType, ssa) - 1;
 
       if (rhs != null) {
         Formula newVariable = fmgr.makeVariable(targetType, targetName, newIndex);
@@ -933,11 +934,12 @@ class AssignmentFormulaHandler {
       }
 
       // This check is in principle redundant, but is required in order to avoid #1102.
-      if (!bfmgr.isTrue(condition)) {
+      if (!bfmgr.isTrue(condition) && conv.direction == AnalysisDirection.FORWARD) {
         // add the condition
         // either the condition holds and the assignment should be done,
         // or the condition does not hold and the previous value should be copied
         final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
+
         Formula oldVariable = fmgr.makeVariable(targetType, targetName, oldIndex);
 
         Formula newVariable = fmgr.makeVariable(targetType, targetName, newIndex);

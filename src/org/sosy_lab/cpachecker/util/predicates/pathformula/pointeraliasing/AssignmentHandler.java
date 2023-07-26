@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -47,6 +48,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Assig
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentLhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentRhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceFieldAccessModifier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceModifier;
@@ -361,6 +363,14 @@ class AssignmentHandler {
             conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
     final CRightHandSide lhsBase = assignment.lhs.base();
     ResolvedSlice resolvedLhsBase = resolveBase(lhsBase, lhsBaseVisitor);
+
+    if (resolvedLhsBase.expression() instanceof UnaliasedLocation
+        && conv.direction == AnalysisDirection.BACKWARD) {
+      conv.makeFreshIndex(
+          resolvedLhsBase.expression().asUnaliasedLocation().getVariableName(),
+          typeHandler.getSimplifiedType(lhsBase),
+          ssa);
+    }
 
     // add initialized and used fields of LHS base to pointer-target set as essential
     // this is only needed for UF heap
