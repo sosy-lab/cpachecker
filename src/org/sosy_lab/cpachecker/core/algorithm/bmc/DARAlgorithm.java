@@ -108,7 +108,9 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final InterpolationManager itpMgr;
   private final CFA cfa;
 
+  private boolean isDualSequenceInitialized;
   private BooleanFormula finalFixedPoint;
+
 
   public DARAlgorithm(
       Algorithm pAlgorithm,
@@ -152,6 +154,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             shutdownNotifier, logger);
 
     finalFixedPoint = bfmgr.makeFalse();
+    isDualSequenceInitialized = false;
   }
   
   @Override
@@ -210,13 +213,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Performing dual approximated reachability model checking");
     PartitionedFormulas partitionedFormulas =
         new PartitionedFormulas(bfmgr, logger, assertTargetsAtEveryIteration);
-    partitionedFormulas.collectFormulasFromARG(pReachedSet);
-    // Initialize FRS to [INIT]
-    List<BooleanFormula> forwardReachVector = initializeFRS(partitionedFormulas);
-    // Initialize BRS to [~P]
-    List<BooleanFormula> backwardReachVector = initializeBRS(partitionedFormulas);
-    DualInterpolationSequence dualSequence = new DualInterpolationSequence
-        (forwardReachVector, backwardReachVector, false);
+    DualInterpolationSequence dualSequence =
+        new DualInterpolationSequence();
 
     do {
       shutdownNotifier.shutdownIfNecessary();
@@ -227,9 +225,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       } finally {
         stats.bmcPreparation.stop();
       }
+
       // BMC
       try (ProverEnvironment bmcProver =
-               solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+          solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
         BooleanFormula targetFormula =
             InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
         stats.satCheck.start();
@@ -247,12 +246,13 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         }
       }
       // Forward-condition check
-      if (checkForwardConditions) {
+      if (!isDAREnabled && checkForwardConditions) {
         stats.assertionsCheck.start();
         final boolean isStopStateUnreachable;
         try {
           isStopStateUnreachable =
-              solver.isUnsat(InterpolationHelper.buildBoundingAssertionFormula(bfmgr, pReachedSet));
+              solver.isUnsat(
+                  InterpolationHelper.buildBoundingAssertionFormula(bfmgr, pReachedSet));
         } finally {
           stats.assertionsCheck.stop();
         }
@@ -264,10 +264,15 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       shutdownNotifier.shutdownIfNecessary();
 
-      // DAR
-      if (isDAREnabled && !InterpolationHelper.checkAndAdjustARG
-          (logger, cpa, bfmgr, solver, pReachedSet, removeUnreachableStopStates)) {
+      if (getCurrentMaxLoopIterations() > 1) {
+        stats.interpolationPreparation.start();
         partitionedFormulas.collectFormulasFromARG(pReachedSet);
+        stats.interpolationPreparation.stop();
+      }
+
+      // DAR
+      if (isDAREnabled && getCurrentMaxLoopIterations() > 1) { //&& !InterpolationHelper.checkAndAdjustARG
+          //(logger, cpa, bfmgr, solver, pReachedSet, removeUnreachableStopStates)) {
         // If LoopFormulas are empty, then no Target state is reachable in ARG, which means the program
         // is safe.
         if (partitionedFormulas.getLoopFormulas().size() == 0) {
@@ -275,6 +280,14 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
               pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
           return AlgorithmStatus.SOUND_AND_PRECISE;
+        }
+
+        if (!isDualSequenceInitialized) {
+          // Initialize FRS to [INIT]
+          initializeFRS(partitionedFormulas, dualSequence);
+          // Initialize BRS to [~P]
+          initializeBRS(partitionedFormulas, dualSequence);
+          isDualSequenceInitialized = true;
         }
 
         localStrengtheningPhase(dualSequence, partitionedFormulas);
@@ -288,12 +301,12 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           List<BooleanFormula> itpSequence = getInterpolationSequence(partitionedFormulas);
           updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence);
           iterativeLocalStrengthening(dualSequence, partitionedFormulas, 0);
-          if (checkFixedPoint(dualSequence)) {
-            InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
-            InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
-                pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
-            return AlgorithmStatus.SOUND_AND_PRECISE;
           }
+        if (checkFixedPoint(dualSequence)) {
+          InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+          //InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
+          //    pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
+          return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
       InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
@@ -324,11 +337,15 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return false;
   }
 
-  private List<BooleanFormula> initializeBRS(PartitionedFormulas pPartitionedFormulas) {
-    return Collections.singletonList(pPartitionedFormulas.getPrefixFormula());
+  private void initializeBRS
+      (PartitionedFormulas pPartitionedFormulas, DualInterpolationSequence pDualSequence) {
+    BooleanFormula assertionFormula = pPartitionedFormulas.getAssertionFormula();
+    pDualSequence.increaseBackwardReachVector(assertionFormula);
   }
-  private List<BooleanFormula> initializeFRS(PartitionedFormulas pPartitionedFormulas) {
-    return Collections.singletonList(pPartitionedFormulas.getAssertionFormula());
+  private void initializeFRS
+      (PartitionedFormulas pPartitionedFormulas, DualInterpolationSequence pDualSequence){
+    BooleanFormula prefixFormula = pPartitionedFormulas.getPrefixFormula();
+    pDualSequence.increaseForwardReachVector(prefixFormula);
   }
 
   /**
@@ -404,7 +421,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             bfmgr.and(forwardFormula, transitionFormulae.get(pIndex)), backwardFormula));
     assert interpolants.isPresent();
     assert interpolants.orElseThrow().size() == 2;
-    BooleanFormula interpolant = interpolants.orElseThrow().get(1);
+    BooleanFormula interpolant = interpolants.orElseThrow().get(0);
 
     return interpolant;
   }
@@ -425,7 +442,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             (bfmgr.and(backwardFormula, transitionFormulae.get(pIndex)), forwardFormula));
     assert interpolants.isPresent();
     assert interpolants.orElseThrow().size() == 2;
-    BooleanFormula interpolant = interpolants.orElseThrow().get(1);
+    BooleanFormula interpolant = interpolants.orElseThrow().get(0);
 
     return interpolant;
   }

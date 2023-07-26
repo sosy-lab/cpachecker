@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -21,12 +23,10 @@ public class DualInterpolationSequence {
   private List<BooleanFormula> forwardReachVector;
   private List<BooleanFormula> backwardReachVector;
 
-  public DualInterpolationSequence
-      (List<BooleanFormula> pForwardReachVector, List<BooleanFormula> pBackwardReachVector,
-       boolean pIsLocallyUnsafe) {
-    isLocallyUnsafe = pIsLocallyUnsafe;
-    forwardReachVector = pForwardReachVector;
-    backwardReachVector = pBackwardReachVector;
+  public DualInterpolationSequence() {
+    isLocallyUnsafe = false;
+    forwardReachVector = new ArrayList<>();
+    backwardReachVector = new ArrayList<>();
   }
   public void setLocallyUnsafe() {
     isLocallyUnsafe = true;
@@ -35,13 +35,13 @@ public class DualInterpolationSequence {
     isLocallyUnsafe = false;
   }
   public void updateForwardReachVector(BooleanFormula pNewFormula, int pIndex) {
-    forwardReachVector.add(pIndex, pNewFormula);
+    forwardReachVector.set(pIndex, pNewFormula);
   }
   public void increaseForwardReachVector(BooleanFormula pNewFormula) {
     forwardReachVector.add(pNewFormula);
   }
   public void updateBackwardReachVector(BooleanFormula pNewFormula, int pIndex) {
-    backwardReachVector.add(pIndex, pNewFormula);
+    backwardReachVector.set(pIndex, pNewFormula);
   }
   public void increaseBackwardReachVector(BooleanFormula pNewFormula) {
     backwardReachVector.add(pNewFormula);
