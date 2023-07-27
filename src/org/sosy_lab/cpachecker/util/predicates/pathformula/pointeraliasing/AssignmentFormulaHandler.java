@@ -923,7 +923,7 @@ class AssignmentFormulaHandler {
       final int newIndex =
           conv.direction == AnalysisDirection.FORWARD
               ? conv.makeFreshIndex(targetName, lvalueType, ssa)
-                // in backward analysis we have already incremented the index
+              // in backward analysis we have already incremented the index
               : conv.getIndex(targetName, lvalueType, ssa) - 1;
 
       if (rhs != null) {

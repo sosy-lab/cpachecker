@@ -189,13 +189,14 @@ public class CPAchecker {
   private int cexLimit = 0;
 
   @Option(
-    secure = true,
-    name = "analysis.invertSpecifications",
-    description = "for benchmarking, the argument to -spec needs to be defined in the task definitions."
-        + " However, the goal of the backwards analysis is mostly not equivalent to the"
-        + " defined specifications in the benchmark set. With this property, the argument of"
-        + " -spec will be used to find target states if analysis.initialStatesFor=TARGET. The"
-        + " backward specification will then be used to create the CPA algorithm.")
+      secure = true,
+      name = "analysis.invertSpecifications",
+      description =
+          "for benchmarking, the argument to -spec needs to be defined in the task definitions."
+              + " However, the goal of the backwards analysis is mostly not equivalent to the"
+              + " defined specifications in the benchmark set. With this property, the argument of"
+              + " -spec will be used to find target states if analysis.initialStatesFor=TARGET. The"
+              + " backward specification will then be used to create the CPA algorithm.")
   private boolean invertSpecifications = false;
 
   private final LogManager logger;
