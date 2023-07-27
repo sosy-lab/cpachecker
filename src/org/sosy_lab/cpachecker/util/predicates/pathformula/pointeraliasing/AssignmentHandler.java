@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -366,11 +365,10 @@ class AssignmentHandler {
     ResolvedSlice resolvedLhsBase = resolveBase(lhsBase, lhsBaseVisitor);
 
     if (resolvedLhsBase.expression() instanceof UnaliasedLocation
-        && conv.direction == AnalysisDirection.BACKWARD
-        && !(edge instanceof CFunctionCallEdge)) {
+        && conv.direction == AnalysisDirection.BACKWARD) {
       conv.makeFreshIndex(
           resolvedLhsBase.expression().asUnaliasedLocation().getVariableName(),
-          typeHandler.getSimplifiedType(lhsBase),
+          CTypes.adjustFunctionOrArrayType(resolvedLhsBase.type()),
           ssa);
     }
 

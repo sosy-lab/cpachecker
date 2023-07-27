@@ -970,10 +970,10 @@ class AssignmentFormulaHandler {
           rhs = conv.makeNondet(nondetName, rvalueType, ssa, constraints);
           rhs = conv.makeCast(rvalueType, lvalueType, rhs, constraints, edge);
         }
-        newIndex =
-            conv.direction == AnalysisDirection.FORWARD
-                ? conv.makeFreshIndex(targetName, lvalueType, ssa)
-                : conv.getIndex(targetName, rvalueType, ssa);
+        newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
+        //            conv.direction == AnalysisDirection.FORWARD
+        //                ? conv.makeFreshIndex(targetName, lvalueType, ssa)
+        //                : conv.getIndex(targetName, rvalueType, ssa);
 
       } else {
         assert updatedRegions != null : "UF encoding needs to update regions for new indices";
@@ -981,10 +981,10 @@ class AssignmentFormulaHandler {
         // For UFs, we use a new index without storing it such that we use the same index
         // for multiple writes that are part of the same assignment.
         // The new index will be stored in the SSAMap later.
-        newIndex =
-            conv.direction == AnalysisDirection.FORWARD
-                ? conv.getFreshIndex(targetName, lvalueType, ssa)
-                : conv.getIndex(targetName, rvalueType, ssa);
+        newIndex = conv.getFreshIndex(targetName, lvalueType, ssa);
+        //            conv.direction == AnalysisDirection.FORWARD
+        //                ? conv.getFreshIndex(targetName, lvalueType, ssa)
+        //                : conv.getIndex(targetName, rvalueType, ssa);
       }
 
       final Formula address = lvalue.asAliased().getAddress();
@@ -997,9 +997,16 @@ class AssignmentFormulaHandler {
               conv.ptsMgr.makeQuantifiedPointerAssignment(
                   targetName, targetType, oldIndex, newIndex, condition, address, rhs);
         } else {
-          result =
-              conv.ptsMgr.makePointerAssignment(
-                  targetName, targetType, oldIndex, newIndex, address, rhs);
+          if (conv.direction == AnalysisDirection.BACKWARD) {
+            // swap indices for backward analysis
+            result =
+                conv.ptsMgr.makePointerAssignment(
+                    targetName, targetType, newIndex, oldIndex, address, rhs);
+          } else {
+            result =
+                conv.ptsMgr.makePointerAssignment(
+                    targetName, targetType, oldIndex, newIndex, address, rhs);
+          }
         }
       } else {
         result = bfmgr.makeTrue();
