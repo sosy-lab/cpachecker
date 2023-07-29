@@ -32,6 +32,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.rangedconditions.CFAPath;
@@ -122,18 +123,20 @@ abstract class Heuristic {
     private List<CFAPath> recursiveFirstBranches(CFAPath pCurrentPath, int pRemainingBranchDepth) {
       CFANode currentNode = pCurrentPath.getLast();
 
-      if (currentNode.getNumLeavingEdges() == 0) {
-        return ImmutableList.of();
-      }
-      if (currentNode.getNumLeavingEdges() == 1) {
-        CFAPath newPath =
-            CFAPath.append(pCurrentPath, currentNode.getLeavingEdge(0).getSuccessor());
-        return recursiveFirstBranches(newPath, pRemainingBranchDepth);
-      }
-
       List<CFANode> successors = new ArrayList<>(currentNode.getNumLeavingEdges());
       for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
-        successors.add(currentNode.getLeavingEdge(i).getSuccessor());
+        CFAEdge edge = currentNode.getLeavingEdge(i);
+        if (!(edge instanceof CFunctionSummaryStatementEdge)) {
+          successors.add(edge.getSuccessor());
+        }
+      }
+
+      if (successors.size() == 0) {
+        return ImmutableList.of();
+      }
+      if (successors.size() == 1) {
+        CFAPath newPath = CFAPath.append(pCurrentPath, successors.get(0));
+        return recursiveFirstBranches(newPath, pRemainingBranchDepth);
       }
 
       ImmutableList.Builder<CFAPath> generated = new ImmutableList.Builder<>();
@@ -211,17 +214,22 @@ abstract class Heuristic {
         CFANode currentNode, CFAPath.Builder pathBuilder, int currentLength) {
       currentLength++;
       pathBuilder.add(currentNode);
-      int numLeaving = currentNode.getNumLeavingEdges();
-      if (numLeaving == 0 || currentLength == maxLength) {
+
+      List<CFANode> successors = new ArrayList<>(currentNode.getNumLeavingEdges());
+      for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
+        CFAEdge edge = currentNode.getLeavingEdge(i);
+        if (!(edge instanceof CFunctionSummaryStatementEdge)) {
+          successors.add(edge.getSuccessor());
+        }
+      }
+
+      if (successors.size() == 0 || currentLength == maxLength) {
         return pathBuilder.build();
-      } else if (numLeaving == 1) {
-        return generateSinglePath(
-            currentNode.getLeavingEdge(0).getSuccessor(), pathBuilder, currentLength);
+      } else if (successors.size() == 1) {
+        return generateSinglePath(successors.get(0), pathBuilder, currentLength);
       } else {
         return generateSinglePath(
-            currentNode.getLeavingEdge(rand.nextInt(numLeaving)).getSuccessor(),
-            pathBuilder,
-            currentLength);
+            successors.get(rand.nextInt(successors.size())), pathBuilder, currentLength);
       }
     }
   }
@@ -242,12 +250,10 @@ abstract class Heuristic {
       Optional<LoopStructure> loopHeadsOptional = cfa.getLoopStructure();
       if (loopHeadsOptional.isEmpty() || loopHeadsOptional.get().getAllLoops().isEmpty()) {
         throw new InvalidConfigurationException(
-            "Loop Heuristic selected but CFA does no loop structures present in CFA.");
+            "Loop Heuristic selected but no loop structures present in CFA.");
       }
       ImmutableCollection<Loop> loops = loopHeadsOptional.get().getAllLoops();
-      for (Loop loop : loops) {
-        loopNodes.addAll(loop.getLoopNodes());
-      }
+      loops.forEach(pLoop -> loopNodes.addAll(pLoop.getLoopNodes()));
 
       Set<CFAPath> limitPaths = new HashSet<>();
 
@@ -288,8 +294,10 @@ abstract class Heuristic {
       for (int i = 0; i < targetNode.getNumEnteringEdges(); i++) {
         CFAEdge enteringEdge = targetNode.getEnteringEdge(i);
         CFANode predecessor = enteringEdge.getPredecessor();
-        if (loopNodes.contains(predecessor)) {
-          // ignore paths leading to this loop, which traverse through other loops
+        if (loopNodes.contains(predecessor)
+            || enteringEdge instanceof CFunctionSummaryStatementEdge) {
+          // ignore paths leading to this loop, which traverse through other loops or are
+          // FunctionSummaryStatementEdges
           continue;
         }
         pathBuilders.addAll(getPathsWithoutLoop(predecessor));
@@ -299,6 +307,8 @@ abstract class Heuristic {
     }
 
     private CFAPath getLowerLimitPath(Loop loop, CFAPath path) {
+      /* The parameter "path" should be the smallest path leading to the loop.
+      We check, weather we can leave the loop by always choosing the smallest successor: */
       Set<CFANode> visited = new HashSet<>();
       CFANode currentNode = path.getLast();
       CFAPath.Builder pathBuilder = path.asBuilder();
@@ -314,18 +324,29 @@ abstract class Heuristic {
           visited.add(currentNode);
           Set<CFANode> successorNodes = new HashSet<>();
           for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
-            successorNodes.add(currentNode.getLeavingEdge(i).getSuccessor());
+            CFAEdge edge = currentNode.getLeavingEdge(i);
+            if (!(edge instanceof CFunctionSummaryStatementEdge)) {
+              successorNodes.add(edge.getSuccessor());
+            }
           }
           currentNode = Collections.min(successorNodes);
           pathBuilder.add(currentNode);
         }
       }
+      /* If we arrive here, the smallest path in the loop exits it.
+        The pathBuilder now contains the smallest path up to and through the loop.
+        Next, we try to find the largest continuation of this path.
+      */
       while (currentNode.getNumLeavingEdges() > 0) {
         Set<CFANode> successors = new HashSet<>();
         for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
-          successors.add(currentNode.getLeavingEdge(i).getSuccessor());
+          CFAEdge edge = currentNode.getLeavingEdge(i);
+          if (!(edge instanceof CFunctionSummaryStatementEdge)) {
+            successors.add(edge.getSuccessor());
+          }
         }
         if (loopNodes.contains(Collections.max(successors))) {
+          // We encountered another loop. We will not traverse it but leave this path as is.
           break;
         }
         currentNode = Collections.max(successors);
@@ -335,46 +356,63 @@ abstract class Heuristic {
     }
 
     private Optional<CFAPath> getUpperLimitPath(Loop loop, CFAPath path) {
+      /* The parameter "path" should be the largest path leading to the loop.
+         We check, weather we can leave the loop by always choosing the largest successor:
+      */
       Set<CFANode> visited = new HashSet<>();
       CFANode currentNode = path.getLast();
       CFAPath.Builder pathBuilder = path.asBuilder();
       while (!visited.contains(currentNode)) {
         if (!loop.getLoopNodes().contains(currentNode)) {
+          // The largest path through the loop exits it. This is the smallest path, that is larger
+          // than all paths that traverse the loop more than once. Return it as upper limit path.
           return Optional.of(pathBuilder.build());
         }
         visited.add(currentNode);
         Set<CFANode> successorNodes = new HashSet<>();
         for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
-          successorNodes.add(currentNode.getLeavingEdge(i).getSuccessor());
+          CFAEdge edge = currentNode.getLeavingEdge(i);
+          if (!(edge instanceof CFunctionSummaryStatementEdge)) {
+            successorNodes.add(edge.getSuccessor());
+          }
         }
         currentNode = Collections.max(successorNodes);
         pathBuilder.add(currentNode);
       }
 
-      // The largest path within the loop does not exit it. We need to backtrack the path leading to
-      // the loop to find a path, that is larger.
+      /* If we arrive here, the largest path in the loop does not exit it.
+        We need to find the smallest path, that does not contain the loop, by backtracking.
+      */
       for (int i = path.size() - 1; i > 0; i--) {
         CFANode current = path.get(i);
         CFANode predecessor = path.get(i - 1);
         if (predecessor.getNumLeavingEdges() == 1) {
-          // The predecessor to node i has only one successor which is node i itself.
+          // The predecessor to node i has only one successor which is node i itself, backtrack
+          // more.
           continue;
         }
 
         Set<CFANode> candidates = new HashSet<>();
         for (int j = 0; j < predecessor.getNumLeavingEdges(); j++) {
-          CFANode candidate = predecessor.getLeavingEdge(j).getSuccessor();
-          if (candidate.compareTo(current) > 0) {
-            candidates.add(candidate);
+          CFAEdge edge = currentNode.getLeavingEdge(j);
+          if (!(edge instanceof CFunctionSummaryStatementEdge)) {
+            CFANode candidate = edge.getSuccessor();
+            if (candidate.compareTo(current) > 0) {
+              candidates.add(candidate);
+            }
           }
         }
         if (!candidates.isEmpty()) {
+          // We have found at least one path, that is larger than any one, that traverses the loop
+          // more than once. Select the smallest one and construct a path.
           CFAPath.Builder limitPathBuilder = new CFAPath.Builder();
           limitPathBuilder.addAll(path.subList(0, i - 1));
           limitPathBuilder.add(Collections.min(candidates));
           return Optional.of(limitPathBuilder.build());
         }
       }
+      // We have reached the root node. There is no path larger than any path, that traverses the
+      // loop more than once.
       return Optional.empty();
     }
   }
