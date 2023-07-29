@@ -20,9 +20,11 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -54,7 +56,8 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
   @Option(description = "Assumption guiding automaton specification file")
   @FileOption(Type.REQUIRED_INPUT_FILE)
   Path assumtionGuidingAutomatonFile =
-      Path.of("config/specification/AssumptionGuidingAutomaton.spc");
+      Classes.getCodeLocation(ParallelRangedConditionsAlgorithm.class)
+          .resolveSibling("config/specification/AssumptionGuidingAutomaton.spc");
 
   @Option(
       description = "Path generation heuristic to use for Parallel Ranged Conditions.",
@@ -220,6 +223,8 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
         logger.log(
             Level.SEVERE,
             "At least one parallel execution did not finish. Result may be inaccurate.");
+      } catch (CancellationException pE) {
+        // do nothing, this is normal if we cancel other analyses
       }
     }
     return combinedStatus;
