@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -45,23 +45,22 @@ public class RangedConditionFactory {
   public Automaton createForRange(CFAPath pSmallPath, CFAPath pLargePath, Set<CFAPath> otherPaths)
       throws InvalidAutomatonException {
 
-    Set<CFAPath> stateSet = new HashSet<>();
-    stateSet.addAll(pSmallPath.getPrefixes());
-    stateSet.addAll(pLargePath.getPrefixes());
+    ImmutableSet.Builder<CFAPath> prefixBuilder = new ImmutableSet.Builder<>();
+    prefixBuilder.addAll(pSmallPath.getPrefixes());
+    prefixBuilder.addAll(pLargePath.getPrefixes());
 
-    // Add other paths prefixes as states. This is necessary for the PartialARGCombiner
-    otherPaths.forEach(path -> stateSet.addAll(path.getPrefixes()));
+    Set<CFAPath> rangePrefixes = prefixBuilder.build();
 
-    List<AutomatonInternalState> states = new ArrayList<>();
+    ImmutableSet.Builder<AutomatonInternalState> statesBuilder = new ImmutableSet.Builder<>();
 
-    for (CFAPath state : stateSet) {
+    for (CFAPath state : rangePrefixes) {
       List<AutomatonTransition> transitions = new ArrayList<>();
       CFANode currentNode = state.getLast();
       for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
         CFANode successor = currentNode.getLeavingEdge(i).getSuccessor();
         CFAPath currentPath = CFAPath.append(state, successor);
 
-        if (stateSet.contains(currentPath)) {
+        if (rangePrefixes.contains(currentPath)) {
           transitions.add(generateTransition(currentNode, successor, currentPath));
         } else if (currentPath.compareTo(pSmallPath) < 0
             || (pLargePath != CFAPath.TOP && currentPath.compareTo(pLargePath) > 0)) {
@@ -70,13 +69,25 @@ public class RangedConditionFactory {
           transitions.add(generateTransitionNonAccepting(currentNode, successor));
         }
       }
-      states.add(new AutomatonInternalState(state.toString(), transitions));
+      statesBuilder.add(new AutomatonInternalState(state.toString(), transitions));
     }
 
-    states.addAll(generateFinalStates());
+    // Add other paths prefixes as states. This is necessary for the PartialARGCombiner
+    otherPaths.forEach(path -> prefixBuilder.addAll(path.getPrefixes()));
+    Set<CFAPath> allPrefixes = prefixBuilder.build();
+    Sets.difference(allPrefixes, rangePrefixes)
+        .forEach(
+            prefix ->
+                statesBuilder.add(
+                    new AutomatonInternalState(prefix.toString(), ImmutableList.of())));
+
+    statesBuilder.addAll(generateFinalStates());
 
     return new Automaton(
-        "AssumptionAutomaton", new HashMap<>(), states, cfa.getMainFunction().toString());
+        "AssumptionAutomaton",
+        new HashMap<>(),
+        statesBuilder.build().asList(),
+        cfa.getMainFunction().toString());
   }
 
   private Set<AutomatonInternalState> generateFinalStates() {
