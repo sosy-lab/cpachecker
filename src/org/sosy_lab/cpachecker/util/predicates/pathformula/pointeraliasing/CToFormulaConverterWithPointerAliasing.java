@@ -391,7 +391,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @param var The variable declaration to check.
    * @return Whether the variable declaration is addressed or not.
    */
-  private boolean isAddressedVariable(CDeclaration var) {
+  protected boolean isAddressedVariable(CDeclaration var) {
     return !variableClassification.isPresent()
         || variableClassification
             .orElseThrow()
