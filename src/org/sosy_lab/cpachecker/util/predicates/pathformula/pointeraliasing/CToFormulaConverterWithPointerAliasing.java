@@ -1338,6 +1338,24 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return super.makeVariable(pName, pType, pSsa);
   }
 
+  /**
+   * This method returns the previous index of the given variable in the ssa map, if there is none,
+   * it creates one with the value 1. This method should be used only for creating proper formulas
+   * for a backward analysis, where ssa indices are flipped.
+   *
+   * @return the previous index of the variable
+   */
+  protected int getPreviousIndex(String name, CType type, SSAMapBuilder ssa) {
+    checkSsaSavedType(name, type, ssa.getType(name));
+    int idx = ssa.getPreviousIndex(name);
+    if (idx <= 0) {
+      logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
+      idx = VARIABLE_UNINITIALIZED;
+    }
+
+    return idx;
+  }
+
   /** {@inheritDoc} */
   @Override
   public Formula makeFormulaForUninstantiatedVariable(
