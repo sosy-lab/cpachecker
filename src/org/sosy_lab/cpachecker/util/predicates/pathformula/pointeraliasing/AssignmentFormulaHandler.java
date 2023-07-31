@@ -924,7 +924,7 @@ class AssignmentFormulaHandler {
           conv.direction == AnalysisDirection.FORWARD
               ? conv.makeFreshIndex(targetName, lvalueType, ssa)
               // in backward analysis we have already incremented the index
-              : ssa.getPreviousIndex(targetName);
+              : conv.getPreviousIndex(targetName, lvalueType, ssa);
 
       if (rhs != null) {
         Formula newVariable = fmgr.makeVariable(targetType, targetName, newIndex);

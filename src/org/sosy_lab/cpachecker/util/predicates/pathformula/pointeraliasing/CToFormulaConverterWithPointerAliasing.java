@@ -1351,6 +1351,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (idx <= 0) {
       logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
       idx = VARIABLE_UNINITIALIZED;
+
+      // It is important to store the index in the variable here.
+      // If getPreviousIndex() was called with a specific name,
+      // this means that name@idx will appear in formulas.
+      // Thus we need to make sure that calls to FormulaManagerView.instantiate()
+      // will also add indices for this name,
+      // which it does exactly if the name is in the SSAMap.
+      ssa.setIndex(name, type, idx);
     }
 
     return idx;
