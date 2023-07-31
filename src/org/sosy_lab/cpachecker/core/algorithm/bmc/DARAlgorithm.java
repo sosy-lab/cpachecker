@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -266,7 +267,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
       if (getCurrentMaxLoopIterations() > 1) {
         stats.interpolationPreparation.start();
-        partitionedFormulas.collectFormulasFromARG(pReachedSet);
+        partitionedFormulas.collectFormulasFromARGExtended(pReachedSet);
         stats.interpolationPreparation.stop();
       }
 
@@ -275,7 +276,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           //(logger, cpa, bfmgr, solver, pReachedSet, removeUnreachableStopStates)) {
         // If LoopFormulas are empty, then no Target state is reachable in ARG, which means the program
         // is safe.
-        if (partitionedFormulas.getLoopFormulas().size() == 0) {
+        if (partitionedFormulas.getLoopFormulas().isEmpty()) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
               pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
@@ -300,7 +301,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           // current number of steps, so we can perform interpolation.
           List<BooleanFormula> itpSequence = getInterpolationSequence(partitionedFormulas);
           updateReachabilityVector(dualSequence.getForwardReachVector(), itpSequence);
-          iterativeLocalStrengthening(dualSequence, partitionedFormulas, 0);
+          iterativeLocalStrengthening(
+              dualSequence, partitionedFormulas, dualSequence.getSize()-1);
           }
         if (checkFixedPoint(dualSequence)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
@@ -340,6 +342,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private void initializeBRS
       (PartitionedFormulas pPartitionedFormulas, DualInterpolationSequence pDualSequence) {
     BooleanFormula assertionFormula = pPartitionedFormulas.getAssertionFormula();
+    assertionFormula = fmgr.uninstantiate(assertionFormula);
     pDualSequence.increaseBackwardReachVector(assertionFormula);
   }
   private void initializeFRS
@@ -361,11 +364,12 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (indexOfLocalContradiction == -1) {
       // No local strengthening point was found, switch to Global phase
       pDualSequence.setLocallyUnsafe();
+    } else {
+      // Local strengthening point was found, propagate the reason for contradiction to the end
+      // of sequences.
+      pDualSequence.setLocallySafe();
+      iterativeLocalStrengthening(pDualSequence, pPartitionedFormulas, indexOfLocalContradiction);
     }
-    // Local strengthening point was found, propagate the reason for contradiction to the end
-    // of sequences.
-    pDualSequence.setLocallySafe();
-    iterativeLocalStrengthening(pDualSequence, pPartitionedFormulas, indexOfLocalContradiction);
   }
   /**
    * Strengthens the forward and backward sequences from the point of contradiction to propagate it
@@ -400,7 +404,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       indexBRS++;
     }
     BooleanFormula newBackwardReachFormula =  constructBackwardInterpolant
-        (pDualSequence, pPartitionedFormulas, indexFRS);
+        (pDualSequence, pPartitionedFormulas, indexBRS);
     pDualSequence.increaseBackwardReachVector(newBackwardReachFormula);
   }
 
@@ -412,15 +416,17 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       throws CPAException, InterruptedException {
     int lastIndexOfSequences = pDualSequence.getForwardReachVector().size() - 1;
     List<BooleanFormula> transitionFormulae = pPartitionedFormulas.getLoopFormulas();
+    List<SSAMap> transitionSsaMap = pPartitionedFormulas.getLoopFormulasSsaMap();
     BooleanFormula forwardFormula = pDualSequence.getForwardReachVector().get(pIndex);
     BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector()
         .get(lastIndexOfSequences - pIndex);
 
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(ImmutableList.of(
-            bfmgr.and(forwardFormula, transitionFormulae.get(pIndex)), backwardFormula));
+            bfmgr.and(forwardFormula, transitionFormulae.get(pIndex)),
+            fmgr.instantiate(backwardFormula, transitionSsaMap.get(pIndex))));
     assert interpolants.isPresent();
-    assert interpolants.orElseThrow().size() == 2;
+    assert interpolants.orElseThrow().size() == 1;
     BooleanFormula interpolant = interpolants.orElseThrow().get(0);
 
     return interpolant;
@@ -433,16 +439,19 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       throws CPAException, InterruptedException {
     int lastIndexOfSequences = pDualSequence.getBackwardReachVector().size() - 1;
     List<BooleanFormula> transitionFormulae = pPartitionedFormulas.getLoopFormulas();
+    List<SSAMap> transitionSsaMap = pPartitionedFormulas.getLoopFormulasSsaMap();
     BooleanFormula forwardFormula = pDualSequence.getForwardReachVector()
         .get(lastIndexOfSequences - pIndex);
     BooleanFormula backwardFormula = pDualSequence.getBackwardReachVector().get(pIndex);
 
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(ImmutableList.of
-            (bfmgr.and(backwardFormula, transitionFormulae.get(pIndex)), forwardFormula));
+            (bfmgr.and(fmgr.instantiate(backwardFormula,transitionSsaMap.get(lastIndexOfSequences - pIndex)),
+                transitionFormulae.get(lastIndexOfSequences - pIndex)), forwardFormula));
     assert interpolants.isPresent();
-    assert interpolants.orElseThrow().size() == 2;
+    assert interpolants.orElseThrow().size() == 1;
     BooleanFormula interpolant = interpolants.orElseThrow().get(0);
+    interpolant = fmgr.uninstantiate(interpolant);
 
     return interpolant;
   }
@@ -458,6 +467,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     List<BooleanFormula> FRS = pDualSequence.getForwardReachVector();
     List<BooleanFormula> BRS = pDualSequence.getBackwardReachVector();
     List<BooleanFormula> transitionFormulae = pPartitionedFormulas.getLoopFormulas();
+    List<SSAMap> transitionSsaMap = pPartitionedFormulas.getLoopFormulasSsaMap();
 
     int n = FRS.size() - 1;
 
@@ -467,7 +477,8 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
       try {
         isNotReachableWithOneTransition =
-            solver.isUnsat(bfmgr.and(FRS.get(i), BRS.get(n-i), transitionFormulae.get(i)));
+            solver.isUnsat(bfmgr.and(FRS.get(i),
+                fmgr.instantiate(BRS.get(n-i), transitionSsaMap.get(i)), transitionFormulae.get(i)));
       } finally {
         stats.assertionsCheck.stop();
       }
@@ -512,10 +523,10 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       reachVector.add(bfmgr.makeTrue());
     }
     assert reachVector.size() == itpSequence.size();
-    for (int i = 0; i < reachVector.size(); ++i) {
+    for (int i = 1; i < reachVector.size(); ++i) {
       BooleanFormula image = reachVector.get(i);
-      BooleanFormula itp = fmgr.uninstantiate(itpSequence.get(i));
-      reachVector.set(i, bfmgr.and(image, itp));
+      //BooleanFormula itp = fmgr.uninstantiate(itpSequence.get(i));
+      reachVector.set(i, bfmgr.and(image, itpSequence.get(i-1)));
     }
     logger.log(Level.ALL, "Updated reachability vector:", reachVector);
   }

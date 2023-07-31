@@ -51,6 +51,7 @@ class PartitionedFormulas {
   private boolean isInitialized;
   private BooleanFormula prefixFormula;
   private SSAMap prefixSsaMap;
+  private ImmutableList<SSAMap>  loopFormulasSsaMap;
   private ImmutableList<BooleanFormula> loopFormulas;
   private BooleanFormula targetAssertion;
 
@@ -63,6 +64,7 @@ class PartitionedFormulas {
     isInitialized = false;
     prefixFormula = bfmgr.makeFalse();
     prefixSsaMap = SSAMap.emptySSAMap();
+    loopFormulasSsaMap = ImmutableList.of();
     loopFormulas = ImmutableList.of();
     targetAssertion = bfmgr.makeFalse();
   }
@@ -89,6 +91,12 @@ class PartitionedFormulas {
   List<BooleanFormula> getLoopFormulas() {
     checkState(isInitialized, UNINITIALIZED_MSG);
     return loopFormulas;
+  }
+
+  /** Return the SSA maps of collected loop formulas (T1, T2, ..., Tn). */
+  List<SSAMap> getLoopFormulasSsaMap() {
+    checkState(isInitialized, UNINITIALIZED_MSG);
+    return loopFormulasSsaMap;
   }
 
   /** Return the target assertion formula (&not;P). */
@@ -152,6 +160,19 @@ class PartitionedFormulas {
 
     assert !loopFormulas.isEmpty();
     logCollectedFormulas();
+  }
+
+  void collectFormulasFromARGExtended(final ReachedSet pReachedSet) {
+    collectFormulasFromARG(pReachedSet);
+    FluentIterable<AbstractState> targetStatesAfterLoop =
+        InterpolationHelper.getTargetStatesAfterLoop(pReachedSet);
+    List<ARGState> abstractionStates =
+        InterpolationHelper.getAbstractionStatesToRoot(targetStatesAfterLoop.get(0)).toList();
+    loopFormulasSsaMap =
+        transformedImmutableListCopy(
+            abstractionStates.subList(2, abstractionStates.size() - 1),
+            absState ->
+                InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
   }
 
   private void logCollectedFormulas() {
