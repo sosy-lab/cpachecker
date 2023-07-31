@@ -518,11 +518,9 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       List<BooleanFormula> reachVector, List<BooleanFormula> itpSequence) {
     logger.log(Level.FINE, "Updating reachability vector");
 
-    assert reachVector.size() < itpSequence.size();
     while (reachVector.size() < itpSequence.size()) {
       reachVector.add(bfmgr.makeTrue());
     }
-    assert reachVector.size() == itpSequence.size();
     for (int i = 1; i < reachVector.size(); ++i) {
       BooleanFormula image = reachVector.get(i);
       //BooleanFormula itp = fmgr.uninstantiate(itpSequence.get(i));
