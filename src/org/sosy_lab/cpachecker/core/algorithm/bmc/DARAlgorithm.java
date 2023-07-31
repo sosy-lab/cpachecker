@@ -267,7 +267,7 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
       if (getCurrentMaxLoopIterations() > 1) {
         stats.interpolationPreparation.start();
-        partitionedFormulas.collectFormulasFromARGExtended(pReachedSet);
+        partitionedFormulas.collectFormulasFromARG(pReachedSet);
         stats.interpolationPreparation.stop();
       }
 

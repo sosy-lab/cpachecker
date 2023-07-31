@@ -147,6 +147,11 @@ class PartitionedFormulas {
             abstractionStates.subList(2, abstractionStates.size() - 1),
             absState ->
                 InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getFormula());
+    loopFormulasSsaMap =
+        transformedImmutableListCopy(
+            abstractionStates.subList(2, abstractionStates.size() - 1),
+            absState ->
+                InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
 
     // collect target assertion formula
     BooleanFormula currentAssertion =
@@ -160,19 +165,6 @@ class PartitionedFormulas {
 
     assert !loopFormulas.isEmpty();
     logCollectedFormulas();
-  }
-
-  void collectFormulasFromARGExtended(final ReachedSet pReachedSet) {
-    collectFormulasFromARG(pReachedSet);
-    FluentIterable<AbstractState> targetStatesAfterLoop =
-        InterpolationHelper.getTargetStatesAfterLoop(pReachedSet);
-    List<ARGState> abstractionStates =
-        InterpolationHelper.getAbstractionStatesToRoot(targetStatesAfterLoop.get(0)).toList();
-    loopFormulasSsaMap =
-        transformedImmutableListCopy(
-            abstractionStates.subList(2, abstractionStates.size() - 1),
-            absState ->
-                InterpolationHelper.getPredicateAbstractionBlockFormula(absState).getSsa());
   }
 
   private void logCollectedFormulas() {
