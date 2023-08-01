@@ -98,6 +98,8 @@ public class BackwardBMCAlgorithm implements Algorithm {
   public AlgorithmStatus run(final ReachedSet reachedSet)
       throws CPAException, InterruptedException {
 
+    // These are the states with error labels
+    Set<AbstractState> errorEntryStates = reachedSet.asCollection();
     if (reachedSet.isEmpty()) {
       logger.log(Level.INFO, "No starting error locations found...");
       return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
@@ -111,9 +113,10 @@ public class BackwardBMCAlgorithm implements Algorithm {
       status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
 
       if (FluentIterable.from(reachedSet)
-          .skip(1) // first state of reached is always an abstraction state, so skip it
-          .filter(Predicates.not(AbstractStates::isTargetState)) // target states may be
-          // abstraction states
+          // Entry states are abstraction states
+          .filter(state -> !errorEntryStates.contains(state))
+          // target states (main entry) may also be abstraction states
+          .filter(Predicates.not(AbstractStates::isTargetState))
           .anyMatch(PredicateAbstractState::containsAbstractionState)) {
 
         logger.log(

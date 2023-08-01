@@ -971,9 +971,6 @@ class AssignmentFormulaHandler {
           rhs = conv.makeCast(rvalueType, lvalueType, rhs, constraints, edge);
         }
         newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
-        //            conv.direction == AnalysisDirection.FORWARD
-        //                ? conv.makeFreshIndex(targetName, lvalueType, ssa)
-        //                : conv.getIndex(targetName, rvalueType, ssa);
 
       } else {
         assert updatedRegions != null : "UF encoding needs to update regions for new indices";
@@ -982,9 +979,6 @@ class AssignmentFormulaHandler {
         // for multiple writes that are part of the same assignment.
         // The new index will be stored in the SSAMap later.
         newIndex = conv.getFreshIndex(targetName, lvalueType, ssa);
-        //            conv.direction == AnalysisDirection.FORWARD
-        //                ? conv.getFreshIndex(targetName, lvalueType, ssa)
-        //                : conv.getIndex(targetName, rvalueType, ssa);
       }
 
       final Formula address = lvalue.asAliased().getAddress();
