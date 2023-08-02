@@ -301,14 +301,12 @@ public class ExpressionSimplificationVisitor
       }
     }
 
-    final CUnaryExpression newExpr;
     if (op == operand) {
       // shortcut: if nothing has changed, use the original expression
-      newExpr = expr;
+      return expr;
     } else {
-      newExpr = new CUnaryExpression(loc, exprType, op, unaryOperator);
+      return new CUnaryExpression(loc, exprType, op, unaryOperator);
     }
-    return newExpr;
   }
 
   @Override
@@ -317,7 +315,7 @@ public class ExpressionSimplificationVisitor
     final CType type = expr.getExpressionType();
 
     // enum constant
-    if (decl instanceof CEnumerator && ((CEnumerator) decl).hasValue()) {
+    if (decl instanceof CEnumerator) {
       final long v = ((CEnumerator) decl).getValue();
       return new CIntegerLiteralExpression(expr.getFileLocation(), type, BigInteger.valueOf(v));
     }

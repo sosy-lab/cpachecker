@@ -8,57 +8,97 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.TreeMultimap;
-import java.nio.file.Path;
-import java.util.Collection;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Collections;
-import java.util.List;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
-import java.util.Optional;
+import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.CheckingCfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.ConsistentCfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.ForwardingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-public class MutableCFA implements CFA {
+public class MutableCFA extends ForwardingCfaNetwork implements CFA {
 
-  private final MachineModel machineModel;
+  // all entries in `functions` must also be in `allNodes`
   private final NavigableMap<String, FunctionEntryNode> functions;
   private final TreeMultimap<String, CFANode> allNodes;
-  private final FunctionEntryNode mainFunction;
-  private final List<Path> fileNames;
-  private final Language language;
-  private Optional<LoopStructure> loopStructure = Optional.empty();
-  private Optional<LiveVariables> liveVariables = Optional.empty();
 
+  private CfaMetadata metadata;
+
+  private final CfaNetwork network;
+
+  /**
+   * Creates a new {@link MutableCFA}.
+   *
+   * @param pFunctions a mapping of function names to corresponding function entry nodes
+   * @param pAllNodes a mapping of function names to nodes of the corresponding function
+   * @param pCfaMetadata the metadata of the CFA
+   * @throws NullPointerException if any parameter is {@code null}
+   * @throws IllegalArgumentException if {@code pFunctions} and {@code pAllNodes} do not contain the
+   *     same functions
+   * @throws IllegalArgumentException if {@code pAllNodes} doesn't contain all entries in {@code
+   *     pFunctions}
+   * @throws IllegalArgumentException if not all parameters have the same main function entry node
+   */
   public MutableCFA(
-      MachineModel pMachineModel,
       NavigableMap<String, FunctionEntryNode> pFunctions,
       TreeMultimap<String, CFANode> pAllNodes,
-      FunctionEntryNode pMainFunction,
-      List<Path> pFileNames,
-      Language pLanguage) {
+      CfaMetadata pCfaMetadata) {
+    checkArgument(pFunctions.keySet().equals(pAllNodes.keySet()));
+    checkArgument(pAllNodes.entries().containsAll(pFunctions.entrySet()));
+    FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
+    checkArgument(mainFunctionEntry.equals(pFunctions.get(mainFunctionEntry.getFunctionName())));
 
-    machineModel = pMachineModel;
     functions = pFunctions;
     allNodes = pAllNodes;
-    mainFunction = Preconditions.checkNotNull(pMainFunction);
-    fileNames = ImmutableList.copyOf(pFileNames);
-    language = pLanguage;
 
-    assert functions.keySet().equals(allNodes.keySet());
-    assert mainFunction.equals(functions.get(mainFunction.getFunctionName()));
+    metadata = pCfaMetadata;
+
+    network = CheckingCfaNetwork.wrapIfAssertionsEnabled(new DelegateCfaNetwork());
   }
 
-  public void addNode(CFANode pNode) {
-    assert functions.containsKey(pNode.getFunctionName());
-    allNodes.put(pNode.getFunctionName(), pNode);
+  @Override
+  public ImmutableCFA immutableCopy() {
+    return new ImmutableCFA(functions, allNodes, metadata);
+  }
+
+  @Override
+  protected CfaNetwork delegate() {
+    return network;
+  }
+
+  /**
+   * Adds the specified node to this CFA, if it is not already present.
+   *
+   * @param pNode the node to add to this CFA
+   * @return {@code true} if this CFA was modified as a result of the call
+   * @throws NullPointerException if {@code pNode == null}
+   * @throws IllegalStateException if adding the new node would lead to multiple function entry
+   *     nodes for the same function
+   */
+  @CanIgnoreReturnValue
+  public boolean addNode(CFANode pNode) {
+    String functionName = pNode.getFunctionName();
+    if (pNode instanceof FunctionEntryNode entryNode) {
+      checkState(
+          !functions.containsKey(functionName),
+          "Cannot add multiple function entry nodes for function '%s'",
+          functionName);
+      functions.put(functionName, entryNode);
+    }
+    return allNodes.put(functionName, pNode);
   }
 
   public void clear() {
@@ -66,24 +106,20 @@ public class MutableCFA implements CFA {
     allNodes.clear();
   }
 
-  public void removeNode(CFANode pNode) {
-    NavigableSet<CFANode> functionNodes = allNodes.get(pNode.getFunctionName());
-    assert functionNodes.contains(pNode);
-    functionNodes.remove(pNode);
-
-    if (functionNodes.isEmpty()) {
-      functions.remove(pNode.getFunctionName());
+  /**
+   * Removes the specified node from this CFA, if it is present.
+   *
+   * @param pNode the node to remove from this CFA
+   * @return {@code true} if this CFA was modified as a result of the call
+   * @throws NullPointerException if {@code pNode == null}
+   */
+  @CanIgnoreReturnValue
+  public boolean removeNode(CFANode pNode) {
+    String functionName = pNode.getFunctionName();
+    if (pNode instanceof FunctionEntryNode && pNode.equals(functions.get(functionName))) {
+      functions.remove(functionName);
     }
-  }
-
-  @Override
-  public MachineModel getMachineModel() {
-    return machineModel;
-  }
-
-  @Override
-  public boolean isEmpty() {
-    return functions.isEmpty();
+    return allNodes.remove(functionName, pNode);
   }
 
   @Override
@@ -94,11 +130,6 @@ public class MutableCFA implements CFA {
   @Override
   public NavigableSet<String> getAllFunctionNames() {
     return Collections.unmodifiableNavigableSet(functions.navigableKeySet());
-  }
-
-  @Override
-  public Collection<FunctionEntryNode> getAllFunctionHeads() {
-    return Collections.unmodifiableCollection(functions.values());
   }
 
   @Override
@@ -115,67 +146,43 @@ public class MutableCFA implements CFA {
     return Collections.unmodifiableNavigableSet(allNodes.get(pName));
   }
 
-  @Override
-  public Collection<CFANode> getAllNodes() {
-    return Collections.unmodifiableCollection(allNodes.values());
-  }
-
-  @Override
-  public FunctionEntryNode getMainFunction() {
-    return mainFunction;
-  }
-
-  @Override
-  public Optional<LoopStructure> getLoopStructure() {
-    return loopStructure;
-  }
-
   public void setLoopStructure(LoopStructure pLoopStructure) {
-    loopStructure = Optional.of(pLoopStructure);
+    metadata = metadata.withLoopStructure(pLoopStructure);
   }
 
-  @Override
-  public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
-    if (loopStructure.isPresent()) {
-      return Optional.of(loopStructure.orElseThrow().getAllLoopHeads());
-    }
-    return Optional.empty();
-  }
-
-  public ImmutableCFA makeImmutableCFA(Optional<VariableClassification> pVarClassification) {
-    return new ImmutableCFA(
-        machineModel,
-        functions,
-        allNodes,
-        mainFunction,
-        loopStructure,
-        pVarClassification,
-        liveVariables,
-        fileNames,
-        language);
-  }
-
-  @Override
-  public Optional<VariableClassification> getVarClassification() {
-    return Optional.empty();
-  }
-
-  @Override
-  public Optional<LiveVariables> getLiveVariables() {
-    return liveVariables;
+  public void setVariableClassification(@Nullable VariableClassification pVariableClassification) {
+    metadata = metadata.withVariableClassification(pVariableClassification);
   }
 
   public void setLiveVariables(LiveVariables pLiveVariables) {
-    liveVariables = Optional.of(pLiveVariables);
+    metadata = metadata.withLiveVariables(pLiveVariables);
   }
 
   @Override
-  public Language getLanguage() {
-    return language;
+  public CfaMetadata getMetadata() {
+    return metadata;
   }
 
-  @Override
-  public List<Path> getFileNames() {
-    return fileNames;
+  /**
+   * Sets the metadata associated with this CFA.
+   *
+   * @param pCfaMetadata the metadata for this CFA
+   * @throws NullPointerException if {@code pCfaMetadata == null}
+   */
+  public void setMetadata(CfaMetadata pCfaMetadata) {
+    metadata = checkNotNull(pCfaMetadata);
+  }
+
+  private final class DelegateCfaNetwork extends ConsistentCfaNetwork {
+
+    @Override
+    public Set<CFANode> nodes() {
+      return duplicateFreeNodeCollectionToSet(allNodes.values());
+    }
+
+    @Override
+    public Set<FunctionEntryNode> entryNodes() {
+      return duplicateFreeNodeCollectionToSet(functions.values());
+    }
   }
 }

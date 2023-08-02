@@ -80,12 +80,10 @@ public class ConstraintSystem {
     if (this == pO) {
       return true;
     }
-    if (pO instanceof ConstraintSystem other) {
-      return baseConstraints.equals(other.baseConstraints)
-          && complexConstraints.equals(other.complexConstraints)
-          && simpleConstraints.equals(other.simpleConstraints);
-    }
-    return false;
+    return pO instanceof ConstraintSystem other
+        && baseConstraints.equals(other.baseConstraints)
+        && complexConstraints.equals(other.complexConstraints)
+        && simpleConstraints.equals(other.simpleConstraints);
   }
 
   /**
@@ -344,7 +342,8 @@ public class ConstraintSystem {
 
     for (ComplexConstraint cc : cConstr) {
 
-      String srcStr, destStr;
+      String srcStr;
+      String destStr;
 
       if (cc.isSubDerefed()) {
 

@@ -76,6 +76,26 @@ public class TestTargetMinimizerEssential {
       // get next node in the queue
       currentNode = waitlist.poll();
 
+      if (currentNode.getNumLeavingEdges() == 0) {
+        CFANode currentNodeFinal = currentNode;
+        pEntryNode
+            .getExitNode()
+            .ifPresent(
+                exitNode -> {
+                  if (!origNodesCopied.contains(exitNode)) {
+                    origCFANodeToCopyMap.put(exitNode, CFANode.newDummyCFANode(""));
+                    waitlist.add(exitNode);
+                    origNodesCopied.add(exitNode);
+                  }
+                  CFAEdge copyEdge =
+                      new DummyCFAEdge(
+                          origCFANodeToCopyMap.get(currentNodeFinal),
+                          origCFANodeToCopyMap.get(exitNode));
+                  origCFANodeToCopyMap.get(currentNodeFinal).addLeavingEdge(copyEdge);
+                  origCFANodeToCopyMap.get(exitNode).addEnteringEdge(copyEdge);
+                });
+      }
+
       // create copies of all outgoing edges and the nodes they go into if they dont yet exist
       for (CFAEdge currentEdge : CFAUtils.leavingEdges(currentNode)) {
         CFANode copiedSuccessorNode;
@@ -264,7 +284,8 @@ public class TestTargetMinimizerEssential {
         toRemove, CFAUtils.leavingEdges(succ), copiedEdgeToTestTargetsMap, pTestTargets);
   }
 
-  private void applyRule1( // remove edges from copied graph according to first rule
+  /** Remove edges from copied graph according to first rule. */
+  private void applyRule1(
       final Set<CFAEdge> pTestTargets,
       final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
       final Pair<CFANode, CFANode> pCopiedFunctionEntryExit) {
@@ -408,7 +429,8 @@ public class TestTargetMinimizerEssential {
     }
   }
 
-  private void applyRule4( // remove edges from dummy graph according to fourth rule
+  /** Remove edges from dummy graph according to fourth rule. */
+  private void applyRule4(
       final Set<CFAEdge> pTestTargets,
       final Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap,
       final CFANode copiedFunctionEntry) {

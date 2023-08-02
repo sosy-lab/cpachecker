@@ -19,11 +19,11 @@ public class Variable<ConstantType> extends AbstractFormula<ConstantType>
 
   private Variable(TypeInfo pInfo, MemoryLocation pMemoryLocation) {
     super(pInfo);
-    this.memoryLocation = pMemoryLocation;
+    memoryLocation = pMemoryLocation;
   }
 
   public MemoryLocation getMemoryLocation() {
-    return this.memoryLocation;
+    return memoryLocation;
   }
 
   @Override
@@ -36,12 +36,9 @@ public class Variable<ConstantType> extends AbstractFormula<ConstantType>
     if (this == pOther) {
       return true;
     }
-    if (pOther instanceof Variable) {
-      Variable<?> other = (Variable<?>) pOther;
-      return getTypeInfo().equals(other.getTypeInfo())
-          && getMemoryLocation().equals(other.getMemoryLocation());
-    }
-    return false;
+    return pOther instanceof Variable<?> other
+        && getTypeInfo().equals(other.getTypeInfo())
+        && getMemoryLocation().equals(other.getMemoryLocation());
   }
 
   @Override

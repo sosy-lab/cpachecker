@@ -20,11 +20,11 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * idea is that the addressValue maps somehow to a memory location (representing the address
  * essentially). The type helps evaluating/using the address.
  */
-public class AddressExpression extends SymbolicExpression {
+public final class AddressExpression extends SymbolicExpression {
 
   private static final long serialVersionUID = -1498889385306613159L;
 
-  // The address Value should map to somehow to the memory
+  // The address Value should map to memory
   private final Value addressValue;
   private final Type addressType;
 

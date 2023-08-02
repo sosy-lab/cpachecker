@@ -84,7 +84,17 @@ public final class TestTargetReductionUtils {
 
       while (!waitlist.isEmpty()) {
         currentNode = waitlist.poll();
-
+        if (currentNode.getNumLeavingEdges() == 0) {
+          functionExitNode.ifPresent(
+              exitNode -> {
+                if (!origCFANodeToCopyMap
+                    .get(predecessor)
+                    .hasEdgeTo(origCFANodeToCopyMap.get(exitNode))) {
+                  copyAsDummyEdge(
+                      origCFANodeToCopyMap.get(predecessor), origCFANodeToCopyMap.get(exitNode));
+                }
+              });
+        }
         for (CFAEdge leaving : CFAUtils.leavingEdges(currentNode)) {
           if (successorNodes.contains(leaving.getSuccessor())) {
             if (!origCFANodeToCopyMap

@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ReachingDefState
@@ -152,12 +152,9 @@ public class ReachingDefState
 
   @Override
   public boolean equals(Object pO) {
-    if (pO instanceof ReachingDefState other) {
-      return Objects.equals(globalReachDefs, other.globalReachDefs)
-          && Objects.equals(localReachDefs, other.localReachDefs);
-    } else {
-      return false;
-    }
+    return pO instanceof ReachingDefState other
+        && Objects.equals(globalReachDefs, other.globalReachDefs)
+        && Objects.equals(localReachDefs, other.localReachDefs);
   }
 
   @Override
@@ -168,13 +165,12 @@ public class ReachingDefState
   private boolean isSubsetOf(
       Map<MemoryLocation, Set<DefinitionPoint>> subset,
       Map<MemoryLocation, Set<DefinitionPoint>> superset) {
-    Set<DefinitionPoint> setSub, setSuper;
     if (subset == superset) {
       return true;
     }
     for (Entry<MemoryLocation, Set<DefinitionPoint>> entry : subset.entrySet()) {
-      setSub = entry.getValue();
-      setSuper = superset.get(entry.getKey());
+      Set<DefinitionPoint> setSub = entry.getValue();
+      Set<DefinitionPoint> setSuper = superset.get(entry.getKey());
       if (setSub == setSuper) {
         continue;
       }
@@ -398,11 +394,9 @@ public class ReachingDefState
       if (this == obj) {
         return true;
       }
-      if (!(obj instanceof ProgramDefinitionPoint)) {
-        return false;
-      }
-      ProgramDefinitionPoint other = (ProgramDefinitionPoint) obj;
-      return Objects.equals(entry, other.entry) && Objects.equals(exit, other.exit);
+      return obj instanceof ProgramDefinitionPoint other
+          && Objects.equals(entry, other.entry)
+          && Objects.equals(exit, other.exit);
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
@@ -412,7 +406,7 @@ public class ReachingDefState
 
     private void readObject(java.io.ObjectInputStream in) throws IOException {
       int nodeNumber = in.readInt();
-      CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
+      CFAInfo cfaInfo = SerializationInfoStorage.getInstance().getCFAInfo().orElseThrow();
       entry = cfaInfo.getNodeByNodeNumber(nodeNumber);
       nodeNumber = in.readInt();
       exit = cfaInfo.getNodeByNodeNumber(nodeNumber);

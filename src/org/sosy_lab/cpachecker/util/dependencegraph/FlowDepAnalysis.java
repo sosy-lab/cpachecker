@@ -29,8 +29,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
@@ -382,8 +384,8 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
   private void addFunctionUseDependences() {
 
-    for (CFAEdge callEdge : CFAUtils.allEnteringEdges(entryNode)) {
-      CFAEdge summaryEdge = callEdge.getPredecessor().getLeavingSummaryEdge();
+    for (FunctionCallEdge callEdge : CFAUtils.enteringEdges(entryNode)) {
+      CFAEdge summaryEdge = callEdge.getSummaryEdge();
       assert summaryEdge != null : "Missing summary edge for call edge: " + callEdge;
       for (MemoryLocation parameter : getEdgeDefs(callEdge)) {
         dependenceConsumer.accept(summaryEdge, callEdge, parameter, false);
@@ -398,8 +400,8 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
     if (exitNode.isPresent()) {
 
-      for (CFAEdge returnEdge : CFAUtils.leavingEdges(exitNode.orElseThrow())) {
-        CFAEdge summaryEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
+      for (FunctionReturnEdge returnEdge : CFAUtils.leavingEdges(exitNode.orElseThrow())) {
+        CFAEdge summaryEdge = returnEdge.getSummaryEdge();
         assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
         for (MemoryLocation defVar : foreignDefUseData.getForeignDefs(function)) {
           dependenceConsumer.accept(returnEdge, summaryEdge, defVar, false);
@@ -418,14 +420,14 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       Optional<FunctionExitNode> exitNode = entryNode.getExitNode();
       if (exitNode.isPresent()) {
 
-        for (CFAEdge defEdge : CFAUtils.allEnteringEdges(exitNode.orElseThrow())) {
-          for (CFAEdge returnEdge : CFAUtils.allLeavingEdges(exitNode.orElseThrow())) {
+        for (CFAEdge defEdge : CFAUtils.enteringEdges(exitNode.orElseThrow())) {
+          for (FunctionReturnEdge returnEdge : CFAUtils.leavingEdges(exitNode.orElseThrow())) {
             dependenceConsumer.accept(defEdge, returnEdge, returnVar, false);
           }
         }
 
-        for (CFAEdge returnEdge : CFAUtils.allLeavingEdges(exitNode.orElseThrow())) {
-          CFAEdge summaryEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
+        for (FunctionReturnEdge returnEdge : CFAUtils.leavingEdges(exitNode.orElseThrow())) {
+          CFAEdge summaryEdge = returnEdge.getSummaryEdge();
           assert summaryEdge != null : "Missing summary edge for return edge: " + returnEdge;
           dependenceConsumer.accept(returnEdge, summaryEdge, returnVar, false);
         }

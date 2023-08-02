@@ -702,11 +702,11 @@ public abstract class AbstractExpressionValueVisitor
             return Value.UnknownValue.getInstance();
           }
       }
-    } catch (ArithmeticException ae) { // log warning and ignore expression
+    } catch (ArithmeticException e) { // log warning and ignore expression
       logger.logf(
           Level.WARNING,
           "expression causes arithmetic exception (%s): %s %s %s",
-          ae.getMessage(),
+          e.getMessage(),
           lNum.bigDecimalValue(),
           op.getOperator(),
           rNum.bigDecimalValue());
@@ -1554,6 +1554,9 @@ public abstract class AbstractExpressionValueVisitor
         BigInteger size = machineModel.getSizeof(innerType);
         return new NumericValue(size);
 
+      case ALIGNOF:
+        return new NumericValue(machineModel.getAlignof(innerType));
+
       default: // TODO support more operators
         return Value.UnknownValue.getInstance();
     }
@@ -1561,14 +1564,9 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(CIdExpression idExp) throws UnrecognizedCodeException {
-    if (idExp.getDeclaration() instanceof CEnumerator) {
-      CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
-      if (enumerator.hasValue()) {
-        // TODO rewrite CEnumerator to handle abstract type Value and not just Long
-        return new NumericValue(enumerator.getValue());
-      } else {
-        return Value.UnknownValue.getInstance();
-      }
+    if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
+      // TODO rewrite CEnumerator to handle abstract type Value and not just Long
+      return new NumericValue(enumerator.getValue());
     }
 
     return evaluateCIdExpression(idExp);
@@ -2425,7 +2423,7 @@ public abstract class AbstractExpressionValueVisitor
       final FileLocation fileLocation) {
 
     if (!value.isExplicitlyKnown()) {
-      return castIfSymbolic(value, targetType, Optional.of(machineModel));
+      return castIfSymbolic(value, targetType);
     }
 
     // For now can only cast numeric value's
@@ -2601,14 +2599,13 @@ public abstract class AbstractExpressionValueVisitor
     return i1.compareTo(i2) < 0;
   }
 
-  private static Value castIfSymbolic(
-      Value pValue, Type pTargetType, Optional<MachineModel> pMachineModel) {
+  private static Value castIfSymbolic(Value pValue, Type pTargetType) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
     if (pValue instanceof SymbolicValue
         && (pTargetType instanceof JSimpleType || pTargetType instanceof CSimpleType)) {
 
-      return factory.cast((SymbolicValue) pValue, pTargetType, pMachineModel);
+      return factory.cast((SymbolicValue) pValue, pTargetType);
     }
 
     // If the value is not symbolic, just return it.
@@ -2638,7 +2635,7 @@ public abstract class AbstractExpressionValueVisitor
       final FileLocation fileLocation) {
 
     if (!value.isExplicitlyKnown()) {
-      return castIfSymbolic(value, targetType, Optional.empty());
+      return castIfSymbolic(value, targetType);
     }
 
     // Other than symbolic values, we can only cast numeric values, for now.

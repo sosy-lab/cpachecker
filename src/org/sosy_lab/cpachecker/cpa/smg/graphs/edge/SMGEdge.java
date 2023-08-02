@@ -80,11 +80,8 @@ public abstract class SMGEdge {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof SMGEdge)) {
-      return false;
-    }
-    SMGEdge other = (SMGEdge) obj;
-    return value.equals(other.value)
+    return obj instanceof SMGEdge other
+        && value.equals(other.value)
         && offset == other.offset
         && Objects.equals(object, other.object);
   }

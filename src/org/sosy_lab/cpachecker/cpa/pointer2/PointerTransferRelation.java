@@ -73,7 +73,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -147,15 +146,13 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
   private PointerState handleFunctionReturnEdge(PointerState pState, CFunctionReturnEdge pCfaEdge)
       throws UnrecognizedCodeException {
-    CFunctionSummaryEdge summaryEdge = pCfaEdge.getSummaryEdge();
-    CFunctionCall callEdge = summaryEdge.getExpression();
+    CFunctionCall callEdge = pCfaEdge.getFunctionCall();
 
     if (callEdge instanceof CFunctionCallAssignmentStatement callAssignment) {
-      Optional<MemoryLocation> returnVar =
-          getFunctionReturnVariable(summaryEdge.getFunctionEntry());
+      Optional<MemoryLocation> returnVar = getFunctionReturnVariable(pCfaEdge.getFunctionEntry());
 
       assert returnVar.isPresent()
-          : "Return edge with assignment, but no return variable: " + summaryEdge;
+          : "Return edge with assignment, but no return variable: " + pCfaEdge;
 
       LocationSet pointedTo = pState.getPointsToSet(returnVar.orElseThrow());
 
@@ -339,17 +336,14 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
   private static boolean isStructOrUnion(Type pType) {
     Type type = pType instanceof CType ? ((CType) pType).getCanonicalType() : pType;
-    if (type instanceof CComplexType) {
-      return EnumSet.of(ComplexTypeKind.STRUCT, ComplexTypeKind.UNION)
-          .contains(((CComplexType) type).getKind());
-    }
-    return false;
+    return type instanceof CComplexType
+        && EnumSet.of(ComplexTypeKind.STRUCT, ComplexTypeKind.UNION)
+            .contains(((CComplexType) type).getKind());
   }
 
   private PointerState handleStatementEdge(PointerState pState, CStatementEdge pCfaEdge)
       throws UnrecognizedCodeException {
-    if (pCfaEdge.getStatement() instanceof CAssignment) {
-      CAssignment assignment = (CAssignment) pCfaEdge.getStatement();
+    if (pCfaEdge.getStatement() instanceof CAssignment assignment) {
 
       if (assignment instanceof CFunctionCallAssignmentStatement) {
         // we don't consider summary edges, so if we encounter a function call assignment edge,

@@ -194,11 +194,11 @@ public class UCBRefinementManager {
     int startStateIdx = pTrace.size() - ucbs.size() - 2;
 
     BooleanFormula pred = null;
-    PredicateAbstractState curState, nextState;
 
     for (int i = startStateIdx; i < pTrace.size() - 2; i++) {
-      curState = AbstractStates.extractStateByType(pTrace.get(i), PredicateAbstractState.class);
-      nextState =
+      PredicateAbstractState curState =
+          AbstractStates.extractStateByType(pTrace.get(i), PredicateAbstractState.class);
+      PredicateAbstractState nextState =
           AbstractStates.extractStateByType(pTrace.get(i + 1), PredicateAbstractState.class);
 
       if (pred == null) {

@@ -376,8 +376,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    if (pEdge.getStatement() instanceof CAssignment) {
-      CAssignment assignment = (CAssignment) pEdge.getStatement();
+    if (pEdge.getStatement() instanceof CAssignment assignment) {
       ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
       CExpression leftHandSide = assignment.getLeftHandSide();
       CRightHandSide rightHandSide = assignment.getRightHandSide();
@@ -483,7 +482,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       throws UnrecognizedCodeException {
     CFunctionSummaryEdge summaryEdge = pFunctionReturnEdge.getSummaryEdge();
 
-    CFunctionCall expression = summaryEdge.getExpression();
+    final CFunctionCall expression = pFunctionReturnEdge.getFunctionCall();
 
     final String calledFunctionName = pFunctionReturnEdge.getPredecessor().getFunctionName();
 
@@ -498,7 +497,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
                 new MemoryLocationExtractor(
                     compoundIntervalManagerFactory,
                     machineModel,
-                    summaryEdge.getFunctionEntry().getFunctionName(),
+                    pFunctionReturnEdge.getFunctionEntry().getFunctionName(),
                     pElement.getEnvironment()),
                 pElement);
         CExpression idExpression =
@@ -512,11 +511,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
     } else {
       Iterator<CExpression> actualParamIterator =
-          summaryEdge
-              .getExpression()
-              .getFunctionCallExpression()
-              .getParameterExpressions()
-              .iterator();
+          expression.getFunctionCallExpression().getParameterExpressions().iterator();
       for (String formalParamName :
           pFunctionReturnEdge.getPredecessor().getEntryNode().getFunctionParameterNames()) {
         if (!actualParamIterator.hasNext()) {

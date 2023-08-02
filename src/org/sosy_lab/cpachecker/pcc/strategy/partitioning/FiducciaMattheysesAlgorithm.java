@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
@@ -54,7 +55,7 @@ public class FiducciaMattheysesAlgorithm {
 
   private void initDataStructures(
       Set<Integer> pV,
-      TreeMap<Long, Deque<Integer>> pBuckets,
+      Map<Long, Deque<Integer>> pBuckets,
       Map<Integer, Long> pGain,
       Map<Integer, Boolean> lock) {
     for (Integer i : pV) {
@@ -62,14 +63,14 @@ public class FiducciaMattheysesAlgorithm {
       long g = computeGain(i);
       pGain.put(i, g);
       if (!pBuckets.containsKey(g)) {
-        pBuckets.put(g, new ArrayDeque<Integer>());
+        pBuckets.put(g, new ArrayDeque<>());
       }
       pBuckets.get(g).addFirst(i);
     }
   }
 
-  private Optional<Pair<Long, TreeMap<Long, Deque<Integer>>>> tryFindBestGainWithNonEmptyBucket(
-      final TreeMap<Long, Deque<Integer>> bucket) {
+  private Optional<Pair<Long, NavigableMap<Long, Deque<Integer>>>>
+      tryFindBestGainWithNonEmptyBucket(final NavigableMap<Long, Deque<Integer>> bucket) {
     return bucket.descendingKeySet().stream()
         .filter(pLong -> !bucket.get(pLong).isEmpty())
         .findFirst()
@@ -85,11 +86,12 @@ public class FiducciaMattheysesAlgorithm {
     return Math.max(pSizeP1, pSizeP2) / (double) min <= balanceCriterion;
   }
 
-  private Optional<Pair<Long, TreeMap<Long, Deque<Integer>>>> tryPickBestGain(
-      final TreeMap<Long, Deque<Integer>> bucket1, final TreeMap<Long, Deque<Integer>> bucket2) {
-    Optional<Pair<Long, TreeMap<Long, Deque<Integer>>>> bestV1Gain =
+  private Optional<Pair<Long, NavigableMap<Long, Deque<Integer>>>> tryPickBestGain(
+      final NavigableMap<Long, Deque<Integer>> bucket1,
+      final NavigableMap<Long, Deque<Integer>> bucket2) {
+    Optional<Pair<Long, NavigableMap<Long, Deque<Integer>>>> bestV1Gain =
         tryFindBestGainWithNonEmptyBucket(bucket1);
-    Optional<Pair<Long, TreeMap<Long, Deque<Integer>>>> bestV2Gain =
+    Optional<Pair<Long, NavigableMap<Long, Deque<Integer>>>> bestV2Gain =
         tryFindBestGainWithNonEmptyBucket(bucket2);
     if (!bestV2Gain.isPresent()) {
       return bestV1Gain;
@@ -109,21 +111,18 @@ public class FiducciaMattheysesAlgorithm {
     }
   }
 
-  private int pollNodeFromBucketByGain(Long gain, final TreeMap<Long, Deque<Integer>> bucket) {
+  private int pollNodeFromBucketByGain(Long gain, final Map<Long, Deque<Integer>> bucket) {
     // get first node from list in bucket
     // TODO implement alternative strategies
     return bucket.get(gain).poll();
   }
 
   private void updateGain(
-      int pNode,
-      final TreeMap<Long, Deque<Integer>> pBucket,
-      Map<Integer, Long> pGain,
-      long pNewGain) {
+      int pNode, final Map<Long, Deque<Integer>> pBucket, Map<Integer, Long> pGain, long pNewGain) {
     boolean success = pBucket.get(pGain.get(pNode)).removeFirstOccurrence(pNode);
     assert success;
     if (!pBucket.containsKey(pNewGain)) {
-      pBucket.put(pNewGain, new ArrayDeque<Integer>());
+      pBucket.put(pNewGain, new ArrayDeque<>());
     }
     pBucket.get(pNewGain).add(pNode);
     pGain.put(pNode, pNewGain);
@@ -131,8 +130,8 @@ public class FiducciaMattheysesAlgorithm {
 
   private void updateNeighbors(
       int node,
-      TreeMap<Long, Deque<Integer>> v1Buckets,
-      TreeMap<Long, Deque<Integer>> v2Buckets,
+      Map<Long, Deque<Integer>> v1Buckets,
+      Map<Long, Deque<Integer>> v2Buckets,
       Map<Integer, Long> gain,
       Map<Integer, Boolean> lock) {
     Set<Integer> neighbors = new HashSet<>(graph.getAdjacencyList().get(node));
@@ -174,7 +173,7 @@ public class FiducciaMattheysesAlgorithm {
 
     // Start algorithm
     for (int i = 1; i < v1.size() + v2.size(); i++) {
-      Optional<Pair<Long, TreeMap<Long, Deque<Integer>>>> gainAndBuckets =
+      Optional<Pair<Long, NavigableMap<Long, Deque<Integer>>>> gainAndBuckets =
           tryPickBestGain(v1Buckets, v2Buckets);
       if (!gainAndBuckets.isPresent()) {
         break;

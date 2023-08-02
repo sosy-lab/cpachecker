@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
+
+import com.google.common.base.Ascii;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
@@ -27,6 +30,7 @@ import java.io.InputStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -57,6 +61,7 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -75,7 +80,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
@@ -121,7 +125,7 @@ public class AutomatonGraphmlParser {
   private static final GraphMLTransition.GraphMLThread DEFAULT_THREAD =
       GraphMLTransition.createThread(0, "__CPAchecker_default_thread");
 
-  private static final String THREAD_ID_VAR_NAME = KeyDef.THREADID.toString().toUpperCase();
+  private static final String THREAD_ID_VAR_NAME = Ascii.toUpperCase(KeyDef.THREADID.toString());
 
   private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
       "The witness file must describe exactly one witness automaton.";
@@ -139,6 +143,8 @@ public class AutomatonGraphmlParser {
   private static final String DISTANCE_TO_VIOLATION = "__DISTANCE_TO_VIOLATION";
 
   public static final String WITNESS_AUTOMATON_NAME = "WitnessAutomaton";
+
+  public static final UniqueIdGenerator idGen = new UniqueIdGenerator();
 
   @Option(
       secure = true,
@@ -225,6 +231,9 @@ public class AutomatonGraphmlParser {
               + " witness.invariantsSpecificationAutomaton)")
   private boolean useInvariantsAsAssumptions = true;
 
+  @Option(secure = true, description = "extend name of each witness automaton with a unique id")
+  private boolean useUniqueName = false;
+
   private Scope scope;
   private final LogManager logger;
   private final Configuration config;
@@ -262,9 +271,7 @@ public class AutomatonGraphmlParser {
   public Automaton parseAutomatonFile(Path pInputFile)
       throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
-        MoreFiles.asByteSource(pInputFile),
-        inputStream -> parseAutomatonFile(inputStream),
-        e -> new WitnessParseException(e));
+        MoreFiles.asByteSource(pInputFile), this::parseAutomatonFile, WitnessParseException::new);
   }
 
   /**
@@ -1032,9 +1039,12 @@ public class AutomatonGraphmlParser {
 
     // Extract the information on the automaton ----
     Node nameAttribute = docDat.getGraph().getAttributes().getNamedItem("name");
-    String automatonName = WITNESS_AUTOMATON_NAME;
+    StringBuilder automatonName = new StringBuilder(WITNESS_AUTOMATON_NAME);
     if (nameAttribute != null) {
-      automatonName += "_" + nameAttribute.getTextContent();
+      automatonName.append("_").append(nameAttribute.getTextContent());
+    }
+    if (useUniqueName) {
+      automatonName.append("_").append(idGen.getFreshId());
     }
 
     Map<String, GraphMLState> states = new LinkedHashMap<>();
@@ -1062,7 +1072,7 @@ public class AutomatonGraphmlParser {
 
     AutomatonGraphmlParserState state =
         AutomatonGraphmlParserState.initialize(
-            automatonName,
+            automatonName.toString(),
             graphType,
             specType,
             states.values(),
@@ -1096,7 +1106,7 @@ public class AutomatonGraphmlParser {
     return state;
   }
 
-  private GraphMLDocumentData parseXML(InputStream pInputStream)
+  public static GraphMLDocumentData parseXML(InputStream pInputStream)
       throws WitnessParseException, IOException {
 
     // Parse the XML document ----
@@ -1674,7 +1684,7 @@ public class AutomatonGraphmlParser {
       Set<String> programHashes =
           FluentIterable.from(pProgramHashes)
               .transform(String::trim)
-              .transform(String::toLowerCase)
+              .transform(Ascii::toLowerCase)
               .toSet();
       List<String> invalidHashes = new ArrayList<>(programHashes.size());
       for (String programHashInWitness : programHashes) {
@@ -1711,10 +1721,8 @@ public class AutomatonGraphmlParser {
 
       if (checkProgramHash) {
         for (Path programFile : cfa.getFileNames()) {
-          String actualProgramHash =
-              AutomatonGraphmlCommon.computeSha1Hash(programFile).toLowerCase();
-          String actualSha256Programhash =
-              AutomatonGraphmlCommon.computeHash(programFile).toLowerCase();
+          String actualProgramHash = AutomatonGraphmlCommon.computeSha1Hash(programFile);
+          String actualSha256Programhash = AutomatonGraphmlCommon.computeHash(programFile);
           if (!programHashes.contains(actualProgramHash)
               && !programHashes.contains(actualSha256Programhash)) {
             throw new WitnessParseException(
@@ -1804,14 +1812,15 @@ public class AutomatonGraphmlParser {
         new AutomatonTransition.Builder(pTriggers, pTargetState.getId())
             .withAssertions(
                 pLeadsToViolationNode
-                    ? ImmutableList.<AutomatonBoolExpr>builder()
-                        .addAll(pAssertions)
-                        .add(createViolationAssertion())
-                        .build()
+                    ? listAndElement(pAssertions, createViolationAssertion())
                     : pAssertions)
             .withAssumptions(pAssumptions)
             .withCandidateInvariants(pCandidateInvariants)
             .withActions(pActions);
+
+    if (!pTargetState.getInvariants().isEmpty()) {
+      builder.withNonDefaultCandidateInvariants();
+    }
     if (pLeadsToViolationNode) {
       return new TargetInformationCopyingAutomatonTransition(builder);
     }
@@ -1875,14 +1884,12 @@ public class AutomatonGraphmlParser {
     if (optimizeISA) {
       List<CFAEdge> stateChangingEdges = new ArrayList<>();
       List<CFAEdge> nonStateChangingEdges = new ArrayList<>();
-      for (CFANode node : cfa.getAllNodes()) {
-        for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-          if (EnumSet.of(CFAEdgeType.BlankEdge, CFAEdgeType.AssumeEdge)
-              .contains(edge.getEdgeType())) {
-            nonStateChangingEdges.add(edge);
-          } else {
-            stateChangingEdges.add(edge);
-          }
+      for (CFAEdge edge : cfa.edges()) {
+        if (EnumSet.of(CFAEdgeType.BlankEdge, CFAEdgeType.AssumeEdge)
+            .contains(edge.getEdgeType())) {
+          nonStateChangingEdges.add(edge);
+        } else {
+          stateChangingEdges.add(edge);
         }
       }
       AutomatonBoolExpr changingTransition =
@@ -1986,7 +1993,7 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  private static class GraphMLDocumentData {
+  public static class GraphMLDocumentData {
 
     private final Node graph;
 
@@ -2132,12 +2139,27 @@ public class AutomatonGraphmlParser {
     }
   }
 
+  public static Optional<AutomatonGraphmlCommon.WitnessType> getWitnessTypeIfXML(Path pPath)
+      throws InvalidConfigurationException, InterruptedException, IOException {
+    try {
+      return Optional.of(getWitnessType(pPath));
+    } catch (WitnessParseException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof NoSuchFileException exception) {
+        throw exception;
+      } else if (cause instanceof FileNotFoundException exception) {
+        throw exception;
+      }
+      return Optional.empty();
+    }
+  }
+
   public static AutomatonGraphmlCommon.WitnessType getWitnessType(Path pPath)
       throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
         MoreFiles.asByteSource(pPath),
-        inputStream -> getWitnessType(inputStream),
-        e -> new WitnessParseException(e));
+        AutomatonGraphmlParser::getWitnessType,
+        WitnessParseException::new);
   }
 
   private static AutomatonGraphmlCommon.WitnessType getWitnessType(InputStream pInputStream)
@@ -2244,12 +2266,13 @@ public class AutomatonGraphmlParser {
     return message;
   }
 
-  private interface InputHandler<T, E extends Throwable> {
+  @FunctionalInterface
+  public interface InputHandler<T, E extends Throwable> {
 
     T handleInput(InputStream pInputStream) throws E, IOException, InterruptedException;
   }
 
-  private static <T, E extends Throwable> T handlePotentiallyGZippedInput(
+  public static <T, E extends Throwable> T handlePotentiallyGZippedInput(
       ByteSource pInputSource,
       InputHandler<T, E> pInputHandler,
       Function<IOException, E> pExceptionHandler)

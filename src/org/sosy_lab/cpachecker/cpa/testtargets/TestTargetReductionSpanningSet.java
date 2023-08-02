@@ -13,9 +13,10 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import de.uni_freiburg.informatik.ultimate.util.datastructures.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,9 +43,9 @@ public class TestTargetReductionSpanningSet {
                 constructSubsumptionGraph(pTargets, pCfa.getMainFunction()))));
   }
 
-  private ImmutableSet<CFAEdgeNode> constructSubsumptionGraph(
+  private ImmutableList<CFAEdgeNode> constructSubsumptionGraph(
       final Set<CFAEdge> pTargets, FunctionEntryNode pStartNode) {
-    ImmutableSet.Builder<CFAEdgeNode> nodeBuilder = ImmutableSet.builder();
+    ImmutableList.Builder<CFAEdgeNode> nodeBuilder = ImmutableList.builder();
 
     CFAEdgeNode node;
     Map<CFAEdge, CFAEdgeNode> edgeToNode = Maps.newHashMapWithExpectedSize(pTargets.size());
@@ -63,20 +64,27 @@ public class TestTargetReductionSpanningSet {
       nodeBuilder.add(node);
     }
 
-    /*try {
+    /*
+    try {
       TestTargetReductionUtils.drawGraph(Paths.get("subSumGraph.dot"), entryExit.getFirst());
     } catch (IOException e) {
     }*/
 
-    DomTree<CFANode>
-        domTree =
-            DomTree.forGraph(
-                CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf, entryExit.getFirst()),
-        inverseDomTree =
-            entryExit.getSecond() != null
-                ? DomTree.forGraph(
-                    CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf, entryExit.getSecond())
-                : null;
+    DomTree<CFANode> domTree =
+        DomTree.forGraph(
+            CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf, entryExit.getFirst());
+    DomTree<CFANode> inverseDomTree =
+        entryExit.getSecond() != null
+            ? DomTree.forGraph(
+                CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf, entryExit.getSecond())
+            : null;
+
+    ImmutableSet<CFAEdge> reachedFromExit;
+    if (entryExit.getSecond() == null) {
+      reachedFromExit = ImmutableSet.empty();
+    } else {
+      reachedFromExit = getReachableFromExit(copyToTarget, entryExit.getSecond());
+    }
 
     for (CFAEdge targetPred : pTargets) {
       for (CFAEdge targetSucc : pTargets) {
@@ -86,10 +94,13 @@ public class TestTargetReductionSpanningSet {
         // TODO currently only approximation via dominator trees on nodes, not on edges
         if (targetPred.getSuccessor().getNumEnteringEdges() == 1
             && targetSucc.getSuccessor().getNumEnteringEdges() == 1
-            && (domTree.isAncestorOf( // pred is ancestor/dominator of succ
+            // pred is ancestor/dominator of succ
+            && (domTree.isAncestorOf(
                     targetToCopy.get(targetPred).getSuccessor(),
                     targetToCopy.get(targetSucc).getSuccessor())
                 || (inverseDomTree != null
+                    && reachedFromExit.contains(targetPred)
+                    && reachedFromExit.contains(targetSucc)
                     && inverseDomTree.isAncestorOf(
                         targetToCopy.get(targetPred).getSuccessor(),
                         targetToCopy.get(targetSucc).getSuccessor())))) {
@@ -106,10 +117,37 @@ public class TestTargetReductionSpanningSet {
     return nodeBuilder.build();
   }
 
-  private ImmutableSet<Collection<CFAEdgeNode>> computeStronglyConnectedComponents(
-      final ImmutableSet<CFAEdgeNode> nodes) {
-    ImmutableSet.Builder<Collection<CFAEdgeNode>> componentsBuilder = ImmutableSet.builder();
-    Deque<CFAEdgeNode> componentElems, ordered = new ArrayDeque<>(nodes.size());
+  private ImmutableSet<CFAEdge> getReachableFromExit(
+      final Map<CFAEdge, CFAEdge> pCopyToTarget, final CFANode pCopiedExit) {
+    Set<CFAEdge> reachableTargets = new HashSet<>(pCopyToTarget.size());
+    Set<CFANode> visited = new HashSet<>();
+    Deque<CFANode> waitlist = new ArrayDeque<>();
+    visited.add(pCopiedExit);
+    waitlist.add(pCopiedExit);
+
+    CFANode succ;
+    while (!waitlist.isEmpty()) {
+      succ = waitlist.poll();
+      for (CFANode pred : CFAUtils.allPredecessorsOf(succ)) {
+        if (visited.add(pred)) {
+          waitlist.add(pred);
+        }
+      }
+    }
+
+    for (Entry<CFAEdge, CFAEdge> mapEntry : pCopyToTarget.entrySet()) {
+      if (visited.contains(mapEntry.getKey().getSuccessor())) {
+        reachableTargets.add(mapEntry.getValue());
+      }
+    }
+
+    return ImmutableSet.of(reachableTargets);
+  }
+
+  private ImmutableList<Collection<CFAEdgeNode>> computeStronglyConnectedComponents(
+      final ImmutableList<CFAEdgeNode> nodes) {
+    ImmutableList.Builder<Collection<CFAEdgeNode>> componentsBuilder = ImmutableList.builder();
+    Deque<CFAEdgeNode> ordered = new ArrayDeque<>(nodes.size());
 
     Set<CFAEdgeNode> visited = Sets.newHashSetWithExpectedSize(nodes.size());
     for (CFAEdgeNode node : nodes) {
@@ -118,7 +156,7 @@ public class TestTargetReductionSpanningSet {
 
     visited = Sets.newHashSetWithExpectedSize(nodes.size());
     for (CFAEdgeNode node : ordered) {
-      componentElems = new ArrayDeque<>();
+      Deque<CFAEdgeNode> componentElems = new ArrayDeque<>();
       dfs(node, true, visited, componentElems);
       if (!componentElems.isEmpty()) {
         componentsBuilder.add(componentElems);
@@ -141,9 +179,9 @@ public class TestTargetReductionSpanningSet {
     }
   }
 
-  private ImmutableSet<CFAEdgeNode> reduceSubsumptionGraph(
-      final ImmutableSet<Collection<CFAEdgeNode>> pComponents) {
-    ImmutableSet.Builder<CFAEdgeNode> nodeBuilder = ImmutableSet.builder();
+  private ImmutableList<CFAEdgeNode> reduceSubsumptionGraph(
+      final ImmutableList<Collection<CFAEdgeNode>> pComponents) {
+    ImmutableList.Builder<CFAEdgeNode> nodeBuilder = ImmutableList.builder();
 
     for (Collection<CFAEdgeNode> component : pComponents) {
       nodeBuilder.add(CFAEdgeNode.merge(component));
@@ -152,11 +190,11 @@ public class TestTargetReductionSpanningSet {
     return nodeBuilder.build();
   }
 
-  private Set<CFAEdge> getTestTargetsFromLeaves(final ImmutableSet<CFAEdgeNode> pNodes) {
+  private Set<CFAEdge> getTestTargetsFromLeaves(final ImmutableList<CFAEdgeNode> pNodes) {
     // set must not be immutable
     return new HashSet<>(
         FluentIterable.from(pNodes)
-            .filter(node -> node.isLeave())
+            .filter(CFAEdgeNode::isLeave)
             .transform(node -> node.representativeTarget)
             .toSet());
   }
@@ -189,7 +227,8 @@ public class TestTargetReductionSpanningSet {
       Preconditions.checkArgument(!pComponent.isEmpty());
       CFAEdgeNode superNode = new CFAEdgeNode(pComponent.iterator().next().representativeTarget);
 
-      Set<CFAEdgeNode> newPred = new HashSet<>(), newSucc = new HashSet<>();
+      Set<CFAEdgeNode> newPred = new HashSet<>();
+      Set<CFAEdgeNode> newSucc = new HashSet<>();
       for (CFAEdgeNode elem : pComponent) {
         newPred.addAll(elem.predecessors);
         newSucc.addAll(elem.successors);

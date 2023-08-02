@@ -281,7 +281,7 @@ public final class JClassType extends JClassOrInterfaceType {
    *
    * @return <code>true</code> if the class is final, <code>false</code> otherwise
    */
-  public final boolean isFinal() {
+  public boolean isFinal() {
     return isFinal;
   }
 
@@ -290,7 +290,7 @@ public final class JClassType extends JClassOrInterfaceType {
    *
    * @return <code>true</code> if the class is abstract, <code>false</code> otherwise
    */
-  public final boolean isAbstract() {
+  public boolean isAbstract() {
     return isAbstract;
   }
 
@@ -300,18 +300,17 @@ public final class JClassType extends JClassOrInterfaceType {
    * @return <code>true</code> if the class has a strict function pointer, <code>false</code>
    *     otherwise
    */
-  public final boolean isStrictFp() {
+  public boolean isStrictFp() {
     return isStrictFp;
   }
 
-  @Nullable
   /**
    * Returns the super type of this class type. The Super Type of the class Object is <code>null
    * </code>.
    *
    * @return the super type of this class type
    */
-  public final JClassType getParentClass() {
+  public @Nullable JClassType getParentClass() {
     return superClass;
   }
 
@@ -322,7 +321,7 @@ public final class JClassType extends JClassOrInterfaceType {
    * @return a <code>Set</code> containing a <code>JClassType</code> for each sub class that
    *     directly extends the described class
    */
-  public final Set<JClassType> getDirectSubClasses() {
+  public Set<JClassType> getDirectSubClasses() {
     return ImmutableSet.copyOf(directSubClasses);
   }
 
@@ -336,7 +335,7 @@ public final class JClassType extends JClassOrInterfaceType {
    * @return a <code>Set</code> containing a <code>JInterfaceType</code> for each interface directly
    *     implemented by the described class
    */
-  public final Set<JInterfaceType> getImplementedInterfaces() {
+  public Set<JInterfaceType> getImplementedInterfaces() {
     return implementedInterfaces;
   }
 
@@ -357,7 +356,7 @@ public final class JClassType extends JClassOrInterfaceType {
    * @return a <code>Set</code> containing a <code>JClassType</code> for each super class of the
    *     described class
    */
-  public final Set<JClassType> getAllSuperClasses() {
+  public Set<JClassType> getAllSuperClasses() {
 
     Set<JClassType> result = new HashSet<>();
 
@@ -381,7 +380,7 @@ public final class JClassType extends JClassOrInterfaceType {
    * @return a <code>Set</code> containing a <code>JInterfaceType</code> for each interface
    *     implemented by the described class
    */
-  public final Set<JInterfaceType> getAllImplementedInterfaces() {
+  public Set<JInterfaceType> getAllImplementedInterfaces() {
 
     // First, get all super classes of this class,
     // then, get all Implementing Interfaces and superInterfaces
@@ -413,7 +412,7 @@ public final class JClassType extends JClassOrInterfaceType {
    * @return a <code>Set</code> containing a <code>JClassOrInterfaceType</code> for each super type
    *     of the described class
    */
-  public final Set<JClassOrInterfaceType> getAllSuperTypesOfClass() {
+  public Set<JClassOrInterfaceType> getAllSuperTypesOfClass() {
 
     Set<JClassOrInterfaceType> result = new HashSet<>();
     result.addAll(getAllSuperClasses());
@@ -430,7 +429,7 @@ public final class JClassType extends JClassOrInterfaceType {
    * @return a <code>Set</code> containing a <code>JClassType</code> for each sub class that extends
    *     the described class
    */
-  public final Set<JClassType> getAllSubTypesOfClass() {
+  public Set<JClassType> getAllSubTypesOfClass() {
 
     Set<JClassType> result = new HashSet<>(directSubClasses);
 

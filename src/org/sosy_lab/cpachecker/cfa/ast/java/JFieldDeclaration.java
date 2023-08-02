@@ -140,13 +140,9 @@ public final class JFieldDeclaration extends JVariableDeclaration {
       return true;
     }
 
-    if (!(obj instanceof JFieldDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    JFieldDeclaration other = (JFieldDeclaration) obj;
-
-    return other.isStatic == isStatic
+    return obj instanceof JFieldDeclaration other
+        && super.equals(obj)
+        && other.isStatic == isStatic
         && other.isTransient == isTransient
         && other.isVolatile == isVolatile
         && Objects.equals(other.visibility, visibility);

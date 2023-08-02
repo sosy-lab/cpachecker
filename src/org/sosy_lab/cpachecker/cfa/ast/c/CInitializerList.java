@@ -59,13 +59,9 @@ public final class CInitializerList extends AbstractInitializer implements CInit
       return true;
     }
 
-    if (!(obj instanceof CInitializerList) || !super.equals(obj)) {
-      return false;
-    }
-
-    CInitializerList other = (CInitializerList) obj;
-
-    return Objects.equals(other.initializerList, initializerList);
+    return obj instanceof CInitializerList other
+        && super.equals(obj)
+        && Objects.equals(other.initializerList, initializerList);
   }
 
   @Override

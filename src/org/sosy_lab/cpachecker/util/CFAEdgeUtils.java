@@ -67,8 +67,7 @@ public final class CFAEdgeUtils {
 
   public static ALeftHandSide getLeftHandSide(CFAEdge pEdge) {
     if (pEdge instanceof AStatementEdge statementEdge) {
-      if (statementEdge.getStatement() instanceof AAssignment) {
-        AAssignment assignment = (AAssignment) statementEdge.getStatement();
+      if (statementEdge.getStatement() instanceof AAssignment assignment) {
         return assignment.getLeftHandSide();
       }
     } else if (pEdge instanceof FunctionCallEdge functionCallEdge) {
@@ -91,12 +90,11 @@ public final class CFAEdgeUtils {
         }
       }
     } else if (pEdge instanceof CStatementEdge statementEdge) {
-      if (statementEdge.getStatement() instanceof CAssignment) {
-        CAssignment assignment = (CAssignment) statementEdge.getStatement();
+      if (statementEdge.getStatement() instanceof CAssignment assignment) {
         return assignment.getRightHandSide();
       }
     } else if (pEdge instanceof CFunctionCallEdge functionCallEdge) {
-      CFunctionCall functionCall = functionCallEdge.getSummaryEdge().getExpression();
+      CFunctionCall functionCall = functionCallEdge.getFunctionCall();
       if (functionCall instanceof CFunctionCallAssignmentStatement assignment) {
         return assignment.getRightHandSide();
       }

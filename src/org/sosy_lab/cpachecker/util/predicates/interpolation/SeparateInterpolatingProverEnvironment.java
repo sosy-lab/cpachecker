@@ -60,7 +60,7 @@ public class SeparateInterpolatingProverEnvironment<T>
   }
 
   @Override
-  public void push() {
+  public void push() throws InterruptedException {
     itpEnv.push();
   }
 

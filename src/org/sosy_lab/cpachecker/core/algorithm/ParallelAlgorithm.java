@@ -23,6 +23,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -70,7 +71,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CompoundException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.ThreadCpuTimeLimit;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -160,7 +160,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     } finally {
       // Wait some time so that all threads are shut down and we have a happens-before relation
       // (necessary for statistics).
-      if (!awaitTermination(exec, 10, TimeUnit.SECONDS)) {
+      // Time limit here should be somewhat shorter than in ForceTerminationOnShutdown.
+      if (!Uninterruptibles.awaitTerminationUninterruptibly(exec, 8, TimeUnit.SECONDS)) {
         logger.log(Level.WARNING, "Not all threads are terminated although we have a result.");
       }
 
@@ -175,28 +176,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
-  private static boolean awaitTermination(
-      ListeningExecutorService exec, long timeout, TimeUnit unit) {
-    long timeoutNanos = unit.toNanos(timeout);
-    long endNanos = System.nanoTime() + timeoutNanos;
-
-    boolean interrupted = Thread.interrupted();
-    try {
-      while (true) {
-        try {
-          return exec.awaitTermination(timeoutNanos, TimeUnit.NANOSECONDS);
-        } catch (InterruptedException e) {
-          interrupted = false;
-          timeoutNanos = Math.max(0, endNanos - System.nanoTime());
-        }
-      }
-    } finally {
-      if (interrupted) {
-        Thread.currentThread().interrupt();
-      }
-    }
-  }
-
+  @SuppressWarnings("checkstyle:IllegalThrows")
   private void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
       throws InterruptedException, Error, CPAException {
 
@@ -315,10 +295,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
                 null),
             terminated);
     return () -> {
-      // TODO global info will not work correctly with parallel analyses
-      // as it is a mutable singleton object
-      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
       if (algorithm instanceof ConditionAdjustmentEventSubscriber) {
         conditionAdjustmentEventSubscribers.add((ConditionAdjustmentEventSubscriber) algorithm);
       }

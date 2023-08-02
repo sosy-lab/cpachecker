@@ -167,9 +167,8 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
           case FunctionReturnEdge -> {
             final String callerFunctionName = cfaEdge.getSuccessor().getFunctionName();
             final FunctionReturnEdge fnkReturnEdge = (FunctionReturnEdge) cfaEdge;
-            final FunctionSummaryEdge summaryEdge = fnkReturnEdge.getSummaryEdge();
             yield handleFunctionReturnEdge(
-                fnkReturnEdge, summaryEdge, summaryEdge.getExpression(), callerFunctionName);
+                fnkReturnEdge, fnkReturnEdge.getFunctionCall(), callerFunctionName);
           }
           case DeclarationEdge -> {
             final ADeclarationEdge declarationEdge = (ADeclarationEdge) cfaEdge;
@@ -352,22 +351,15 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   /** This function handles functionReturns like "y=f(x)". */
   protected S handleFunctionReturnEdge(
-      FunctionReturnEdge cfaEdge,
-      FunctionSummaryEdge fnkCall,
-      AFunctionCall summaryExpr,
-      String callerFunctionName)
+      FunctionReturnEdge cfaEdge, AFunctionCall summaryExpr, String callerFunctionName)
       throws CPATransferException {
     if (cfaEdge instanceof CFunctionReturnEdge) {
       return handleFunctionReturnEdge(
-          (CFunctionReturnEdge) cfaEdge,
-          (CFunctionSummaryEdge) fnkCall,
-          (CFunctionCall) summaryExpr,
-          callerFunctionName);
+          (CFunctionReturnEdge) cfaEdge, (CFunctionCall) summaryExpr, callerFunctionName);
 
     } else if (cfaEdge instanceof JMethodReturnEdge) {
       return handleFunctionReturnEdge(
           (JMethodReturnEdge) cfaEdge,
-          (JMethodSummaryEdge) fnkCall,
           (JMethodOrConstructorInvocation) summaryExpr,
           callerFunctionName);
 
@@ -380,16 +372,12 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * Handles the {@link CFunctionReturnEdge}
    *
    * @param cfaEdge the edge to handle
-   * @param fnkCall the summary edge of the formerly called function
    * @param summaryExpr the function call
    * @param callerFunctionName the name of the called function
    * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleFunctionReturnEdge(
-      CFunctionReturnEdge cfaEdge,
-      CFunctionSummaryEdge fnkCall,
-      CFunctionCall summaryExpr,
-      String callerFunctionName)
+      CFunctionReturnEdge cfaEdge, CFunctionCall summaryExpr, String callerFunctionName)
       throws CPATransferException {
     return notImplemented();
   }
@@ -398,14 +386,12 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * Handles the {@link JMethodReturnEdge}
    *
    * @param cfaEdge the edge to handle
-   * @param fnkCall the summary edge of the formerly called function
    * @param summaryExpr the function call
    * @param callerFunctionName the name of the called function
    * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleFunctionReturnEdge(
       JMethodReturnEdge cfaEdge,
-      JMethodSummaryEdge fnkCall,
       JMethodOrConstructorInvocation summaryExpr,
       String callerFunctionName)
       throws CPATransferException {
@@ -645,6 +631,6 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
   private S notImplemented() throws AssertionError {
     throw new AssertionError(
-        "this method is not implemented in subclass " + this.getClass().getSimpleName());
+        "this method is not implemented in subclass " + getClass().getSimpleName());
   }
 }

@@ -161,13 +161,11 @@ public class ExpressionToFormulaVisitor
 
     final boolean signed;
     if (calculationType instanceof CSimpleType) {
-      // this only gives the right value for "signed" because calculationType was determined using
-      // getCanonicalType, which e.g. converts a CNumericType.INT into a CNumericType.SIGNED_INT:
       signed = conv.machineModel.isSigned((CSimpleType) calculationType);
-    } else if (calculationType instanceof CPointerType) {
-      // pointers can also be signed if the machine model represents them using a signed type:
-      signed = conv.machineModel.getPointerEquivalentSimpleType().getCanonicalType().isSigned();
     } else {
+      // For pointers: happens only for additions/subtractions (for which signedness is irrelevant)
+      // and comparisons. GCC implements pointer comparisons as unsigned.
+      // For other types like structs signedness should be irrelevant as well.
       signed = false;
     }
 
@@ -396,15 +394,9 @@ public class ExpressionToFormulaVisitor
   @Override
   public Formula visit(CIdExpression idExp) throws UnrecognizedCodeException {
 
-    if (idExp.getDeclaration() instanceof CEnumerator) {
-      CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
+    if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
       CType t = idExp.getExpressionType();
-      if (enumerator.hasValue()) {
-        return mgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
-      } else {
-        // We don't know the value here, but we know it is constant.
-        return conv.makeConstant(enumerator.getName(), t);
-      }
+      return mgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
     }
 
     return conv.makeVariable(
@@ -463,7 +455,7 @@ public class ExpressionToFormulaVisitor
   public Formula visit(CStringLiteralExpression lexp) throws UnrecognizedCodeException {
     // we create a string constant representing the given
     // string literal
-    return conv.makeStringLiteral(lexp.getValue());
+    return conv.makeStringLiteral(lexp.getContentWithNullTerminator());
   }
 
   @Override
@@ -932,9 +924,7 @@ public class ExpressionToFormulaVisitor
             inequalityBuiltin(
                 functionName,
                 parameters,
-                (e1, e2) -> {
-                  return conv.bfmgr.not(fpfmgr.equalWithFPSemantics(e1, e2));
-                },
+                (e1, e2) -> conv.bfmgr.not(fpfmgr.equalWithFPSemantics(e1, e2)),
                 fpfmgr);
 
         if (result != null) {

@@ -63,14 +63,11 @@ public class LocationRecord {
 
   @Override
   public boolean equals(Object o) {
-    if (o == this) {
+    if (this == o) {
       return true;
     }
-    if (!(o instanceof LocationRecord)) {
-      return false;
-    }
-    LocationRecord other = (LocationRecord) o;
-    return fileName.equals(other.fileName)
+    return o instanceof LocationRecord other
+        && fileName.equals(other.fileName)
         && fileHash.equals(other.fileHash)
         && line == other.line
         && column == other.column

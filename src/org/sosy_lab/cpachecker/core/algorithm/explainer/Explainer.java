@@ -59,7 +59,7 @@ public class Explainer extends NestingAlgorithm {
   private enum Metric {
     ADM,
     CFDM,
-    PG;
+    PG,
   }
 
   @Option(
@@ -114,10 +114,10 @@ public class Explainer extends NestingAlgorithm {
       ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
       secondAlg = createAlgorithm(firstStepConfig, cfa, shutdownManager, reached);
       cpa = CPAs.retrieveCPAOrFail(secondAlg.cpa(), PredicateCPA.class, Explainer.class);
-    } catch (IOException pE) {
-      throw new AssertionError(pE);
-    } catch (InvalidConfigurationException pE) {
-      throw new CPAException("First Step Configuration File is invalid", pE);
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    } catch (InvalidConfigurationException e) {
+      throw new CPAException("First Step Configuration File is invalid", e);
     }
 
     currentReached = secondAlg.reached();
@@ -158,7 +158,7 @@ public class Explainer extends NestingAlgorithm {
             .transform(x -> AbstractStates.extractStateByType(x, ARGState.class))
             .filter(x -> x.getChildren().isEmpty())
             .filter(x -> !x.isTarget())
-            .filter(x -> x.wasExpanded())
+            .filter(ARGState::wasExpanded)
             .toList();
 
     ARGState rootNode =

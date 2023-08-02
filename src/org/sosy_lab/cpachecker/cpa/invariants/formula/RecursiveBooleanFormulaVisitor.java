@@ -20,7 +20,7 @@ abstract class RecursiveBooleanFormulaVisitor<T>
 
   protected RecursiveBooleanFormulaVisitor(
       RecursiveNumeralFormulaVisitor<T> pRecursiveNumeralFormulaVisitor) {
-    this.recursiveNumeralFormulaVisitor = pRecursiveNumeralFormulaVisitor;
+    recursiveNumeralFormulaVisitor = pRecursiveNumeralFormulaVisitor;
   }
 
   /**

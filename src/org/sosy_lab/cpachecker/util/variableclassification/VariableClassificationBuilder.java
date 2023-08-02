@@ -71,7 +71,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -251,8 +250,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
             intEqualPartitions,
             intAddPartitions,
             dependencies.edgeToPartition,
-            extractAssumedVariables(cfa.getAllNodes()),
-            extractAssignedVariables(cfa.getAllNodes()));
+            extractAssumedVariables(cfa.nodes()),
+            extractAssignedVariables(cfa.nodes()));
     stats.buildTimer.stop();
 
     stats.exportTimer.start();
@@ -308,7 +307,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
         {"intBoolVarsRelevant", countNumberOfRelevantVars(vc.getIntBoolVars())},
         {"intEqualVarsRelevant", countNumberOfRelevantVars(vc.getIntEqualVars())},
         {"intAddVarsRelevant", countNumberOfRelevantVars(vc.getIntAddVars())},
-        {"allVarsRelevant", countNumberOfRelevantVars(allVars)}
+        {"allVarsRelevant", countNumberOfRelevantVars(allVars)},
       };
       // Write header
       for (int col = 0; col < statMapping.length; col++) {
@@ -403,7 +402,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
    * different sets, i.e. nonBoolean and nonIntEuqalNumber.
    */
   private void collectVars(CFA cfa) throws UnrecognizedCodeException {
-    Collection<CFANode> nodes = cfa.getAllNodes();
+    Collection<CFANode> nodes = cfa.nodes();
     VarFieldDependencies varFieldDependencies = VarFieldDependencies.emptyDependencies();
     for (CFANode node : nodes) {
       for (CFAEdge edge : leavingEdges(node)) {
@@ -572,7 +571,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     // "connect" the edge with its partition
     Set<String> var = Sets.newHashSetWithExpectedSize(1);
     var.add(varName);
-    dependencies.addAll(var, new HashSet<BigInteger>(), edge, 0);
+    dependencies.addAll(var, new HashSet<>(), edge, 0);
 
     // only simple types (int, long) are allowed for booleans, ...
     if (!(vdecl.getType() instanceof CSimpleType)) {
@@ -727,8 +726,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     }
 
     // create dependency for functionreturn
-    CFunctionSummaryEdge func = edge.getSummaryEdge();
-    CFunctionCall statement = func.getExpression();
+    CFunctionCall statement = edge.getFunctionCall();
     Optional<CVariableDeclaration> returnVar = edge.getSuccessor().getReturnVariable();
     if (returnVar.isPresent()) {
       String scopedRetVal = returnVar.orElseThrow().getQualifiedName();

@@ -16,7 +16,22 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * A binary {@link SymbolicExpression}. Represents all <code>SymbolicExpression</code>s that consist
  * of two operands.
  */
-public abstract class BinarySymbolicExpression extends SymbolicExpression {
+public abstract sealed class BinarySymbolicExpression extends SymbolicExpression
+    permits AdditionExpression,
+        BinaryAndExpression,
+        BinaryOrExpression,
+        BinaryXorExpression,
+        DivisionExpression,
+        EqualsExpression,
+        LessThanExpression,
+        LessThanOrEqualExpression,
+        LogicalAndExpression,
+        LogicalOrExpression,
+        ModuloExpression,
+        MultiplicationExpression,
+        ShiftLeftExpression,
+        ShiftRightExpression,
+        SubtractionExpression {
 
   private static final long serialVersionUID = -5708374107141557273L;
 

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.statistics.provider;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -33,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.statistics.provider.SimpleIntProvider.IntMerger;
 import org.sosy_lab.cpachecker.cpa.statistics.provider.SimpleIntProvider.SimpleIntProviderImplementation;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -41,27 +41,26 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 /** This factory class provides a lot of StatisticsProvider. */
 public class SimpleIntProviderFactory {
 
-  public interface Counter<T> {
-    int count(T e);
-  }
   /**
-   * Helper method to count expressions. See the other countExpressions overload for more
+   * Helper method to count matching expressions. See the other countExpressions overload for more
    * information.
    */
-  private static int countExpressions(CAstNode pExpression, Counter<CExpression> counter) {
-    return CFAUtils.traverseRecursively(pExpression).filter(CExpression.class).stream()
-        .mapToInt(counter::count)
-        .sum();
+  private static int countExpressions(CAstNode pExpression, Predicate<CExpression> matcher) {
+    return CFAUtils.traverseRecursively(pExpression)
+        .filter(CExpression.class)
+        .filter(matcher)
+        .size();
   }
 
-  /** Helper method for counting declarations. */
-  private static int countDeclarations(CFAEdge pEdge, Counter<CDeclaration> counter) {
-    int count = 0;
+  /** Helper method for counting matching declarations. */
+  private static int countDeclarations(CFAEdge pEdge, Predicate<CDeclaration> matcher) {
     switch (pEdge.getEdgeType()) {
       case DeclarationEdge:
         CDeclarationEdge declEdge = (CDeclarationEdge) pEdge;
         CDeclaration decl = declEdge.getDeclaration();
-        count += counter.count(decl);
+        if (matcher.apply(decl)) {
+          return 1;
+        }
         break;
 
       default:
@@ -69,15 +68,15 @@ public class SimpleIntProviderFactory {
         break;
     }
 
-    return count;
+    return 0;
   }
 
   /**
-   * Counts some property within the expression tree, note that counter must handle only one single
-   * CExpression instance. This method ensures that counter.count is called on every Expression in
+   * Counts some property within the expression tree, note that matcher must handle only one single
+   * CExpression instance. This method ensures that matcher.apply is called on every Expression in
    * the current Expression tree (given by pEdge).
    */
-  private static int countExpressions(CFAEdge pEdge, final Counter<CExpression> counter) {
+  private static int countExpressions(CFAEdge pEdge, final Predicate<CExpression> matcher) {
     int count = 0;
     switch (pEdge.getEdgeType()) {
       case DeclarationEdge:
@@ -86,18 +85,18 @@ public class SimpleIntProviderFactory {
         if (decl instanceof CVariableDeclaration varDecl) {
           CInitializer init = varDecl.getInitializer();
           if (init != null) {
-            count += countExpressions(init, counter);
+            count += countExpressions(init, matcher);
           }
         }
         break;
       case AssumeEdge:
         CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
-        count += countExpressions(assumeEdge.getExpression(), counter);
+        count += countExpressions(assumeEdge.getExpression(), matcher);
         break;
       case FunctionCallEdge:
         CFunctionCallEdge fcallEdge = (CFunctionCallEdge) pEdge;
         for (CExpression arg : fcallEdge.getArguments()) {
-          count += countExpressions(arg, counter);
+          count += countExpressions(arg, matcher);
         }
 
         break;
@@ -105,13 +104,13 @@ public class SimpleIntProviderFactory {
         CStatementEdge stmtEdge = (CStatementEdge) pEdge;
 
         CStatement stmt = stmtEdge.getStatement();
-        count += countExpressions(stmt, counter);
+        count += countExpressions(stmt, matcher);
         break;
       case ReturnStatementEdge:
         CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
 
         if (returnEdge.getExpression().isPresent()) {
-          count += countExpressions(returnEdge.getExpression().orElseThrow(), counter);
+          count += countExpressions(returnEdge.getExpression().orElseThrow(), matcher);
         }
         break;
 
@@ -316,16 +315,7 @@ public class SimpleIntProviderFactory {
         public int calculateNext(int pCurrent, CFAEdge pEdge) {
           return pCurrent
               + countDeclarations(
-                  pEdge,
-                  new Counter<CDeclaration>() {
-                    @Override
-                    public int count(CDeclaration pE) {
-                      if (pE instanceof CFunctionDeclaration) {
-                        return 1;
-                      }
-                      return 0;
-                    }
-                  });
+                  pEdge, declaration -> declaration instanceof CFunctionDeclaration);
         }
       };
 
@@ -344,18 +334,7 @@ public class SimpleIntProviderFactory {
         public int calculateNext(int pCurrent, CFAEdge edge) {
           return pCurrent
               + countDeclarations(
-                  edge,
-                  new Counter<CDeclaration>() {
-                    @Override
-                    public int count(CDeclaration declaration) {
-                      if (declaration instanceof CVariableDeclaration) {
-                        if (!declaration.isGlobal()) {
-                          return 1;
-                        }
-                      }
-                      return 0;
-                    }
-                  });
+                  edge, decl -> decl instanceof CVariableDeclaration && !decl.isGlobal());
         }
       };
 
@@ -374,18 +353,7 @@ public class SimpleIntProviderFactory {
         public int calculateNext(int pCurrent, CFAEdge edge) {
           return pCurrent
               + countDeclarations(
-                  edge,
-                  new Counter<CDeclaration>() {
-                    @Override
-                    public int count(CDeclaration declaration) {
-                      if (declaration instanceof CVariableDeclaration) {
-                        if (declaration.isGlobal()) {
-                          return 1;
-                        }
-                      }
-                      return 0;
-                    }
-                  });
+                  edge, decl -> decl instanceof CVariableDeclaration && decl.isGlobal());
         }
       };
 
@@ -405,17 +373,9 @@ public class SimpleIntProviderFactory {
           return pCurrent
               + countDeclarations(
                   edge,
-                  new Counter<CDeclaration>() {
-                    @Override
-                    public int count(CDeclaration declaration) {
-                      if (declaration instanceof CVariableDeclaration) {
-                        if (declaration.getType().getCanonicalType() instanceof CCompositeType) {
-                          return 1;
-                        }
-                      }
-                      return 0;
-                    }
-                  });
+                  declaration ->
+                      declaration instanceof CVariableDeclaration
+                          && declaration.getType().getCanonicalType() instanceof CCompositeType);
         }
       };
 
@@ -435,17 +395,9 @@ public class SimpleIntProviderFactory {
           return pCurrent
               + countDeclarations(
                   edge,
-                  new Counter<CDeclaration>() {
-                    @Override
-                    public int count(CDeclaration declaration) {
-                      if (declaration instanceof CVariableDeclaration) {
-                        if (declaration.getType().getCanonicalType() instanceof CPointerType) {
-                          return 1;
-                        }
-                      }
-                      return 0;
-                    }
-                  });
+                  declaration ->
+                      declaration instanceof CVariableDeclaration
+                          && declaration.getType().getCanonicalType() instanceof CPointerType);
         }
       };
 
@@ -465,17 +417,9 @@ public class SimpleIntProviderFactory {
           return pCurrent
               + countDeclarations(
                   edge,
-                  new Counter<CDeclaration>() {
-                    @Override
-                    public int count(CDeclaration declaration) {
-                      if (declaration instanceof CVariableDeclaration) {
-                        if (declaration.getType().getCanonicalType() instanceof CArrayType) {
-                          return 1;
-                        }
-                      }
-                      return 0;
-                    }
-                  });
+                  declaration ->
+                      declaration instanceof CVariableDeclaration
+                          && declaration.getType().getCanonicalType() instanceof CArrayType);
         }
       };
 
@@ -495,20 +439,11 @@ public class SimpleIntProviderFactory {
           return pCurrent
               + countDeclarations(
                   edge,
-                  new Counter<CDeclaration>() {
-                    @Override
-                    public int count(CDeclaration declaration) {
-                      if (declaration instanceof CVariableDeclaration) {
-                        CType canonical = declaration.getType().getCanonicalType();
-                        if ((canonical instanceof CSimpleType simple)
-                            && (simple.getType() == CBasicType.INT
-                                || simple.getType() == CBasicType.CHAR)) {
-                          return 1;
-                        }
-                      }
-                      return 0;
-                    }
-                  });
+                  decl ->
+                      decl instanceof CVariableDeclaration
+                          && decl.getType().getCanonicalType() instanceof CSimpleType type
+                          && (type.getType() == CBasicType.INT
+                              || type.getType() == CBasicType.CHAR));
         }
       };
 
@@ -528,20 +463,11 @@ public class SimpleIntProviderFactory {
           return pCurrent
               + countDeclarations(
                   edge,
-                  new Counter<CDeclaration>() {
-                    @Override
-                    public int count(CDeclaration declaration) {
-                      if (declaration instanceof CVariableDeclaration) {
-                        CType canonical = declaration.getType().getCanonicalType();
-                        if ((canonical instanceof CSimpleType simple)
-                            && (simple.getType() == CBasicType.FLOAT
-                                || simple.getType() == CBasicType.DOUBLE)) {
-                          return 1;
-                        }
-                      }
-                      return 0;
-                    }
-                  });
+                  decl ->
+                      decl instanceof CVariableDeclaration
+                          && decl.getType().getCanonicalType() instanceof CSimpleType type
+                          && (type.getType() == CBasicType.FLOAT
+                              || type.getType() == CBasicType.DOUBLE));
         }
       };
 
@@ -556,10 +482,8 @@ public class SimpleIntProviderFactory {
       case BINARY_XOR:
       case SHIFT_LEFT:
       case SHIFT_RIGHT:
-        {
-          // TODO: check if custom overload (ie no real bitwise operation) = types are ok
-          return true;
-        }
+        // TODO: check if custom overload (ie no real bitwise operation) = types are ok
+        return true;
       default:
         break;
     }
@@ -578,16 +502,8 @@ public class SimpleIntProviderFactory {
           return pCurrent
               + countExpressions(
                   edge,
-                  new Counter<CExpression>() {
-                    @Override
-                    public int count(CExpression pExpression) {
-                      if ((pExpression instanceof CBinaryExpression binexp)
-                          && isBitwiseOperation(binexp)) {
-                        return 1;
-                      }
-                      return 0;
-                    }
-                  });
+                  expression ->
+                      expression instanceof CBinaryExpression binexp && isBitwiseOperation(binexp));
         }
       };
 
@@ -605,17 +521,7 @@ public class SimpleIntProviderFactory {
         @Override
         public int calculateNext(int pCurrent, CFAEdge edge) {
           return pCurrent
-              + countExpressions(
-                  edge,
-                  new Counter<CExpression>() {
-                    @Override
-                    public int count(CExpression pExpression) {
-                      if (pExpression instanceof CPointerExpression) {
-                        return 1;
-                      }
-                      return 0;
-                    }
-                  });
+              + countExpressions(edge, expression -> expression instanceof CPointerExpression);
         }
       };
 
@@ -661,10 +567,8 @@ public class SimpleIntProviderFactory {
       case MODULO:
       case MULTIPLY:
       case PLUS:
-        {
-          // TODO: check if custom overload (ie no real arithmetic operation) = types are ok
-          return true;
-        }
+        // TODO: check if custom overload (ie no real arithmetic operation) = types are ok
+        return true;
       default:
         break;
     }
@@ -683,16 +587,7 @@ public class SimpleIntProviderFactory {
           return pCurrent
               + countExpressions(
                   edge,
-                  new Counter<CExpression>() {
-                    @Override
-                    public int count(CExpression pExpression) {
-                      if ((pExpression instanceof CBinaryExpression binexp)
-                          && isArithmeticOperation(binexp)) {
-                        return 1;
-                      }
-                      return 0;
-                    }
-                  });
+                  exp -> exp instanceof CBinaryExpression binexp && isArithmeticOperation(binexp));
         }
       };
 

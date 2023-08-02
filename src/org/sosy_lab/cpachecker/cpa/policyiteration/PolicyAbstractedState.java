@@ -235,11 +235,8 @@ public final class PolicyAbstractedState extends PolicyState
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof PolicyAbstractedState)) {
-      return false;
-    }
-    PolicyAbstractedState entries = (PolicyAbstractedState) pO;
-    return Objects.equals(upperBounds, entries.upperBounds)
+    return pO instanceof PolicyAbstractedState entries
+        && Objects.equals(upperBounds, entries.upperBounds)
         && Objects.equals(ssaMap, entries.ssaMap)
         && Objects.equals(pointerTargetSet, entries.pointerTargetSet)
         && Objects.equals(extraInvariant, entries.extraInvariant)

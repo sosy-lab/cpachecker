@@ -15,6 +15,7 @@ public final class SMGSingleLinkedListShape implements Comparable<SMGSingleLinke
 
   /** head field offset */
   private final long hfo;
+
   /** next field offset */
   private final long nfo;
 
@@ -33,10 +34,7 @@ public final class SMGSingleLinkedListShape implements Comparable<SMGSingleLinke
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     SMGSingleLinkedListShape other = (SMGSingleLinkedListShape) obj;

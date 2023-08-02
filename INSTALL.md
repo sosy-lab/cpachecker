@@ -13,6 +13,12 @@ CPAchecker Installation
 
 For information on how to run CPAchecker, see [`README.md`](README.md).
 
+Note that right now CPAchecker works best on Linux (64-bit x86)
+because not for all external dependencies native binaries
+are supplied for other platforms.
+So some configurations or features might not work on other platforms.
+
+
 Install CPAchecker -- Binary
 ----------------------------
 

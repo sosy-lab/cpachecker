@@ -59,7 +59,7 @@ public class Constraint {
     vars.put(var, t);
   }
 
-  public void addVars(HashMap<String, Term> pVars) {
+  public void addVars(Map<String, Term> pVars) {
     vars.putAll(pVars);
   }
 
@@ -105,11 +105,7 @@ public class Constraint {
   }
 
   public static boolean isFalse(String cr) {
-    if (cr.equals("'.'(false, [])")) {
-      return true;
-    } else {
-      return false;
-    }
+    return cr.equals("'.'(false, [])");
   }
 
   public void setTrue() {

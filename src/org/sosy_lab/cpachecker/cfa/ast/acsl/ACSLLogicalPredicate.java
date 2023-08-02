@@ -111,8 +111,10 @@ public final class ACSLLogicalPredicate extends ACSLPredicate {
 
   @Override
   public boolean equals(Object o) {
-    if ((o instanceof ACSLLogicalPredicate other)
-        && (super.equals(o) && operator.equals(other.operator))) {
+    if (o instanceof ACSLLogicalPredicate other
+        && super.equals(o)
+        && operator.equals(other.operator)) {
+      // Some operators are commutative.
       return (left.equals(other.left) && right.equals(other.right))
           || (ACSLBinaryOperator.isCommutative(operator)
               && left.equals(other.right)

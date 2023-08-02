@@ -46,8 +46,7 @@ public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
 
   public static SMGPrefixProvider create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    @NonNull
-    SMGCPA smgCpa =
+    @NonNull SMGCPA smgCpa =
         CPAs.retrieveCPAOrFail(pCpa, SMGCPA.class, ValueAnalysisDelegatingRefiner.class);
     return new SMGPrefixProvider(
         smgCpa.getLogger(),

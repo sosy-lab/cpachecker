@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * Extending SMG with notions specific for programs in C language: - separation of global, heap and
  * stack objects - null object and value
  */
-public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
+public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
   /** A container for object found on the stack: - local variables - parameters */
   private PersistentStack<CLangStackFrame> stack_objects = PersistentStack.of();

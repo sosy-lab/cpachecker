@@ -16,7 +16,11 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** An expression containing {@link SymbolicValue}s. */
-public abstract class SymbolicExpression implements SymbolicValue {
+public abstract sealed class SymbolicExpression implements SymbolicValue
+    permits AddressExpression,
+        BinarySymbolicExpression,
+        ConstantSymbolicExpression,
+        UnarySymbolicExpression {
 
   private static final long serialVersionUID = 2228733300503173691L;
 

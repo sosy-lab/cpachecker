@@ -98,10 +98,8 @@ public class NodeMapping {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof NodeMapping)) {
-      return false;
-    }
-    NodeMapping other = (NodeMapping) obj;
-    return Objects.equals(objectMap, other.objectMap) && Objects.equals(valueMap, other.valueMap);
+    return obj instanceof NodeMapping other
+        && Objects.equals(objectMap, other.objectMap)
+        && Objects.equals(valueMap, other.valueMap);
   }
 }

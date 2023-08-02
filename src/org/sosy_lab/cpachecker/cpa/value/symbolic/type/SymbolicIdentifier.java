@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.primitives.Longs;
 import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -127,7 +126,7 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
 
   @Override
   public int compareTo(SymbolicIdentifier o) {
-    return Longs.compare(getId(), o.getId());
+    return Long.compare(getId(), o.getId());
   }
 
   /**

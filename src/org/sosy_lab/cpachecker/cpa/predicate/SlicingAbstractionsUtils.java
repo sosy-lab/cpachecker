@@ -239,7 +239,7 @@ public class SlicingAbstractionsUtils {
     }
 
     // Now we need to reverse the segments so that they are in correct order:
-    return ImmutableMap.copyOf(Maps.transformValues(segmentMap, segment -> segment.reversed()));
+    return ImmutableMap.copyOf(Maps.transformValues(segmentMap, PersistentList::reversed));
   }
 
   private static Collection<ARGState> nonAbstractionReach(ARGState pOriginState) {
@@ -663,7 +663,7 @@ public class SlicingAbstractionsUtils {
     }
 
     final ImmutableList<ARGState> abstractionStatesOnErrorPath =
-        from(path.asStatesList()).filter(x -> isAbstractionState(x)).toList();
+        from(path.asStatesList()).filter(SlicingAbstractionsUtils::isAbstractionState).toList();
 
     final Set<ARGState> statesOnErrorPath = new HashSet<>(abstractionStatesOnErrorPath);
 

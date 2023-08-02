@@ -49,7 +49,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  * a tree, but for special cases the graph contains loops (-> recursion) or several root-nodes (->
  * one for each unused function).
  */
-public class FunctionCallDumper {
+public final class FunctionCallDumper {
+
+  private FunctionCallDumper() {}
 
   /**
    * This method iterates over the CFA, searches for function calls and after that, dumps them in a
@@ -63,7 +65,7 @@ public class FunctionCallDumper {
 
     // get all function calls
     final CFAFunctionCallFinder finder = new CFAFunctionCallFinder(pCfa);
-    for (final FunctionEntryNode entryNode : pCfa.getAllFunctionHeads()) {
+    for (final FunctionEntryNode entryNode : pCfa.entryNodes()) {
       CFATraversal.dfs().ignoreFunctionCalls().traverseOnce(entryNode, finder);
     }
 
@@ -111,17 +113,19 @@ public class FunctionCallDumper {
       final Set<String> functionNames,
       final String calleeFunctionName,
       final String callee) {
-    String label = calleeFunctionName;
+    StringBuilder label = new StringBuilder(calleeFunctionName);
     Collection<String> origNames = finder.originalNames.get(calleeFunctionName);
     origNames.remove(calleeFunctionName);
     if (!origNames.isEmpty()) {
-      label += "\\n(" + Joiner.on(", ").join(origNames) + ")";
+      label.append("\\n(");
+      Joiner.on(", ").appendTo(label, origNames);
+      label.append(")");
     }
     // different format for call to external function
     final String format =
         functionNames.contains(calleeFunctionName) ? "" : "shape=\"box\", color=grey";
     return String.format(
-        "%s [label=\"%s\", %s];%n", callee, escapeGraphvizLabel(label, " "), format);
+        "%s [label=\"%s\", %s];%n", callee, escapeGraphvizLabel(label.toString(), " "), format);
   }
 
   /**
@@ -242,9 +246,7 @@ public class FunctionCallDumper {
           }
 
         case FunctionCallEdge:
-          {
-            throw new AssertionError("traversal-strategy should ignore functioncalls");
-          }
+          throw new AssertionError("traversal-strategy should ignore functioncalls");
 
         default:
           // nothing to do

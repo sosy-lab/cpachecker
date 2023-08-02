@@ -82,6 +82,18 @@ public class WitnessOptions {
               + " careful when using this option.")
   private boolean produceInvariantWitnesses = false;
 
+  @Option(
+      secure = true,
+      description = "Export invariants in correctness witness also if location was not explored")
+  private boolean exportInvariantsForNonExploredStates = true;
+
+  @Option(
+      secure = true,
+      description =
+          "Export witness that is a combination of multiple (partial) correctness witnesses, do not"
+              + " export default invariants")
+  private boolean exportJointWitnesses = false;
+
   boolean exportFunctionCallsAndReturns() {
     return exportFunctionCallsAndReturns;
   }
@@ -132,5 +144,13 @@ public class WitnessOptions {
 
   public boolean produceInvariantWitnesses() {
     return produceInvariantWitnesses;
+  }
+
+  boolean exportInvariantsForNonExploredStates() {
+    return exportInvariantsForNonExploredStates;
+  }
+
+  boolean exportJointWitnesses() {
+    return exportJointWitnesses;
   }
 }

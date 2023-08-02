@@ -75,13 +75,9 @@ public final class CArrayRangeDesignator extends CDesignator {
       return true;
     }
 
-    if (!(obj instanceof CArrayRangeDesignator) || !super.equals(obj)) {
-      return false;
-    }
-
-    CArrayRangeDesignator other = (CArrayRangeDesignator) obj;
-
-    return Objects.equals(other.rangeCeiling, rangeCeiling)
+    return obj instanceof CArrayRangeDesignator other
+        && super.equals(obj)
+        && Objects.equals(other.rangeCeiling, rangeCeiling)
         && Objects.equals(other.rangeFloor, rangeFloor);
   }
 }

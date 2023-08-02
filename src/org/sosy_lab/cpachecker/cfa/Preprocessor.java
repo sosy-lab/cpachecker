@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
@@ -150,7 +151,7 @@ public abstract class Preprocessor {
   protected abstract String getDumpFileOfFile(String file);
 
   private String getCapitalizedName() {
-    return getName().substring(0, 1).toUpperCase() + getName().substring(1);
+    return Ascii.toUpperCase(getName().charAt(0)) + getName().substring(1);
   }
 
   private static class PreprocessorExecutor extends ProcessExecutor<IOException> {

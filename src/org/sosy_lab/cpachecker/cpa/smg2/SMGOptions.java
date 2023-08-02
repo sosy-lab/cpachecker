@@ -25,6 +25,16 @@ public class SMGOptions {
   @Option(
       secure = true,
       description =
+          "with this option enabled, memory addresses (pointers) are transformed into a numeric"
+              + " assumption upon casting the pointer to a number. This assumption can be returned"
+              + " to a proper pointer by casting it back. This enables numeric operations beyond"
+              + " pointer arithmetics, but loses precision for comparisons/assumptions, as the"
+              + " numeric assumption is static. May be unsound!")
+  private boolean castMemoryAddressesToNumeric = false;
+
+  @Option(
+      secure = true,
+      description =
           "with this option enabled, a check for unreachable memory occurs whenever a function"
               + " returns, and not only at the end of the main function")
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
@@ -80,7 +90,7 @@ public class SMGOptions {
       name = "memoryAllocationFunctions",
       description = "Memory allocation functions")
   private ImmutableSet<String> memoryAllocationFunctions =
-      ImmutableSet.of("malloc", "__kmalloc", "kmalloc", "realloc");
+      ImmutableSet.of("malloc", "__kmalloc", "kmalloc");
 
   @Option(
       secure = true,
@@ -247,7 +257,28 @@ public class SMGOptions {
       description =
           "If this option is enabled, a memory allocation (e.g. malloc or array declaration) for "
               + "unknown memory sizes does not abort, but also does not create any memory.")
-  private boolean ignoreUnknownMemoryAllocation = false;
+  private UnknownMemoryAllocationHandling handleUnknownMemoryAllocation =
+      UnknownMemoryAllocationHandling.IGNORE;
+
+  /*
+   * Ignore: ignore allocation call and overapproximate.
+   * Memory_error: same as ignore but with an added memory error. (Needed in CEGAR, as else we
+   * would never learn that the allocation size and or other variables are important.)
+   * Stop_analysis: stops the analysis, returning unknown.
+   */
+  public enum UnknownMemoryAllocationHandling {
+    IGNORE,
+    MEMORY_ERROR,
+    STOP_ANALYSIS
+  }
+
+  @Option(
+      secure = true,
+      description =
+          "If this option is enabled, a call to malloc with value zero results in a return value "
+              + "that is equal to zero. If this option is disabled, a non-zero memory section"
+              + " that may not be accessed but freed is returned.")
+  private boolean mallocZeroReturnsZero = false;
 
   public enum SMGExportLevel {
     NEVER,
@@ -260,8 +291,26 @@ public class SMGOptions {
     config.inject(this);
   }
 
+  private UnknownMemoryAllocationHandling getIgnoreUnknownMemoryAllocationSetting() {
+    return handleUnknownMemoryAllocation;
+  }
+
   public boolean isIgnoreUnknownMemoryAllocation() {
-    return ignoreUnknownMemoryAllocation;
+    return getIgnoreUnknownMemoryAllocationSetting() == UnknownMemoryAllocationHandling.IGNORE;
+  }
+
+  public boolean isErrorOnUnknownMemoryAllocation() {
+    return getIgnoreUnknownMemoryAllocationSetting()
+        == UnknownMemoryAllocationHandling.MEMORY_ERROR;
+  }
+
+  public boolean isStopAnalysisOnUnknownMemoryAllocation() {
+    return getIgnoreUnknownMemoryAllocationSetting()
+        == UnknownMemoryAllocationHandling.STOP_ANALYSIS;
+  }
+
+  public boolean isMallocZeroReturnsZero() {
+    return mallocZeroReturnsZero;
   }
 
   boolean isOptimizeBooleanVariables() {
@@ -282,6 +331,10 @@ public class SMGOptions {
 
   public boolean isEnableMallocFailure() {
     return enableMallocFailure;
+  }
+
+  public boolean isCastMemoryAddressesToNumeric() {
+    return castMemoryAddressesToNumeric;
   }
 
   public UnknownFunctionHandling getHandleUnknownFunctions() {

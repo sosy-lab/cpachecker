@@ -99,10 +99,6 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression
       return true;
     }
 
-    if (!(obj instanceof CFloatLiteralExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CFloatLiteralExpression && super.equals(obj);
   }
 }

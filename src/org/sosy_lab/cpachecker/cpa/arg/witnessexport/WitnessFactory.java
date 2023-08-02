@@ -10,11 +10,13 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
+import com.google.common.base.Ascii;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -95,6 +97,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.cpa.acsl.ACSLState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition.Scope;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
@@ -119,6 +122,7 @@ import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 
 class WitnessFactory implements EdgeAppender {
 
@@ -147,7 +151,7 @@ class WitnessFactory implements EdgeAppender {
   }
 
   private static boolean isTmpVariable(AIdExpression exp) {
-    return exp.getDeclaration().getQualifiedName().toUpperCase().contains("__CPACHECKER_TMP");
+    return Ascii.toUpperCase(exp.getDeclaration().getQualifiedName()).contains("__CPACHECKER_TMP");
   }
 
   private final WitnessOptions witnessOptions;
@@ -587,9 +591,7 @@ class WitnessFactory implements EdgeAppender {
           result = result.withScope(scope);
 
           if (!expressions.isEmpty()) {
-            code.add(
-                factory.and(
-                    Collections2.transform(expressions, pExpr -> LeafExpression.of(pExpr))));
+            code.add(factory.and(Collections2.transform(expressions, LeafExpression::of)));
           }
         }
       }
@@ -1042,7 +1044,7 @@ class WitnessFactory implements EdgeAppender {
           if (!faults.isEmpty()) {
             Fault bestFault = faults.get(0);
             FluentIterable.from(bestFault)
-                .transform(fc -> fc.correspondingEdge())
+                .transform(FaultContribution::correspondingEdge)
                 .copyInto(edgesInFault);
             edgesInFault.addAll(
                 fInfo.getTraceFormula().getPrecondition().getEdgesForPrecondition());
@@ -1381,7 +1383,7 @@ class WitnessFactory implements EdgeAppender {
         transformedImmutableSetCopy(
             Multimaps.filterValues(edgeToCFAEdges, cfaEdge -> edgesInFault.contains(cfaEdge))
                 .keySet(),
-            e -> e.getSource());
+            Edge::getSource);
 
     // not irrelevant if it is an edge to a sink node and the source node is part of the fault
     if (pEdge.getTarget().equals(SINK_NODE_ID) && importantNodes.contains(pEdge.getSource())) {
@@ -1760,6 +1762,20 @@ class WitnessFactory implements EdgeAppender {
   }
 
   private boolean exportInvariant(CFAEdge pEdge, Optional<Collection<ARGState>> pFromState) {
+    if (!witnessOptions.exportInvariantsForNonExploredStates() && !pFromState.isPresent()) {
+      return false;
+    }
+
+    return exportInvariant0(pEdge, pFromState)
+        && (!witnessOptions.exportJointWitnesses()
+            || (pFromState.isPresent()
+                && from(pFromState.orElseThrow())
+                    .transformAndConcat(AbstractStates::asIterable)
+                    .filter(AutomatonState.class)
+                    .anyMatch(state -> !state.hasDefaultCandidateInvariants())));
+  }
+
+  private boolean exportInvariant0(CFAEdge pEdge, Optional<Collection<ARGState>> pFromState) {
     if (pFromState.isPresent()
         && pFromState.orElseThrow().stream()
             .map(AbstractStates.toState(PredicateAbstractState.class))
@@ -1790,7 +1806,7 @@ class WitnessFactory implements EdgeAppender {
             CFAUtils.enteringEdges(referenceNode)
                 .filter(AssumeEdge.class)
                 .transform(CFAEdge::getPredecessor))
-        .anyMatch(n -> isInLoopProximity(n));
+        .anyMatch(this::isInLoopProximity);
   }
 
   /**
@@ -1807,7 +1823,7 @@ class WitnessFactory implements EdgeAppender {
     visited.add(pReferenceNode);
 
     Predicate<CFAEdge> epsilonEdge = edge -> !(edge instanceof AssumeEdge);
-    java.util.function.Predicate<CFANode> loopProximity = pNode -> pNode.isLoopStart();
+    java.util.function.Predicate<CFANode> loopProximity = CFANode::isLoopStart;
     if (cfa.getAllLoopHeads().isPresent()) {
       loopProximity =
           loopProximity.and(pNode -> cfa.getAllLoopHeads().orElseThrow().contains(pNode));
@@ -1829,7 +1845,7 @@ class WitnessFactory implements EdgeAppender {
       for (CFAEdge enteringEdge : CFAUtils.enteringEdges(currentNode).filter(epsilonEdge)) {
         CFANode predecessor = enteringEdge.getPredecessor();
         if (visited.add(predecessor)) {
-          waitlist.push(ImmutableList.<CFANode>builder().addAll(current).add(predecessor).build());
+          waitlist.push(listAndElement(current, predecessor));
           // isFirst = false;
         }
       }
@@ -1958,10 +1974,9 @@ class WitnessFactory implements EdgeAppender {
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof LoopEntryInfo other) {
-        return Objects.equals(getLoopHead(), other.getLoopHead()) && gotoLoop == other.gotoLoop;
-      }
-      return false;
+      return pOther instanceof LoopEntryInfo other
+          && Objects.equals(getLoopHead(), other.getLoopHead())
+          && gotoLoop == other.gotoLoop;
     }
 
     @Override

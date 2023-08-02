@@ -144,12 +144,9 @@ public class Block {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof Block)) {
-      return false;
-    }
-    Block other = (Block) o;
     // optimization: first compare the smaller collections like call- or return-nodes
-    return callNodes.equals(other.callNodes)
+    return o instanceof Block other
+        && callNodes.equals(other.callNodes)
         && returnNodes.equals(other.returnNodes)
         && nodes.equals(other.nodes)
         && referencedVariables.equals(other.referencedVariables);

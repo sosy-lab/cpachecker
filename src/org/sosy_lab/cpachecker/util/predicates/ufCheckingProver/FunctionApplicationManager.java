@@ -44,41 +44,23 @@ public class FunctionApplicationManager {
 
     switch (functionName) {
       case "Integer__*_":
-        {
-          return INTEGER_MULT.apply(entry, value);
-        }
+        return INTEGER_MULT.apply(entry, value);
       case "Integer__/_":
-        {
-          return INTEGER_DIV.apply(entry, value);
-        }
+        return INTEGER_DIV.apply(entry, value);
       case "Integer__%_":
-        {
-          return INTEGER_MOD.apply(entry, value);
-        }
+        return INTEGER_MOD.apply(entry, value);
       case "_<<_":
-        {
-          return INTEGER_SHIFT_LEFT.apply(entry, value);
-        }
+        return INTEGER_SHIFT_LEFT.apply(entry, value);
       case "_>>_":
-        {
-          return INTEGER_SHIFT_RIGHT.apply(entry, value);
-        }
+        return INTEGER_SHIFT_RIGHT.apply(entry, value);
       case "_&_":
-        {
-          return INTEGER_AND.apply(entry, value);
-        }
+        return INTEGER_AND.apply(entry, value);
       case "_!!_":
-        {
-          return INTEGER_OR.apply(entry, value);
-        }
+        return INTEGER_OR.apply(entry, value);
       case "_^_":
-        {
-          return INTEGER_XOR.apply(entry, value);
-        }
+        return INTEGER_XOR.apply(entry, value);
       case "_~_":
-        {
-          return INTEGER_NOT.apply(entry, value);
-        }
+        return INTEGER_NOT.apply(entry, value);
       default:
         // $FALL-THROUGH$
     }
@@ -107,6 +89,7 @@ public class FunctionApplicationManager {
   }
 
   /** common interface for all function-evaluators. */
+  @FunctionalInterface
   private interface FunctionApplication {
 
     /** returns a constraint "UF(params) == result" or TRUE if we cannot evaluate the UF. */

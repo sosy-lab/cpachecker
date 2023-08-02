@@ -121,9 +121,12 @@ public class SMGUseDefBasedInterpolator {
       iterator.advance();
       ARGState state = iterator.getAbstractState();
 
-      Collection<ASimpleDeclaration> uses = useDefSequence.get(state);
+      Collection<ASimpleDeclaration> declarationsNeededForState = useDefSequence.get(state);
 
-      SMGInterpolant interpolant = uses.isEmpty() ? trivialItp : createInterpolant(uses);
+      SMGInterpolant interpolant =
+          declarationsNeededForState.isEmpty()
+              ? trivialItp
+              : createInterpolant(declarationsNeededForState);
 
       interpolants.add(Pair.of(state, interpolant));
 
@@ -164,16 +167,17 @@ public class SMGUseDefBasedInterpolator {
    * because interesting offsets are not known statically. The same applies for complex types, where
    * also the whole type ends up in the interpolant and not only partially.
    *
-   * @param uses the variable declaration for which to create the interpolant
+   * @param declarationsNeededForState the variable declaration for which to create the interpolant
    * @return the interpolant for the given variable declaration
    */
-  private SMGInterpolant createInterpolant(Collection<ASimpleDeclaration> uses) {
+  private SMGInterpolant createInterpolant(
+      Collection<ASimpleDeclaration> declarationsNeededForState) {
     PersistentMap<MemoryLocation, ValueAndValueSize> useDefInterpolant =
         PathCopyingPersistentTreeMap.of();
 
-    for (ASimpleDeclaration use : uses) {
+    for (ASimpleDeclaration declarationForState : declarationsNeededForState) {
 
-      for (MemoryLocation memoryLocation : obtainMemoryLocationsForType(use)) {
+      for (MemoryLocation memoryLocation : obtainMemoryLocationsForType(declarationForState)) {
         useDefInterpolant =
             useDefInterpolant.putAndCopy(
                 memoryLocation, ValueAndValueSize.of(UnknownValue.getInstance(), null));
@@ -190,7 +194,8 @@ public class SMGUseDefBasedInterpolator {
         null,
         null,
         (CFunctionDeclaration) cfa.getMainFunction().getFunctionDefinition(),
-        ImmutableSet.of());
+        ImmutableSet.of(),
+        ImmutableList.of());
   }
 
   /**

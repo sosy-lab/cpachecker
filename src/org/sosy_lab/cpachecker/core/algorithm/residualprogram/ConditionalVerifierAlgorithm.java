@@ -222,7 +222,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
                 .parseFileAndCreateCFA(Collections.singletonList(pResidProgPath));
 
         stats.residParse.stop();
-        stats.numResidLoc = cfaResidProg.getAllNodes().size();
+        stats.numResidLoc = cfaResidProg.nodes().size();
         shutdown.shutdownIfNecessary();
 
         CoreComponentsFactory coreComponents =
@@ -303,7 +303,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
       statWriter.put("Time for residual program verification", residVerif);
       statWriter.put("Time for residual program parsing", residParse);
       statWriter.put("Time for residual program analysis", residAnalysis);
-      statWriter.put("Size of original program", cfa.getAllNodes().size());
+      statWriter.put("Size of original program", cfa.nodes().size());
       statWriter.put("Size of residual program", numResidLoc);
       statWriter.spacer();
 

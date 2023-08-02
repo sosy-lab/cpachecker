@@ -52,8 +52,8 @@ class FromDiskEntryProvider implements AutoCloseable {
   @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
   private Path storeDirectory = Path.of("invariantWitnesses");
 
-  private final Queue<LoopInvariantEntry> loadedEntries;
   private final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+  private final Queue<LoopInvariantEntry> loadedEntries;
   private final JavaType entryType;
 
   private WatchService watchService;
@@ -140,7 +140,7 @@ class FromDiskEntryProvider implements AutoCloseable {
 
     // Load already present files
     try (DirectoryStream<Path> stream =
-        Files.newDirectoryStream(storeDirectory, (p) -> p.toFile().isFile())) {
+        Files.newDirectoryStream(storeDirectory, p -> p.toFile().isFile())) {
       for (Path file : stream) {
         loadEntries(file.toFile());
       }

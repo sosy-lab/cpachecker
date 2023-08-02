@@ -264,10 +264,9 @@ public final class LoopStructure implements Serializable {
       if (this == pObj) {
         return true;
       }
-      if (pObj instanceof Loop other) {
-        return loopHeads.equals(other.loopHeads) && nodes.equals(other.nodes);
-      }
-      return false;
+      return pObj instanceof Loop other
+          && loopHeads.equals(other.loopHeads)
+          && nodes.equals(other.nodes);
     }
 
     @Override
@@ -385,12 +384,10 @@ public final class LoopStructure implements Serializable {
         && (stmtEdge.getStatement() instanceof CAssignment)) {
       CAssignment assign = (CAssignment) stmtEdge.getStatement();
 
-      if (assign.getLeftHandSide() instanceof CIdExpression) {
-        CIdExpression assignementToId = (CIdExpression) assign.getLeftHandSide();
+      if (assign.getLeftHandSide() instanceof CIdExpression assignementToId) {
         String assignToVar = assignementToId.getDeclaration().getQualifiedName();
 
-        if (assign.getRightHandSide() instanceof CBinaryExpression) {
-          CBinaryExpression binExpr = (CBinaryExpression) assign.getRightHandSide();
+        if (assign.getRightHandSide() instanceof CBinaryExpression binExpr) {
           BinaryOperator op = binExpr.getOperator();
 
           if (op == BinaryOperator.PLUS || op == BinaryOperator.MINUS) {
@@ -934,18 +931,18 @@ public final class LoopStructure implements Serializable {
     FunctionEntryNode initialLocation = cfa.getMainFunction();
 
     Map<String, FunctionEntryNode> funNameToEntry =
-        Maps.newHashMapWithExpectedSize(cfa.getAllFunctionHeads().size());
-    for (FunctionEntryNode funNode : cfa.getAllFunctionHeads()) {
+        Maps.newHashMapWithExpectedSize(cfa.entryNodes().size());
+    for (FunctionEntryNode funNode : cfa.entryNodes()) {
       funNameToEntry.put(funNode.getFunctionName(), funNode);
     }
 
     // build call graph
     Map<FunctionEntryNode, ARGState> callGraph =
-        Maps.newHashMapWithExpectedSize(cfa.getAllFunctionHeads().size());
+        Maps.newHashMapWithExpectedSize(cfa.entryNodes().size());
     FunctionEntryNode callee;
     ARGState successor;
 
-    for (FunctionEntryNode funNode : cfa.getAllFunctionHeads()) {
+    for (FunctionEntryNode funNode : cfa.entryNodes()) {
       if (!callGraph.containsKey(funNode)) {
         callGraph.put(funNode, new ARGState(null, null));
       }
@@ -995,15 +992,15 @@ public final class LoopStructure implements Serializable {
     }
 
     // detect nodes in recursion
-    Set<CFANode> forward, backward, nodes;
     Collection<Loop> result = new ArrayList<>(recHeads.size());
     for (FunctionEntryNode recHead : recHeads) {
-      forward =
+      Set<CFANode> forward =
           CFATraversal.dfs()
               .ignoreEdgeType(CFAEdgeType.FunctionReturnEdge)
               .collectNodesReachableFrom(recHead);
-      backward = CFATraversal.dfs().backwards().collectNodesReachableFrom(recHead);
+      Set<CFANode> backward = CFATraversal.dfs().backwards().collectNodesReachableFrom(recHead);
 
+      Set<CFANode> nodes;
       if (forward.size() <= backward.size()) {
         nodes = Sets.intersection(forward, backward);
       } else {
@@ -1038,7 +1035,7 @@ public final class LoopStructure implements Serializable {
    * from the exit always lead to the entry. The smallest possible loop-free section contains a
    * single node, which is also automatically the entry and exit node of the loop-free section.
    */
-  private static interface LoopFreeSectionFinder {
+  private interface LoopFreeSectionFinder {
 
     /**
      * Returns the entry node of the loop-free section that the specified node belongs to.

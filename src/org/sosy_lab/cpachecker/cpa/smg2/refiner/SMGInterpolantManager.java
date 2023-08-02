@@ -27,17 +27,29 @@ public class SMGInterpolantManager implements InterpolantManager<SMGState, SMGIn
   /** The cfa of this analysis. Only needed for its entry function. */
   private final CFA cfa;
 
+  /** Remember if we need to take memsafety into account for interpolants. * */
+  private final boolean isRefineMemorySafety;
+
   private SMGInterpolantManager(
-      SMGOptions pOptions, MachineModel pMachineModel, LogManager pLogger, CFA pCfa) {
+      SMGOptions pOptions,
+      MachineModel pMachineModel,
+      LogManager pLogger,
+      CFA pCfa,
+      boolean pIsRefineMemorySafety) {
     options = pOptions;
     machineModel = pMachineModel;
     logger = pLogger;
     cfa = pCfa;
+    isRefineMemorySafety = pIsRefineMemorySafety;
   }
 
   public static SMGInterpolantManager getInstance(
-      SMGOptions pOptions, MachineModel pMachineModel, LogManager pLogger, CFA pCfa) {
-    return new SMGInterpolantManager(pOptions, pMachineModel, pLogger, pCfa);
+      SMGOptions pOptions,
+      MachineModel pMachineModel,
+      LogManager pLogger,
+      CFA pCfa,
+      boolean pIsRefineMemorySafety) {
+    return new SMGInterpolantManager(pOptions, pMachineModel, pLogger, pCfa, pIsRefineMemorySafety);
   }
 
   @Override
@@ -48,7 +60,7 @@ public class SMGInterpolantManager implements InterpolantManager<SMGState, SMGIn
 
   @Override
   public SMGInterpolant createInterpolant(SMGState state) {
-    return state.createInterpolant();
+    return state.createInterpolant(isRefineMemorySafety);
   }
 
   @Override

@@ -296,7 +296,7 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
     // node4 - x' = x; y' = y; ... -> node 5
     CFANode node5 = createCfaNode(functionName);
     initializePrimedVariables(node4, node5, statesAtNode4, pPrecision).stream()
-        .map((s) -> s.enterLoop(loopHead)) // pc' = loopHead
+        .map(s -> s.enterLoop(loopHead)) // pc' = loopHead
         .forEach(statesAtNode5::add);
 
     // node3 - [__CPAchecker_termination_temp == 0] -> node 5

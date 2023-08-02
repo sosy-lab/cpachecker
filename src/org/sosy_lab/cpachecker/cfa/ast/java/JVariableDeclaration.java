@@ -106,12 +106,8 @@ public sealed class JVariableDeclaration extends AVariableDeclaration implements
       return true;
     }
 
-    if (!(obj instanceof JVariableDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    JVariableDeclaration other = (JVariableDeclaration) obj;
-
-    return other.isFinal == isFinal;
+    return obj instanceof JVariableDeclaration other
+        && super.equals(obj)
+        && other.isFinal == isFinal;
   }
 }

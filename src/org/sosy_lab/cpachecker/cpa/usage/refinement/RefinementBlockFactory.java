@@ -53,7 +53,7 @@ public class RefinementBlockFactory {
     UsageInfoSet,
     SingleIdentifier,
     UsageInfo,
-    ReachedSet;
+    ReachedSet,
   }
 
   Map<ARGState, ARGState> subgraphStatesToReachedState = new HashMap<>();
@@ -65,7 +65,7 @@ public class RefinementBlockFactory {
 
   public enum PathEquation {
     ARGStateId,
-    CFANodeId;
+    CFANodeId,
   }
 
   @Option(name = "pathEquality", description = "The way how to identify two paths as equal")

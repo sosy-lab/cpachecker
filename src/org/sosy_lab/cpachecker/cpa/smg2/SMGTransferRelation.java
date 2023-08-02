@@ -71,7 +71,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
@@ -227,7 +227,7 @@ public class SMGTransferRelation
         retType = returnAssignment.orElseThrow().getLeftHandSide().getExpressionType();
       }
 
-      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, returnEdge, logger);
+      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, returnEdge, logger, options);
       for (ValueAndSMGState returnValueAndState : vv.evaluate(returnExp, retType)) {
         // We get the size per state as it could theoretically change per state (abstraction)
         BigInteger sizeInBits = evaluator.getBitSizeof(state, retType);
@@ -239,7 +239,10 @@ public class SMGTransferRelation
             valueAndStateToWrite
                 .getState()
                 .writeToReturn(
-                    sizeInBits, valueAndStateToWrite.getValue(), returnExp.getExpressionType()));
+                    sizeInBits,
+                    valueAndStateToWrite.getValue(),
+                    returnExp.getExpressionType(),
+                    returnEdge));
       }
     } else {
       successorsBuilder.add(state);
@@ -254,10 +257,7 @@ public class SMGTransferRelation
 
   @Override
   protected Collection<SMGState> handleFunctionReturnEdge(
-      CFunctionReturnEdge functionReturnEdge,
-      CFunctionSummaryEdge fnkCall,
-      CFunctionCall summaryExpr,
-      String callerFunctionName)
+      CFunctionReturnEdge functionReturnEdge, CFunctionCall summaryExpr, String callerFunctionName)
       throws CPATransferException {
 
     Collection<SMGState> successors = handleFunctionReturn(functionReturnEdge);
@@ -275,11 +275,11 @@ public class SMGTransferRelation
   private List<SMGState> handleFunctionReturn(CFunctionReturnEdge functionReturnEdge)
       throws CPATransferException {
     CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
-    CFunctionCall summaryExpr = summaryEdge.getExpression();
+    CFunctionCall summaryExpr = functionReturnEdge.getFunctionCall();
 
     Preconditions.checkArgument(
         state.getMemoryModel().getStackFrames().peek().getFunctionDefinition()
-            == summaryEdge.getFunctionEntry().getFunctionDefinition());
+            == functionReturnEdge.getFunctionEntry().getFunctionDefinition());
 
     if (summaryExpr instanceof CFunctionCallAssignmentStatement funcCallExpr) {
       CExpression leftValue = funcCallExpr.getLeftHandSide();
@@ -376,7 +376,7 @@ public class SMGTransferRelation
 
     if (!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
       if (paramDecl.size() != arguments.size()) {
-        throw new SMG2Exception(
+        throw new SMGException(
             "The number of arguments expected and given do not match for function call "
                 + callEdge.getDescription()
                 + ".");
@@ -440,7 +440,8 @@ public class SMGTransferRelation
         // Evaluator the CExpr into a Value
         // Note: this evaluates local arrays into pointers!!!!!
         List<ValueAndSMGState> valuesAndStates =
-            cParamExp.accept(new SMGCPAValueVisitor(evaluator, currentState, callEdge, logger));
+            cParamExp.accept(
+                new SMGCPAValueVisitor(evaluator, currentState, callEdge, logger, options));
 
         // If this ever fails; we need to take all states/values into account, meaning we would need
         // to proceed from this point onwards with all of them with all following operations
@@ -492,7 +493,7 @@ public class SMGTransferRelation
       CType cParamType,
       CFAEdge callEdge,
       SMGState pCurrentState)
-      throws SMG2Exception {
+      throws SMGException {
     SMGState currentState = pCurrentState;
     if (valueType instanceof CArrayType && cParamType instanceof CArrayType) {
       // Take the pointer to the local array and get the memory area, then associate this memory
@@ -503,9 +504,9 @@ public class SMGTransferRelation
       SMGStateAndOptionalSMGObjectAndOffset knownMemoryAndState = knownMemoriesAndStates.get(0);
       currentState = knownMemoryAndState.getSMGState();
       if (!knownMemoryAndState.hasSMGObjectAndOffset()) {
-        throw new SMG2Exception("Could not associate a local array in a new function.");
+        throw new SMGException("Could not associate a local array in a new function.");
       } else if (knownMemoryAndState.getOffsetForObject().compareTo(BigInteger.ZERO) != 0) {
-        throw new SMG2Exception("Could not associate a local array in a new function.");
+        throw new SMGException("Could not associate a local array in a new function.");
       }
       // arrays don't get copied! They are handled via pointers.
       SMGObject knownMemory = knownMemoryAndState.getSMGObject();
@@ -529,7 +530,7 @@ public class SMGTransferRelation
               .getObjectForVisibleVariableFromPreviousStackframe(
                   locationInPrevStackFrame.getQualifiedName());
       if (maybeKnownMemory.isEmpty()) {
-        throw new SMG2Exception("Usage of unknown variable in function " + callEdge);
+        throw new SMGException("Usage of unknown variable in function " + callEdge);
       }
       // Structs get copies
       BigInteger offsetSource = BigInteger.valueOf(locationInPrevStackFrame.getOffset());
@@ -547,7 +548,7 @@ public class SMGTransferRelation
           newMemory.getSize().subtract(offsetSource));
     } else {
       return evaluator.writeValueToNewVariableBasedOnTypes(
-          paramValue, cParamType, valueType, varName, currentState);
+          paramValue, cParamType, valueType, varName, currentState, callEdge);
     }
   }
 
@@ -585,7 +586,7 @@ public class SMGTransferRelation
 
     ImmutableList.Builder<SMGState> resultStateBuilder = ImmutableList.builder();
     // Get the value of the expression (either true[1L], false[0L], or unknown[null])
-    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger);
+    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger, options);
     for (ValueAndSMGState valueAndState :
         vv.evaluate(
             cExpression, SMGCPAExpressionEvaluator.getCanonicalType((CExpression) expression))) {
@@ -720,10 +721,11 @@ public class SMGTransferRelation
       }
     } else {
       // Check arguments for unknown functions without body
-      return builtins.checkAllParametersForValidity(cFCExpression, pState, pCfaEdge);
+      uselessValuesAndStates =
+          builtins.handleUnknownFunction(pCfaEdge, cFCExpression, calledFunctionName, pState);
     }
     return Collections3.transformedImmutableListCopy(
-        uselessValuesAndStates, valAndState -> valAndState.getState());
+        uselessValuesAndStates, ValueAndSMGState::getState);
   }
 
   @Override
@@ -857,14 +859,16 @@ public class SMGTransferRelation
     ImmutableList.Builder<SMGState> returnStateBuilder = ImmutableList.builder();
     SMGState currentState = pState;
     for (SMGStateAndOptionalSMGObjectAndOffset targetAndOffsetAndState :
-        lValue.accept(new SMGCPAAddressVisitor(evaluator, currentState, cfaEdge, logger))) {
+        lValue.accept(
+            new SMGCPAAddressVisitor(evaluator, currentState, cfaEdge, logger, options))) {
       currentState = targetAndOffsetAndState.getSMGState();
 
       if (!targetAndOffsetAndState.hasSMGObjectAndOffset()) {
         // No memory for the left hand side found -> UNKNOWN
         // We still evaluate the right hand side to find errors though
         List<ValueAndSMGState> listOfStates =
-            rValue.accept(new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger));
+            rValue.accept(
+                new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger, options));
         returnStateBuilder.addAll(Lists.transform(listOfStates, ValueAndSMGState::getState));
         continue;
       }
@@ -887,7 +891,8 @@ public class SMGTransferRelation
                   offsetToWriteTo,
                   sizeOfTypeLeft,
                   addressToAssign,
-                  leftHandSideType));
+                  leftHandSideType,
+                  cfaEdge));
           continue;
         }
         continue;
@@ -896,7 +901,8 @@ public class SMGTransferRelation
       // The right hand side either returns Values representing values or a AddressExpression. In
       // the later case this means the entire structure behind it needs to be copied as C is
       // pass-by-value.
-      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger);
+      SMGCPAValueVisitor vv =
+          new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger, options);
       for (ValueAndSMGState valueAndState : vv.evaluate(rValue, leftHandSideType)) {
         returnStateBuilder.add(
             handleAssignmentOfValueTo(
@@ -905,7 +911,8 @@ public class SMGTransferRelation
                 addressToWriteTo,
                 offsetToWriteTo,
                 rightHandSideType,
-                valueAndState.getState()));
+                valueAndState.getState(),
+                cfaEdge));
       }
     }
 
@@ -921,8 +928,9 @@ public class SMGTransferRelation
       SMGObject addressToWriteTo,
       BigInteger offsetToWriteTo,
       CType rightHandSideType,
-      SMGState pCurrentState)
-      throws SMG2Exception {
+      SMGState pCurrentState,
+      CFAEdge edge)
+      throws SMGException {
     SMGState currentState = pCurrentState;
 
     // Size of the left hand side as vv.evaluate() casts automatically to this type
@@ -951,7 +959,8 @@ public class SMGTransferRelation
               offsetToWriteTo,
               sizeInBits,
               UnknownValue.getInstance(),
-              leftHandSideType);
+              leftHandSideType,
+              edge);
         }
         BigInteger baseOffsetFromPointer = pointerOffset.asNumericValue().bigIntegerValue();
 
@@ -1020,14 +1029,14 @@ public class SMGTransferRelation
             sizeInBits.compareTo(evaluator.getBitSizeof(currentState, leftHandSideType)) == 0);
 
         return currentState.writeValueTo(
-            addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite, leftHandSideType);
+            addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite, leftHandSideType, edge);
       }
 
     } else {
       // All other cases should return such that the value can be written directly to the left
       // hand side!
       return currentState.writeValueTo(
-          addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite, leftHandSideType);
+          addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite, leftHandSideType, edge);
     }
   }
 }
