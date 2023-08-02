@@ -909,7 +909,9 @@ class AssignmentFormulaHandler {
       rhs = rvalue.asAliasedLocation().getAddress();
     } else {
       final Optional<Formula> value =
-          addressHandler.getOptionalValueFormula(rvalue, rvalueType, false);
+          conv.direction == AnalysisDirection.FORWARD
+              ? addressHandler.getOptionalValueFormula(rvalue, rvalueType, false)
+              : addressHandler.getOptionalValueFormulaBackward(rvalue, rvalueType, false);
       rhs =
           value.isPresent()
               ? conv.makeCast(rvalueType, lvalueType, value.orElseThrow(), constraints, edge)
@@ -970,7 +972,11 @@ class AssignmentFormulaHandler {
           rhs = conv.makeNondet(nondetName, rvalueType, ssa, constraints);
           rhs = conv.makeCast(rvalueType, lvalueType, rhs, constraints, edge);
         }
-        newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
+        newIndex =
+            conv.direction == AnalysisDirection.FORWARD
+                ? conv.makeFreshIndex(targetName, lvalueType, ssa)
+                // in backward analysis we have already incremented the index
+                : conv.getPreviousIndex(targetName, lvalueType, ssa);
 
       } else {
         assert updatedRegions != null : "UF encoding needs to update regions for new indices";
@@ -991,16 +997,9 @@ class AssignmentFormulaHandler {
               conv.ptsMgr.makeQuantifiedPointerAssignment(
                   targetName, targetType, oldIndex, newIndex, condition, address, rhs);
         } else {
-          if (conv.direction == AnalysisDirection.BACKWARD) {
-            // swap indices for backward analysis
-            result =
-                conv.ptsMgr.makePointerAssignment(
-                    targetName, targetType, newIndex, oldIndex, address, rhs);
-          } else {
-            result =
-                conv.ptsMgr.makePointerAssignment(
-                    targetName, targetType, oldIndex, newIndex, address, rhs);
-          }
+          result =
+              conv.ptsMgr.makePointerAssignment(
+                  targetName, targetType, oldIndex, newIndex, address, rhs);
         }
       } else {
         result = bfmgr.makeTrue();
