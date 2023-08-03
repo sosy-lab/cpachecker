@@ -205,10 +205,9 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof CPAQuery other) {
-        return cpaName.equals(other.cpaName) && queryString.equals(other.queryString);
-      }
-      return false;
+      return o instanceof CPAQuery other
+          && cpaName.equals(other.cpaName)
+          && queryString.equals(other.queryString);
     }
   }
 
@@ -258,10 +257,10 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
       if (this == o) {
         return true;
       }
-      if (o instanceof BinaryAutomatonIntExpr other) {
-        return a.equals(other.a) && b.equals(other.b) && repr.equals(other.repr);
-      }
-      return false;
+      return o instanceof BinaryAutomatonIntExpr other
+          && a.equals(other.a)
+          && b.equals(other.b)
+          && repr.equals(other.repr);
     }
   }
 

@@ -245,6 +245,7 @@ abstract class Expression {
 
     @Override
     public boolean equals(Object pOther) {
+      // FIXME violates contract because it is not reflexive for Nondet
       if (!(pOther instanceof Value)) {
         return false;
       }

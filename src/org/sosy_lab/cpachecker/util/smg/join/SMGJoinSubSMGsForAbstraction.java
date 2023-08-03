@@ -158,11 +158,10 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
     pTempEdgeMapping
         .entrySet()
         .forEach(
-            entry -> {
-              destSMG =
-                  destSMG.copyAndReplaceHVEdge(
-                      entry.getKey().getFirst(), entry.getValue(), entry.getKey().getSecond());
-            });
+            entry ->
+                destSMG =
+                    destSMG.copyAndReplaceHVEdge(
+                        entry.getKey().getFirst(), entry.getValue(), entry.getKey().getSecond()));
   }
 
   /** Utility function for step 7. Increase the level of all mapped nodes by 1. */
@@ -195,11 +194,9 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
     destSMG
         .getPTEdgesByTarget(pNewObject)
         .forEach(
-            ptEdge -> {
-              // TODO this modifies nodes, maybe it would be better to replace existing with
-              // modified copy
-              ptEdge.setTargetSpecifier(SMGTargetSpecifier.IS_ALL_POINTER);
-            });
+            // TODO this modifies nodes, maybe it would be better to replace existing with
+            // modified copy
+            ptEdge -> ptEdge.setTargetSpecifier(SMGTargetSpecifier.IS_ALL_POINTER));
   }
 
   /**

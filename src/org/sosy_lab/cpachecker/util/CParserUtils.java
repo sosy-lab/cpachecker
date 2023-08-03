@@ -103,9 +103,7 @@ public class CParserUtils {
     for (CStatement statement : assumptions) {
 
       if (statement instanceof CAssignment assignment) {
-        if (assignment.getRightHandSide() instanceof CExpression) {
-
-          CExpression expression = (CExpression) assignment.getRightHandSide();
+        if (assignment.getRightHandSide() instanceof CExpression expression) {
           CBinaryExpression assumeExp =
               expressionBuilder.buildBinaryExpressionUnchecked(
                   assignment.getLeftHandSide(),

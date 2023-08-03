@@ -99,9 +99,6 @@ public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalanc
 
     @Override
     public int compareTo(NodePriority compNode) {
-      if (compNode == null) {
-        return -1;
-      }
       return ComparisonChain.start()
           .compare(getPriority(), compNode.getPriority())
           // same priority ==> use node with higher number
@@ -111,18 +108,14 @@ public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalanc
 
     @Override
     public boolean equals(Object obj) {
-      if (obj == null) {
-        return false;
-      }
-      if (obj == this) {
+      if (this == obj) {
         return true;
       }
-
-      if (obj.getClass() == this.getClass()) {
-        NodePriority compNode = (NodePriority) obj;
-        return compareTo(compNode) == 0;
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
       }
-      return false;
+      NodePriority compNode = (NodePriority) obj;
+      return compareTo(compNode) == 0;
     }
 
     @Override

@@ -218,10 +218,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
     FluentIterable<AutomatonInternalState> cycleHeadCandidates =
         from(witness.getStates())
-            .filter(
-                (AutomatonInternalState automState) -> {
-                  return automState.isNontrivialCycleStart();
-                });
+            .filter((AutomatonInternalState automState) -> automState.isNontrivialCycleStart());
 
     if (cycleHeadCandidates.isEmpty()) {
       throw new CPAException("Invalid witness. Witness is missing cycle start state.");

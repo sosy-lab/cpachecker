@@ -301,30 +301,26 @@ public class CEXExporter {
       }
     }
 
-    try {
-      final Witness witness =
-          witnessExporter.generateErrorWitness(
-              rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+    if (options.getWitnessFile() != null || options.getWitnessDotFile() != null) {
+      try {
+        final Witness witness =
+            witnessExporter.generateErrorWitness(
+                rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
 
-      writeErrorPathFile(
-          options.getWitnessFile(),
-          uniqueId,
-          (Appender)
-              pApp -> {
-                WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp);
-              },
-          compressWitness);
+        writeErrorPathFile(
+            options.getWitnessFile(),
+            uniqueId,
+            (Appender) pApp -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp),
+            compressWitness);
 
-      writeErrorPathFile(
-          options.getWitnessDotFile(),
-          uniqueId,
-          (Appender)
-              pApp -> {
-                WitnessToOutputFormatsUtils.writeToDot(witness, pApp);
-              },
-          compressWitness);
-    } catch (InterruptedException e) {
-      logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
+        writeErrorPathFile(
+            options.getWitnessDotFile(),
+            uniqueId,
+            (Appender) pApp -> WitnessToOutputFormatsUtils.writeToDot(witness, pApp),
+            compressWitness);
+      } catch (InterruptedException e) {
+        logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
+      }
     }
 
     if (options.getExtendedWitnessFile() != null) {
@@ -336,9 +332,7 @@ public class CEXExporter {
             options.getExtendedWitnessFile(),
             uniqueId,
             (Appender)
-                pAppendable -> {
-                  WitnessToOutputFormatsUtils.writeToGraphMl(extWitness, pAppendable);
-                },
+                pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(extWitness, pAppendable),
             compressWitness);
       } catch (InterruptedException e) {
         logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");

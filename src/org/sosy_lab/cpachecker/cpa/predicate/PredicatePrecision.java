@@ -80,11 +80,9 @@ public final class PredicatePrecision implements AdjustablePrecision {
       if (this == obj) {
         return true;
       }
-      if (!(obj instanceof LocationInstance)) {
-        return false;
-      }
-      LocationInstance other = (LocationInstance) obj;
-      return instance == other.instance && location.equals(other.location);
+      return obj instanceof LocationInstance other
+          && instance == other.instance
+          && location.equals(other.location);
     }
 
     @Override
@@ -207,7 +205,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
         from(precisions).transformAndConcat(prec -> prec.getLocationInstancePredicates().entries()),
         from(precisions).transformAndConcat(prec -> prec.getLocalPredicates().entries()),
         from(precisions).transformAndConcat(prec -> prec.getFunctionPredicates().entries()),
-        from(precisions).transformAndConcat(prec -> prec.getGlobalPredicates()));
+        from(precisions).transformAndConcat(PredicatePrecision::getGlobalPredicates));
   }
 
   /**
@@ -411,19 +409,17 @@ public final class PredicatePrecision implements AdjustablePrecision {
 
   @Override
   public boolean equals(Object pObj) {
-    if (pObj == this) {
+    if (this == pObj) {
       return true;
-    } else if (pObj == null) {
-      return false;
-    } else if (!pObj.getClass().equals(this.getClass())) {
-      return false;
-    } else {
-      PredicatePrecision other = (PredicatePrecision) pObj;
-      return getLocationInstancePredicates().equals(other.getLocationInstancePredicates())
-          && getLocalPredicates().equals(other.getLocalPredicates())
-          && getFunctionPredicates().equals(other.getFunctionPredicates())
-          && getGlobalPredicates().equals(other.getGlobalPredicates());
     }
+    if (pObj == null || getClass() != pObj.getClass()) {
+      return false;
+    }
+    PredicatePrecision other = (PredicatePrecision) pObj;
+    return getLocationInstancePredicates().equals(other.getLocationInstancePredicates())
+        && getLocalPredicates().equals(other.getLocalPredicates())
+        && getFunctionPredicates().equals(other.getFunctionPredicates())
+        && getGlobalPredicates().equals(other.getGlobalPredicates());
   }
 
   @Override

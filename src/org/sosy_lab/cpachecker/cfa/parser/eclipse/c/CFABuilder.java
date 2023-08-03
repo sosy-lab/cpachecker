@@ -158,8 +158,7 @@ class CFABuilder extends ASTVisitor {
             staticVariablePrefix,
             sideAssignmentStack);
     functionDeclarations.add(
-        new FunctionsOfTranslationUnit(
-            new ArrayList<IASTFunctionDefinition>(), staticVariablePrefix, fileScope));
+        new FunctionsOfTranslationUnit(new ArrayList<>(), staticVariablePrefix, fileScope));
 
     ast.accept(this);
 

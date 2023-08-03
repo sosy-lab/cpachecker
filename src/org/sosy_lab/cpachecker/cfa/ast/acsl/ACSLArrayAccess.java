@@ -20,10 +20,9 @@ public final class ACSLArrayAccess implements ACSLTerm {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLArrayAccess other) {
-      return array.equals(other.array) && index.equals(other.index);
-    }
-    return false;
+    return o instanceof ACSLArrayAccess other
+        && array.equals(other.array)
+        && index.equals(other.index);
   }
 
   @Override

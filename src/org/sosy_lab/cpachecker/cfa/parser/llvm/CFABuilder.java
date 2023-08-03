@@ -1566,14 +1566,11 @@ public class CFABuilder {
    * </ul>
    */
   private boolean pointerOf(CType pPotentialPointer, CType pPotentialPointee) {
-    if (pPotentialPointer instanceof CPointerType) {
-      return ((CPointerType) pPotentialPointer)
-          .getType()
-          .getCanonicalType()
-          .equals(pPotentialPointee.getCanonicalType());
-    } else {
-      return false;
-    }
+    return pPotentialPointer instanceof CPointerType
+        && ((CPointerType) pPotentialPointer)
+            .getType()
+            .getCanonicalType()
+            .equals(pPotentialPointee.getCanonicalType());
   }
 
   private String getName(final Value pValue) {

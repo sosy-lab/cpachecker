@@ -226,3 +226,108 @@ For Guava's Optional, usage that is hidden inside fluent method chains is ok
 (Example: `FluentIterable.from(...).first().orNull()`)
 but using it as a type (for declaring variables etc.) is not
 as it introduces confusion with Java's Optional.
+
+
+### equals methods
+
+Writing a correct `equals()` implementation can be tricky.
+It needs to ensure that it fulfills the contract of `equals()`
+(reflexive, symmetric, transitive), returns `false` for `null`,
+does not crash for unexpected types, and is consistent with `hashCode()`.
+For data classes, the recommended alternative to writing `equals()`
+is to use a `record`.
+If this is not possible, please use one of the following patterns.
+General notes:
+- The `this == pOther` check in in `equals` is optional.
+- If a field is nullable (but only then),
+  compare it with `Objects.equals(Object a, Object b)`.
+- In class hierarchies, each class should check its own fields
+  and delegate to `super.equals()` for the rest.
+
+This is the preferred pattern:
+```java
+public void equals(@Nullable Object pOther) {
+  if (this == pOther) {
+    return true;
+  }
+  return pOther instanceof MyClass other
+      && field1.equals(other.field1)
+      && field2.equals(other.field2)
+      && ...;
+}
+```
+`super.equals()` would be called as part of the conjunction if necessary.
+
+If you must check for class identity instead of instanceof,
+please make sure to read [this documentation](https://errorprone.info/bugpattern/EqualsGetClass)
+and use the following pattern if required:
+```java
+public void equals(@Nullable Object pOther) {
+  if (this == pOther) {
+    return true;
+  }
+  if (pOther == null || getClass() != pOther.getClass()) {
+    return false;
+  }
+  MyClass other = (MyClass) pOther;
+  return field1.equals(other.field1)
+      && field2.equals(other.field2)
+      && ...;
+}
+```
+`super.equals()` would replace the null check if necessary.
+
+If the equality logic for your class is more complex
+than a series of conjunction (e.g., because it requires a disjunction),
+please use the following pattern:
+```java
+public void equals(@Nullable Object pOther) {
+  if (this == pOther) {
+    return true;
+  }
+  if (pOther instanceof MyClass other
+      && field1.equals(other.field1)
+      && ...) {
+
+    // Add comment here explaining the reason.
+    if (/* condition */) {
+      return field2.equals(other.field2);
+    } else {
+      return field3.equals(other.field3);
+    }
+  }
+  return false;
+}
+```
+
+If this still does not fit,
+please refactor the implementation by extracting code into utility methods
+and add comments. A comment in the beginning will also silence the CI check.
+
+### compareTo methods
+
+Writing a correct `compareTo()` implementation can be tricky.
+It needs to ensure that it fulfills the contract of `compareTo()`
+and is consistent with `equals()`.
+Implementations should thus rely as much on existing utilities
+as possible, for example on `compare` methods in classes
+like `Arrays`, `Integer`, `Long`, etc.,
+on comparators built with the static methods in `Comparator` or `Ordering`,
+or use `ComparisonChain`.
+In particular, do not implement a lexicographic ordering
+on collections on your own!
+`ComparisonChain` is the recommended standard pattern for `compareTo`
+if delegation to a single utility method is not enough,
+e.g., because more than one field needs to be compared:
+```java
+public int compareTo(MyClass other) {
+  return ComparisonChain.start()
+    .compare(field1, other.field1)
+    .compare(field2, other.field2)
+    .result();
+}
+```
+
+If neither `ComparisonChain` or one of the utilities fit,
+please refactor the implementation by extracting code into utility methods
+and add comments. A comment in the beginning will also silence the CI check.

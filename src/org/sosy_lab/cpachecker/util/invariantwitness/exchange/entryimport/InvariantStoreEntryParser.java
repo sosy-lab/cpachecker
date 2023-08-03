@@ -172,9 +172,9 @@ class InvariantStoreEntryParser {
     Collection<FileLocation> possiblyUsageLocations = tryFindUsageLocations(node);
 
     int minOffset =
-        possiblyUsageLocations.stream().map(f -> f.getNodeOffset()).min(Integer::compare).orElse(0);
+        possiblyUsageLocations.stream().mapToInt(FileLocation::getNodeOffset).min().orElse(0);
     int maxOffset =
-        possiblyUsageLocations.stream().map(f -> f.getNodeOffset()).max(Integer::compare).orElse(0);
+        possiblyUsageLocations.stream().mapToInt(FileLocation::getNodeOffset).max().orElse(0);
     return f -> minOffset <= f.getNodeOffset() && f.getNodeOffset() <= maxOffset;
   }
 

@@ -165,15 +165,12 @@ public class PrefixSelector {
 
     default Scorer invert() {
       Scorer delegate = this;
-      return new Scorer() {
-        @Override
-        public int computeScore(InfeasiblePrefix pPrefix) {
-          int score = delegate.computeScore(pPrefix);
-          if (score == Integer.MIN_VALUE) {
-            return DEFAULT_SCORE;
-          }
-          return -score;
+      return pPrefix -> {
+        int score = delegate.computeScore(pPrefix);
+        if (score == Integer.MIN_VALUE) {
+          return Scorer.DEFAULT_SCORE;
         }
+        return -score;
       };
     }
   }

@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInvariantsUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonYAMLParser;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -83,6 +84,10 @@ public class WitnessInvariantsExtractor {
               + " be used to debug those cases.")
   private boolean checkForMissedInvariants = false;
 
+  // Check whether the witness is a YAML witness or not. Because we need to interpret them
+  // differently
+  private boolean isYAMLWitness = false;
+
   /**
    * Creates an instance of {@link WitnessInvariantsExtractor} and uses {@code pSpecification} and
    * {@code pPathToWitnessFile} to build the witness automaton so this automaton can be applied as
@@ -110,6 +115,7 @@ public class WitnessInvariantsExtractor {
     shutdownNotifier = pShutdownNotifier;
     automatonAsSpec = buildSpecification(pPathToWitnessFile);
     analyzeWitness();
+    isYAMLWitness = AutomatonYAMLParser.isYAMLWitness(pPathToWitnessFile);
   }
 
   /**
@@ -315,6 +321,11 @@ public class WitnessInvariantsExtractor {
         expressionTreeLocationInvariants) {
       for (CFANode location :
           pCandidateGroupLocations.get(expressionTreeLocationInvariant.getGroupId())) {
+        if (isYAMLWitness
+            && CFAUtils.disjointFileLocations(
+                expressionTreeLocationInvariant.getLocation(), location)) {
+          continue;
+        }
         pCandidates.add(
             new ExpressionTreeLocationInvariant(
                 expressionTreeLocationInvariant.getGroupId(),

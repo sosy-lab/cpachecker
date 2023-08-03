@@ -98,10 +98,8 @@ public class NonRecursiveEnvironment
 
   private boolean isConstantAndContainsAllPossibleValues(
       NumeralFormula<CompoundInterval> pFormula) {
-    if (pFormula instanceof Constant) {
-      return ((Constant<CompoundInterval>) pFormula).getValue().containsAllPossibleValues();
-    }
-    return false;
+    return pFormula instanceof Constant
+        && ((Constant<CompoundInterval>) pFormula).getValue().containsAllPossibleValues();
   }
 
   private PersistentSortedMap<MemoryLocation, NumeralFormula<CompoundInterval>>
@@ -363,10 +361,7 @@ public class NonRecursiveEnvironment
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof Map) {
-        return current.equals(pOther);
-      }
-      return false;
+      return pOther instanceof Map && current.equals(pOther);
     }
 
     @Override

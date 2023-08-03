@@ -50,11 +50,8 @@ public class LockRelease {
     if (this == pO) {
       return true;
     }
-    if (!(pO instanceof LockRelease)) {
-      return false;
-    }
-    LockRelease release = (LockRelease) pO;
-    return accessEpoch == release.accessEpoch
+    return pO instanceof LockRelease release
+        && accessEpoch == release.accessEpoch
         && lockId.equals(release.lockId)
         && threadId.equals(release.threadId);
   }

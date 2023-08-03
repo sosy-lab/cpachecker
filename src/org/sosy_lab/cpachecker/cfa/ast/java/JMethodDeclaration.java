@@ -212,13 +212,9 @@ public sealed class JMethodDeclaration extends AFunctionDeclaration implements J
       return true;
     }
 
-    if (!(obj instanceof JMethodDeclaration) || !super.equals(obj)) {
-      return false;
-    }
-
-    JMethodDeclaration other = (JMethodDeclaration) obj;
-
-    return Objects.equals(other.declaringClass, declaringClass)
+    return obj instanceof JMethodDeclaration other
+        && super.equals(obj)
+        && Objects.equals(other.declaringClass, declaringClass)
         && other.isAbstract == isAbstract
         && other.isFinal == isFinal
         && other.isNative == isNative

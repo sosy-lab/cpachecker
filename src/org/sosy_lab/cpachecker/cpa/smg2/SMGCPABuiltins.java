@@ -228,7 +228,7 @@ public class SMGCPABuiltins {
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
         return Collections3.transformedImmutableListCopy(
-            checkedStates, state -> ValueAndSMGState.ofUnknownValue(state));
+            checkedStates, ValueAndSMGState::ofUnknownValue);
 
       case "realloc":
         return evaluateRealloc(cFCExpression, pState, pCfaEdge);
@@ -494,7 +494,7 @@ public class SMGCPABuiltins {
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
         return Collections3.transformedImmutableListCopy(
-            checkedStates, state -> ValueAndSMGState.ofUnknownValue(state));
+            checkedStates, ValueAndSMGState::ofUnknownValue);
       default:
         throw new UnsupportedOperationException(
             "Unhandled function in cpa.smg2.SMGCPABuiltins.handleUnknownFunction(): "
@@ -665,20 +665,30 @@ public class SMGCPABuiltins {
       throws CPATransferException {
 
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
+
     for (ValueAndSMGState sizeAndState : getAllocateFunctionSize(pState, cfaEdge, functionCall)) {
 
       Value sizeValue = sizeAndState.getValue();
+      SMGState currentState = sizeAndState.getState();
       if (!sizeValue.isNumericValue()) {
 
         if (options.isGuessSizeOfUnknownMemorySize()) {
           sizeValue = new NumericValue(options.getGuessSize());
         } else if (options.isIgnoreUnknownMemoryAllocation()) {
           // Ignore and move on
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(sizeAndState.getState()));
+          resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          continue;
+        } else if (options.isErrorOnUnknownMemoryAllocation()) {
+          // Error for CEGAR to learn the variable
+          // TODO: this is bad! For truly unknown variables this also just plainly errors. Think of
+          // a better way
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState.withMemoryLeak(
+                      "Plain memory error for malloc with symbolic size.", ImmutableList.of())));
           continue;
         } else {
-
-          throw new SMGException(
+          throw new AssertionError(
               "An allocation function was called with a symbolic size. This is not supported"
                   + " currently by the SMG2 analysis. Try GuessSizeOfUnknownMemorySize.");
         }
@@ -686,7 +696,6 @@ public class SMGCPABuiltins {
       // The size is always given in bytes
       BigInteger sizeInBits =
           sizeValue.asNumericValue().bigIntegerValue().multiply(BigInteger.valueOf(8));
-      SMGState currentState = sizeAndState.getState();
 
       resultBuilder.addAll(
           handleConfigurableMemoryAllocation(functionCall, currentState, sizeInBits));

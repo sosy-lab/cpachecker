@@ -202,7 +202,7 @@ final class VariableAndFieldRelevancyComputer {
         if (rhs.isVariable()) {
           final VarFieldDependencies singleVariable =
               new VarFieldDependencies(
-                  ImmutableSet.of(rhs.asVariable().getScopedName()),
+                  ImmutableSet.of(rhs.asVariable().scopedName()),
                   ImmutableListMultimap.of(),
                   ImmutableListMultimap.of(),
                   ImmutableSet.of(),
@@ -224,7 +224,7 @@ final class VariableAndFieldRelevancyComputer {
           final VarFieldDependencies singleField =
               new VarFieldDependencies(
                   ImmutableSet.of(),
-                  ImmutableListMultimap.of(field.getCompositeType(), field.getName()),
+                  ImmutableListMultimap.of(field.compositeType(), field.name()),
                   ImmutableListMultimap.of(),
                   ImmutableSet.of(),
                   ImmutableListMultimap.of(),
@@ -254,7 +254,7 @@ final class VariableAndFieldRelevancyComputer {
               ImmutableSet.of(),
               ImmutableListMultimap.of(),
               ImmutableListMultimap.of(),
-              ImmutableSet.of(variable.getScopedName()),
+              ImmutableSet.of(variable.scopedName()),
               ImmutableListMultimap.of(),
               PersistentLinkedList.of(),
               1,
@@ -275,7 +275,7 @@ final class VariableAndFieldRelevancyComputer {
           new VarFieldDependencies(
               ImmutableSet.of(),
               ImmutableListMultimap.of(),
-              ImmutableListMultimap.of(field.getCompositeType(), field.getName()),
+              ImmutableListMultimap.of(field.compositeType(), field.name()),
               ImmutableSet.of(),
               ImmutableListMultimap.of(),
               PersistentLinkedList.of(),
@@ -380,12 +380,12 @@ final class VariableAndFieldRelevancyComputer {
               : "Match failure: neither variable nor field!";
           if (variableOrField.isVariable()) {
             final VariableOrField.Variable variable = variableOrField.asVariable();
-            if (currentRelevantVariables.add(variable.getScopedName())) {
+            if (currentRelevantVariables.add(variable.scopedName())) {
               queue.add(variable);
             }
           } else { // Field
             final VariableOrField.Field field = variableOrField.asField();
-            if (currentRelevantFields.put(field.getCompositeType(), field.getName())) {
+            if (currentRelevantFields.put(field.compositeType(), field.name())) {
               queue.add(field);
             }
           }

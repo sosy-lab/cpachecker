@@ -127,9 +127,9 @@ public final class ApronCPA implements ProofCheckerCPA, StatisticsProvider {
     abstractDomain = apronDomain;
     mergeOperator = apronMergeOp;
     stopOperator = apronStopOp;
-    this.config = pConfig;
-    this.shutdownNotifier = pShutdownNotifier;
-    this.cfa = pCfa;
+    config = pConfig;
+    shutdownNotifier = pShutdownNotifier;
+    cfa = pCfa;
 
     VariableTrackingPrecision tempPrecision;
     if (initialPrecisionFile != null || precisionType.equals("REFINEABLE_EMPTY")) {

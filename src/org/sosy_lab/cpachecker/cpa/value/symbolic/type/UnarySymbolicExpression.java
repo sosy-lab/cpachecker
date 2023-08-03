@@ -16,7 +16,13 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * Represents a unary {@link SymbolicExpression}. Represents all <code>SymbolicExpression</code>s
  * that consist of only one operand.
  */
-public abstract class UnarySymbolicExpression extends SymbolicExpression {
+public abstract sealed class UnarySymbolicExpression extends SymbolicExpression
+    permits AddressOfExpression,
+        BinaryNotExpression,
+        CastExpression,
+        LogicalNotExpression,
+        NegationExpression,
+        PointerExpression {
 
   private static final long serialVersionUID = -2727356523115713518L;
 

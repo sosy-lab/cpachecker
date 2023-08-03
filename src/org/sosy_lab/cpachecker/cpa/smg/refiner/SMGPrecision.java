@@ -81,11 +81,8 @@ public abstract class SMGPrecision implements Precision {
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof SMGPrecision)) {
-      return false;
-    }
-    SMGPrecision other = (SMGPrecision) o;
-    return threshold == other.threshold
+    return o instanceof SMGPrecision other
+        && threshold == other.threshold
         && maxLength == other.maxLength
         && options.equals(other.options);
   }
@@ -188,11 +185,9 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public boolean equals(Object o) {
-      if (!(o instanceof SMGRefineablePrecision) && !super.equals(o)) {
-        return false;
-      }
-      SMGRefineablePrecision other = (SMGRefineablePrecision) o;
-      return trackedMemoryPaths.equals(other.trackedMemoryPaths)
+      return o instanceof SMGRefineablePrecision other
+          && super.equals(o)
+          && trackedMemoryPaths.equals(other.trackedMemoryPaths)
           && trackedStackVariables.equals(other.trackedStackVariables)
           && abstractionBlocks.equals(other.abstractionBlocks);
     }
@@ -293,11 +288,8 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public boolean equals(Object obj) {
-      if (!(obj instanceof SMGPrecisionAbstractionOptions)) {
-        return false;
-      }
-      SMGPrecisionAbstractionOptions other = (SMGPrecisionAbstractionOptions) obj;
-      return fieldAbstraction == other.fieldAbstraction
+      return obj instanceof SMGPrecisionAbstractionOptions other
+          && fieldAbstraction == other.fieldAbstraction
           && heapAbstraction == other.heapAbstraction
           && stackAbstraction == other.stackAbstraction;
     }

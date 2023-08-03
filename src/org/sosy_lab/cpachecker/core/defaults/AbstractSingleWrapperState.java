@@ -45,11 +45,7 @@ public abstract class AbstractSingleWrapperState
 
   @Override
   public boolean isTarget() {
-    if (wrappedState instanceof Targetable) {
-      return ((Targetable) wrappedState).isTarget();
-    } else {
-      return false;
-    }
+    return wrappedState instanceof Targetable && ((Targetable) wrappedState).isTarget();
   }
 
   @Override

@@ -394,8 +394,7 @@ public class ExpressionToFormulaVisitor
   @Override
   public Formula visit(CIdExpression idExp) throws UnrecognizedCodeException {
 
-    if (idExp.getDeclaration() instanceof CEnumerator) {
-      CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
+    if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
       CType t = idExp.getExpressionType();
       return mgr.makeNumber(conv.getFormulaTypeFromCType(t), enumerator.getValue());
     }
@@ -925,9 +924,7 @@ public class ExpressionToFormulaVisitor
             inequalityBuiltin(
                 functionName,
                 parameters,
-                (e1, e2) -> {
-                  return conv.bfmgr.not(fpfmgr.equalWithFPSemantics(e1, e2));
-                },
+                (e1, e2) -> conv.bfmgr.not(fpfmgr.equalWithFPSemantics(e1, e2)),
                 fpfmgr);
 
         if (result != null) {

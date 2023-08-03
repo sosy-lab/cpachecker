@@ -71,10 +71,6 @@ public final class CArraySubscriptExpression extends AArraySubscriptExpression
       return true;
     }
 
-    if (!(obj instanceof CArraySubscriptExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
+    return obj instanceof CArraySubscriptExpression && super.equals(obj);
   }
 }

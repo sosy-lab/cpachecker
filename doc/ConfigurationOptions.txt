@@ -60,7 +60,7 @@ rootDirectory = "."
 # SPDX-License-Identifier: Apache-2.0
 
 # Further options for Boolector in addition to the default options. Format: 
-# "Optionname=value" with ’,’ to seperate options. Optionname and value can
+# "Optionname=value" with ?,? to seperate options. Optionname and value can
 # be found in BtorOption or Boolector C Api.Example:
 # "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
 solver.boolector.furtherOptions = ""
@@ -158,10 +158,11 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+# SPDX-FileCopyrightText: 2014-2017 Universit? Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -1412,6 +1413,9 @@ cpa.arg.witness.removeInsufficientEdges = true
 # Verification witness: Revert escaping/renaming of functions for threads?
 cpa.arg.witness.revertThreadFunctionRenaming = false
 
+# export a proof as .yaml file
+cpa.arg.yamlProofWitness = no default value
+
 # signal the analysis to break in case the given number of error state is
 # reached. Use -1 to disable this limit.
 cpa.automaton.breakOnTargetState = 1
@@ -1696,10 +1700,10 @@ cpa.congruence.useCachingPathFormulaManager = true
 cpa.constraints.cache = true
 
 # Whether to use subset caching
-cpa.constraints.cacheSubsets = true
+cpa.constraints.cacheSubsets = false
 
 # Whether to use superset caching
-cpa.constraints.cacheSupersets = true
+cpa.constraints.cacheSupersets = false
 
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
@@ -2202,6 +2206,10 @@ cpa.predicate.direction = FORWARD
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
+# Enable handling of functions memset, memcopy, memmove. If disabled, using
+# these functions will result in an error.
+cpa.predicate.enableMemoryAssignmentFunctions = false
+
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
 # specified theory is used to approximate bitvectors. This can be used for
 # solvers that do not support bitvectors, or for increased performance. If
@@ -2258,9 +2266,11 @@ cpa.predicate.handlePointerAliasing = true
 # assigning a fresh non-det address to it
 cpa.predicate.handleStringLiteralInitializers = false
 
-# Allows to ignore Concat and Extract Calls when Bitvector theory was
-# replaced with Integer or Rational.
-cpa.predicate.ignoreExtractConcat = true
+# Ignore Extract and Extend operations instead of encoding them with a UF
+# when Bitvector theory is replaced with Integer or Rational. This is unsound
+# but sometimes more practical in order to not make casts return
+# nondeterministic values.
+cpa.predicate.ignoreExtractExtend = true
 
 # Ignore fields that are not relevant for reachability properties. This is
 # unsound in case fields are accessed by pointer arithmetic with hard-coded
@@ -2272,6 +2282,11 @@ cpa.predicate.ignoreIrrelevantVariables = true
 
 # do not include assumptions of states into path formula during strengthening
 cpa.predicate.ignoreStateAssumptions = false
+
+# Prevent functions memset, memcopy, memmove from stopping verification if
+# there is unrecognized code. Instead, they will just be skipped (unsound).
+# Only relevant if enableMemoryAssignmentFunctions is set to true.
+cpa.predicate.ignoreUnrecognizedCodeInMemoryAssignmentFunctions = false
 
 # Add computed invariants to the precision. Invariants do not need to be
 # generated with the PredicateCPA they can also be given from outside.
@@ -3077,7 +3092,8 @@ cpa.smg2.handleUnknownFunctions = STRICT
 # If this option is enabled, a memory allocation (e.g. malloc or array
 # declaration) for unknown memory sizes does not abort, but also does not
 # create any memory.
-cpa.smg2.ignoreUnknownMemoryAllocation = false
+cpa.smg2.handleUnknownMemoryAllocation = IGNORE
+  enum:     [IGNORE, MEMORY_ERROR, STOP_ANALYSIS]
 
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
@@ -3593,7 +3609,7 @@ cpa.value.symbolic.refinement.strategy = CONSTRAINTS_FIRST
   enum:     [CONSTRAINTS_FIRST, VALUES_FIRST, ALTERNATING, VALUES_ONLY]
 
 # Whether to simplify symbolic expressions, if possible.
-cpa.value.symbolic.simplifySymbolics = true
+cpa.value.symbolic.simplifySymbolics = false
 
 # Track Java array values in explicit value analysis. This may be costly if
 # the verified program uses big or lots of arrays. Arrays in C programs will
@@ -3824,6 +3840,12 @@ faultLocalization.by_traceformula.postConditionType = LAST_ASSUME_EDGES_ON_SAME_
 # '<datatype> <variable-name> = <value>' to the precondition.
 faultLocalization.by_traceformula.preconditionType = NONDETERMINISTIC_VARIABLES_ONLY
   enum:     [NONDETERMINISTIC_VARIABLES_ONLY, INITIAL_ASSIGNMENT, ALWAYS_TRUE]
+
+# Whether the found counterexample needs to be precise
+faultLocalization.by_traceformula.requirePreciseCounterexample = true
+
+# Whether to stop searching for further faults if first fault was found.
+faultLocalization.by_traceformula.stopAfterFirstFault = false
 
 # which algorithm to use
 faultLocalization.by_traceformula.type = UNSAT
@@ -4810,6 +4832,9 @@ testcase.targets.optimization.strategy = NONE
   enum:     [NONE, COVERED_NEXT_EDGE, BASIC_ESSENTIAL_EDGE, ESSENTIAL_EDGE_ORIGINAL,
              ESSENTIAL_EDGE, PORTFOLIO, SPANNING_SET, TESTCOMP]
 
+# enable to track coverage of test targets removed in optimization
+testcase.targets.optimization.trackAll = false
+
 # Which CFA edges to use as test targets
 testcase.targets.type = ASSUME
   enum:     [ASSUME, TEST_COMP_ASSUME, ERROR_CALL, FUN_CALL, STATEMENT]
@@ -4882,6 +4907,9 @@ undefinedFunctionsCollector.stubsFile = "stubs.c"
 
 # select an analysis from a set of analyses after unknown result
 useCompositionAnalysis = false
+
+# Whether or not one wants to refine MemorySafety errors.
+util.refinement.refineMemorySafety = false
 
 # Instead of comments, output the assertions into the original program as
 # violations to unreach_call.prp

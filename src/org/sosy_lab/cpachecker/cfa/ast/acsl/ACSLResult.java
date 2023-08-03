@@ -32,10 +32,7 @@ public final class ACSLResult implements ACSLBuiltin, ACSLTerm {
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof ACSLResult other) {
-      return functionName.equals(other.functionName);
-    }
-    return false;
+    return obj instanceof ACSLResult other && functionName.equals(other.functionName);
   }
 
   @Override

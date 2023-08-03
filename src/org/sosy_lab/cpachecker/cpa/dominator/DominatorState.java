@@ -46,13 +46,8 @@ public class DominatorState extends ForwardingSet<CFANode>
 
   @Override
   public boolean equals(Object pOther) {
-    if (!(pOther instanceof DominatorState)) {
-      return false;
-    }
-
-    DominatorState otherElement = (DominatorState) pOther;
-
-    return dominators.equals(otherElement.dominators);
+    return pOther instanceof DominatorState otherElement
+        && dominators.equals(otherElement.dominators);
   }
 
   @Override

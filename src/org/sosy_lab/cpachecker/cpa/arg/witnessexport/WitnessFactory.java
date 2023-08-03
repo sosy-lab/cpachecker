@@ -122,6 +122,7 @@ import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 
 class WitnessFactory implements EdgeAppender {
 
@@ -590,9 +591,7 @@ class WitnessFactory implements EdgeAppender {
           result = result.withScope(scope);
 
           if (!expressions.isEmpty()) {
-            code.add(
-                factory.and(
-                    Collections2.transform(expressions, pExpr -> LeafExpression.of(pExpr))));
+            code.add(factory.and(Collections2.transform(expressions, LeafExpression::of)));
           }
         }
       }
@@ -1045,7 +1044,7 @@ class WitnessFactory implements EdgeAppender {
           if (!faults.isEmpty()) {
             Fault bestFault = faults.get(0);
             FluentIterable.from(bestFault)
-                .transform(fc -> fc.correspondingEdge())
+                .transform(FaultContribution::correspondingEdge)
                 .copyInto(edgesInFault);
             edgesInFault.addAll(
                 fInfo.getTraceFormula().getPrecondition().getEdgesForPrecondition());
@@ -1384,7 +1383,7 @@ class WitnessFactory implements EdgeAppender {
         transformedImmutableSetCopy(
             Multimaps.filterValues(edgeToCFAEdges, cfaEdge -> edgesInFault.contains(cfaEdge))
                 .keySet(),
-            e -> e.getSource());
+            Edge::getSource);
 
     // not irrelevant if it is an edge to a sink node and the source node is part of the fault
     if (pEdge.getTarget().equals(SINK_NODE_ID) && importantNodes.contains(pEdge.getSource())) {
@@ -1771,7 +1770,7 @@ class WitnessFactory implements EdgeAppender {
         && (!witnessOptions.exportJointWitnesses()
             || (pFromState.isPresent()
                 && from(pFromState.orElseThrow())
-                    .transformAndConcat(argState -> AbstractStates.asIterable(argState))
+                    .transformAndConcat(AbstractStates::asIterable)
                     .filter(AutomatonState.class)
                     .anyMatch(state -> !state.hasDefaultCandidateInvariants())));
   }
@@ -1807,7 +1806,7 @@ class WitnessFactory implements EdgeAppender {
             CFAUtils.enteringEdges(referenceNode)
                 .filter(AssumeEdge.class)
                 .transform(CFAEdge::getPredecessor))
-        .anyMatch(n -> isInLoopProximity(n));
+        .anyMatch(this::isInLoopProximity);
   }
 
   /**
@@ -1824,7 +1823,7 @@ class WitnessFactory implements EdgeAppender {
     visited.add(pReferenceNode);
 
     Predicate<CFAEdge> epsilonEdge = edge -> !(edge instanceof AssumeEdge);
-    java.util.function.Predicate<CFANode> loopProximity = pNode -> pNode.isLoopStart();
+    java.util.function.Predicate<CFANode> loopProximity = CFANode::isLoopStart;
     if (cfa.getAllLoopHeads().isPresent()) {
       loopProximity =
           loopProximity.and(pNode -> cfa.getAllLoopHeads().orElseThrow().contains(pNode));
@@ -1975,10 +1974,9 @@ class WitnessFactory implements EdgeAppender {
       if (this == pOther) {
         return true;
       }
-      if (pOther instanceof LoopEntryInfo other) {
-        return Objects.equals(getLoopHead(), other.getLoopHead()) && gotoLoop == other.gotoLoop;
-      }
-      return false;
+      return pOther instanceof LoopEntryInfo other
+          && Objects.equals(getLoopHead(), other.getLoopHead())
+          && gotoLoop == other.gotoLoop;
     }
 
     @Override

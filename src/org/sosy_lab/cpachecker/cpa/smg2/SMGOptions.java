@@ -257,7 +257,20 @@ public class SMGOptions {
       description =
           "If this option is enabled, a memory allocation (e.g. malloc or array declaration) for "
               + "unknown memory sizes does not abort, but also does not create any memory.")
-  private boolean ignoreUnknownMemoryAllocation = false;
+  private UnknownMemoryAllocationHandling handleUnknownMemoryAllocation =
+      UnknownMemoryAllocationHandling.IGNORE;
+
+  /*
+   * Ignore: ignore allocation call and overapproximate.
+   * Memory_error: same as ignore but with an added memory error. (Needed in CEGAR, as else we
+   * would never learn that the allocation size and or other variables are important.)
+   * Stop_analysis: stops the analysis, returning unknown.
+   */
+  public enum UnknownMemoryAllocationHandling {
+    IGNORE,
+    MEMORY_ERROR,
+    STOP_ANALYSIS
+  }
 
   @Option(
       secure = true,
@@ -278,8 +291,22 @@ public class SMGOptions {
     config.inject(this);
   }
 
+  private UnknownMemoryAllocationHandling getIgnoreUnknownMemoryAllocationSetting() {
+    return handleUnknownMemoryAllocation;
+  }
+
   public boolean isIgnoreUnknownMemoryAllocation() {
-    return ignoreUnknownMemoryAllocation;
+    return getIgnoreUnknownMemoryAllocationSetting() == UnknownMemoryAllocationHandling.IGNORE;
+  }
+
+  public boolean isErrorOnUnknownMemoryAllocation() {
+    return getIgnoreUnknownMemoryAllocationSetting()
+        == UnknownMemoryAllocationHandling.MEMORY_ERROR;
+  }
+
+  public boolean isStopAnalysisOnUnknownMemoryAllocation() {
+    return getIgnoreUnknownMemoryAllocationSetting()
+        == UnknownMemoryAllocationHandling.STOP_ANALYSIS;
   }
 
   public boolean isMallocZeroReturnsZero() {

@@ -84,11 +84,8 @@ public class CustomInstruction {
     if (this == obj) {
       return true;
     }
-    if (!(obj instanceof CustomInstruction)) {
-      return false;
-    }
-    CustomInstruction other = (CustomInstruction) obj;
-    return Objects.equals(ciEndNodes, other.ciEndNodes)
+    return obj instanceof CustomInstruction other
+        && Objects.equals(ciEndNodes, other.ciEndNodes)
         && Objects.equals(ciStartNode, other.ciStartNode)
         && Objects.equals(inputVariables, other.inputVariables)
         && Objects.equals(outputVariables, other.outputVariables);
@@ -518,11 +515,8 @@ public class CustomInstruction {
       final Collection<String> outVariables)
       throws AppliedCustomInstructionParsingFailedException {
 
-    if (ciEdge instanceof CFunctionSummaryStatementEdge
-        && aciEdge instanceof CFunctionSummaryStatementEdge) {
-      CFunctionSummaryStatementEdge ciStmt = (CFunctionSummaryStatementEdge) ciEdge;
-      CFunctionSummaryStatementEdge aciStmt = (CFunctionSummaryStatementEdge) aciEdge;
-
+    if (ciEdge instanceof CFunctionSummaryStatementEdge ciStmt
+        && aciEdge instanceof CFunctionSummaryStatementEdge aciStmt) {
       if (!ciStmt.getFunctionName().equals(aciStmt.getFunctionName())) {
         throw new AppliedCustomInstructionParsingFailedException(
             "The functionName of the CFunctionSummaryStatementEdges "
@@ -602,9 +596,7 @@ public class CustomInstruction {
     }
 
     exp.getFunctionNameExpression()
-        .accept(
-            new StructureComparisonVisitor(
-                aexp.getFunctionNameExpression(), new HashMap<String, String>()));
+        .accept(new StructureComparisonVisitor(aexp.getFunctionNameExpression(), new HashMap<>()));
 
     List<CExpression> ciList = exp.getParameterExpressions();
     List<CExpression> aciList = aexp.getParameterExpressions();
@@ -932,8 +924,7 @@ public class CustomInstruction {
     private void compareSimpleTypes(
         final CIdExpression ciExp, final Number aciExpValue, final CSimpleType aciType)
         throws AppliedCustomInstructionParsingFailedException {
-      if (ciExp.getExpressionType() instanceof CSimpleType) {
-        CSimpleType ciST = (CSimpleType) ciExp.getExpressionType();
+      if (ciExp.getExpressionType() instanceof CSimpleType ciST) {
 
         if (isValidSimpleType(ciST, aciType)) {
           if (!ciVarToAciVar.containsKey(ciExp.getDeclaration().getQualifiedName())) {
@@ -961,7 +952,7 @@ public class CustomInstruction {
     }
 
     private boolean isValidSimpleType(final CSimpleType ciST, final CSimpleType pAciType) {
-      if (ciST.isComplex() == pAciType.isComplex()
+      return ciST.isComplex() == pAciType.isComplex()
           && ciST.isConst() == pAciType.isConst()
           && ciST.isImaginary() == pAciType.isImaginary()
           && ciST.isLong() == pAciType.isLong()
@@ -976,10 +967,7 @@ public class CustomInstruction {
           && ciST.isLong() == ciST.isLongLong()
           && ciST.isLongLong() == ciST.isShort()
           && ciST.isShort() == ciST.isSigned()
-          && ciST.isSigned() == ciST.isUnsigned()) {
-        return true;
-      }
-      return false;
+          && ciST.isSigned() == ciST.isUnsigned();
     }
 
     @Override

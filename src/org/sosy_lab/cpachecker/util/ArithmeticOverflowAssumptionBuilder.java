@@ -84,22 +84,22 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
       secure = true)
   private boolean useLiveness = true;
 
-  @Option(description = "Track overflows in left-shift operations.")
+  @Option(description = "Track overflows in left-shift operations.", secure = true)
   private boolean trackLeftShifts = true;
 
-  @Option(description = "Track overflows in additive(+/-) operations.")
+  @Option(description = "Track overflows in additive(+/-) operations.", secure = true)
   private boolean trackAdditiveOperations = true;
 
-  @Option(description = "Track overflows in multiplication operations.")
+  @Option(description = "Track overflows in multiplication operations.", secure = true)
   private boolean trackMultiplications = true;
 
-  @Option(description = "Track overflows in division(/ or %) operations.")
+  @Option(description = "Track overflows in division(/ or %) operations.", secure = true)
   private boolean trackDivisions = true;
 
-  @Option(description = "Track overflows in binary expressions involving pointers.")
+  @Option(description = "Track overflows in binary expressions involving pointers.", secure = true)
   private boolean trackPointers = false;
 
-  @Option(description = "Simplify overflow assumptions.")
+  @Option(description = "Simplify overflow assumptions.", secure = true)
   private boolean simplifyExpressions = true;
 
   private final Map<CType, CLiteralExpression> upperBounds;
