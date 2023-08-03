@@ -208,6 +208,11 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
       try {
         ParallelAnalysisResult result = future.get();
 
+        if (!result.hasValidReachedSet()) {
+          combinedStatus = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+          continue;
+        }
+
         reachedSet.setDelegate(result.getReached());
         combinedStatus = combinedStatus.update(result.getStatus());
 
@@ -221,8 +226,7 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
         }
       } catch (InterruptedException | ExecutionException pE) {
         logger.log(
-            Level.SEVERE,
-            "At least one parallel execution did not finish. Result is inaccurate.");
+            Level.SEVERE, "At least one parallel execution did not finish. Result is inaccurate.");
         combinedStatus = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
       } catch (CancellationException pE) {
         // do nothing, this is normal if we cancel other analyses
@@ -251,11 +255,8 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
       }
     } else if (!result.hasValidReachedSet()) {
       logger.log(Level.INFO, result.getAnalysisName() + " finished without usable result.");
-      futures.forEach(future -> future.cancel(true));
-      shutdownManager.requestShutdown(
-          "Analysis "
-              + result.getAnalysisName()
-              + " finished without usable result. Canceling remaining analyses.");
+      // Do not abort other analyses as a precise analysis with found target state may still result
+      // in an overall "FALSE" result.
     }
   }
 
