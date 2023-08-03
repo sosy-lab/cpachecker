@@ -117,6 +117,9 @@ public class ReportGenerator {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reportFile = Path.of("Report.html");
 
+  @Option(secure = true, name = "report.witness", description = "Generate Witness")
+  private boolean generateWitness = true;
+
   @Option(
       secure = true,
       name = "counterexample.export.report",
@@ -182,7 +185,9 @@ public class ReportGenerator {
 
     ImmutableSet<Path> allInputFiles = getAllInputFiles(pCfa);
 
-    extractWitness(pResult, pCfa, pReached);
+    if (generateWitness) {
+      extractWitness(pResult, pCfa, pReached);
+    }
 
     // we cannot export the graph for some special analyses, e.g., termination analysis
     if (!pReached.isEmpty() && pReached.getFirstState() instanceof ARGState) {

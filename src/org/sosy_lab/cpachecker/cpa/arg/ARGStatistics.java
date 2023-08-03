@@ -144,6 +144,9 @@ public class ARGStatistics implements Statistics {
   @Option(secure = true, name = "translateToC", description = "translate final ARG into C program")
   private boolean translateARG = false;
 
+  @Option(secure = true, name = "witness.export", description = "translate final ARG into witness")
+  private boolean witnessExport = true;
+
   @Option(
       secure = true,
       name = "CTranslation.file",
@@ -401,7 +404,7 @@ public class ARGStatistics implements Statistics {
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction =
         Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.of());
 
-    if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
+    if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult) && witnessExport == true) {
       try {
         final Witness witness =
             argWitnessExporter.generateProofWitness(

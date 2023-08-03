@@ -1360,6 +1360,9 @@ cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
 # translate final ARG into C program
 cpa.arg.translateToC = false
 
+# translate final ARG into witness
+cpa.arg.witness.export = true
+
 # Verification witness: Include the considered case of an assume?
 cpa.arg.witness.exportAssumeCaseInfo = true
 
@@ -4512,6 +4515,9 @@ report.export = true
 
 # File name for analysis report in case no counterexample was found.
 report.file = "Report.html"
+
+# Generate Witness
+report.witness = true
 
 # output file for visualizing message exchange
 reportFile = "block_analysis/block_analysis.json"
