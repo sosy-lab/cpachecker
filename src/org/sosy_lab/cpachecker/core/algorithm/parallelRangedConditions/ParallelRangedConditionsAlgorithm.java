@@ -222,7 +222,8 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
       } catch (InterruptedException | ExecutionException pE) {
         logger.log(
             Level.SEVERE,
-            "At least one parallel execution did not finish. Result may be inaccurate.");
+            "At least one parallel execution did not finish. Result is inaccurate.");
+        combinedStatus = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
       } catch (CancellationException pE) {
         // do nothing, this is normal if we cancel other analyses
       }
