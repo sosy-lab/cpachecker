@@ -3664,6 +3664,9 @@ cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
 # instead of the current one.
 datarace.config = no default value
 
+# value to append Infer information
+dcpa.isInfer = false
+
 # Whether to consider pointees. Only if this option is set to true, a pointer
 # analysis is run during system dependence graph (SDG) construction and
 # dependencies of pointees are inserted into the SDG. If this option is set
@@ -4567,6 +4570,9 @@ restartAlgorithm.printIntermediateStatistics = true
 # the last one that is excuted
 restartAlgorithm.writeIntermediateOutputFiles = false
 
+# allow to choose the behaviour of the root worker. 
+rootWorker.defaultRootWorker = false
+
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"
 
@@ -5009,3 +5015,6 @@ witness.validation.termination.terminatingStatements = "config/specification/Ter
 # When validating a violation witness, use this configuration file instead of
 # the current one.
 witness.validation.violation.config = no default value
+
+# allow to choose the behaviour of the root worker. 
+workerBuilder.Infer = no default value

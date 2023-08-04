@@ -77,7 +77,7 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
         return respondTo(pMessage);
       case FOUND_RESULT:
         // $FALL-THROUGH$
-      case ERROR:
+      case EXCEPTION:
         shutdown = true;
         // $FALL-THROUGH$
       case STATISTICS:

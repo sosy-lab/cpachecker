@@ -54,7 +54,7 @@ public class BlockSummaryVisualizationWorker extends BlockSummaryWorker {
     while (connection.hasPendingMessages()) {
       BlockSummaryMessage m = connection.read();
       messageLogger.log(m);
-      stop |= m.getType() == MessageType.ERROR || m.getType() == MessageType.FOUND_RESULT;
+      stop |= m.getType() == MessageType.EXCEPTION || m.getType() == MessageType.FOUND_RESULT;
     }
     if (stop) {
       shutdown = true;

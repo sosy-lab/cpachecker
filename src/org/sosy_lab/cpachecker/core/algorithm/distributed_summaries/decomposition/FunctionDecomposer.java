@@ -47,20 +47,21 @@ public class FunctionDecomposer implements BlockSummaryCFADecomposer {
           nodes.add(temp);
           continue;
         }
+        nodes.add(temp);
         for (CFAEdge e : CFAUtils.allLeavingEdges(temp)) {
 
           // Check if Function Call Edge or Duplicate
-          if (nodes.contains(temp) || e instanceof FunctionCallEdge) {
+          if (edges.contains(e) || e instanceof FunctionCallEdge) {
             // Ignore this cases
 
           } else {
             edges.add(e);
-            nodes.add(temp);
             waitlist.add(e.getSuccessor());
           }
         }
       }
       Preconditions.checkArgument(nodes.contains(value.getExitNode().orElseThrow()));
+      assert exitNode != null;
       BlockNodeWithoutGraphInformation nodeMetaData =
           new BlockNodeWithoutGraphInformation(
               "Function " + value.getFunctionName() + " " + idCount++,

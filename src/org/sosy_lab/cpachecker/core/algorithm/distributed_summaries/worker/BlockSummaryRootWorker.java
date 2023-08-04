@@ -14,11 +14,16 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -29,6 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DCPAFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -36,6 +42,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
+@Options( prefix = "rootWorker" )
 public class BlockSummaryRootWorker extends BlockSummaryWorker {
 
   private final BlockNode root;
@@ -44,8 +51,18 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
   private final AbstractState topState;
   private boolean shutdown;
 
+  @Option(
+      description = "allow to choose the behaviour of the root worker. "
+  )
+  private boolean defaultRootWorker = false;
+
+  private int postConditionCounter = 0;
+  private int blockCount = 0;//TODO import block count
+  public Set<List<String>> collectedBlockSummaryErrorMessages = new HashSet<>();
+
   BlockSummaryRootWorker(
       String pId,
+      boolean Infer,
       BlockSummaryConnection pConnection,
       BlockSummaryAnalysisOptions pOptions,
       BlockNode pNode,
@@ -92,20 +109,42 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
       throws InterruptedException, SolverException {
     return switch (pMessage.getType()) {
       case ERROR_CONDITION -> {
-        AbstractState currentState = dcpa.getDeserializeOperator().deserialize(pMessage);
-        BlockSummaryMessageProcessing processing = dcpa.getProceedOperator().proceed(currentState);
-        if (processing.end()) {
-          yield processing;
+        if (defaultRootWorker) {
+          AbstractState currentState = dcpa.getDeserializeOperator().deserialize(pMessage);
+          BlockSummaryMessageProcessing processing =
+              dcpa.getProceedOperator().proceed(currentState);
+          if (processing.end()) {
+            yield processing;
+          }
+          yield ImmutableSet.of(
+              BlockSummaryMessage.newResultMessage(
+                  root.getId(), root.getLast().getNodeNumber(), Result.FALSE));
+        } else {
+          AbstractState currentState = dcpa.getDeserializeOperator().deserialize(pMessage);
+          BlockSummaryMessageProcessing processing =
+              dcpa.getProceedOperator().proceed(currentState);
+          collectedBlockSummaryErrorMessages.add(((BlockSummaryErrorConditionMessage) pMessage).getViolations());
+          if (processing.end()) {
+            yield processing;
+          }
+          yield ImmutableSet.of(
+              BlockSummaryMessage.newResultMessage(
+                  root.getId(), root.getLast().getNodeNumber(), Result.FALSE));
         }
-        yield ImmutableSet.of(
-            BlockSummaryMessage.newResultMessage(
-                root.getId(), root.getLast().getNodeNumber(), Result.FALSE));
       }
-      case FOUND_RESULT, ERROR -> {
+      case FOUND_RESULT, EXCEPTION -> {
         shutdown = true;
         yield ImmutableSet.of();
       }
-      case STATISTICS, BLOCK_POSTCONDITION, ERROR_CONDITION_UNREACHABLE -> ImmutableSet.of();
+      case STATISTICS, ERROR_CONDITION_UNREACHABLE -> ImmutableSet.of();
+      case BLOCK_POSTCONDITION -> {
+        postConditionCounter++;
+        if (!defaultRootWorker && postConditionCounter == blockCount) {
+          yield ImmutableSet.of(); //TODO proper return value?
+        } else {
+          yield ImmutableSet.of();
+        }
+      }
     };
   }
 

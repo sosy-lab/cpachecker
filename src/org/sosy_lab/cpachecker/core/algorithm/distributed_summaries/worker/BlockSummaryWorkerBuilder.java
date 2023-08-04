@@ -16,6 +16,8 @@ import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -24,7 +26,13 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+@Options( prefix = "workerBuilder" )
 public class BlockSummaryWorkerBuilder {
+
+  @Option(
+      description = "allow to choose the behaviour of the root worker. "
+  )
+  private boolean Infer = true;
 
   public record Components(
       ImmutableList<BlockSummaryActor> actors,
@@ -104,7 +112,7 @@ public class BlockSummaryWorkerBuilder {
     workerGenerators.add(
         connection ->
             new BlockSummaryRootWorker(
-                nextId(pNode.getId()), connection, pOptions, pNode, cfa, ShutdownManager.create()));
+                nextId(pNode.getId()), Infer, connection, pOptions, pNode, cfa, ShutdownManager.create()));
     return this;
   }
 

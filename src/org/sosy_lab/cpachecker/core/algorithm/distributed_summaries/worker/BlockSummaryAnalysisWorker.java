@@ -129,7 +129,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
           forwardAnalysisTime.stop();
         }
       }
-      case ERROR, FOUND_RESULT -> {
+      case EXCEPTION, FOUND_RESULT -> {
         shutdown = true;
         return ImmutableSet.of(BlockSummaryMessage.newStatisticsMessage(getBlockId(), getStats()));
       }

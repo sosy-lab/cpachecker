@@ -20,10 +20,10 @@ public class BlockSummaryExceptionMessage extends BlockSummaryMessage {
       int pTargetNodeNumber,
       BlockSummaryMessagePayload pPayload,
       Instant pTimeStamp) {
-    super(MessageType.ERROR, pUniqueBlockId, pTargetNodeNumber, pPayload, pTimeStamp);
+    super(MessageType.EXCEPTION, pUniqueBlockId, pTargetNodeNumber, pPayload, pTimeStamp);
     if (!getPayload().containsKey(BlockSummaryMessagePayload.EXCEPTION)) {
       throw new AssertionError(
-          "ErrorMessages are always required to contain the key " + MessageType.ERROR);
+          "ErrorMessages are always required to contain the key " + MessageType.EXCEPTION);
     }
     errorMessage = (String) getPayload().get(BlockSummaryMessagePayload.EXCEPTION);
   }

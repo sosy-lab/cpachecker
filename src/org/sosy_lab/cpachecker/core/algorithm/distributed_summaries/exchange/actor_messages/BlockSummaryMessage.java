@@ -280,7 +280,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
      * Messages of this type transport the stack trace of an exception. See {@link
      * BlockSummaryExceptionMessage}.
      */
-    ERROR,
+    EXCEPTION,
 
     /**
      * Messages of this type deny a previously received {@link BlockSummaryErrorConditionMessage}.
@@ -388,7 +388,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
       return switch (type) {
         case FOUND_RESULT -> new BlockSummaryResultMessage(
             uniqueBlockId, nodeNumber, payload, timestamp);
-        case ERROR -> new BlockSummaryExceptionMessage(
+        case EXCEPTION -> new BlockSummaryExceptionMessage(
             uniqueBlockId, nodeNumber, payload, timestamp);
         case ERROR_CONDITION_UNREACHABLE -> new BlockSummaryErrorConditionUnreachableMessage(
             uniqueBlockId, nodeNumber, payload, timestamp);

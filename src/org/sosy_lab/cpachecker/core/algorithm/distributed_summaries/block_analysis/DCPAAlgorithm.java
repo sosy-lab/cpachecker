@@ -21,6 +21,8 @@ import java.util.Set;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -48,6 +50,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.java_smt.api.SolverException;
 
+@Options(prefix="dcpa")
 public class DCPAAlgorithm {
 
   private final DistributedConfigurableProgramAnalysis dcpa;
@@ -68,6 +71,9 @@ public class DCPAAlgorithm {
   private Precision blockStartPrecision;
   private boolean hasSentFirstMessages;
 
+  @Option(description = "value to append Infer information")
+  private boolean isInfer = false;
+
   public DCPAAlgorithm(
       LogManager pLogger,
       BlockNode pBlock,
@@ -76,6 +82,7 @@ public class DCPAAlgorithm {
       Configuration pConfiguration,
       ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException {
+    pConfiguration.inject(this);
     alreadyReportedError = false;
     alreadyReportedInfeasibility = false;
     isInfeasible = false;
@@ -302,7 +309,14 @@ public class DCPAAlgorithm {
               .serialize(
                   dcpa.getInitialState(
                       targetNode.orElseThrow(), StateSpacePartition.getDefaultPartition()));
-      initial = DCPAAlgorithms.appendStatus(status, initial);
+      if (!isInfer) {
+        initial = DCPAAlgorithms.appendStatus(status, initial);
+      } else {
+        initial = BlockSummaryMessagePayload.builder()
+            .addAllEntries(initial)
+            .addEntry("violations", FluentIterable.from(violations).transform(v -> AbstractStates.extractLocation(v)).toList())
+            .buildPayload();
+      }
       answers.add(
           BlockSummaryMessage.newErrorConditionMessage(
               block.getId(), targetNode.orElseThrow().getNodeNumber(), initial, true));
