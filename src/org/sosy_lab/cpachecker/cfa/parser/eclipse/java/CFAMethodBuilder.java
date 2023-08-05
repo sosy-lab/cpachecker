@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.java.HelperVariable;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
@@ -814,7 +815,14 @@ class CFAMethodBuilder extends ASTVisitor {
 
       } else {
         JStatementEdge edge = null;
-        if (tryBlockStack.isEmpty() && !catchClauseHandling) {
+        if (!expressionStatement
+                .getExpression()
+                .getClass()
+                .getSimpleName()
+                .equals(
+                    "MethodInvocation") // TODO string representation mit instanceof representation
+                                        // ersetzen
+            || (tryBlockStack.isEmpty() && !catchClauseHandling)) {
           edge =
               new JStatementEdge(
                   rawSignature, statement, statement.getFileLocation(), nextNode, lastNode);
@@ -822,25 +830,84 @@ class CFAMethodBuilder extends ASTVisitor {
           addToCFA(edge);
           locStack.push(lastNode);
 
-        } else if (!tryBlockStack.isEmpty() && !catchClauseHandling) {
+        } else if (expressionStatement
+                .getExpression()
+                .getClass()
+                .getSimpleName()
+                .equals("MethodInvocation") // mit instanceof statt string lösen
+            && !tryBlockStack.isEmpty()
+            && !catchClauseHandling) {
 
-          CFANode start = new CFANode(catchNodes.peek().get(0).getNode().getFunction());
+          CFANode start = new CFANode(catchNodes.peek().get(2).getNode().getFunction());
 
-          JStatementEdge startEdge =
-              new JStatementEdge(
-                  catchNodes.peek().get(0).getRawStatement(),
-                  catchNodes.peek().get(0).getStatement(),
-                  catchNodes.peek().get(0).getFileLocation(),
-                  nextNode,
-                  lastNode);
+          JCatchInformation notE = catchNodes.peek().get(0);
+          CFANode eNode = new CFANode(notE.getNode().getFunction());
+
+          JCatchInformation rTrue = catchNodes.peek().get(1);
+          CFANode rNode = new CFANode(rTrue.getNode().getFunction());
 
           edge =
               new JStatementEdge(
-                  rawSignature, statement, statement.getFileLocation(), lastNode, start);
+                  rawSignature, statement, statement.getFileLocation(), nextNode, start);
           cfaNodes.add(start);
-          addToCFA(startEdge);
           addToCFA(edge);
-          locStack.push(start);
+
+          BlankEdge blankEdgeStart = new BlankEdge("", FileLocation.DUMMY, start, eNode, "");
+          addToCFA(blankEdgeStart);
+
+          JAssumeEdge notEqualsNullTrue =
+              new JAssumeEdge(
+                  notE.getRawStatement(),
+                  FileLocation.DUMMY,
+                  eNode,
+                  rNode,
+                  HelperVariable.helperNotEquals,
+                  true);
+          cfaNodes.add(eNode);
+          addToCFA(notEqualsNullTrue);
+
+          CFANode dummy = new CFANode(cfa.getFunction());
+          cfaNodes.add(dummy);
+
+          CFANode tempNode = new CFANode(cfa.getFunction());
+          cfaNodes.add(tempNode);
+
+          JAssumeEdge runTimeTrue =
+              new JAssumeEdge(
+                  rTrue.getRawStatement(),
+                  FileLocation.DUMMY,
+                  rNode,
+                  tempNode,
+                  HelperVariable.et,
+                  true);
+          cfaNodes.add(rNode);
+          addToCFA(runTimeTrue);
+
+          BlankEdge blankEdgeTemp = new BlankEdge("", FileLocation.DUMMY, tempNode, dummy, "");
+          addToCFA(blankEdgeTemp);
+
+          JAssumeEdge notEqualsNullFalse =
+              new JAssumeEdge(
+                  notE.getRawStatement(),
+                  FileLocation.DUMMY,
+                  eNode,
+                  dummy,
+                  HelperVariable.helperNotEquals,
+                  false);
+          addToCFA(notEqualsNullFalse);
+
+          JAssumeEdge runTimeFalse =
+              new JAssumeEdge(
+                  rTrue.getRawStatement(),
+                  FileLocation.DUMMY,
+                  rNode,
+                  dummy,
+                  HelperVariable.et,
+                  false);
+          addToCFA(runTimeFalse);
+
+
+          locStack.push(dummy);
         }
 
         if (catchClauseHandling) {
@@ -851,8 +918,6 @@ class CFAMethodBuilder extends ASTVisitor {
                       lastNode, rawSignature, statement, statement.getFileLocation(), false));
         }
       }
-    }
-    if (!catchClauseHandling) {
     }
 
     return SKIP_CHILDREN;
@@ -2752,26 +2817,31 @@ class CFAMethodBuilder extends ASTVisitor {
     assert catchBlockStack.peek().contains(cc) == true;
     catchNodes.add(new ArrayList<JCatchInformation>());
 
-    // JExpression d = new JFieldAccess();
-    // FileLocation,JType,String,JFieldDeclaration,JIdExpression
-    // JExpression e =
-    //   new JBinaryExpression(FileLocation.DUMMY, JSimpleType.getBoolean(), , new
-    // JNullLiteralExpression(FileLocation.DUMMY) ,
-    // BinaryOperator.EQUALS);
-    // FileLocation, JType, JExpression, JExpression, Binaryoperator
-    // catchNodes.peek().add(new JCatchInformation());
+    CFANode dummyNotEquals = new CFANode(cfa.getFunction());
 
-    // JSimpleDeclaration jsd = new JVariableDeclaration();
-    // FileLocation,boolean,JType,String,String,String, AInitializer, boolean
+    // TODO the next statement is only needed once for the entire try block
 
-    // JIdExpression jie = new JIdExpression(FileLocation.DUMMY,,);
-    // FileLocation,JType,String,JSimpleDeclaration
+    catchNodes
+        .peek()
+        .add(
+            new JCatchInformation(
+                dummyNotEquals,
+                HelperVariable.helperNotEqualsStatement.toString(),
+                HelperVariable.helperNotEqualsStatement,
+                FileLocation.DUMMY,
+                true));
 
-    // JRunTimeTypeExpression jre = new JVariableRunTimeType(FileLocation.DUMMY,);
-    // FileLocation, JIdExpression
+    CFANode dummyRunTimeEquals = new CFANode(cfa.getFunction());
 
-    // JExpression et = new JRunTimeTypeEqualsType(FileLocation.DUMMY,,);
-    // FileLocation, JRunTimeTypeExpression, JReferenceType
+    catchNodes
+        .peek()
+        .add(
+            new JCatchInformation(
+                dummyRunTimeEquals,
+                HelperVariable.runTimeTypeEqualsStatement.toString(),
+                HelperVariable.runTimeTypeEqualsStatement,
+                FileLocation.DUMMY,
+                true));
 
     catchClauseHandling = true;
     cc.getBody().accept(this);

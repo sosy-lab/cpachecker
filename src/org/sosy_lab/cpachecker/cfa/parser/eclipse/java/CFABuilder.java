@@ -9,10 +9,8 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import com.google.common.collect.TreeMultimap;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -30,19 +28,12 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.java.HelperVariable;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
-import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /** Builder to traverse AST. This Class has to be reusable for more ASTs. */
@@ -100,38 +91,12 @@ class CFABuilder extends ASTVisitor {
 
     List<Pair<ADeclaration, String>> result = new ArrayList<>(staticFieldDeclarations.size());
 
-    Path p = null;
-    JClassType tempObject = null;
-
     for (Entry<String, JFieldDeclaration> entry : staticFieldDeclarations.entrySet()) {
       ADeclaration declaration = entry.getValue();
-      p = entry.getValue().getFileLocation().getFileName();
-
       result.add(Pair.of(declaration, entry.getKey()));
     }
 
-    FileLocation fl = new FileLocation(p, 1, 1, 1, 1);
-
-    Set<JInterfaceType> newSet = new HashSet<>();
-
-    // hier muss eventuell noch das serializable interface hinzugefügt werden
-    JClassType jct =
-        new JClassType(
-            "java.lang.Throwable",
-            "Throwable",
-            VisibilityModifier.PUBLIC,
-            false,
-            false,
-            false,
-            JClassType.getTypeOfObject(),
-            newSet);
-
-    JNullLiteralExpression tempNull = new JNullLiteralExpression(fl);
-    AInitializer temp = new JInitializerExpression(fl, tempNull);
-    ADeclaration declaration =
-        new JVariableDeclaration(fl, true, jct, "MainApp_helper", "helper", "helper", temp, false);
-
-    result.add(Pair.of(declaration, "helper"));
+    result.add(Pair.of((ADeclaration) HelperVariable.declaration, "helper"));
 
     return result;
   }
