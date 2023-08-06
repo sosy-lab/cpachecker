@@ -131,9 +131,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
   // Data structure for handling try & catch blocks
   private final Deque<CFANode> tryBlockStack = new ArrayDeque<>();
-  private final Deque<Set<CatchClause>> catchBlockStack = new ArrayDeque<>();
   private final Deque<List<JCatchInformation>> catchNodes = new ArrayDeque<>();
-  // private final Deque<List<CFAEdge>> catchEdges = new ArrayDeque<>();
   private boolean catchClauseHandling = false;
 
   // Data structures for label , continue , break
@@ -834,23 +832,23 @@ class CFAMethodBuilder extends ASTVisitor {
                 .getExpression()
                 .getClass()
                 .getSimpleName()
-                .equals("MethodInvocation") // mit instanceof statt string lösen
+                .equals("MethodInvocation") // TODO mit instanceof statt string lösen
             && !tryBlockStack.isEmpty()
             && !catchClauseHandling) {
 
-          CFANode start = new CFANode(catchNodes.peek().get(2).getNode().getFunction());
-
-          JCatchInformation notE = catchNodes.peek().get(0);
-          CFANode eNode = new CFANode(notE.getNode().getFunction());
-
-          JCatchInformation rTrue = catchNodes.peek().get(1);
-          CFANode rNode = new CFANode(rTrue.getNode().getFunction());
+          CFANode start = new CFANode(catchNodes.peekLast().get(1).getNode().getFunction());
 
           edge =
               new JStatementEdge(
                   rawSignature, statement, statement.getFileLocation(), nextNode, start);
           cfaNodes.add(start);
           addToCFA(edge);
+
+          JCatchInformation notE = catchNodes.peekFirst().get(0);
+          CFANode eNode = new CFANode(notE.getNode().getFunction());
+
+          JCatchInformation rTrue = catchNodes.peekLast().get(0);
+          CFANode rNode = new CFANode(rTrue.getNode().getFunction());
 
           BlankEdge blankEdgeStart = new BlankEdge("", FileLocation.DUMMY, start, eNode, "");
           addToCFA(blankEdgeStart);
@@ -869,22 +867,22 @@ class CFAMethodBuilder extends ASTVisitor {
           CFANode dummy = new CFANode(cfa.getFunction());
           cfaNodes.add(dummy);
 
-          CFANode tempNode = new CFANode(cfa.getFunction());
-          cfaNodes.add(tempNode);
+          JCatchInformation catchContent = catchNodes.peekLast().get(1);
+          CFANode catchNode = new CFANode(catchContent.getNode().getFunction());
+          cfaNodes.add(catchNode);
 
           JAssumeEdge runTimeTrue =
               new JAssumeEdge(
                   rTrue.getRawStatement(),
                   FileLocation.DUMMY,
                   rNode,
-                  tempNode,
+                  catchNode,
                   HelperVariable.et,
                   true);
           cfaNodes.add(rNode);
           addToCFA(runTimeTrue);
 
-          BlankEdge blankEdgeTemp = new BlankEdge("", FileLocation.DUMMY, tempNode, dummy, "");
-          addToCFA(blankEdgeTemp);
+          addCatchClausePart(catchNode, dummy, catchNodes.peekLast());
 
           JAssumeEdge notEqualsNullFalse =
               new JAssumeEdge(
@@ -912,7 +910,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
         if (catchClauseHandling) {
           catchNodes
-              .peek()
+              .peekLast()
               .add(
                   new JCatchInformation(
                       lastNode, rawSignature, statement, statement.getFileLocation(), false));
@@ -2786,35 +2784,6 @@ class CFAMethodBuilder extends ASTVisitor {
     final CFANode tryBlockStart = new CFANode(cfa.getFunction());
     tryBlockStack.push(tryBlockStart);
 
-    addCatchClauses(tryStatement);
-
-    tryStatement.getBody().accept(this);
-
-    return SKIP_CHILDREN;
-  }
-
-  private void addCatchClauses(TryStatement tryStatement) {
-    HashSet<CatchClause> catchClauses = new HashSet<>();
-    for (Object cc : tryStatement.catchClauses()) {
-      CatchClause temp = (CatchClause) cc;
-      catchClauses.add(temp);
-    }
-    catchBlockStack.add(catchClauses);
-    for (CatchClause cc : catchBlockStack.peek()) {
-      cc.accept(this);
-    }
-  }
-
-  @Override
-  public void endVisit(TryStatement tryStatement) {
-    int stackSize = tryBlockStack.size();
-    tryBlockStack.pop();
-    assert tryBlockStack.size() == stackSize - 1;
-  }
-
-  @Override
-  public boolean visit(CatchClause cc) {
-    assert catchBlockStack.peek().contains(cc) == true;
     catchNodes.add(new ArrayList<JCatchInformation>());
 
     CFANode dummyNotEquals = new CFANode(cfa.getFunction());
@@ -2831,10 +2800,34 @@ class CFAMethodBuilder extends ASTVisitor {
                 FileLocation.DUMMY,
                 true));
 
+    addCatchClauses(tryStatement);
+
+    tryStatement.getBody().accept(this);
+
+    return SKIP_CHILDREN;
+  }
+
+  private void addCatchClauses(TryStatement tryStatement) {
+    for (Object cc : tryStatement.catchClauses()) {
+      ((CatchClause) cc).accept(this);
+    }
+  }
+
+  @Override
+  public void endVisit(TryStatement tryStatement) {
+    int stackSize = tryBlockStack.size();
+    tryBlockStack.pop();
+    assert tryBlockStack.size() == stackSize - 1;
+  }
+
+  @Override
+  public boolean visit(CatchClause cc) {
+    catchNodes.add(new ArrayList<JCatchInformation>());
+
     CFANode dummyRunTimeEquals = new CFANode(cfa.getFunction());
 
     catchNodes
-        .peek()
+        .peekLast()
         .add(
             new JCatchInformation(
                 dummyRunTimeEquals,
@@ -2850,11 +2843,44 @@ class CFAMethodBuilder extends ASTVisitor {
 
   @Override
   public void endVisit(CatchClause cc) {
-    catchBlockStack.peek().remove(cc);
-    if (catchBlockStack.peek().isEmpty()) {
-      catchBlockStack.pop();
-    }
     catchClauseHandling = false;
+  }
+
+  // TODO find better name
+  private void addCatchClausePart(CFANode start, CFANode end, List<JCatchInformation> nodes) {
+    CFANode lastNode = start;
+    for (int i = 1; i < nodes.size(); i++) {
+      if ((i + 1) < nodes.size()) {
+        JCatchInformation catchNodeInformation = nodes.get(i);
+        CFANode catchNode = new CFANode(catchNodeInformation.getNode().getFunction());
+        cfaNodes.add(catchNode);
+
+        JStatementEdge catchEdge =
+            new JStatementEdge(
+                catchNodeInformation.getRawStatement(),
+                catchNodeInformation.getStatement(),
+                catchNodeInformation.getFileLocation(),
+                lastNode,
+                catchNode);
+
+        addToCFA(catchEdge);
+
+        lastNode = catchNode;
+
+      } else {
+        JCatchInformation lastCatchNode = nodes.get(i);
+
+        JStatementEdge catchEdge =
+            new JStatementEdge(
+                lastCatchNode.getRawStatement(),
+                lastCatchNode.getStatement(),
+                lastCatchNode.getFileLocation(),
+                lastNode,
+                end);
+
+        addToCFA(catchEdge);
+      }
+    }
   }
 
   @Override
