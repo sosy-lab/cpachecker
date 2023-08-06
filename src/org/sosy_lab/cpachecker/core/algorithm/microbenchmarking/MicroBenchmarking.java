@@ -2,6 +2,8 @@ package org.sosy_lab.cpachecker.core.algorithm.microbenchmarking;
 
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,6 +17,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Tickers;
 import org.sosy_lab.common.time.Tickers.TickerWithUnit;
@@ -167,7 +170,42 @@ public class MicroBenchmarking implements Algorithm {
                 cfa.getMainFunction(),
                 StateSpacePartition.getDefaultPartition());
 
-        runProgramAnalysis(ticker, algorithm, reached, reachedSetFactory, cpa, cfa);
+        List<BenchmarkExecutionRun> runTimes =
+            runProgramAnalysis(ticker, algorithm, reached, reachedSetFactory, cpa, cfa);
+        if (this.outputFile != null) {
+          try (Writer writer = IO.openOutputFile(this.outputFile, Charset.defaultCharset())) {
+            try {
+              writer.append("Config file: ");
+              writer.append(propertyFiles.get(i).getFileName().toString() + "\n");
+              writer.append("Program file: ");
+              writer.append(programFiles.get(z).getFileName().toString() + "\n");
+
+              for (BenchmarkExecutionRun run : runTimes) {
+                writer.append(String.valueOf(run.duration));
+                writer.append(';');
+              }
+              writer.append("\n");
+
+              writer.append("Runtime in ms: ").append("\n");
+              for (BenchmarkExecutionRun run : runTimes) {
+                writer.append(String.valueOf(run.duration / 1000000));
+                writer.append(';');
+              }
+              writer.append("\n");
+
+
+              double overallRunTime =
+                  runTimes.stream().map(r -> r.duration / 1000000.0).reduce(0.0, (a, b) -> a + b);
+              writer.append("Overall runtime in ms: ").append(String.valueOf(overallRunTime));
+
+              writer.append("\n\n");
+            } catch (IOException e) {
+              logger.logfUserException(Level.WARNING, e, "Failed to write run time data to file.");
+            }
+          } catch (IOException ex) {
+            logger.logUserException(Level.WARNING, ex, "Could not write CFA to dot file");
+          }
+        }
 
       }
     }
@@ -199,7 +237,7 @@ public class MicroBenchmarking implements Algorithm {
       } catch (CPAException | InterruptedException e) {
         logger.log(
             Level.FINE,
-            "Error during microbenchmarking run. Ignoring result and continuuing...");
+            "Error during microbenchmarking run. Ignoring result and continuing...");
         continue;
       }
 
