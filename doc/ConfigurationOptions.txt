@@ -4542,6 +4542,10 @@ restartAlgorithm.combineARGsAfterRestart = false
 # set of the preceding analysis is taken and provided to the next analysis.
 restartAlgorithm.configFiles = no default value
 
+# print the intermediate statistics only at the end with the rest of the
+# statistics
+restartAlgorithm.delayIntermediateStatistics = false
+
 # print the statistics of each component of the restart algorithm directly
 # after the components computation is finished
 restartAlgorithm.printIntermediateStatistics = true
