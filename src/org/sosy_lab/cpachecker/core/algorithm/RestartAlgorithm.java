@@ -124,7 +124,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         // Should not happen, as we use a PrintStream
       }
 
-      printIntermediateStatistics(intermediateStatisticsBufferPrintStream, result, reached);
+      printIntermediateStatistics(out, result, reached);
     }
 
     private void printSubStatistics(
