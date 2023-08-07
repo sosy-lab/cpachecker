@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.microbenchmarking;
 
+import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.Writer;
@@ -132,6 +133,7 @@ public class MicroBenchmarking implements Algorithm {
       CPAException {
     logger.logf(Level.INFO, "Starting micro benchmarking");
     TickerWithUnit ticker = Tickers.getCurrentThreadCputime();
+    long startTime = ticker.read();
 
     for (int i = 0; i < propertyFiles.size(); i++) { // Iterate over all user-defined analysis'
       for (int z = 0; z < programFiles.size(); z++) {
@@ -171,7 +173,7 @@ public class MicroBenchmarking implements Algorithm {
                 StateSpacePartition.getDefaultPartition());
 
         List<BenchmarkExecutionRun> runTimes =
-            runProgramAnalysis(ticker, algorithm, reached, reachedSetFactory, cpa, cfa);
+            runProgramAnalysis(algorithm, reached, reachedSetFactory, cpa, cfa);
         if (this.outputFile != null) {
           try (Writer writer = IO.openOutputFile(this.outputFile, Charset.defaultCharset())) {
             try {
@@ -199,6 +201,9 @@ public class MicroBenchmarking implements Algorithm {
               writer.append("Overall runtime in ms: ").append(String.valueOf(overallRunTime));
 
               writer.append("\n\n");
+              long endTime = ticker.read();
+              long time = endTime - startTime;
+              writer.append("Microbenchmark took: ").append(String.valueOf(time)).append(" ns");
             } catch (IOException e) {
               logger.logfUserException(Level.WARNING, e, "Failed to write run time data to file.");
             }
@@ -209,16 +214,18 @@ public class MicroBenchmarking implements Algorithm {
 
       }
     }
+
   }
 
   private List<BenchmarkExecutionRun> runProgramAnalysis(
-      TickerWithUnit ticker,
       Algorithm algorithm,
       ReachedSet reached,
       ReachedSetFactory reachedSetFactory,
       ConfigurableProgramAnalysis cpa,
       CFA cfa)
       throws InterruptedException {
+
+    Ticker ticker = Ticker.systemTicker();
 
     List<BenchmarkExecutionRun> list = new ArrayList<>();
     for (int i = 0; i < numWarmupExecutions + numExecutions; i++) {
@@ -253,9 +260,11 @@ public class MicroBenchmarking implements Algorithm {
                 StateSpacePartition.getDefaultPartition());
       }
 
-      BenchmarkExecutionRun run = new BenchmarkExecutionRun();
-      run.duration = timeDiff;
-      list.add(run);
+      if (i >= numWarmupExecutions) {
+        BenchmarkExecutionRun run = new BenchmarkExecutionRun();
+        run.duration = timeDiff;
+        list.add(run);
+      }
       logger.logf(Level.INFO, "Finished run #%s in %s ms", (i + 1), timeDiff);
 
     }
