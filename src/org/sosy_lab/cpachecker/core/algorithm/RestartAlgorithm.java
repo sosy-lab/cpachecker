@@ -22,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.channels.ClosedByInterruptException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -72,10 +73,13 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
     private final int noOfAlgorithms;
     private int noOfAlgorithmsUsed = 0;
+    private int lastUsedAlgorithm = 0;
     private Timer totalTime = new Timer();
     private final ByteArrayOutputStream intermediateStatisticsBuffer = new ByteArrayOutputStream();
+
+    @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
     private final PrintStream intermediateStatisticsBufferPrintStream =
-        new PrintStream(intermediateStatisticsBuffer);
+        new PrintStream(intermediateStatisticsBuffer, false, StandardCharsets.UTF_8);
 
     public RestartAlgorithmStatistics(int pNoOfAlgorithms, LogManager pLogger) {
       super(pLogger);
@@ -93,9 +97,10 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
       return "Restart Algorithm";
     }
 
-    private void printIntermediateStatistics(PrintStream out, Result result, ReachedSet reached) {
+    private void printIntermediateStatistics(
+        PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
-      String text = "Statistics for algorithm " + noOfAlgorithmsUsed + " of " + noOfAlgorithms;
+      String text = "Statistics for algorithm " + lastUsedAlgorithm + " of " + noOfAlgorithms;
       out.println(text);
       out.println("=".repeat(text.length()));
 
@@ -104,12 +109,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     }
 
     public void bufferIntermediateStatistics(Result result, ReachedSet reached) {
-      String text = "Statistics for algorithm " + noOfAlgorithmsUsed + " of " + noOfAlgorithms;
-      intermediateStatisticsBufferPrintStream.println(text);
-      intermediateStatisticsBufferPrintStream.println("=".repeat(text.length()));
-
-      printSubStatistics(intermediateStatisticsBufferPrintStream, result, reached);
-      intermediateStatisticsBufferPrintStream.println();
+      printIntermediateStatistics(intermediateStatisticsBufferPrintStream, result, reached);
     }
 
     @Override
@@ -124,10 +124,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         // Should not happen, as we use a PrintStream
       }
 
-      String text = "Statistics for algorithm " + noOfAlgorithmsUsed + " of " + noOfAlgorithms;
-      out.println(text);
-      out.println("=".repeat(text.length()));
-      printSubStatistics(out, result, reached);
+      printIntermediateStatistics(intermediateStatisticsBufferPrintStream, result, reached);
     }
 
     private void printSubStatistics(
@@ -335,6 +332,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         shutdownNotifier.shutdownIfNecessary();
 
         stats.noOfAlgorithmsUsed++;
+        stats.lastUsedAlgorithm = stats.noOfAlgorithmsUsed;
 
         // run algorithm
         registerReachedSetUpdateListeners();
