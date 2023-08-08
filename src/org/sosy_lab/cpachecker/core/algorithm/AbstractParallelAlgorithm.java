@@ -233,9 +233,6 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
     final ShutdownManager singleShutdownManager =
         ShutdownManager.createWithParent(shutdownManager.getNotifier());
 
-    final ResourceLimitChecker singleAnalysisOverallLimit =
-        ResourceLimitChecker.fromConfiguration(pConfiguration, singleLogger, singleShutdownManager);
-
     final CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(
             pConfiguration,
@@ -248,19 +245,24 @@ public abstract class AbstractParallelAlgorithm implements Algorithm, Statistics
     final ReachedSet reached = coreComponents.createReachedSet(cpa);
 
     AtomicBoolean terminated = new AtomicBoolean(false);
-    StatisticsEntry statisticsEntry =
-        stats.getNewSubStatistics(
-            reached,
-            pAnalysisName,
-            Iterables.getOnlyElement(
-                FluentIterable.from(singleAnalysisOverallLimit.getResourceLimits())
-                    .filter(ThreadCpuTimeLimit.class),
-                null),
-            terminated);
     return () -> {
       // TODO global info will not work correctly with parallel analyses
       // as it is a mutable singleton object
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+
+      final ResourceLimitChecker singleAnalysisOverallLimit =
+          ResourceLimitChecker.fromConfiguration(
+              pConfiguration, singleLogger, singleShutdownManager);
+
+      StatisticsEntry statisticsEntry =
+          stats.getNewSubStatistics(
+              reached,
+              pAnalysisName,
+              Iterables.getOnlyElement(
+                  FluentIterable.from(singleAnalysisOverallLimit.getResourceLimits())
+                      .filter(ThreadCpuTimeLimit.class),
+                  null),
+              terminated);
 
       if (algorithm instanceof ConditionAdjustmentEventSubscriber) {
         conditionAdjustmentEventSubscribers.add((ConditionAdjustmentEventSubscriber) algorithm);

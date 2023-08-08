@@ -274,7 +274,7 @@ public class ParallelRangedConditionsAlgorithm extends AbstractParallelAlgorithm
 
     @Override
     protected Result determineAnalysisResult(Result pResult, String pActualAnalysisName) {
-      return null;
+      return pResult;
     }
   }
 }
