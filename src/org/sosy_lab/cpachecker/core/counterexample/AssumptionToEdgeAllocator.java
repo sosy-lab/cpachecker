@@ -800,7 +800,7 @@ public class AssumptionToEdgeAllocator {
       return null;
     }
 
-    private @Nullable Optional<BigInteger> getFieldOffset(CFieldReference fieldReference) {
+    private Optional<BigInteger> getFieldOffset(CFieldReference fieldReference) {
       CType fieldOwnerType = fieldReference.getFieldOwner().getExpressionType().getCanonicalType();
       return AssumptionToEdgeAllocator.getFieldOffset(
           fieldOwnerType, fieldReference.getFieldName(), machineModel);
