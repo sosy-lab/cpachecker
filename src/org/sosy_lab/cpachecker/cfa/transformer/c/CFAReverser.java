@@ -188,7 +188,7 @@ public class CFAReverser {
       LoopStructure loopStructure = null;
       try {
         loopStructure = LoopStructure.getLoopStructure(newMutableCfa);
-        pLog.log(Level.INFO, "FOUND LOOP COUNT: " + loopStructure.getCount());
+        pLog.log(Level.INFO, "found loop count: " + loopStructure.getCount());
       } catch (Exception e) {
         pLog.log(Level.WARNING, "failed to get the loop structure" + e);
       }
