@@ -21,6 +21,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadMXBean;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -29,6 +31,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -75,6 +78,11 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     private int noOfAlgorithmsUsed = 0;
     private int lastUsedAlgorithm = 0;
     private Timer totalTime = new Timer();
+
+    private long cpuTime = 0;
+    private long cpuTimeStart = 0;
+    private ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+
     private final ByteArrayOutputStream intermediateStatisticsBuffer = new ByteArrayOutputStream();
 
     @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
@@ -90,11 +98,22 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     public void resetSubStatistics() {
       super.resetSubStatistics();
       totalTime = new Timer();
+      cpuTime = 0;
     }
 
     @Override
     public String getName() {
       return "Restart Algorithm";
+    }
+
+    private void startTimer() {
+      totalTime.start();
+      cpuTimeStart = threadMXBean.getCurrentThreadCpuTime();
+    }
+
+    private void stopTimer() {
+      totalTime.stop();
+      cpuTime = threadMXBean.getCurrentThreadCpuTime() - cpuTimeStart;
     }
 
     private void printIntermediateStatistics(
@@ -130,6 +149,12 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     private void printSubStatistics(
         PrintStream out, Result result, UnmodifiableReachedSet reached) {
       out.println("Total time for algorithm " + noOfAlgorithmsUsed + ": " + totalTime);
+      out.println(
+          "Thread CPU time for algorithm "
+              + noOfAlgorithmsUsed
+              + ": "
+              + TimeUnit.SECONDS.convert(cpuTime, TimeUnit.NANOSECONDS));
+
       super.printStatistics(out, result, reached);
     }
   }
@@ -266,7 +291,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     final List<ConfigurableProgramAnalysis> cpasToClose = new ArrayList<>();
 
     while (configFilesIterator.hasNext()) {
-      stats.totalTime.start();
+      stats.startTimer();
       @Nullable ConfigurableProgramAnalysis currentCpa = null;
       ReachedSet currentReached;
       ShutdownManager singleShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
@@ -410,7 +435,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         singleShutdownManager.getNotifier().unregister(logShutdownListener);
         singleShutdownManager.requestShutdown(
             "Analysis terminated"); // shutdown any remaining components
-        stats.totalTime.stop();
+        stats.stopTimer();
       }
 
       shutdownNotifier.shutdownIfNecessary();
