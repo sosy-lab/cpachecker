@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.graph.Traverser;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.Serializable;
 import java.util.ArrayDeque;
@@ -521,7 +522,8 @@ public final class LoopStructure implements Serializable {
     // For performance reasons, we use loop-free sections instead of individual nodes for loop
     // detection.
     LoopFreeSectionFinder loopFreeSectionFinder =
-        new CachingLoopFreeSectionFinder(new BranchingLoopFreeSectionFinder(nodeAfterInitialChain));
+        new CachingLoopFreeSectionFinder(
+            new BranchingLoopFreeSectionFinder(pNodes, nodeAfterInitialChain));
 
     // FIRST step: initialize arrays
     // We also summarize loop-free sections by adding an edge to `edges` between the entry and
@@ -1199,12 +1201,45 @@ public final class LoopStructure implements Serializable {
     /**
      * Creates a new {@link BranchingLoopFreeSectionFinder} instance.
      *
+     * @param pNodes the nodes this loop-free section finder should be able to handle
      * @param pStartNode If {@code pStartNode != null}, we ignore all its predecessors during CFA
      *     traversal. This can be used to ignore linear chains of nodes at the function start.
      */
-    private BranchingLoopFreeSectionFinder(@Nullable CFANode pStartNode) {
+    private BranchingLoopFreeSectionFinder(Set<CFANode> pNodes, @Nullable CFANode pStartNode) {
       startNode = pStartNode;
       nodeChainFinder = new NodeChainLoopFreeSectionFinder(pStartNode);
+      // If we don't precompute branch/merge node mappings, the recursive implementations of
+      // `branchNode` and `mergeNode` lead to stack overflows if there is a large number of nested
+      // branchings.
+      precomputeMappings(pNodes);
+    }
+
+    private void precomputeMappings(Set<CFANode> pNodes) {
+      for (CFANode node : pNodes) {
+        if (node instanceof FunctionEntryNode entryNode) {
+          // We use post-order DFS to handle inner branchings before outer branchings, which
+          // prevents stack overflows if there is a large number of nested branchings (the
+          // implementations of `branchNode` and `mergeNode` recursively check inner branchings that
+          // have not yet been analyzed).
+          for (CFANode postOrderNode :
+              Traverser.<CFANode>forGraph(CFAUtils::successorsOf).depthFirstPostOrder(entryNode)) {
+            if (postOrderNode.getNumLeavingEdges() > 1) {
+              // analyze branch node `postOrderNode` and its corresponding merge node (if it exists)
+              mergeNode(postOrderNode).ifPresent(this::branchNode);
+            }
+          }
+        }
+      }
+      // For all branch/merge nodes with unknown corresponding merge/branch nodes, we update the
+      // mappings to indicate that combining the branching into a loop-free section isn't possible.
+      for (CFANode node : pNodes) {
+        if (node.getNumEnteringEdges() > 1) {
+          mergeNodeToBranchNode.putIfAbsent(node, Optional.empty());
+        }
+        if (node.getNumLeavingEdges() > 1) {
+          branchNodeToMergeNode.putIfAbsent(node, Optional.empty());
+        }
+      }
     }
 
     private CFANode branchFirstNode(CFANode pNode) {
