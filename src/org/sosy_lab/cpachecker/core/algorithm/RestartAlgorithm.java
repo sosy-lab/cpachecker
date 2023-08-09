@@ -45,6 +45,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -153,7 +154,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           "Thread CPU time for algorithm "
               + noOfAlgorithmsUsed
               + ": "
-              + TimeUnit.SECONDS.convert(cpuTime, TimeUnit.NANOSECONDS));
+              + TimeSpan.of(cpuTime, TimeUnit.NANOSECONDS).formatAs(TimeUnit.SECONDS));
 
       super.printStatistics(out, result, reached);
     }
