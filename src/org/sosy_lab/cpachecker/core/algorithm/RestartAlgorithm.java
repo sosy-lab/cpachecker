@@ -77,7 +77,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
     private final int noOfAlgorithms;
     private int noOfAlgorithmsUsed = 0;
-    private int lastUsedAlgorithm = 0;
+    private int noOfcurrentAlgorithm = 0;
     private Timer totalTime = new Timer();
 
     private long cpuTime = 0;
@@ -120,7 +120,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     private void printIntermediateStatistics(
         PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
-      String text = "Statistics for algorithm " + lastUsedAlgorithm + " of " + noOfAlgorithms;
+      String text = "Statistics for algorithm " + noOfcurrentAlgorithm + " of " + noOfAlgorithms;
       out.println(text);
       out.println("=".repeat(text.length()));
 
@@ -149,10 +149,10 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
     private void printSubStatistics(
         PrintStream out, Result result, UnmodifiableReachedSet reached) {
-      out.println("Total time for algorithm " + noOfAlgorithmsUsed + ": " + totalTime);
+      out.println("Total time for algorithm " + noOfcurrentAlgorithm + ": " + totalTime);
       out.println(
           "Thread CPU time for algorithm "
-              + noOfAlgorithmsUsed
+              + noOfcurrentAlgorithm
               + ": "
               + TimeSpan.of(cpuTime, TimeUnit.NANOSECONDS).formatAs(TimeUnit.SECONDS));
 
@@ -293,6 +293,8 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
 
     while (configFilesIterator.hasNext()) {
       stats.startTimer();
+      stats.noOfcurrentAlgorithm = stats.noOfAlgorithmsUsed + 1;
+
       @Nullable ConfigurableProgramAnalysis currentCpa = null;
       ReachedSet currentReached;
       ShutdownManager singleShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
@@ -308,7 +310,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         logger.logf(
             Level.INFO,
             "Loading analysis %d from file %s ...",
-            stats.noOfAlgorithmsUsed + 1,
+            stats.noOfcurrentAlgorithm,
             singleConfigFileName);
 
         try {
@@ -358,7 +360,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         shutdownNotifier.shutdownIfNecessary();
 
         stats.noOfAlgorithmsUsed++;
-        stats.lastUsedAlgorithm = stats.noOfAlgorithmsUsed;
+        stats.noOfcurrentAlgorithm = stats.noOfAlgorithmsUsed;
 
         // run algorithm
         registerReachedSetUpdateListeners();
