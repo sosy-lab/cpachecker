@@ -238,6 +238,7 @@ class AssignmentFormulaHandler {
     // an initialization assignment
     // unaliased locations do not get any improvement from using old SSA indices
     final Location lhsLocation = lhsResolved.expression().asLocation();
+    // Never use in case of backward analysis
     final boolean useOldSSAIndices =
         assignmentOptions.useOldSSAIndicesIfAliased() && lhsLocation.isAliased();
 
@@ -254,8 +255,7 @@ class AssignmentFormulaHandler {
             rhsResult.type(),
             lhsLocation,
             rhsResult.expression(),
-            assignmentOptions.useOldSSAIndicesIfAliased()
-                && lhsResolved.expression().isAliasedLocation(),
+            useOldSSAIndices,
             updatedRegions,
             conditionFormula,
             useQuantifiers);
@@ -909,9 +909,7 @@ class AssignmentFormulaHandler {
       rhs = rvalue.asAliasedLocation().getAddress();
     } else {
       final Optional<Formula> value =
-          conv.direction == AnalysisDirection.FORWARD
-              ? addressHandler.getOptionalValueFormula(rvalue, rvalueType, false)
-              : addressHandler.getOptionalValueFormulaBackward(rvalue, rvalueType, false);
+          addressHandler.getOptionalValueFormula(rvalue, rvalueType, false);
       rhs =
           value.isPresent()
               ? conv.makeCast(rvalueType, lvalueType, value.orElseThrow(), constraints, edge)
@@ -961,7 +959,11 @@ class AssignmentFormulaHandler {
       final int newIndex;
       if (useOldSSAIndices) {
         assert updatedRegions == null : "Returning updated regions is only for new indices";
-        newIndex = oldIndex;
+        newIndex =
+            conv.direction == AnalysisDirection.FORWARD
+                ? oldIndex
+                : conv.getPreviousIndex(targetName, lvalueType, ssa);
+        ;
 
       } else if (options.useArraysForHeap()) {
         assert updatedRegions == null : "Return updated regions is only for UF encoding";

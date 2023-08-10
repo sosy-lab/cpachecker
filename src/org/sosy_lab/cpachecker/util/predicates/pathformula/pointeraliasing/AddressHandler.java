@@ -213,47 +213,6 @@ final class AddressHandler {
   }
 
   /**
-   * Creates a formula for the value of an expression or returns empty Optional if the value is
-   * nondeterministic.
-   *
-   * <p>As aliased location expression do not store the actual variable, but rather its address, the
-   * address is dereferenced in this case. The parameter {@code isSafe} determines whether such a
-   * reference is always safe to accomplish.
-   *
-   * @param expression The expression.
-   * @param type The type of the expression.
-   * @param isSafe Whether dereferencing the formula is safe or not.
-   * @return An optional containing the formula for the value, empty if it is nondeterministic.
-   */
-  Optional<Formula> getOptionalValueFormulaBackward(
-      final Expression expression, final CType type, final boolean isSafe) {
-    return switch (expression.getKind()) {
-      case ALIASED_LOCATION -> {
-        MemoryRegion region = expression.asAliasedLocation().getMemoryRegion();
-        if (region == null) {
-          region = regionMgr.makeMemoryRegion(type);
-        }
-        String targetName = regionMgr.getPointerAccessName(region);
-        conv.makeFreshIndex(targetName, type, ssa);
-        if (isSafe) {
-          yield Optional.of(
-              conv.makeSafeDereference(
-                  type, expression.asAliasedLocation().getAddress(), ssa, region));
-        }
-        yield Optional.of(
-            conv.makeDereference(
-                type, expression.asAliasedLocation().getAddress(), ssa, errorConditions, region));
-      }
-      case UNALIASED_LOCATION -> {
-        yield Optional.of(
-            conv.makeVariable(expression.asUnaliasedLocation().getVariableName(), type, ssa));
-      }
-      case DET_VALUE -> Optional.of(expression.asValue().getValue());
-      case NONDET -> Optional.empty();
-    };
-  }
-
-  /**
    * Adds a constraint that both given formulae have the same base address.
    *
    * @param p1 The first formula.

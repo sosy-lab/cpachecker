@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -48,6 +49,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Assig
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentLhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.AssignmentQuantifierHandler.PartialAssignmentRhs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.ResolvedSlice;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.SliceExpression.SliceFieldAccessModifier;
@@ -364,12 +366,50 @@ class AssignmentHandler {
     final CRightHandSide lhsBase = assignment.lhs.base();
     ResolvedSlice resolvedLhsBase = resolveBase(lhsBase, lhsBaseVisitor);
 
-    if (resolvedLhsBase.expression() instanceof UnaliasedLocation
-        && conv.direction == AnalysisDirection.BACKWARD) {
-      conv.makeFreshIndex(
-          resolvedLhsBase.expression().asUnaliasedLocation().getVariableName(),
-          CTypes.adjustFunctionOrArrayType(resolvedLhsBase.type()),
-          ssa);
+    if (conv.direction == AnalysisDirection.BACKWARD && !(edge instanceof CFunctionCallEdge)) {
+      Expression lhsExpression = resolvedLhsBase.expression();
+      CType lhsType = resolvedLhsBase.type();
+      if (lhsExpression instanceof UnaliasedLocation
+          // if it's a composite type, it's a field of a struct or union
+          // which we will handle later
+          && !(resolvedLhsBase.type() instanceof CCompositeType)) {
+        conv.makeFreshIndex(
+            lhsExpression.asUnaliasedLocation().getVariableName(),
+            CTypes.adjustFunctionOrArrayType(lhsType),
+            ssa);
+      } else if (lhsExpression instanceof UnaliasedLocation
+          && resolvedLhsBase.type() instanceof CCompositeType) {
+        final SliceExpression lhsSlice = assignment.lhs;
+        final AssignmentQuantifierHandler assignmentQuantifierHandler =
+            new AssignmentQuantifierHandler(
+                conv,
+                edge,
+                function,
+                ssa,
+                pts,
+                constraints,
+                errorConditions,
+                regionMgr,
+                assignmentOptions,
+                lhsBaseResolutionMap,
+                rhsBaseResolutionMap);
+        final ResolvedSlice lhsResolved =
+            assignmentQuantifierHandler.applySliceModifiersToResolvedBase(
+                resolvedLhsBase, lhsSlice);
+        conv.makeFreshIndex(
+            lhsResolved.expression().asUnaliasedLocation().getVariableName(),
+            lhsResolved.type(),
+            ssa);
+      } else if (resolvedLhsBase.expression() instanceof AliasedLocation) {
+        if (!(resolvedLhsBase.type() instanceof CCompositeType)) {
+          MemoryRegion region = lhsExpression.asAliasedLocation().getMemoryRegion();
+          if (region == null) {
+            region = regionMgr.makeMemoryRegion(lhsType);
+          }
+          String targetName = regionMgr.getPointerAccessName(region);
+          conv.makeFreshIndex(targetName, lhsType, ssa);
+        }
+      }
     }
 
     // add initialized and used fields of LHS base to pointer-target set as essential

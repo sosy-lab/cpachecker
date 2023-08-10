@@ -709,7 +709,7 @@ class AssignmentQuantifierHandler {
    * @return Resolution result after applying modifiers.
    * @throws IllegalStateException If there are any unresolved modifiers.
    */
-  private ResolvedSlice applySliceModifiersToResolvedBase(
+  protected ResolvedSlice applySliceModifiersToResolvedBase(
       final ResolvedSlice resolvedBase, final SliceExpression slice) {
     checkNotNull(resolvedBase);
     checkNotNull(slice);

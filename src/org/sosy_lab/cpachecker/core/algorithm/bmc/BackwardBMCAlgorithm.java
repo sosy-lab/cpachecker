@@ -107,7 +107,6 @@ public class BackwardBMCAlgorithm implements Algorithm {
 
     AlgorithmStatus status;
     int it = 0;
-
     do {
       it++;
       status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
@@ -118,7 +117,6 @@ public class BackwardBMCAlgorithm implements Algorithm {
           // target states (main entry) may also be abstraction states
           .filter(Predicates.not(AbstractStates::isTargetState))
           .anyMatch(PredicateAbstractState::containsAbstractionState)) {
-
         logger.log(
             Level.WARNING,
             "Backward BMC algorithm does not work with abstractions. Could not check for"
@@ -130,7 +128,7 @@ public class BackwardBMCAlgorithm implements Algorithm {
       FluentIterable<AbstractState> targetState = getTarget(reachedSet);
       if (targetState.isEmpty()) {
         logger.log(Level.INFO, "No path to target found...");
-        return status;
+        continue;
       }
       FluentIterable<AbstractState> loopHeads = getRecentLoopHeadStates(reachedSet, it);
 
@@ -150,7 +148,7 @@ public class BackwardBMCAlgorithm implements Algorithm {
 
     } while (status.isSound() && adjustConditions());
 
-    // Could not find a path to target within unrolling bound
+    // Could not find a satisfiable path to target within unrolling bound
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
@@ -185,6 +183,7 @@ public class BackwardBMCAlgorithm implements Algorithm {
     } finally {
       stats.satCheck.stop();
     }
+
     return safe;
   }
 

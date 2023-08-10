@@ -144,10 +144,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         pTypeHandler,
         pDirection);
 
-    // if (pDirection == AnalysisDirection.BACKWARD) {
-    // throw new InvalidConfigurationException(
-    // "Backward formula construction is not yet implemented for pointer aliasing.");
-    // }
+    if (pDirection == AnalysisDirection.BACKWARD) {
+      logger.log(
+          Level.INFO,
+          "Support for pointer aliasing is a work-in-progress feature for backward analysis");
+    }
 
     variableClassification = pVariableClassification;
     options = pOptions;
@@ -1348,7 +1349,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   protected int getPreviousIndex(String name, CType type, SSAMapBuilder ssa) {
     checkSsaSavedType(name, type, ssa.getType(name));
     int idx = ssa.getPreviousIndex(name);
-    if (idx <= 0) {
+    if (idx == 0) {
+      return 1;
+    } else if (idx < 0) {
       logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
       idx = VARIABLE_UNINITIALIZED;
 
