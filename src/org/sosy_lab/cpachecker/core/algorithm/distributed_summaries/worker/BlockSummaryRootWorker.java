@@ -22,8 +22,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -42,7 +40,6 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options( prefix = "rootWorker" )
 public class BlockSummaryRootWorker extends BlockSummaryWorker {
 
   private final BlockNode root;
@@ -50,14 +47,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
   private final DistributedConfigurableProgramAnalysis dcpa;
   private final AbstractState topState;
   private boolean shutdown;
-
-  @Option(
-      description = "allow to choose the behaviour of the root worker. "
-  )
-  private boolean defaultRootWorker = false;
-
-  private int postConditionCounter = 0;
-  private int blockCount = 0;//TODO import block count
+  private final boolean defaultRootWorker;
   public Set<List<String>> collectedBlockSummaryErrorMessages = new HashSet<>();
 
   BlockSummaryRootWorker(
@@ -87,6 +77,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
             getLogger(),
             pShutdownManager.getNotifier());
     connection = pConnection;
+    defaultRootWorker = !Infer;
     shutdown = false;
     root = pNode;
     AnalysisComponents parts =
@@ -109,42 +100,23 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
       throws InterruptedException, SolverException {
     return switch (pMessage.getType()) {
       case ERROR_CONDITION -> {
-        if (defaultRootWorker) {
-          AbstractState currentState = dcpa.getDeserializeOperator().deserialize(pMessage);
-          BlockSummaryMessageProcessing processing =
-              dcpa.getProceedOperator().proceed(currentState);
-          if (processing.end()) {
-            yield processing;
-          }
-          yield ImmutableSet.of(
-              BlockSummaryMessage.newResultMessage(
-                  root.getId(), root.getLast().getNodeNumber(), Result.FALSE));
-        } else {
-          AbstractState currentState = dcpa.getDeserializeOperator().deserialize(pMessage);
-          BlockSummaryMessageProcessing processing =
-              dcpa.getProceedOperator().proceed(currentState);
-          collectedBlockSummaryErrorMessages.add(((BlockSummaryErrorConditionMessage) pMessage).getViolations());
-          if (processing.end()) {
-            yield processing;
-          }
-          yield ImmutableSet.of(
-              BlockSummaryMessage.newResultMessage(
-                  root.getId(), root.getLast().getNodeNumber(), Result.FALSE));
+        AbstractState currentState = dcpa.getDeserializeOperator().deserialize(pMessage);
+        BlockSummaryMessageProcessing processing =
+            dcpa.getProceedOperator().proceed(currentState);
+        if (!defaultRootWorker) {
+          collectedBlockSummaryErrorMessages.add(
+              ((BlockSummaryErrorConditionMessage) pMessage).getViolations());
+          //getLogger().log(Level.INFO,collectedBlockSummaryErrorMessages);
         }
+        yield ImmutableSet.of(
+            BlockSummaryMessage.newResultMessage(
+                root.getId(), root.getLast().getNodeNumber(), Result.FALSE));
       }
       case FOUND_RESULT, EXCEPTION -> {
         shutdown = true;
         yield ImmutableSet.of();
       }
-      case STATISTICS, ERROR_CONDITION_UNREACHABLE -> ImmutableSet.of();
-      case BLOCK_POSTCONDITION -> {
-        postConditionCounter++;
-        if (!defaultRootWorker && postConditionCounter == blockCount) {
-          yield ImmutableSet.of(); //TODO proper return value?
-        } else {
-          yield ImmutableSet.of();
-        }
-      }
+      case STATISTICS, ERROR_CONDITION_UNREACHABLE, BLOCK_POSTCONDITION -> ImmutableSet.of();
     };
   }
 

@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.common.ShutdownManager;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -26,7 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-@Options( prefix = "workerBuilder" )
+@Options(prefix = "workerBuilder")
 public class BlockSummaryWorkerBuilder {
 
   @Option(
@@ -47,7 +48,9 @@ public class BlockSummaryWorkerBuilder {
   public BlockSummaryWorkerBuilder(
       CFA pCFA,
       BlockSummaryConnectionProvider<?> pConnectionProvider,
-      Specification pSpecification) {
+      Specification pSpecification,
+      Configuration pConfiguration) throws InvalidConfigurationException {
+    pConfiguration.inject(this);
     cfa = pCFA;
     specification = pSpecification;
     // only one available for now

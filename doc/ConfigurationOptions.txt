@@ -4570,9 +4570,6 @@ restartAlgorithm.printIntermediateStatistics = true
 # the last one that is excuted
 restartAlgorithm.writeIntermediateOutputFiles = false
 
-# allow to choose the behaviour of the root worker. 
-rootWorker.defaultRootWorker = false
-
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"
 
@@ -5017,4 +5014,4 @@ witness.validation.termination.terminatingStatements = "config/specification/Ter
 witness.validation.violation.config = no default value
 
 # allow to choose the behaviour of the root worker. 
-workerBuilder.Infer = no default value
+workerBuilder.Infer = true

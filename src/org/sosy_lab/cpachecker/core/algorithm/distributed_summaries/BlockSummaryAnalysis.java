@@ -88,7 +88,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   private final BlockSummaryAnalysisOptions options;
 
   private final Map<String, Object> stats;
-
   private final StatInt numberWorkers = new StatInt(StatKind.MAX, "Number of worker");
   private final StatInt averageNumberOfEdges =
       new StatInt(StatKind.AVG, "Average number of edges in block");
@@ -233,7 +232,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
           new BlockSummaryWorkerBuilder(
                   cfa,
                   new InMemoryBlockSummaryConnectionProvider(getQueueSupplier()),
-                  specification)
+                  specification,configuration)
               .createAdditionalConnections(1)
               .addRootWorker(blockGraph.getRoot(), options);
       for (BlockNode distinctNode : blocks) {
