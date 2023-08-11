@@ -224,7 +224,7 @@ public class CExpressionInvariantExporter {
                     prefix.getPath(sourceFile.getFileName()), Charset.defaultCharset());
             BufferedReader reader = Files.newBufferedReader(sourceFile)) {
           int counter = 1;
-          output.append("extern void __VERIFIER_assume(int expression);");
+          output.append("extern void __VERIFIER_assume(int expression);\n");
           String line;
           while ((line = reader.readLine()) != null) {
             invariantKey = Pair.of(fileName, counter++);
