@@ -264,6 +264,10 @@ public class CFAReverser {
             localTargets.add(newhead);
           }
 
+          if (oldhead.isLoopStart()) {
+            newhead.setLoopStart();
+          }
+
           checkNotNull(newhead);
 
           nodes.put(funcName, newhead);
@@ -274,8 +278,9 @@ public class CFAReverser {
           CFANode branchNode = null;
 
           // Create Branching
-          // newhead  -> branchID1 -> newNext1
-          //          -> branchID2 -> newNext2
+          // newhead -> branchID1 -> newNext1
+          //         -> branchID2 -> newNext2
+
           if (CFAUtils.allEnteringEdges(oldhead).size() > 1) {
             branchCnt += 1;
             usingBranch = true;
@@ -286,12 +291,12 @@ public class CFAReverser {
                     false,
                     CStorageClass.AUTO,
                     intType,
-                    "TMP_BRANCHING_REVERSE_CFA" + branchCnt,
-                    "TMP_BRANCHING_REVERSE_CFA" + branchCnt,
-                    newDecl.getName() + "::" + "TMP_BRANCHING_REVERSE_CFA" + branchCnt,
+                    "branch_" + branchCnt,
+                    "branch_" + branchCnt,
+                    newDecl.getName() + "::" + "branch_" + branchCnt,
                     null);
 
-            variables.put("TMP_BRANCHING_REVERSE_CFA", ndetBranchVarDecl);
+            variables.put("branch_", ndetBranchVarDecl);
             ndetBranchVarExpr = new CIdExpression(FileLocation.DUMMY, ndetBranchVarDecl);
             branchNode = createNoDetAssign(ndetBranchVarExpr, newhead);
           }
@@ -385,11 +390,11 @@ public class CFAReverser {
                 false,
                 CStorageClass.AUTO,
                 intType,
-                "TARGET_BRANCHING_REVERSE_CFA" + branchCnt,
-                "TARGET_BRANCHING_REVERSE_CFA" + branchCnt,
-                newDecl.getName() + "::" + "TARGET_BRANCHING_REVERSE_CFA" + branchCnt,
+                "target__" + branchCnt,
+                "target__" + branchCnt,
+                newDecl.getName() + "::" + "target__" + branchCnt,
                 null);
-        variables.put("TMP_BRANCHING_REVERSE_CFA", targetBranchVarDecl);
+        variables.put("target__", targetBranchVarDecl);
         CIdExpression targetBranchVarExpr =
             new CIdExpression(FileLocation.DUMMY, targetBranchVarDecl);
         // =============================================================================
@@ -788,7 +793,7 @@ public class CFAReverser {
 
         private CVariableDeclaration createTmpVar(CVariableDeclaration decl) {
           String varName = decl.getName();
-          String tmpName = "REV_TMP__" + varName;
+          String tmpName = "tmp__" + varName;
           CVariableDeclaration tmpDecl =
               new CVariableDeclaration(
                   FileLocation.DUMMY,
@@ -796,8 +801,8 @@ public class CFAReverser {
                   decl.getCStorageClass(),
                   decl.getType(),
                   tmpName,
-                  "REV_TMP__" + decl.getOrigName(),
-                  "REV_TMP__" + decl.getQualifiedName(),
+                  "tmp__" + decl.getOrigName(),
+                  "tmp__" + decl.getQualifiedName(),
                   null);
           variables.put(tmpName, tmpDecl);
           tmpVarMap.put(varName, tmpName);
