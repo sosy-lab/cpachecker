@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -65,6 +64,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -506,7 +506,7 @@ public class CFAReverser {
         pLog.log(Level.INFO, "assume edge: " + edge);
 
         CExpression expr = edge.getExpression();
-        ExprVariableFinder finder = new ExprVariableFinder(new HashSet<>());
+        RightSideVariableFinder finder = new RightSideVariableFinder(new HashSet<>());
         expr.accept(finder);
 
         CExpression assumeExpr = expr.accept(finder);
@@ -577,7 +577,7 @@ public class CFAReverser {
         CInitializer init = decl.getInitializer();
 
         if (init instanceof CInitializerExpression) {
-          ExprVariableFinder rfinder = new ExprVariableFinder(new HashSet<>());
+          RightSideVariableFinder rfinder = new RightSideVariableFinder(new HashSet<>());
           CIntegerLiteralExpression rvalue =
               (CIntegerLiteralExpression) ((CInitializerExpression) init).getExpression();
 
@@ -592,8 +592,8 @@ public class CFAReverser {
       }
 
       private void reverseStmtEdge(CStatementEdge edge, CFANode from, CFANode to) {
-
         CStatement stmt = edge.getStatement();
+
         if (stmt instanceof CExpressionAssignmentStatement) {
           handleExprAssignStmt((CExpressionAssignmentStatement) stmt, from, to);
         } else if (stmt instanceof CExpressionStatement) {
@@ -615,11 +615,11 @@ public class CFAReverser {
         CExpression rvalue = stmt.getRightHandSide();
 
         // left hand side
-        LeftVariableFinder lfinder = new LeftVariableFinder();
+        LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
         CIdExpression lhs = (CIdExpression) lvalue.accept(lfinder);
         pLog.log(Level.INFO, "LFINDER VARS: " + lfinder.vars);
         // right hand side
-        ExprVariableFinder rfinder = new ExprVariableFinder(lfinder.vars);
+        RightSideVariableFinder rfinder = new RightSideVariableFinder(lfinder.vars);
         CExpression rhs = rvalue.accept(rfinder);
 
         CFANode curr = from;
@@ -643,7 +643,7 @@ public class CFAReverser {
 
       private CFANode handleExprStmt(CExpressionStatement stmt, CFANode from, CFANode to) {
         checkNotNull(from, to);
-        ExprVariableFinder finder = new ExprVariableFinder(new HashSet<>());
+        RightSideVariableFinder finder = new RightSideVariableFinder(new HashSet<>());
         CExpression expr = stmt.getExpression().accept(finder);
 
         CExpressionStatement exprStatement = new CExpressionStatement(FileLocation.DUMMY, expr);
@@ -656,6 +656,7 @@ public class CFAReverser {
       }
 
       private CFANode handleCallAssignStmt(CFunctionCallAssignmentStatement stmt, CFANode from) {
+        // TODO: handleCallAssignStmt
         checkNotNull(from);
         CExpression lvalue = stmt.getLeftHandSide();
         CFunctionCallExpression rvalue = stmt.getRightHandSide();
@@ -667,18 +668,20 @@ public class CFAReverser {
       }
 
       private CFANode handleCallStmt(CFunctionCallStatement stmt, CFANode from) {
+        // TODO: handleCallAssignStmt
         checkNotNull(stmt, from);
         return null;
       }
 
       /////////////////////////////////////////////////////////////////////////////
-      // Left Side Visitor
+      // Left Side Expression Visitor
       /////////////////////////////////////////////////////////////////////////////
-      private final class LeftVariableFinder
-          implements CLeftHandSideVisitor<CLeftHandSide, NoException> {
+      private final class LeftSideVariableFinder
+          implements CExpressionVisitor<CExpression, NoException> {
+
         private Set<String> vars;
 
-        private LeftVariableFinder() {
+        private LeftSideVariableFinder() {
           this.vars = new HashSet<>();
         }
 
@@ -718,8 +721,10 @@ public class CFAReverser {
         }
 
         @Override
-        public CLeftHandSide visit(CIdExpression pIastIdExpression) throws NoException {
+        public CExpression visit(CIdExpression pIastIdExpression) throws NoException {
+
           CSimpleDeclaration decl = pIastIdExpression.getDeclaration();
+
           if (decl instanceof CVariableDeclaration) {
             return handleVarDecl((CVariableDeclaration) decl);
           }
@@ -728,42 +733,125 @@ public class CFAReverser {
         }
 
         @Override
-        public CLeftHandSide visit(CPointerExpression pPointerExpression) throws NoException {
-          // TODO CPointerExpression
+        public CExpression visit(CBinaryExpression pIastBinaryExpression) throws NoException {
+          CExpression op1 = pIastBinaryExpression.getOperand1().accept(this);
+          CExpression op2 = pIastBinaryExpression.getOperand2().accept(this);
+          return new CBinaryExpression(
+              FileLocation.DUMMY,
+              pIastBinaryExpression.getExpressionType(),
+              pIastBinaryExpression.getCalculationType(),
+              op1,
+              op2,
+              pIastBinaryExpression.getOperator());
+        }
+
+        @Override
+        public CExpression visit(CUnaryExpression pIastUnaryExpression) throws NoException {
+          CExpression operand = pIastUnaryExpression.getOperand().accept(this);
+          UnaryOperator operator = pIastUnaryExpression.getOperator();
+
+          return new CUnaryExpression(
+              FileLocation.DUMMY, pIastUnaryExpression.getExpressionType(), operand, operator);
+        }
+
+        @Override
+        public CExpression visit(CAddressOfLabelExpression pAddressOfLabelExpression)
+            throws NoException {
+          // TODO CAddressOfLabelExpression
           return null;
         }
 
         @Override
-        public CLeftHandSide visit(CFieldReference pIastFieldReference) throws NoException {
-          // TODO CFieldReference
-          return null;
-        }
-
-        @Override
-        public CLeftHandSide visit(CArraySubscriptExpression pIastArraySubscriptExpression)
+        public CExpression visit(CArraySubscriptExpression pIastArraySubscriptExpression)
             throws NoException {
           // TODO CArraySubscriptExpression
           return null;
         }
 
         @Override
-        public CLeftHandSide visit(CComplexCastExpression pComplexCastExpression)
+        public CExpression visit(CCastExpression pIastCastExpression) throws NoException {
+          // TODO CCastExpression
+          return null;
+        }
+
+        @Override
+        public CExpression visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
             throws NoException {
-          // TODO CComplexCastExpressio
+          return new CIntegerLiteralExpression(
+              FileLocation.DUMMY,
+              pIastIntegerLiteralExpression.getExpressionType(),
+              pIastIntegerLiteralExpression.getValue());
+        }
+
+        @Override
+        public CExpression visit(CCharLiteralExpression pIastCharLiteralExpression)
+            throws NoException {
+          return new CCharLiteralExpression(
+              FileLocation.DUMMY,
+              pIastCharLiteralExpression.getExpressionType(),
+              pIastCharLiteralExpression.getCharacter());
+        }
+
+        @Override
+        public CExpression visit(CFloatLiteralExpression pIastFloatLiteralExpression)
+            throws NoException {
+          return new CFloatLiteralExpression(
+              FileLocation.DUMMY,
+              pIastFloatLiteralExpression.getExpressionType(),
+              pIastFloatLiteralExpression.getValue());
+        }
+
+        @Override
+        public CExpression visit(CImaginaryLiteralExpression PIastLiteralExpression)
+            throws NoException {
+          return new CImaginaryLiteralExpression(
+              FileLocation.DUMMY,
+              PIastLiteralExpression.getExpressionType(),
+              PIastLiteralExpression.getValue());
+        }
+
+        @Override
+        public CExpression visit(CStringLiteralExpression pIastStringLiteralExpression)
+            throws NoException {
+          return new CStringLiteralExpression(
+              FileLocation.DUMMY, pIastStringLiteralExpression.getContentWithNullTerminator());
+        }
+
+        @Override
+        public CExpression visit(CComplexCastExpression pComplexCastExpression) throws NoException {
+          // TODO : CComplexCastExpression
+          return null;
+        }
+
+        @Override
+        public CExpression visit(CFieldReference pIastFieldReference) throws NoException {
+          // TODO CFieldReference
+          return null;
+        }
+
+        @Override
+        public CExpression visit(CPointerExpression pPointerExpression) throws NoException {
+          // TODO CPointerExpression
+          return null;
+        }
+
+        @Override
+        public CExpression visit(CTypeIdExpression pIastTypeIdExpression) throws NoException {
+          // TODO CTypeIdExpressio
           return null;
         }
       }
 
       /////////////////////////////////////////////////////////////////////////////
-      // Expression Visitor
+      // Right Side Expression Visitor
       /////////////////////////////////////////////////////////////////////////////
-      private final class ExprVariableFinder
+      private final class RightSideVariableFinder
           implements CExpressionVisitor<CExpression, NoException> {
 
         private final Set<String> leftVars;
         private final Map<String, String> tmpVarMap;
 
-        private ExprVariableFinder(Set<String> leftVars) {
+        private RightSideVariableFinder(Set<String> leftVars) {
           this.leftVars = leftVars;
           this.tmpVarMap = new HashMap<>();
         }
@@ -866,6 +954,15 @@ public class CFAReverser {
         }
 
         @Override
+        public CExpression visit(CUnaryExpression pIastUnaryExpression) throws NoException {
+          CExpression operand = pIastUnaryExpression.getOperand().accept(this);
+          UnaryOperator operator = pIastUnaryExpression.getOperator();
+
+          return new CUnaryExpression(
+              FileLocation.DUMMY, pIastUnaryExpression.getExpressionType(), operand, operator);
+        }
+
+        @Override
         public CExpression visit(CAddressOfLabelExpression pAddressOfLabelExpression)
             throws NoException {
           // TODO CAddressOfLabelExpression
@@ -951,13 +1048,7 @@ public class CFAReverser {
           // TODO CTypeIdExpressio
           return null;
         }
-
-        @Override
-        public CExpression visit(CUnaryExpression pIastUnaryExpression) throws NoException {
-          // TODO CUnaryExpression
-          return null;
-        }
-      } // CfaFunctionReverser
+      }
     }
 
     /////////////////////////////////////////////////////////////////////////////
