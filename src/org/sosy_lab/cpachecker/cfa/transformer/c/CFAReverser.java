@@ -554,21 +554,20 @@ public class CFAReverser {
 
       private void reverseVarDeclEdge(CVariableDeclaration decl, CFANode from, CFANode to) {
 
-        String var = decl.getName();
+        String var = decl.getQualifiedName();
 
         if (!variables.containsKey(var)) {
-          String name = decl.getName();
           CVariableDeclaration newdecl =
               new CVariableDeclaration(
                   decl.getFileLocation(),
                   decl.isGlobal(),
                   decl.getCStorageClass(),
                   decl.getType(),
-                  name,
-                  name,
-                  name,
+                  decl.getName(),
+                  decl.getOrigName(),
+                  decl.getQualifiedName(),
                   null);
-          variables.put(name, newdecl);
+          variables.put(decl.getQualifiedName(), newdecl);
         }
 
         // Creating the Assume Edge
@@ -617,9 +616,9 @@ public class CFAReverser {
         // left hand side
         LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
         CIdExpression lhs = (CIdExpression) lvalue.accept(lfinder);
-        pLog.log(Level.INFO, "LFINDER VARS: " + lfinder.vars);
+        pLog.log(Level.INFO, "LFINDER VARS: " + lfinder.lvalues);
         // right hand side
-        RightSideVariableFinder rfinder = new RightSideVariableFinder(lfinder.vars);
+        RightSideVariableFinder rfinder = new RightSideVariableFinder(lfinder.lvalues);
         CExpression rhs = rvalue.accept(rfinder);
 
         CFANode curr = from;
@@ -679,15 +678,14 @@ public class CFAReverser {
       private final class LeftSideVariableFinder
           implements CExpressionVisitor<CExpression, NoException> {
 
-        private Set<String> vars;
+        private Set<CLeftHandSide> lvalues;
 
         private LeftSideVariableFinder() {
-          this.vars = new HashSet<>();
+          this.lvalues = new HashSet<>();
         }
 
         private CVariableDeclaration createNewVar(CVariableDeclaration decl) {
-          String name = decl.getName();
-          assert !variables.containsKey(name);
+          assert !variables.containsKey(decl.getQualifiedName());
 
           CVariableDeclaration newDecl =
               new CVariableDeclaration(
@@ -695,29 +693,31 @@ public class CFAReverser {
                   false,
                   decl.getCStorageClass(),
                   decl.getType(),
-                  name,
-                  name,
-                  name,
+                  decl.getName(),
+                  decl.getOrigName(),
+                  decl.getQualifiedName(),
                   null);
-          variables.put(name, newDecl);
+
+          variables.put(decl.getQualifiedName(), newDecl);
           return newDecl;
         }
 
-        private CIdExpression handleVarDecl(CVariableDeclaration decl) {
-          String name = decl.getName();
-          vars.add(name);
+        private CIdExpression handleVarDeclExpr(CIdExpression pIastIdExpression) {
+          CVariableDeclaration decl = (CVariableDeclaration) pIastIdExpression.getDeclaration();
 
           CVariableDeclaration newDecl;
 
-          if (!variables.containsKey(name)) {
+          if (!variables.containsKey(decl.getQualifiedName())) {
             newDecl = createNewVar(decl);
           } else {
-            newDecl = variables.get(name);
+            newDecl = variables.get(decl.getQualifiedName());
           }
 
           checkNotNull(newDecl);
 
-          return new CIdExpression(FileLocation.DUMMY, newDecl);
+          CIdExpression newExpr = new CIdExpression(FileLocation.DUMMY, decl);
+          lvalues.add(newExpr);
+          return newExpr;
         }
 
         @Override
@@ -726,7 +726,7 @@ public class CFAReverser {
           CSimpleDeclaration decl = pIastIdExpression.getDeclaration();
 
           if (decl instanceof CVariableDeclaration) {
-            return handleVarDecl((CVariableDeclaration) decl);
+            return handleVarDeclExpr(pIastIdExpression);
           }
 
           return null;
@@ -831,8 +831,9 @@ public class CFAReverser {
 
         @Override
         public CExpression visit(CPointerExpression pPointerExpression) throws NoException {
-          // TODO CPointerExpression
-          return null;
+          CExpression operand = pPointerExpression.getOperand().accept(this);
+          return new CPointerExpression(
+              FileLocation.DUMMY, pPointerExpression.getExpressionType(), operand);
         }
 
         @Override
@@ -848,11 +849,12 @@ public class CFAReverser {
       private final class RightSideVariableFinder
           implements CExpressionVisitor<CExpression, NoException> {
 
-        private final Set<String> leftVars;
-        private final Map<String, String> tmpVarMap;
+        private final Set<CLeftHandSide> lvalues; // left values in left side
 
-        private RightSideVariableFinder(Set<String> leftVars) {
-          this.leftVars = leftVars;
+        private final Map<CLeftHandSide, CIdExpression> tmpVarMap;
+
+        private RightSideVariableFinder(Set<CLeftHandSide> lvalues) {
+          this.lvalues = lvalues;
           this.tmpVarMap = new HashMap<>();
         }
 
@@ -860,11 +862,9 @@ public class CFAReverser {
         private CFANode createTmpAssignEdge(CFANode from) {
           CFANode curr = from;
 
-          for (Map.Entry<String, String> e : tmpVarMap.entrySet()) {
-            String lVar = e.getKey();
-            String rVar = e.getValue();
-            CIdExpression lExpr = new CIdExpression(FileLocation.DUMMY, variables.get(lVar));
-            CIdExpression rExpr = new CIdExpression(FileLocation.DUMMY, variables.get(rVar));
+          for (Map.Entry<CLeftHandSide, CIdExpression> e : tmpVarMap.entrySet()) {
+            CLeftHandSide lExpr = e.getKey();
+            CExpression rExpr = e.getValue();
             curr = createAssignEdge(lExpr, rExpr, curr);
           }
           return curr;
@@ -872,60 +872,64 @@ public class CFAReverser {
 
         private CFANode resetTmpVar(CFANode from) {
           CFANode curr = from;
-          for (String tmpVar : tmpVarMap.values()) {
-            CIdExpression tmpExpr = new CIdExpression(FileLocation.DUMMY, variables.get(tmpVar));
+          for (CIdExpression tmpExpr : tmpVarMap.values()) {
             curr = createNoDetAssign(tmpExpr, curr);
           }
           return curr;
         }
 
-        private CVariableDeclaration createTmpVar(CVariableDeclaration decl) {
-          String varName = decl.getName();
-          String tmpName = "tmp__" + varName;
+        private CVariableDeclaration createTmpValue(CLeftHandSide expr) {
+
+          String tmpName = "tmp__" + expr.toQualifiedASTString();
           CVariableDeclaration tmpDecl =
               new CVariableDeclaration(
                   FileLocation.DUMMY,
-                  decl.isGlobal(),
-                  decl.getCStorageClass(),
-                  decl.getType(),
+                  false,
+                  CStorageClass.AUTO,
+                  expr.getExpressionType(),
                   tmpName,
-                  "tmp__" + decl.getOrigName(),
-                  "tmp__" + decl.getQualifiedName(),
+                  tmpName,
+                  tmpName,
                   null);
+          CIdExpression tmpExpr = new CIdExpression(FileLocation.DUMMY, tmpDecl);
           variables.put(tmpName, tmpDecl);
-          tmpVarMap.put(varName, tmpName);
+          tmpVarMap.put(expr, tmpExpr);
           return tmpDecl;
         }
 
         private CVariableDeclaration createNewVar(CVariableDeclaration decl) {
-          String name = decl.getName();
+
           CVariableDeclaration newDecl =
               new CVariableDeclaration(
                   decl.getFileLocation(),
                   false,
                   decl.getCStorageClass(),
                   decl.getType(),
-                  name,
-                  name,
-                  name,
+                  decl.getName(),
+                  decl.getOrigName(),
+                  decl.getQualifiedName(),
                   null);
-          variables.put(name, newDecl);
+          variables.put(decl.getQualifiedName(), newDecl);
           return newDecl;
         }
 
-        private CExpression handleVarDecl(CIdExpression expr, CVariableDeclaration decl) {
-          String name = decl.getName();
+        private CExpression handleVarDecl(CIdExpression pIastCIdExpression) {
 
-          CVariableDeclaration newDecl = variables.get(name);
-          if (!variables.containsKey(name)) {
+          CVariableDeclaration decl = (CVariableDeclaration) pIastCIdExpression.getDeclaration();
+
+          CVariableDeclaration newDecl = variables.get(decl.getQualifiedName());
+
+          if (newDecl == null) {
             newDecl = createNewVar(decl);
           }
 
-          if (leftVars.contains(name)) {
-            newDecl = createTmpVar(decl);
+          if (lvalues.contains(pIastCIdExpression)) {
+            newDecl = createTmpValue(pIastCIdExpression);
           }
 
-          return new CIdExpression(expr.getFileLocation(), newDecl);
+          checkNotNull(newDecl);
+
+          return new CIdExpression(pIastCIdExpression.getFileLocation(), newDecl);
         }
 
         @Override
@@ -934,7 +938,7 @@ public class CFAReverser {
           CSimpleDeclaration decl = pIastIdExpression.getDeclaration();
 
           if (decl instanceof CVariableDeclaration) {
-            return handleVarDecl(pIastIdExpression, (CVariableDeclaration) decl);
+            return handleVarDecl(pIastIdExpression);
           }
 
           return null;
