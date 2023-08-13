@@ -373,7 +373,7 @@ public class CFAReverser {
         nodes.put(next.getFunctionName(), next);
         CDeclarationEdge funcDeclEdge =
             new CDeclarationEdge("", newDecl.getFileLocation(), curr, next, newDecl);
-        pLog.log(Level.INFO, "func decl: " + funcDeclEdge);
+
         addToCFA(funcDeclEdge);
         curr = next;
 
@@ -479,7 +479,6 @@ public class CFAReverser {
         } else if (edge instanceof CFunctionSummaryStatementEdge) {
           pLog.log(Level.INFO, "CFunctionSummaryStatementEdge: " + edge);
         } else {
-          pLog.log(Level.INFO, "CStatementEdge: " + edge);
           reverseStmtEdge((CStatementEdge) edge, from, to);
         }
 
@@ -503,12 +502,8 @@ public class CFAReverser {
       // Assume Edge
       /////////////////////////////////////////////////////////////////////////////
       private void reverseAssumeEdge(CAssumeEdge edge, CFANode from, CFANode to) {
-        pLog.log(Level.INFO, "assume edge: " + edge);
-
         CExpression expr = edge.getExpression();
         RightSideVariableFinder finder = new RightSideVariableFinder(new HashSet<>());
-        expr.accept(finder);
-
         CExpression assumeExpr = expr.accept(finder);
 
         CAssumeEdge assumeEdge =
@@ -587,6 +582,9 @@ public class CFAReverser {
 
           BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "");
           addToCFA(blankEdge);
+        } else {
+          BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, curr, to, "");
+          addToCFA(blankEdge);
         }
       }
 
@@ -615,7 +613,7 @@ public class CFAReverser {
 
         // left hand side
         LeftSideVariableFinder lfinder = new LeftSideVariableFinder();
-        CIdExpression lhs = (CIdExpression) lvalue.accept(lfinder);
+        CLeftHandSide lhs = (CLeftHandSide) lvalue.accept(lfinder);
         pLog.log(Level.INFO, "LFINDER VARS: " + lfinder.lvalues);
         // right hand side
         RightSideVariableFinder rfinder = new RightSideVariableFinder(lfinder.lvalues);
@@ -746,6 +744,16 @@ public class CFAReverser {
         }
 
         @Override
+        public CExpression visit(CPointerExpression pPointerExpression) throws NoException {
+          CExpression operand = pPointerExpression.getOperand().accept(this);
+          CPointerExpression newExpr =
+              new CPointerExpression(
+                  FileLocation.DUMMY, pPointerExpression.getExpressionType(), operand);
+          lvalues.add(newExpr);
+          return newExpr;
+        }
+
+        @Override
         public CExpression visit(CUnaryExpression pIastUnaryExpression) throws NoException {
           CExpression operand = pIastUnaryExpression.getOperand().accept(this);
           UnaryOperator operator = pIastUnaryExpression.getOperator();
@@ -830,13 +838,6 @@ public class CFAReverser {
         }
 
         @Override
-        public CExpression visit(CPointerExpression pPointerExpression) throws NoException {
-          CExpression operand = pPointerExpression.getOperand().accept(this);
-          return new CPointerExpression(
-              FileLocation.DUMMY, pPointerExpression.getExpressionType(), operand);
-        }
-
-        @Override
         public CExpression visit(CTypeIdExpression pIastTypeIdExpression) throws NoException {
           // TODO CTypeIdExpressio
           return null;
@@ -878,7 +879,7 @@ public class CFAReverser {
           return curr;
         }
 
-        private CVariableDeclaration createTmpValue(CLeftHandSide expr) {
+        private CIdExpression createTmpValue(CLeftHandSide expr) {
 
           String tmpName = "tmp__" + expr.toQualifiedASTString();
           CVariableDeclaration tmpDecl =
@@ -894,7 +895,7 @@ public class CFAReverser {
           CIdExpression tmpExpr = new CIdExpression(FileLocation.DUMMY, tmpDecl);
           variables.put(tmpName, tmpDecl);
           tmpVarMap.put(expr, tmpExpr);
-          return tmpDecl;
+          return tmpExpr;
         }
 
         private CVariableDeclaration createNewVar(CVariableDeclaration decl) {
@@ -915,6 +916,10 @@ public class CFAReverser {
 
         private CExpression handleVarDecl(CIdExpression pIastCIdExpression) {
 
+          if (lvalues.contains(pIastCIdExpression)) {
+            return createTmpValue(pIastCIdExpression);
+          }
+
           CVariableDeclaration decl = (CVariableDeclaration) pIastCIdExpression.getDeclaration();
 
           CVariableDeclaration newDecl = variables.get(decl.getQualifiedName());
@@ -922,12 +927,6 @@ public class CFAReverser {
           if (newDecl == null) {
             newDecl = createNewVar(decl);
           }
-
-          if (lvalues.contains(pIastCIdExpression)) {
-            newDecl = createTmpValue(pIastCIdExpression);
-          }
-
-          checkNotNull(newDecl);
 
           return new CIdExpression(pIastCIdExpression.getFileLocation(), newDecl);
         }
@@ -942,6 +941,17 @@ public class CFAReverser {
           }
 
           return null;
+        }
+
+        @Override
+        public CExpression visit(CPointerExpression pPointerExpression) throws NoException {
+          if (lvalues.contains(pPointerExpression)) {
+            return createTmpValue(pPointerExpression);
+          }
+          CExpression operand = pPointerExpression.getOperand().accept(this);
+
+          return new CPointerExpression(
+              FileLocation.DUMMY, pPointerExpression.getExpressionType(), operand);
         }
 
         @Override
@@ -1038,12 +1048,6 @@ public class CFAReverser {
         @Override
         public CExpression visit(CFieldReference pIastFieldReference) throws NoException {
           // TODO CFieldReference
-          return null;
-        }
-
-        @Override
-        public CExpression visit(CPointerExpression pPointerExpression) throws NoException {
-          // TODO CPointerExpression
           return null;
         }
 
