@@ -369,6 +369,7 @@ class AssignmentHandler {
     if (conv.direction == AnalysisDirection.BACKWARD && !(edge instanceof CFunctionCallEdge)) {
       Expression lhsExpression = resolvedLhsBase.expression();
       CType lhsType = resolvedLhsBase.type();
+      // simple unaliased LHS
       if (lhsExpression instanceof UnaliasedLocation
           // if it's a composite type, it's a field of a struct or union
           // which we will handle later
@@ -377,8 +378,11 @@ class AssignmentHandler {
             lhsExpression.asUnaliasedLocation().getVariableName(),
             CTypes.adjustFunctionOrArrayType(lhsType),
             ssa);
-      } else if (lhsExpression instanceof UnaliasedLocation
-          && resolvedLhsBase.type() instanceof CCompositeType) {
+      }
+      // unaliased struct field LHS
+      // or struct assigned as a whole
+      else if (lhsExpression instanceof UnaliasedLocation
+          && resolvedLhsBase.type() instanceof CCompositeType lhsCompositeType) {
         final SliceExpression lhsSlice = assignment.lhs;
         final AssignmentQuantifierHandler assignmentQuantifierHandler =
             new AssignmentQuantifierHandler(
@@ -393,14 +397,32 @@ class AssignmentHandler {
                 assignmentOptions,
                 lhsBaseResolutionMap,
                 rhsBaseResolutionMap);
-        final ResolvedSlice lhsResolved =
-            assignmentQuantifierHandler.applySliceModifiersToResolvedBase(
-                resolvedLhsBase, lhsSlice);
-        conv.makeFreshIndex(
-            lhsResolved.expression().asUnaliasedLocation().getVariableName(),
-            lhsResolved.type(),
-            ssa);
+        // Assigning a field of a struct
+        if (!(lhsSlice.modifiers().isEmpty())) {
+          final ResolvedSlice lhsResolved =
+              assignmentQuantifierHandler.applySliceModifiersToResolvedBase(
+                  resolvedLhsBase, lhsSlice);
+          conv.makeFreshIndex(
+              lhsResolved.expression().asUnaliasedLocation().getVariableName(),
+              lhsResolved.type(),
+              ssa);
+        }
+        // assigning a struct as a whole
+        else {
+          // We increment the index for each member
+          for (CCompositeTypeMemberDeclaration lhsMember : lhsCompositeType.getMembers()) {
+            final SliceExpression lhsMemberSlice = assignment.lhs().withFieldAccess(lhsMember);
+            final ResolvedSlice lhsResolvedMemberSlice =
+                assignmentQuantifierHandler.applySliceModifiersToResolvedBase(
+                    resolvedLhsBase, lhsMemberSlice);
+            conv.makeFreshIndex(
+                lhsResolvedMemberSlice.expression().asUnaliasedLocation().getVariableName(),
+                lhsResolvedMemberSlice.type(),
+                ssa);
+          }
+        }
       } else if (resolvedLhsBase.expression() instanceof AliasedLocation) {
+        // simple aliased LHS
         if (!(resolvedLhsBase.type() instanceof CCompositeType)) {
           MemoryRegion region = lhsExpression.asAliasedLocation().getMemoryRegion();
           if (region == null) {
